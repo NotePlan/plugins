@@ -312,7 +312,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           continue
         }
         CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-        para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+        para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
         logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
         numberChanged++
         thisNote.updateParagraph(para)
@@ -347,7 +347,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           }
         } else {
           CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+          para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
