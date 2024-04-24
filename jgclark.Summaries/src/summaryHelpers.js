@@ -720,7 +720,13 @@ export async function generateProgressUpdate(occObjs: Array<TMOccurrences>, peri
     // Include sparklines only if this period is a month or less
     const showSparklines = (requestToShowSparklines && daysBetween <= 31)
     // Get length of longest progress term (to use with sparklines)
-    const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
+    let maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
+
+    // Disable padding if lines wrap
+    if (maxTermLen > 50) {
+      logDebug('generateProgressUpdate', `maxTermLen is ${maxTermLen} disabling padding as lines will wrap`)
+      maxTermLen = 0
+    }
 
     let outputArray: Array<string> = []
     for (let occObj of occObjs) {
