@@ -39,9 +39,7 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
     // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
-      const URLForDisplay = (truncateIfNecessary && linkURL.length > 20)
-        ? linkURL.slice(0, 50) + '...'
-        : linkURL
+      const URLForDisplay = truncateIfNecessary && linkURL.length > 20 ? linkURL.slice(0, 50) + '...' : linkURL
       // logDebug('changeBareLinksToHTMLLink', `${linkURL} / ${URLForDisplay}`)
       if (addWebIcon) {
         // not displaying icon
@@ -359,11 +357,11 @@ export function encodeRFC3986URIComponent(input: string): string {
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
     .replace(/!/g, '%21')
-    .replace(/'/g, "%27")
+    .replace(/'/g, '%27')
     .replace(/\(/g, '%28')
     .replace(/\)/g, '%29')
     .replace(/\*/g, '%2A')
-    // .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+  // .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 }
 
 /**
@@ -374,13 +372,89 @@ export function encodeRFC3986URIComponent(input: string): string {
  * @returns {string}
  */
 export function decodeRFC3986URIComponent(input: string): string {
-  const decodedSpecials = input
-    .replace(/%5B/g, '[')
-    .replace(/%5D/g, ']')
-    .replace(/%21/g, '!')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/g, '*')
+  const decodedSpecials = input.replace(/%5B/g, '[').replace(/%5D/g, ']').replace(/%21/g, '!').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2A/g, '*')
   return decodeURIComponent(decodedSpecials)
+}
+
+/**
+ * @method truncateOnWord(length, [from] = 'right', [ellipsis] = '...')
+ * @returns String
+ * @short Truncates a string without splitting up words.
+ * @extra [from] can be `'right'`, `'left'`, or `'middle'`. If the string is
+ *        shorter than `length`, [ellipsis] will not be added. A "word" is
+ *        defined as any sequence of non-whitespace characters.
+ *
+ * @example
+ *
+ *   'here we go'.truncateOnWord(5)         -> 'here...'
+ *   'here we go'.truncateOnWord(5, 'left') -> '...we go'
+ *
+ * @param {number} length
+ * @param {string} [from] can be `'right'`, `'left'`, or `'middle'`.
+ * @param {boolean} [fromLeft] - whether to truncate from the left or not
+ *
+ * @author Sugar.js https://github.com/andrewplummer/Sugar/blob/b757c66c4e6361af710431117eadcafc5c7d42bc/lib/string.js
+ **/
+function truncateOnWord(str: string, limit: number, fromLeft: boolean = false): string {
+  if (fromLeft) {
+    return truncateOnWord(str.split('').reverse().join(''), limit).split('').reverse().join('')
+  }
+  // WhiteSpace/LineTerminator as defined in ES5.1 plus Unicode characters in the Space, Separator category.
+  const TRIM_CHARS = '\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u180E\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u2028\u2029\u3000\uFEFF'
+  const TRUNC_REG = RegExp(`(?=[${TRIM_CHARS}])`)
+  const words = str.split(TRUNC_REG)
+  let count = 0
+  const result = []
+
+  for (const word of words) {
+    count += word.length
+    if (count <= limit) {
+      result.push(word)
+    } else {
+      break
+    }
+  }
+
+  return result.join('')
+}
+
+/**
+ * @method truncateString(length, [from] = 'right', [split] = true)
+ * @returns String
+ * @short Truncates a string.
+ * @extra [from] can be `'right'`, `'left'`, or `'middle'`. If the string is
+ *        shorter than `length`, [ellipsis] will not be added.
+ *
+ * @example
+ *
+ *   'sittin on the dock'.truncate(10)           -> 'sittin on ...'
+ *   'sittin on the dock'.truncate(10, 'left')   -> '...n the dock'
+ *   'sittin on the dock'.truncate(10, 'middle') -> 'sitti... dock'
+ *
+ * @param {number} length
+ * @param {string} [from] can be `'right'`, `'left'`, or `'middle'`.
+ * @param {boolean} [split] - whether to split on words or not
+ *
+ * @author Sugar.js https://github.com/andrewplummer/Sugar/blob/b757c66c4e6361af710431117eadcafc5c7d42bc/lib/string.js
+ **/
+export function truncateString(str: string, length: number, from: string, splitOnWord: boolean = true): string {
+  let str1, str2, len1, len2
+  if (str.length <= length) {
+    return str.toString()
+  }
+  const ellipsisStr = '...'
+  switch (from) {
+    case 'left':
+      str2 = splitOnWord ? truncateOnWord(str, length, true) : str.slice(str.length - length)
+      return ellipsisStr + str2
+    case 'middle':
+      len1 = Math.ceil(length / 2)
+      len2 = Math.floor(length / 2)
+      str1 = splitOnWord ? truncateOnWord(str, len1) : str.slice(0, len1)
+      str2 = splitOnWord ? truncateOnWord(str, len2, true) : str.slice(str.length - len2)
+      return str1 + ellipsisStr + str2
+    default:
+      str1 = splitOnWord ? truncateOnWord(str, length) : str.slice(0, length)
+      return str1 + ellipsisStr
+  }
 }
