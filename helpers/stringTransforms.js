@@ -458,3 +458,12 @@ export function truncateString(str: string, length: number, from: string, splitO
       return str1 + ellipsisStr
   }
 }
+
+/**
+ * Remove text between () inclusive
+ * @param {string} str
+ * @returns {string}
+ */
+export function removeTextBetweenParentheses(str: string): string {
+  return str.replace(/\(.*?\)/g, '')
+}

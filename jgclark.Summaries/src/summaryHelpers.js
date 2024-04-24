@@ -30,7 +30,11 @@ import {
   isHashtagWanted,
   isMentionWanted,
 } from '@helpers/search'
-import { truncateString } from '@helpers/stringTransforms'
+import {
+  removeTextBetweenParentheses,
+  truncateString,
+} from '@helpers/stringTransforms'
+import NPTemplating from 'NPTemplating'
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -720,10 +724,19 @@ export async function generateProgressUpdate(occObjs: Array<TMOccurrences>, peri
     const daysBetween = toDateMom.diff(fromDateMom, 'days')
     // Include sparklines only if this period is a month or less
     const showSparklines = (requestToShowSparklines && daysBetween <= 31)
-    if (showSparklines) {
-      // Truncate lines to avoid line wrapping
-      occObjs.forEach((m) => m.term = truncateString(m.term, 60, 'middle'))
-    }
+
+    await occObjs.forEach(async (m) => {
+      if (m.term.includes('<%') && m.term.includes('%>')) {
+        m.term = await NPTemplating.render(m.term)
+        logError('generateProgressUpdate', `rendered term: ${m.term}`)
+      }
+      if (showSparklines) {
+        m.term = truncateString(removeTextBetweenParentheses(m.term), 60, 'middle')
+      }
+    })
+
+    logError('generateProgressUpdate', `this should be after the await`)
+
     // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
 
