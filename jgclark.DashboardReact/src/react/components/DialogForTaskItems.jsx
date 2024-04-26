@@ -5,9 +5,10 @@ import Button from './Button.jsx'
 type Props = {
   isOpen: boolean,
   onClose: () => void,
+  details: any,
 }
 
-const DialogForTaskItems = ({ isOpen, onClose }: Props): React$Node => {
+const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => {
   if (!isOpen) return null
 
   /**

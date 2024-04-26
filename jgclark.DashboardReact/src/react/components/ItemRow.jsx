@@ -23,6 +23,12 @@ type Props = {
  * Represents a single item within a section, displaying its status, content, and actions.
  */
 function ItemRow(inputObj: Props): React$Node {
+  const { reactSettings, setReactSettings } = useAppContext()
+
+  function handleEditClick(dataObjToPassToOnClick, isTask) {
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: isTask, details: dataObjToPassToOnClick } }))
+  }
+
   try {
     const { pluginData } = useAppContext()
     const config = pluginData.settings
@@ -86,7 +92,7 @@ function ItemRow(inputObj: Props): React$Node {
               // $FlowIgnore(cannot-resolve-name)
               onClick={() => showProjectControlDialog(dataObjectToPassToControlDialog)}
             >
-              <i className="fa-light fa-edit pad-left"></i>
+              <i className="fa-light fa-edit pad-left" onClick={() => handleEditClick(dataObjectToPassToControlDialog, false)}></i>
             </a>
           </div>
         </div>
@@ -166,9 +172,9 @@ function ItemRow(inputObj: Props): React$Node {
             <a
               className="dialogTrigger"
               // $FlowIgnore(cannot-resolve-name)
-              onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}
+              // onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}
             >
-              <i className="fa-light fa-edit pad-left"></i>
+              <i className="fa-light fa-edit pad-left" onClick={() => handleEditClick(dataObjectToPassToControlDialog, true)}></i>
             </a>
           </div>
         </div>

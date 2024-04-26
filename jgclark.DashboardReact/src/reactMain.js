@@ -115,7 +115,6 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
       <script type="text/javascript" src="./dashboardShortcuts.js"></script>
-      <script type="text/javascript" src="./dashboardEvents.js"></script>
 `,
     }
     logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)

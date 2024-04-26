@@ -18,7 +18,7 @@ type Props = {
  */
 function ItemGrid(inputObj: Props): React$Node {
   const { items, thisSection } = inputObj
-  const { reactSettings } = useAppContext()
+  // const { reactSettings } = useAppContext()
 
   // console.log(`ItemGrid for section ${thisSection.sectionType}/${thisSection.ID}: ${items.length} items`)
 

@@ -14,6 +14,7 @@ type Props = {
   isTask: boolean,
   onClose: () => void,
   children: ?React$Node,
+  details: any,
 }
 
 /**
@@ -21,8 +22,14 @@ type Props = {
  * @param {Props} props The properties for the Dialog component.
  * @return {?React$Node} Renderable React node or null.
  */
-const Dialog = ({ isOpen, onClose, isTask }: Props): ?React$Node => {
-  return isOpen ? isTask ? <DialogForTaskItems onClose={onClose} isOpen={isOpen} /> : <DialogForProjectItems onClose={onClose} isOpen={isOpen} /> : null
+const Dialog = ({ isOpen, onClose, isTask, details }: Props): ?React$Node => {
+  return isOpen ? (
+    isTask ? (
+      <DialogForTaskItems onClose={onClose} isOpen={isOpen} details={details} />
+    ) : (
+      <DialogForProjectItems onClose={onClose} isOpen={isOpen} details={details} />
+    )
+  ) : null
 }
 
 export default Dialog

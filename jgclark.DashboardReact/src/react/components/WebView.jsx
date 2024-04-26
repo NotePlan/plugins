@@ -64,9 +64,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
-  // @FIXME: REMOVE ME
-  pluginData.sections = []
-  logDebug(`Webview`, `pluginData.sections blanked out for the moment. REMOVEME`)
 
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)

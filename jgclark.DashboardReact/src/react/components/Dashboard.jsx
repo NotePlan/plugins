@@ -32,7 +32,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   console.log('Dashboard: pluginData:', pluginData)
   const { dialogData } = reactSettings ?? {}
 
-  const setDialogOpen = (isOpen: boolean) => {
+  const updateDialogOpen = (isOpen: boolean) => {
     setReactSettings((prev) => ({ ...prev, dialogData: { isOpen } }))
   }
 
@@ -55,10 +55,10 @@ function Dashboard({ pluginData }: Props): React$Node {
   }, [])
 
   // const handleDialogOpen = () => {
-  //   setDialogOpen(true)
+  //   updateDialogOpen(true)
   // }
   const handleDialogClose = () => {
-    setDialogOpen(false)
+    updateDialogOpen(false)
   }
   return (
     <div style={dashboardContainerStyle}>

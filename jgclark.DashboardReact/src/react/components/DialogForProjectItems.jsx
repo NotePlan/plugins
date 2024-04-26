@@ -5,9 +5,10 @@ import Button from './Button.jsx'
 type Props = {
   isOpen: boolean,
   onClose: () => void,
+  details: any,
 }
 
-const DialogForProjectItems = ({ isOpen, onClose }: Props): React$Node => {
+const DialogForProjectItems = ({ isOpen, onClose, details }: Props): React$Node => {
   if (!isOpen) return null
 
   return (
