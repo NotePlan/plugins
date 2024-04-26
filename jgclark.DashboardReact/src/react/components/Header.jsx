@@ -1,5 +1,5 @@
 // @flow
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -24,7 +24,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
     return () => clearInterval(timer) // Clear interval on component unmount
   }, [lastUpdated])
 
-  const handleCheckboxClick = (e) => {
+  const handleCheckboxClick = (e: any) => {
     const isChecked = e?.target.checked || false
     logDebug('Header', `Checkbox clicked. setting in global Context reactSettings.filterPriorityItems to ${String(isChecked)}`)
     setReactSettings((prev) => ({ ...prev, filterPriorityItems: isChecked }))
@@ -33,10 +33,6 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   const handleRefreshClick = () => {
     console.log('Refresh button clicked')
     sendActionToPlugin('refresh', { type: 'refresh' })
-  }
-
-  const calculateTimeSince = () => {
-    return lastUpdated // placeholder - replace with the time since function
   }
 
   return (

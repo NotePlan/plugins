@@ -12,6 +12,7 @@
     "dashboard.css",
     "dashboardDialog.css",
     "dashboardShortcuts.js",
+    "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
     "react.c.WebView.bundle.min.js",

@@ -39,7 +39,7 @@ export type AppContextType = {
   dispatch: (command: string, dataToSend: any, message?: string) => void,
   pluginData: PluginData,
   reactSettings: ReactSettings,
-  setReactSettings: (newSettings: ReactSettings, msgForLog?: string) => void,
+  setReactSettings: (any) => void,
   updatePluginData: (newData: PluginData, messageForLog?: string) => void,
 }
 
@@ -62,7 +62,6 @@ const defaultContextValue: AppContextType = {
   pluginData: {},
   reactSettings: {}, // Initial empty reactSettings local
   setReactSettings: () => {},
-  updateReactSettings: () => {}, // Placeholder function, actual implementation below.
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
 }
 

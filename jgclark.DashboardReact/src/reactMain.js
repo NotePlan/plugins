@@ -115,6 +115,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
       <script type="text/javascript" src="./dashboardShortcuts.js"></script>
+      <script type="text/javascript" src="./dashboardEvents.js"></script>
 `,
     }
     logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)
@@ -231,7 +232,10 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
-
+      case 'SHOW_BANNER':
+        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', data)
+        break
+      // WEBVIEW_WINDOW_ID
       // NOTE: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
