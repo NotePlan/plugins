@@ -907,30 +907,30 @@ declare class CommandBar {
   /**
    * Display an array of choices as a list (only strings) which the user can
    * "fuzzy-search" filter by typing something.
-   *
    * The user selection is returned as a Promise.
    * So use it with `await CommandBar.showOptions(...)`.
-   *
    * The result is a CommandBarResultObject (as Promise success result), which
    * has `.value` and `.index`.
-   *
-   * It only supports a string array as input for the options, so you might
-   * need to map your list first to `Array<string>`.
-   *
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
+   * Also can optionally set the default option text to show. (from 3.11.1)
+   * @param {$ReadOnlyArray<TOption>} options
+   * @param {string} placeholder
+   * @param {string?} optionTextDefault?
+   * @returns {Promise<{ +index: number, +value: TOption }>}
    */
-  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>;
+  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string, optionTextDefault?: string): Promise<{ +index: number, +value: TOption }>;
   /**
    * Asks the user to enter something into the CommandBar.
    * Use the "placeholder" value to display a question, like "Type the name of the task".
    * Use the "submitText" to describe what happens with the selection, like "Create task named '%@'".
-   * The "submitText" value supports the variable "%@" in the string, that
-   * NotePlan autofill with the typed text.
+   * The "submitText" value supports the variable "%@" in the string, that NotePlan autofill with the typed text.
+   * Also can optionally set the default search text to show. (from 3.11.1)
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
    * @param {string} placeholder
    * @param {string} submitText
+   * @param {string?} searchTextDefault?
    * @returns {Promise<string>}
    */
   static showInput(placeholder: string, submitText: string): Promise<string>;
