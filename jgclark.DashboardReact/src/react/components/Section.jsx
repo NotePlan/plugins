@@ -12,13 +12,14 @@ import { clo } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/reactDev'
 
 type SectionProps = {
-  section: TSection
+  section: TSection,
 }
 
 /**
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(inputObj: SectionProps): React$Node {
+  const { reactSettings, setReactSettings } = useAppContext()
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
@@ -28,7 +29,7 @@ function Section(inputObj: SectionProps): React$Node {
 
     if (!section || isNaN(section.ID)) {
       throw new Error(`❓Section doesn't exist.`)
-    } else if ((!section.sectionItems || section.sectionItems.length === 0)) {
+    } else if (!section.sectionItems || section.sectionItems.length === 0) {
       if (section.ID !== 0) {
         logDebug('Section', `Section: ${section.ID} / ${section.sectionType} doesn't have any sectionItems, so not displaying.`)
         return
@@ -51,27 +52,23 @@ function Section(inputObj: SectionProps): React$Node {
         })
       }
     } else {
-      console.info(`Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
+      logDebug(`Section`, `Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
     }
 
     // Produce set of actionButtons, if present
-    const buttons = section.actionButtons?.map((item, index) => (
-      <CommandButton key={index} button={item} />
-    )) ?? []
+    const buttons = section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} />) ?? []
 
     // Filter down by priority (if desired)
-    const filterPriorityItems = config?.filterPriorityItems ?? true
+    const filterPriorityItems = reactSettings?.filterPriorityItems ?? false
     let maxPrioritySeen = 0
     for (const i of items) {
-      if ((i.para?.priority) && i.para.priority > maxPrioritySeen) {
+      if (i.para?.priority && i.para.priority > maxPrioritySeen) {
         maxPrioritySeen = i.para.priority
       }
     }
     logDebug('Section', `- config.filterPriorityItems = ${String(filterPriorityItems)}, maxPrioritySeen=${String(maxPrioritySeen)}`)
-    const filteredItems = (filterPriorityItems)
-      ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
-      : items.slice()
-    const priorityFilteringHappening = (items.length > filteredItems.length)
+    const filteredItems = filterPriorityItems ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
+    const priorityFilteringHappening = items.length > filteredItems.length
     logDebug('Section', `- After filter, ${String(filteredItems.length)} from ${String(items.length)} items (${String(priorityFilteringHappening)})`)
 
     // Now sort the items by startTime, then by endTime, then by priority, then title
@@ -118,10 +115,8 @@ function Section(inputObj: SectionProps): React$Node {
     const itemsToShow = filteredItems.slice(0, limit)
     // Caclculate how many are not shown: not as simple as 'items.length - itemsToShow.length'
     // because there can be a pre-filter in Overdue generation, given by section.totalCount
-    const filteredOut = (section.totalCount)
-      ? section.totalCount - itemsToShow.length
-      : items.length - itemsToShow.length
-    const limitApplied = ((section.totalCount ?? 0) > itemsToShow.length)
+    const filteredOut = section.totalCount ? section.totalCount - itemsToShow.length : items.length - itemsToShow.length
+    const limitApplied = (section.totalCount ?? 0) > itemsToShow.length
     logDebug('Section', `- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
 
     // Send an extra line if we've applied filtering/limit
@@ -134,8 +129,8 @@ function Section(inputObj: SectionProps): React$Node {
         para: {
           content: `There are also ${filteredOut} ${priorityFilteringHappening ? 'lower-priority' : ''} items currently hidden`,
           filename: '',
-          type: 'text' // for want of something else
-        }
+          type: 'text', // for want of something else
+        },
       })
     }
 
@@ -158,10 +153,8 @@ function Section(inputObj: SectionProps): React$Node {
           <span className={`${section.sectionTitleClass} sectionName`}>
             <i className={`sectionIcon ${section.FAIconClass}`}></i>
             {section.name}
-          </span>
-          {' '}
-          <span className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}>
-          </span>
+          </span>{' '}
+          <span className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></span>
           {buttons}
         </div>
         <ItemGrid thisSection={inputObj.section} items={itemsToShow} />
