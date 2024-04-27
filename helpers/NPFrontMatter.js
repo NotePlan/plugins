@@ -315,9 +315,9 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     let front = ''
     if (note == null) {
       // no note - return false
-      logError('ensureFrontmatter', `No note found. Stopping conversion.`)
-      // await showMessage(`No note found to convert to frontmatter.`)
-    } else if (hasFrontMatter(note.content || '')) {
+      throw new Error(`No note found. Stopping conversion.`)
+    }
+    else if (hasFrontMatter(note.content || '')) {
       // already has frontmatter
       const attr = getAttributes(note.content)
       clo(attr, `ensureFrontmatter: Note '${displayTitle(note)}' has frontmatter already: attr =`)
@@ -329,7 +329,8 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
       }
       retVal = true
-    } else {
+    }
+    else {
       // need to add frontmatter
       let newTitle
       if (note.type === 'Notes' && alsoEnsureTitle) {
