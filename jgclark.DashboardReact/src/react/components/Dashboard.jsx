@@ -70,7 +70,7 @@ function Dashboard({ pluginData }: Props): React$Node {
           <Section key={index} section={section} />
         ))}
       </div>
-      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} isTask={dialogData?.isTask} />
+      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} isTask={dialogData?.isTask} details={dialogData?.details} />
     </div>
   )
 }

@@ -7,29 +7,15 @@
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import {
-  getSettings,
-  moveItemBetweenCalendarNotes
-} from './dashboardHelpers'
+import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-import {
-  calcOffsetDateStr,
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-  RE_DATE_INTERVAL,
-  RE_NP_WEEK_SPEC,
-  replaceArrowDatesInString,
-} from '@helpers/dateTime'
+import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
-import {
-  cyclePriorityStateDown,
-  cyclePriorityStateUp,
-  getTaskPriority,
-} from '@helpers/paragraph'
+import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   cancelItem,
@@ -40,11 +26,7 @@ import {
   toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
-import {
-  getLiveWindowRectFromWin, getWindowFromCustomId,
-  logWindowsList,
-  storeWindowRect,
-} from '@helpers/NPWindows'
+import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { chooseHeading } from '@helpers/userInput'
 
@@ -58,14 +40,14 @@ type MessageDataObject = {
   encodedFilename: string,
   encodedContent: string,
   itemType?: string,
-  encodedUpdatedContent?: string
+  encodedUpdatedContent?: string,
 }
 type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 // TEST: New for React
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId 
+const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId
 
 //-----------------------------------------------------------------
 
@@ -83,10 +65,9 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
     // clo(data, 'onMessageFromHTMLView dispatching data object:')
 
     // TEST: New things for React copied from @DW version
-    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
-
 
     switch (actionType) {
       case 'onClickDashboardItem':
@@ -113,7 +94,6 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
       clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
-
 
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
   } catch (error) {
@@ -173,6 +153,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     // clo(data, 'bridgeClickDashboardItem received data object')
     switch (type) {
+      case 'refresh':
+        logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED BUT NOT IMPLEMENTED YET`)
+        break
       case 'completeTask': {
         // Complete the task in the actual Note
         const res = completeItem(filename, content)
@@ -290,7 +273,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedData = {
             itemID: ID,
             newContent: updatedContent,
-            newPriority: newPriority
+            newPriority: newPriority,
           }
           sendToHTMLWindow(windowId, 'cyclePriorityStateUp', updatedData)
         } else {
@@ -315,7 +298,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedData = {
             itemID: ID,
             newContent: updatedContent,
-            newPriority: newPriority
+            newPriority: newPriority,
           }
           sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
         } else {
@@ -359,7 +342,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
           logDebug('bCDI', '---------------- refresh ---------------')
           // await showDashboardReact('refresh')
-
         } else {
           logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
         }
@@ -489,7 +471,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         const res = await CommandBar.showOptions(
           allNotes.map((n) => n.title ?? 'untitled'),
-          `Select note to move this ${itemType} to`)
+          `Select note to move this ${itemType} to`,
+        )
         const destNote = allNotes[res.index]
 
         // Ask to which heading to add the selectedParas
@@ -498,9 +481,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Add text to the new location in destination note
         // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
-        const newHeadingLevel = await getSettingFromAnotherPlugin("jgclark.QuickCapture", "headingLevel", 2)
+        const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
         logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
-        if (itemType === "task") {
+        if (itemType === 'task') {
           addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         } else {
           addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)

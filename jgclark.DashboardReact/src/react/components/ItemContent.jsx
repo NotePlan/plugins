@@ -4,17 +4,21 @@
 // Last updated 22.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
-import {
-  // makeNoteTitleWithOpenActionFromFilename,
-  // makeParaContentToLookLikeNPDisplayInHTML,
-} from '../../dashboardHelpers'
+import { useAppContext } from './AppContext.jsx'
+import // makeNoteTitleWithOpenActionFromFilename,
+// makeParaContentToLookLikeNPDisplayInHTML,
+'../../dashboardHelpers'
 import type { TSection, TSectionItem } from '../../types.js'
-import {
-  getAPIDateStrFromDisplayDateStr,
-  includesScheduledFutureDate,
-
-} from '@helpers/dateTime'
+import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/reactDev'
+import {
+  encodeRFC3986URIComponent,
+  changeBareLinksToHTMLLink,
+  changeMarkdownLinksToHTMLLink,
+  stripBackwardsDateRefsFromString,
+  stripThisWeeksDateRefsFromString,
+  stripTodaysDateRefsFromString,
+} from '@helpers/stringTransforms'
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -27,26 +31,15 @@ import {
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
-  truncateHTML
+  truncateHTML,
 } from '@helpers/HTMLView'
-import {
-  RE_ARROW_DATES_G,
-  RE_SCHEDULED_DATES_G,
-} from '@helpers/regex'
-import {
-  changeBareLinksToHTMLLink,
-  changeMarkdownLinksToHTMLLink,
-  stripBackwardsDateRefsFromString,
-  stripThisWeeksDateRefsFromString,
-  stripTodaysDateRefsFromString
-} from '@helpers/stringTransforms'
+import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import {
   findLongestStringInArray,
   // getTimeBlockString,
   isTimeBlockLine,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
-
 
 type Props = {
   item: TSectionItem,
@@ -57,7 +50,8 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemContent(inputObj: Props): React$Node {
-  const { item, /*thisSection*/ } = inputObj
+  const { item /*thisSection*/ } = inputObj
+  const { sendActionToPlugin } = useAppContext()
   const para = item.para
   // const itemType = para.type
 
@@ -66,12 +60,19 @@ function ItemContent(inputObj: Props): React$Node {
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
 
+  function handleTaskClick() {
+    const dataObjectToPassToFunction = {
+      type: 'showLineInEditorFromFilename',
+      encodedFilename: item.itemFilename,
+      encodedContent: encodeRFC3986URIComponent(para.content),
+    }
+    sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
+  }
+
   // console.log(`-> ${mainContent}`)
 
   // TODO(later): try not to live dangerously!
-  return (
-    <a className="content" dangerouslySetInnerHTML={{ __html: mainContent }}></a>
-  )
+  return <a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
 }
 
 /**
@@ -95,7 +96,8 @@ function ItemContent(inputObj: Props): React$Node {
 function makeParaContentToLookLikeNPDisplayInReact(
   thisItem: TSectionItem,
   // noteLinkStyle: string = "all", // or "append"
-  truncateLength: number = 0): string {
+  truncateLength: number = 0,
+): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
@@ -227,15 +229,14 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // console.log(`makeParaContet...: \n-> ${output}`)
     return output
-  }
-  catch (error) {
+  } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, `❗️ERROR❗️ ${error.message}`)
     return ''
   }
 }
 
 /**
- * 
+ *
  * @param {SectionItem} thisItem
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string}
@@ -303,9 +304,10 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
     // return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
+      noteTitle,
+    )}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+  } catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `❗️ERROR❗️ ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
@@ -340,7 +342,7 @@ function convertTimeBlockToHTML(input: string): string {
   // if (isTimeBlockLine(input, timeblockTextMustContainString)) {
   const timeBlockPart = getTimeBlockString(input)
   logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
-  let output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   // }
   return output
 }

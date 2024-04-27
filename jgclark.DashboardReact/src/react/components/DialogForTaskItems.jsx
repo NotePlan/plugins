@@ -1,15 +1,23 @@
 // @flow
-import React from 'react'
+import React, { useRef } from 'react'
 import Button from './Button.jsx'
+import { useAppContext } from './AppContext.jsx'
+import { logDebug } from '@helpers/reactDev'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 
 type Props = {
   isOpen: boolean,
   onClose: () => void,
-  details: any,
+  details: any, //FIXME: @jgclark  define a type for this -- comes from detailsToPassToControlDialog
 }
 
 const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => {
   if (!isOpen) return null
+  const { sendActionToPlugin } = useAppContext()
+  const inputRef = useRef()
+
+  const reschedOrMove = details.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
+  const dateChangeFunctionToUse = reschedOrMove === 'resched' ? 'updateTaskDate' : 'moveFromCalToCal'
 
   /**
    * Array of buttons to render.
@@ -26,39 +34,94 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     { label: 'this quarter', controlStr: '+0q' },
   ]
   const otherControlButtons = [
-    { label: 'Cancel', controlStr: 'cancel' },
-    { label: 'Move to', controlStr: 'movetonote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
-    { label: 'Priority', controlStr: 'priup', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
-    { label: 'Priority', controlStr: 'pridown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
-    { label: 'Toggle Type', controlStr: 'tog' },
-    { label: 'Complete Then', controlStr: 'ct' },
-    { label: 'Unschedule', controlStr: 'unsched' },
+    { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancel' },
+    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
+    { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
+    { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
+    { label: 'Toggle Type', controlStr: 'tog', handlingFunction: 'toggleType' },
+    { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'TODO:dont know what function this should call' }, //TODO: @jgclark nI'm not sure what function handles this
+    { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
   ]
 
+  function handleTitleClick() {
+    const dataObjectToPassToFunction = {
+      type: 'showNoteInEditorFromFilename',
+      encodedFilename: details.para.filename,
+    }
+    sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
+  }
+
+  function handleButtonClick(controlStr: string, type: string) {
+    const { itemID: id, itemType, metaModifier } = details
+    const encodedFilename = encodeRFC3986URIComponent(details.para.filename)
+    const encodedCurrentContent = encodeRFC3986URIComponent(inputRef?.current?.value || '')
+    logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
+    console.log(
+      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`,
+    )
+    let dataToSend
+    if (controlStr === 'update') {
+      //TODO: MUST GET THE CONTENT
+      const encodedUpdatedContent = 'TODO' //TODO:
+      // const encodedUpdatedContent = encodeRFC3986URIComponent(document.getElementById('dialogItemContent').value)
+      console.log(`- orig content: {${encodedCurrentContent}} / updated content: {${encodedUpdatedContent}}`)
+
+      dataToSend = {
+        itemID: id,
+        type,
+        controlStr: controlStr,
+        encodedFilename,
+        encodedContent: encodedCurrentContent,
+        encodedUpdatedContent: encodedUpdatedContent,
+      } // = sendMessageToPlugin('onClickDashboardItem', ...)
+    } else {
+      dataToSend = {
+        itemID: id,
+        type,
+        controlStr: controlStr,
+        itemType: itemType,
+        encodedFilename: encodedFilename,
+        encodedContent: encodedCurrentContent,
+      } // = sendMessageToPlugin('onClickDashboardItem', ...)
+    }
+
+    sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
+    if (controlStr === 'openNote') return //don't close dialog yet
+
+    // Dismiss dialog, unless meta key pressed
+    if (!metaModifier) {
+      onClose()
+    } else {
+      console.log(`Option key pressed. But closing dialog anyway.`)
+      // Note: this is where we would want to update and re-gather the data-encoded-content, as it might well have changed.
+      onClose()
+    }
+  }
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
       {/*----------- Single dialog that can be shown for any task-based item -----------*/}
       <dialog id="itemControlDialog" className="itemControlDialog" aria-labelledby="Actions Dialog" aria-describedby="Actions that can be taken on items">
-        <div className="dialogTitle">
-          From <i className="pad-left pad-right fa-regular fa-file-lines"></i>
+        <div className="dialogTitle" onClick={() => handleTitleClick()}>
+          From: <i className="pad-left pad-right fa-regular fa-file-lines"></i>
           <b>
-            <span id="dialogItemNote">?</span>
+            <span id="dialogItemNote">{details?.para?.title}</span>
+            {details?.noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
         </div>
         <div className="dialogBody">
           <div className="buttonGrid" id="itemDialogButtons">
             <div>For</div>
             <div className="dialogDescription">
-              <input type="text" id="dialogItemContent" className="fullTextInput" />
-              <button className="updateItemContentButton" data-control-str="update">
+              <input contentEditable={true} type="text" id="dialogItemContent" className="fullTextInput" value={details?.para?.content} ref={inputRef} />
+              <button className="updateItemContentButton" data-control-str="update" onClick={() => handleButtonClick('update', 'update')}>
                 Update
               </button>
             </div>
             <div>Move to</div>
             <div id="itemControlDialogMoveControls">
               {buttons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr}>
+                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={() => handleButtonClick(button.controlStr, dateChangeFunctionToUse)}>
                   {button.label}
                 </button>
               ))}
@@ -66,7 +129,7 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
             <div>Other controls</div>
             <div id="itemControlDialogOtherControls">
               {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr}>
+                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={() => handleButtonClick(button.controlStr, button.handlingFunction)}>
                   {button.icons?.map((icon) => (
                     <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left' : 'icon-right'}`}></i>
                   ))}

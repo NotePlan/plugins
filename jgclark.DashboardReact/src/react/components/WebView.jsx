@@ -64,6 +64,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
+  // pluginData.sections = pluginData.sections.slice(0, 1) //FIXME: dbw remove this
+  // logDebug('WebView', `DBW TEMPORARILY LIMITING TO ONE ITEM - REMOVE THIS`)
 
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
@@ -128,15 +130,16 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * For instance, saving where the scroll position was so that when data changes and the Webview re-renders, it can scroll back to where it was
    * @param {string} command
    * @param {any} dataToSend
+   * @oaram {any} additionalInfo
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
-  const sendActionToPlugin = (command: string, dataToSend: any, updateGlobalData: boolean = true) => {
+  const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
     logDebug(`Webview: sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
-      dispatch('UPDATE_DATA', newData, '') // save the data at the Root React Component level, which will give the plugin access to this data also
+      dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also
     }
-    sendToPlugin([command, dataToSend, '']) // send action to plugin
+    sendToPlugin([command, dataToSend, additionalInfo]) // send action to plugin
   }
 
   /**

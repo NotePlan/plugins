@@ -34,7 +34,7 @@ export type PluginData = {
 }
 
 export type AppContextType = {
-  sendActionToPlugin: (command: string, dataToSend: any) => void,
+  sendActionToPlugin: (command: string, dataToSend: any, details: string, updateGlobalData: boolean) => void,
   sendToPlugin: ([string, any, string]) => void,
   dispatch: (command: string, dataToSend: any, message?: string) => void,
   pluginData: PluginData,
@@ -45,7 +45,7 @@ export type AppContextType = {
 
 type Props = {
   children?: Node,
-  sendActionToPlugin: (command: string, dataToSend: any, additionalDetails?: string) => void,
+  sendActionToPlugin: (command: string, dataToSend: any, additionalInfo?: string, updateGlobalData?: boolean) => void,
   sendToPlugin: ([string, any, string]) => void,
   dispatch: (command: string, dataToSend: any, messageForLog?: string) => void,
   pluginData: PluginData,
@@ -69,7 +69,7 @@ const defaultContextValue: AppContextType = {
  *                             VARIABLES
  ****************************************************************************************************************************/
 
-const AppContext = createContext<AppContextType | null>(defaultContextValue)
+const AppContext = createContext<AppContextType>(defaultContextValue)
 
 /****************************************************************************************************************************
  *                             CONTEXT PROVIDER FUNCTIONS
@@ -95,4 +95,4 @@ export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispat
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
 }
 
-export const useAppContext = (): AppContextType | null => useContext(AppContext)
+export const useAppContext = (): AppContextType => useContext(AppContext)

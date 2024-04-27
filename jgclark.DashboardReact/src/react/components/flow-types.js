@@ -1,8 +1,4 @@
 // @flow
-// This is just here for reference to keep track of what fields are used in the local reactSettings
-export type ReactSettingsType = {
-  filterPriorityItems: boolean,
-}
 
 export type ItemRowType = {
   status: string,
