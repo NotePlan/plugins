@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 22.4.2024 for v2.0.0 by @jgclark
+// Last updated 26.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -46,7 +46,7 @@ export const openTodayItems: Array<TSectionItem> = [
       "type": "open",
       "filename": thisFilename,
       "priority": 0,
-      "content": "earliest task with timeblock 08:00-09:00",
+      "content": "evening routine 10:00-10:30PM",
       "prefix": "* ",
     }
   },
@@ -60,7 +60,7 @@ export const openTodayItems: Array<TSectionItem> = [
       "type": "open",
       "filename": thisFilename,
       "priority": 0,
-      "content": "task with evening 18:00-20:00 job",
+      "content": "task with evening 18:00-19:00 job",
       "prefix": "* ",
     }
   },
@@ -78,6 +78,34 @@ export const openTodayItems: Array<TSectionItem> = [
       "prefix": "* ",
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "checklist",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "morning checklist 8:00AM",
+      "prefix": "+ ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "checklist",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "earliest task with timeblock 08:00-09:00",
+      "prefix": "+ ",
+    }
+  },
 ]
 export const refTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
@@ -91,7 +119,7 @@ export const refTodayItems: Array<TSectionItem> = [
       "type": "open",
       "priority": 0,
       "prefix": "* ",
-      "content": "Pay in cash from cafe 14:30PM",
+      "content": "Pay in cash from cafe 2:30PM",
     }
   },
   // $FlowIgnore[prop-missing] ID gets added later

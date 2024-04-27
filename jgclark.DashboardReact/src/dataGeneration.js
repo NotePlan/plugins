@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 15.4.2024 for v2.0.0 by @jgclark
+// Last updated 27.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -45,6 +45,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { getFolderFromFilename } from '@helpers/folders'
 // import { displayTitle } from '@helpers/general'
 import {
+  getTimeRangeFromTimeBlockString,
   // localeDateStr,
   toNPLocaleDateString,
   // setMomentLocaleFromEnvironment,
@@ -120,9 +121,10 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     if (!para) { throw new Error(`No para found for item ${item.ID}`) }
     const timeBlock = getTimeBlockString(para.content)
     if (timeBlock) {
-      const [startTime, endTime] = timeBlock.split('-')
-      para.startTime = startTime
-      para.endTime = endTime ?? '' // might not have an end time
+      // const [startTimeStr, endTimeStr] = timeBlock.split('-')
+      const [startTimeStr, endTimeStr] = getTimeRangeFromTimeBlockString(timeBlock)
+      para.startTime = startTimeStr
+      para.endTime = endTimeStr ?? '' // might not have an end time
     }
   }
 
