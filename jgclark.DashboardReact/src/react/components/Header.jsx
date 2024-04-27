@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug } from '@helpers/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 type Props = {
   lastUpdated: string,
 }

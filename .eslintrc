@@ -32,6 +32,7 @@
   },
   "rules": {
 /*     "no-unused-vars": "error", */
+    "react/prop-types": "off",
     "no-unused-vars": [
       2,
       {

@@ -9,7 +9,7 @@ import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo } from '@helpers/dev'
-import { logDebug, logError } from '@helpers/reactDev'
+import { logDebug, logError } from '@helpers/react/reactDev'
 
 type SectionProps = {
   section: TSection,

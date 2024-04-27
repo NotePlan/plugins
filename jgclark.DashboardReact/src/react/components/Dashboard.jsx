@@ -5,7 +5,7 @@ import Header from './Header.jsx'
 import Section from './Section.jsx'
 import Dialog from './Dialog.jsx'
 import { useAppContext, type ReactSettings } from './AppContext.jsx'
-import { logDebug } from '@helpers/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 
 type Props = {
   pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
@@ -70,7 +70,7 @@ function Dashboard({ pluginData }: Props): React$Node {
           <Section key={index} section={section} />
         ))}
       </div>
-      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} isTask={dialogData?.isTask} />
+      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} isTask={dialogData?.isTask} details={dialogData?.details} />
     </div>
   )
 }

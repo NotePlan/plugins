@@ -150,6 +150,8 @@ function ItemRow(inputObj: Props): React$Node {
         reschedOrMove: 'move', // TODO: reschedOrMove,
         itemType: 'task',
         noteType: item.noteType,
+        para: item.para,
+        title: item.itemNoteTitle,
       }
 
       return (
