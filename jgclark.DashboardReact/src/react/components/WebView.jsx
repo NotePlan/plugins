@@ -34,7 +34,7 @@ import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug } from '@helpers/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data

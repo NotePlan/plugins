@@ -11,7 +11,7 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, type Node } from 'react'
-import { logDebug } from '@helpers/reactDev'
+import { logDebug } from '@helpers/react/reactDev'
 
 logDebug(`AppContext`, `outside component code`)
 

@@ -2,7 +2,7 @@
 import React, { useRef } from 'react'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug } from '@helpers/reactDev'
+import { logDebug } from '@helpers/react/reactDev'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 
 type Props = {

@@ -10,7 +10,7 @@ import // makeNoteTitleWithOpenActionFromFilename,
 '../../dashboardHelpers'
 import type { TSection, TSectionItem } from '../../types.js'
 import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
-import { logDebug, logError } from '@helpers/reactDev'
+import { logDebug, logError } from '@helpers/react/reactDev'
 import {
   encodeRFC3986URIComponent,
   changeBareLinksToHTMLLink,

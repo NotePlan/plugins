@@ -34,7 +34,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug } from '@helpers/reactDev'
+import { logDebug } from '@helpers/react/reactDev'
 import { JSP, formatReactError } from '@helpers/dev'
 
 const ROOT_DEBUG = false
