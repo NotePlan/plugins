@@ -202,22 +202,20 @@ function ItemRow(inputObj: Props): React$Node {
       para: item.para,
       title: item.itemNoteTitle,
     }
-
+    // Note the visible && below removes the item immediately
+    // Removing that will cause a fade-out to occur but leaves the space on the page
     return (
       visible && (
         <div
-          className="sectionItemRow"
+          className={`sectionItemRow${visible ? '' : ' fadeOutAndHide'}`}
           id={item.ID}
           data-section-type={sectionType}
-          // $FlowIgnore(cannot-resolve-name)
-          data-encoded-filename={encodeRFC3986URIComponent(item.para?.filename)}
-          // $FlowIgnore(cannot-resolve-name)
-          data-encoded-content={encodeRFC3986URIComponent(item.para?.content)}
+          data-encoded-filename={encodeRFC3986URIComponent(item.para?.filename ?? '')}
+          data-encoded-content={encodeRFC3986URIComponent(item.para?.content ?? '')}
         >
           <div className={`${divClassName} itemIcon`} onClick={handleIconClick}>
             <i id={`${item.ID}I`} className={`${iconClassName}`}></i>
           </div>
-
           <div className="sectionItemContent sectionItem">
             <ItemContent item={item} />
             {config?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
