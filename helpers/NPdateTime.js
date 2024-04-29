@@ -1097,3 +1097,21 @@ export function getCalendarFilenameFromDateString(dateStr: string): string {
     return '(invalid dateStr)' // for completeness
   }
 }
+
+export function getTimeRangeFromTimeBlockString(timeBlockStr: string): [string, string] {
+  try {
+    const parsedRanges: $ReadOnlyArray<ParsedTextDateRange> = Calendar.parseDateText(timeBlockStr)
+    if (parsedRanges.length === 0) {
+      throw new Error(`Couldn't find any time ranges`)
+    }
+
+    const firstRange = parsedRanges[0]
+    const startStr = toLocaleTime(firstRange.start)
+    const endStr = toLocaleTime(firstRange.end)
+    logDebug('getTimeRangeFromTimeBlockString', `Found times: ${startStr} / ${endStr} in time block '${timeBlockStr}'`)
+    return [startStr, endStr]
+  } catch (error) {
+    logError('getTimeRangeFromTimeBlockString', `${error.message} from time block '${timeBlockStr}'`)
+    return ['23:59', '23:59'] // report as being at end of day
+  }
+}

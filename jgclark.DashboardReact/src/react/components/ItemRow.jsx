@@ -6,9 +6,10 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem, TParagraphForDashboard } from '../../types.js'
-import { useAppContext } from './AppContext.jsx'
+import { onClickDashboardItem } from '../../../requiredFiles/HTMLWinCommsSwitchboard.js'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
+import { useAppContext } from './AppContext.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo } from '@helpers/dev'
 
@@ -22,6 +23,12 @@ type Props = {
  * Represents a single item within a section, displaying its status, content, and actions.
  */
 function ItemRow(inputObj: Props): React$Node {
+  const { reactSettings, setReactSettings } = useAppContext()
+
+  function handleEditClick(dataObjToPassToOnClick, isTask) {
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: isTask, details: dataObjToPassToOnClick } }))
+  }
+
   try {
     const { pluginData } = useAppContext()
     const config = pluginData.settings
@@ -31,17 +38,18 @@ function ItemRow(inputObj: Props): React$Node {
     const itemType = item.itemType
     const sectionType = thisSection.sectionType
 
-    console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
+    // console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
 
     // -------------------------------------------------------
     if (itemType === 'review') {
       // Display a Project item
       const itemFilename = item.itemFilename
+      // $FlowIgnore(cannot-resolve-name)
       const encodedItemFilename = encodeRFC3986URIComponent(itemFilename)
       // console.log(`- 'review': ${itemFilename}`)
       const noteTitle = item.itemNoteTitle ?? '<no title>'
       // console.log(`- making notelink with ${itemFilename}, ${noteTitle}`)
-      const folderNamePart = config.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+      const folderNamePart = config?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
       // console.log(`- folderNamePart = ${folderNamePart}`)
 
       const projectContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, noteTitle)}`
@@ -58,7 +66,8 @@ function ItemRow(inputObj: Props): React$Node {
       const dataObjToPassToOnClick = { itemID: item.ID, type: 'showNoteInEditorFromFilename', encodedFilename: encodedItemFilename, encodedContent: '' }
 
       return (
-        <div className="sectionItemRow"
+        <div
+          className="sectionItemRow"
           id={item.ID}
           data-section-type={sectionType}
           // $FlowIgnore(cannot-resolve-name)
@@ -66,69 +75,64 @@ function ItemRow(inputObj: Props): React$Node {
           // $FlowIgnore(cannot-resolve-name)
           data-encoded-content={encodeRFC3986URIComponent(projectContent)}
         >
-          <div className="reviewProject todo itemIcon"><i id={`${item.ID}I`} className="fa-regular fa-circle-play"></i>
+          <div className="reviewProject todo itemIcon">
+            <i id={`${item.ID}I`} className="fa-regular fa-circle-play"></i>
           </div>
 
           <div className="sectionItemContent sectionItem">
             {/* <a className="content" dangerouslySetInnerHTML={{ __html: projectContent }}></a> */}
             {folderNamePart}
-            <a className="noteTitle sectionItem"
-              onClick={() => onClickDashboardItem(dataObjToPassToOnClick)
-              } >
+            <a className="noteTitle sectionItem" onClick={() => onClickDashboardItem(dataObjToPassToOnClick)}>
               <i className="fa-regular fa-file-lines pad-right"></i>
               {noteTitle}
-            </a >
+            </a>
 
-            <a className="dialogTrigger"
+            <a
+              className="dialogTrigger"
               // $FlowIgnore(cannot-resolve-name)
-              onClick={() => showProjectControlDialog(dataObjectToPassToControlDialog)}>
-              <i className="fa-light fa-edit pad-left"></i>
+              onClick={() => showProjectControlDialog(dataObjectToPassToControlDialog)}
+            >
+              <i className="fa-light fa-edit pad-left" onClick={() => handleEditClick(dataObjectToPassToControlDialog, false)}></i>
             </a>
           </div>
         </div>
       )
     }
-      // -------------------------------------------------------
+    // -------------------------------------------------------
     else if (itemType === 'congrats') {
       // Display congratulatory message
       return (
-        <div className="sectionItemRow"
-          id={item.ID}
-          data-section-type={sectionType}
-          data-encoded-filename=''
-          data-encoded-content=''
-        >
+        <div className="sectionItemRow" id={item.ID} data-section-type={sectionType} data-encoded-filename="" data-encoded-content="">
           <div className="itemIcon checked">
-            <i id={item.ID}
-              className="fa-regular fa-circle-check"></i>
+            <i id={item.ID} className="fa-regular fa-circle-check"></i>
           </div>
           <div className="sectionItemContent sectionItem">
-            <a className="content"><i>Nothing to do: take a break <i className="fa-regular fa-mug"></i></i></a>
+            <a className="content">
+              <i>
+                Nothing to do: take a break <i className="fa-regular fa-mug"></i>
+              </i>
+            </a>
           </div>
         </div>
       )
     }
-      // -------------------------------------------------------
+    // -------------------------------------------------------
     else if (itemType === 'filterIndicator') {
       // Display filter indicator
       return (
-        <div className="sectionItemRow"
-          id={item.ID}
-          data-section-type={sectionType}
-          data-encoded-filename=''
-          data-encoded-content=''
-        >
+        <div className="sectionItemRow" id={item.ID} data-section-type={sectionType} data-encoded-filename="" data-encoded-content="">
           <div className="itemIcon checked">
-            <i id={item.ID}
-              className="fa-light fa-plus"></i>
+            <i id={item.ID} className="fa-light fa-plus"></i>
           </div>
           <div className="sectionItemContent sectionItem">
-            <a className="content"><i>{item.para.content}</i></a>
+            <a className="content">
+              <i>{item?.para?.content || '<no content>'}</i>
+            </a>
           </div>
         </div>
       )
     }
-      // -------------------------------------------------------
+    // -------------------------------------------------------
     else {
       // Display every other type of item
       if (!item.para) {
@@ -136,20 +140,9 @@ function ItemRow(inputObj: Props): React$Node {
       }
       // compute the things we need later
       // const para: TParagraphForDashboard = item.para
-      const divClassName = (itemType === 'open')
-        ? 'sectionItemTodo todo'
-        : (itemType === 'checklist')
-          ? 'sectionItemChecklist todo'
-          : (itemType === 'congrats')
-            ? 'checked'
-            : ''
-      const iconClassName = (itemType === 'open')
-        ? 'todo fa-regular fa-circle'
-        : (itemType === 'checklist')
-          ? 'todo fa-regular fa-square'
-          : (itemType === 'congrats')
-            ? 'fa-regular fa-circle-check'
-            : ''
+      const divClassName = itemType === 'open' ? 'sectionItemTodo todo' : itemType === 'checklist' ? 'sectionItemChecklist todo' : itemType === 'congrats' ? 'checked' : ''
+      const iconClassName =
+        itemType === 'open' ? 'todo fa-regular fa-circle' : itemType === 'checklist' ? 'todo fa-regular fa-square' : itemType === 'congrats' ? 'fa-regular fa-circle-check' : ''
       const dataObjectToPassToControlDialog = {
         OS: 'macOS', // TODO: NotePlan.environment.platform,
         itemID: item.ID,
@@ -160,7 +153,8 @@ function ItemRow(inputObj: Props): React$Node {
       }
 
       return (
-        <div className="sectionItemRow"
+        <div
+          className="sectionItemRow"
           id={item.ID}
           data-section-type={sectionType}
           // $FlowIgnore(cannot-resolve-name)
@@ -168,23 +162,26 @@ function ItemRow(inputObj: Props): React$Node {
           // $FlowIgnore(cannot-resolve-name)
           data-encoded-content={encodeRFC3986URIComponent(item.para?.content)}
         >
-          <div className={`${divClassName} itemIcon`}><i id={`${item.ID}I`} className={`${iconClassName}`}></i>
+          <div className={`${divClassName} itemIcon`}>
+            <i id={`${item.ID}I`} className={`${iconClassName}`}></i>
           </div>
 
           <div className="sectionItemContent sectionItem">
             <ItemContent item={item} />
-            {(config.includeTaskContext) ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
-            <a className="dialogTrigger"
+            {config?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
+            <a
+              className="dialogTrigger"
               // $FlowIgnore(cannot-resolve-name)
-              onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}>
-              <i className="fa-light fa-edit pad-left"></i>
+              // onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}
+            >
+              <i className="fa-light fa-edit pad-left" onClick={() => handleEditClick(dataObjectToPassToControlDialog, true)}></i>
             </a>
           </div>
         </div>
       )
     }
   } catch (error) {
-    console.error(`ItemRow ❗️ERROR❗️ ${error.message}`)
+    console.error(`❗️ERROR❗️ ItemRow: ${error.message}`)
   }
 }
 
@@ -199,9 +196,11 @@ function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: 
   try {
     // console.log(`makeNoteTitleWithOpenActionFromFilename: - making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.itemFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
+      item.itemFilename,
+    )}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   } catch (error) {
-    console.error(`ItemRow::makeNoteTitleWithOpenActionFromFilename: ❗️ERROR❗️  ${error.message} for input '${noteTitle}'`)
+    console.error(`❗️ERROR❗️ ItemRow::makeNoteTitleWithOpenActionFromFilename: ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }

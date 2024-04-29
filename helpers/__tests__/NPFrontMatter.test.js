@@ -712,11 +712,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f._fixFrontmatter(before)
         expect(result).toEqual(before)
       })
-      test('should not change text with no issues', () => {
-        const before = `---\nfoo: bar\n---\n`
-        const result = f._fixFrontmatter(before)
-        expect(result).toEqual(before)
-      })
       test('should change text with colon at end', () => {
         const before = `---\nfoo: bar:\n---\n`
         const result = f._fixFrontmatter(before)
@@ -732,10 +727,25 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f._fixFrontmatter(before)
         expect(result).toEqual(`---\nfoo: "#bar"\n---\n`)
       })
-      test('should change text with hashtag', () => {
+      test('should change text with hashtag and more text', () => {
+        const before = `---\nfoo: #bar followed by text\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "#bar followed by text"\n---\n`)
+      })
+      test('should change text with mention', () => {
         const before = `---\nfoo: @bar\n---\n`
         const result = f._fixFrontmatter(before)
         expect(result).toEqual(`---\nfoo: "@bar"\n---\n`)
+      })
+      test('should not change text with simple URL', () => {
+        const before = `---\nfoo: https://noteplan.co/\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(before)
+      })
+      test('should change text with markdown link', () => {
+        const before = `---\nfoo: [NotePlan homepage](https://noteplan.co/)\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "[NotePlan homepage](https://noteplan.co/)"\n---\n`)
       })
       test('should not touch indented text', () => {
         const indented = `---\ntitle: indented\nkey:\n - value1\n - value2\n---\n`

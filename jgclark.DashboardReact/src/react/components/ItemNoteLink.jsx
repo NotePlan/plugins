@@ -6,6 +6,8 @@
 
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
+import { useAppContext } from './AppContext.jsx'
+
 // import {
 //   getAPIDateStrFromDisplayDateStr,
 // } from '@helpers/dateTime'
@@ -20,6 +22,7 @@ type Props = {
  */
 function ItemNoteLink(inputObj: Props): React$Node {
   const { item, thisSection } = inputObj
+  const { sendActionToPlugin } = useAppContext()
 
   console.log(`ItemNoteLink for ${item.itemFilename}`)
 
@@ -29,13 +32,17 @@ function ItemNoteLink(inputObj: Props): React$Node {
     const encodedNoteTitle = encodeURIComponent(noteTitle)
 
     const dataObjectToPassToFunction = {
-      itemID: 'fake', type: 'showNoteInEditorFromTitle',
-      encodedFilename: encodedNoteTitle, encodedContent: ''
+      itemID: 'fake',
+      type: 'showNoteInEditorFromTitle',
+      encodedFilename: encodedNoteTitle,
+      encodedContent: '',
     }
     return (
-      <a className="noteTitle sectionItem"
+      <a
+        className="noteTitle sectionItem"
         // $FlowIgnore[cannot-resolve-name]
-        onClick={() => onClickDashboardItem(dataObjectToPassToFunction)}>
+        onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction)}
+      >
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
         {noteTitle}
       </a>
@@ -46,16 +53,15 @@ function ItemNoteLink(inputObj: Props): React$Node {
   }
 }
 
-
 // Now include an active link to the note, if 'noteTitle' is given
 // TODO(later): remove once checked that it works in separate function
 /**
- * 
+ *
  * @param {SectionItem} thisItem
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string}
  */
-function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = "all"): string {
+function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = 'all'): string {
   let output = ''
   const noteTitle = thisItem.para.title
   if (noteTitle) {

@@ -1,27 +1,57 @@
-// This is a context provider for the app. You should generally not need to edit this file.
-// It provides a way to pass functions and data to any component that needs it
-// without having to pass from parent to child to grandchild etc.
-// including reading and saving reactSettings local to the react window
-//
-// Any React component that needs access to the AppContext can use the useAppContext hook with these 2 lines
-// import { useAppContext } from './AppContext.jsx'
-// ...
-// const {sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, updateReactSettings}  = useAppContext() // MUST BE inside the React component/function code, cannot be at the top of a file
-
+/****************************************************************************************************************************
+ *                             APP CONTEXT
+ ****************************************************************************************************************************
+ * This is a shared context provider for NotePlan React Apps. It provides a context for the app to communicate with the plugin.
+ * It also provides a context for the plugin to communicate with the app.
+ * Plus local storage of reactSettings
+ * @usage import { useAppContext } from './AppContext.jsx'
+ * @usage const {sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, setReactSettings}  = useAppContext()
+ *
+ ****************************************************************************************************************************/
 // @flow
-import React, { createContext, useContext, useCallback, type Node } from 'react'
 
-/**
- * Type definitions for the application context.
- */
+import React, { createContext, useContext, useEffect, type Node } from 'react'
+import { logDebug } from '@helpers/reactDev'
+
+logDebug(`AppContext`, `outside component code`)
+
+/****************************************************************************************************************************
+ *                             TYPES
+ ****************************************************************************************************************************/
+
+export type DialogData = {
+  isOpen: boolean,
+  [key: string]: any,
+}
+
+export type ReactSettings = {
+  dialogData?: DialogData,
+  [key: string]: any,
+}
+
+export type PluginData = {
+  [key: string]: any,
+}
+
 export type AppContextType = {
-  sendActionToPlugin: (command: string, dataToSend: any) => void, // The main one to use to send actions to the plugin, saves scroll position
-  sendToPlugin: (command: string, dataToSend: any) => void, // Sends to plugin without saving scroll position
-  dispatch: (command: string, dataToSend: any, message?: string) => void, // Used mainly for showing banner at top of page to user
-  pluginData: Object, // The data that was sent from the plugin in the field "pluginData"
-  reactSettings: Object, // Dynamic key-value pair for reactSettings local to the react window (e.g. filterPriorityItems)
-  updateReactSettings: (newSettings: Object, msgForLog?: string) => void, // Update the reactSettings
-  updatePluginData: (newData: Object, messageForLog?: string) => void, // Updates the global pluginData, generally not something you should need to do
+  sendActionToPlugin: (command: string, dataToSend: any) => void,
+  sendToPlugin: ([string, any, string]) => void,
+  dispatch: (command: string, dataToSend: any, message?: string) => void,
+  pluginData: PluginData,
+  reactSettings: ReactSettings,
+  setReactSettings: (any) => void,
+  updatePluginData: (newData: PluginData, messageForLog?: string) => void,
+}
+
+type Props = {
+  children?: Node,
+  sendActionToPlugin: (command: string, dataToSend: any, additionalDetails?: string) => void,
+  sendToPlugin: ([string, any, string]) => void,
+  dispatch: (command: string, dataToSend: any, messageForLog?: string) => void,
+  pluginData: PluginData,
+  reactSettings: ReactSettings,
+  setReactSettings: (newSettings: ReactSettings, msgForLog?: string) => void,
+  updatePluginData: (newData: PluginData, messageForLog?: string) => void,
 }
 
 // Default context value with initial reactSettings and functions.
@@ -31,54 +61,38 @@ const defaultContextValue: AppContextType = {
   dispatch: () => {},
   pluginData: {},
   reactSettings: {}, // Initial empty reactSettings local
-  updateReactSettings: () => {}, // Placeholder function, actual implementation below.
+  setReactSettings: () => {},
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
 }
 
-type Props = {
-  sendActionToPlugin: (command: string, dataToSend: any) => void,
-  sendToPlugin: (command: string, dataToSend: any) => void,
-  dispatch: (command: string, dataToSend: any, messageForLog?: string) => void,
-  pluginData: Object,
-  children: Node, // React component children
-  updatePluginData: (newData: Object, messageForLog?: string) => void,
-}
+/****************************************************************************************************************************
+ *                             VARIABLES
+ ****************************************************************************************************************************/
 
-/**
- * Create the context with the default value.
- */
-const AppContext = createContext<AppContextType>(defaultContextValue)
+const AppContext = createContext<AppContextType | null>(defaultContextValue)
 
-// Explicitly annotate the return type of AppProvider as a React element
-export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, updatePluginData }: Props): Node => {
-  const reactSettings = pluginData.reactSettings
+/****************************************************************************************************************************
+ *                             CONTEXT PROVIDER FUNCTIONS
+ ****************************************************************************************************************************/
 
-  /**
-   * Update the reactSettings, must be sent the entire reactSettings object.
-   * @param {Object} newSettings - The new reactSettings object to replace the current reactSettings (must be the full object)
-   * @param {string} [messageForLog] - Optional message to log to the console.
-   */
-  const updateReactSettings = useCallback<(newSettings: Object, messageForLog?: string) => void>((newSettings, messageForLog) => {
-    pluginData.reactSettings = newSettings
-    updatePluginData(pluginData, messageForLog)
-  }, [])
+export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, setReactSettings, updatePluginData }: Props): Node => {
+  logDebug(`AppProvider`, `inside component code`)
 
-  // Provide the context value with all functions and state.
   const contextValue: AppContextType = {
     sendActionToPlugin,
     sendToPlugin,
     dispatch,
     pluginData,
     reactSettings,
-    updateReactSettings,
+    setReactSettings,
     updatePluginData,
   }
+
+  useEffect(() => {
+    logDebug('AppContext', `Just FYI, React settings updated somewhere: ${JSON.stringify(reactSettings)}`)
+  }, [reactSettings])
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
 }
 
-/**
- * Custom hook to use the AppContext.
- * @returns {AppContextType} - The context value.
- */
-export const useAppContext = (): AppContextType => useContext(AppContext)
+export const useAppContext = (): AppContextType | null => useContext(AppContext)

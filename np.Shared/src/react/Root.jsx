@@ -316,7 +316,6 @@ export function Root(/* props: Props */): Node {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => {}} onError={myErrorLogger}>
-      <p>this file was updated</p>
       <div className="Root" onClickCapture={onClickCapture}>
         <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
         {logProfilingMessage ? (

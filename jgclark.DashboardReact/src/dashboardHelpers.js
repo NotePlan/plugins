@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 14.4.2024 for v2.0.0 by @jgclark
+// Last updated 19.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -92,6 +92,7 @@ export type dashboardConfigType = {
   tagToShow: string,
   ignoreTagMentionsWithPhrase: string,
   updateTagMentionsOnTrigger: boolean,
+  useTodayDate: boolean,
   _logLevel: string,
   triggerLogging: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key

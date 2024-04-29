@@ -32,8 +32,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         dangerouslySetInnerHTML={{ __html: button.display }}
       >
         {/* {possIconBefore}{button.display}{possIconAfter} */}
-      </button>
-      {' '}
+      </button>{' '}
     </>
   )
 }

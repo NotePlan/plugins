@@ -746,7 +746,7 @@ var RootBundle = (function (exports, React$1) {
       FallbackComponent: ErrorFallback,
       onReset: () => {},
       onError: myErrorLogger
-    }, /*#__PURE__*/React__default["default"].createElement("p", null, "this file was updated"), /*#__PURE__*/React__default["default"].createElement("div", {
+    }, /*#__PURE__*/React__default["default"].createElement("div", {
       className: "Root",
       onClickCapture: onClickCapture
     }, /*#__PURE__*/React__default["default"].createElement(MessageBanner, {

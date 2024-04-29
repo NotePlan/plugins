@@ -1,4 +1,8 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the main item content in an ItemRow.
+// Last updated 22.4.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 import React from 'react'
 import {
   // makeNoteTitleWithOpenActionFromFilename,
@@ -8,7 +12,9 @@ import type { TSection, TSectionItem } from '../../types.js'
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
+
 } from '@helpers/dateTime'
+import { logDebug, logError } from '@helpers/reactDev'
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -34,6 +40,13 @@ import {
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
+import {
+  findLongestStringInArray,
+  // getTimeBlockString,
+  isTimeBlockLine,
+  RE_TIMEBLOCK_APP,
+} from '@helpers/timeblocks'
+
 
 type Props = {
   item: TSectionItem,
@@ -48,7 +61,7 @@ function ItemContent(inputObj: Props): React$Node {
   const para = item.para
   // const itemType = para.type
 
-  console.log(`ItemContent for '${para?.content ?? '<error>'}'`)
+  console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
@@ -130,8 +143,10 @@ function makeParaContentToLookLikeNPDisplayInReact(
     output = convertPreformattedToHTML(output)
 
     // Display time blocks with .timeBlock style
-    // TODO:
-    // output = convertTimeBlockToHTML(output)
+    if (thisItem.para.startTime) {
+      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      output = convertTimeBlockToHTML(output)
+    }
 
     // Display strikethrough with .strikethrough style
     output = convertStrikethroughToHTML(output)
@@ -160,23 +175,24 @@ function makeParaContentToLookLikeNPDisplayInReact(
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
 
+    // FIXME: turning off for now as it calls DataStore underneath
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
-    let captures = output.match(RE_ARROW_DATES_G)
-    if (captures) {
-      // clo(captures, 'results from arrow >date< match:')
-      for (const capture of captures) {
-        // output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
-        console.log(`makeParaContet...: - making arrow date with ${capture}`)
-        // Replace >date< with HTML link, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
-        const dateFilenamePart = capture.slice(1, -1)
-        const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromNPDateStr(dateFilenamePart, thisItem.ID)
-        output = output.replace(capture, `</a>${noteTitleWithOpenAction}<a class="content">`)
-      }
-    }
+    // let captures = output.match(RE_ARROW_DATES_G)
+    // if (captures) {
+    //   // clo(captures, 'results from arrow >date< match:')
+    //   for (const capture of captures) {
+    //     // output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
+    //     console.log(`makeParaContet...: - making arrow date with ${capture}`)
+    //     // Replace >date< with HTML link, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
+    //     const dateFilenamePart = capture.slice(1, -1)
+    //     const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromNPDateStr(dateFilenamePart, thisItem.ID)
+    //     output = output.replace(capture, `</a>${noteTitleWithOpenAction}<a class="content">`)
+    //   }
+    // }
 
     // Add suitable colouring to remaining >date items
-    captures = output.match(RE_SCHEDULED_DATES_G)
+    let captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       // clo(captures, 'results from >date match:')
       for (const capture of captures) {
@@ -199,7 +215,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
     // Note: Best done before the note link is added
-    if (truncateLength > 0 && thisItem.para.content.length > truncateLength) {
+    if (truncateLength > 0 && origContent.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
     }
 
@@ -213,7 +229,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     return output
   }
   catch (error) {
-    console.error(`ItemContent::makeParaContentToLookLikeNPDisplayInReact ❗️ERROR❗️  ${error.message}`)
+    logError(`makeParaContentToLookLikeNPDisplayInReact`, `❗️ERROR❗️ ${error.message}`)
     return ''
   }
 }
@@ -224,25 +240,25 @@ function makeParaContentToLookLikeNPDisplayInReact(
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string}
  */
-function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = "all"): string {
-  let output = ''
-  const noteTitle = thisItem.para.title
-  if (noteTitle) {
-    // console.log(`makeParaContet...: - before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-    switch (noteLinkStyle) {
-      case 'append': {
-        output = `${addNoteOpenLinkToString(thisItem, output)} ${makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)}`
-        break
-      }
-      case 'all': {
-        output = addNoteOpenLinkToString(thisItem, output)
-        break
-      }
-    }
-    // console.log(`makeParaContet...: - after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-  }
-  return output
-}
+// function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = "all"): string {
+//   let output = ''
+//   const noteTitle = thisItem.para.title
+//   if (noteTitle) {
+//     // console.log(`makeParaContet...: - before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
+//     switch (noteLinkStyle) {
+//       case 'append': {
+//         output = `${addNoteOpenLinkToString(thisItem, output)} ${makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)}`
+//         break
+//       }
+//       case 'all': {
+//         output = addNoteOpenLinkToString(thisItem, output)
+//         break
+//       }
+//     }
+//     // console.log(`makeParaContet...: - after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
+//   }
+//   return output
+// }
 
 /**
  * Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
@@ -250,29 +266,29 @@ function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = "a
  * @param {string} displayStr
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string): string {
-  try {
-    // Method 2: pass request back to plugin
-    // TODO: is it right that this basically does nothing?
-    // const filenameEncoded = encodeURIComponent(item.filename)
+// export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string): string {
+//   try {
+//     // Method 2: pass request back to plugin
+//     // TODO: is it right that this basically does nothing?
+//     // const filenameEncoded = encodeURIComponent(item.filename)
 
-    if (item.para.content) {
-      // call showLineinEditor... with the filename and rawConetnt
-      // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    } else {
-      // call showNoteinEditor... with the filename
-      // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}',''}>${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    }
-  }
-  catch (error) {
-    console.log(`addNoteOpenLinkToString: ERROR ${error.message} for input '${displayStr}'`)
-    return '(error)'
-  }
-}
+//     if (item.para.content) {
+//       // call showLineinEditor... with the filename and rawConetnt
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     } else {
+//       // call showNoteinEditor... with the filename
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}',''}>${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     }
+//   }
+//   catch (error) {
+//     console.error(`❗️ERROR❗️ ItemContent::addNoteOpenLinkToString: ${error.message} for input '${displayStr}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
  * Wrap string with href onClick event to show note in editor,
@@ -286,10 +302,11 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // console.log(`makeNoteTitleWithOpenActionFromTitle: - making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    // return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
-    console.log(`makeNoteTitleWithOpenActionFromTitle: ERROR ${error.message} for input '${noteTitle}'`)
+    logError('makeNoteTitleWithOpenActionFromTitle', `❗️ERROR❗️ ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }
@@ -301,17 +318,53 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
-  try {
-    const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
-    // console.log(`makeNoteTitleWithOpenActionFromNPDateStr: - making notelink with ${NPDateStr} / ${dateFilename}`)
-    // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+// export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
+//   try {
+//     const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
+//     // console.log(`makeNoteTitleWithOpenActionFromNPDateStr: - making notelink with ${NPDateStr} / ${dateFilename}`)
+//     // Pass request back to plugin, as a single object
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+//   }
+//   catch (error) {
+//     console.error(`❗️ERROR❗️ ItemContent::makeNoteTitleWithOpenActionFromNPDateStr: ${error.message} for input '${NPDateStr}'`)
+//     return '(error)'
+//   }
+// }
+
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
+function convertTimeBlockToHTML(input: string): string {
+  // let timeblockTextMustContainString = 'with'
+  // let output = input
+  // if (isTimeBlockLine(input, timeblockTextMustContainString)) {
+  const timeBlockPart = getTimeBlockString(input)
+  logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
+  let output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  // }
+  return output
+}
+
+/**
+ * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
+ * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
+ * @tests available for jest
+ * @author @dwertheimer
+ *
+ * @param {string} contentString
+ * @returns {string} the time portion of the timeblock line
+ */
+const getTimeBlockString = (contentString: string): string => {
+  logDebug('getTimeBlockString', `for '${contentString}'...`)
+  const matchedStrings = []
+  if (contentString) {
+    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    if (contentString && reMatch && reMatch.length) {
+      matchedStrings.push(reMatch[0].trim())
+    }
   }
-  catch (error) {
-    console.log(`makeNoteTitleWithOpenActionFromNPDateStr: ERROR ${error.message} for input '${NPDateStr}'`)
-    return '(error)'
-  }
+  // matchedStrings could have several matches, so find the longest one
+  return matchedStrings.length ? findLongestStringInArray(matchedStrings) : ''
 }
 
 export default ItemContent
