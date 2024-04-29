@@ -3,9 +3,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 Note: a complete re-write of the Dashboard is underway to move it onto a newer and more extensible framework, but it's a very big job.
 
-## [1.2.2] - 2024-04-???
-- trying to fix repetition in display in referenced sections (spotted by @George65)
-
 ## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today
 

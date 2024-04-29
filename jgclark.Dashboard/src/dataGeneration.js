@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 27.4.2024 for v1.2.2 by @jgclark
+// Last updated 6.4.2024 for v1.1.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,7 +24,7 @@ import {
   includesScheduledFutureDate,
   // toISOShortDateTimeString,
 } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 // import { displayTitle } from '@helpers/general'
 import {
@@ -659,7 +659,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     })
 
     logInfo('getDataForDashboard', `finished generating ${String(sections.length)} sections and ${String(sectionItems.length)} items in ${timer(startTime)}`)
-    clof(sectionItems, 'ALL SECTIONS:', ['ID', 'filename', 'type', 'content',])
     return [sections, sectionItems]
   } catch (error) {
     logError(pluginJson, JSP(error))

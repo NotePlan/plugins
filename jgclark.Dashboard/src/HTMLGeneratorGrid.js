@@ -213,7 +213,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     outputArray.push(`\n<div class="sections">`)
     let sectionNumber = 0
     for (const section of sections) {
-      logDebug('showDashboard', `Laying out Section '${section.name}' ID:${String(section.ID)} filename:${section.filename ?? '-'}`)
+      // logDebug('showDashboard', `Laying out Section '${section.name}' ID:${String(section.ID)} filename:${section.filename ?? '-'}`)
       // Special case to handle count of done items
       if (section.name === 'Done') {
         totalDoneItems = section.ID
@@ -235,7 +235,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           })
         } else {
           // don't add this section: go on to next section
-          logDebug('showDashboard', `Section '(${section.name})' ID:${String(section.ID)} is empty so will skip it`)
+          // logDebug('showDashboard', `Section '(${section.name})' ID:${String(section.ID)} is empty so will skip it`)
           sectionNumber++
           continue // to next loop item
         }
@@ -414,7 +414,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         // Do main work for the item
         switch (item.type) {
           case 'open': { // open todo type
-            logDebug('showDashboard', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboard', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
             // do inner grid icon col (col1)
             outputArray.push(`        <div class="sectionItemTodo itemIcon todo"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></div>`)
 
@@ -439,7 +439,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             break
           }
           case 'checklist': { // open checklist type
-            logDebug('showDashboard', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboard', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
             // ddo inner grid icon col (col1)
             outputArray.push(`        <div class="sectionItemChecklist itemIcon todo"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></div>`)
 
@@ -462,7 +462,6 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             break
           }
           case 'congrats': {
-            logDebug('showDashboard', `- adding 'congrats' message`)
             // do icon
             outputArray.push(`         <div class="itemIcon checked"><i id="${item.ID}I" class="fa-regular fa-circle-check"></i></div>`)
             // do item details
@@ -474,7 +473,6 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           }
           // Project section items
           case 'review': {
-            logDebug('showDashboard', `- adding 'review': {${item.content}} / filename:${itemNoteTitle}`)
             if (itemNoteTitle) {
               // do icon col (was col3)
               outputArray.push(`         <div id="${item.ID}I" class="reviewProject itemIcon todo"><i class="fa-regular fa-circle-play"></i></div>`) // earlier had "fa-calendar-check"

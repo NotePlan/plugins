@@ -384,10 +384,10 @@ function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dia
   const winHeight = window.visualViewport.height
   // const winWidth = window.innerWidth - fudgeFactor
   const winWidth = window.visualViewport.width
-  // console.log(`Window dimensions (approx): w${winWidth} x h${winHeight}`)
+  console.log(`Window dimensions (approx): w${winWidth} x h${winHeight}`)
   // TODO: remove after testing
-  // console.log(`Mouse at x${mousex}, y${mousey}`)
-  // console.log(`Dialog ~ w${approxDialogWidth} x h${approxDialogHeight}`)
+  console.log(`Mouse at x${mousex}, y${mousey}`)
+  console.log(`Dialog ~ w${approxDialogWidth} x h${approxDialogHeight}`)
 
   // WIDTH + X position
   // First deal with windows narrower than the dialog
@@ -395,24 +395,24 @@ function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dia
     // dialog.style.width = `${String(winWidth)}px`
     dialog.style.left = `2%`
     dialog.style.width = `96%`
-    // console.log(`Forcing narrower dialog to fit inside window: now centred with width 96%`)
+    console.log(`Forcing narrower dialog to fit inside window: now centred with width 96%`)
   }
   // then deal with narrow windows
   else if ((winWidth - approxDialogWidth) < 100) {
     x = Math.round((winWidth - approxDialogWidth) / 2)
     dialog.style.left = `${String(x)}px`
-    // console.log(`Forcing narrower dialog to be centred horizontally inside window: now x${String(x)}`)
+    console.log(`Forcing narrower dialog to be centred horizontally inside window: now x${String(x)}`)
   }
   // otherwise place dialog near mouse x position, but keep within screen
   else {
     x = mousex - Math.round((approxDialogWidth) / 3)
     if ((x + (approxDialogWidth)) > winWidth) {
       x = winWidth - fudgeFactor - approxDialogWidth
-      // console.log(`Move left: now x${String(x)}`)
+      console.log(`Move left: now x${String(x)}`)
     }
     if (x < fudgeFactor) {
       x = fudgeFactor
-      // console.log(`Off left: now x=${fudgeFactor}; width=${dialog.style.width}`)
+      console.log(`Off left: now x=${fudgeFactor}; width=${dialog.style.width}`)
     }
     dialog.style.left = `${String(x)}px`
   }
@@ -422,13 +422,13 @@ function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dia
   if (winHeight < approxDialogHeight) {
     // dialog.style.Height = `${String(winHeight)}px`
     dialog.style.top = `0`
-    // console.log(`Forcing shorter dialog to start inside window: now fixed to top`)
+    console.log(`Forcing shorter dialog to start inside window: now fixed to top`)
   }
   // then deal with quite short viewport
   else if ((winHeight - approxDialogHeight) < 100) {
     y = Math.round((winHeight - approxDialogHeight) / 2)
     dialog.style.top = `${String(y)}px`
-    // console.log(`Forcing shorter dialog to be centred vertically inside viewport: now y${String(y)}`)
+    console.log(`Forcing shorter dialog to be centred vertically inside viewport: now y${String(y)}`)
   }
   // otherwise place dialog near mouse y position, but keep within screen
   else {
@@ -440,12 +440,12 @@ function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dia
     if (y < fudgeFactor) {
       y = fudgeFactor
       // dialog.style.height = `${String(winHeight - fudgeFactor)}px`
-      // console.log(`Off top: now y=${fudgeFactor}; height=${dialog.style.height}`)
+      console.log(`Off top: now y=${fudgeFactor}; height=${dialog.style.height}`)
     }
     dialog.style.top = `${String(y)}px`
   }
 
-  // console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
+  console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
   // const winDetailsSpan = document.getElementById('winDebugDetails')
   // winDetailsSpan.innerHTML = `f${fudgeFactor} / vw${winWidth} x vh${winHeight} / x${dialog.style.left} y${dialog.style.top} w${dialog.style.width} x h${dialog.style.height}`
 }
