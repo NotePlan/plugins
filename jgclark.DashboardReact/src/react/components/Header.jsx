@@ -37,6 +37,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   const handleRefreshClick = () => {
     logDebug('Header', 'Refresh button clicked')
     sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, 'Refresh button clicked', true)
+    setReactSettings((prev) => ({ ...prev, refreshing: true }))
   }
 
   return (

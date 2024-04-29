@@ -104,6 +104,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     } else {
       logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
+    if (reactSettings.refreshing) setReactSettings((prev) => ({ ...prev, refreshing: false }))
   }, [data])
 
   /****************************************************************************************************************************
