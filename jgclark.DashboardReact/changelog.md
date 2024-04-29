@@ -1,6 +1,15 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.0-a4]
+
+### dbw Notes to jgclark
+- Refresh button now works
+- Task Dialog: Updating text and clicking "update" refreshes JSON
+
+### jgclark notes
+
+
 ## [2.0.0-a3] 
 
 Notes to @jgclark
