@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.0-a3] @SirTristam 2024-04-30
+- Correct date handling when rescheduling or moving tasks.
+- Fix error using the 'All Today -> Tomorrow' button.
+
 ## [2.0.0-a2] @jgclark 2024-04-19
 - ShowTimeAgo:
     - moved showTimeAgo from a free-standing JS to being part of the Header react component

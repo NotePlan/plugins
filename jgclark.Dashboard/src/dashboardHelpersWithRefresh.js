@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 18.4.2024 for v1.2.1 by @SirTristam
+// Last updated 30.4.2024 for v1.2.2 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,6 +16,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import {
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -156,12 +157,12 @@ export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true)
     config.separateSectionForReferencedNotes = true
 
     // Get paras for all open items in yesterday's note
-    const todayDateStr = getTodaysDateHyphenated()
+    const todayDateStr = getTodaysDateUnhyphenated()
     const tomorrowDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowISODateStr = new moment().add(1, 'days').format('YYYY-MM-DD')
     const todaysNote = DataStore.calendarNoteByDateString(todayDateStr)
     if (!todaysNote) {
-      logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today`)
+      logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today (${todayDateStr})`)
       return 0
     } else {
       logDebug('scheduleAllTodayTomorrow', `Starting, with refreshDashboard = ${String(refreshDashboard)}`)
@@ -312,7 +313,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           continue
         }
         CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-        para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+        para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
         logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
         numberChanged++
         thisNote.updateParagraph(para)
@@ -347,7 +348,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           }
         } else {
           CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+          para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
