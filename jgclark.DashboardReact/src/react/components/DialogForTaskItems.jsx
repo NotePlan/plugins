@@ -14,7 +14,7 @@ type Props = {
 
 const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => {
   if (!isOpen) return null
-  const { sendActionToPlugin } = useAppContext()
+  const { sendActionToPlugin, reactSettings, setReactSettings } = useAppContext()
   const inputRef = useRef()
 
   const reschedOrMove = details.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
@@ -77,6 +77,14 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
 
     sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
     if (controlStr === 'openNote') return //don't close dialog yet
+
+    // Send action to plugin after n seconds - this is a bit of a hack
+    // to get around the updateCache not being reliable.
+    setReactSettings((prev) => ({ ...prev, refreshing: true }))
+    setTimeout(() => {
+      setReactSettings((prev) => ({ ...prev, refreshing: false }))
+      sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, `5s full refresh timer triggered`, false)
+    }, 5000)
 
     // Dismiss dialog, unless meta key pressed
     if (!metaModifier) {

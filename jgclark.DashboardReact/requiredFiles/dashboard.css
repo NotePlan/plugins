@@ -214,7 +214,8 @@ button, input {
 }
 .refreshButton {
 	width: 75px;
-}
+    left: 150px;
+    position: fixed;}
 
 /* Show click pointer over buttons and equivalent */
 button, .fake-button, .clickTarget {

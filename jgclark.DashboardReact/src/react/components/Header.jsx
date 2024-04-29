@@ -18,11 +18,15 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeAgo(getTimeAgo(lastUpdated))
+      if (reactSettings.refreshing) {
+        setTimeAgo('Refreshing Data...')
+      } else {
+        setTimeAgo(getTimeAgo(lastUpdated))
+      }
     }, 1000) // Update every 1s so it updates when data is updated
 
     return () => clearInterval(timer) // Clear interval on component unmount
-  }, [lastUpdated])
+  }, [lastUpdated, reactSettings])
 
   const handleCheckboxClick = (e: any) => {
     const isChecked = e?.target.checked || false

@@ -4,8 +4,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.0.0-a4]
 
 ### dbw Notes to jgclark
-- Refresh button now works
+- Refresh button now works, refreshing all content via JSON passing only :)
 - Task Dialog: Updating text and clicking "update" refreshes JSON
+- Single line update scaffolding is in place, but only text updates trigger it so far
+- Note: single-line updates do not reset the "last updated" counter, because it feels to me like that should only reset when all the content is pulled anew. Let me know if you feel differently
+- I added a 5s delayed auto refresh hack to try to get around the updateCache bug. After clicking any button on the dialog, the JSON data does a full refresh 5s later no matter what. We can get rid of this when the single-line refreshes on the plugin/server side are all implemented.
+- I added a "refreshing" message when this happens so you know what's going on.
 
 ### jgclark notes
 

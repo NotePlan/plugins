@@ -200,8 +200,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logDebug('', '------------------------- bridgeClickDashboardItem: ${type} -------------------------')
     logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     // clo(data, 'bridgeClickDashboardItem received data object')
+
     // Allow for a combination of button click and a content update
-    // TODO: MAYBE MOVE THIS TO THE END SO THAT WE CAN STILL MATCH ON DATA
     if (type !== 'updateItemContent' && data.encodedUpdatedContent) {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${data.encodedUpdatedContent}"`)
       const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
@@ -214,11 +214,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     switch (type) {
       case 'refresh': {
         logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED`)
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        reactWindowData.pluginData.sections = await getAllSectionsData(DataStore.settings, reactWindowData.demoMode)
-        reactWindowData.pluginData.lastUpdated = new Date().toLocaleString()
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data`)
-        break
+        await refreshData()
+        return
       }
       case 'completeTask': {
         // Complete the task in the actual Note
@@ -375,7 +372,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         clo(res, 'bCDI / updateItemContent: res')
         clo(res.updatedParagraph, 'bCDI / res.updatedParagraph:')
         await updateReactWindowFromHandlerResult(res, type, ID, ['para.content'])
-        break
+        return
       }
       case 'unscheduleItem': {
         // Send a request to unscheduleItem to plugin
@@ -650,6 +647,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${type}`)
       }
     }
+    logDebug(pluginJson, `pluginToHTML bridge: RUNNING TEMPORARY FULL REFRESH OF JSON AFTER ANY COMMANDS WITHOUT A RETURN STATEMENT`)
+    // await refreshData()
 
     // Other info from DW:
     // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
@@ -697,4 +696,14 @@ export async function updateReactWindowFromHandlerResult(res: BridgeClickHandler
     }
     // update ID in data object
   }
+}
+/**
+ * Refresh the data in the HTML view - JSON only
+ * And tell the React window to update the data
+ */
+export async function refreshData() {
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  reactWindowData.pluginData.sections = await getAllSectionsData(DataStore.settings, reactWindowData.demoMode)
+  reactWindowData.pluginData.lastUpdated = new Date().toLocaleString()
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data`)
 }
