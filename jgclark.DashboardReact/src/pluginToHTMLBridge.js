@@ -10,7 +10,7 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
-import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
+import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData } from './dataGeneration'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -138,10 +138,10 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
  * @param {string} content - The original content of the item.
  * @param {string} encodedUpdatedContent - The updated content, encoded.
  * @param {number} windowId - ID of the HTML window to potentially send updates.
- * @returns {BridgeClickResult} An object indicating whether the update was successful and the updated paragraph object.
+ * @returns {BridgeClickHandlerResult} An object indicating whether the update was successful and the updated paragraph object.
  * @throws {Error} If the updated content is not provided.
  */
-function handleUpdateItemContent(filename: string, content: string, encodedUpdatedContent: string, windowId: number): BridgeClickResult {
+function handleUpdateItemContent(filename: string, content: string, encodedUpdatedContent: string, windowId: number): BridgeClickHandlerResult {
   if (!encodedUpdatedContent) {
     throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
   }
@@ -175,7 +175,7 @@ function handleUpdateItemContent(filename: string, content: string, encodedUpdat
 /**
  * Each called function should use this standard return object
  */
-interface BridgeClickResult {
+interface BridgeClickHandlerResult {
   completed: boolean;
   updatedParagraph?: ParagraphType; // Adjust `ParagraphType` to match your actual paragraph object type
 }
@@ -198,7 +198,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
     let content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem: ${type} -------------------------')
-    logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     // clo(data, 'bridgeClickDashboardItem received data object')
     // Allow for a combination of button click and a content update
     // TODO: MAYBE MOVE THIS TO THE END SO THAT WE CAN STILL MATCH ON DATA
@@ -212,9 +212,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
 
     switch (type) {
-      case 'refresh':
+      case 'refresh': {
         logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED BUT NOT IMPLEMENTED YET`)
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        clo(reactWindowData, 'refresh: reactWindowData')
+        reactWindowData.pluginData.sections = await getAllSectionsData(DataStore.settings, reactWindowData.demoMode)
+        clo(reactWindowData.pluginData.sections, 'refresh: pluginData.sections')
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data`)
         break
+      }
       case 'completeTask': {
         // Complete the task in the actual Note
         const res = completeItem(filename, content)
@@ -369,25 +375,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
         clo(res, 'bCDI / updateItemContent: res')
         clo(res.updatedParagraph, 'bCDI / res.updatedParagraph:')
-        if (res.completed) {
-          const newPara = res.updatedParagraph
-          const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-          let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
-          const indexes = findSectionItems(sections, ['ID'], { ID })
-          if (indexes.length) {
-            const { sectionIndex, itemIndex } = indexes[0]
-            clo(indexes, 'bCDI / updateItemContent: indexes to update')
-            clo(sections[sectionIndex].sectionItems[itemIndex], `bCDI / updateItemContent old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-            logDebug('bCDI / updateItemContent', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${newPara.content}"`)
-            sections = copyUpdatedSectionItemData(indexes, ['para.content'], { para: newPara }, sections)
-            clo(sections[sectionIndex].sectionItems[itemIndex], `bCDI / updateItemContent new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-            await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID} in filename ${filename}`)
-          } else {
-            throw 'bCDI / updateItemContent: unable to find item to update: ID ${ID} in filename ${filename}'
-          }
-          //FIXME: i am here - generalize this when it works
-          // update ID in data object
-        }
+        await updateReactWindowFromHandlerResult(res, type, ID, ['para.content'])
         break
       }
       case 'unscheduleItem': {
@@ -680,5 +668,34 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     // }
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Update React window data based on the result of handling item content update.
+ * @param {BridgeClickHandlerResult} res The result of handling item content update.
+ * @returns {Promise<void>} A Promise that resolves once the update is done.
+ */
+export async function updateReactWindowFromHandlerResult(res: BridgeClickHandlerResult, actionType: string, ID: string, fieldPathsToUpdate: string[]): Promise<void> {
+  clo(res, 'updateReactWindow: res')
+  clo(res.updatedParagraph, 'updateReactWindow: res.updatedParagraph:')
+  if (res.completed) {
+    const newPara = res.updatedParagraph || ''
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
+    const indexes = findSectionItems(sections, ['ID'], { ID })
+
+    if (indexes.length) {
+      const { sectionIndex, itemIndex } = indexes[0]
+      clo(indexes, 'updateReactWindow: indexes to update')
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      logDebug('updateReactWindow', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${newPara.content}"`)
+      sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: newPara }, sections)
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
+    } else {
+      throw `updateReactWindow: unable to find item to update: ID ${ID}`
+    }
+    // update ID in data object
   }
 }
