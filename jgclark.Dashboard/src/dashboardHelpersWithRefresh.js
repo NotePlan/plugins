@@ -16,6 +16,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import {
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -156,12 +157,12 @@ export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true)
     config.separateSectionForReferencedNotes = true
 
     // Get paras for all open items in yesterday's note
-    const todayDateStr = getTodaysDateHyphenated()
+    const todayDateStr = getTodaysDateUnhyphenated()
     const tomorrowDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowISODateStr = new moment().add(1, 'days').format('YYYY-MM-DD')
     const todaysNote = DataStore.calendarNoteByDateString(todayDateStr)
     if (!todaysNote) {
-      logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today`)
+      logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today (${todayDateStr})`)
       return 0
     } else {
       logDebug('scheduleAllTodayTomorrow', `Starting, with refreshDashboard = ${String(refreshDashboard)}`)
