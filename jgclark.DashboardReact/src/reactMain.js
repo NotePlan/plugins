@@ -10,18 +10,8 @@ import pluginJson from '../plugin.json'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
 import { bridgeClickDashboardItem, bridgeChangeCheckbox, runPluginCommand } from './pluginToHTMLBridge'
 import type { TSection } from './types'
-import {
-  getTodaySectionData,
-  getYesterdaySectionData,
-  getTomorrowSectionData,
-  getThisWeekSectionData,
-  getThisMonthSectionData,
-  getThisQuarterSectionData,
-  getProjectSectionData,
-  getOverdueSectionData,
-  getTaggedSectionData,
-} from './dataGeneration'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getAllSectionsData } from './dataGeneration'
+import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -29,7 +19,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isDone } from '@helpers/utils'
 import { getWindowFromId } from '@helpers/NPWindows'
 
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
+export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
 
 export type PassedData = {
@@ -149,6 +139,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
+      windowID: WEBVIEW_WINDOW_ID,
     }
     return dataToPass
   } catch (error) {
@@ -176,25 +167,8 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     lastUpdated: new Date().toLocaleString() /* placeholder */,
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
+    demoMode,
   }
-}
-
-/**
- * Get all the sections' data (that the user wants)
- */
-async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Promise<Array<TSection>> {
-  const data: Array<TSection> = []
-  data.push(getTodaySectionData(config, demoMode))
-  if (config.showYesterdaySection) data.push(getYesterdaySectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getTomorrowSectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
-  if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
-  if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
-  if (config.tagToShow) data.push(getTaggedSectionData(config, demoMode))
-  if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
-  data.push(await getProjectSectionData(config, demoMode))
-
-  return data
 }
 
 /**
@@ -245,15 +219,37 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
-    if (newData) {
-      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-      // clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', newData, updateText) // note this will cause the React Window to re-render with the currentJSData
-    }
+
+    //FIXME: for the moment, we are going to force a refresh of the data in the React Window every time
+    // Does not work because updateCache does not actually update in time
+    // const updatedReactWindowData = await refreshDashboardData(reactWindowData)
+    // logDebug(pluginJson, `onMessageFromHTMLView: updatedReactWindowData TEMP FORCED UPDATE EVERY COMMAND`)
+    // if (updatedReactWindowData) {
+    //   const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
+    //   clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,updatedReactWindowData=`, 2)
+    //   clof(reactWindowData, `After refreshDashboardData`, ['pluginData', 'sections', 'sectionItems', 'para', 'content'], true)
+    //   sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', updatedReactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+    // }
+
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+/**
+ * Update the sections data in the React Window data object
+ * @returns {Promise<any>} - returns the full reactWindowData
+ */
+async function refreshDashboardData(prevData?: any): any {
+  const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
+  const { demoMode } = reactWindowData
+  const sections = await getAllSectionsData(DataStore.settings, demoMode)
+  logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para.content}`)
+  reactWindowData.pluginData.sections = sections
+  logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para.content}`)
+  clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
+  return reactWindowData
 }
 
 /**

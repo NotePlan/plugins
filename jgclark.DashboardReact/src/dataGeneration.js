@@ -6,18 +6,9 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {
-  getNextNotesToReview,
-  makeFullReviewList
-} from '../../jgclark.Reviews/src/reviews.js'
+import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import type { TSection, TSectionItem, TParagraphForDashboard } from './types'
-import {
-  getOpenItemParasForCurrentTimePeriod,
-  getRelevantOverdueTasks,
-  getSettings,
-  makeDashboardParas,
-  type dashboardConfigType,
-} from './dashboardHelpers'
+import { getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
 import {
   openTodayItems,
   refTodayItems,
@@ -67,12 +58,30 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 
 //-----------------------------------------------------------------
 
+/**
+ * Get all the sections' data (that the user wants)
+ */
+export async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Promise<Array<TSection>> {
+  const data: Array<TSection> = []
+  data.push(getTodaySectionData(config, demoMode))
+  if (config.showYesterdaySection) data.push(getYesterdaySectionData(config, demoMode))
+  if (config.showWeekSection) data.push(getTomorrowSectionData(config, demoMode))
+  if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
+  if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
+  if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
+  if (config.tagToShow) data.push(getTaggedSectionData(config, demoMode))
+  if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
+  data.push(await getProjectSectionData(config, demoMode))
+
+  return data
+}
+
 export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
   const sectionNum = 0
   const thisSectionType = 'DT'
   let itemCount = 0
   const items: Array<TSectionItem> = []
-  const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
+  const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
   const thisFilename = `${getTodaysDateUnhyphenated()}.md`
   logInfo('getDataForDashboard', `------- Gathering Today's items for section #${String(sectionNum)} ------------`)
 
@@ -89,7 +98,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     const startTime = new Date() // for timing only
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ 
+    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
       // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -99,7 +108,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -118,7 +127,9 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
   // TODO: support 12-hour times as well
   for (const item of items) {
     const para = item.para
-    if (!para) { throw new Error(`No para found for item ${item.ID}`) }
+    if (!para) {
+      throw new Error(`No para found for item ${item.ID}`)
+    }
     const timeBlock = getTimeBlockString(para.content)
     if (timeBlock) {
       // const [startTimeStr, endTimeStr] = timeBlock.split('-')
@@ -130,20 +141,53 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
   const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
   const section: TSection = {
-    ID: sectionNum, name: 'Today', sectionType: thisSectionType,
+    ID: sectionNum,
+    name: 'Today',
+    sectionType: thisSectionType,
     description: `{count} from ${todayDateLocale}`,
-    FAIconClass: "fa-light fa-calendar-star",
-    sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
+    FAIconClass: 'fa-light fa-calendar-star',
+    sectionTitleClass: 'sidebarDaily',
+    sectionFilename: thisFilename,
     sectionItems: items,
     // Note: this often gets stringified to a string, but isn't underneath
     generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "schedule today to tomorrow", actionPluginID: "jgclark.DashboardReact", tooltip: "Move or schedule all remaining open items to tomorrow", display: 'All Today <i class="fa - solid fa- right - long"></i> Tomorrow', actionFunctionParam: 'true' /* refresh afterwards */ },
-    ]
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to today's note",
+        display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to today's note",
+        display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to tomorrow's note",
+        display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to tomorrow's note",
+        display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+      {
+        actionFunctionName: 'schedule today to tomorrow',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: 'Move or schedule all remaining open items to tomorrow',
+        display: 'All Today <i class="fa - solid fa- right - long"></i> Tomorrow',
+        actionFunctionParam: 'true' /* refresh afterwards */,
+      },
+    ],
   }
 
   logDebug('getTodaySectionData', JSON.stringify(section))
@@ -154,15 +198,15 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
   const sectionNum = 1
   const thisSectionType = 'DY'
   const yesterday = new moment().subtract(1, 'days').toDate()
-  const yesterdayDateLocale = toNPLocaleDateString(yesterday, "short") // uses moment's locale info from NP
-  const thisFilename = `${moment(yesterday).format("YYYYMMDD")}.md`
+  const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
+  const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
   logInfo('getDataForDashboard', `------- Gathering Yesterday's items for section #${String(sectionNum)} ------------`)
 
   if (useDemoData) {
     const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
-  // write one combined section
+    // write one combined section
     combinedYesterdaySortedParas.map((item) => {
       const thisID = `${sectionNum}-${itemCount}`
       items.push({ ID: thisID, ...item })
@@ -173,7 +217,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     // const yesterday = new moment().subtract(1, 'days').toDate()
     const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
     // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
-    const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ 
+    const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
 
     if (yesterdaysNote) {
       const startTime = new Date() // for timing only
@@ -185,7 +229,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config)
 
       // write one combined section
       let itemCount = 0
@@ -201,14 +245,24 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     }
   }
   const section: TSection = {
-    ID: sectionNum, name: 'Yesterday', sectionType: thisSectionType,
+    ID: sectionNum,
+    name: 'Yesterday',
+    sectionType: thisSectionType,
     description: `{count} from ${yesterdayDateLocale}`,
-    FAIconClass: "fa-light fa-calendar-arrow-up",
-    sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    FAIconClass: 'fa-light fa-calendar-arrow-up',
+    sectionTitleClass: 'sidebarDaily',
+    sectionFilename: thisFilename,
+    sectionItems: items,
+    generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "schedule yesterday to today", actionPluginID: "jgclark.DashboardReact", tooltip: 'Move or schedule all open items from yesteday to today', display: 'All <i class="fa-solid fa-right-long"></i> Today', actionFunctionParam: 'true' /* refresh afterwards */ },
-    ]
+      {
+        actionFunctionName: 'schedule yesterday to today',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: 'Move or schedule all open items from yesteday to today',
+        display: 'All <i class="fa-solid fa-right-long"></i> Today',
+        actionFunctionParam: 'true' /* refresh afterwards */,
+      },
+    ],
   }
 
   // return JSON.stringify(section)
@@ -221,10 +275,10 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const sectionNum = 2
     const thisSectionType = 'DO'
     const tomorrow = new moment().add(1, 'days').toDate()
-    const yesterdayDateLocale = toNPLocaleDateString(tomorrow, "short") // uses moment's locale info from NP
+    const yesterdayDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
     const filenameDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowsNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    const thisFilename = `${moment(tomorrow).format("YYYYMMDD")}.md`
+    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
     let itemCount = 0
     const items: Array<TSectionItem> = []
     logInfo('getDataForDashboard', `------- Gathering Tomorrow's items for section #${String(sectionNum)} ------------`)
@@ -249,7 +303,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
         }
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", tomorrowsNote, config)
+        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', tomorrowsNote, config)
 
         // write one combined section
         let itemCount = 0
@@ -266,12 +320,16 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     }
 
     const section: TSection = {
-      ID: sectionNum, name: 'Tomorrow', sectionType: thisSectionType,
+      ID: sectionNum,
+      name: 'Tomorrow',
+      sectionType: thisSectionType,
       description: `{count} from ${yesterdayDateLocale}`,
-      FAIconClass: "fa-light fa-calendar-arrow-down", sectionTitleClass: "sidebarDaily",
+      FAIconClass: 'fa-light fa-calendar-arrow-down',
+      sectionTitleClass: 'sidebarDaily',
       sectionFilename: thisFilename,
-      sectionItems: items, generated: new Date(),
-      actionButtons: []
+      sectionItems: items,
+      generated: new Date(),
+      actionButtons: [],
     }
     return section
   } catch (error) {
@@ -292,7 +350,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
 
   if (useDemoData) {
     const combinedWeekSortedParas = openWeekParas.concat(refWeekParas)
-  // write one combined section
+    // write one combined section
     combinedWeekSortedParas.map((item) => {
       const thisID = `${sectionNum}-${itemCount}`
       items.push({ ID: thisID, ...item })
@@ -310,7 +368,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('week', currentWeeklyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -326,16 +384,45 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
   }
   const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')?.filename ?? '(error)'
   const section: TSection = {
-    ID: sectionNum, name: 'This Week', sectionType: thisSectionType, description: `{count} from ${dateStr}`,
-    FAIconClass: "fa-light fa-calendar-week",
-    sectionTitleClass: "sidebarWeekly", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    ID: sectionNum,
+    name: 'This Week',
+    sectionType: thisSectionType,
+    description: `{count} from ${dateStr}`,
+    FAIconClass: 'fa-light fa-calendar-week',
+    sectionTitleClass: 'sidebarWeekly',
+    sectionFilename: thisFilename,
+    sectionItems: items,
+    generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this week's note", display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this week's note", display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ', actionFunctionParam: nextPeriodFilename },
-    ]
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this week's note",
+        display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this week's note",
+        display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to tomorrow's note",
+        display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to tomorrow's note",
+        display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+    ],
   }
   // logDebug('getThisWeekSectionData', JSON.stringify(section))
   return section
@@ -370,7 +457,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -386,14 +473,45 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
   }
   const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')?.filename ?? '(error)'
   const section: TSection = {
-    ID: sectionNum, name: 'This Month', sectionType: thisSectionType, description: `{count} from ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    ID: sectionNum,
+    name: 'This Month',
+    sectionType: thisSectionType,
+    description: `{count} from ${dateStr}`,
+    FAIconClass: 'fa-light fa-calendar-range',
+    sectionTitleClass: 'sidebarMonthly',
+    sectionFilename: thisFilename,
+    sectionItems: items,
+    generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this month's note", display: '<i class= "fa-regular fa-circle-plus sidebarMonthly" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this month's note", display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to next month's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarMonthly" ></i> ', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new checklist to next month's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ', actionFunctionParam: nextPeriodFilename },
-    ]
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this month's note",
+        display: '<i class= "fa-regular fa-circle-plus sidebarMonthly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this month's note",
+        display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to next month's note",
+        display: '<i class= "fa-regular fa-circle-arrow-right sidebarMonthly" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new checklist to next month's note",
+        display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ',
+        actionFunctionParam: nextPeriodFilename,
+      },
+    ],
   }
   // logDebug('getThisMonthSectionData', JSON.stringify(section))
   return section
@@ -422,7 +540,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('quarter', currentQuarterlyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -439,14 +557,33 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
   // TODO: This doesn't work in Moment:
   // const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')?.filename
   const section: TSection = {
-    ID: sectionNum, name: 'This Quarter', sectionType: thisSectionType, description: `{count} from ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    ID: sectionNum,
+    name: 'This Quarter',
+    sectionType: thisSectionType,
+    description: `{count} from ${dateStr}`,
+    FAIconClass: 'fa-light fa-calendar-days',
+    sectionTitleClass: 'sidebarQuarterly',
+    sectionFilename: thisFilename,
+    sectionItems: items,
+    generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this quarter's note", display: '<i class= "fa-regular fa-circle-plus sidebarQuarterly" ></i> ', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this quarter's note", display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ', actionFunctionParam: thisFilename },
+      {
+        actionFunctionName: 'addTask',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this quarter's note",
+        display: '<i class= "fa-regular fa-circle-plus sidebarQuarterly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
+      {
+        actionFunctionName: 'addChecklist',
+        actionPluginID: 'jgclark.DashboardReact',
+        tooltip: "Add a new task to this quarter's note",
+        display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ',
+        actionFunctionParam: thisFilename,
+      },
       // { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to next quarter's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
       // { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new checklist to next quarter's note", display: '<i class="fa-regular fa-square-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
-    ]
+    ],
   }
   // logDebug('getThisQuarterSectionData', JSON.stringify(section))
   return section
@@ -455,11 +592,10 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
 //-----------------------------------------------------------
 // Note: If we want to do yearly in the future then the icon is fa-calendar-days (same as quarter). This would be #5
 
-
 /**
  * Add a section for tagToShow, if wanted, and if not running because triggered by a change in the daily note.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
- * @param {dashboardConfigType} config 
+ * @param {dashboardConfigType} config
  * @param {boolean} useDemoData?
  */
 export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
@@ -481,7 +617,6 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       itemCount++
     })
   } else {
-
     const thisStartTime = new Date()
     isHashtag = config.tagToShow.startsWith('#')
     isMention = config.tagToShow.startsWith('@')
@@ -501,7 +636,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         }
 
         // Get the relevant paras from this note
-        const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
+        const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
         // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
@@ -513,7 +648,6 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
             logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
           }
         }
-
       }
       logInfo('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
@@ -521,10 +655,10 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         // Remove possible dupes from these sync'd lines
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
         logDebug('getDataForDashboard', `- after sync dedupe -> ${filteredTagParas.length} (after ${timer(thisStartTime)})`)
-      // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
-      // Note: this is a quick operation
-      // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
-      // logInfo('getDataForDashboard', `- after deduping overdue -> ${filteredReducedParas.length} (after ${timer(thisStartTime)})`)
+        // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+        // Note: this is a quick operation
+        // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
+        // logInfo('getDataForDashboard', `- after deduping overdue -> ${filteredReducedParas.length} (after ${timer(thisStartTime)})`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a quick operation
@@ -534,25 +668,29 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         totalCount = dashboardParas.length
 
         // Sort paragraphs by one of several options
-        const sortOrder = (config.overdueSortOrder === 'priority')
-          ? ['-priority', '-changedDate']
-          : (config.overdueSortOrder === 'earliest')
+        const sortOrder =
+          config.overdueSortOrder === 'priority'
+            ? ['-priority', '-changedDate']
+            : config.overdueSortOrder === 'earliest'
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
         logInfo('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} (after ${timer(thisStartTime)})`)
 
         // Apply limit to set of ordered results
-        const sortedTagParasLimited = (sortedTagParas.length > maxInSection) ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
+        const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
         logDebug('getDataForDashboard', `- after limit, now ${sortedTagParasLimited.length} items to show`)
 
         for (const p of sortedTagParasLimited) {
           const thisID = `${sectionNum}-${itemCount}`
           const thisFilename = p.filename ?? ''
           items.push({
-            ID: thisID, itemType: p.type,
-            itemFilename: thisFilename, para: p,
-            itemNoteTitle: p.title, noteType: p.type
+            ID: thisID,
+            itemType: p.type,
+            itemFilename: thisFilename,
+            para: p,
+            itemNoteTitle: p.title,
+            noteType: p.type,
           })
           itemCount++
         }
@@ -561,17 +699,19 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
   }
 
   // Return section details, even if no items found
-  const tagSectionDescription = (totalCount > itemCount) ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}`
-    : `{count} items ordered by ${config.overdueSortOrder}`
+  const tagSectionDescription =
+    totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} items ordered by ${config.overdueSortOrder}`
   const section: TSection = {
-    ID: sectionNum, name: `${config.tagToShow}`,
+    ID: sectionNum,
+    name: `${config.tagToShow}`,
     sectionType: thisSectionType,
     description: tagSectionDescription,
-    FAIconClass: (isHashtag) ? 'fa-light fa-hashtag' : 'fa-light fa-at',
-    sectionTitleClass: (isHashtag) ? 'sidebarHashtag' : 'sidebarMention',
+    FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
+    sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
-    generated: new Date(), actionButtons: [],
+    generated: new Date(),
+    actionButtons: [],
   }
   return section
 }
@@ -594,23 +734,18 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
       for (let c = 0; c < 60; c++) {
         // const thisID = `${sectionNum}-${String(c)}`
-        const thisType = (c % 3 === 0) ? 'checklist' : 'open'
-        const priorityPrefix = (c % 20 === 0) ? '!!! '
-          : (c % 10 === 0) ? '!! '
-            : (c % 5 === 0) ? '! '
-              : ''
-        const fakeDateMom = new moment("2023-10-01").add(c, 'days')
+        const thisType = c % 3 === 0 ? 'checklist' : 'open'
+        const priorityPrefix = c % 20 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : c % 5 === 0 ? '! ' : ''
+        const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = (c % 3 < 2)
-          ? `${fakeFilenameDateStr}.md`
-          : `fake_note_${String(c % 7)}.md`
-        const type = (c % 3 < 2) ? 'Calendar' : 'Notes'
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.md` : `fake_note_${String(c % 7)}.md`
+        const type = c % 3 < 2 ? 'Calendar' : 'Notes'
         const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
         // $FlowIgnore[prop-missing]
         overdueParas.push({
           content: content,
-          rawContent: `${(thisType === 'open') ? '*' : '+'} ${priorityPrefix}${content}`,
+          rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
           type: thisType,
           filename: filename,
           // $FlowIgnore[prop-missing]
@@ -619,10 +754,9 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
             title: `Overdue Test Note ${c % 10}`,
             type: type,
             changedDate: `???`,
-          }
+          },
         })
       }
-
     } else {
       // Get overdue tasks (and dedupe)
       // Note: Cannot move the reduce move into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
@@ -648,17 +782,14 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       totalOverdue = dashboardParas.length
 
       // Sort paragraphs by one of several options
-      const sortOrder = (config.overdueSortOrder === 'priority')
-        ? ['-priority', '-changedDate']
-        : (config.overdueSortOrder === 'earliest')
-          ? ['changedDate', 'priority']
-          : ['-changedDate', 'priority'] // 'most recent'
+      const sortOrder =
+        config.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : config.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
       // Note: now apply 2x limit, because we also do filtering in the Section component
-      const overdueTaskParasLimited = (totalOverdue > (maxInSection * 2)) ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
+      const overdueTaskParasLimited = totalOverdue > maxInSection * 2 ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
       logDebug('getDataForDashboard', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
@@ -669,16 +800,22 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     }
     logInfo('getDataForDashboard', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
-    let overdueSectionDescription = (totalOverdue > itemCount)
-      ? `first {count} of {totalCount} tasks ordered by ${config.overdueSortOrder}`
-      : `all {count} tasks ordered by ${config.overdueSortOrder}`
+    let overdueSectionDescription =
+      totalOverdue > itemCount ? `first {count} of {totalCount} tasks ordered by ${config.overdueSortOrder}` : `all {count} tasks ordered by ${config.overdueSortOrder}`
     overdueSectionDescription += ` {scheduleAllOverdueToday}`
 
     const section: TSection = {
-      ID: sectionNum, name: 'Overdue Tasks', sectionType: thisSectionType,
-      description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", sectionFilename: '',
-      sectionItems: items, generated: new Date(),
-      totalCount: totalOverdue, actionButtons: []
+      ID: sectionNum,
+      name: 'Overdue Tasks',
+      sectionType: thisSectionType,
+      description: overdueSectionDescription,
+      FAIconClass: 'fa-regular fa-alarm-exclamation',
+      sectionTitleClass: 'overdue',
+      sectionFilename: '',
+      sectionItems: items,
+      generated: new Date(),
+      totalCount: totalOverdue,
+      actionButtons: [],
     }
     // console.log(JSON.stringify(section))
     return section
@@ -700,9 +837,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
   if (useDemoData) {
     nextNotesToReview = nextProjectNoteItems
   } else {
-
     if (DataStore.fileExists(fullReviewListFilename)) {
-
       // But first check to see if it is more than a day old
       const fullReviewListContent = DataStore.loadData(fullReviewListFilename, true)
       // Get date of last generation from file contents, lineIndex 2 ('date: 2024-01-04T23:20:08+00:00')
@@ -710,7 +845,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
       const reviewListDate = moment(reviewListDateStr).toDate()
       const fileAge = Date.now() - reviewListDate
       // If this note is more than a day old, then regenerate it
-      if (fileAge > (1000 * 60 * 60 * 24)) {
+      if (fileAge > 1000 * 60 * 60 * 24) {
         logDebug('getDataForDashboard', `Regenerating fullReviewList as too old`)
         // Call plugin command makeFullReviewList
         await makeFullReviewList()
@@ -729,7 +864,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
         itemType: 'review',
         itemNoteTitle: n.title,
         itemFilename: thisFilename,
-        noteType: n.type
+        noteType: n.type,
       })
       itemCount++
     })
@@ -744,13 +879,15 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
       // sectionFilename: '',
       sectionItems: items,
       generated: new Date(),
-      actionButtons: [{
-        display: '<i class="fa-regular fa-play"></i>\u00A0Start\u00A0Reviews',
-        actionPluginID: 'jgclark.Reviews',
-        actionFunctionName: 'start reviews',
-        actionFunctionParam: '',
-        tooltip: 'Start reviewing your Project notes',
-      }],
+      actionButtons: [
+        {
+          display: '<i class="fa-regular fa-play"></i>\u00A0Start\u00A0Reviews',
+          actionPluginID: 'jgclark.Reviews',
+          actionFunctionName: 'start reviews',
+          actionFunctionParam: '',
+          tooltip: 'Start reviewing your Project notes',
+        },
+      ],
     }
     console.log(JSON.stringify(section))
     return section
@@ -758,5 +895,118 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
     logDebug('getDataForDashboard', `looked but found no notes to review`)
     return null
   }
+}
 
+type SectionItemIndex = { sectionIndex: number, itemIndex: number }
+
+/**
+ * Finds all items within the provided sections that match the given field/value pairs.
+ *
+ * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
+ * @param {Array<string>} fieldPaths - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
+ * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
+ * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
+ */
+export function findSectionItems(
+  sections: Array<TSection>,
+  fieldPaths: Array<string>,
+  fieldValues: { [key: string]: string | RegExp },
+): Array<{ sectionIndex: number, itemIndex: number }> {
+  const matches: Array<{ sectionIndex: number, itemIndex: number }> = []
+
+  sections.forEach((section, sectionIndex) => {
+    section.sectionItems.forEach((item, itemIndex) => {
+      const isMatch = fieldPaths.every((fieldPath) => {
+        const itemFieldValue = getNestedValue(item, fieldPath)
+        const fieldValue = fieldValues[fieldPath]
+        if (fieldValue instanceof RegExp) {
+          return fieldValue.test(itemFieldValue)
+        } else {
+          return itemFieldValue.includes(fieldValue)
+        }
+      })
+
+      if (isMatch) {
+        matches.push({ sectionIndex, itemIndex })
+      }
+    })
+  })
+
+  return matches
+}
+
+/**
+ * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
+ *
+ * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
+ * @param {Array<string>} fieldPaths - An array of field paths (e.g., 'para.filename', 'itemType') to copy from the provided object.
+ * @param {Object} updatedValues - The object containing the field values to be copied.
+ * @param {Array<TSection>} sections - The original sections array to be modified.
+ * @returns {Array<TSection>} The modified sections array with the specified fields copied into the corresponding sectionItems.
+ */
+export function copyUpdatedSectionItemData(
+  results: Array<{ sectionIndex: number, itemIndex: number }>,
+  fieldPaths: Array<string>,
+  updatedValues: { [key: string]: any },
+  sections: Array<TSection>,
+): Array<TSection> {
+  results.forEach(({ sectionIndex, itemIndex }) => {
+    const sectionItem = sections[sectionIndex].sectionItems[itemIndex]
+
+    fieldPaths.forEach((fieldPath) => {
+      const [firstField, ...remainingPath] = fieldPath.split('.')
+      const value = getNestedValue(updatedValues, fieldPath)
+
+      if (value !== undefined) {
+        setNestedValue(sectionItem, fieldPath, value)
+      }
+    })
+  })
+
+  return sections
+}
+
+/**
+ * Helper function to get the value of a nested field in an object.
+ *
+ * @param {Object} obj - The object to search for the nested field.
+ * @param {string} path - The path to the nested field, e.g., 'para.filename'.
+ * @returns {any} The value of the nested field, or undefined if the field doesn't exist.
+ */
+function getNestedValue(obj, path) {
+  const fields = path.split('.')
+  let value = obj
+
+  for (const field of fields) {
+    if (value && typeof value === 'object' && field in value) {
+      value = value[field]
+    } else {
+      return undefined
+    }
+  }
+
+  return value
+}
+
+/**
+ * Helper function to set the value of a nested field in an object.
+ *
+ * @param {Object} obj - The object to set the nested field value in.
+ * @param {string} path - The path to the nested field, e.g., 'para.filename'.
+ * @param {any} value - The value to set for the nested field.
+ */
+function setNestedValue(obj, path, value) {
+  const fields = path.split('.')
+  let currentObj = obj
+
+  for (let i = 0; i < fields.length - 1; i++) {
+    const field = fields[i]
+    if (!currentObj.hasOwnProperty(field)) {
+      currentObj[field] = {}
+    }
+    currentObj = currentObj[field]
+  }
+  const finalField = fields[fields.length - 1]
+  clo(currentObj, 'setNestedValue, setting ${finalField} to ${value} = currentObj')
+  currentObj[finalField] = value
 }

@@ -4,6 +4,7 @@ import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import EditableInput from '@helpers/react/EditableInput.jsx'
 
 type Props = {
   isOpen: boolean,
@@ -39,7 +40,7 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
     { label: 'Toggle Type', controlStr: 'tog', handlingFunction: 'toggleType' },
-    { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'TODO:dont know what function this should call' }, //TODO: @jgclark nI'm not sure what function handles this
+    { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
     { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
   ]
 
@@ -52,38 +53,27 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
   }
 
   function handleButtonClick(controlStr: string, type: string) {
-    const { itemID: id, itemType, metaModifier } = details
+    const { itemID: id, itemType, metaModifier, para } = details
     const encodedFilename = encodeRFC3986URIComponent(details.para.filename)
-    const encodedCurrentContent = encodeRFC3986URIComponent(inputRef?.current?.value || '')
+    const encodedCurrentContent = encodeRFC3986URIComponent(para.content)
+    const encodedUpdatedContent = encodeRFC3986URIComponent(inputRef?.current?.getValue() || '')
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
       `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`,
     )
-    let dataToSend
     if (controlStr === 'update') {
-      //TODO: MUST GET THE CONTENT
-      const encodedUpdatedContent = 'TODO' //TODO:
-      // const encodedUpdatedContent = encodeRFC3986URIComponent(document.getElementById('dialogItemContent').value)
-      console.log(`- orig content: {${encodedCurrentContent}} / updated content: {${encodedUpdatedContent}}`)
-
-      dataToSend = {
-        itemID: id,
-        type,
-        controlStr: controlStr,
-        encodedFilename,
-        encodedContent: encodedCurrentContent,
-        encodedUpdatedContent: encodedUpdatedContent,
-      } // = sendMessageToPlugin('onClickDashboardItem', ...)
-    } else {
-      dataToSend = {
-        itemID: id,
-        type,
-        controlStr: controlStr,
-        itemType: itemType,
-        encodedFilename: encodedFilename,
-        encodedContent: encodedCurrentContent,
-      } // = sendMessageToPlugin('onClickDashboardItem', ...)
+      logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${encodedCurrentContent}} / updated content: {${encodedUpdatedContent}}`)
     }
+    const dataToSend = {
+      itemID: id,
+      type,
+      itemType: itemType,
+      controlStr: controlStr,
+      encodedFilename,
+      encodedContent: encodedCurrentContent,
+      encodedUpdatedContent: '',
+    }
+    if (encodedCurrentContent !== encodedUpdatedContent) dataToSend.encodedUpdatedContent = encodedUpdatedContent
 
     sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
     if (controlStr === 'openNote') return //don't close dialog yet
@@ -113,8 +103,8 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
           <div className="buttonGrid" id="itemDialogButtons">
             <div>For</div>
             <div className="dialogDescription">
-              <input contentEditable={true} type="text" id="dialogItemContent" className="fullTextInput" value={details?.para?.content} ref={inputRef} />
-              <button className="updateItemContentButton" data-control-str="update" onClick={() => handleButtonClick('update', 'update')}>
+              <EditableInput ref={inputRef} initialValue={details?.para?.content} className="fullTextInput dialogItemContent" />
+              <button className="updateItemContentButton" data-control-str="update" onClick={() => handleButtonClick('updateItemContent', 'updateItemContent')}>
                 Update
               </button>
             </div>

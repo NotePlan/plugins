@@ -5,15 +5,17 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
+import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
@@ -29,7 +31,6 @@ import {
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { chooseHeading } from '@helpers/userInput'
-
 //-----------------------------------------------------------------
 // Data types + constants
 
@@ -44,10 +45,11 @@ type MessageDataObject = {
 }
 type SettingDataObject = { settingName: string, state: string }
 
-const windowCustomId = `${pluginJson['plugin.id']}.main`
+const windowCustomId = `${pluginJson['plugin.id']} React Window`
+const WEBVIEW_WINDOW_ID = windowCustomId
 
 // TEST: New for React
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId
+// const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId
 
 //-----------------------------------------------------------------
 
@@ -59,47 +61,45 @@ const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be u
  * @param {string} type - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export async function onMessageFromHTMLView(actionType: string, data: any): any {
-  try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${actionType}:`)
-    // clo(data, 'onMessageFromHTMLView dispatching data object:')
+// export async function onMessageFromHTMLView(actionType: string, data: any): any {
+//   try {
+//     logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${actionType}:`)
+//     // clo(data, 'onMessageFromHTMLView dispatching data object:')
 
-    // TEST: New things for React copied from @DW version
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
-    clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
-    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+//     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
 
-    switch (actionType) {
-      case 'onClickDashboardItem':
-        await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
-        break
-      case 'onChangeCheckbox':
-        await bridgeChangeCheckbox(data) // data is a string
-        break
-      case 'refresh':
-        logWarn('onMessageFromHTMLView', `'refresh' is currently turned off in onMessageFromHTMLView to avoid circular dependency`)
-        // await showDashboardReact() // no await needed, I think
-        break
-      case 'runPluginCommand':
-        await runPluginCommand(data) // no await needed, I think
-        break
-      default:
-        logError(pluginJson, `onMessageFromHTMLView(): unknown ${actionType} cannot be dispatched`)
-        break
-    }
+//     switch (actionType) {
+//       case 'onClickDashboardItem':
+//         await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
+//         break
+//       case 'onChangeCheckbox':
+//         await bridgeChangeCheckbox(data) // data is a string
+//         break
+//       case 'refresh':
+//         logWarn('onMessageFromHTMLView', `'refresh' is currently turned off in onMessageFromHTMLView to avoid circular dependency`)
+//         // await showDashboardReact() // no await needed, I think
+//         break
+//       case 'runPluginCommand':
+//         await runPluginCommand(data) // no await needed, I think
+//         break
+//       default:
+//         logError(pluginJson, `onMessageFromHTMLView(): unknown ${actionType} cannot be dispatched`)
+//         break
+//     }
 
-    // TEST: New things for React copied from @DW version
-    if (reactWindowData) {
-      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-      clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
-    }
+//     // TEST: New things for React copied from @DW version
+//     const reactWindowData = await refreshDashboardData()
+//     if (reactWindowData) {
+//       const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
+//       clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
+//       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+//     }
 
-    return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
+//     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
+//   } catch (error) {
+//     logError(pluginJson, JSP(error))
+//   }
+// }
 
 /**
  * HTML View requests running a plugin command
@@ -133,6 +133,54 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 }
 
 /**
+ * Handles updating the content of an item.
+ * @param {string} filename - The filename where the content resides.
+ * @param {string} content - The original content of the item.
+ * @param {string} encodedUpdatedContent - The updated content, encoded.
+ * @param {number} windowId - ID of the HTML window to potentially send updates.
+ * @returns {BridgeClickResult} An object indicating whether the update was successful and the updated paragraph object.
+ * @throws {Error} If the updated content is not provided.
+ */
+function handleUpdateItemContent(filename: string, content: string, encodedUpdatedContent: string, windowId: number): BridgeClickResult {
+  if (!encodedUpdatedContent) {
+    throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
+  }
+
+  const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
+  logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
+
+  const para = findParaFromStringAndFilename(filename, content)
+  if (para && typeof para !== 'boolean') {
+    const oldContent = para.content
+    para.content = updatedContent
+    const paraContent = para.content ?? 'error'
+    logDebug('bCDI / updateItemContent', `found para with original content {${oldContent}}`)
+
+    const thisNote = para.note
+    if (thisNote) {
+      thisNote.updateParagraph(para)
+      logDebug('bCDI / updateItemContent', `- appeared to update line OK. Will now updateCache`)
+      const changedNote = DataStore.updateCache(thisNote)
+    }
+
+    logDebug('bCDI / updateItemContent', `changed para content to: ${para.content}`)
+
+    return { completed: true, updatedParagraph: para }
+  } else {
+    logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
+    return { completed: false }
+  }
+}
+
+/**
+ * Each called function should use this standard return object
+ */
+interface BridgeClickResult {
+  completed: boolean;
+  updatedParagraph?: ParagraphType; // Adjust `ParagraphType` to match your actual paragraph object type
+}
+
+/**
  * Somebody clicked on a something in the HTML view
  * @param {MessageDataObject} data - details of the item clicked
  */
@@ -148,10 +196,21 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const type = data.type
     // const controlStr = data.controlStr ?? ''
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
-    logDebug('', '------------------------- bridgeClickDashboardItem:')
+    let content = decodeRFC3986URIComponent(data.encodedContent ?? '')
+    logDebug('', '------------------------- bridgeClickDashboardItem: ${type} -------------------------')
     logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     // clo(data, 'bridgeClickDashboardItem received data object')
+    // Allow for a combination of button click and a content update
+    // TODO: MAYBE MOVE THIS TO THE END SO THAT WE CAN STILL MATCH ON DATA
+    if (type !== 'updateItemContent' && data.encodedUpdatedContent) {
+      logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${data.encodedUpdatedContent}"`)
+      const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
+      if (res.completed) {
+        content = res.updatedParagraph.content
+        logDebug('bCDI / updateItemContent', `-> successful call to handleUpdateItemContent()`)
+      }
+    }
+
     switch (type) {
       case 'refresh':
         logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED BUT NOT IMPLEMENTED YET`)
@@ -307,43 +366,27 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'updateItemContent': {
-        // Send a request to change the content of this item
-
-        if (!data.encodedUpdatedContent) {
-          throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
-        }
-        const encodedUpdatedContent = data.encodedUpdatedContent
-        const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
-        logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
-
-        // Get para, using original content
-        const para = findParaFromStringAndFilename(filename, content)
-        if (para && typeof para !== 'boolean') {
-          const paraContent = para.content ?? 'error'
-          logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
-
-          // And update in the app itself
-          para.content = updatedContent
-          const thisNote = para.note
-          if (thisNote) {
-            thisNote.updateParagraph(para)
-            logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
-            // I think this will help as we're about to refresh, and need to pick up this changed note
-            DataStore.updateCache(thisNote)
+        const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
+        clo(res, 'bCDI / updateItemContent: res')
+        clo(res.updatedParagraph, 'bCDI / res.updatedParagraph:')
+        if (res.completed) {
+          const newPara = res.updatedParagraph
+          const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+          let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
+          const indexes = findSectionItems(sections, ['ID'], { ID })
+          if (indexes.length) {
+            const { sectionIndex, itemIndex } = indexes[0]
+            clo(indexes, 'bCDI / updateItemContent: indexes to update')
+            clo(sections[sectionIndex].sectionItems[itemIndex], `bCDI / updateItemContent old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+            logDebug('bCDI / updateItemContent', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${newPara.content}"`)
+            sections = copyUpdatedSectionItemData(indexes, ['para.content'], { para: newPara }, sections)
+            clo(sections[sectionIndex].sectionItems[itemIndex], `bCDI / updateItemContent new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+            await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID} in filename ${filename}`)
+          } else {
+            throw 'bCDI / updateItemContent: unable to find item to update: ID ${ID} in filename ${filename}'
           }
-
-          //   logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
-          //   // Update the content in place
-          //   const updatedData = {
-          //     itemID: ID,
-          //     updatedContent: updatedContent
-          //   }
-          //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
-          // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
-          logDebug('bCDI', '---------------- refresh ---------------')
-          // await showDashboardReact('refresh')
-        } else {
-          logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
+          //FIXME: i am here - generalize this when it works
+          // update ID in data object
         }
         break
       }
@@ -620,6 +663,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${type}`)
       }
     }
+
     // Other info from DW:
     // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
     // if (para) {

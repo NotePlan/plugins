@@ -63,7 +63,7 @@ function ItemContent(inputObj: Props): React$Node {
   function handleTaskClick() {
     const dataObjectToPassToFunction = {
       type: 'showLineInEditorFromFilename',
-      encodedFilename: item.itemFilename,
+      encodedFilename: item.para.filename,
       encodedContent: encodeRFC3986URIComponent(para.content),
     }
     sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)

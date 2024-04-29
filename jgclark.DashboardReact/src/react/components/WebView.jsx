@@ -172,8 +172,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     const newFullData = { ...data, pluginData: newData }
     dispatch('UPDATE_DATA', newFullData, messageForLog) // save the data at the Root React Component level, which will give the plugin access to this data also
   }
-  if (!pluginData.reactSettings) pluginData.reactSettings = {}
-
   /****************************************************************************************************************************
    *                             RENDER
    ****************************************************************************************************************************/
