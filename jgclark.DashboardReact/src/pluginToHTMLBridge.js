@@ -213,11 +213,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (type) {
       case 'refresh': {
-        logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED BUT NOT IMPLEMENTED YET`)
+        logDebug(pluginJson, `pluginToHTML bridge: REFRESH RECEIVED`)
         const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        clo(reactWindowData, 'refresh: reactWindowData')
         reactWindowData.pluginData.sections = await getAllSectionsData(DataStore.settings, reactWindowData.demoMode)
-        clo(reactWindowData.pluginData.sections, 'refresh: pluginData.sections')
+        reactWindowData.pluginData.lastUpdated = new Date().toLocaleString()
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data`)
         break
       }

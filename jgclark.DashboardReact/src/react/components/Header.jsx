@@ -12,14 +12,14 @@ type Props = {
  * Displays the dashboard's header.
  */
 const Header = ({ lastUpdated }: Props): React$Node => {
-  const { reactSettings, setReactSettings, sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
+  const { reactSettings, setReactSettings, pluginData, sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
 
   // Deal with timeAgo timer section
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeAgo(getTimeAgo(lastUpdated))
-    }, 30000) // Update every 30 seconds
+    }, 1000) // Update every 1s so it updates when data is updated
 
     return () => clearInterval(timer) // Clear interval on component unmount
   }, [lastUpdated])
@@ -40,7 +40,16 @@ const Header = ({ lastUpdated }: Props): React$Node => {
       <div className="lastUpdated">
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
-      <Button text={'Refresh'} clickHandler={handleRefreshClick} className="PCButton" />
+      <Button
+        text={
+          <>
+            <i className="fa-regular fa-arrow-rotate-right"></i> <span className="pad-left">Refresh</span>
+          </>
+        }
+        clickHandler={handleRefreshClick}
+        className="PCButton refreshButton"
+      ></Button>
+      />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>

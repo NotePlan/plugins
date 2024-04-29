@@ -212,6 +212,9 @@ button, input {
 	text-decoration: none;
 	color: var(--fg-main-color);
 }
+.refreshButton {
+	width: 75px;
+}
 
 /* Show click pointer over buttons and equivalent */
 button, .fake-button, .clickTarget {
