@@ -11,7 +11,7 @@ import {
   getSettings,
   moveItemBetweenCalendarNotes,
 } from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
+import { showDashboardReact } from './reactMain'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getDateStringFromCalendarFilename,
@@ -132,7 +132,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
     if (refreshDashboard && numberScheduled > 0) {
       logInfo('scheduleAllYesterdayOpenToToday', `moved/scheduled ${String(numberScheduled)} open items from yesterday to today`)
       logDebug('scheduleAllYesterdayOpenToToday', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberScheduled
   }
@@ -240,7 +240,7 @@ export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true)
     if (refreshDashboard && numberScheduled > 0) {
       logInfo('scheduleAllTodayTomorrow', `moved/scheduled ${String(numberScheduled)} open items from today to tomorrow`)
       logDebug('scheduleAllTodayTomorrow', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberScheduled
   }
@@ -313,7 +313,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           continue
         }
         CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-        para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
+        para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
         logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
         numberChanged++
         thisNote.updateParagraph(para)
@@ -348,7 +348,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           }
         } else {
           CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-          para.content = `${removeDateTagsAndToday(para.content, true)} >${newDateStr}`
+          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
@@ -365,7 +365,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
     if (refreshDashboard && numberChanged > 0) {
       logInfo('scheduleAllOverdueOpenToToday', `moved/scheduled ${String(numberChanged)} overdue items to today. Now will ...`)
       logDebug('scheduleAllOverdueOpenToToday', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberChanged
   }

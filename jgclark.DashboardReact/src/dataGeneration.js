@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 15.4.2024 for v2.0.0 by @jgclark
+// Last updated 27.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -45,6 +45,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { getFolderFromFilename } from '@helpers/folders'
 // import { displayTitle } from '@helpers/general'
 import {
+  getTimeRangeFromTimeBlockString,
   // localeDateStr,
   toNPLocaleDateString,
   // setMomentLocaleFromEnvironment,
@@ -55,6 +56,7 @@ import {
 } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { getTimeBlockString } from '@helpers/timeblocks'
 import { isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -72,6 +74,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
   const items: Array<TSectionItem> = []
   const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
   const thisFilename = `${getTodaysDateUnhyphenated()}.md`
+  logInfo('getDataForDashboard', `------- Gathering Today's items for section #${String(sectionNum)} ------------`)
 
   if (useDemoData) {
     const combinedSortedItems = openTodayItems.concat(refTodayItems)
@@ -111,23 +114,39 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     }
   }
 
+  // Now find time blocks and save start and end times
+  // TODO: support 12-hour times as well
+  for (const item of items) {
+    const para = item.para
+    if (!para) { throw new Error(`No para found for item ${item.ID}`) }
+    const timeBlock = getTimeBlockString(para.content)
+    if (timeBlock) {
+      // const [startTimeStr, endTimeStr] = timeBlock.split('-')
+      const [startTimeStr, endTimeStr] = getTimeRangeFromTimeBlockString(timeBlock)
+      para.startTime = startTimeStr
+      para.endTime = endTimeStr ?? '' // might not have an end time
+    }
+  }
+
   const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
   const section: TSection = {
     ID: sectionNum, name: 'Today', sectionType: thisSectionType,
     description: `{count} from ${todayDateLocale}`,
     FAIconClass: "fa-light fa-calendar-star",
     sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    sectionItems: items,
+    // Note: this often gets stringified to a string, but isn't underneath
+    generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to today's note", display: '<i class="fa-regular fa-circle-plus sidebarDaily"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to today's note", display: '<i class="fa-regular fa-square-plus sidebarDaily"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to tomorrow's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarDaily"></i>', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to tomorrow's note", display: '<i class="fa-regular fa-square-arrow-right sidebarDaily"></i>', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "schedule today to tomorrow", actionPluginID: "jgclark.Dashboard", tooltip: "Move or schedule all remaining open items to tomorrow", display: 'All Today <i class="fa-solid fa-right-long"></i> Tomorrow', actionFunctionParam: 'true' /* refresh afterwards */ },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "schedule today to tomorrow", actionPluginID: "jgclark.DashboardReact", tooltip: "Move or schedule all remaining open items to tomorrow", display: 'All Today <i class="fa - solid fa- right - long"></i> Tomorrow', actionFunctionParam: 'true' /* refresh afterwards */ },
     ]
   }
 
-  // logDebug('getTodaySectionData', JSON.stringify(section))
+  logDebug('getTodaySectionData', JSON.stringify(section))
   return section
 }
 
@@ -139,6 +158,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
   const thisFilename = `${moment(yesterday).format("YYYYMMDD")}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
+  logInfo('getDataForDashboard', `------- Gathering Yesterday's items for section #${String(sectionNum)} ------------`)
 
   if (useDemoData) {
     const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
@@ -187,12 +207,12 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "schedule yesterday to today", actionPluginID: "jgclark.Dashboard", tooltip: 'Move or schedule all open items from yesteday to today', display: 'All <i class="fa-solid fa-right-long"></i> Today', actionFunctionParam: 'true' /* refresh afterwards */ },
+      { actionFunctionName: "schedule yesterday to today", actionPluginID: "jgclark.DashboardReact", tooltip: 'Move or schedule all open items from yesteday to today', display: 'All <i class="fa-solid fa-right-long"></i> Today', actionFunctionParam: 'true' /* refresh afterwards */ },
     ]
   }
 
   // return JSON.stringify(section)
-  logDebug('getYesterdaySectionData', JSON.stringify(section))
+  // logDebug('getYesterdaySectionData', JSON.stringify(section))
   return section
 }
 
@@ -207,6 +227,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const thisFilename = `${moment(tomorrow).format("YYYYMMDD")}.md`
     let itemCount = 0
     const items: Array<TSectionItem> = []
+    logInfo('getDataForDashboard', `------- Gathering Tomorrow's items for section #${String(sectionNum)} ------------`)
 
     if (useDemoData) {
       const combinedTomorrowSortedParas = openTomorrowParas.concat(refTomorrowParas)
@@ -310,10 +331,10 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     sectionTitleClass: "sidebarWeekly", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this week's note", display: '<i class="fa-regular fa-circle-plus sidebarWeekly"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this week's note", display: '<i class="fa-regular fa-square-plus sidebarWeekly"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to tomorrow's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarWeekly"></i>', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to tomorrow's note", display: '<i class="fa-regular fa-square-arrow-right sidebarWeekly"></i>', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this week's note", display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this week's note", display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to tomorrow's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ', actionFunctionParam: nextPeriodFilename },
     ]
   }
   // logDebug('getThisWeekSectionData', JSON.stringify(section))
@@ -368,10 +389,10 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     ID: sectionNum, name: 'This Month', sectionType: thisSectionType, description: `{count} from ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this month's note", display: '<i class="fa-regular fa-circle-plus sidebarMonthly"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this month's note", display: '<i class="fa-regular fa-square-plus sidebarMonthly"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to next month's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarMonthly"></i>', actionFunctionParam: nextPeriodFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new checklist to next month's note", display: '<i class="fa-regular fa-square-arrow-right sidebarMonthly"></i>', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this month's note", display: '<i class= "fa-regular fa-circle-plus sidebarMonthly" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this month's note", display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to next month's note", display: '<i class= "fa-regular fa-circle-arrow-right sidebarMonthly" ></i> ', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new checklist to next month's note", display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ', actionFunctionParam: nextPeriodFilename },
     ]
   }
   // logDebug('getThisMonthSectionData', JSON.stringify(section))
@@ -421,10 +442,10 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     ID: sectionNum, name: 'This Quarter', sectionType: thisSectionType, description: `{count} from ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this quarter's note", display: '<i class="fa-regular fa-circle-plus sidebarQuarterly"></i>', actionFunctionParam: thisFilename },
-      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to this quarter's note", display: '<i class="fa-regular fa-square-plus sidebarQuarterly"></i>', actionFunctionParam: thisFilename },
-      // { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to next quarter's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
-      // { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new checklist to next quarter's note", display: '<i class="fa-regular fa-square-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
+      { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this quarter's note", display: '<i class= "fa-regular fa-circle-plus sidebarQuarterly" ></i> ', actionFunctionParam: thisFilename },
+      { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to this quarter's note", display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ', actionFunctionParam: thisFilename },
+      // { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to next quarter's note", display: '<i class="fa-regular fa-circle-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
+      // { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new checklist to next quarter's note", display: '<i class="fa-regular fa-square-arrow-right sidebarQuarterly"></i>', actionFunctionParam: nextPeriodFilename },
     ]
   }
   // logDebug('getThisQuarterSectionData', JSON.stringify(section))
@@ -659,7 +680,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       sectionItems: items, generated: new Date(),
       totalCount: totalOverdue, actionButtons: []
     }
-    console.log(JSON.stringify(section))
+    // console.log(JSON.stringify(section))
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))

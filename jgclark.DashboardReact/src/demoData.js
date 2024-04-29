@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 12.4.2024 for v2.0.0 by @jgclark
+// Last updated 26.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -29,7 +29,128 @@ export const openTodayItems: Array<TSectionItem> = [
     "noteType": "Calendar",
     "itemType": "open",
     "para": {
-      "type": "checklist",
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "task with timeblock 10:00-11:30",
+      "prefix": "* ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "open",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "evening routine 10:00-10:30PM",
+      "prefix": "* ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "open",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "task with evening 18:00-19:00 job",
+      "prefix": "* ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "open",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "task with afternoon 14:00-15:00 task",
+      "prefix": "* ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "checklist",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "morning checklist 8:00AM",
+      "prefix": "+ ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "checklist",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "earliest task with timeblock 08:00-09:00",
+      "prefix": "+ ",
+    }
+  },
+]
+export const refTodayItems: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": "Ministry Projects/Repair Cafe.md",
+    "itemNoteTitle": "Repair Cafe",
+    "noteType": "Notes",
+    "itemType": "open",
+    "para": {
+      "filename": "Ministry Projects/Repair Cafe.md",
+      "type": "open",
+      "priority": 0,
+      "prefix": "* ",
+      "content": "Pay in cash from cafe 2:30PM",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": "CCC Areas/Mission Partners.md",
+    "itemNoteTitle": "Mission Partners",
+    "noteType": "Notes",
+    "itemType": "open",
+    "para": {
+      "type": "open",
+      "filename": "CCC Areas/Mission Partners.md",
+      "priority": 0,
+      "content": "Update display board 12:30PM",
+      "prefix": "* ",
+    }
+  },
+]
+
+// -------------------------------------------------------------------------
+const yesterday = new moment().subtract(1, 'days').toDate()
+thisDateStr = moment(yesterday).format("YYYYMMDD")
+thisFilename = `${thisDateStr}.md`
+export const openYesterdayParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemFilename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "noteType": "Calendar",
+    "itemType": "open",
+    "para": {
+      "type": "open",
       "filename": thisFilename,
       "priority": 4,
       "content": ">> #editvideo from CFL visit",
@@ -49,9 +170,38 @@ export const openTodayItems: Array<TSectionItem> = [
       "content": "check ==highlights==, `formatted` and ~~strike~~ text work OK",
       "prefix": "+ ",
     }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "itemNoteTitle": thisDateStr,
+    "itemFilename": thisFilename,
+    "noteType": "Calendar",
+    "itemType": "checklist",
+    "para": {
+      "type": "checklist",
+      "filename": thisFilename,
+      "priority": 0,
+      "content": "update contract for [[Staff Induction (SW)]] following review comments",
+      "prefix": "* ",
+    }
   }
 ]
-export const refTodayItems: Array<TSectionItem> = [
+export const refYesterdayParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    "noteType": "Notes",
+    "itemType": "open",
+    "itemNoteTitle": "Services",
+    "itemFilename": "CCC Areas/Services.md",
+    "para": {
+      "type": "open",
+      "filename": "CCC Areas/Services.md",
+      "priority": 1,
+      "content": "write 5/3 sermon >2023-03-02",
+      "prefix": "* ",
+      "changedDate": new Date("2023-03-02T00:00:00.000Z"),
+    }
+  },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemFilename": "Ministry Projects/Repair Cafe.md",
@@ -80,58 +230,6 @@ export const refTodayItems: Array<TSectionItem> = [
       "content": "Edit video from CFL visit https://bcfd.org.uk",
       "blockId": "^wazhht",
       "prefix": "* ",
-    }
-  },
-]
-
-// -------------------------------------------------------------------------
-const yesterday = new moment().subtract(1, 'days').toDate()
-thisDateStr = moment(yesterday).format("YYYYMMDD")
-thisFilename = `${thisDateStr}.md`
-export const openYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    "itemNoteTitle": thisDateStr,
-    "itemType": "open",
-    "itemFilename": thisFilename,
-    "noteType": "Calendar",
-    "para": {
-      "type": "open",
-      "filename": thisFilename,
-      "priority": 0,
-      "content": "film video at CFL visit",
-      "prefix": "* ",
-    }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    "itemNoteTitle": thisDateStr,
-    "itemFilename": thisFilename,
-    "itemType": "checklist",
-    "noteType": "Calendar",
-    "para": {
-      "filename": thisFilename,
-      "type": "checklist",
-      "priority": 0,
-      "content": "update SW contract following review comments",
-      "prefix": "* ",
-    }
-  }
-]
-export const refYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    "noteType": "Notes",
-    "itemType": "open",
-    "itemNoteTitle": "Services",
-    "itemFilename": "CCC Areas/Services.md",
-    "para": {
-      "type": "open",
-      "filename": "CCC Areas/Services.md",
-      "priority": 1,
-      "content": "write 5/3 sermon >2023-03-02",
-      "prefix": "* ",
-      "changedDate": new Date("2023-03-02T00:00:00.000Z"),
     }
   },
   // $FlowIgnore[prop-missing] ID gets added later

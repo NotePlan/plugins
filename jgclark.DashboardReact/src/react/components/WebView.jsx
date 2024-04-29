@@ -13,6 +13,8 @@
 type Props = {
   data: any /* passed in from the plugin as globalSharedData */,
   dispatch: Function,
+  reactSettings: ReactSettings,
+  setReactSettings: Function,
 }
 /****************************************************************************************************************************
  *                             NOTES
@@ -32,22 +34,18 @@ import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-
-/****************************************************************************************************************************
- *                             CONSOLE LOGGING
- ****************************************************************************************************************************/
-// color this component's output differently in the console
-const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
-
+import { logDebug } from '@helpers/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
  */
-export function WebView({ data, dispatch }: Props): Node {
+
+logDebug(`WebView`, `loading file outside component code`)
+
+export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
+  logDebug(`WebView`, `inside component code`)
+
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -66,8 +64,17 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
+
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
+
+  /**
+   * Settings which are local to the React window
+   */
+  const defaultReactSettings = {
+    filterPriorityItems: false,
+    dialogData: { isOpen: false, isTask: true },
+  }
 
   /****************************************************************************************************************************
    *                             HANDLERS
@@ -77,34 +84,29 @@ export function WebView({ data, dispatch }: Props): Node {
    *                             EFFECTS
    ****************************************************************************************************************************/
 
+  // Set up the initial React Settings (runs only on load)
+  useEffect(() => {
+    logDebug(`Webview`, `setReactSettings effect running: setting Default settings. setReactSettings exists? ${setReactSettings !== undefined}`)
+    if (!setReactSettings) return
+    setReactSettings((prev) => ({ ...prev, ...defaultReactSettings }))
+  }, [])
+
   /**
    * When the data changes, console.log it so we know and scroll the window
    * Fires after components draw
    */
   useEffect(() => {
-    // logDebug(`Webview: useEffect: data changed. data: ${JSON.stringify(data)}`)
-    logDebug(`Webview: useEffect: data changed.`)
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Webview: useEffect: data changed. Scrolling to ${String(data.lastWindowScrollTop)}`)
+      debug && logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
+    } else {
+      logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
   }, [data])
 
   /****************************************************************************************************************************
    *                        HELPER FUNCTIONS
    ****************************************************************************************************************************/
-  /**
-   * Remove HTML entities from a string. Useful if you want to allow people to enter text in an HTML field.
-   * @param {string} text
-   * @returns {string} cleaned text without HTML entities
-   */
-  // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text: string): string {
-    const textArea = document.createElement('textarea')
-    textArea.innerHTML = text
-    const decoded = textArea.value
-    return decoded
-  }
 
   /**
    * Add the passthrough variables to the data object that will roundtrip to the plugin and come back in the data object
@@ -115,7 +117,7 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
+    if (!newData?.passThroughVars) newData.passThroughVars = {}
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -126,11 +128,15 @@ export function WebView({ data, dispatch }: Props): Node {
    * For instance, saving where the scroll position was so that when data changes and the Webview re-renders, it can scroll back to where it was
    * @param {string} command
    * @param {any} dataToSend
+   * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
-  const sendActionToPlugin = (command: string, dataToSend: any) => {
-    const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
-    dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
-    sendToPlugin([command, dataToSend]) // send action to plugin
+  const sendActionToPlugin = (command: string, dataToSend: any, updateGlobalData: boolean = true) => {
+    logDebug(`Webview: sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
+    if (updateGlobalData) {
+      const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
+      dispatch('UPDATE_DATA', newData, '') // save the data at the Root React Component level, which will give the plugin access to this data also
+    }
+    sendToPlugin([command, dataToSend, '']) // send action to plugin
   }
 
   /**
@@ -139,11 +145,12 @@ export function WebView({ data, dispatch }: Props): Node {
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
-    dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
+    console.log(`WebView: sendToPlugin: command:${command} data=${JSON.stringify(data)} `)
+    dispatch('SEND_TO_PLUGIN', [command, data], `WebView sending: sendToPlugin: ${String(command)} ${additionalDetails} ${JSON.stringify(data)}`)
   }
 
   /**
@@ -169,7 +176,15 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   return (
-    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData} updatePluginData={updatePluginData}>
+    <AppProvider
+      sendActionToPlugin={sendActionToPlugin}
+      sendToPlugin={sendToPlugin}
+      dispatch={dispatch}
+      pluginData={pluginData}
+      updatePluginData={updatePluginData}
+      reactSettings={reactSettings}
+      setReactSettings={setReactSettings}
+    >
       <Dashboard pluginData={pluginData} />
     </AppProvider>
   )

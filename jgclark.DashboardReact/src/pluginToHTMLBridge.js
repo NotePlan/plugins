@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 30.4.2024 for v1.2.2 by @SirTristam
+// Last updated 30.4.2024 for v2.0.0 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,7 +11,7 @@ import {
   getSettings,
   moveItemBetweenCalendarNotes
 } from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
+// import { showDashboardReact } from './reactMain'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
@@ -23,7 +23,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { sendToHTMLWindow } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cyclePriorityStateDown,
@@ -64,6 +64,9 @@ type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 
+// TEST: New for React
+const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId 
+
 //-----------------------------------------------------------------
 
 /**
@@ -74,11 +77,18 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
  * @param {string} type - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export async function onMessageFromHTMLView(type: string, data: any): any {
+export async function onMessageFromHTMLView(actionType: string, data: any): any {
   try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
+    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${actionType}:`)
     // clo(data, 'onMessageFromHTMLView dispatching data object:')
-    switch (type) {
+
+    // TEST: New things for React copied from @DW version
+    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
+    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+
+
+    switch (actionType) {
       case 'onClickDashboardItem':
         await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
@@ -86,15 +96,25 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
         await bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        await showDashboard() // no await needed, I think
+        logWarn('onMessageFromHTMLView', `'refresh' is currently turned off in onMessageFromHTMLView to avoid circular dependency`)
+        // await showDashboardReact() // no await needed, I think
         break
       case 'runPluginCommand':
         await runPluginCommand(data) // no await needed, I think
         break
       default:
-        logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
+        logError(pluginJson, `onMessageFromHTMLView(): unknown ${actionType} cannot be dispatched`)
         break
     }
+
+    // TEST: New things for React copied from @DW version
+    if (reactWindowData) {
+      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
+      clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
+      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+    }
+
+
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -126,7 +146,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
     // having changed this pref, refresh the dashboard
-    await showDashboard()
+    // await showDashboardReact()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -165,8 +185,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -182,8 +202,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -199,8 +219,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelTask', data)
         } else {
           logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -216,8 +236,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeChecklist', data)
         } else {
           logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -233,8 +253,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelChecklist', data)
         } else {
           logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -247,8 +267,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Update display in Dashboard too
         sendToHTMLWindow(windowId, 'toggleType', data)
         // Only use if necessary:
-        // logDebug('bCDI', '---------------- refresh ---------------')
-        // await showDashboard('refresh')
+        // Warnbug('bCDI', '------- refr turned off at the momentesh ---------------')
+        // await showDashboardReact('refresh')
         break
       }
       case 'cyclePriorityStateUp': {
@@ -264,7 +284,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedContent = cyclePriorityStateUp(para)
           logDebug('bCDI / cyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
 
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboard('refresh')
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboardReact('refresh')
           // Note: But this doesn't work, because of race condition.
           // So we better try that logic after all.
           const updatedData = {
@@ -338,7 +358,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
           // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          // await showDashboardReact('refresh')
 
         } else {
           logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
@@ -370,7 +390,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'reviewFinished': {
-      // Mimic the /finish review command.
+        // Mimic the /finish review command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCDI / review', `-> reviewFinished on ID ${ID} in filename ${filename}`)
@@ -481,7 +501,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const newHeadingLevel = await getSettingFromAnotherPlugin("jgclark.QuickCapture", "headingLevel", 2)
         logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
         if (itemType === "task") {
-          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel) 
+          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         } else {
           addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         }
@@ -548,7 +568,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (res) {
           logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
           // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
-          // await showDashboard()
+          // await showDashboardReact()
           // So instead send a message to delete the row in the dashboard
           sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
         } else {
@@ -606,7 +626,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
             // refresh whole display, as we don't know which if any section the moved task might need to be added to
             logDebug('bridgeClickDashboardItem', `------------ refresh ------------`)
-            await showDashboard()
+            await showDashboardReact()
           } else {
             logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
           }

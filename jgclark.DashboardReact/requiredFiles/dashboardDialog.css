@@ -15,6 +15,7 @@ dialog:modal {
 
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
+  display:block;
   margin: 0rem;
   color: var(--fg-main-color);
   background: var(--bg-main-color);

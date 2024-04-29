@@ -5,19 +5,18 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a1",
+  "plugin.version": "2.0.0-a3",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "dashboard.css",
     "dashboardDialog.css",
-    "dashboardEvents.js",
     "dashboardShortcuts.js",
+    "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
     "react.c.WebView.bundle.min.js",
-    "react.c.WebView.bundle.dev.js",
-    "showTimeAgo.js"
+    "react.c.WebView.bundle.dev.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -264,6 +263,14 @@
       "description": "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
       "type": "bool",
       "default": false,
+      "required": true
+    },
+    {
+      "key": "useTodayDate",
+      "title": "Use 'today' to schedule tasks for today?",
+      "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
