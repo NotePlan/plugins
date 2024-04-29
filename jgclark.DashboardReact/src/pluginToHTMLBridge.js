@@ -195,14 +195,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const ID = data.itemID
     const type = data.type
     // const controlStr = data.controlStr ?? ''
-    const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    let content = decodeRFC3986URIComponent(data.encodedContent ?? '')
-    logDebug('', '------------------------- bridgeClickDashboardItem: ${type} -------------------------')
+    const filename = data.filename || decodeRFC3986URIComponent(data.encodedFilename ?? '')
+    let content = data.content || decodeRFC3986URIComponent(data.encodedContent ?? '')
+    logDebug('', `------------------------- bridgeClickDashboardItem: ${type} -------------------------`)
     logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    if (!type === 'refresh' && (!content || !filename)) throw 'No content or filename provided'
     // clo(data, 'bridgeClickDashboardItem received data object')
 
     // Allow for a combination of button click and a content update
-    if (type !== 'updateItemContent' && data.encodedUpdatedContent) {
+    if (data.encodedUpdatedContent && type !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${data.encodedUpdatedContent}"`)
       const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
       if (res.completed) {

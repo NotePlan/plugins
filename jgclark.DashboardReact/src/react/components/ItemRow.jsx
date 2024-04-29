@@ -6,12 +6,16 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem, TParagraphForDashboard } from '../../types.js'
-import { onClickDashboardItem } from '../../../requiredFiles/HTMLWinCommsSwitchboard.js'
+import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
-import { useAppContext } from './AppContext.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo } from '@helpers/dev'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { logDebug } from '@helpers/react/reactDev'
+
+//  handleIconClick(thisId, 'open', thisEncodedFilename, thisEncodedContent, metaKey)
 
 type Props = {
   // key: number,
@@ -23,9 +27,54 @@ type Props = {
  * Represents a single item within a section, displaying its status, content, and actions.
  */
 function ItemRow(inputObj: Props): React$Node {
-  const { reactSettings, setReactSettings } = useAppContext()
+  const { item } = inputObj
+  const { itemType } = item
 
-  function handleEditClick(dataObjToPassToOnClick, isTask) {
+  const { setReactSettings, sendActionToPlugin } = useAppContext()
+
+  /**
+   * Handle clicking on item icons
+   */
+  function handleIconClick(event: MouseEvent) {
+    const { metaKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
+
+    const objToSendToPlugin = {
+      itemID: item.ID,
+      itemType,
+      filename: item?.para?.filename ?? '',
+      content: item?.para?.content ?? '',
+      type: 'unknown',
+    }
+
+    switch (itemType) {
+      case 'open':
+        objToSendToPlugin.type = metaKey ? 'cancelTask' : 'completeTask'
+        break
+      case 'checklist':
+        objToSendToPlugin.type = metaKey ? 'cancelChecklist' : 'completeChecklist'
+        break
+      case 'review':
+        objToSendToPlugin.type = 'showNoteInEditorFromFilename'
+        break
+      default:
+        logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
+        break
+    }
+
+    clo(objToSendToPlugin, `ItemRow: item clicked: ${item.ID}`)
+
+    sendActionToPlugin('onClickDashboardItem', objToSendToPlugin, `${item.ID} Row icon clicked`, true)
+
+    // Send action to plugin after n seconds - this is a bit of a hack
+    // to get around the updateCache not being reliable.
+    setReactSettings((prev) => ({ ...prev, refreshing: true }))
+    setTimeout(() => {
+      setReactSettings((prev) => ({ ...prev, refreshing: false }))
+      sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, `5s full refresh timer triggered`, false)
+    }, 5000)
+  }
+
+  function handleEditClick(dataObjToPassToOnClick: any, isTask: boolean): void {
     setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: isTask, details: dataObjToPassToOnClick } }))
   }
 
@@ -164,7 +213,7 @@ function ItemRow(inputObj: Props): React$Node {
           // $FlowIgnore(cannot-resolve-name)
           data-encoded-content={encodeRFC3986URIComponent(item.para?.content)}
         >
-          <div className={`${divClassName} itemIcon`}>
+          <div className={`${divClassName} itemIcon`} onClick={handleIconClick}>
             <i id={`${item.ID}I`} className={`${iconClassName}`}></i>
           </div>
 
