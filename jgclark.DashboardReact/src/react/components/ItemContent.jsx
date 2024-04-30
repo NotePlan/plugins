@@ -6,9 +6,6 @@
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import // makeNoteTitleWithOpenActionFromFilename,
-// makeParaContentToLookLikeNPDisplayInHTML,
-'../../dashboardHelpers'
 // import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/react/reactDev'
 import {
@@ -53,7 +50,7 @@ function ItemContent({ item }: Props): React$Node {
   const para = item.para
   // const itemType = para.type
 
-  console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
+  // console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
@@ -61,8 +58,11 @@ function ItemContent({ item }: Props): React$Node {
   function handleTaskClick() {
     const dataObjectToPassToFunction = {
       type: 'showLineInEditorFromFilename',
-      encodedFilename: item.para.filename,
-      encodedContent: encodeRFC3986URIComponent(para.content),
+      filename: item.para?.filename ?? '',
+      content: item.para?.content ?? '',
+      // TODO: are these still needed?
+      encodedFilename: encodeRFC3986URIComponent(item.para?.filename ?? ''),
+      encodedContent: encodeRFC3986URIComponent(item.para?.content ?? ''),
     }
     sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
   }
@@ -104,7 +104,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     const filename = para.filename ?? '<error>'
     const origContent = para.content ?? '<error>'
     const noteTitle = para.title ?? ''
-    console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
+    // console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
     // Start with the content of the item
     let output = origContent
 
@@ -143,7 +143,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     output = convertPreformattedToHTML(output)
 
     // Display time blocks with .timeBlock style
-    if (thisItem.para.startTime) {
+    if (thisItem.para?.startTime) {
       logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
       output = convertTimeBlockToHTML(output)
     }

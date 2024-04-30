@@ -1465,6 +1465,12 @@ export function markCancelled(para: TParagraph): boolean {
  */
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
+    if (filenameIn === '') {
+      throw new Error('completeItem: filenameIn is empty')
+    }
+    if (content === '') {
+      throw new Error('NPP/completeItem: content empty')
+    }
     logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: <${content}>`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
     if (typeof possiblePara === 'boolean') {

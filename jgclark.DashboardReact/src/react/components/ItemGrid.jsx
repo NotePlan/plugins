@@ -4,6 +4,7 @@
 // Last updated 15.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
+import { logDebug } from '@helpers/dev.js'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
 // import { useAppContext } from './AppContext.jsx'

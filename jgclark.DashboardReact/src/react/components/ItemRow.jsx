@@ -1,14 +1,14 @@
+// @flow
 /**
  * ItemRow.jsx
  * Represents a row item within a section.
  * Could be: Task, Review Item, Filtered Indicator, or No Tasks Left
  */
-// @flow
 import * as React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 // import { useAppContext } from './AppContext.jsx'
 import ReviewItem from './ReviewItem.jsx'
-import TaskItem from './TaskItem.jsx'
+import ItemIcon from './ItemIcon.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import NoTasks from './NoTasks.jsx'
 import { logDebug } from '@helpers/react/reactDev'
@@ -23,7 +23,7 @@ type Props = {
  * Loads the proper Component depending on itemType
  */
 function ItemRow({ item, thisSection }: Props): React.Node {
-  logDebug(`ItemRow`, `csection ${thisSection.sectionType}/${thisSection.ID}${thisSection.sectionFilename} && ${typeof item !== 'undefined' ? item.itemNoteTitle : '<no item>'}`)
+  logDebug(`ItemRow`, `csection ${thisSection.sectionType}/${thisSection.ID}/${thisSection.sectionFilename ?? '<no filename>'} && ${item.itemNoteTitle ?? '<no item title>'}`)
   const { itemType } = item
 
   return (
@@ -35,7 +35,7 @@ function ItemRow({ item, thisSection }: Props): React.Node {
       ) : itemType === 'congrats' ? (
         <NoTasks />
       ) : (
-        <TaskItem item={item} thisSection={thisSection} />
+              <ItemIcon item={item} thisSection={thisSection} />
       )}
     </>
   )

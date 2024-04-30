@@ -1,6 +1,9 @@
-// TaskItem.jsx
-
 // @flow
+/**
+ * ItemIcon.jsx
+ * Represents a row's starting icon (normally round or square)
+ * Last updated 1.5.2024 for v2.0.0 by @jgclark
+ */
 
 import React, { useState } from 'react'
 import type { Node } from 'react'
@@ -17,11 +20,11 @@ type Props = {
   thisSection: TSection,
 }
 
-function TaskItem({ item, thisSection }: Props): Node {
-  logDebug(`TaskItem`, `csection item. look for itemNoteTitle`, item)
+function ItemIcon({ item, thisSection }: Props): Node {
+  logDebug(`ItemIcon`, `csection item. look for itemNoteTitle`, item)
   const { setReactSettings, sendActionToPlugin, pluginData } = useAppContext()
   const { settings } = pluginData
-  logDebug(`TaskItem`, `csection ${thisSection.sectionType}/${thisSection.ID}${thisSection.sectionFilename} && ${typeof item !== 'undefined' ? item.itemNoteTitle : '<no item>'}`)
+  logDebug(`ItemIcon`, `csection ${thisSection.sectionType}/${thisSection.ID}/${thisSection.sectionFilename ?? '<no filename>'} && ${item.itemNoteTitle ?? '<no item>'}`)
 
   // Hooks
   const [visible, setVisible] = useState(true)
@@ -72,7 +75,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   const handleEditClick = (e: MouseEvent): void => {
-    logDebug('TaskItem', 'handleEditClick - setting dialogData to: ', dataObjectToPassToControlDialog)
+    logDebug('ItemIcon', 'handleEditClick - setting dialogData to: ', dataObjectToPassToControlDialog)
     // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
     // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
@@ -111,4 +114,4 @@ function TaskItem({ item, thisSection }: Props): Node {
   )
 }
 
-export default TaskItem
+export default ItemIcon

@@ -67,10 +67,10 @@ function Section(inputObj: SectionProps): React$Node {
         maxPrioritySeen = i.para.priority
       }
     }
-    logDebug('Section', `- config.filterPriorityItems = ${String(filterPriorityItems)}, maxPrioritySeen=${String(maxPrioritySeen)}`)
+    // logDebug('Section', `- config.filterPriorityItems = ${String(filterPriorityItems)}, maxPrioritySeen=${String(maxPrioritySeen)}`)
     const filteredItems = filterPriorityItems ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
-    logDebug('Section', `- After filter, ${String(filteredItems.length)} from ${String(items.length)} items (${String(priorityFilteringHappening)})`)
+    // logDebug('Section', `- After filter, ${String(filteredItems.length)} from ${String(items.length)} items (${String(priorityFilteringHappening)})`)
 
     // Now sort the items by startTime, then by endTime, then by priority, then title
     // TEST: 12-hour times once I've coded for that in dataGeneration.

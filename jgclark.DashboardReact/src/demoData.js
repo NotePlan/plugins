@@ -97,34 +97,6 @@ export const openTodayItems: Array<TSectionItem> = [
     "itemFilename": thisFilename,
     "itemNoteTitle": thisDateStr,
     "noteType": "Calendar",
-    "itemType": "open",
-    "para": {
-      "type": "open",
-      "filename": thisFilename,
-      "priority": 0,
-      "content": "task with afternoon 14:00-15:00 task",
-      "prefix": "* ",
-    }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    "itemFilename": thisFilename,
-    "itemNoteTitle": thisDateStr,
-    "noteType": "Calendar",
-    "itemType": "checklist",
-    "para": {
-      "type": "open",
-      "filename": thisFilename,
-      "priority": 0,
-      "content": "morning checklist 8:00AM",
-      "prefix": "+ ",
-    }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    "itemFilename": thisFilename,
-    "itemNoteTitle": thisDateStr,
-    "noteType": "Calendar",
     "itemType": "checklist",
     "para": {
       "type": "open",

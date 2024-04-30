@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 30.4.2024 for v2.0.0 by @SirTristam
+// Last updated 30.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,8 +38,10 @@ type MessageDataObject = {
   itemID: string,
   type: string,
   controlStr: string,
-  encodedFilename: string,
-  encodedContent: string,
+  filename: string,
+  encodedFilename?: string,
+  content: string,
+  encodedContent?: string,
   itemType?: string,
   encodedUpdatedContent?: string,
 }
@@ -194,17 +196,18 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
     const ID = data.itemID
     const type = data.type
-    // const controlStr = data.controlStr ?? ''
+    // FIXME: sort flow error as it looks helpful
     const filename = data.filename || decodeRFC3986URIComponent(data.encodedFilename ?? '')
     let content = data.content || decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', `------------------------- bridgeClickDashboardItem: ${type} -------------------------`)
     logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
-    if (!type === 'refresh' && (!content || !filename)) throw 'No content or filename provided'
+    if (!type === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
     // clo(data, 'bridgeClickDashboardItem received data object')
 
     // Allow for a combination of button click and a content update
     if (data.encodedUpdatedContent && type !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${data.encodedUpdatedContent}"`)
+      // $FlowIgnore[incompatible-call]
       const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
       if (res.completed) {
         content = res.updatedParagraph.content
@@ -219,71 +222,19 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         return
       }
       case 'completeTask': {
-        // Complete the task in the actual Note
-        const res = completeItem(filename, content)
-        // Ask for cache refresh for this note. (Can't now remember why this is needed.)
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeTask', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeTask', data)
-        } else {
-          logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-          // await showDashboardReact('refresh')
-        }
+        await doCompleteTask(data, windowId)
         break
       }
       case 'completeTaskThen': {
-        // Complete the task in the actual Note, but with the date it was scheduled for
-        const res = completeItemEarlier(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeTask', data)
-        } else {
-          logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-          // await showDashboardReact('refresh')
-        }
+        await doCompleteTaskThen(data, windowId)
         break
       }
       case 'cancelTask': {
-        // Cancel the task in the actual Note
-        const res = cancelItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'cancelTask', data)
-        } else {
-          logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-          // await showDashboardReact('refresh')
-        }
+        await doCancelTask(data, windowId)
         break
       }
       case 'completeChecklist': {
-        // Complete the checklist in the actual Note
-        const res = completeItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeChecklist', data)
-        } else {
-          logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-          // await showDashboardReact('refresh')
-        }
+        await doCompleteChecklist(data, windowId)
         break
       }
       case 'cancelChecklist': {
@@ -669,6 +620,75 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
 }
+
+async function doCompleteTask(data: MessageDataObject, windowID: string): Promise<void> {
+  // Complete the task in the actual Note
+  const res = completeItem(data.filename, data.content)
+  // Ask for cache refresh for this note. (Can't now remember why this is needed.)
+  DataStore.updateCache(getNoteByFilename(data.filename), false)
+
+  // Update display in Dashboard too
+  if (res) {
+    logDebug('bCDI / completeTask', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+    sendToHTMLWindow(windowID, 'completeTask', data)
+  } else {
+    logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+    await refreshData()
+  }
+}
+
+async function doCompleteTaskThen(data: MessageDataObject, windowID: string): Promise<void> {
+  // Complete the task in the actual Note, but with the date it was scheduled for
+  const res = completeItemEarlier(data.filename, data.content)
+  // Ask for cache refresh for this note
+  DataStore.updateCache(getNoteByFilename(data.filename), false)
+
+  // Update display in Dashboard too
+  if (res) {
+    logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
+    sendToHTMLWindow(windowID, 'completeTask', data)
+  } else {
+    logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
+    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+    await refreshData()
+  }
+}
+
+async function doCancelTask(data: MessageDataObject, windowID: string): Promise<void> {
+  // Cancel the task in the actual Note
+  const res = cancelItem(data.filename, data.content)
+  // Ask for cache refresh for this note
+  DataStore.updateCache(getNoteByFilename(data.filename), false)
+
+  // Update display in Dashboard too
+  if (res) {
+    logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+    sendToHTMLWindow(windowID, 'cancelTask', data)
+  } else {
+    logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+    await refreshData()
+  }
+}
+
+async function doCompleteChecklist(data: MessageDataObject, windowID: string): Promise<void> {
+  // Complete the checklist in the actual Note
+  const res = completeItem(data.filename, data.content)
+  // Ask for cache refresh for this note
+  DataStore.updateCache(getNoteByFilename(data.filename), false)
+
+  // Update display in Dashboard too
+  if (res) {
+    logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+    sendToHTMLWindow(windowID, 'completeChecklist', data)
+  } else {
+    logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+    await refreshData()
+  }
+}
+
 
 /**
  * Update React window data based on the result of handling item content update.
