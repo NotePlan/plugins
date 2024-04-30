@@ -46,18 +46,18 @@ const shortcutKeys = [
 ]
 
 function enableDashboardShortcuts() {
-  console.log("enableDashboardShortcuts() starting ...")
+  // console.log("enableDashboardShortcuts() starting ...")
 
   for (const key of shortcutKeys) {
     shortcut.add(key.key, function () {
       sendMessageToPlugin('runPluginCommand', { commandName: key.commandName, pluginID: 'jgclark.Dashboard', commandArgs: [] })
     })
-    console.log("Added Shortcut key '" + key.key + "' to call '" + key.commandName + "' command")
+    // console.log("Added Shortcut key '" + key.key + "' to call '" + key.commandName + "' command")
   }
 }
 
 function disableDashboardShortcuts() {
-  console.log("Removing Shortcut keys")
+  // console.log("Removing Shortcut keys")
   for (const key of shortcutKeys) {
     shortcut.remove(key.key)
   }

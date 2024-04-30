@@ -91,7 +91,7 @@ function showItemControlDialog(dataObject) {
   ]
   const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType) && t.notNoteType !== thisNoteType)
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
-  console.log(controlStrsForThisSection)
+  // console.log(controlStrsForThisSection)
 
   // remove previous event handlers
   // V1: simple 'button.removeEventListener('click', function (event) { ...}, false) didn't work for some reason
@@ -105,7 +105,7 @@ function showItemControlDialog(dataObject) {
     button.parentNode.replaceChild(clonedButton, button)
     removed++
   }
-  console.log(`- removed ${String(removed)} buttons' ELs`)
+  // console.log(`- removed ${String(removed)} buttons' ELs`)
 
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
@@ -154,7 +154,7 @@ function showItemControlDialog(dataObject) {
       button.style.display = "none"
     }
   }
-  console.log(`- ${String(added)} button ELs added`)
+  // console.log(`- ${String(added)} button ELs added`)
 
   // Trap for Escape key to get it to call the close function
   // From https://stackoverflow.com/questions/27758991/css-html-modal-using-the-escape-key-click-outside-to-close
@@ -166,7 +166,7 @@ function showItemControlDialog(dataObject) {
   // Trap Close button to call the close function
   const closeButtonElem = document.querySelector('#closeButton')
   closeButtonElem.addEventListener('click', function (event) {
-    console.log("Close button was pressed")
+    // console.log("Close button was pressed")
     event.preventDefault() // we don't want to submit -> reload the page
     closeDialog()
   })
@@ -213,7 +213,7 @@ function showItemControlDialog(dataObject) {
 
   function handleEscape(event) {
     if (event.keyCode === 27) {
-      console.log("ESC key was pressed")
+      // console.log("ESC key was pressed")
       closeDialog()
     }
   }
@@ -242,7 +242,7 @@ function showItemControlDialog(dataObject) {
     if (!metaModifier) {
       closeDialog()
     } else {
-      console.log(`Option key pressed. But closing dialog anyway.`)
+      // console.log(`Option key pressed. But closing dialog anyway.`)
       // Note: this is where we would want to update and re-gather the data-encoded-content, as it might well have changed.
       closeDialog()
     }
@@ -291,8 +291,7 @@ function showProjectControlDialog(dataObject) {
     { controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate' },
   ]
   const possibleCcontrolStrs = possibleControlTypes.map((t) => t.controlStr)
-  console.log(String(possibleCcontrolStrs))
-
+  // console.log(String(possibleCcontrolStrs))
 
   let allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
   // remove previous event handlers
@@ -306,7 +305,7 @@ function showProjectControlDialog(dataObject) {
     button.parentNode.replaceChild(clonedButton, button)
     removed++
   }
-  console.log(`- removed ${String(removed)} buttons' ELs`)
+  // console.log(`- removed ${String(removed)} buttons' ELs`)
 
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
@@ -346,7 +345,7 @@ function showProjectControlDialog(dataObject) {
       button.style.display = "none"
     }
   }
-  console.log(`- ${String(added)} button ELs added`)
+  // console.log(`- ${String(added)} button ELs added`)
 
   // Actually show the dialog
   dialog.showModal()
@@ -359,7 +358,7 @@ function showProjectControlDialog(dataObject) {
   // For clicking on dialog buttons
   function handleButtonClick(id, type, controlStr, encodedFilename, encodedCurrentContent, metaModifier) {
     console.log(`Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`)
-    console.log(`- orig content: {${  encodedCurrentContent  }}`)
+    // console.log(`- orig content: {${  encodedCurrentContent  }}`)
 
     onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent }) // = sendMessageToPlugin('onClickDashboardItem', ...)
 
@@ -473,7 +472,7 @@ function addIconClickEventListeners() {
       handleIconClick(thisId, 'open', thisEncodedFilename, thisEncodedContent, metaModifier)
     }, false)
   }
-  console.log(`${String(allTodos.length)} sectionItemTodo ELs added (to icons)`)
+  // console.log(`${String(allTodos.length)} sectionItemTodo ELs added (to icons)`)
 
   // Add event handlers for checklist icons
   const allChecklists = document.getElementsByClassName("sectionItemChecklist")
@@ -488,7 +487,7 @@ function addIconClickEventListeners() {
       handleIconClick(thisId, 'checklist', thisEncodedFilename, thisEncodedContent, metaModifier)
     }, false)
   }
-  console.log(`${String(allChecklists.length)} sectionItemChecklist ELs added (to icons)`)
+  // console.log(`${String(allChecklists.length)} sectionItemChecklist ELs added (to icons)`)
 }
 
 /**
@@ -536,7 +535,7 @@ function addContentEventListeners() {
     //   }
     // }
   }
-  console.log(`${String(allContentItems.length)} sectionItem ELs added (to content links)`)
+  // console.log(`${String(allContentItems.length)} sectionItem ELs added (to content links)`)
 
   // For clicking on main 'paragraph content'
   function handleContentClick(event, id, encodedFilename, encodedContent) {
@@ -565,7 +564,7 @@ function addReviewProjectEventListeners() {
       handleIconClick(thisID, 'review', thisEncodedFilename, '-', event.metaKey)
     }, false)
   }
-  console.log(`${String(allReviewItems.length)} review ELs added`)
+  // console.log(`${String(allReviewItems.length)} review ELs added`)
 }
 
 /**
@@ -578,7 +577,7 @@ function addCommandButtonEventListeners() {
   for (const button of allPCButtons) {
     // const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
-    console.log(`- displaying button for PCB function ${button.dataset.command}`)
+    // console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
       console.log(`Attempting to send plugin command ${button.dataset.command} ...`)
@@ -587,7 +586,7 @@ function addCommandButtonEventListeners() {
     }, false)
     added++
   }
-  console.log(`- ${String(added)} PCButton ELs added`)
+  // console.log(`- ${String(added)} PCButton ELs added`)
 }
 
 //--------------------------------------------------------------------------------------
@@ -625,7 +624,7 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
  *  For clicking on main 'paragraph encodedcontent'
  */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {
-  console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)
+  // console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)
   const encodedFilename = encodedfilename
   const encodedContent = encodedcontent
   onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent })

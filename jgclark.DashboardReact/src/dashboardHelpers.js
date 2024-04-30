@@ -54,6 +54,7 @@ import {
   isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
   removeDuplicates
 } from '@helpers/utils'
+import { removeDateTagsAndToday } from '../../helpers/dateTime'
 
 //-----------------------------------------------------------------
 
@@ -658,10 +659,13 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
     }
     const itemType = possiblePara?.type
 
+    // Remove any scheduled date on the item
+    const targetContent = removeDateTagsAndToday(paraContent, true)
+
     // add to toNote
     if (headingToPlaceUnder === '') {
-      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
-      smartPrependPara(toNote, paraContent, itemType)
+      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${targetContent}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, targetContent, itemType)
     } else {
       logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
       // Note: this doesn't allow setting heading level ...
@@ -669,11 +673,11 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       // so replace with one half of /qath:
       const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
       const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug('addTextToNoteHeading', `Adding line '${paraContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`)
+      logDebug('addTextToNoteHeading', `Adding line '${targetContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`)
       if (matchedHeading !== '') {
         // Heading does exist in note already
         toNote.addParagraphBelowHeadingTitle(
-          paraContent,
+          targetContent,
           itemType,
           (matchedHeading !== '') ? matchedHeading : headingToPlaceUnder,
           shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
@@ -688,8 +692,8 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
           : findStartOfActivePartOfNote(toNote)
         logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
         toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('moveItemBetweenCalendarNotes', `- then adding text '${paraContent}' after `)
-        toNote.insertParagraph(paraContent, insertionIndex + 1, itemType)
+        logDebug('moveItemBetweenCalendarNotes', `- then adding text '${targetContent}' after `)
+        toNote.insertParagraph(targetContent, insertionIndex + 1, itemType)
       }
     }
 

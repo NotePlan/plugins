@@ -102,13 +102,14 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
     if (!Editor || !Editor.note) {
       throw new Error("No Editor open, so can't continue")
     }
+    logDebug(pluginJson, `addTriggerToNote('${triggerNameArg}') starting ...`)
 
     // Get list of available triggers from looking at installed plugins
     const allVisibleCommands = []
     const triggerRelatedCommands = []
     const triggerRelatedStrings = []
     const installedPlugins = DataStore.installedPlugins()
-    logDebug('addTriggerToNote', "Found following trigger-related plugin commands:")
+    // logDebug('addTriggerToNote', "Found following trigger-related plugin commands:")
     for (const p of installedPlugins) {
       for (const pluginCommand of p.commands) {
         // Only include if this command name or description is a trigger type or contains the string 'trigger' (excluding this one!)
@@ -116,7 +117,7 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
           && pluginCommand.name !== "add trigger to note") {
           triggerRelatedCommands.push(pluginCommand)
           const thisTriggerString = `${pluginCommand.name} => ${p.id}.${pluginCommand.name}`
-          logDebug('addTriggerToNote', `- ${thisTriggerString}`)
+          // logDebug('addTriggerToNote', `- ${thisTriggerString}`)
           triggerRelatedStrings.push(thisTriggerString)
         }
         if (!pluginCommand.hidden) {
@@ -137,18 +138,10 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
       }
 
       // Add to note
-      // V1: WARNING: not working when used in a Template because of the way Templates work
-      // $FlowIgnore[incompatible-call]
-      // await convertNoteToFrontmatter(Editor.note, `triggers: ${  triggerName}`)
-      // return
+      // Note: using Editor, not Editor.note, in case this is used in a Template
+      await convertNoteToFrontmatter(Editor, `triggers: ${triggerName}`)
+      return
 
-      // V2: use method below, which is long-winded as we have to break the string back into its constituent parts
-      // Note: borrowing code from NPFrontMatter::getTriggersByCommand()
-      const [part1, part2] = triggerNameArg.split('=>').map((s) => s.trim())
-      triggerName = part1
-      const commandSplit = part2.split('.').map((s) => s.trim())
-      triggerPluginID = commandSplit.slice(0, commandSplit.length - 1).join('.')
-      funcName = commandSplit[commandSplit.length - 1]
     } else {
 
       // Ask user to select one. Examples:

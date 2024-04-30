@@ -447,7 +447,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     if (ensureFrontmatter(note) === false) {
       throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
     }
-    logDebug(pluginJson, `addTrigger() add if dne ${trigger} / ${pluginID} /  ${commandName} to FM:`)
+    logDebug(pluginJson, `addTrigger() starting to add the ${trigger} / ${pluginID} /  ${commandName} to FM:`)
     const attributes = getFrontMatterAttributes(note)
     // clo(attributes, `addTrigger() attributes =`)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []

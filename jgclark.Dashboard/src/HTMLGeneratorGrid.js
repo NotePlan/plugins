@@ -213,7 +213,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     outputArray.push(`\n<div class="sections">`)
     let sectionNumber = 0
     for (const section of sections) {
-      logDebug('showDashboard', `Section ${section.name} ID:${String(section.ID)} filename:${section.filename}`)
+      // logDebug('showDashboard', `Laying out Section '${section.name}' ID:${String(section.ID)} filename:${section.filename ?? '-'}`)
       // Special case to handle count of done items
       if (section.name === 'Done') {
         totalDoneItems = section.ID
@@ -235,10 +235,12 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           })
         } else {
           // don't add this section: go on to next section
-          logDebug('showDashboard', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
+          // logDebug('showDashboard', `Section '(${section.name})' ID:${String(section.ID)} is empty so will skip it`)
           sectionNumber++
           continue // to next loop item
         }
+      } else {
+        logDebug('showDashboard', `- section ${String(sectionNumber)} has ${items.length} items`)
       }
 
       // Start outer section, laid out in a grid with 2 columns

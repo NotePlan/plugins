@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 18.4.2024 for v1.2.1 by @SirTristam
+// Last updated 30.4.2024 for v1.2.2 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'

@@ -1,6 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+Note: a complete re-write of the Dashboard is underway to move it onto a newer and more extensible framework, but it's a very big job.
+
+## [1.2.2] - 2024-04-30 by @SirTristam
+- Correct date handling when rescheduling or moving tasks.
+- Fix error using the 'All Today -> Tomorrow' button.
+- Fix button displaying wrongly in Yesterday Referenced Section
+
 ## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today
 
