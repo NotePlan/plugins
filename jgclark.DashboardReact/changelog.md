@@ -24,9 +24,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - I added a 5s delayed auto refresh hack to try to get around the updateCache bug. After clicking any button on the dialog, the JSON data does a full refresh 5s later no matter what. We can get rid of this when the single-line refreshes on the plugin/server side are all implemented.
 - I added a "refreshing" message when this happens so you know what's going on.
 
-### jgclark notes
-
-
 ## [2.0.0-a3] 
 
 Notes to @jgclark
@@ -44,6 +41,10 @@ Other TODO:
 - Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - Minor thing but the "title" field that is passed for calendar note items is unhyphenated, whereas the actual title in a Calendar note is hyphenated. Would look better in the dialog box to have it hyphenated.
 - (dwertheimer) Banners are not working
+
+## [2.0.0-a3] @SirTristam 2024-04-30
+- Correct date handling when rescheduling or moving tasks.
+- Fix error using the 'All Today -> Tomorrow' button.
 
 ## [2.0.0-a2] @jgclark 2024-04-19
 - ShowTimeAgo:
