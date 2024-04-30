@@ -25,6 +25,7 @@ body {
 	position: sticky;
 	top: 0px;
 	border-bottom: 1.0px solid var(--tint-color);
+	z-index: 100;
 }
 
 .header div:last-child {
