@@ -19,7 +19,10 @@ type SectionProps = {
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(inputObj: SectionProps): React$Node {
-  const { reactSettings, setReactSettings } = useAppContext()
+  const thisSection = inputObj.section
+  logDebug(`Section`, `csection ${thisSection.sectionType}/${thisSection.ID}${thisSection.sectionFilename} && ${typeof item !== 'undefined' ? item.itemNoteTitle : '<no item>'}`)
+
+  const { reactSettings } = useAppContext()
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
@@ -47,8 +50,6 @@ function Section(inputObj: SectionProps): React$Node {
             type: 'text', // for sake of something
             content: `Nothing to do: take a break <i class="fa-regular fa-mug"></i>`, // earlier tried fa-party-horn
           },
-          rawContent: ``,
-          filename: '',
         })
       }
     } else {
@@ -74,7 +75,7 @@ function Section(inputObj: SectionProps): React$Node {
     // Now sort the items by startTime, then by endTime, then by priority, then title
     // TEST: 12-hour times once I've coded for that in dataGeneration.
     // TODO: can we use an earlier helper here? (This was from Copilot++)
-    logDebug('Section', `- Before sort:\n${JSON.stringify(filteredItems, null, 2)}`)
+    // logDebug('Section', `- Before sort:\n${JSON.stringify(filteredItems, null, 2)}`)
     filteredItems.sort((a, b) => {
       // Compare by startTime
       if (a.para?.startTime && b.para?.startTime) {
@@ -108,7 +109,7 @@ function Section(inputObj: SectionProps): React$Node {
       const titleB = b.itemNoteTitle?.toLowerCase() ?? ''
       return titleA.localeCompare(titleB)
     })
-    logDebug('Section', `- After sort:\n${JSON.stringify(filteredItems, null, 2)}`)
+    // logDebug('Section', `- After sort:\n${JSON.stringify(filteredItems, null, 2)}`)
 
     // Now apply limit (if desired)
     const limit = config?.maxTasksToShowInSection ?? 20

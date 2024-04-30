@@ -1,6 +1,19 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.0-a5]
+- Dialog: Got CompleteThen to work
+- Dialog: Got Unschedule to work
+- Dialog: Got Cancel to work
+- Dialog: Wrote JS to position the dialog perfectly relative to click
+- Dashboard css: bring header z-index up to float above all elements
+- Major React Refactor: Break down ItemRow to be much more modular so that Projects and Tasks are not mixed together. 
+- TaskItem is now much more readable and understandable and does not have the multiple if's and multiple return statements.
+- NOTE: to that end, I try to keep my React Components to a single return statement (do any if's above in the code) so if you want to see what is rendering in a component, you jump to the bottom of the file and it's always right there
+- New React Components: Task Item, Review Item, Tasks Filtered, NoTasks
+- Created a generalized shared/singleton auto refresh timer that allows for refresh to be called for by any component with a debounce so that only the last request counts down and you don't get 5 refreshes if you quickly click 5 tasks.
+- Cleaned up lots of Flow errors (still some more to go)
+
 ## [2.0.0-a4]
 
 ### dbw Notes to jgclark

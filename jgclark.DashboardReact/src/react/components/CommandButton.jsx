@@ -26,9 +26,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
         className="PCButton tooltip"
         data-tooltip={button.tooltip}
         data-plugin-id={button.actionPluginID}
-        // data-command={button.actionFunctionName}
-        // data-command-args={filename}
-        onClick={() => sendActionToPlugin(button.actionFunctionName, button.actionFunctionParam)}
+        onClick={() => sendActionToPlugin(button.actionFunctionName, button.actionFunctionParam, 'CommandButton', false)}
         dangerouslySetInnerHTML={{ __html: button.display }}
       >
         {/* {possIconBefore}{button.display}{possIconAfter} */}

@@ -1,16 +1,15 @@
 // @flow
 import React from 'react'
-import Button from './Button.jsx'
+
+type RefType<T> = {| current: null | T |}
 
 type Props = {
-  isOpen: boolean,
   onClose: () => void,
   details: any,
+  positionDialog: (dialogRef: RefType<any>) => {},
 }
 
-const DialogForProjectItems = ({ isOpen, onClose, details }: Props): React$Node => {
-  if (!isOpen) return null
-
+const DialogForProjectItems = ({ onClose, details, positionDialog }: Props): React$Node => {
   return (
     <>
       {/*----------- Single dialog that can be shown for any project item -----------*/}

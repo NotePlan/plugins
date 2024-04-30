@@ -74,7 +74,7 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
  * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
  * @returns {void}
  */
-export const logDebug = (componentName: string, detail: string, ...args: any): void =>
+export const logDebug = (componentName: string, detail?: string, ...args?: any): void =>
   console.log(
     `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
     `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
@@ -93,3 +93,5 @@ export const logError = (componentName: string, detail?: string = '', ...args: a
     `${window.webkit ? '' : `color: #F00; background: #FFF`}`,
     ...args,
   )
+
+export { clo, JSP } from '@helpers/dev'

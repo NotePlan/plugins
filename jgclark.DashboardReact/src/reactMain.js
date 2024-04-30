@@ -102,13 +102,13 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       specificCSS: '', // set in separate CSS file referenced in header
       preBodyScript: ``,
       postBodyScript: `
-      <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <!--
+      <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
       <script type="text/javascript" src="./dashboardShortcuts.js"></script>
-      -->
       <script type="text/javascript" src="./dashboardEvents.js"></script>
-`,
+      -->
+      `,
     }
     logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)
     // clo(data, `showDashboardReact data object passed`)
@@ -130,7 +130,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const config: dashboardConfigType = await getSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
-    const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'development' // 'development' /* helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',

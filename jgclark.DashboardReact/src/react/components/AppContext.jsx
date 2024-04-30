@@ -25,7 +25,7 @@ export type DialogData = {
 }
 
 export type ReactSettings = {
-  dialogData?: DialogData,
+  dialogData: DialogData,
   [key: string]: any,
 }
 
@@ -60,7 +60,7 @@ const defaultContextValue: AppContextType = {
   sendToPlugin: () => {},
   dispatch: () => {},
   pluginData: {},
-  reactSettings: {}, // Initial empty reactSettings local
+  reactSettings: { dialogData: { isOpen: false } }, // Initial empty reactSettings local
   setReactSettings: () => {},
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
 }
@@ -89,7 +89,7 @@ export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispat
   }
 
   useEffect(() => {
-    logDebug('AppContext', `Just FYI, React settings updated somewhere: ${JSON.stringify(reactSettings)}`)
+    logDebug('AppContext', `Just FYI, React settings updated somewhere.`, reactSettings)
   }, [reactSettings])
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>

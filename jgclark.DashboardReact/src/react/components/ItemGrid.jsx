@@ -6,7 +6,7 @@
 import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
-import { useAppContext } from './AppContext.jsx'
+// import { useAppContext } from './AppContext.jsx'
 
 type Props = {
   items: Array<TSectionItem>,
@@ -19,6 +19,7 @@ type Props = {
 function ItemGrid(inputObj: Props): React$Node {
   const { items, thisSection } = inputObj
   // const { reactSettings } = useAppContext()
+  logDebug(`ItemGrid`, `Inside code for section ${thisSection.sectionType}/${thisSection.ID} with ${items.length} items`)
 
   // console.log(`ItemGrid for section ${thisSection.sectionType}/${thisSection.ID}: ${items.length} items`)
 

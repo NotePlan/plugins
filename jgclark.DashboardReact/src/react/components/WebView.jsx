@@ -10,12 +10,6 @@
  * RUN FROM THE SHELL: node 'jgclark.DashboardReact/src/react/support/performRollup.node.js' --watch
  */
 
-type Props = {
-  data: any /* passed in from the plugin as globalSharedData */,
-  dispatch: Function,
-  reactSettings: ReactSettings,
-  setReactSettings: Function,
-}
 /****************************************************************************************************************************
  *                             NOTES
  * WebView should act as a "controlled component", as far as the data from the plugin is concerned.
@@ -33,7 +27,7 @@ type Props = {
 import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import Dashboard from './Dashboard.jsx'
-import { AppProvider } from './AppContext.jsx'
+import { AppProvider, type ReactSettings } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
@@ -42,6 +36,13 @@ import { logDebug } from '@helpers/react/reactDev.js'
  */
 
 logDebug(`WebView`, `loading file outside component code`)
+
+type Props = {
+  data: any /* passed in from the plugin as globalSharedData */,
+  dispatch: Function,
+  reactSettings: ReactSettings,
+  setReactSettings: Function,
+}
 
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
   logDebug(`WebView`, `inside component code`)
@@ -88,7 +89,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // Set up the initial React Settings (runs only on load)
   useEffect(() => {
-    logDebug(`Webview`, `setReactSettings effect running: setting Default settings. setReactSettings exists? ${setReactSettings !== undefined}`)
+    logDebug(`Webview`, `setReactSettings effect running: setting Default settings. setReactSettings exists? ${String(setReactSettings !== undefined)}`)
     if (!setReactSettings) return
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings }))
   }, [])
@@ -99,10 +100,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   useEffect(() => {
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
+      debug && logDebug(`WebView`, `Webview: FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     } else {
-      logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
+      logDebug(`WebView`, `Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
     if (reactSettings.refreshing) setReactSettings((prev) => ({ ...prev, refreshing: false }))
   }, [data])
@@ -120,7 +121,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData?.passThroughVars) newData.passThroughVars = {}
+    if (!newData?.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -135,7 +136,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
-    logDebug(`Webview: sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
+    logDebug(`Webview`, `sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
       dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also

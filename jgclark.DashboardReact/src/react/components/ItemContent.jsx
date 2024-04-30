@@ -4,12 +4,12 @@
 // Last updated 22.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
+import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import // makeNoteTitleWithOpenActionFromFilename,
 // makeParaContentToLookLikeNPDisplayInHTML,
 '../../dashboardHelpers'
-import type { TSection, TSectionItem } from '../../types.js'
-import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
+// import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/react/reactDev'
 import {
   encodeRFC3986URIComponent,
@@ -43,14 +43,12 @@ import {
 
 type Props = {
   item: TSectionItem,
-  // thisSection: TSection,
 }
 
 /**
  * Represents the main content for a single item within a section
  */
-function ItemContent(inputObj: Props): React$Node {
-  const { item /*thisSection*/ } = inputObj
+function ItemContent({ item }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
   const para = item.para
   // const itemType = para.type

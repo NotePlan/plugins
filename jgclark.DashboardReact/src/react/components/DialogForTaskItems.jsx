@@ -1,21 +1,28 @@
 // @flow
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
+import useRefreshTimer from './useRefreshTimer.jsx'
 import { logDebug } from '@helpers/react/reactDev'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 
+type RefType<T> = {| current: null | T |}
+
 type Props = {
-  isOpen: boolean,
   onClose: () => void,
   details: any, //FIXME: @jgclark  define a type for this -- comes from detailsToPassToControlDialog
+  positionDialog: (dialogRef: RefType<any>) => {},
 }
 
-const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => {
-  if (!isOpen) return null
-  const { sendActionToPlugin, reactSettings, setReactSettings } = useAppContext()
+const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
+  logDebug(`DialogForTaskItems`, `inside component code details=`, details)
+
+  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
+
+  const { sendActionToPlugin } = useAppContext()
   const inputRef = useRef()
+  const dialogRef = useRef(null)
 
   const reschedOrMove = details.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
   const dateChangeFunctionToUse = reschedOrMove === 'resched' ? 'updateTaskDate' : 'moveFromCalToCal'
@@ -35,7 +42,7 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     { label: 'this quarter', controlStr: '+0q' },
   ]
   const otherControlButtons = [
-    { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancel' },
+    { label: 'Cancel', controlStr: 'cancelTask', handlingFunction: 'cancelTask' },
     { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
@@ -43,6 +50,12 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
     { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
   ]
+
+  useEffect(() => {
+    logDebug(`DialogForTaskItems`, `BEFORE POSITION details`, details)
+    positionDialog(dialogRef)
+    logDebug(`DialogForTaskItems`, `AFTER POSITION details`, details)
+  }, [])
 
   function handleTitleClick() {
     const dataObjectToPassToFunction = {
@@ -78,13 +91,9 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
     if (controlStr === 'openNote') return //don't close dialog yet
 
-    // Send action to plugin after n seconds - this is a bit of a hack
+    // Send 'refresh' action to plugin after n ms - this is a bit of a hack
     // to get around the updateCache not being reliable.
-    setReactSettings((prev) => ({ ...prev, refreshing: true }))
-    setTimeout(() => {
-      setReactSettings((prev) => ({ ...prev, refreshing: false }))
-      sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, `5s full refresh timer triggered`, false)
-    }, 5000)
+    refreshTimer()
 
     // Dismiss dialog, unless meta key pressed
     if (!metaModifier) {
@@ -99,7 +108,7 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
     <>
       {/* CSS for this part is in dashboardDialog.css */}
       {/*----------- Single dialog that can be shown for any task-based item -----------*/}
-      <dialog id="itemControlDialog" className="itemControlDialog" aria-labelledby="Actions Dialog" aria-describedby="Actions that can be taken on items">
+      <dialog id="itemControlDialog" className="itemControlDialog" aria-labelledby="Actions Dialog" aria-describedby="Actions that can be taken on items" ref={dialogRef}>
         <div className="dialogTitle" onClick={() => handleTitleClick()}>
           From: <i className="pad-left pad-right fa-regular fa-file-lines"></i>
           <b>
@@ -147,7 +156,6 @@ const DialogForTaskItems = ({ isOpen, onClose, details }: Props): React$Node => 
           </div>
         </div>
       </dialog>
-      <Button text="Close" clickHandler={onClose} />
     </>
   )
 }
