@@ -8,7 +8,7 @@ import * as React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 // import { useAppContext } from './AppContext.jsx'
 import ReviewItem from './ReviewItem.jsx'
-import ItemIcon from './ItemIcon.jsx'
+import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import NoTasks from './NoTasks.jsx'
 import { logDebug } from '@helpers/react/reactDev'
@@ -34,7 +34,7 @@ function ItemRow({ item, thisSection }: Props): React.Node {
       ) : itemType === 'congrats' ? (
         <NoTasks />
       ) : (
-        <ItemIcon item={item} thisSection={thisSection} />
+              <TaskItem item={item} thisSection={thisSection} />
       )}
     </>
   )

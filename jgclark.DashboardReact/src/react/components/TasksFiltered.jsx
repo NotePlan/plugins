@@ -14,7 +14,7 @@ type Props = {
 const TasksFiltered = ({ item }: Props): React.Node => {
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div className="itemIcon checked">
+      <div className="TaskItem checked">
         <i id={item.ID} className="fa-light fa-plus"></i>
       </div>
       <div className="sectionItemContent sectionItem">

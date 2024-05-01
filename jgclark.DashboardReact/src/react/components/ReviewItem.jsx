@@ -51,7 +51,7 @@ function ReviewItem({ item }: Props): React.Node {
 
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div className="reviewProject todo itemIcon">
+      <div className="reviewProject todo TaskItem">
         <i id={`${item.ID}I`} className="fa-regular fa-circle-play"></i>
       </div>
 

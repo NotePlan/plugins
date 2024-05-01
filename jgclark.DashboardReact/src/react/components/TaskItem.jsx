@@ -28,7 +28,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   const dataObjectToPassToControlDialog = {
     OS: 'macOS', // TODO: NotePlan.environment.platform,
     itemID: item.ID,
-    reschedOrMove: 'move', // TODO: reschedOrMove,
+    reschedOrMove: 'move', // TODO: reschedOrMove from config,
     itemType: 'task',
     noteType: item.noteType,
     para: item.para,
@@ -94,7 +94,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   return (
     visible && (
       <div className={`sectionItemRow${visible ? '' : ' fadeOutAndHide'}`} id={item.ID}>
-        <div className={`${statusDivClass} itemIcon`} onClick={handleIconClick}>
+        <div className={`${statusDivClass} TaskItem`} onClick={handleIconClick}>
           <i id={`${item.ID}I`} className={`${iconClassName}`}></i>
         </div>
         <div className="sectionItemContent sectionItem">

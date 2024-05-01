@@ -9,7 +9,7 @@ import * as React from 'react'
 const NoTasks = (): React.Node => {
   return (
     <div className="sectionItemRow" data-section-type="">
-      <div className="itemIcon checked">
+      <div className="TaskItem checked">
         <i className="fa-regular fa-circle-check"></i>
       </div>
       <div className="sectionItemContent sectionItem">
