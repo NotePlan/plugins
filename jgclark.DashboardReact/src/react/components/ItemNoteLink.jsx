@@ -22,10 +22,7 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemNoteLink({ item, thisSection }: Props): React$Node {
-  logDebug(
-    `ItemNoteLink`,
-    `csection ${thisSection.sectionType}/${thisSection.ID}${thisSection.sectionFilename} && ${typeof item !== 'undefined' ? item.itemNoteTitle : '<no item>'}`,
-  )
+  logDebug(`ItemNoteLink`)
   const { sendActionToPlugin } = useAppContext()
 
   // compute the things we need later

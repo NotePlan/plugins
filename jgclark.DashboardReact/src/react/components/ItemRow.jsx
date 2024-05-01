@@ -23,7 +23,6 @@ type Props = {
  * Loads the proper Component depending on itemType
  */
 function ItemRow({ item, thisSection }: Props): React.Node {
-  logDebug(`ItemRow`, `csection ${thisSection.sectionType}/${thisSection.ID}/${thisSection.sectionFilename ?? '<no filename>'} && ${item.itemNoteTitle ?? '<no item title>'}`)
   const { itemType } = item
 
   return (
@@ -35,7 +34,7 @@ function ItemRow({ item, thisSection }: Props): React.Node {
       ) : itemType === 'congrats' ? (
         <NoTasks />
       ) : (
-              <ItemIcon item={item} thisSection={thisSection} />
+        <ItemIcon item={item} thisSection={thisSection} />
       )}
     </>
   )

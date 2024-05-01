@@ -20,7 +20,6 @@ type SectionProps = {
  */
 function Section(inputObj: SectionProps): React$Node {
   const thisSection = inputObj.section
-  logDebug(`Section`, `csection ${thisSection.sectionType}/${thisSection.ID}${thisSection.sectionFilename} && ${typeof item !== 'undefined' ? item.itemNoteTitle : '<no item>'}`)
 
   const { reactSettings } = useAppContext()
   try {
