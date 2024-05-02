@@ -30,11 +30,11 @@ export type TSection = {
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
   ID: string,
-  itemType: string, /* open | checklist | congrats | review -- not paragraphType */
-  itemFilename: string, /* of the note the task originally comes from (note the Calendar it might be referenced to) */
-  itemNoteTitle?: string, /* ditto */
-  noteType: NoteType, /* Notes | Calendar */
-  para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'review') */
+  itemType: string /* open | checklist | congrats | review -- not paragraphType */,
+  itemFilename: string /* of the note the task originally comes from (note the Calendar it might be referenced to) */,
+  itemNoteTitle?: string /* ditto */,
+  noteType: NoteType /* Notes | Calendar */,
+  para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'review') */,
 }
 
 // reduced paragraph definition
@@ -56,6 +56,33 @@ export type TActionButton = {
   display: string,
   actionPluginID: string,
   actionFunctionName: string,
-  actionFunctionParam: string, /* NB: all have to be passed as a string for simplicity */
+  actionFunctionParam: string /* NB: all have to be passed as a string for simplicity */,
   tooltip: string,
+}
+
+export type MessageDataObject = {
+  itemID: string,
+  type: string,
+  controlStr: string,
+  filename: string,
+  encodedFilename?: string,
+  content: string,
+  encodedContent?: string,
+  itemType?: string,
+  encodedUpdatedContent?: string,
+  updatedContent?: string,
+  item?: TSectionItem,
+}
+
+/**
+ * Each called function should use this standard return object
+ */
+
+export type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON'
+
+export type TBridgeClickHandlerResult = {
+  success: boolean,
+  updatedParagraph?: TParagraph,
+  actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
+  errorMsg?: string,
 }

@@ -47,6 +47,7 @@ function ReviewItem({ item }: Props): React.Node {
     encodedFilename: encodedItemFilename,
     encodedTitle: encodeRFC3986URIComponent(noteTitle),
     encodedContent: '',
+    item,
   }
 
   return (

@@ -11,6 +11,8 @@ import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/sr
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData } from './dataGeneration'
+import { type TActionOnReturn, type TBridgeClickHandlerResult, type MessageDataObject } from './types'
+import { doContentUpdate, doCompleteTask, doCompleteTaskThen, doCancelTask, doCompleteChecklist } from './clickHandlers'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -19,32 +21,13 @@ import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import {
-  cancelItem,
-  completeItem,
-  completeItemEarlier,
-  findParaFromStringAndFilename,
-  highlightParagraphInEditor,
-  toggleTaskChecklistParaType,
-  unscheduleItem,
-} from '@helpers/NPParagraph'
+import { cancelItem, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { chooseHeading } from '@helpers/userInput'
 //-----------------------------------------------------------------
 // Data types + constants
 
-type MessageDataObject = {
-  itemID: string,
-  type: string,
-  controlStr: string,
-  filename: string,
-  encodedFilename?: string,
-  content: string,
-  encodedContent?: string,
-  itemType?: string,
-  encodedUpdatedContent?: string,
-}
 type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = `${pluginJson['plugin.id']} React Window`
@@ -135,76 +118,30 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 }
 
 /**
- * Handles updating the content of an item.
- * @param {string} filename - The filename where the content resides.
- * @param {string} content - The original content of the item.
- * @param {string} encodedUpdatedContent - The updated content, encoded.
- * @returns {BridgeClickHandlerResult} An object indicating whether the update was successful and the updated paragraph object.
- * @throws {Error} If the updated content is not provided.
- */
-function handleUpdateItemContent(filename: string, content: string, encodedUpdatedContent: string): BridgeClickHandlerResult {
-  if (!encodedUpdatedContent) {
-    throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
-  }
-
-  const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
-  logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
-
-  const para = findParaFromStringAndFilename(filename, content)
-  if (para && typeof para !== 'boolean') {
-    //FIXME: @jgclark:why would para ever be a boolean?
-    const oldContent = para.content
-    para.content = updatedContent
-    const paraContent = para.content ?? 'error'
-    logDebug('bCDI / updateItemContent', `found para with original content {${oldContent}}`)
-
-    const thisNote = para.note
-    if (thisNote) {
-      thisNote.updateParagraph(para)
-      logDebug('bCDI / updateItemContent', `- appeared to update line OK. Will now updateCache`)
-      const changedNote = DataStore.updateCache(thisNote)
-    }
-
-    logDebug('bCDI / updateItemContent', `changed para content to: ${para.content}`)
-
-    return { completed: true, updatedParagraph: para, actions: ['updateItemContent'], actionsOnReturn: ['updateContent', 'refreshJSON'] }
-  } else {
-    logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
-    return { completed: false }
-  }
-}
-
-/**
- * Each called function should use this standard return object
- */
-interface BridgeClickHandlerResult {
-  completed: boolean;
-  updatedParagraph?: ParagraphType; // Adjust `ParagraphType` to match your actual paragraph object type
-  actionsOnReturn?: Array<'updateContent' | 'refreshJSON'>; // actions to perform after return
-}
-
-/**
  * Somebody clicked on a something in the HTML view
+ * NOTE: processActionOnReturn will be called for each item after the CASES based on TBridgeClickHandlerResult
  * @param {MessageDataObject} data - details of the item clicked
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
     // const windowId = getWindowIdFromCustomId(windowCustomId);
-    const windowId = windowCustomId
+    const windowId = windowCustomId // note that this is not used and should be deleted
     if (!windowId) {
       logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
       return
     }
     const ID = data.itemID
     const type = data.type
-    let result: BridgeClickHandlerResult = {} // use this for each call and return a BridgeClickHandlerResult object
+    let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
     // These variables are only necessary until the routing is fully refactored to use data instead
     // FIXME: sort flow error as it looks helpful
-    const filename = data.filename || decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    let content = data.content || decodeRFC3986URIComponent(data.encodedContent ?? '')
+    // FIXME: refactor the calling code so that we can use data.item?.para?.filename every time
+    const filename = data.item?.para?.filename || data.filename || decodeRFC3986URIComponent(data.encodedFilename ?? '')
+    let content = data.item?.para?.content || data.content || decodeRFC3986URIComponent(data.encodedContent ?? '')
+
     logDebug('', `------------------------- bridgeClickDashboardItem: ${type} -------------------------`)
-    logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    logDebug('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: ${content}`)
     if (!type === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
     // clo(data, 'bridgeClickDashboardItem received data object')
 
@@ -213,11 +150,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     if (data.encodedUpdatedContent && data.type !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${data.encodedUpdatedContent}"`)
       // $FlowIgnore[incompatible-call]
-      result = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
-      if (result.completed) {
+      result = doContentUpdate(data)
+      if (result.success) {
         content = result.updatedParagraph.content // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - ultimately delete this
-        data.content = content // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
-        logDebug('bCDI / updateItemContent', `-> successful call to handleUpdateItemContent()`)
+        // data.item.para.content = content // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
+        logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
+        // await updateReactWindowFromHandlerResult(result, data, ['para.content'])
       }
     }
 
@@ -227,9 +165,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         await refreshData()
         return
       }
+      case 'updateItemContent': {
+        result = doContentUpdate(data)
+        break
+      }
       case 'completeTask': {
-        result = await doCompleteTask(data, windowId) // FIXME:
-        //FIXME: @dbw I am here - should return a value and needs to update based on actionsOnReturn
+        result = await doCompleteTask(data)
         break
       }
       case 'completeTaskThen': {
@@ -325,13 +266,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           logWarn('bCDI / cyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
         }
         break
-      }
-      case 'updateItemContent': {
-        const res = handleUpdateItemContent(filename, content, data.encodedUpdatedContent, windowId)
-        clo(res, 'bCDI / updateItemContent: res')
-        clo(res.updatedParagraph, 'bCDI / res.updatedParagraph:')
-        await updateReactWindowFromHandlerResult(res, type, ID, ['para.content'])
-        return
       }
       case 'unscheduleItem': {
         // Send a request to unscheduleItem to plugin
@@ -606,6 +540,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${type}`)
       }
     }
+
+    if (result) await processActionOnReturn(result, data) // process all actions based on result of handler
+
     logDebug(pluginJson, `pluginToHTML bridge: RUNNING TEMPORARY FULL REFRESH OF JSON AFTER ANY COMMANDS WITHOUT A RETURN STATEMENT`)
     // await refreshData()
 
@@ -628,87 +565,56 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
   }
 }
 
-async function doCompleteTask(data: MessageDataObject, windowID: string): Promise<void> {
-  // Complete the task in the actual Note
-  const res = completeItem(data.filename, data.content)
-  // Ask for cache refresh for this note. (Can't now remember why this is needed.)
-  DataStore.updateCache(getNoteByFilename(data.filename), false)
+/**
+ * One function to handle all actions on return from the various handlers
+ * An attempt to reduce duplicated code in each
+ * @param {TBridgeClickHandlerResult} handlerResult
+ * @param {MessageDataObject} data
+ */
+async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
+  const { actionsOnSuccess, success, updatedParagraph } = handlerResult
+  const { filename } = data?.item?.para
+  const thisNote = getNoteByFilename(filename)
+  clo(handlerResult, 'processActionOnReturn: handlerResult')
+  // always update the cache for the note, as it might have changed
+  const changedNote = DataStore.updateCache(thisNote)
 
-  // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / completeTask', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-    sendToHTMLWindow(windowID, 'completeTask', data)
+  if (success) {
+    const { filename, content } = data.item.para
+    const updatedNote = DataStore.updateCache(getNoteByFilename(filename), false)
+
+    if (actionsOnSuccess.includes('REMOVE_LINE')) {
+    }
+    if (actionsOnSuccess.includes('UPDATE_CONTENT')) {
+      await updateReactWindowFromHandlerResult(handlerResult, data, ['para.content'])
+      logDebug('bCDI / processActionOnReturn', `changed para content to: ${para.content}`)
+    }
+    if (actionsOnSuccess.includes('REFRESH_JSON')) {
+    }
   } else {
-    logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-    await refreshData()
-  }
-}
-
-async function doCompleteTaskThen(data: MessageDataObject, windowID: string): Promise<void> {
-  // Complete the task in the actual Note, but with the date it was scheduled for
-  const res = completeItemEarlier(data.filename, data.content)
-  // Ask for cache refresh for this note
-  DataStore.updateCache(getNoteByFilename(data.filename), false)
-
-  // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
-    sendToHTMLWindow(windowID, 'completeTask', data)
-  } else {
-    logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-    await refreshData()
-  }
-}
-
-async function doCancelTask(data: MessageDataObject, windowID: string): Promise<void> {
-  // Cancel the task in the actual Note
-  const res = cancelItem(data.filename, data.content)
-  // Ask for cache refresh for this note
-  DataStore.updateCache(getNoteByFilename(data.filename), false)
-
-  // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-    sendToHTMLWindow(windowID, 'cancelTask', data)
-  } else {
-    logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-    await refreshData()
-  }
-}
-
-async function doCompleteChecklist(data: MessageDataObject, windowID: string): Promise<void> {
-  // Complete the checklist in the actual Note
-  const res = completeItem(data.filename, data.content)
-  // Ask for cache refresh for this note
-  DataStore.updateCache(getNoteByFilename(data.filename), false)
-
-  // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-    sendToHTMLWindow(windowID, 'completeChecklist', data)
-  } else {
-    logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-    await refreshData()
+    logDebug('bCDI / processActionOnReturn', `-> failed handlerResult: ${JSP(handlerResult)}`)
   }
 }
 
 /**
  * Update React window data based on the result of handling item content update.
- * @param {BridgeClickHandlerResult} res The result of handling item content update.
+ * @param {TBridgeClickHandlerResult} res The result of handling item content update.
+ * @param {MessageDataObject} data The data of the item that was updated.
+ * @param {string[]} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  * @returns {Promise<void>} A Promise that resolves once the update is done.
  */
-export async function updateReactWindowFromHandlerResult(res: BridgeClickHandlerResult, actionType: string, ID: string, fieldPathsToUpdate: string[]): Promise<void> {
+export async function updateReactWindowFromHandlerResult(res: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
   clo(res, 'updateReactWindow: res')
+  const { errorMsg, success, updatedParagraph } = res
+  const { ID } = data.item
+  const { content: oldContent, filename: oldFilename } = data.item.para
   clo(res.updatedParagraph, 'updateReactWindow: res.updatedParagraph:')
-  if (res.completed) {
-    const newPara = res.updatedParagraph || ''
+  if (success) {
+    const newPara = updatedParagraph || ''
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
-    const indexes = findSectionItems(sections, ['ID'], { ID })
+    const indexes = findSectionItems(sections, ['itemType', 'itemFilename', 'para.content'], { itemType: /open|checklist/, itemFilename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
+    clo(indexes, 'updateReactWindow: matching indexes found')
 
     if (indexes.length) {
       const { sectionIndex, itemIndex } = indexes[0]
@@ -719,9 +625,13 @@ export async function updateReactWindowFromHandlerResult(res: BridgeClickHandler
       clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
-      throw `updateReactWindow: unable to find item to update: ID ${ID}`
+      logError('updateReactWindow', errorMsg)
+      throw `updateReactWindow: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
     }
     // update ID in data object
+  } else {
+    logError('updateReactWindow', errorMsg)
+    throw `updateReactWindow: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
 }
 /**

@@ -1378,9 +1378,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
- * @returns {boolean} success?
+ * @returns {boolean|TParagraph} success? - returns the paragraph updated if successful (for use in updateCache)
  */
-export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean {
+export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean | TParagraph {
   if (para) {
     // Default to using current date/time
     let dateString = nowShortDateTimeISOString
@@ -1408,12 +1408,12 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
       para.content += doneString
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para <${para.content}>`)
-      return true
+      return para
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para <${para.content}>`)
-      return true
+      return para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
       return false
@@ -1461,9 +1461,9 @@ export function markCancelled(para: TParagraph): boolean {
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
- * @returns {boolean} success?
+ * @returns {boolean|TParagraph} success? - retuns the updated paragraph if successful (for use in updateCache)
  */
-export function completeItem(filenameIn: string, content: string): boolean {
+export function completeItem(filenameIn: string, content: string): boolean | TParagraph {
   try {
     if (filenameIn === '') {
       throw new Error('completeItem: filenameIn is empty')

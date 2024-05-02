@@ -1,4 +1,5 @@
 // TaskItem.jsx
+// Creates a full content line for a Task item: icon,  content, noteLink and the fa-edit icon at the end
 
 // @flow
 
@@ -25,7 +26,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   const [visible, setVisible] = useState(true)
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
-  const dataObjectToPassToControlDialog = {
+  const updateObj = {
     OS: 'macOS', // TODO: NotePlan.environment.platform,
     itemID: item.ID,
     reschedOrMove: 'move', // TODO: reschedOrMove from config,
@@ -34,6 +35,7 @@ function TaskItem({ item, thisSection }: Props): Node {
     para: item.para,
     title: item.itemNoteTitle,
     type: 'showNoteInEditorFromFilename',
+    item, // TODO: this is the beginning of the refactoring to use UpdateObject
   }
 
   /**
@@ -45,24 +47,24 @@ function TaskItem({ item, thisSection }: Props): Node {
 
     switch (itemType) {
       case 'open':
-        dataObjectToPassToControlDialog.type = metaKey ? 'cancelTask' : 'completeTask'
+        updateObj.type = metaKey ? 'cancelTask' : 'completeTask'
         setVisible(false)
         break
       case 'checklist':
-        dataObjectToPassToControlDialog.type = metaKey ? 'cancelChecklist' : 'completeChecklist'
+        updateObj.type = metaKey ? 'cancelChecklist' : 'completeChecklist'
         setVisible(false)
         break
       case 'review':
-        dataObjectToPassToControlDialog.type = 'showNoteInEditorFromFilename'
+        updateObj.type = 'showNoteInEditorFromFilename'
         break
       default:
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
         break
     }
 
-    clo(dataObjectToPassToControlDialog, `ItemRow: item clicked: ${item.ID}`)
+    clo(updateObj, `ItemRow: item clicked: ${item.ID}`)
 
-    sendActionToPlugin('onClickDashboardItem', dataObjectToPassToControlDialog, `${item.ID} Row icon clicked`, true)
+    sendActionToPlugin('onClickDashboardItem', updateObj, `${item.ID} Row icon clicked`, true)
 
     // Send 'refresh' action to plugin after n seconds - this is a bit of a hack
     // to get around the updateCache not being reliable.
@@ -70,11 +72,11 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   const handleEditClick = (e: MouseEvent): void => {
-    logDebug('TaskItem', 'handleEditClick - setting dialogData to: ', dataObjectToPassToControlDialog)
+    logDebug('TaskItem', 'handleEditClick - setting dialogData to: ', updateObj)
     // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
     // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: true, details: dataObjectToPassToControlDialog, clickPosition } }))
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: true, details: updateObj, clickPosition } }))
   }
 
   const statusDivClass =

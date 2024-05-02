@@ -22,12 +22,11 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemNoteLink({ item, thisSection }: Props): React$Node {
-  logDebug(`ItemNoteLink`)
   const { sendActionToPlugin } = useAppContext()
 
   // compute the things we need later
-  const noteTitle = item.itemNoteTitle || item.para.title || ''
-  logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${item.itemFilename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
+  const noteTitle = item.itemNoteTitle || item?.para?.title || ''
+  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${item.itemFilename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
   if (noteTitle && noteTitle !== thisSection.sectionFilename) {
     const encodedNoteTitle = encodeURIComponent(noteTitle)
 

@@ -39,6 +39,7 @@ function TaskItem({ item, thisSection }: Props): Node {
     type: 'showNoteInEditorFromFilename',
     content: item.para?.content ?? '',
     filename: item.para?.filename ?? '',
+    item,
   }
 
   /**

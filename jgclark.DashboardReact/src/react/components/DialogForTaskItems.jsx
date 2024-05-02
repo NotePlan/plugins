@@ -1,6 +1,5 @@
 // @flow
 import React, { useRef, useEffect } from 'react'
-import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
 import { logDebug } from '@helpers/react/reactDev'
@@ -66,10 +65,11 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   }
 
   function handleButtonClick(controlStr: string, type: string) {
-    const { itemID: id, itemType, metaModifier, para } = details
+    const { itemID: id, itemType, metaModifier, para, item } = details
     const encodedFilename = encodeRFC3986URIComponent(details.para.filename)
     const encodedCurrentContent = encodeRFC3986URIComponent(para.content)
-    const encodedUpdatedContent = encodeRFC3986URIComponent(inputRef?.current?.getValue() || '')
+    const updatedContent = inputRef?.current?.getValue() || ''
+    const encodedUpdatedContent = encodeRFC3986URIComponent(updatedContent)
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
       `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`,
@@ -85,6 +85,8 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
       encodedFilename,
       encodedContent: encodedCurrentContent,
       encodedUpdatedContent: '',
+      updatedContent,
+      item,
     }
     if (encodedCurrentContent !== encodedUpdatedContent) dataToSend.encodedUpdatedContent = encodedUpdatedContent
 
@@ -93,7 +95,8 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
 
     // Send 'refresh' action to plugin after n ms - this is a bit of a hack
     // to get around the updateCache not being reliable.
-    refreshTimer()
+    // refreshTimer()
+    logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
     // Dismiss dialog, unless meta key pressed
     if (!metaModifier) {

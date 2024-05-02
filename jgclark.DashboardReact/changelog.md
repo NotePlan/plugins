@@ -1,6 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.0-a7]
+- Moved the first few clickHandlers from the massive pluginToHTMLBridge to a clickHandlers file. 
+- Started to work on a standardized return object from the handlers so there is not a ton of repeated code in each handler (e.g. update the JSON, refresh, etc.). It's a WIP
+- only doCompleteTask and doContentUpdate are using the new concept. I'm on the fence about it. Look forward to discussing.
+- Added line at end of massive switch statement in router:
+    if (result) await processActionOnReturn(result, data) // process all actions based on result of handler
+
+
 ## [2.0.0-a5]
 - Dialog: Got CompleteThen to work
 - Dialog: Got Unschedule to work

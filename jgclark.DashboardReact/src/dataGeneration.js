@@ -906,6 +906,9 @@ type SectionItemIndex = { sectionIndex: number, itemIndex: number }
  * @param {Array<string>} fieldPaths - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
  * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
  * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
+ * @example const indexes = findSectionItems(sections, ['itemType', 'itemFilename', 'para.content'], { itemType: /open|checklist/, itemFilename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
+
+ * @author @dwertheimer
  */
 export function findSectionItems(
   sections: Array<TSection>,
@@ -918,11 +921,21 @@ export function findSectionItems(
     section.sectionItems.forEach((item, itemIndex) => {
       const isMatch = fieldPaths.every((fieldPath) => {
         const itemFieldValue = getNestedValue(item, fieldPath)
+        if (!itemFieldValue) {
+          logDebug(`findSectionItems: ${fieldPath} is undefined in ${JSP(item)} -- may be ok if you are looking for a task and this is a review item`)
+          return false
+        }
         const fieldValue = fieldValues[fieldPath]
         if (fieldValue instanceof RegExp) {
           return fieldValue.test(itemFieldValue)
         } else {
-          return itemFieldValue.includes(fieldValue)
+          logDebug(
+            `findSectionItems:`,
+            `${item.ID} itemFieldValue: ${itemFieldValue} ${
+              itemFieldValue ? (itemFieldValue.includes(fieldValue) ? 'includes' : 'does not include') : 'is undefined'
+            } fieldValue: ${fieldValue}`,
+          )
+          return itemFieldValue ? itemFieldValue.includes(fieldValue) : false
         }
       })
 

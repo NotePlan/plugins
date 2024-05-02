@@ -31,6 +31,7 @@ export type PassedData = {
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
+  windowID?: string,
 }
 
 const commsBridge = `
@@ -134,7 +135,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-      debug: ENV_MODE === 'development' ? true : false,
+      debug: false, // ENV_MODE === 'development' ? true : false,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
