@@ -23,7 +23,7 @@ export type TSection = {
   sectionTitleClass: string, // CSS class
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
-  generated?: Date,
+  generated?: Date, // TODO: lastUpdated instead?
   totalCount?: number, // for when not all possible items are passed in pluginData
 }
 
@@ -31,8 +31,8 @@ export type TSection = {
 export type TSectionItem = {
   ID: string,
   itemType: string /* open | checklist | congrats | review -- not paragraphType */,
-  itemFilename: string /* of the note the task originally comes from (note the Calendar it might be referenced to) */,
-  itemNoteTitle?: string /* ditto */,
+  itemFilename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
+  itemNoteTitle?: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   noteType: NoteType /* Notes | Calendar */,
   para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'review') */,
 }
@@ -52,6 +52,7 @@ export type TParagraphForDashboard = {
   changedDate?: Date,
 }
 
+// details for a UI button
 export type TActionButton = {
   display: string,
   actionPluginID: string,
@@ -60,6 +61,7 @@ export type TActionButton = {
   tooltip: string,
 }
 
+// for passing messages to plugin (TODO:(@dwertheimer) or both ways?)
 export type MessageDataObject = {
   itemID: string,
   type: string,
@@ -72,6 +74,8 @@ export type MessageDataObject = {
   encodedUpdatedContent?: string,
   updatedContent?: string,
   item?: TSectionItem,
+  // TODO(@dwertheimer): discuss adding this, for processActionOnReturn:
+  sectionType: SectionCode
 }
 
 /**

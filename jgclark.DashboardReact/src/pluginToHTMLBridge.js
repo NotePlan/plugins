@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 30.4.2024 for v2.0.0 by @jgclark
+// Last updated 3.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,9 +10,9 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
-import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData } from './dataGeneration'
-import { type TActionOnReturn, type TBridgeClickHandlerResult, type MessageDataObject } from './types'
-import { doContentUpdate, doCompleteTask, doCompleteTaskThen, doCancelTask, doCompleteChecklist } from './clickHandlers'
+import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import type { TActionOnReturn, TBridgeClickHandlerResult, MessageDataObject } from './types'
+import { doCancelChecklist, doCancelTask, doContentUpdate, doCompleteTask, doCompleteTaskThen, doCompleteChecklist, doToggleType, doUnscheduleItem } from './clickHandlers'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -165,54 +165,32 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         await refreshData()
         return
       }
-      case 'updateItemContent': {
-        result = doContentUpdate(data)
-        break
-      }
       case 'completeTask': {
-        result = await doCompleteTask(data)
+        result = await doCompleteTask(data) // , windowId
         break
       }
       case 'completeTaskThen': {
-        await doCompleteTaskThen(data, windowId)
+        result = await doCompleteTaskThen(data) // , windowId
         break
       }
       case 'cancelTask': {
-        await doCancelTask(data, windowId)
+        result = await doCancelTask(data) // , windowId
         break
       }
       case 'completeChecklist': {
-        await doCompleteChecklist(data, windowId)
+        result = await doCompleteChecklist(data) // , windowId
         break
       }
       case 'cancelChecklist': {
-        // Cancel the checklist in the actual Note
-        const res = cancelItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / cancelChecklist', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'cancelChecklist', data)
-        } else {
-          logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-          // await showDashboardReact('refresh')
-        }
+        result = await doCancelChecklist(data) // , windowId
+        break
+      }
+      case 'updateItemContent': {
+        result = await doContentUpdate(data)
         break
       }
       case 'toggleType': {
-        // Send a request to toggleType to plugin
-        logDebug('bCDI / toggleType', `-> toggleType on ID ${ID} in filename ${filename}`)
-
-        const res = toggleTaskChecklistParaType(filename, content)
-        logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
-        // Update display in Dashboard too
-        sendToHTMLWindow(windowId, 'toggleType', data)
-        // Only use if necessary:
-        // Warnbug('bCDI', '------- refr turned off at the momentesh ---------------')
-        // await showDashboardReact('refresh')
+        result = await doToggleType(data)
         break
       }
       case 'cyclePriorityStateUp': {
@@ -268,13 +246,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'unscheduleItem': {
-        // Send a request to unscheduleItem to plugin
-        logDebug('bCDI / unscheduleItem', `-> unscheduleItem on ID ${ID} in filename ${filename}`)
-        const res = unscheduleItem(filename, content)
-        logDebug('bCDI / unscheduleItem', `  -> result ${String(res)}`)
-
-        // Update display in Dashboard too
-        sendToHTMLWindow(windowId, 'unscheduleItem', data)
+        result = await doUnscheduleItem(data)
         break
       }
       case 'setNextReviewDate': {
@@ -572,24 +544,33 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
-  const { actionsOnSuccess, success, updatedParagraph } = handlerResult
-  const { filename } = data?.item?.para
+  const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+  const { success, updatedParagraph } = handlerResult
+  const { filename, itemID } = data // TODO: ?? '<unknown filename>'
   const thisNote = getNoteByFilename(filename)
   clo(handlerResult, 'processActionOnReturn: handlerResult')
   // always update the cache for the note, as it might have changed
   const changedNote = DataStore.updateCache(thisNote)
 
   if (success) {
-    const { filename, content } = data.item.para
+    // const { filename, content } = data.item.para
+    const { filename } = data
     const updatedNote = DataStore.updateCache(getNoteByFilename(filename), false)
 
     if (actionsOnSuccess.includes('REMOVE_LINE')) {
+      logDebug('bCDI / processActionOnReturn', `REMOVE_LINE ... *not yet implemented*`)
+      // TODO: 
     }
     if (actionsOnSuccess.includes('UPDATE_CONTENT')) {
+      logDebug('bCDI / processActionOnReturn', `UPDATE_CONTENT to {${updatedParagraph?.content ?? '(error)'}}: calling updateReactWindow..()`)
       await updateReactWindowFromHandlerResult(handlerResult, data, ['para.content'])
-      logDebug('bCDI / processActionOnReturn', `changed para content to: ${para.content}`)
     }
     if (actionsOnSuccess.includes('REFRESH_JSON')) {
+      // TODO: add sectionType to types?
+      const thisSectionType = data.sectionType
+      logDebug('bCDI / processActionOnReturn', `REFRESH_JSON: calling getSomeSectionsData(['${thisSectionType}']`)
+      const newData = getSomeSectionsData([thisSectionType])
+      // TODO(@dwertheimer): what now?
     }
   } else {
     logDebug('bCDI / processActionOnReturn', `-> failed handlerResult: ${JSP(handlerResult)}`)
@@ -639,8 +620,10 @@ export async function updateReactWindowFromHandlerResult(res: TBridgeClickHandle
  * And tell the React window to update the data
  */
 export async function refreshData() {
+  // TODO(@dwertheimer): I'm not sure that ...global... is the best name. Can we discuss?
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  reactWindowData.pluginData.sections = await getAllSectionsData(DataStore.settings, reactWindowData.demoMode)
+  reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
+  // TODO(@dwertheimer): Do we need this .lastUpdated as well as TSection.generated?
   reactWindowData.pluginData.lastUpdated = new Date().toLocaleString()
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data`)
 }

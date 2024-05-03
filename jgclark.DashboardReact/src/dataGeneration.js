@@ -59,21 +59,53 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 //-----------------------------------------------------------------
 
 /**
- * Get all the sections' data (that the user wants)
+ * Generate data for all the sections (that the user currently wants)
  */
-export async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Promise<Array<TSection>> {
-  const data: Array<TSection> = []
-  data.push(getTodaySectionData(config, demoMode))
-  if (config.showYesterdaySection) data.push(getYesterdaySectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getTomorrowSectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
-  if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
-  if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
-  if (config.tagToShow) data.push(getTaggedSectionData(config, demoMode))
-  if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
-  data.push(await getProjectSectionData(config, demoMode))
+export async function getAllSectionsData(demoMode: boolean = false): Promise<Array<TSection>> {
+  try {
+    const config: dashboardConfigType = await getSettings()
+    const sections: Array<TSection> = []
+    sections.push(getTodaySectionData(config, demoMode))
+    if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
+    if (config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
+    if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
+    if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
+    if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
+    if (config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
+    if (config.showOverdueTaskSection) sections.push(await getOverdueSectionData(config, demoMode))
+    sections.push(await getProjectSectionData(config, demoMode))
 
-  return data
+    return sections
+  }
+  catch (error) {
+    logError('getAllSectionDetails', error.message)
+    return []
+  }
+}
+
+/**
+ * Generate data for some specified sections (subject to user currently wanting them as well)
+ */
+export async function getSomeSectionsData(sectionTypes: Array<string>, demoMode: boolean = false): Promise<Array<TSection>> {
+  try {
+    const config: dashboardConfigType = await getSettings()
+    const sections: Array<TSection> = []
+    if (sectionTypes.includes('DT')) sections.push(getTodaySectionData(config, demoMode))
+    if (sectionTypes.includes('DY') && config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
+    if (sectionTypes.includes('DO') && config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
+    if (sectionTypes.includes('W') && config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
+    if (sectionTypes.includes('M') && config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
+    if (sectionTypes.includes('Q') && config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
+    if (sectionTypes.includes('TAG') && config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
+    if (sectionTypes.includes('OVERDUE') && config.showOverdueTaskSection) sections.push(await getOverdueSectionData(config, demoMode))
+    if (sectionTypes.includes('PROJ')) sections.push(await getProjectSectionData(config, demoMode))
+
+    return sections
+  }
+  catch (error) {
+    logError('getSomeSectionDetails', error.message)
+    return []
+  }
 }
 
 export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
@@ -190,7 +222,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     ],
   }
 
-  logDebug('getTodaySectionData', JSON.stringify(section))
+  // logDebug('getTodaySectionData', JSON.stringify(section))
   return section
 }
 

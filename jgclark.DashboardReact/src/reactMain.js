@@ -164,7 +164,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // you can pass any object with any number of fields you want
   return {
-    sections: await getAllSectionsData(config, demoMode),
+    sections: await getAllSectionsData(demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
@@ -245,7 +245,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
 async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
-  const sections = await getAllSectionsData(DataStore.settings, demoMode)
+  const sections = await getAllSectionsData(demoMode)
   logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para.content}`)
   reactWindowData.pluginData.sections = sections
   logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para.content}`)

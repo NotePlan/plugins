@@ -1,6 +1,9 @@
+//-----------------------------------------------------------------------------
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
+// Last updated 2.5.2024 for v2.0.0 by @jgclark
+//-----------------------------------------------------------------------------
 
 // @flow
 /* eslint-disable require-await */
@@ -8,7 +11,7 @@
 // import pluginJson from '../plugin.json'
 import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem } from './types'
 import { log, logError, logWarn, logDebug, timer, clo, clof, JSP } from '@helpers/dev'
-import { cancelItem, completeItem, completeItemEarlier, findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { cancelItem, completeItem, completeItemEarlier, findParaFromStringAndFilename, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
 import { getNoteByFilename } from '@helpers/note'
 
 /****************************************************************************************************************************
@@ -79,6 +82,39 @@ function validateData(data: MessageDataObject): ValidatedData {
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content } = validateData(data)
   const updatedPara = completeItem(filename, content)
+  logDebug('doCompleteTask', `-> ${String(updatedPara)}`)
+  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE', 'REFRESH_JSON'], { updatedPara })
+}
+
+// Complete the task in the actual Note, but with the date it was scheduled for
+export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename, content } = validateData(data)
+  const updatedPara = completeItemEarlier(filename, content)
+  logDebug('doCompleteTaskThen', `-> ${String(updatedPara)}`)
+  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE', 'REFRESH_JSON'], { updatedPara })
+}
+
+// Cancel the task in the actual Note
+export async function doCancelTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename, content } = validateData(data)
+  const updatedPara = cancelItem(filename, content)
+  logDebug('doCancelTask', `-> ${String(updatedPara)}`)
+  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE', 'REFRESH_JSON'], { updatedPara })
+}
+
+// Complete the checklist in the actual Note
+export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename, content } = validateData(data)
+  const updatedPara = completeItem(filename, content)
+  logDebug('doCompleteChecklist', `-> ${String(updatedPara)}`)
+  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE', 'REFRESH_JSON'], { updatedPara })
+}
+
+// Cancel the checklist in the actual Note
+export async function doCancelChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename, content } = validateData(data)
+  const updatedPara = cancelItem(filename, content)
+  logDebug('doCancelChecklist', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE', 'REFRESH_JSON'], { updatedPara })
 }
 
@@ -111,46 +147,29 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
   return handlerResult(true, ['UPDATE_CONTENT', 'REFRESH_JSON'], { updatedParagraph: para })
 }
 
-// Complete the task in the actual Note, but with the date it was scheduled for
-export async function doCompleteTaskThen(data: MessageDataObject): Promise<void> {
+// Send a request to toggleType to plugin
+export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateData(data)
-  const res = completeItemEarlier(filename, content)
-  // Ask for cache refresh for this note
-  DataStore.updateCache(getNoteByFilename(filename), false)
+  const updatedPara = toggleTaskChecklistParaType(filename, content)
+  logDebug('doToggleType', `-> ${String(updatedPara)}`)
+  return handlerResult(true, ['UPDATE_CONTENT', 'REFRESH_JSON'], { updatedParagraph: updatedPara })
 
+  // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
   // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
-  } else {
-    logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-  }
+  // sendToHTMLWindow(windowId, 'toggleType', data)
+  // Only use if necessary:
+  // Warnbug('bCDI', '------- refr turned off at the momentesh ---------------')
+  // await showDashboardReact('refresh')
 }
 
-// Cancel the task in the actual Note
-export async function doCancelTask(data: MessageDataObject): Promise<void> {
+// Send a request to unscheduleItem to plugin
+export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateData(data)
-  const res = cancelItem(filename, content)
+  const updatedPara = unscheduleItem(filename, content)
+  logDebug('doUnscheduleItem', `-> ${String(updatedPara)}`)
+  return handlerResult(true, ['UPDATE_CONTENT', 'REMOVE_LINE', 'REFRESH_JSON'], { updatedParagraph: updatedPara })
 
+  // logDebug('bCDI / unscheduleItem', `  -> result ${String(res)}`)
   // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-  } else {
-    logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-  }
-}
-
-// Complete the checklist in the actual Note
-export async function doCompleteChecklist(data: MessageDataObject): Promise<void> {
-  const { filename, content } = validateData(data)
-  const res = completeItem(filename, content)
-
-  // Update display in Dashboard too
-  if (res) {
-    logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-  } else {
-    logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-    // logWarn('bCDI', '------- refresh turned off at the moment ---------------')
-  }
+  // sendToHTMLWindow(windowId, 'unscheduleItem', data)
 }
