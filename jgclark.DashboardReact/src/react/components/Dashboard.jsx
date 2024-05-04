@@ -1,6 +1,7 @@
 // @flow
 
 import React, { useEffect } from 'react'
+import { removeDuplicates } from '../support/sectionHelpers.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import Dialog from './Dialog.jsx'
@@ -22,8 +23,10 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
 
-  const { sections, lastUpdated } = pluginData
-  console.log('Dashboard: pluginData:', pluginData)
+  const { sections: origSections, lastUpdated } = pluginData
+  const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
+  const sections = reactSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
+  console.log('Dashboard: pluginData:', pluginData, sections)
   const { dialogData } = reactSettings ?? {}
 
   const updateDialogOpen = (isOpen: boolean) => {
@@ -39,7 +42,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   useEffect(() => {
     if (reactSettings?.lastChange && reactSettings.lastChange[0] !== '_') {
       logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
-      const trimmedReactSettings = { ...reactSettings, lastChange: '_PluginSettingsLoaded', dialogData: { isOpen: false, isTask: true, details: {} } }
+      const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
       sendActionToPlugin('reactSettingsChanged', strReactSettings, 'Dashboard reactSettings updated', false)
     }

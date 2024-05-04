@@ -1,6 +1,7 @@
 // @flow
 import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
+import { type TSection } from '../../types.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
@@ -11,12 +12,12 @@ type Props = {
 }
 
 const Header = ({ lastUpdated }: Props): React$Node => {
-  const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, pluginData } = useAppContext()
 
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
   useEffect(() => {
     const timer = setInterval(() => {
-      if (reactSettings.refreshing) {
+      if (reactSettings?.refreshing) {
         setTimeAgo('Refreshing Data...')
       } else {
         setTimeAgo(getTimeAgo(lastUpdated))
@@ -38,11 +39,18 @@ const Header = ({ lastUpdated }: Props): React$Node => {
     setReactSettings((prev) => ({ ...prev, refreshing: true, lastChange: `_Dashboard-RefreshClick` }))
   }
 
-  const dropdownItems = [
+  let dropdownItems = [
     { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', checked: reactSettings?.filterPriorityItems || false },
     { label: 'Hide duplicates?', key: 'hideDuplicates', checked: reactSettings?.hideDuplicates || false },
-    // Add more items as needed
   ]
+
+  const sections = (pluginData?.sections ?? []).map((section: TSection) => ({
+    label: `Show "${section.name}"`,
+    key: `show_${section.ID}`,
+    checked: reactSettings?.[`show_${section.ID}`] ?? true,
+  }))
+
+  dropdownItems = [...dropdownItems, ...sections]
 
   return (
     <div className="header">

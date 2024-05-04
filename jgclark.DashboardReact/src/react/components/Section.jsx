@@ -19,8 +19,6 @@ type SectionProps = {
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(inputObj: SectionProps): React$Node {
-  const thisSection = inputObj.section
-
   const { reactSettings } = useAppContext()
   try {
     const { section } = inputObj
@@ -147,7 +145,9 @@ function Section(inputObj: SectionProps): React$Node {
       descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
     }
 
-    return (
+    const hideSection = !items.length || (reactSettings && reactSettings[`show_${section.ID}`] === false)
+
+    return hideSection ? null : (
       <div className="section">
         <div className="sectionInfo">
           <span className={`${section.sectionTitleClass} sectionName`}>
