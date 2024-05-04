@@ -9,7 +9,7 @@ type DropdownMenuProps = {
     checked: boolean,
   }>,
   handleSwitchChange: (key: string) => (e: any) => void,
-  className?:string
+  className?: string,
 }
 
 const DropdownMenu = ({ items, handleSwitchChange, className }: DropdownMenuProps): React$Node => {
@@ -20,7 +20,7 @@ const DropdownMenu = ({ items, handleSwitchChange, className }: DropdownMenuProp
   }
 
   return (
-    <div className={`dropdown ${className}`>
+    <div className={`dropdown ${className || ''}`}>
       <i className="fa-solid fa-gear" onClick={toggleMenu}></i>
       {isOpen && (
         <div className="dropdown-content">

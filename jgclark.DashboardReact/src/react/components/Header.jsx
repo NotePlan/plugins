@@ -61,7 +61,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
-      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className="settings-cog" />
+      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className={'settings-cog'} />
     </div>
   )
 }
