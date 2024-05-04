@@ -22,6 +22,9 @@ body {
     padding: 10px; /* Padding around the header content */
     background-color: var(--bg-alt-color);
     width: 100%; /* Ensure the header uses the full width */
+	position: sticky;
+	top: 0px;
+	z-index: 1000;
 }
 
 .lastUpdated {
