@@ -40,7 +40,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   }
 
   useEffect(() => {
-    if (reactSettings?.lastChange && reactSettings.lastChange[0] !== '_') {
+    if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
       logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
       const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
