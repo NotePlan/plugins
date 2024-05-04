@@ -19,12 +19,7 @@ function ReviewItem({ item }: Props): React.Node {
   const folderNamePart = settings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
 
   const noteTitleWithOpenAction = (
-    <a
-      className="noteTitle sectionItem"
-      onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
-    item.itemFilename,
-  )}', encodedContent: ''})"
-    >
+    <a className="noteTitle sectionItem">
       <i className="fa-regular fa-file-lines pad-right"></i> ${noteTitle}
     </a>
   )
@@ -37,7 +32,7 @@ function ReviewItem({ item }: Props): React.Node {
   )
 
   const handleEditClick = (): void => {
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog } }))
+    setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog } }))
   }
 
   const dataObjectToPassToControlDialog = {

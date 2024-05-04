@@ -76,7 +76,7 @@ function TaskItem({ item, thisSection }: Props): Node {
     // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
     // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: true, isTask: true, details: updateObj, clickPosition } }))
+    setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: true, details: updateObj, clickPosition } }))
   }
 
   const statusDivClass =

@@ -17,7 +17,8 @@ type Props = {
 const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
   logDebug(`DialogForTaskItems`, `inside component code details=`, details)
 
-  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
+  //FIXME: disabling this for the moment so we can see logs without refreshes clouding them
+  // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const { sendActionToPlugin } = useAppContext()
   const inputRef = useRef()

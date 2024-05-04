@@ -26,8 +26,9 @@
 
 import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
+import { type TReactSettings } from '../../types'
 import Dashboard from './Dashboard.jsx'
-import { AppProvider, type ReactSettings } from './AppContext.jsx'
+import { AppProvider } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
@@ -40,7 +41,7 @@ logDebug(`WebView`, `loading file outside component code`)
 type Props = {
   data: any /* passed in from the plugin as globalSharedData */,
   dispatch: Function,
-  reactSettings: ReactSettings,
+  reactSettings: TReactSettings,
   setReactSettings: Function,
 }
 
@@ -76,7 +77,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const defaultReactSettings = {
     filterPriorityItems: false,
-    dialogData: { isOpen: false, isTask: true },
+    dialogData: { isOpen: false, isTask: true, details: {} },
+    lastChange: `_WebView_DefaultSettings`,
   }
 
   /****************************************************************************************************************************
@@ -89,10 +91,31 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // Set up the initial React Settings (runs only on load)
   useEffect(() => {
-    logDebug(`Webview`, `setReactSettings effect running: setting Default settings. setReactSettings exists? ${String(setReactSettings !== undefined)}`)
-    if (!setReactSettings) return
-    setReactSettings((prev) => ({ ...prev, ...defaultReactSettings }))
-  }, [])
+    const reactSettingsExists = reactSettings && Object.keys(reactSettings).length > 0
+    const pluginSettingsReactSettings = pluginData?.settings?.reactSettings || ''
+    logDebug(
+      `Webview`,
+      `setReactSettings effect running: setReactSettings must have changed. setting Default settings. setReactSettings exists? ${String(
+        setReactSettings !== undefined,
+      )}, reactSettingsExists? ${String(reactSettingsExists)} reactSettings: ${JSON.stringify(
+        reactSettings || {},
+        null,
+        2,
+      )} pluginSettingsReactSettings: ${pluginSettingsReactSettings}`,
+    )
+    // if the context is not set up yet (!setReactSettings), or there is already reactSettings, don't set it
+    if (!setReactSettings || reactSettingsExists) return
+    // otherwise, set reactSettings to either the saved plugin settings reactSettings field or the default
+    let parsedSettings = defaultReactSettings
+    if (pluginSettingsReactSettings) {
+      try {
+        parsedSettings = JSON.parse(pluginData.settings.reactSettings)
+      } catch (error) {
+        logDebug(`Webview`, `setReactSettings effect: could not parse settings. ${error} pluginData.settings.reactSettings: ${pluginData.settings.reactSettings}`)
+      }
+    }
+    setReactSettings((prev) => ({ ...prev, lastChange: `_Webview_firstLoad`, ...parsedSettings }))
+  }, [setReactSettings])
 
   /**
    * When the data changes, console.log it so we know and scroll the window
@@ -105,7 +128,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     } else {
       logDebug(`WebView`, `Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
-    if (reactSettings.refreshing) setReactSettings((prev) => ({ ...prev, refreshing: false }))
+    if (reactSettings.refreshing) setReactSettings((prev) => ({ ...prev, lastChange: `_Webview-refreshingSet`, refreshing: false }))
   }, [data])
 
   /****************************************************************************************************************************

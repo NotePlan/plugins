@@ -29,13 +29,13 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   const handleSwitchChange = (key: string) => (e: any) => {
     const isChecked = e?.target.checked || false
     logDebug('Header', `Checkbox clicked. setting in global Context reactSettings.${key} to ${String(isChecked)}`)
-    setReactSettings((prev) => ({ ...prev, [key]: isChecked }))
+    setReactSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `${key} change` }))
   }
 
   const handleRefreshClick = () => {
     logDebug('Header', 'Refresh button clicked')
     sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, 'Refresh button clicked', true)
-    setReactSettings((prev) => ({ ...prev, refreshing: true }))
+    setReactSettings((prev) => ({ ...prev, refreshing: true, lastChange: `_Dashboard-RefreshClick` }))
   }
 
   const dropdownItems = [

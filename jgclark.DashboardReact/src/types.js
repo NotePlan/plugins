@@ -4,12 +4,6 @@
 // Last updated 22.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-// This is just here for reference to keep track of what fields are used in the local reactSettings
-export type TReactSettings = {
-  filterPriorityItems: boolean,
-  timeblockMustContainString: String,
-}
-
 export type SectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
 // details for a section
@@ -75,7 +69,7 @@ export type MessageDataObject = {
   updatedContent?: string,
   item?: TSectionItem,
   // TODO(@dwertheimer): discuss adding this, for processActionOnReturn:
-  sectionType: SectionCode
+  sectionType: SectionCode,
 }
 
 /**
@@ -89,4 +83,24 @@ export type TBridgeClickHandlerResult = {
   updatedParagraph?: TParagraph,
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   errorMsg?: string,
+}
+
+export type DialogData = {
+  isOpen: boolean,
+  [key: string]: any,
+}
+
+export type TReactSettings = {
+  filterPriorityItems?: boolean,
+  timeblockMustContainString?: string,
+  hideDuplicates?: boolean,
+  lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
+  dialogData?: DialogData,
+  refreshing?: boolean,
+  [key: string]: any,
+}
+
+export type TPluginData = {
+  settings: any,
+  [key: string]: any,
 }
