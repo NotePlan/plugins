@@ -418,8 +418,8 @@ input.apple-switch:after {
 
 input.apple-switch:checked {
 	vertical-align: top;
-  box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
-  border-color: #4ed164;
+  box-shadow: inset 0.8rem 0 0 0 var(--tint-color); /* 20px; */
+  border-color: var(--tint-color);
 }
 
 input.apple-switch:checked:after {
