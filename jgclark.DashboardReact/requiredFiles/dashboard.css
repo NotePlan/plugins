@@ -13,41 +13,82 @@ body {
 /* ------------------------------------------------------------------ */
 /* New settings for Grid-based layout */
 .header {
-	display: grid;
-	grid-template-columns: [refresh] auto [info] 1fr [controls] auto;
-	/* a little spacing around this */
-	padding: 0.4rem 0.5rem 0.2rem;
-	/* a little extra gap between first 2 cols */
-	grid-column-gap: 0.5rem;
-	background-color: var(--bg-alt-color);
-	font-size: 0.85rem;
-	/* fix position to top */
-	position: sticky;
-	top: 0px;
-	border-bottom: 1.0px solid var(--tint-color);
-	z-index: 100;
+    display: grid;
+    /* Define grid-template-areas for better control */
+    grid-template-areas: "lastUpdated refresh counts settings-cog";
+    grid-template-columns: auto auto 1fr auto; /* Allocate space for each area */
+    align-items: center; /* Vertical alignment */
+    gap: 20px; /* Space between grid items */
+    padding: 10px; /* Padding around the header content */
+    background-color: var(--bg-alt-color);
+    width: 100%; /* Ensure the header uses the full width */
 }
 
-.header div:last-child {
-	/* right align  */
-	justify-self: end;
+.lastUpdated {
+    grid-area: lastUpdated; /* Assign the area */
+	align-items: center; /* This ensures that the content of these divs is also centered */
+}
+
+.refreshButton {
+    grid-area: refresh; /* Assign the area */
 }
 
 .totalCounts {
+    grid-area: counts; /* Assign the area */
+    /* Make sure totalCounts only shows when necessary */
+    @media screen and (max-width: 500px) {
+		/* Unless the screen size is 500px wide or less, hide the element */
+        display: none; /* Hide on small screens */
+    }
+}
+
+.settings-cog {
+    grid-area: dropdown; /* Assign the area */
+    justify-self: end; /* Align to the right edge */
+}
+
+.dropdown-content {
+    position: absolute;
+    right: 0;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 10px;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.switch-line {
+    display: flex;
+    justify-content: flex-end; /* Aligns content to the right */
+    align-items: center; /* Center alignment of the checkbox and label */
+    width: 100%; /* Ensures the flex container takes full width */
+    padding-top: 5px;
+}
+
+.switch-label {
+    padding-left: 10px; /* Space between label and switch */
+    padding-right: 5px; /* Additional spacing if needed */
+}
+
+.apple-switch {
+    margin-left: 10px; /* Ensures spacing between the label and the switch */
+}
+  
+  .dropdown-content.show {
 	display: block;
-	align-self: end;
-}
-/* Unless the screen size is 500px wide or less, hide the element */
-/* @media screen and (width <= var(--minBreakPoint)) { */
-@media screen and (width <= 500px) {
-  div.totalCounts {
-    display: none;
   }
-}
 
 /* Large rows on page */
 .sections {
 	display: block;
+}
+
+/* Specific alignment fixes for icons inside buttons or links */
+.fa-regular, .fa-solid {
+    align-self: center;
+    margin: auto; /* Centers icon within its container, vertically and horizontally */
 }
 
 .section {
@@ -206,6 +247,7 @@ button, input {
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
+	align-self: center; /* Center the button vertically if it's not aligning properly */
 }
 /* Set link text to plain (again) TODO: if internal calls used this can be removed */
 .PCButton a {
@@ -213,10 +255,7 @@ button, input {
 	text-decoration: none;
 	color: var(--fg-main-color);
 }
-.refreshButton {
-	width: 75px;
-    margin-left: 40px;
-}
+
 
 /* Show click pointer over buttons and equivalent */
 button, .fake-button, .clickTarget {
@@ -386,3 +425,5 @@ input.apple-switch:checked:after {
   left: 0.8rem; /* 20px; */
   box-shadow: -2px 4px 3px rgba(0,0,0,0.1); /* 0.05;*/
 }
+
+  

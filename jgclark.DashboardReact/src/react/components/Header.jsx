@@ -3,18 +3,16 @@ import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
+import DropdownMenu from './DropdownMenu.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
+
 type Props = {
   lastUpdated: string,
 }
 
-/**
- * Displays the dashboard's header.
- */
 const Header = ({ lastUpdated }: Props): React$Node => {
-  const { reactSettings, setReactSettings, /*pluginData,*/ sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
 
-  // Deal with timeAgo timer section
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
   useEffect(() => {
     const timer = setInterval(() => {
@@ -23,15 +21,15 @@ const Header = ({ lastUpdated }: Props): React$Node => {
       } else {
         setTimeAgo(getTimeAgo(lastUpdated))
       }
-    }, 1000) // Update every 1s so it updates when data is updated
+    }, 1000)
 
-    return () => clearInterval(timer) // Clear interval on component unmount
+    return () => clearInterval(timer)
   }, [lastUpdated, reactSettings])
 
-  const handleCheckboxClick = (e: any) => {
+  const handleSwitchChange = (key: string) => (e: any) => {
     const isChecked = e?.target.checked || false
-    logDebug('Header', `Checkbox clicked. setting in global Context reactSettings.filterPriorityItems to ${String(isChecked)}`)
-    setReactSettings((prev) => ({ ...prev, filterPriorityItems: isChecked }))
+    logDebug('Header', `Checkbox clicked. setting in global Context reactSettings.${key} to ${String(isChecked)}`)
+    setReactSettings((prev) => ({ ...prev, [key]: isChecked }))
   }
 
   const handleRefreshClick = () => {
@@ -39,6 +37,12 @@ const Header = ({ lastUpdated }: Props): React$Node => {
     sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, 'Refresh button clicked', true)
     setReactSettings((prev) => ({ ...prev, refreshing: true }))
   }
+
+  const dropdownItems = [
+    { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', checked: reactSettings?.filterPriorityItems || false },
+    { label: 'Hide duplicates?', key: 'hideDuplicates', checked: reactSettings?.hideDuplicates || false },
+    // Add more items as needed
+  ]
 
   return (
     <div className="header">
@@ -57,17 +61,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
-      <div>
-        <input
-          type="checkbox"
-          className="apple-switch filterPriorityItems"
-          onChange={handleCheckboxClick}
-          name="filterPriorityItems"
-          id="filterPriorityItems"
-          checked={reactSettings?.filterPriorityItems || false}
-        />
-        <label htmlFor="filterPriorityItems">Filter out lower-priority items?</label>
-      </div>
+      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className="settings-cog" />
     </div>
   )
 }

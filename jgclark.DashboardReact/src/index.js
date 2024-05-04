@@ -12,7 +12,7 @@
  * Imports
  */
 // allow changes in plugin.json to trigger recompilation
-import pluginJson from '../plugin.json'
+// import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 // // import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 // import { editSettings } from '@helpers/NPSettings'
