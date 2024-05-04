@@ -813,7 +813,17 @@ describe(`${PLUGIN_NAME}`, () => {
         const expected = { attributes: { foo: '#bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: "#bar"' }
         expect(result).toEqual(expected)
       })
-      // the other tests should be well covered by the underlying functions
+      test('should make change to MD links (which are illegal in YAML) but return legal value', () => {})
+      const before = `---\nGitHub: [/add trigger command duplicates content · Issue #540 · NotePlan/plugins · GitHub](https://github.com/NotePlan/plugins/issues/540)\n---\nbaz`
+      const result = f.getSanitizedFmParts(before)
+      expect(Object.keys(result.attributes).length).toEqual(1)
+      const expected = {
+        attributes: { GitHub: '[/add trigger command duplicates content · Issue #540 · NotePlan/plugins · GitHub](https://github.com/NotePlan/plugins/issues/540)' },
+        body: 'baz',
+        bodyBegin: 4,
+        frontmatter: 'GitHub: "[/add trigger command duplicates content · Issue #540 · NotePlan/plugins · GitHub](https://github.com/NotePlan/plugins/issues/540)"',
+      }
+      expect(result).toEqual(expected)
     })
 
     /*
