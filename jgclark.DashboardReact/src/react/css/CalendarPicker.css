@@ -1,0 +1,39 @@
+
+.calendarPickerCustom {
+    margin-top: 0px;
+    padding-top: 0px;
+}
+
+.rdp-months, .rdp-month {
+    margin-top: 0px;
+    padding-top: 0px;
+}
+
+.rdp-day_selected {
+    background-color: #4CAF50; /* Example: Green background for selected days */
+    color: white; /* White text color */
+}
+
+.dayPicker-container {
+    overflow: hidden;  
+    position: relative;  
+    width: 100%;  
+    height: auto;  
+  }
+  
+  /* have not figured out how to set the size of the calendar itself yet */
+  /* changing the cell size here helps but i don't know how to set the whole container size */
+  .rdp {
+    --rdp-cell-size: '30px';
+  }
+
+  /* reduce padding at the top of the calendar */
+  .buttonGrid div:nth-child(1) { 
+    padding-block-start: 0px; 
+  }
+
+  /* change the color of the today button */
+  .rdp-day_selected {
+    background-color: var(--tint-color);
+    color: var(--fg-main-color);
+  }

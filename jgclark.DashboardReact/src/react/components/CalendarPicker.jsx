@@ -1,0 +1,67 @@
+// CalendarPicker.jsx
+// @flow
+import React, { useState } from 'react'
+import { DayPicker } from 'react-day-picker'
+// Import styles directly into component
+import 'react-day-picker/dist/style.css' /* https://react-day-picker.js.org/basics/styling */
+import '../css/CalendarPicker.css'
+import { logDebug } from '@helpers/react/reactDev'
+
+type Props = {
+  onSelectDate: (date: Date) => void, // Callback function when date is selected
+}
+
+const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [isOpen, setIsOpen] = useState(false)
+
+  logDebug('CalendarPicker', `selectedDate=${selectedDate} isOpen=${isOpen}`)
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date)
+    onSelectDate(date) // Propagate the change up to the parent component
+  }
+
+  const toggleDatePicker = () => {
+    setIsOpen(!isOpen)
+  }
+  //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
+
+  const calendarStyles = {
+    container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
+    caption: { color: 'var(--tint-color)' },
+    navButtonPrev: { color: 'var(--tint-color)' },
+    navButtonNext: { color: 'var(--tint-color)' },
+    weekdays: { backgroundColor: '#f0f0f0' },
+    weekday: { fontWeight: 'bold' },
+    weekend: { backgroundColor: '#f0f0f0' },
+    week: { color: '#333' },
+    day: { color: 'black' },
+    today: { backgroundColor: 'var(--tint-color)', color: 'var(--fg-main-color)' },
+    selected: { color: 'var(--tint-color)', backgroundColor: 'var(--fg-main-color)' },
+  }
+
+  return (
+    <>
+      <button className="PCButton" onClick={toggleDatePicker}>
+        <i className="fa-solid fa-calendar-alt" style={{ color: 'var(--fg-main-color)', paddingLeft: '5px', paddingRight: '5px' }}></i>
+      </button>
+      {isOpen && (
+        <div className="dayPicker-container">
+          <DayPicker
+            selected={selectedDate}
+            onSelect={handleDateChange}
+            mode="single"
+            numberOfMonths={2}
+            required
+            fixedHeight
+            styles={calendarStyles}
+            className="calendarPickerCustom"
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
+export default CalendarPicker

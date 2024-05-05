@@ -2,6 +2,7 @@
 import React, { useRef, useEffect } from 'react'
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
+import CalendarPicker from './CalendarPicker.jsx'
 import { logDebug } from '@helpers/react/reactDev'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import EditableInput from '@helpers/react/EditableInput.jsx'
@@ -65,6 +66,16 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
   }
 
+  // Handle the date selected from CalendarPicker
+  const handleDateSelect = (date: Date) => {
+    if (!date) return
+    // turn into 8601 format
+    const str = date.toISOString().split('T')[0]
+    logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
+    sendActionToPlugin('onClickDashboardItem', { type: `setSpecificDate`, dateString: str }, 'Date selected', false)
+    onClose()
+  }
+
   function handleButtonClick(controlStr: string, type: string) {
     const { itemID: id, itemType, metaModifier, para, item } = details
     const encodedFilename = encodeRFC3986URIComponent(details.para.filename)
@@ -119,6 +130,9 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
             <span id="dialogItemNote">{details?.para?.title}</span>
             {details?.noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
+          <button className="closeButton" onClick={onClose} style={{ float: 'right', marginRight: '-2px', marginTop: '-5px' }}>
+            <i className="fa fa-times"></i>
+          </button>
         </div>
         <div className="dialogBody">
           <div className="buttonGrid" id="itemDialogButtons">
@@ -136,6 +150,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
                   {button.label}
                 </button>
               ))}
+              <CalendarPicker onSelectDate={handleDateSelect} />
             </div>
             <div>Other controls</div>
             <div id="itemControlDialogOtherControls">
@@ -147,15 +162,6 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
                   {button.label}
                 </button>
               ))}
-            </div>
-
-            <div></div>
-            <div>
-              <form>
-                <button id="closeButton" className="mainButton" onClick={onClose}>
-                  Close
-                </button>
-              </form>
             </div>
           </div>
         </div>
