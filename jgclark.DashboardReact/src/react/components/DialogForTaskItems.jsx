@@ -1,4 +1,8 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the Dialog for tasks
+// Last updated 5.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 import React, { useRef, useEffect } from 'react'
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
@@ -43,8 +47,8 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     { label: 'this quarter', controlStr: '+0q' },
   ]
   const otherControlButtons = [
-    { label: 'Cancel', controlStr: 'cancelTask', handlingFunction: 'cancelTask' },
-    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
+    { label: 'Cancel', controlStr: 'canceltask', handlingFunction: 'cancelTask' },
+    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'left' }] },
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
     { label: 'Toggle Type', controlStr: 'tog', handlingFunction: 'toggleType' },
@@ -61,7 +65,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   function handleTitleClick() {
     const dataObjectToPassToFunction = {
       type: 'showNoteInEditorFromFilename',
-      encodedFilename: details.para.filename,
+      filename: details.para.filename,
     }
     sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
   }
@@ -77,30 +81,28 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   }
 
   function handleButtonClick(controlStr: string, type: string) {
-    const { itemID: id, itemType, metaModifier, para, item } = details
-    const encodedFilename = encodeRFC3986URIComponent(details.para.filename)
-    const encodedCurrentContent = encodeRFC3986URIComponent(para.content)
+    const { id, itemType, metaModifier, para, item } = details
+    const filename = details.para.filename
+    const currentContent = para.content
     const updatedContent = inputRef?.current?.getValue() || ''
-    const encodedUpdatedContent = encodeRFC3986URIComponent(updatedContent)
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
-      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`,
+      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaModifier: ${metaModifier}`,
     )
     if (controlStr === 'update') {
-      logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${encodedCurrentContent}} / updated content: {${encodedUpdatedContent}}`)
+      logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
     const dataToSend = {
       itemID: id,
-      type,
+      type: type,
       itemType: itemType,
       controlStr: controlStr,
-      encodedFilename,
-      encodedContent: encodedCurrentContent,
-      encodedUpdatedContent: '',
-      updatedContent,
+      filename: filename,
+      content: currentContent,
+      updatedContent: updatedContent,
       item,
     }
-    if (encodedCurrentContent !== encodedUpdatedContent) dataToSend.encodedUpdatedContent = encodedUpdatedContent
+    if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
     sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
     if (controlStr === 'openNote') return //don't close dialog yet
@@ -115,7 +117,6 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
       onClose()
     } else {
       console.log(`Option key pressed. But closing dialog anyway.`)
-      // Note: this is where we would want to update and re-gather the data-encoded-content, as it might well have changed.
       onClose()
     }
   }
@@ -157,7 +158,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
               {otherControlButtons.map((button, index) => (
                 <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={() => handleButtonClick(button.controlStr, button.handlingFunction)}>
                   {button.icons?.map((icon) => (
-                    <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left' : 'icon-right'}`}></i>
+                    <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-left' : 'icon-right pad-right'}`}></i>
                   ))}
                   {button.label}
                 </button>

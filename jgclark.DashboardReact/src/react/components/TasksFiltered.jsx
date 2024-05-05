@@ -18,9 +18,9 @@ const TasksFiltered = ({ item }: Props): React.Node => {
         <i id={item.ID} className="fa-light fa-plus"></i>
       </div>
       <div className="sectionItemContent sectionItem">
-        <a className="content">
+        <span className="content">
           <i>{item?.para?.content || '<no content>'}</i>
-        </a>
+        </span>
       </div>
     </div>
   )

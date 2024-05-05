@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
-// Last updated 22.4.2024 for v2.0.0 by @jgclark
+// Last updated 5.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -39,14 +39,8 @@ function Section(inputObj: SectionProps): React$Node {
         items.push({
           ID: '0-Congrats',
           itemType: 'congrats',
-          itemFilename: '',
-          itemNoteTitle: '',
-          noteType: 'Notes', // for sake of something
-          para: {
-            filename: '',
-            type: 'text', // for sake of something
-            content: `Nothing to do: take a break <i class="fa-regular fa-mug"></i>`, // earlier tried fa-party-horn
-          },
+          // noteType: 'Notes', // for sake of something
+          // Note: no para
         })
       }
     } else {
@@ -102,8 +96,8 @@ function Section(inputObj: SectionProps): React$Node {
       }
 
       // Finally, compare by title
-      const titleA = a.itemNoteTitle?.toLowerCase() ?? ''
-      const titleB = b.itemNoteTitle?.toLowerCase() ?? ''
+      const titleA = a.para?.title?.toLowerCase() ?? ''
+      const titleB = b.para?.title?.toLowerCase() ?? ''
       return titleA.localeCompare(titleB)
     })
     // logDebug('Section', `- After sort:\n${JSON.stringify(filteredItems, null, 2)}`)
@@ -118,16 +112,18 @@ function Section(inputObj: SectionProps): React$Node {
     logDebug('Section', `- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
 
     // Send an extra line if we've applied filtering/limit
+    // TODO: This doesn't fit well here: move to ?TaskItem?
     if (filteredOut > 0) {
       itemsToShow.push({
         ID: `${section.ID}-Filter`,
         itemType: 'filterIndicator',
-        itemFilename: '',
-        noteType: 'Notes',
         para: {
           content: `There are also ${filteredOut} ${priorityFilteringHappening ? 'lower-priority' : ''} items currently hidden`,
           filename: '',
           type: 'text', // for want of something else
+          noteType: 'Notes', // for want of something else
+          rawContent: '',// for want of something else
+          priority: -1, // for want of something else
         },
       })
     }

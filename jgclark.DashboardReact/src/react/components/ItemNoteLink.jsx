@@ -23,23 +23,21 @@ type Props = {
  */
 function ItemNoteLink({ item, thisSection }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
-
+  const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
-  const noteTitle = item.itemNoteTitle || item?.para?.title || ''
-  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${item.itemFilename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
-  if (noteTitle && noteTitle !== thisSection.sectionFilename) {
-    const encodedNoteTitle = encodeURIComponent(noteTitle)
+  const noteTitle = item?.para?.title || ''
+  logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
+  if (filename !== thisSection.sectionFilename) {
 
     const dataObjectToPassToFunction = {
       itemID: 'fake',
       type: 'showNoteInEditorFromTitle',
-      encodedFilename: encodedNoteTitle,
-      encodedContent: '',
+      filename: filename,
+      content: '-',
     }
     return (
       <a
         className="noteTitle sectionItem"
-        // $FlowIgnore[cannot-resolve-name]
         onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}
       >
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
@@ -47,7 +45,7 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
       </a>
     )
   } else {
-    logDebug(`ItemNoteLink`, `No noteTitle found for ${item.itemFilename}`)
+    logDebug(`ItemNoteLink`, `Not showing noteTitle as ${filename} same as sectionFilename`)
     return
   }
 }

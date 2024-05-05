@@ -165,7 +165,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   // you can pass any object with any number of fields you want
   return {
     sections: await getAllSectionsData(demoMode),
-    lastUpdated: new Date().toLocaleString() /* placeholder */,
+    lastFullRefresh: new Date().toLocaleString() /* placeholder */,
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
     demoMode,

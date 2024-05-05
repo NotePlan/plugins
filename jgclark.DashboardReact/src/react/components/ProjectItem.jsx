@@ -13,9 +13,9 @@ function ReviewItem({ item }: Props): React.Node {
   const { pluginData, setReactSettings } = useAppContext()
   const { settings } = pluginData
 
-  const itemFilename = item.itemFilename
-  const encodedItemFilename = encodeRFC3986URIComponent(itemFilename)
-  const noteTitle = item.itemNoteTitle ?? '<no title>'
+  const itemFilename = item.project?.filename ?? '<no filename>'
+  // const encodedItemFilename = encodeRFC3986URIComponent(itemFilename)
+  const noteTitle = item.project?.title ?? '<no title>'
   const folderNamePart = settings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
 
   const noteTitleWithOpenAction = (
@@ -35,12 +35,13 @@ function ReviewItem({ item }: Props): React.Node {
     setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog } }))
   }
 
+  // TODO: most of this can go in just 'item'
   const dataObjectToPassToControlDialog = {
     OS: 'macOS', // TODO: NotePlan.environment.platform,
     itemID: item.ID,
     type: 'showNoteInEditorFromFilename',
-    encodedFilename: encodedItemFilename,
-    encodedTitle: encodeRFC3986URIComponent(noteTitle),
+    filename: itemFilename,
+    title: noteTitle,
     encodedContent: '',
     item,
   }

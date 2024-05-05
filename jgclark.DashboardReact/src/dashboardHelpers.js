@@ -1,18 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 19.4.2024 for v2.0.0 by @jgclark
+// Last updated 5.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '../../helpers/dateTime'
 import type { TSectionItem, TParagraphForDashboard } from './types'
-// import { showDashboard } from './HTMLGeneratorGrid'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, hyphenatedDateString, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
+import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
@@ -75,7 +74,7 @@ export type dashboardConfigType = {
   useTodayDate: boolean,
   _logLevel: string,
   triggerLogging: boolean,
-  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
 }
 
 /**
@@ -106,8 +105,8 @@ export async function getSettings(): Promise<any> {
     logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
     // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
-    config.timeblockMustContainString = DataStore.preference('timeblockTextMustContainString') ?? ''
-    config.filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems')
+    config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
+    config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
 
     return config
   } catch (err) {
@@ -128,16 +127,18 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
   try {
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
+      if (!note) throw new Error(`No note found for para {${p.content}}`)
       return {
-        filename: note?.filename ?? '<error>',
-        title: displayTitle(note), // this isn't expensive
+        filename: note.filename,
+        noteType: note.type,
+        title: (note.type === 'Notes') ? displayTitle(note) : getISODateStringFromYYYYMMDD(note.filename),
         type: p.type,
-        // rawContent: p.rawContent,
         prefix: p.rawContent.replace(p.content, ''),
         content: p.content,
+        rawContent: p.rawContent,
         priority: getNumericPriorityFromPara(p),
-        changedDate: note?.changedDate,
         timeStr: getStartTimeFromPara(p),
+        changedDate: note?.changedDate,
       }
     })
     return dashboardParas
@@ -177,10 +178,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (Editor && Editor?.note?.filename === timePeriodNote.filename) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       parasToUse = Editor.paragraphs
-      logDebug(
-        'getOpenItemParasForCurrent...',
-        `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`,
-      )
+      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
       // read note from DataStore in the usual way
       parasToUse = timePeriodNote.paragraphs
@@ -198,7 +196,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     let openParas = config.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
