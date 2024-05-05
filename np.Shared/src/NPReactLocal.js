@@ -74,7 +74,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     // that the plugin can write to and the HTML App can access
     // we will try not to update this object directly, but instead
     // use message passing
-    // should always have a lastUpdated field so we can see when the data was last updated on the HTML side
+    // should always have a lastFullRefresh field so we can see when the data was last updated on the HTML side
     if (!globalData) throw `NPReactLocal.openReactWindow() globalData was null. This is required. See the README`
     let globalSharedData = globalData
 
@@ -84,7 +84,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
      * YOU SHOULD NOT NEED TO EDIT ANYTHING BELOW THIS LINE
      *************************************************************************/
 
-    globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
+    globalSharedData.lastFullRefresh = { msg: 'Initial data load', date: new Date().toLocaleString() }
 
     // Load all components in the plugin.json file that end in '.jsx
     // const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))

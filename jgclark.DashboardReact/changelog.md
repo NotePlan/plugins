@@ -1,7 +1,29 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.0.0-a7]
+Misc TODO:
+- the below changes have, I've just spotted, changed np.Shared/src/{NPReactLocal,Root} files. (LastUpdated → LastFullRefresh.) I'm not sure if this is right.
+- **fix where the null filenames are coming from on all/almost action calls**
+- flow errors for `onClick` in AddButtons -- is this related to ^^^?
+- There is no REFRESH OF DATA yet. I'm not sure I follow the gathering code well enough to know how to re-gather it.
+- Projects Dialog - make more like the Tasks Dialog
+- Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
+- Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
+- (dwertheimer) Banners are not working
+- Bug (from 1.x) Checklists not ignored as per setting
+- the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
+
+## [2.0.0-a8] @jgc + @dw
+- Major update to data types, including introduction of TItemType, TProjectForDashboard, TControlStrings, TActionOnReturn, TActionType, and their introduction in almost all files
+- Major refactoring of bridgeClickDashboardItem contents into separate do... functions in clickHandlers.js
+- added ability to refresh specified sections (`getSomeSectionsData`) not just all of them (`getAllSectionsData`)
+- JSON data items can now be deleted as well as updated
+- fix to icon horizontal positioning in dialogs
+- fix to some button icon positioning in dialogs
+- in tasks dialog calendar notes' titles are now hyphenated
+- fixed a bunch of other flow errors
+
+## [2.0.0-a7] @dw
 - Moved the first few clickHandlers from the massive pluginToHTMLBridge to a clickHandlers file. 
 - Started to work on a standardized return object from the handlers so there is not a ton of repeated code in each handler (e.g. update the JSON, refresh, etc.). It's a WIP
 - only doCompleteTask and doContentUpdate are using the new concept. I'm on the fence about it. Look forward to discussing.
@@ -9,7 +31,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
     if (result) await processActionOnReturn(result, data) // process all actions based on result of handler
 
 
-## [2.0.0-a5]
+## [2.0.0-a5] @dw
 - Dialog: Got CompleteThen to work
 - Dialog: Got Unschedule to work
 - Dialog: Got Cancel to work
@@ -22,9 +44,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Created a generalized shared/singleton auto refresh timer that allows for refresh to be called for by any component with a debounce so that only the last request counts down and you don't get 5 refreshes if you quickly click 5 tasks.
 - Cleaned up lots of Flow errors (still some more to go)
 
-## [2.0.0-a4]
-
-### dbw Notes to jgclark
+## [2.0.0-a4] @dw
 - Refresh button now works, refreshing all content via JSON passing only :)
 - Task Dialog: Updating text and clicking "update" refreshes JSON
 - Single line update scaffolding is in place, but only text updates trigger it so far
@@ -32,23 +52,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - I added a 5s delayed auto refresh hack to try to get around the updateCache bug. After clicking any button on the dialog, the JSON data does a full refresh 5s later no matter what. We can get rid of this when the single-line refreshes on the plugin/server side are all implemented.
 - I added a "refreshing" message when this happens so you know what's going on.
 
-## [2.0.0-a3] 
-
-Notes to @jgclark
+## [2.0.0-a3] @dw
 - reactSettings is working. See Header component for how to import/read/set it. Still refreshing more often than I would like. Something we will address as an optimization down the road...The user won't see it. The logs are just noisy. Speaking of which, would be good if you could turn off some of the debug logging in the loop
 - Dialogs have now been split and modularized. I have worked on the Tasks dialog as an example for you. Have not touched the Projects one other than splitting it out
 - I have the notes opening when clicking on a task, and the command buttons from the dialogs working
 - Dialog commands that have been tested/work: today, +1d, +1b, this week, +1w, +2w, this month, this qtr, move-to, priority up, priority down, toggle type, 
 - Dialog commands that do not work and need your help: Cancel, Complete Then, Unschedule. 
 [editing text -- this is a big one that i will figure out]
-
-Other TODO:
-- There is no REFRESH OF DATA yet. I'm not sure I follow the gathering code well enough to know how to re-gather it.
-- Projects Dialog - make more like the Tasks Dialog
-- Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
-- Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
-- Minor thing but the "title" field that is passed for calendar note items is unhyphenated, whereas the actual title in a Calendar note is hyphenated. Would look better in the dialog box to have it hyphenated.
-- (dwertheimer) Banners are not working
 
 ## [2.0.0-a3] @SirTristam 2024-04-30
 - Correct date handling when rescheduling or moving tasks.

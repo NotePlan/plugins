@@ -28,7 +28,7 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings } = useAppContext()
 
-  const { sections, lastUpdated } = pluginData
+  const { sections, lastFullRefresh } = pluginData
   console.log('Dashboard: pluginData:', pluginData)
   const { dialogData } = reactSettings ?? {}
 
@@ -64,7 +64,7 @@ function Dashboard({ pluginData }: Props): React$Node {
     <div style={dashboardContainerStyle}>
       {/* CSS for this part is in dashboard.css */}
       <div className="dashboard">
-        <Header lastUpdated={lastUpdated} />
+        <Header lastFullRefresh={lastFullRefresh} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}
         {sections.map((section, index) => (
           <Section key={index} section={section} />

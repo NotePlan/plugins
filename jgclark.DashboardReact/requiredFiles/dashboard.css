@@ -274,11 +274,11 @@ button, .fake-button, .clickTarget {
 .clickTarget { /* change cursor for icons which can be clicked on */
 	cursor: pointer;
 }
-.pad-left {
+.pad-left { /* add space before something (normally an icon) */
 	padding-left: 0.3rem;
 }
-.pad-right {	/* add space after icon */
-	padding-right: 0.1em;
+.pad-right { /* add space after something (normally an icon) */
+	padding-right: 0.3em;
 }
 .space-under {	/* add space under item */
 	padding-bottom: 0.3em;

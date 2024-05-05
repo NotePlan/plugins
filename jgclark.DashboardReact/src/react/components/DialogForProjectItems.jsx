@@ -1,4 +1,9 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the Dialog for tasks
+// Last updated 5.5.2024 for v2.0.0 by @jgclark
+// TODO: update to use same style as other Dialog Component
+//--------------------------------------------------------------------------
 import React from 'react'
 
 type RefType<T> = {| current: null | T |}
@@ -8,6 +13,15 @@ type Props = {
   details: any,
   positionDialog: (dialogRef: RefType<any>) => {},
 }
+
+/**
+ * Array of buttons to render.
+ */
+const controlButtons = [
+  // TODO: write and then use below
+  // { label: 'Cancel', controlStr: 'canceltask', handlingFunction: 'cancelTask' },
+  // { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
+]
 
 const DialogForProjectItems = ({ onClose, details, positionDialog }: Props): React$Node => {
   return (

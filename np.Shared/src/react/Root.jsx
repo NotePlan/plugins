@@ -53,10 +53,10 @@ logDebug(`Root`, `loading file outside component code`)
 // this is the global data object that is passed from the plugin in JS
 // the globalSharedData object is passed at window load time from the plugin, so you can use it for initial state
 // globalSharedData = { data: {}, returnPluginCommand: {command: "", id: ""}
-const { lastUpdated = null, /* returnPluginCommand = {},*/ debug = false, /*ENV_MODE,*/ logProfilingMessage = false } = globalSharedData
+const { lastFullRefresh = null, /* returnPluginCommand = {},*/ debug = false, /*ENV_MODE,*/ logProfilingMessage = false } = globalSharedData
 if (typeof globalSharedData === 'undefined' || !globalSharedData) logDebug('Root: Root: globalSharedData is undefined', globalSharedData)
 if (typeof globalSharedData === 'undefined') throw (`Root: globalSharedData is undefined. You must define this field in the initial data passed to the plugin`, globalSharedData)
-if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`
+if (typeof globalSharedData.lastFullRefresh === 'undefined') throw `Root: globalSharedData.lastFullRefresh is undefined`
 
 export function Root(/* props: Props */): Node {
   logDebug(`Root`, `inside component`)
@@ -70,7 +70,7 @@ export function Root(/* props: Props */): Node {
 
   const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red' })
   // const [setMessageFromPlugin] = useState({})
-  const [history, setHistory] = useState([lastUpdated])
+  const [history, setHistory] = useState([lastFullRefresh])
   const tempSavedClicksRef = React.useRef([]) //temporarily store the clicks in the webview
 
   /****************************************************************************************************************************
@@ -111,7 +111,7 @@ export function Root(/* props: Props */): Node {
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
     // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
     // console.log(`Root: Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
-    // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
+    // data.lastFullRefresh = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
     // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
@@ -155,8 +155,8 @@ export function Root(/* props: Props */): Node {
           // logDebug(`Root`,` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
           // Spread existing state into new object to keep it immutable
           // TODO: ideally, you would use a reducer here
-          if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`
-          setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
+          if (type === 'SHOW_BANNER') payload.lastFullRefresh.msg += `: ${payload.msg}`
+          setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastFullRefresh])
           tempSavedClicksRef.current = []
           // logDebug(`Root`,` onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
           switch (type) {

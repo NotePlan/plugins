@@ -27,13 +27,13 @@ function TaskItem({ item, thisSection }: Props): Node {
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const updateObj = {
-    OS: 'macOS', // TODO: NotePlan.environment.platform,
+    OS: 'macOS', // TODO: need to pass NotePlan.environment.platform through to here
     itemID: item.ID,
     reschedOrMove: 'move', // TODO: reschedOrMove from config,
     itemType: 'task',
-    noteType: item.noteType,
+    noteType: item.para?.noteType,
     para: item.para,
-    title: item.itemNoteTitle,
+    title: item.para?.title,
     type: 'showNoteInEditorFromFilename',
     item, // TODO: this is the beginning of the refactoring to use UpdateObject
   }
@@ -54,7 +54,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         updateObj.type = metaKey ? 'cancelChecklist' : 'completeChecklist'
         setVisible(false)
         break
-      case 'review':
+      case 'project':
         updateObj.type = 'showNoteInEditorFromFilename'
         break
       default:

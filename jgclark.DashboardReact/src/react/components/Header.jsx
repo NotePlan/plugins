@@ -1,32 +1,33 @@
 // @flow
+/**
+ * Displays the dashboard's header.
+ * Last updated: 2024-05-01 for v2.0.0 by @dwertheimer
+ */
 import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 type Props = {
-  lastUpdated: string,
+  lastFullRefresh: string,
 }
 
-/**
- * Displays the dashboard's header.
- */
-const Header = ({ lastUpdated }: Props): React$Node => {
+const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { reactSettings, setReactSettings, /*pluginData,*/ sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
 
   // Deal with timeAgo timer section
-  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
+  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
   useEffect(() => {
     const timer = setInterval(() => {
       if (reactSettings.refreshing) {
         setTimeAgo('Refreshing Data...')
       } else {
-        setTimeAgo(getTimeAgo(lastUpdated))
+        setTimeAgo(getTimeAgo(lastFullRefresh))
       }
     }, 1000) // Update every 1s so it updates when data is updated
 
     return () => clearInterval(timer) // Clear interval on component unmount
-  }, [lastUpdated, reactSettings])
+  }, [lastFullRefresh, reactSettings])
 
   const handleCheckboxClick = (e: any) => {
     const isChecked = e?.target.checked || false
@@ -42,7 +43,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
 
   return (
     <div className="header">
-      <div className="lastUpdated">
+      <div className="lastFullRefresh">
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
       <Button

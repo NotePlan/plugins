@@ -60,9 +60,6 @@ function ItemContent({ item }: Props): React$Node {
       type: 'showLineInEditorFromFilename',
       filename: item.para?.filename ?? '',
       content: item.para?.content ?? '',
-      // TODO: are these still needed?
-      encodedFilename: encodeRFC3986URIComponent(item.para?.filename ?? ''),
-      encodedContent: encodeRFC3986URIComponent(item.para?.content ?? ''),
     }
     sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
   }

@@ -36,23 +36,8 @@ function ItemGrid(inputObj: Props): React$Node {
 
   const visibleItems = items?.map((item, index) => <ItemRow key={index} item={item} thisSection={thisSection} />) ?? []
 
-  // // TODO: equivalent of:
-  // if (filteredOut > 0) {
-  //   items.push({
-  //     ID: `${thisSection.ID}-Filter`,
-  //     itemType: 'filterIndicator', // TEST:
-  //     itemFilename: '',
-  //     noteType: 'Notes', // TEST:
-  //     para: {
-  //       content: `There are also ${filteredOut} lower-priority items currently hidden`,
-  //       filename: '',
-  //       type: '' // FIXME:
-  //     }
-  //   })
-  // }
-
   return (
-    // FIXME: find a way to include this <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`
+    // TODO: find a way to include this <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`}>
       {visibleItems}
     </div>
