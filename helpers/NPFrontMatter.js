@@ -13,6 +13,8 @@ import fm from 'front-matter'
 // import { showMessage } from './userInput'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
+
 const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
@@ -27,7 +29,7 @@ export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 export function quoteText(text: string): string {
   // create a regex that looks for a leading "#" char and any non whitespace char
 
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === ''
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text)
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
@@ -316,8 +318,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     if (note == null) {
       // no note - return false
       throw new Error(`No note found. Stopping conversion.`)
-    }
-    else if (hasFrontMatter(note.content || '')) {
+    } else if (hasFrontMatter(note.content || '')) {
       // already has frontmatter
       const attr = getAttributes(note.content)
       clo(attr, `ensureFrontmatter: Note '${displayTitle(note)}' has frontmatter already: attr =`)
@@ -329,8 +330,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
       }
       retVal = true
-    }
-    else {
+    } else {
       // need to add frontmatter
       let newTitle
       if (note.type === 'Notes' && alsoEnsureTitle) {
