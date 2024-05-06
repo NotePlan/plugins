@@ -388,7 +388,11 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
     const newParaContent = updatedParagraph?.content ?? ''
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
-    const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
+    const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+      itemType: /open|checklist/,
+      'para.filename': oldFilename,
+      'para.content': oldContent,
+    }) // find all references to this content (could be in multiple sections)
     clo(indexes, 'updateReactWindow: matching indexes found')
 
     if (indexes.length) {

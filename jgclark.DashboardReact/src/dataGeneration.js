@@ -78,8 +78,7 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
     sections.push(await getProjectSectionData(config, demoMode))
 
     return sections
-  }
-  catch (error) {
+  } catch (error) {
     logError('getAllSectionDetails', error.message)
     return []
   }
@@ -106,8 +105,7 @@ export async function getSomeSectionsData(sectionTypes: Array<TSectionCode> = al
     if (sectionTypes.includes('PROJ')) sections.push(await getProjectSectionData(config, demoMode))
 
     return sections
-  }
-  catch (error) {
+  } catch (error) {
     logError('getSomeSectionDetails', error.message)
     return []
   }
@@ -188,7 +186,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       sectionTitleClass: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
-    // Note: this often gets stringified to a string, but isn't underneath
+      // Note: this often gets stringified to a string, but isn't underneath
       generatedDate: new Date(),
       actionButtons: [
         {
@@ -908,7 +906,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
         project: {
           title: n.title ?? '(error)',
           filename: thisFilename,
-        }
+        },
       })
       itemCount++
     })
@@ -975,10 +973,10 @@ export function findSectionItems(
           logDebug(
             `findSectionItems:`,
             `${item.ID} itemFieldValue: ${itemFieldValue} ${
-              itemFieldValue ? (itemFieldValue.includes(fieldValue) ? 'includes' : 'does not include') : 'is undefined'
+              itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
             } fieldValue: ${fieldValue}`,
           )
-          return itemFieldValue ? itemFieldValue.includes(fieldValue) : false
+          return itemFieldValue ? itemFieldValue === fieldValue : false
         }
       })
 
