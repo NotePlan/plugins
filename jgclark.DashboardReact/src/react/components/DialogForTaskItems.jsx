@@ -4,12 +4,13 @@
 // Last updated 5.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useRef, useEffect } from 'react'
+import { validateAndFlattenMessageObject } from '../../shared'
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
-import { logDebug } from '@helpers/react/reactDev'
-import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { logDebug, clo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type RefType<T> = {| current: null | T |}
 
@@ -21,6 +22,7 @@ type Props = {
 
 const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
   logDebug(`DialogForTaskItems`, `inside component code details=`, details)
+  const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(details)
 
   //FIXME: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
@@ -29,7 +31,6 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   const inputRef = useRef()
   const dialogRef = useRef(null)
 
-  const reschedOrMove = details.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
   const dateChangeFunctionToUse = reschedOrMove === 'resched' ? 'updateTaskDate' : 'moveFromCalToCal'
 
   /**
@@ -64,10 +65,10 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
 
   function handleTitleClick() {
     const dataObjectToPassToFunction = {
-      type: 'showNoteInEditorFromFilename',
-      filename: details.para.filename,
+      actionType: 'showNoteInEditorFromFilename',
+      ...details,
     }
-    sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
   }
 
   // Handle the date selected from CalendarPicker
@@ -75,36 +76,35 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     if (!date) return
     // turn into 8601 format
     const str = date.toISOString().split('T')[0]
+    const actionType = `setSpecificDate`
     logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin('onClickDashboardItem', { type: `setSpecificDate`, dateString: str }, 'Date selected', false)
+    sendActionToPlugin(actionType, { ...details, actionType, dateString: str }, 'Date selected', false)
     onClose()
   }
 
-  function handleButtonClick(controlStr: string, type: string) {
-    const { id, itemType, metaModifier, para, item } = details
-    const filename = details.para.filename
+  function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
+    const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
+    clo(details, 'handleButtonClick details')
     const currentContent = para.content
     const updatedContent = inputRef?.current?.getValue() || ''
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
-      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaModifier: ${metaModifier}`,
+      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
+        altKey,
+      )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
     )
     if (controlStr === 'update') {
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
     const dataToSend = {
-      itemID: id,
-      type: type,
-      itemType: itemType,
+      ...details,
+      actionType: type,
       controlStr: controlStr,
-      filename: filename,
-      content: currentContent,
-      updatedContent: updatedContent,
-      item,
+      updatedContent: '',
     }
     if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
-    sendActionToPlugin('onClickDashboardItem', dataToSend, `Sending ${type} to plugin`, false)
+    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, false)
     if (controlStr === 'openNote') return //don't close dialog yet
 
     // Send 'refresh' action to plugin after n ms - this is a bit of a hack
@@ -113,7 +113,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
     // Dismiss dialog, unless meta key pressed
-    if (!metaModifier) {
+    if (!metaKey) {
       onClose()
     } else {
       console.log(`Option key pressed. But closing dialog anyway.`)
@@ -128,8 +128,8 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
         <div className="dialogTitle" onClick={() => handleTitleClick()}>
           From: <i className="pad-left pad-right fa-regular fa-file-lines"></i>
           <b>
-            <span id="dialogItemNote">{details?.para?.title}</span>
-            {details?.noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
+            <span id="dialogItemNote">{title}</span>
+            {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
           <button className="closeButton" onClick={onClose} style={{ float: 'right', marginRight: '-2px', marginTop: '-5px' }}>
             <i className="fa fa-times"></i>
@@ -139,15 +139,15 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
           <div className="buttonGrid" id="itemDialogButtons">
             <div>For</div>
             <div className="dialogDescription">
-              <EditableInput ref={inputRef} initialValue={details?.para?.content} className="fullTextInput dialogItemContent" />
-              <button className="updateItemContentButton" data-control-str="update" onClick={() => handleButtonClick('updateItemContent', 'updateItemContent')}>
+              <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
+              <button className="updateItemContentButton" data-control-str="update" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
                 Update
               </button>
             </div>
             <div>Move to</div>
             <div id="itemControlDialogMoveControls">
               {buttons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={() => handleButtonClick(button.controlStr, dateChangeFunctionToUse)}>
+                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
                   {button.label}
                 </button>
               ))}
@@ -156,7 +156,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
             <div>Other controls</div>
             <div id="itemControlDialogOtherControls">
               {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={() => handleButtonClick(button.controlStr, button.handlingFunction)}>
+                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.map((icon) => (
                     <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-left' : 'icon-right pad-right'}`}></i>
                   ))}

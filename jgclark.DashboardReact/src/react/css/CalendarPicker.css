@@ -28,7 +28,7 @@
   }
 
   /* reduce padding at the top of the calendar */
-  .buttonGrid div:nth-child(1) { 
+  .dayPicker-container .buttonGrid div:nth-child(1) { 
     padding-block-start: 0px; 
   }
 

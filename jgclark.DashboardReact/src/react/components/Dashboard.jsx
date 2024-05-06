@@ -23,7 +23,7 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
 
-  const { sections: origSections, lastUpdated } = pluginData
+  const { sections: origSections, lastFullRefresh } = pluginData
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
   const sections = reactSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
   console.log('Dashboard: pluginData:', pluginData, sections)
@@ -44,7 +44,7 @@ function Dashboard({ pluginData }: Props): React$Node {
       logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
       const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
-      sendActionToPlugin('reactSettingsChanged', strReactSettings, 'Dashboard reactSettings updated', false)
+      sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', reactSettings: strReactSettings }, 'Dashboard reactSettings updated', false)
     }
   }, [reactSettings])
 
@@ -58,7 +58,7 @@ function Dashboard({ pluginData }: Props): React$Node {
     <div style={dashboardContainerStyle}>
       {/* CSS for this part is in dashboard.css */}
       <div className="dashboard">
-        <Header lastUpdated={lastUpdated} />
+        <Header lastFullRefresh={lastFullRefresh} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}
         {sections.map((section, index) => (
           <Section key={index} section={section} />

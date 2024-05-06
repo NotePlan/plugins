@@ -60,7 +60,7 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
     const newTimerId = setTimeout(() => {
       // Trigger the refresh action
       logDebug('useRefreshTimer', 'Timer triggered - Calling Plugin for JSON Refresh...')
-      sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, `5s full refresh timer triggered`, false)
+      sendActionToPlugin('refresh', { actionType: 'refresh' }, `5s full refresh timer triggered`, false)
     }, maxDelay)
     setTimerId(newTimerId)
   }

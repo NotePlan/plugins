@@ -26,9 +26,8 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
   const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
   const noteTitle = item?.para?.title || ''
-  logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
+  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
   if (filename !== thisSection.sectionFilename) {
-
     const dataObjectToPassToFunction = {
       itemID: 'fake',
       type: 'showNoteInEditorFromTitle',
@@ -36,17 +35,11 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
       content: '-',
     }
     return (
-      <a
-        className="noteTitle sectionItem"
-        onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}
-      >
+      <a className="noteTitle sectionItem" onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}>
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
         {noteTitle}
       </a>
     )
-  } else {
-    logDebug(`ItemNoteLink`, `Not showing noteTitle as ${filename} same as sectionFilename`)
-    return
   }
 }
 

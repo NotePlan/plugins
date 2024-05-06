@@ -4,16 +4,9 @@
 // Last updated 5.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-// This is just here for reference to keep track of what fields are used in the local reactSettings
-export type TReactSettings = {
-  filterPriorityItems: boolean,
-  timeblockMustContainString: String,
-}
-
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
-export const allSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y',
-  'OVERDUE', 'TAG', 'PROJ', 'COUNT']
+export const allSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'OVERDUE', 'TAG', 'PROJ', 'COUNT']
 
 // details for a section
 export type TSection = {
@@ -36,8 +29,8 @@ export type TItemType = 'open' | 'checklist' | 'congrats' | 'project' | 'filterI
 export type TSectionItem = {
   ID: string,
   itemType: TItemType,
-  para?: TParagraphForDashboard, /* where it is a paragraph-type item (not 'project') */
-  project?: TProjectForDashboard
+  para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'project') */,
+  project?: TProjectForDashboard,
   // itemFilename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   // itemNoteTitle?: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   // noteType: NoteType /* Notes | Calendar */,
@@ -77,17 +70,61 @@ export type TActionButton = {
   tooltip: string,
 }
 
-export type TActionType = 'onClickDashboardItem' | 'refresh' | 'completeTask' | 'completeTaskThen' | 'cancelTask' | 'completeChecklist' | 'cancelChecklist' | 'unscheduleItem' | 'updateItemContent' | 'toggleType' | 'cyclePriorityStateUp' | 'cyclePriorityStateDown' | 'setNextReviewDate' | 'reviewFinished' | 'showNoteInEditorFromFilename' | 'showNoteInEditorFromTitle' | 'showLineInEditorFromFilename' | 'showLineInEditorFromTitle' | 'moveToNote' | 'moveFromCalToCal' | 'updateTaskDate' // 'windowResized'
+export type TActionType =
+  | 'onClickDashboardItem'
+  | 'refresh'
+  | 'completeTask'
+  | 'completeTaskThen'
+  | 'cancelTask'
+  | 'completeChecklist'
+  | 'cancelChecklist'
+  | 'unscheduleItem'
+  | 'updateItemContent'
+  | 'toggleType'
+  | 'cyclePriorityStateUp'
+  | 'cyclePriorityStateDown'
+  | 'setNextReviewDate'
+  | 'reviewFinished'
+  | 'showNoteInEditorFromFilename'
+  | 'showNoteInEditorFromTitle'
+  | 'showLineInEditorFromFilename'
+  | 'showLineInEditorFromTitle'
+  | 'moveToNote'
+  | 'moveFromCalToCal'
+  | 'updateTaskDate' // 'windowResized'
 
-export type TControlString = 't' | '+1d' | '+1b' | '+2d' | '+0w' | '+1w' | '+2w' | '+0m' | '+0q' | 'canceltask' | 'movetonote' | 'priup' | 'pridown' | 'tog' | 'ct' | 'unsched' | 'finish' | 'nr+1w' | 'nr+2w' | 'nr+1m' | 'nr+1q'
+export type TControlString =
+  | 't'
+  | '+1d'
+  | '+1b'
+  | '+2d'
+  | '+0w'
+  | '+1w'
+  | '+2w'
+  | '+0m'
+  | '+0q'
+  | 'canceltask'
+  | 'movetonote'
+  | 'priup'
+  | 'pridown'
+  | 'tog'
+  | 'ct'
+  | 'unsched'
+  | 'finish'
+  | 'nr+1w'
+  | 'nr+2w'
+  | 'nr+1m'
+  | 'nr+1q'
 
 // for passing messages from React Window to plugin
 export type MessageDataObject = {
   item?: TSectionItem, // optional because REFRESH doesn't need anything else
   // itemID?: string, // we think this isn't needed
   actionType: TActionType, // main verb (was .type)
-  controlStr: TControlString, // further detail on actionType
+  controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
+  reactSettings?: string,
+  metaModifier: any,
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item
@@ -108,4 +145,24 @@ export type TBridgeClickHandlerResult = {
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
   sectionTypes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   errorMsg?: string,
+}
+
+export type DialogData = {
+  isOpen: boolean,
+  [key: string]: any,
+}
+
+export type TReactSettings = {
+  filterPriorityItems?: boolean,
+  timeblockMustContainString?: string,
+  hideDuplicates?: boolean,
+  lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
+  dialogData?: DialogData,
+  refreshing?: boolean,
+  [key: string]: any,
+}
+
+export type TPluginData = {
+  settings: any,
+  [key: string]: any,
 }

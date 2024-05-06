@@ -11,18 +11,27 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem } from './types'
+import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode } from './types'
+import { validateAndFlattenMessageObject } from './shared'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
-import { cancelItem, completeItem, completeItemEarlier, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
+import {
+  cancelItem,
+  completeItem,
+  completeItemEarlier,
+  findParaFromStringAndFilename,
+  highlightParagraphInEditor,
+  toggleTaskChecklistParaType,
+  unscheduleItem,
+} from '@helpers/NPParagraph'
 import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
-import { chooseHeading } from '@helpers/userInput'
+import { chooseHeading, showMessage } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -40,7 +49,7 @@ const windowCustomId = `${pluginJson['plugin.id']} React Window`
 const WEBVIEW_WINDOW_ID = windowCustomId
 
 /****************************************************************************************************************************
- *                             SUPPORT FUNCTIONS    
+ *                             SUPPORT FUNCTIONS
  ****************************************************************************************************************************/
 
 /**
@@ -56,34 +65,6 @@ function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnRetur
     success,
     actionsOnSuccess,
   }
-}
-
-type ValidatedData = {
-  filename: string,
-  content: any,
-  item: TSectionItem,
-}
-
-/**
- * Validates the provided MessageDataObject to ensure the basic fields exist
- * so we don't have to write this checking code in every handler
- * You should still check the validity of
- * @param {MessageDataObject} data The data object to validate.
- * @returns {ValidatedData} The validated data.
- * @throws {Error} If the data object is invalid.
- * @example const { filename, content, item } = validateData(data)
- */
-function validateData(data: MessageDataObject): ValidatedData {
-  const { item } = data
-  if (!item?.para) {
-    throw new Error(`Error validating data: No item.para was passed: ${JSON.stringify(data)}`)
-  }
-  const { filename, content } = item?.para || {}
-  if (!filename || content === undefined) {
-    throw new Error(`Error validating data: No filename/content was passed: ${JSON.stringify(data)}`)
-  }
-  return { filename, content, item }
-  // TODO(@dwertheimer): should this have a try/catch?
 }
 
 /****************************************************************************************************************************
@@ -117,7 +98,7 @@ export async function refreshSomeSections(sectionCodes: Array<TSectionCode>): Pr
 
 // Complete the task in the actual Note
 export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
   logDebug('doCompleteTask', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
@@ -125,7 +106,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 
 // Complete the task in the actual Note, but with the date it was scheduled for
 export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItemEarlier(filename, content)
   logDebug('doCompleteTaskThen', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
@@ -133,7 +114,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
 
 // Cancel the task in the actual Note
 export async function doCancelTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = cancelItem(filename, content)
   logDebug('doCancelTask', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
@@ -141,7 +122,7 @@ export async function doCancelTask(data: MessageDataObject): Promise<TBridgeClic
 
 // Complete the checklist in the actual Note
 export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
   logDebug('doCompleteChecklist', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
@@ -149,12 +130,11 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
 
 // Cancel the checklist in the actual Note
 export async function doCancelChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = cancelItem(filename, content)
   logDebug('doCancelChecklist', `-> ${String(updatedPara)}`)
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
 }
-
 
 /**
  * Updates content based on provided data.
@@ -162,7 +142,7 @@ export async function doCancelChecklist(data: MessageDataObject): Promise<TBridg
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const { updatedContent } = data
   logDebug('doContentUpdate', `${updatedContent || ''}`)
   if (!updatedContent) {
@@ -185,10 +165,9 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
   return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
 }
 
-
 // Send a request to toggleType to plugin
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedType = toggleTaskChecklistParaType(filename, content)
   logDebug('doToggleType', `-> ${updatedType}`)
   return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedType: updatedType })
@@ -201,10 +180,9 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
   // await showDashboardReact('refresh')
 }
 
-
 // Send a request to unscheduleItem to plugin
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = unscheduleItem(filename, content)
   logDebug('doUnscheduleItem', `-> ${String(updatedPara)}`)
 
@@ -216,7 +194,7 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
 
 // Send a request to cyclePriorityStateUp to plugin
 export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
 
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
@@ -246,7 +224,7 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
 
 // Send a request to cyclePriorityStateDown to plugin
 export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
@@ -273,7 +251,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
 
 // Mimic the /skip review command.
 export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     const period = data.controlStr.replace('nr', '')
@@ -290,7 +268,7 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
 
 // Mimic the /finish review command.
 export async function doReviewFinished(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     logDebug('bCDI / review', `-> reviewFinished on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
@@ -318,7 +296,7 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
 // Handle a show note call simply by opening the note in the main Editor.
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   // Note: use the showLine... variant of this (below) where possible
   const note = await Editor.openNoteByFilename(filename)
   if (note) {
@@ -330,10 +308,9 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
   }
 }
 
-
 // Handle a show note call simply by opening the note in the main Editor
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   // Note: use the showLine... variant of this (below) where possible
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
   const wantedTitle = filename
@@ -347,10 +324,9 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
   }
 }
 
-
 // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
   const note = await Editor.openNoteByFilename(filename)
   if (note) {
@@ -366,11 +342,10 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   }
 }
 
-
 // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
 export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const wantedTitle = decodeURIComponent(filename)
   const note = await Editor.openNoteByTitle(wantedTitle)
   if (note) {
@@ -386,13 +361,12 @@ export async function doShowLineInEditorFromTitle(data: MessageDataObject): Prom
   }
 }
 
-
 // Instruction to move task from a note to a project note.
 // Note: Requires user input
 // FIXME: Therefore probably makes sense to move this back to the plugin side.
 // Note: Therefore this button is currently turned off
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   logInfo('moveToNote', 'Note: doMoveToNote not yet fully implemented; stopping.')
   return handlerResult(false)
 
@@ -448,11 +422,10 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   // DataStore.updateCache(origNote, false)
 }
 
-
 // Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   // Note: Overloads ID with the dateInterval to use
-  const { filename, content } = validateData(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const config = await getSettings()
   const dateInterval = data.controlStr
   let startDateStr = ''
@@ -502,15 +475,14 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
   }
 }
 
-
 // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
-export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateData(data)
-  const dateInterval = data.controlStr
+export async function doUpdateTaskDate(data: MessageDataObject, dateString: string = ''): Promise<TBridgeClickHandlerResult> {
+  const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
+  const dateInterval = controlStr || ''
   const config = await getSettings()
   // const startDateStr = ''
-  let newDateStr = ''
-  if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
+  let newDateStr = dateString || ''
+  if (dateInterval !== 't' && !dateString && !dateInterval.match(RE_DATE_INTERVAL)) {
     logError('doUpdateTaskDate', `bad move date interval: ${dateInterval}`)
     return handlerResult(false)
   }
@@ -563,4 +535,20 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
     logWarn('doUpdateTaskDate', `- some other failure`)
     return handlerResult(false)
   }
+}
+
+export function doReactSettingsChanged(data: MessageDataObject): TBridgeClickHandlerResult {
+  const settings = DataStore.settings
+  const reactSettings = data.reactSettings
+  if (!reactSettings || !settings) {
+    throw new Error(`Error validating data: reactSettings ${JSP(reactSettings)} or settings is null or undefined.`)
+  }
+  DataStore.settings = { ...DataStore.settings, reactSettings: data.reactSettings }
+  logDebug('doReactSettingsChanged', `React settings changed: ${data.controlStr}`)
+  return handlerResult(true)
+}
+
+export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { dateString } = validateAndFlattenMessageObject(data)
+  return await doUpdateTaskDate(data, dateString)
 }

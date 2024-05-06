@@ -8,24 +8,25 @@ import DropdownMenu from './DropdownMenu.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 type Props = {
-  lastUpdated: string,
+  lastFullRefresh: string,
 }
 
-const Header = ({ lastUpdated }: Props): React$Node => {
+const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { reactSettings, setReactSettings, sendActionToPlugin, pluginData } = useAppContext()
 
-  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
+  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
+
   useEffect(() => {
     const timer = setInterval(() => {
       if (reactSettings?.refreshing) {
         setTimeAgo('Refreshing Data...')
       } else {
-        setTimeAgo(getTimeAgo(lastUpdated))
+        setTimeAgo(getTimeAgo(lastFullRefresh))
       }
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [lastUpdated, reactSettings])
+  }, [lastFullRefresh, reactSettings])
 
   const handleSwitchChange = (key: string) => (e: any) => {
     const isChecked = e?.target.checked || false
@@ -35,7 +36,8 @@ const Header = ({ lastUpdated }: Props): React$Node => {
 
   const handleRefreshClick = () => {
     logDebug('Header', 'Refresh button clicked')
-    sendActionToPlugin('onClickDashboardItem', { type: 'refresh' }, 'Refresh button clicked', true)
+    const actionType = 'refresh'
+    sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
     setReactSettings((prev) => ({ ...prev, refreshing: true, lastChange: `_Dashboard-RefreshClick` }))
   }
 
@@ -46,15 +48,15 @@ const Header = ({ lastUpdated }: Props): React$Node => {
 
   const sections = (pluginData?.sections ?? []).map((section: TSection) => ({
     label: `Show "${section.name}"`,
-    key: `show_${section.ID}`,
-    checked: reactSettings?.[`show_${section.ID}`] ?? true,
+    key: `show_${section.sectionType}`,
+    checked: reactSettings?.[`show_${section.sectionType}`] ?? true,
   }))
 
   dropdownItems = [...dropdownItems, ...sections]
 
   return (
     <div className="header">
-      <div className="lastUpdated">
+      <div className="lastFullRefresh">
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
       <Button

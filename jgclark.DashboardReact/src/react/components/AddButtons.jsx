@@ -13,40 +13,28 @@ const AddButtons = (): React$Node => {
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new task to today's note"
-        data-plugin-id="jgclark.Dashboard"
-        data-command="addTask"
-        data-command-args="20240324.md"
-        onClick={() => sendActionToPlugin('addTask', '20240324.md')}
+        onClick={() => sendActionToPlugin('addTask', { actionType: 'addTask', toFilename: '20240324.md' })}
       >
         <i className="fa-regular fa-circle-plus sidebarDaily"></i>
       </button>
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new checklist to today's note"
-        data-plugin-id="jgclark.Dashboard"
-        data-command="addChecklist"
-        data-command-args="20240324.md"
-        onClick={() => sendActionToPlugin('addChecklist', '20240324.md')}
+        onClick={() => sendActionToPlugin('addChecklist', { actionType: 'addChecklist', toFilename: '20240324.md' })}
       >
         <i className="fa-regular fa-square-plus sidebarDaily"></i>
       </button>{' '}
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new task to tomorrow's note"
-        data-plugin-id="jgclark.Dashboard"
-        data-command="addTask"
-        data-command-args="20240325.md"
-        onClick={() => sendActionToPlugin('addTask', '20240325.md')}
+        onClick={() => sendActionToPlugin('addTask', { actionType: 'addTask', toFilename: '20240325.md' })}
       >
         <i className="fa-regular fa-circle-arrow-right sidebarDaily"></i>
       </button>{' '}
       <button
         className="XCBButton tooltip"
         data-tooltip="Add a new checklist to tomorrow's note"
-        data-plugin-id="jgclark.Dashboard"
-        data-command="addChecklist"
-        data-command-args="20240325.md"
-        onClick={() => sendActionToPlugin('addChecklist', '20240325.md')}
+        onClick={() => sendActionToPlugin('addChecklist', { actionType: 'addChecklist', toFilename: '20240325.md' })}
       >
         <i className="fa-regular fa-square-arrow-right sidebarDaily"></i>
       </button>

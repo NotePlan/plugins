@@ -4,8 +4,8 @@
 // @flow
 
 import React, { useState } from 'react'
-import type { Node } from 'react'
-import type { TSectionItem, TSection } from '../../types.js'
+import { type Node } from 'react'
+import { type TSectionItem, type TSection, type MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
@@ -26,16 +26,11 @@ function TaskItem({ item, thisSection }: Props): Node {
   const [visible, setVisible] = useState(true)
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
-  const updateObj = {
+  const updateObj: MessageDataObject = {
     OS: 'macOS', // TODO: need to pass NotePlan.environment.platform through to here
-    itemID: item.ID,
     reschedOrMove: 'move', // TODO: reschedOrMove from config,
-    itemType: 'task',
-    noteType: item.para?.noteType,
-    para: item.para,
-    title: item.para?.title,
-    type: 'showNoteInEditorFromFilename',
-    item, // TODO: this is the beginning of the refactoring to use UpdateObject
+    actionType: 'showNoteInEditorFromFilename',
+    item,
   }
 
   /**
@@ -47,15 +42,15 @@ function TaskItem({ item, thisSection }: Props): Node {
 
     switch (itemType) {
       case 'open':
-        updateObj.type = metaKey ? 'cancelTask' : 'completeTask'
+        updateObj.actionType = metaKey ? 'cancelTask' : 'completeTask'
         setVisible(false)
         break
       case 'checklist':
-        updateObj.type = metaKey ? 'cancelChecklist' : 'completeChecklist'
+        updateObj.actionType = metaKey ? 'cancelChecklist' : 'completeChecklist'
         setVisible(false)
         break
       case 'project':
-        updateObj.type = 'showNoteInEditorFromFilename'
+        updateObj.actionType = 'showNoteInEditorFromFilename'
         break
       default:
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
@@ -64,7 +59,7 @@ function TaskItem({ item, thisSection }: Props): Node {
 
     clo(updateObj, `ItemRow: item clicked: ${item.ID}`)
 
-    sendActionToPlugin('onClickDashboardItem', updateObj, `${item.ID} Row icon clicked`, true)
+    sendActionToPlugin(updateObj.actionType, updateObj, `${item.ID} Row icon clicked`, true)
 
     // Send 'refresh' action to plugin after n seconds - this is a bit of a hack
     // to get around the updateCache not being reliable.

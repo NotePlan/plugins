@@ -2,9 +2,6 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 Misc TODO:
-- the below changes have, I've just spotted, changed np.Shared/src/{NPReactLocal,Root} files. (LastUpdated → LastFullRefresh.) I'm not sure if this is right.
-- **fix where the null filenames are coming from on all/almost action calls**
-- flow errors for `onClick` in AddButtons -- is this related to ^^^?
 - There is no REFRESH OF DATA yet. I'm not sure I follow the gathering code well enough to know how to re-gather it.
 - Projects Dialog - make more like the Tasks Dialog
 - Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
@@ -12,6 +9,18 @@ Misc TODO:
 - (dwertheimer) Banners are not working
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
+
+## [2.0.0.a9] @dbw
+- Fixed the header CSS so it looks right again
+- Added close X at top right instead of close button - can probably use some jgclark styling
+- added cog and dropdown menu to hide UI switches
+- implemented "hide duplicates" switch which keeps items under one heading (TAG first, then today, then others...)
+- created show/hide button for each section in the sections object
+- added reactSettings setting in plugin.json to keep track of your last UI settings. eventually will need to combine with plugin settings depending on what jgclark wants to do
+- added calendar picker to the dialog box and implemented back end to reschedule a task to that date. Though leaving jgclark a note about doUpdateTaskDate()
+- fixed flow errors for `onClick` in AddButtons 
+- fixed the lastUpdated in Root (should not have been changed, as lastFullRefresh is only used in this plugin and Root is generic)
+
 
 ## [2.0.0-a8] @jgc + @dw
 - Major update to data types, including introduction of TItemType, TProjectForDashboard, TControlStrings, TActionOnReturn, TActionType, and their introduction in almost all files

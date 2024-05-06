@@ -9,16 +9,29 @@ import pluginJson from '../plugin.json'
 // import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
-  doCancelChecklist, doCancelTask, doContentUpdate, doCompleteTask, doCompleteTaskThen, doCompleteChecklist,
-  doCyclePriorityStateDown, doCyclePriorityStateUp,
+  doCancelChecklist,
+  doCancelTask,
+  doContentUpdate,
+  doCompleteTask,
+  doCompleteTaskThen,
+  doCompleteChecklist,
+  doCyclePriorityStateDown,
+  doCyclePriorityStateUp,
   doToggleType,
   doUnscheduleItem,
-  doSetNextReviewDate, doReviewFinished,
-  doShowNoteInEditorFromFilename, doShowNoteInEditorFromTitle,
-  doShowLineInEditorFromFilename, doShowLineInEditorFromTitle,
-  doMoveToNote, doMoveFromCalToCal,
+  doSetNextReviewDate,
+  doReviewFinished,
+  doShowNoteInEditorFromFilename,
+  doShowNoteInEditorFromTitle,
+  doShowLineInEditorFromFilename,
+  doShowLineInEditorFromTitle,
+  doMoveToNote,
+  doMoveFromCalToCal,
   doUpdateTaskDate,
-  refreshAllSections, refreshSomeSections
+  refreshAllSections,
+  refreshSomeSections,
+  doReactSettingsChanged,
+  doSetSpecificDate,
 } from './clickHandlers'
 // import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
@@ -143,11 +156,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const actionType: TActionType = data.actionType
     // const filename = data.item?.para?.filename ?? '<no filename found>'
     let content = data.item?.para?.content ?? '<no content found>'
-    let updatedContent = data.updatedContent ?? ''
+    const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
     logDebug('', `------------------- bridgeClickDashboardItem: ${actionType} -------------------`)
-    logDebug('bridgeClickDashboardItem', `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${data.item?.para?.content ?? '<no content found>'}`)
+    logDebug(
+      'bridgeClickDashboardItem',
+      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${
+        data.item?.para?.content ?? '<no content found>'
+      }`,
+    )
     // if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
     // clo(data, 'bridgeClickDashboardItem received data object')
 
@@ -159,12 +177,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       result = doContentUpdate(data)
       if (result.success) {
         content = result.updatedParagraph.content // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - ultimately delete this
+        data.item.para.content = content
         // data.item.para.content = content // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
         // await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
     }
-
+    //TODO: implement the buttons addTask, addChecklist etc.
+    // the payload looks like this {actionType: 'addTask', toFilename: '2024-05-04.md'}
+    //
     switch (actionType) {
       case 'refresh': {
         await refreshAllSections()
@@ -250,6 +271,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doUpdateTaskDate(data)
         break
       }
+      case 'reactSettingsChanged': {
+        result = await doReactSettingsChanged(data)
+        break
+      }
+      case 'setSpecificDate': {
+        result = await doSetSpecificDate(data)
+        break
+      }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -302,7 +331,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     const changedNote = DataStore.updateCache(thisNote)
 
     if (success) {
-    // const { filename, content } = data.item.para
+      // const { filename, content } = data.item.para
       const updatedNote = DataStore.updateCache(getNoteByFilename(filename), false)
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
@@ -323,7 +352,6 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         const someNewSectionsData = getSomeSectionsData(wantedSectionTypes)
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
-
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedSectionTypes = handlerResult.sectionTypes ?? []
@@ -331,7 +359,6 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         const someNewSectionsData = getSomeSectionsData(wantedSectionTypes)
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
-
       }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult`)
@@ -354,7 +381,7 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
   const actionsOnSuccess = res.actionsOnSuccess ?? []
   const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
   const { ID } = data.item ?? { ID: '?' }
-  const { content: oldContent = '', filename: oldFilename = '' } = (data.item?.para ?? { content: 'error', filename: 'error' })
+  const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
   clo(res.updatedParagraph, 'updateReactWindow: res.updatedParagraph:')
   if (success) {
     const newPara = updatedParagraph || ''
@@ -371,7 +398,7 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
       logDebug('updateReactWindow', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${newParaContent}"`)
       if (shouldRemove) {
         // TEST:
-        indexes.forEach(index => {
+        indexes.forEach((index) => {
           const { sectionIndex, itemIndex } = index
           sections[sectionIndex].items.splice(itemIndex, 1)
         })

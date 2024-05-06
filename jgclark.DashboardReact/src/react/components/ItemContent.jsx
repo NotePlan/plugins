@@ -9,7 +9,6 @@ import { useAppContext } from './AppContext.jsx'
 // import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/react/reactDev'
 import {
-  encodeRFC3986URIComponent,
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
   stripBackwardsDateRefsFromString,
@@ -30,11 +29,10 @@ import {
   convertBoldAndItalicToHTML,
   truncateHTML,
 } from '@helpers/HTMLView'
-import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
+import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import {
   findLongestStringInArray,
   // getTimeBlockString,
-  isTimeBlockLine,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
 
@@ -47,7 +45,6 @@ type Props = {
  */
 function ItemContent({ item }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
-  const para = item.para
   // const itemType = para.type
 
   // console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
@@ -57,11 +54,10 @@ function ItemContent({ item }: Props): React$Node {
 
   function handleTaskClick() {
     const dataObjectToPassToFunction = {
-      type: 'showLineInEditorFromFilename',
-      filename: item.para?.filename ?? '',
-      content: item.para?.content ?? '',
+      actionType: 'showLineInEditorFromFilename',
+      item,
     }
-    sendActionToPlugin('onClickDashboardItem', dataObjectToPassToFunction, 'Item clicked', true)
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
   }
 
   // console.log(`-> ${mainContent}`)
@@ -98,7 +94,6 @@ function makeParaContentToLookLikeNPDisplayInReact(
     if (!para || !para.content) {
       throw new Error(`No para/content in item ${thisItem.ID}`)
     }
-    const filename = para.filename ?? '<error>'
     const origContent = para.content ?? '<error>'
     const noteTitle = para.title ?? ''
     // console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
