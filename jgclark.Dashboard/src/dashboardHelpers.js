@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 18.4.2024 for v1.2.1 by @SitTristam
+// Last updated 30.4.2024 for v1.2.2 by @SirTristam
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -12,6 +12,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
+  removeDateTagsAndToday,
 } from '@helpers/dateTime'
 import {
   createRunPluginCallbackUrl,
@@ -68,7 +69,6 @@ import {
   isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
   removeDuplicates
 } from '@helpers/utils'
-import { removeDateTagsAndToday } from '../../helpers/dateTime'
 
 //-----------------------------------------------------------------
 // Data types

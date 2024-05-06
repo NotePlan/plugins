@@ -76,7 +76,7 @@ async function getReadwise(force: boolean): Promise<any> {
  * @returns {*} - the readwise data as a JSON object
  * @see https://readwise.io/api_deets
  */
-async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: int, nextPageCursor: string): Promise<any> {
+async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: number, nextPageCursor: string): Promise<any> {
   try {
     const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}&pageCursor=${nextPageCursor}`
 
@@ -94,7 +94,7 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     const pageCursor = parsedJson.nextPageCursor
     logDebug(pluginJson, `page cursor is : ${pageCursor}`)
 
-    let data = []
+    let data: any = []
     const count = parsedJson.count + downloadCount
     if (pageCursor !== null && pageCursor !== '') {
       data = await doReadWiseFetch(accessToken, lastFetchTime, count, pageCursor)

@@ -21,7 +21,7 @@ async function chooseNotetoSummarize() {
  * @param {string} sel
  * @returns
  */
-async function askAboutSelection(sel) {
+async function askAboutSelection(sel: string) {
   const selClean = sel.replace(/\n|\t/g, ' ').trim()
   const truncatedLength = 50
   const options = [
@@ -107,10 +107,11 @@ export async function writeOutResponse(chatResponse: ChatResponse, saveWhere: 't
 async function getNoteText(note: CoreNoteFields) {
   let text = ''
   if (note.filename === Editor.note?.filename) {
-    if (Editor.selectedText) {
-      const choice = await askAboutSelection(Editor.selectedText)
+    const selectedText = Editor.selectedText
+    if (selectedText != null) {
+      const choice = await askAboutSelection(selectedText)
       if (choice === 'selection') {
-        text = Editor.selectedText
+        text = selectedText
       }
     }
   }
@@ -152,7 +153,7 @@ export async function summarizeNote(incoming: string | null = null) {
         const chatResponse = await makeRequest(CHAT_COMPONENT, 'POST', request)
         if (chatResponse) {
           saveDebugResponse('summarizeNote', `summarize_${note.filename || ''}`, request, chatResponse)
-          const saveWhere = await askWhereToSave()
+          const saveWhere: any = await askWhereToSave()
           await writeOutResponse(chatResponse, saveWhere, note)
         }
       }

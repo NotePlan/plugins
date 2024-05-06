@@ -1,4 +1,5 @@
 // @flow
+
 import pluginJson from '../plugin.json'
 import type { SortableParagraphSubset } from '../../helpers/sorting'
 import type { AutoTimeBlockingConfig } from './config'

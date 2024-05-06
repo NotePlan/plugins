@@ -63,12 +63,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should create 5 plugins for default (development) version', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar' }
         const result = getRollupConfig(input)
-        expect(result.plugins.length).toEqual(6)
+        expect(result.plugins.length).toEqual(7)
       })
       test('should create 6 plugins for version with bundlegraph', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar', createBundleGraph: true }
         const result = getRollupConfig(input)
-        expect(result.plugins.length).toEqual(7)
+        expect(result.plugins.length).toEqual(8)
       })
       test('should create 1 output plugin (terser) for default (production) version', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar', buildMode: 'production' }

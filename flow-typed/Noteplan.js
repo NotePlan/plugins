@@ -234,7 +234,7 @@ declare interface TEditor extends CoreNoteFields {
    * If the range exists in a folded heading, it will be unfolded.
    * @param {Range} range
    */
-  highlightByRange(range: Range): void;
+  highlightByRange(range: TRange): void;
   /**
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
    * If the paragraph is folded, it will be unfolded.
@@ -646,8 +646,11 @@ declare class DataStore {
 
   /**
    * Updates the cache, so you can access changes faster.
-   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too.
+   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too. 
+   * EM also commented "[and] things like .backlinks".
    * If so, the note has to be reloaded for the updated .mentions to be available.
+   * EM has also said "It doesn't have to be async, because it runs on the same thread and updates the cache directly, but that has nothing to do with the content of the paragraph or note, that's read directly out of the file again".
+   * 
    * Note: Available from NotePlan v3.7.1
    * @param {TNote} note to update
    * @param {boolean} shouldUpdateTags?
@@ -1253,7 +1256,7 @@ declare interface Paragraph {
   /**
    * Get the range of the paragraph.
    */
-  +contentRange: Range | void;
+  +contentRange: TRange | void;
   /**
    * Get the line index of the paragraph.
    */
@@ -1270,7 +1273,7 @@ declare interface Paragraph {
    * Get the heading range of the paragraph
    * (looks for a previous heading paragraph).
    */
-  +headingRange: Range | void;
+  +headingRange: TRange | void;
   /**
    * Get the heading level of the paragraph ('# heading' = level 1).
    */
@@ -1376,7 +1379,7 @@ declare interface TRange {
    * @param {number} end
    * @returns {Range}
    */
-  create(start: number, end: number): Range;
+  create(start: number, end: number): TRange;
 }
 
 type CalenderItemType = 'event' | 'reminder'
@@ -1716,7 +1719,7 @@ declare interface CoreNoteFields {
    * Returns a range object of the full paragraph of the given character
    * position.
    */
-  paragraphRangeAtCharacterIndex(characterPosition: number): Range;
+  paragraphRangeAtCharacterIndex(characterPosition: number): TRange;
 
   /**
    * Inserts a plain paragraph at the given line index

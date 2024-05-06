@@ -93,7 +93,7 @@ export function handleUnprocessedTasks(
 export function processTasksByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuration>, blockList: Array<OpenBlock>, timeMap: Array<any>, config: AutoTimeBlockingConfig): Object {
   let newBlockList = [...(blockList || [])]
   let results = []
-  let timeBlockTextList = []
+  let timeBlockTextList: any = []
   const noTimeForTasks = {}
 
   // MOVE THIS TO ITS OWN FUNCTION
