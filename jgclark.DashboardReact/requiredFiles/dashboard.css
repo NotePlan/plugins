@@ -13,77 +13,51 @@ body {
 /* ------------------------------------------------------------------ */
 /* New settings for Grid-based layout */
 .header {
-    display: grid;
-    /* Define grid-template-areas for better control */
-    grid-template-areas: "lastUpdated refresh counts settings-cog";
-    grid-template-columns: auto auto 1fr auto; /* Allocate space for each area */
-    align-items: center; /* Vertical alignment */
-    gap: 20px; /* Space between grid items */
-    padding: 10px; /* Padding around the header content */
-    background-color: var(--bg-alt-color);
-    width: 100%; /* Ensure the header uses the full width */
+	display: grid;
+	/* Define grid-template-areas for better control */
+	/* TODO: improve spacing here */
+	grid-template-areas: "lastUpdated refresh counts filter settings";
+	grid-template-columns: auto auto 1fr auto; /* Allocate space for each area */
+	align-items: center; /* Vertical alignment */
+	gap: 20px; /* Space between grid items */
+	padding: 10px; /* Padding around the header content */
+	background-color: var(--bg-alt-color);
+	width: 100%; /* Ensure the header uses the full width */
 	position: sticky;
 	top: 0px;
 	z-index: 1000;
 }
 
 .lastUpdated {
-    grid-area: lastUpdated; /* Assign the area */
+	grid-area: lastUpdated; /* Assign the area */
 	align-items: center; /* This ensures that the content of these divs is also centered */
 }
 
 .refreshButton {
-    grid-area: refresh; /* Assign the area */
+	grid-area: refresh; /* Assign the area */
 }
 
 .totalCounts {
-    grid-area: counts; /* Assign the area */
-    /* Make sure totalCounts only shows when necessary */
-    @media screen and (max-width: 500px) {
-		/* Unless the screen size is 500px wide or less, hide the element */
-        display: none; /* Hide on small screens */
-    }
+	grid-area: counts; /* Assign the area */
+	/* Note: turned off given reduction in what needs to be shown in 2.0.0.a9 */
+	/* Make sure totalCounts only shows when necessary */
+	/* @media screen and (max-width: 500px) { */
+	/* Unless the screen size is 500px wide or less, hide the element */
+			/* display: none; Hide on small screens */
+	/* } */
 }
 
-.settings-cog {
-    grid-area: settings-cog; /* Assign the area */
-    justify-self: end; /* Align to the right edge */
+.filter {
+	grid-area: filter; /* Assign the area */
+	justify-self: end; /* Align to the right edge */
 	margin-right: 20px;
-}
+} 
 
-.dropdown-content {
-    position: absolute;
-    right: 0;
-    padding-right: 5px;
-    padding-top: 5px;
-    padding-bottom: 10px;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-}
-
-.dropdown-content.show {
-	display: block;
-  }
-
-.switch-line {
-    display: flex;
-    justify-content: flex-end; /* Aligns content to the right */
-    align-items: center; /* Center alignment of the checkbox and label */
-    width: 100%; /* Ensures the flex container takes full width */
-    padding-top: 5px;
-}
-
-.switch-label {
-    padding-left: 10px; /* Space between label and switch */
-    padding-right: 5px; /* Additional spacing if needed */
-}
-
-.apple-switch {
-    margin-left: 10px; /* Ensures spacing between the label and the switch */
-}
-  
+.settings {
+	grid-area: settings; /* Assign the area */
+	justify-self: end; /* Align to the right edge */
+	margin-right: 20px;
+} 
 
 /* Large rows on page */
 .sections {
@@ -231,7 +205,43 @@ body {
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
-/* ------------------------------------------------------------------ */
+
+/* -------------------------------------------------------------- */
+
+.dropdown-content {
+    position: absolute;
+    right: 0;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 10px;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content.show {
+	display: block;
+}
+
+.switch-line {
+    display: flex;
+    justify-content: flex-end; /* Aligns content to the right */
+    align-items: center; /* Center alignment of the checkbox and label */
+    width: 100%; /* Ensures the flex container takes full width */
+    padding-top: 5px;
+}
+
+.switch-label {
+    padding-left: 10px; /* Space between label and switch */
+    padding-right: 5px; /* Additional spacing if needed */
+}
+
+.apple-switch {
+    margin-left: 10px; /* Ensures spacing between the label and the switch */
+}
+ 
+/* --------------------------------------------------------------- */
 
 @layer A { /* all buttons, but at lower priority */
 button, input {
@@ -267,7 +277,7 @@ button, .fake-button, .clickTarget {
 	cursor: pointer;
 }
 
-/* ------------------------------------------------------------------ */
+/* --------------------------------------------------------------- */
 
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
@@ -385,7 +395,7 @@ button, .fake-button, .clickTarget {
 	padding-left: 10px;
 }
 
-/* ------------------------------------------------------------------- */
+/* --------------------------------------------------------------- */
 
 /* For fancy toggle as checkbox */
 /* from [Pure CSS3 iOS switch checkbox. A switch allows the user to quickly… | by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)

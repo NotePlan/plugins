@@ -20,9 +20,9 @@ type Props = {
 function ItemGrid(inputObj: Props): React$Node {
   const { items, thisSection } = inputObj
   // const { reactSettings } = useAppContext()
-  logDebug(`ItemGrid`, `Inside code for section ${thisSection.sectionType}/${thisSection.ID} with ${items.length} items`)
+  logDebug(`ItemGrid`, `Inside code for section ${thisSection.sectionCode}/${thisSection.ID} with ${items.length} items`)
 
-  // console.log(`ItemGrid for section ${thisSection.sectionType}/${thisSection.ID}: ${items.length} items`)
+  // console.log(`ItemGrid for section ${thisSection.sectionCode}/${thisSection.ID}: ${items.length} items`)
 
   // // FIXME:
   // console.log('- reactSettings.filterPriorityItems = ' + String(reactSettings.filterPriorityItems))

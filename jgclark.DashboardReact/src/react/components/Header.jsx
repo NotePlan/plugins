@@ -1,11 +1,17 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Header row in Dashboard
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
+//-----------------------------------------------------------------------------
+
 import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
-import { type TSection } from '../../types.js'
+import { allSectionDetails } from '../../types.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
+import { clo } from '@helpers/dev'
 
 type Props = {
   lastFullRefresh: string,
@@ -41,18 +47,21 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     setReactSettings((prev) => ({ ...prev, refreshing: true, lastChange: `_Dashboard-RefreshClick` }))
   }
 
+  const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? ''
+  // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
+  const dropdownSectionNames = allSectionDetails.filter(s => s.showSettingName !== '').map(s => ({
+    label: `Show ${s.sectionCode !== 'TAG' ? s.sectionName : tagSectionStr}`,
+    key: `${s.showSettingName}`,
+    checked: reactSettings?.[`${s.showSettingName}`] ?? true,
+  }))
+
   let dropdownItems = [
     { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', checked: reactSettings?.filterPriorityItems || false },
+    { label: 'Hide checklist items?', key: 'ignoreChecklistItems', checked: reactSettings?.ignoreChecklistItems || false },
     { label: 'Hide duplicates?', key: 'hideDuplicates', checked: reactSettings?.hideDuplicates || false },
   ]
 
-  const sections = (pluginData?.sections ?? []).map((section: TSection) => ({
-    label: `Show "${section.name}"`,
-    key: `show_${section.sectionType}`,
-    checked: reactSettings?.[`show_${section.sectionType}`] ?? true,
-  }))
-
-  dropdownItems = [...dropdownItems, ...sections]
+  dropdownItems = [...dropdownItems, ...dropdownSectionNames]
 
   return (
     <div className="header">
@@ -71,7 +80,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
-      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className={'settings-cog'} />
+      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className={'filter'} />
+      {/* TODO(later): more detailed setting dialog, using className={'settings'} and icon fa-gear */}
     </div>
   )
 }

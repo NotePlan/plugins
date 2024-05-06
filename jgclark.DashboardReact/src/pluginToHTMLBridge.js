@@ -192,23 +192,23 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         return
       }
       case 'completeTask': {
-        result = await doCompleteTask(data) // , windowId
+        result = doCompleteTask(data) // , windowId
         break
       }
       case 'completeTaskThen': {
-        result = await doCompleteTaskThen(data) // , windowId
+        result = doCompleteTaskThen(data) // , windowId
         break
       }
       case 'cancelTask': {
-        result = await doCancelTask(data) // , windowId
+        result = doCancelTask(data) // , windowId
         break
       }
       case 'completeChecklist': {
-        result = await doCompleteChecklist(data) // , windowId
+        result = doCompleteChecklist(data) // , windowId
         break
       }
       case 'cancelChecklist': {
-        result = await doCancelChecklist(data) // , windowId
+        result = doCancelChecklist(data) // , windowId
         break
       }
       case 'unscheduleItem': {
@@ -216,7 +216,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'updateItemContent': {
-        result = await doContentUpdate(data)
+        result = doContentUpdate(data)
         break
       }
       case 'toggleType': {
@@ -347,16 +347,16 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await refreshAllSections()
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        const wantedSectionTypes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
-        logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling getSomeSectionsData(['${String(wantedSectionTypes)}']`)
-        const someNewSectionsData = getSomeSectionsData(wantedSectionTypes)
+        const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+        logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        const someNewSectionsData = getSomeSectionsData(wantedsectionCodes)
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
-        const wantedSectionTypes = handlerResult.sectionTypes ?? []
-        logDebug('bCDI / processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedSectionTypes)}']`)
-        const someNewSectionsData = getSomeSectionsData(wantedSectionTypes)
+        const wantedsectionCodes = handlerResult.sectionCodes ?? []
+        logDebug('bCDI / processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        const someNewSectionsData = getSomeSectionsData(wantedsectionCodes)
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
       }
@@ -404,6 +404,7 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
         // TEST:
         indexes.forEach((index) => {
           const { sectionIndex, itemIndex } = index
+          // FIXME: 'undefined' error here when cancelling a task. In log above sectionIndex=1, itemIndex=1, newParaContent=''
           sections[sectionIndex].items.splice(itemIndex, 1)
         })
       } else {

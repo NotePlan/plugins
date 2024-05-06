@@ -21,7 +21,7 @@ const DropdownMenu = ({ items, handleSwitchChange, className }: DropdownMenuProp
 
   return (
     <div className={`dropdown ${className || ''}`}>
-      <i className="fa-solid fa-gear" onClick={toggleMenu}></i>
+      <i className="fa-solid fa-filter" onClick={toggleMenu}></i>
       {isOpen && (
         <div className="dropdown-content">
           {items.map((item) => (

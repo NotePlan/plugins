@@ -1,18 +1,35 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 5.5.2024 for v2.0.0 by @jgclark
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
-export const allSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'Y', 'OVERDUE', 'TAG', 'PROJ', 'COUNT']
+type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
+
+export const allSectionDetails: Array<TSectionDetails> = [
+  { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section
+  { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
+  { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
+  { sectionCode: 'W', sectionName: 'Week', showSettingName: 'showWeekSection' },
+  { sectionCode: 'M', sectionName: 'Month', showSettingName: 'showMonthSection' },
+  { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
+  // TODO(later): this needs special handling in v2.1+
+  { sectionCode: 'TAG', sectionName: 'Tag', showSettingName: `showTagSection` },
+  { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
+  { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
+  { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
+]
+
+export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
 // details for a section
 export type TSection = {
   ID: number,
-  name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  sectionType: TSectionCode,
+  name: string, // display name 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
+  showSettingName: string, // setting for whether to hide this section
+  sectionCode: TSectionCode,
   description: string,
   sectionItems: Array<TSectionItem>,
   FAIconClass: string, // CSS class to show FA Icons
@@ -143,7 +160,7 @@ export type TBridgeClickHandlerResult = {
   success: boolean,
   updatedParagraph?: TParagraph,
   actionsOnSuccess?: Array<TActionOnReturn>, // actions to perform after return
-  sectionTypes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
+  sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   errorMsg?: string,
 }
 
@@ -155,6 +172,7 @@ export type DialogData = {
 export type TReactSettings = {
   filterPriorityItems?: boolean,
   timeblockMustContainString?: string,
+  ignoreChecklistItems?: boolean,
   hideDuplicates?: boolean,
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
   dialogData?: DialogData,

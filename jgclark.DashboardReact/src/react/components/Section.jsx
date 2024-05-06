@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
-// Last updated 5.5.2024 for v2.0.0 by @jgclark
+// Called by Dashboard compponent
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -12,26 +13,30 @@ import { clo } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/react/reactDev'
 
 type SectionProps = {
-  section: TSection,
+  section: TSection
 }
 
 /**
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
-function Section(inputObj: SectionProps): React$Node {
-  const { reactSettings } = useAppContext()
+function Section(inputObj: SectionProps): Promise<React$Node> {
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
-    const { pluginData } = useAppContext()
-    const config = pluginData.settings
-    // clo(config)
+    // TODO(@dwertheimer): how to get sharedSettings into appContext?
+    const { reactSettings, sharedSettings } = useAppContext()
+
+    // Check to see if we want to see this section
+    if (reactSettings && section.showSettingName !== '' && !reactSettings?.[`section.showSettingName`]) {
+      logDebug('Section', `Section: ${section.ID} is currently filtered out.`)
+      return
+    }
 
     if (!section || isNaN(section.ID)) {
       throw new Error(`❓Section doesn't exist.`)
     } else if (!section.sectionItems || section.sectionItems.length === 0) {
       if (section.ID !== 0) {
-        logDebug('Section', `Section: ${section.ID} / ${section.sectionType} doesn't have any sectionItems, so not displaying.`)
+        logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
         return
       } else {
         // As there are no items in first section, then add a congratulatory message
@@ -44,7 +49,7 @@ function Section(inputObj: SectionProps): React$Node {
         })
       }
     } else {
-      logDebug(`Section`, `Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
+      logDebug(`Section`, `Section: ${section.ID} / ${section.sectionCode} with ${section.sectionItems.length} items`)
     }
 
     // Produce set of actionButtons, if present
@@ -103,7 +108,7 @@ function Section(inputObj: SectionProps): React$Node {
     // logDebug('Section', `- After sort:\n${JSON.stringify(filteredItems, null, 2)}`)
 
     // Now apply limit (if desired)
-    const limit = config?.maxTasksToShowInSection ?? 20
+    const limit = sharedSettings?.maxTasksToShowInSection ?? 20
     const itemsToShow = filteredItems.slice(0, limit)
     // Caclculate how many are not shown: not as simple as 'items.length - itemsToShow.length'
     // because there can be a pre-filter in Overdue generation, given by section.totalCount
@@ -112,7 +117,6 @@ function Section(inputObj: SectionProps): React$Node {
     logDebug('Section', `- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
 
     // Send an extra line if we've applied filtering/limit
-    // TODO: This doesn't fit well here: move to ?TaskItem?
     if (filteredOut > 0) {
       itemsToShow.push({
         ID: `${section.ID}-Filter`,
@@ -141,7 +145,8 @@ function Section(inputObj: SectionProps): React$Node {
       descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
     }
 
-    const hideSection = !items.length || (reactSettings && reactSettings[`show_${section.ID}`] === false)
+    // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
+    const hideSection = !items.length || (reactSettings && reactSettings[`${section.showSettingName}`] === false)
 
     return hideSection ? null : (
       <div className="section">
@@ -157,7 +162,8 @@ function Section(inputObj: SectionProps): React$Node {
       </div>
     )
   } catch (error) {
-    logError('Section', `❗️ERROR❗️: ${error.message}`)
+    // logError('Section', `❗️ERROR❗️: ${error.message}`)
+    logError('Section', `${error.message}`)
   }
 }
 export default Section

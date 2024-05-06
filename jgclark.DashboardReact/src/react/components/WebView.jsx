@@ -77,6 +77,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const defaultReactSettings = {
     filterPriorityItems: false,
+    ignoreChecklistItems: false, // TODO: this needs to interact with main settings
     dialogData: { isOpen: false, isTask: true, details: {} },
     lastChange: `_WebView_DefaultSettings`,
   }

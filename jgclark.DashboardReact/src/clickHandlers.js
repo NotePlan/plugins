@@ -97,7 +97,7 @@ export async function refreshSomeSections(sectionCodes: Array<TSectionCode>): Pr
 }
 
 // Complete the task in the actual Note
-export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
   logDebug('doCompleteTask', `-> ${String(updatedPara)}`)
@@ -105,7 +105,7 @@ export async function doCompleteTask(data: MessageDataObject): Promise<TBridgeCl
 }
 
 // Complete the task in the actual Note, but with the date it was scheduled for
-export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItemEarlier(filename, content)
   logDebug('doCompleteTaskThen', `-> ${String(updatedPara)}`)
@@ -113,7 +113,7 @@ export async function doCompleteTaskThen(data: MessageDataObject): Promise<TBrid
 }
 
 // Cancel the task in the actual Note
-export async function doCancelTask(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = cancelItem(filename, content)
   logDebug('doCancelTask', `-> ${String(updatedPara)}`)
@@ -121,7 +121,7 @@ export async function doCancelTask(data: MessageDataObject): Promise<TBridgeClic
 }
 
 // Complete the checklist in the actual Note
-export async function doCompleteChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
   logDebug('doCompleteChecklist', `-> ${String(updatedPara)}`)
@@ -129,7 +129,7 @@ export async function doCompleteChecklist(data: MessageDataObject): Promise<TBri
 }
 
 // Cancel the checklist in the actual Note
-export async function doCancelChecklist(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = cancelItem(filename, content)
   logDebug('doCancelChecklist', `-> ${String(updatedPara)}`)
@@ -296,7 +296,7 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
 // Handle a show note call simply by opening the note in the main Editor.
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename } = validateAndFlattenMessageObject(data)
   // Note: use the showLine... variant of this (below) where possible
   const note = await Editor.openNoteByFilename(filename)
   if (note) {
@@ -310,7 +310,7 @@ export async function doShowNoteInEditorFromFilename(data: MessageDataObject): P
 
 // Handle a show note call simply by opening the note in the main Editor
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename } = validateAndFlattenMessageObject(data)
   // Note: use the showLine... variant of this (below) where possible
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
   const wantedTitle = filename

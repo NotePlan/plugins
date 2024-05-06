@@ -10,6 +10,12 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+## [2.0.0.a10] @jgc
+- added shared::getSharedSettings() function. **HELP: how to get sharedSettings into appContext, so it can be picked up in Section?**
+- added all sections (except TD and COUNT) to the Dropdown menu. Note: These are now called e.g. showTodaySection not earlier e.g. show_today -- this is to align with existing naming in our setting.json files.
+- fixed regression on spacing around icons in dialogs
+- changed `item.sectionType` to `item.sectionCode` which is slightly more accurate
+
 ## [2.0.0.a9] @dbw
 - NOTE: ADDED CALENDAR PICKER AND A ROLLUP CSS PLUGIN SO YOU WILL NEED TO PULL, `npm i` and RESTART THE BUILD/ROLLUP SCRIPTS
 - Fixed the header CSS so it looks right again

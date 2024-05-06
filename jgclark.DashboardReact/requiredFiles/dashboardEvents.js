@@ -40,7 +40,7 @@ function showItemControlDialog(dataObject) {
   const thisOS = dataObject.OS
   const thisID = dataObject.itemID
   const thisNoteType = dataObject.noteType
-  const thisSectionType = dataObject.sectionType
+  const thissectionCode = dataObject.sectionCode
   const reschedOrMove = dataObject.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
   const thisItemType = dataObject.itemType // 'task' | 'checklist'
   // Items can be moved or rescheduled -- we work out which is relevant in HTMLGeneratorGrid
@@ -52,7 +52,7 @@ function showItemControlDialog(dataObject) {
   const thisEncodedFilename = thisIDElement.dataset.encodedFilename
   console.log(`- ${thisEncodedFilename}`) // ❌
   const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  console.log(`dataObject() starting for ID:${thisID}, noteType:${thisNoteType}, sectionType:${thisSectionType}, itemType:${thisItemType}, filename:${thisEncodedFilename}`)
+  console.log(`dataObject() starting for ID:${thisID}, noteType:${thisNoteType}, sectionCode:${thissectionCode}, itemType:${thisItemType}, filename:${thisEncodedFilename}`)
 
   const dialog = document.getElementById('itemControlDialog')
 
@@ -71,27 +71,27 @@ function showItemControlDialog(dataObject) {
 
   const possibleControlTypes = [
     // date change controls
-    { controlStr: 't', sectionTypes: ['DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
-    { controlStr: '+1d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+1b', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+2d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+0w', sectionTypes: ['DT', 'DY', 'DO', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+1w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+2w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+0m', sectionTypes: ['DT', 'DY', 'DO', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: 't', sectionCodes: ['DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
+    { controlStr: '+1d', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1b', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+2d', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0w', sectionCodes: ['DT', 'DY', 'DO', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1w', sectionCodes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+2w', sectionCodes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0m', sectionCodes: ['DT', 'DY', 'DO', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1m', sectionCodes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0q', sectionCodes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     // other controls
-    { controlStr: 'cancel', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cancel' },
-    { controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
-    { controlStr: 'priup', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
-    { controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
-    { controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
-    { controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
-    { controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
-    { controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
+    { controlStr: 'cancel', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cancel' },
+    { controlStr: 'movetonote', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
+    { controlStr: 'priup', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
+    { controlStr: 'pridown', sectionCodes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
+    { controlStr: 'tog', sectionCodes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
+    { controlStr: 'ct', sectionCodes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
+    { controlStr: 'unsched', sectionCodes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
+    { controlStr: 'update', sectionCodes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
   ]
-  const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType) && t.notNoteType !== thisNoteType)
+  const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionCodes.includes(thissectionCode) && t.notNoteType !== thisNoteType)
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
   console.log(controlStrsForThisSection)
 
@@ -210,7 +210,7 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.previousElementSibling.style.display = numICDOCBShown === 0 ? 'none' : 'block'
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = ['TAG', 'OVERDUE'].includes(thisSectionType) ? 520 : 450
+  const approxDialogWidth = ['TAG', 'OVERDUE'].includes(thissectionCode) ? 520 : 450
   const approxDialogHeight = 180
   setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event)
 
@@ -246,12 +246,12 @@ function showProjectControlDialog(dataObject) {
 
   const thisID = dataObject.itemID
   const thisNoteTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
-  const thisSectionType = 'PROJ'
+  const thissectionCode = 'PROJ'
   const thisIDElement = document.getElementById(thisID)
   const thisEncodedContent = thisIDElement.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = thisIDElement.dataset.encodedFilename
   const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, filename ${thisEncodedFilename}`)
+  console.log(`dataObject() starting for ID ${thisID}, type ${thissectionCode}, filename ${thisEncodedFilename}`)
 
   const dialog = document.getElementById('projectControlDialog')
 

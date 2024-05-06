@@ -9,6 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
 import { bridgeClickDashboardItem, bridgeChangeCheckbox, runPluginCommand } from './pluginToHTMLBridge'
+import { getSharedSettings } from './shared'
 import type { TSection } from './types'
 import { getAllSectionsData } from './dataGeneration'
 import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
@@ -55,10 +56,6 @@ const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugi
 
 // ------------------------------------------------------------
 
-/**
- * Plugin Entry Point for "Test React Window"
- * @author @dwertheimer
- */
 export async function showDemoDashboard(): Promise<void> {
   await showDashboardReact('full', true)
 }

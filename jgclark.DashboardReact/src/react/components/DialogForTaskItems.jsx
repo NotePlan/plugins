@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
-// Last updated 5.5.2024 for v2.0.0 by @jgclark
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useRef, useEffect } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
@@ -14,17 +14,29 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type RefType<T> = {| current: null | T |}
 
+type TDialogDetails = {
+  id: string,
+  itemType: string,
+  para: TParagraph,
+  filename: string,
+  title: string,
+  reschedOrMove: string,
+  content: string,
+  noteType: string
+}
+
 type Props = {
   onClose: () => void,
-  details: any, //FIXME: @jgclark  define a type for this -- comes from detailsToPassToControlDialog
+  details: TDialogDetails,
   positionDialog: (dialogRef: RefType<any>) => {},
 }
 
 const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
   logDebug(`DialogForTaskItems`, `inside component code details=`, details)
+  // FIXME(@dwertheimer): I create a Type for this, but then your function doesn't like it
   const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(details)
 
-  //FIXME: disabling this for the moment so we can see logs without refreshes clouding them
+  // TODO: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const { sendActionToPlugin } = useAppContext()
@@ -158,7 +170,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
               {otherControlButtons.map((button, index) => (
                 <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.map((icon) => (
-                    <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-left' : 'icon-right pad-right'}`}></i>
+                    <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
                   ))}
                   {button.label}
                 </button>

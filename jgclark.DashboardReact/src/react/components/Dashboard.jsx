@@ -22,8 +22,8 @@ function Dashboard({ pluginData }: Props): React$Node {
   logDebug(`Dashboard`, `inside component code`)
 
   const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
-
   const { sections: origSections, lastFullRefresh } = pluginData
+
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
   const sections = reactSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
   console.log('Dashboard: pluginData:', pluginData, sections)

@@ -1,7 +1,10 @@
-// TaskItem.jsx
-// Creates a full content line for a Task item: icon,  content, noteLink and the fa-edit icon at the end
-
 // @flow
+//--------------------------------------------------------------------------
+// TaskItem.jsx
+// Dashboard React component to create a full content line for a Task item: 
+// icon, content, noteLink and the fa-edit icon at the end
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 
 import React, { useState } from 'react'
 import { type Node } from 'react'
@@ -27,10 +30,9 @@ function TaskItem({ item, thisSection }: Props): Node {
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const updateObj: MessageDataObject = {
-    OS: 'macOS', // TODO: need to pass NotePlan.environment.platform through to here
-    reschedOrMove: 'move', // TODO: reschedOrMove from config,
-    actionType: 'showNoteInEditorFromFilename',
-    item,
+    item: item,
+    actionType: '(not yet set)',
+    metaModifier: '', // TODO: now applied below into actionType -- delete?
   }
 
   /**
@@ -66,8 +68,8 @@ function TaskItem({ item, thisSection }: Props): Node {
     refreshTimer()
   }
 
-  const handleEditClick = (e: MouseEvent): void => {
-    logDebug('TaskItem', 'handleEditClick - setting dialogData to: ', updateObj)
+  const handleDialogClick = (e: MouseEvent): void => {
+    logDebug('TaskItem', 'handleDialogClick - setting dialogData to: ', updateObj)
     // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
     // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
@@ -98,7 +100,7 @@ function TaskItem({ item, thisSection }: Props): Node {
           <ItemContent item={item} />
           {settings?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
           <a className="dialogTrigger">
-            <i className="fa-light fa-edit pad-left" onClick={handleEditClick}></i>
+            <i className="fa-light fa-edit pad-left" onClick={handleDialogClick}></i>
           </a>
         </div>{' '}
       </div>

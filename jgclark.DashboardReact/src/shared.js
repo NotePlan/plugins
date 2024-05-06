@@ -1,8 +1,12 @@
+// @flow
+//--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// @flow
+// Last updated 6.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 
-import { type MessageDataObject, type TSectionItem } from './types'
+import { getSettings } from './dashboardHelpers'
+import { allSectionDetails, type MessageDataObject, type TSectionItem } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -10,6 +14,27 @@ export type ValidatedData = {
   content: any,
   item?: TSectionItem,
   [string]: any,
+}
+
+/**
+ * TODO(@dwertheimer): Please check this!
+ * Return Object that includes those settings that are needed on front-end (Window) and back-end (Plugin)
+ */
+export async function getSharedSettings(): any {
+  const pluginSettings = await getSettings()
+  const reactSettings: any = pluginSettings.reactSettings ?? {}
+  const returnObj: any = {}
+  returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
+  returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
+  // Now add all the show*Section settings (or default to true)
+  for (const sd of allSectionDetails) {
+    const thisShowSettingName = sd.showSettingName
+    if (thisShowSettingName !== '' && reactSettings[thisShowSettingName]) {
+      returnObj[thisShowSettingName] = true
+    }
+  }
+  clo(returnObj)
+  return returnObj
 }
 
 /**

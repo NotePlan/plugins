@@ -226,7 +226,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
 }
 
 /**
- *
+ * Now replaced
  * @param {SectionItem} thisItem
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string}

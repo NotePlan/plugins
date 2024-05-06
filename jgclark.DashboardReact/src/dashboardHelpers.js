@@ -6,8 +6,8 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TSectionItem, TParagraphForDashboard } from './types'
-import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, hyphenatedDateString, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
+import type { TParagraphForDashboard, TSectionItem } from './types'
+import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
@@ -17,14 +17,14 @@ import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
-  getTaskPriority,
+  // getTaskPriority,
   isTermInURL,
-  removeTaskPriorityIndicators,
+  // removeTaskPriorityIndicators,
   smartPrependPara,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
-import { addPriorityToParagraphs, getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
+// import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
+import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   getTimeBlockString,
@@ -65,6 +65,7 @@ export type dashboardConfigType = {
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueTaskSection: boolean,
+  showProjectsSection: boolean,
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
@@ -400,53 +401,55 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
 }
 
 /**
+ * Note: now replaced
  * Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
  * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: SectionItem, displayStr: string): string {
-  try {
-    // Method 2: pass request back to plugin
-    // TODO: is it right that this basically does nothing?
-    // const filenameEncoded = encodeURIComponent(item.filename)
+// export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string): string {
+//   try {
+//     // Method 2: pass request back to plugin
+//     // TODO: is it right that this basically does nothing?
+//     // const filenameEncoded = encodeURIComponent(item.filename)
 
-    if (item.para.content) {
-      // call showLineinEditor... with the filename and rawConetnt
-      // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    } else {
-      // call showNoteinEditor... with the filename
-      // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    }
-  } catch (error) {
-    logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
-    return '(error)'
-  }
-}
+//     if (item.para.content) {
+//       // call showLineinEditor... with the filename and rawConetnt
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     } else {
+//       // call showNoteinEditor... with the filename
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     }
+//   } catch (error) {
+//     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
+ * Note: now replaced
  * Wrap string with href onClick event to show note in editor,
  * using item.filename param.
  * @param {SectionItem} item's details
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
-  try {
-    // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
-    // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
-      item.para.filename,
-    )}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  } catch (error) {
-    logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
-    return '(error)'
-  }
-}
+// export function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: string): string {
+//   try {
+//     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
+//     // Pass request back to plugin, as a single object
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
+//       item.para.filename,
+//     )}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+//   } catch (error) {
+//     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
  * Wrap string with href onClick event to show note in editor,
