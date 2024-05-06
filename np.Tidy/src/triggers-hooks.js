@@ -32,7 +32,7 @@ export async function onOpen(note: TNote): Promise<void> {
     const now = new Date()
     if (Editor?.note?.changedDate) {
       const lastEdit = new Date(Editor?.note?.changedDate)
-      if (now - lastEdit > 15000) {
+      if (now.getTime() - lastEdit.getTime() > 15000) {
         logDebug(pluginJson, `onOpen ${timer(lastEdit)} since last edit`)
         // Put your code here or call a function that does the work
       } else {
@@ -68,9 +68,7 @@ export async function onEditorWillSave() {
 export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
   } catch (error) {
     logError(pluginJson, error.message)
   }
@@ -93,7 +91,6 @@ export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<
     }
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
-
   } catch (error) {
     logError(pluginID, error.message)
   }

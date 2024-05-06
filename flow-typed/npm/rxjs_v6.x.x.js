@@ -1,5 +1,5 @@
-// flow-typed signature: 3b2f7b3fdfdfa95c58c4432164356318
-// flow-typed version: 9eddb533c4/rxjs_v6.x.x/flow_>=v0.104.x
+// flow-typed signature: fb1f86126d73177b8fe4f148f149dadc
+// flow-typed version: 9a968c602c/rxjs_v6.x.x/flow_>=v0.201.x
 
 /** OPERATOR INTERFACES */
 declare interface rxjs$UnaryFunction<T, R> {
@@ -937,11 +937,11 @@ declare module "rxjs" {
         >
       ) => rxjs$Observable<R>),
     // @deprecated  Deprecated in favor of using {@link  NEVER} constant.
-    never(): rxjs$Observable<*>,
-    NEVER: rxjs$Observable<*>,
+    never(): rxjs$Observable<any>,
+    NEVER: rxjs$Observable<any>,
     // @deprecated Deprecated in favor of using {@link EMPTY} constant.
-    empty(scheduler?: rxjs$SchedulerLike): rxjs$Observable<*>,
-    EMPTY: rxjs$Observable<*>,
+    empty(scheduler?: rxjs$SchedulerLike): rxjs$Observable<any>,
+    EMPTY: rxjs$Observable<any>,
     // @deprecated resultSelector is no longer supported, use a mapping function.
     bindCallback: ((
       callbackFunc: Function,
@@ -1276,7 +1276,7 @@ declare module "rxjs" {
       callbackFunc: Function,
       resultSelector: Function,
       scheduler?: rxjs$SchedulerLike
-    ) => (...args: any[]) => rxjs$Observable<*>) &
+    ) => (...args: any[]) => rxjs$Observable<any>) &
       (<R1, R2, R3, R4>(
         callbackFunc: (
           callback: (
@@ -1744,7 +1744,7 @@ declare module "rxjs" {
 
   declare class AsyncSubject<T> extends rxjs$Subject<T> {
     // @deprecated  This is an internal implementation detail, do not use.
-    _subscribe(subscriber: rxjs$Subscriber<*>): rxjs$Subscription;
+    _subscribe(subscriber: rxjs$Subscriber<any>): rxjs$Subscription;
     next(value?: T): void;
     error(error: any): void;
     complete(): void;

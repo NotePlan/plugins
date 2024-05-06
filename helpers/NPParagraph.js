@@ -1578,7 +1578,7 @@ type TBasicPara = {
 export function makeBasicParasFromContent(content: string): Array<any> {
   try {
     const allLines = content.split('\n')
-    logDebug('makeBasicParasFromEditorContent', `Starting with ${String(allLines.length)} lines of editorContent}`)
+    // logDebug('makeBasicParasFromEditorContent', `Starting with ${String(allLines.length)} lines of editorContent}`)
     // read the user's prefs for what counts as a todo
     const ASTERISK_TODO = DataStore.preference('isAsteriskTodo') ? '*' : ''
     const DASH_TODO = DataStore.preference('isDashTodo') ? '-' : ''

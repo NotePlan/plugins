@@ -191,19 +191,11 @@
       "required": true
     },
     {
-      "key": "ignoreChecklistItems",
-      "title": "Ignore checklist items",
-      "description": "If set, only tasks are included in any of the sections.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "ignoreTasksWithPhrase",
-      "title": "Ignore items in calendar sections with this phrase",
-      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.\nNote: This doesn't apply to the Tag/Mention section, which has its own setting.",
+      "key": "dashboardTheme",
+      "title": "Theme to use for Dashboard",
+      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
       "type": "string",
-      "default": "#waiting",
+      "default": "",
       "required": false
     },
     {
@@ -215,6 +207,14 @@
         "@Archive",
         "Saved Searches"
       ],
+      "required": false
+    },
+    {
+      "key": "ignoreTasksWithPhrase",
+      "title": "Ignore items in calendar sections with this phrase",
+      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.\nNote: This doesn't apply to the Tag/Mention section, which has its own setting.",
+      "type": "string",
+      "default": "#waiting",
       "required": false
     },
     {
@@ -237,6 +237,14 @@
       "key": "excludeTasksWithTimeblocks",
       "title": "Exclude tasks that include time blocks?",
       "description": "Whether to stop display of open tasks that contain a time block",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "ignoreChecklistItems",
+      "title": "Ignore checklist items",
+      "description": "If set, only tasks are included in any of the sections.",
       "type": "bool",
       "default": false,
       "required": true
@@ -266,6 +274,10 @@
       "required": true
     },
     {
+      "type": "heading",
+      "title": "Moving tasks"
+    },
+    {
       "key": "newTaskSectionHeading",
       "title": "Section heading to add/move new tasks under",
       "description": "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't incude leading #s.)\nIf the heading isn't present, it will be added at the top of the note.\nIf this is left empty, then new tasks will appear at the top of the note.",
@@ -283,26 +295,18 @@
     },
     {
       "key": "useTodayDate",
-      "title": "Use 'today' to schedule tasks for today?",
+      "title": "Use '>today' to schedule tasks for today?",
       "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
-      "key": "dashboardTheme",
-      "title": "Theme to use for Dashboard",
-      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
-      "type": "string",
-      "default": "",
-      "required": false
-    },
-    {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "Other Calendar sections"
+      "title": "What Calendar sections to show"
     },
     {
       "key": "showYesterdaySection",
