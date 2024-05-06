@@ -11,6 +11,7 @@ Misc TODO:
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
 ## [2.0.0.a9] @dbw
+- NOTE: ADDED CALENDAR PICKER AND A ROLLUP CSS PLUGIN SO YOU WILL NEED TO PULL, `npm i` and RESTART THE BUILD/ROLLUP SCRIPTS
 - Fixed the header CSS so it looks right again
 - Added close X at top right instead of close button - can probably use some jgclark styling
 - added cog and dropdown menu to hide UI switches
