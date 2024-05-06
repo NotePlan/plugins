@@ -19,7 +19,7 @@ import { removeFrontMatterField, noteHasFrontMatter } from '@helpers/NPFrontMatt
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList, getTodaysReferences } from '@helpers/NPnote'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import { getFolderFromFilename } from '@helpers/folders'
+// import { getFolderFromFilename } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 
@@ -362,24 +362,22 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     let allMatchedParas: $ReadOnlyArray<TParagraph> = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // This returns all the potential matches, but some may not be headings, so now check for those
     switch (matchType) {
-      case 'Exact': {
+      case 'Exact':
         allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content === sectionHeading)
-      }
-      case 'Starts with': {
+        break
+      case 'Starts with':
         allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.startsWith(sectionHeading))
-      }
-      case 'Contains': {
+        break
+      case 'Contains':
         allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading))
-      }
     }
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const allMatchedNotes = allMatchedParas.map((p) => p.note)
     logDebug('removeSectionFromRecentNotes', `- ${String(numToRemove)} matches of '${sectionHeading}' as heading from ${String(allMatchedNotes.length)} notes`)
 
     // Now keep only those changed recently (or all if numDays === 0)
     // $FlowFixMe[incompatible-type]
-    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
 
     if (numToRemove > 0) {
@@ -397,7 +395,8 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
       // Actually remove those sections
       for (const note of notesToProcess) {
         logDebug('removeSectionFromRecentNotes', `- Removing section in note '${displayTitle(note)}'`)
-        const lineNum = removeSection(note, sectionHeading)
+        // const lineNum =
+        removeSection(note, sectionHeading)
       }
     } else {
       if (!runSilently) {
@@ -595,7 +594,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
       // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
-      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes, config.numDays)
+      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays)
       const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
       // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
       parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))
@@ -681,7 +680,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 export async function removeBlankNotes(runSilently: boolean = false): Promise<void> {
   try {
     // Get plugin settings (config)
-    const config: TidyConfig = await getSettings()
+    // const config: TidyConfig = await getSettings()
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
@@ -734,7 +733,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     }
 
     // If we get this far, then remove the notes
-    let numRemoved = 0
+    // let numRemoved = 0
     for (const thisNote of blankNotes) {
       const filenameForTrash = `@Trash`
       // Deal with a calendar note
@@ -745,7 +744,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
           const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-            numRemoved++
+            // numRemoved++
           } else {
             logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
           }
@@ -759,7 +758,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}")`)
       if (res) {
         logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-        numRemoved++
+        // numRemoved++
       } else {
         logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
       }

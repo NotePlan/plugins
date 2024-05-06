@@ -15,7 +15,7 @@ import { existsSync, promises as fs } from 'fs'
       expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
  */
 export const mockWasCalledWithString = (spy: any, testStrRegex: RegExp | string): boolean => {
-  let found = []
+  let found: any = []
   const regex = typeof testStrRegex === 'string' ? new RegExp(testStrRegex) : testStrRegex
   if (spy?.mock?.calls?.length) {
     const calls = spy.mock.calls
@@ -32,7 +32,7 @@ export const mockWasCalledWithString = (spy: any, testStrRegex: RegExp | string)
  * @param {*} message
  * @returns
  */
-export function simpleFormatter(type: string, message: string): string {
+export function simpleFormatter(_type: string, message: string): string {
   const TITLE_INDENT = '    '
   const CONSOLE_INDENT = `${TITLE_INDENT}  `
 

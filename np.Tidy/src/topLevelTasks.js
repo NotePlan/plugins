@@ -139,7 +139,7 @@ export function getFlatArrayOfParentsAndChildren(topLevelParas: Array<Paragraph>
  * @returns {Array<string>} Array of processed paragraphs as strings
  */
 export function processTopLevelTasks(note: CoreNoteFields, topLevelTasks: Array<Paragraph>, heading: string, returnContentAsText: boolean): Array<string> {
-  let returnTextArr = []
+  let returnTextArr: Array<string> = []
   // Some indented items under tasks may not be topLevelTasks (could be notes etc)
   // so we need to get all the parents and the children of those parents
   // FIXME: I AM HERE
