@@ -7,7 +7,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
-import { getSharedSettings } from './shared'
+import { getCombinedSettings } from './shared'
 import { allSectionCodes } from './types'
 import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard,
@@ -74,7 +74,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 export async function getAllSectionsData(demoMode: boolean = false): Promise<Array<TSection>> {
   try {
     // const config: dashboardConfigType = await getSettings()
-    const config: any = await getSharedSettings()
+    const config: any = await getCombinedSettings()
     clo(config, 'getAllSectionsData config is currently',2)
     const sections: Array<TSection> = []
     sections.push(getTodaySectionData(config, demoMode))

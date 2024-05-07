@@ -27,7 +27,7 @@ Misc TODO:
 
 
 ## [2.0.0.a10] @jgc
-- added shared::getSharedSettings() function. **HELP: how to get sharedSettings into appContext, so it can be picked up in Section?**
+- added shared::getCombinedSettings() function. **HELP: how to get sharedSettings into appContext, so it can be picked up in Section?**
 - added all sections (except TD and COUNT) to the Dropdown menu. Note: These are now called e.g. showTodaySection not earlier e.g. show_today -- this is to align with existing naming in our setting.json files.
 - fixed regression on spacing around icons in dialogs
 - changed `item.sectionType` to `item.sectionCode` which is slightly more accurate

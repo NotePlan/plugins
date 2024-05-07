@@ -34,8 +34,7 @@ import {
 } from '@helpers/timeblocks'
 import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
-
-//-----------------------------------------------------------------
+ //-----------------------------------------------------------------
 
 // Note: types.js now contains the Type definitions
 

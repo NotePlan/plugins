@@ -23,14 +23,20 @@ export function parseSettings(settings: string): any {
         logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${settings}`)
     }
 }
+/**
+ * Get the sharedSettings values as an object
+ * @returns {any} the settings object or an empty object if there are none 
+ */
+export function getSharedSettings():any {
+    return parseSettings(DataStore.settings?.sharedSettings) ?? {}
+}
 
 /**
- * TODO(@dwertheimer): Please check this!
- * Return Object that includes those settings that are needed on front-end (Window) and back-end (Plugin)
+ * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
  */
-export async function getSharedSettings(): Promise<any> {
-    const pluginSettings = await getSettings() // get settings + timeblockMustContainString
-    const sharedSettings: any = parseSettings(pluginSettings.sharedSettings) ?? {}
+export async function getCombinedSettings(): Promise<any> {
+    const sharedSettings = getSharedSettings()
+    const pluginSettings = await getSettings()
     const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
     returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
     returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
@@ -43,7 +49,6 @@ export async function getSharedSettings(): Promise<any> {
             returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
         }
     }
-    clo(returnObj, 'getSharedSettings: returnObj:', 2)
     return returnObj
 }
 
