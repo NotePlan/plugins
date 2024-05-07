@@ -5,8 +5,7 @@
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
-import { getSettings } from './dashboardHelpers'
-import { allSectionDetails, type MessageDataObject, type TSectionItem } from './types'
+import { type MessageDataObject, type TSectionItem } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -22,34 +21,6 @@ export function parseSettings(settings: string): any {
     } catch (error) {
         logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${settings}`)
     }
-}
-/**
- * Get the sharedSettings values as an object
- * @returns {any} the settings object or an empty object if there are none 
- */
-export function getSharedSettings():any {
-    return parseSettings(DataStore.settings?.sharedSettings) ?? {}
-}
-
-/**
- * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
- */
-export async function getCombinedSettings(): Promise<any> {
-    const sharedSettings = getSharedSettings()
-    const pluginSettings = await getSettings()
-    const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
-    returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
-    returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
-    returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
-    // Now add all the show*Section settings (or default to true)
-    for (const sd of allSectionDetails) {
-        const thisShowSettingName = sd.showSettingName
-        if (thisShowSettingName) {
-            // Default to true unless user has explictly set to false
-            returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
-        }
-    }
-    return returnObj
 }
 
 /**

@@ -7,13 +7,12 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
-import { getCombinedSettings } from './shared'
 import { allSectionCodes } from './types'
 import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard,
   // TProjectForDashboard
 } from './types'
-import { getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
+import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
 import {
   openTodayItems,
   refTodayItems,

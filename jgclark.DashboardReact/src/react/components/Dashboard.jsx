@@ -54,12 +54,12 @@ function Dashboard({ pluginData }: Props): React$Node {
   // when sharedSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
   useEffect(() => {
-    logDebug('Dashboard', `Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
     if (sharedSettings?.lastChange && typeof sharedSettings.lastChange === 'string' && sharedSettings.lastChange.length > 0 && sharedSettings.lastChange[0] !== '_') {
+      logDebug('Dashboard', `Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
       const strSharedSetings = JSON.stringify(sharedSettings)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
     }
-    clo(sharedSettings,'Dashboard: sharedSettings is currently')
+    clo(sharedSettings,`Dashboard: sharedSettings is currently ${sharedSettings ? 'set to' : 'undefined'}`)
   }, [sharedSettings])
 
   // const handleDialogOpen = () => {

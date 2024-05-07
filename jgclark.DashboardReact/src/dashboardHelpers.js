@@ -6,7 +6,8 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TParagraphForDashboard, TSectionItem } from './types'
+import  { type TParagraphForDashboard, allSectionDetails } from './types'
+import { parseSettings } from './shared'
 import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -75,6 +76,36 @@ export type dashboardConfigType = {
   _logLevel: string,
   triggerLogging: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
+}
+
+/**
+ * Get the sharedSettings values as an object
+ * @returns {any} the settings object or an empty object if there are none 
+ */
+export function getSharedSettings():any {
+  return parseSettings(DataStore.settings?.sharedSettings) ?? {}
+}
+
+/**
+ * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
+ * Calls DataStore.settings so can't be used on front-end
+ */
+export async function getCombinedSettings(): Promise<any> {
+  const sharedSettings = getSharedSettings()
+  const pluginSettings = await getSettings()
+  const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
+  returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
+  returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
+  returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
+  // Now add all the show*Section settings (or default to true)
+  for (const sd of allSectionDetails) {
+      const thisShowSettingName = sd.showSettingName
+      if (thisShowSettingName) {
+          // Default to true unless user has explictly set to false
+          returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
+      }
+  }
+  return returnObj
 }
 
 /**
