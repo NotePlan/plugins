@@ -6,10 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {
-  getNextNotesToReview,
-  makeFullReviewList
-} from '../../jgclark.Reviews/src/reviews.js'
+import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
@@ -17,7 +14,8 @@ import {
   reduceParagraphs,
   type dashboardConfigType,
   type ReducedParagraph,
-  type Section, type SectionItem,
+  type Section,
+  type SectionItem,
 } from './dashboardHelpers'
 import {
   getDateStringFromCalendarFilename,
@@ -74,7 +72,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ seems unreliable
-    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ 
+    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
       // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -82,10 +80,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       if (!thisFilename.includes(filenameDateStr)) {
         logError('getDataForDashboard', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
       }
-      const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
+      const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -97,7 +95,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod} {scheduleAllTodayTomorrow}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'Today',
+          sectionType: 'DT',
+          description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod} {scheduleAllTodayTomorrow}`,
+          FAIconClass: 'fa-light fa-calendar-star',
+          sectionTitleClass: 'sidebarDaily',
+          filename: thisFilename,
+        })
         sectionCount++
 
         if (sortedRefParas.length > 0) {
@@ -107,11 +113,18 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} scheduled to ${todayDateLocale}`, FAIconClass: "fa-light fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+          sections.push({
+            ID: sectionCount,
+            name: 'Today',
+            sectionType: 'DT',
+            description: `{count} scheduled to ${todayDateLocale}`,
+            FAIconClass: 'fa-light fa-clock',
+            sectionTitleClass: 'sidebarDaily',
+            filename: '',
+          })
           sectionCount++
         }
-      }
-      else {
+      } else {
         // write one combined section
         let itemCount = 0
         combinedSortedParas.map((p) => {
@@ -120,7 +133,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         sections.push({
-          ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod} {scheduleAllTodayTomorrow}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
+          ID: sectionCount,
+          name: 'Today',
+          sectionType: 'DT',
+          description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod} {scheduleAllTodayTomorrow}`,
+          FAIconClass: 'fa-light fa-calendar-star',
+          sectionTitleClass: 'sidebarDaily',
+          filename: thisFilename,
         })
         sectionCount++
       }
@@ -139,7 +158,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       const yesterday = new moment().subtract(1, 'days').toDate()
       const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
       // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
-      const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ 
+      const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
 
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
@@ -148,10 +167,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         if (!thisFilename.includes(filenameDateStr)) {
           logError('Please', `- filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
-        const yesterdayDateLocale = toNPLocaleDateString(yesterday, "short") // uses moment's locale info from NP
+        const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+        const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config)
 
         // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
         if (config.separateSectionForReferencedNotes) {
@@ -164,7 +183,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(combinedSortedParas, "yesterday sortedOpenParas")
           logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-          sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-arrow-up", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+          sections.push({
+            ID: sectionCount,
+            name: 'Yesterday',
+            sectionType: 'DY',
+            description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`,
+            FAIconClass: 'fa-light fa-calendar-arrow-up',
+            sectionTitleClass: 'sidebarDaily',
+            filename: thisFilename,
+          })
           sectionCount++
 
           // clo(sortedRefParas, "sortedRefParas")
@@ -175,13 +202,20 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
               sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
               itemCount++
             })
-            sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} scheduled to ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+            sections.push({
+              ID: sectionCount,
+              name: 'Yesterday',
+              sectionType: 'DY',
+              description: `{count} scheduled to ${yesterdayDateLocale} {scheduleAllYesterdayToday}`,
+              FAIconClass: 'fa-light fa-clock',
+              sectionTitleClass: 'sidebarDaily',
+              filename: '',
+            })
             sectionCount++
           }
           // Save these paras for later deduping
           yesterdaysCombinedSortedParas = combinedSortedParas.concat(sortedRefParas)
-        }
-        else {
+        } else {
           // write one combined section
           let itemCount = 0
           combinedSortedParas.map((p) => {
@@ -191,7 +225,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(sortedRefParas, "sortedRefParas")
           sections.push({
-            ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-arrow-up", sectionTitleClass: "sidebarDaily", filename: thisFilename
+            ID: sectionCount,
+            name: 'Yesterday',
+            sectionType: 'DY',
+            description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`,
+            FAIconClass: 'fa-light fa-calendar-arrow-up',
+            sectionTitleClass: 'sidebarDaily',
+            filename: thisFilename,
           })
           sectionCount++
           // Save these paras for later deduping
@@ -219,10 +259,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         if (!thisFilename.includes(filenameDateStr)) {
           logError('Please', `- filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
-        const tomorrowDateLocale = toNPLocaleDateString(tomorrow, "short") // uses moment's locale info from NP
+        const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", tomorrowsNote, config)
+        const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', tomorrowsNote, config)
 
         // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
         if (config.separateSectionForReferencedNotes) {
@@ -235,7 +275,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(combinedSortedParas, "tomorrow sortedOpenParas")
           logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-          sections.push({ ID: sectionCount, name: 'Tomorrow', sectionType: 'DO', description: `{count} from note ${tomorrowDateLocale}`, FAIconClass: "fa-light fa-calendar-arrow-down", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+          sections.push({
+            ID: sectionCount,
+            name: 'Tomorrow',
+            sectionType: 'DO',
+            description: `{count} from note ${tomorrowDateLocale}`,
+            FAIconClass: 'fa-light fa-calendar-arrow-down',
+            sectionTitleClass: 'sidebarDaily',
+            filename: thisFilename,
+          })
           sectionCount++
 
           // clo(sortedRefParas, "sortedRefParas")
@@ -246,11 +294,18 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
               sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
               itemCount++
             })
-            sections.push({ ID: sectionCount, name: 'Tomorrow', sectionType: 'DO', description: `{count} scheduled to ${tomorrowDateLocale}`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+            sections.push({
+              ID: sectionCount,
+              name: 'Tomorrow',
+              sectionType: 'DO',
+              description: `{count} scheduled to ${tomorrowDateLocale}`,
+              FAIconClass: 'fa-regular fa-clock',
+              sectionTitleClass: 'sidebarDaily',
+              filename: '',
+            })
             sectionCount++
           }
-        }
-        else {
+        } else {
           // write one combined section
           let itemCount = 0
           combinedSortedParas.map((p) => {
@@ -260,7 +315,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(sortedRefParas, "sortedRefParas")
           sections.push({
-            ID: sectionCount, name: 'Tomorrow', sectionType: 'DO', description: `{count} from daily note or scheduled to ${tomorrowDateLocale}`, FAIconClass: "fa-light fa-calendar-arrow-down", sectionTitleClass: "sidebarDaily", filename: thisFilename
+            ID: sectionCount,
+            name: 'Tomorrow',
+            sectionType: 'DO',
+            description: `{count} from daily note or scheduled to ${tomorrowDateLocale}`,
+            FAIconClass: 'fa-light fa-calendar-arrow-down',
+            sectionTitleClass: 'sidebarDaily',
+            filename: thisFilename,
           })
           sectionCount++
         }
@@ -284,7 +345,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('week', currentWeeklyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -297,7 +358,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "weekly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
-        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This week',
+          sectionType: 'W',
+          description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`,
+          FAIconClass: 'fa-light fa-calendar-week',
+          sectionTitleClass: 'sidebarWeekly',
+          filename: thisFilename,
+        })
         sectionCount++
 
         // clo(sortedRefParas, "weekly sortedRefParas")
@@ -308,7 +377,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} scheduled to ${dateStr}`, FAIconClass: "fa-light fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+          sections.push({
+            ID: sectionCount,
+            name: 'This week',
+            sectionType: 'W',
+            description: `{count} scheduled to ${dateStr}`,
+            FAIconClass: 'fa-light fa-clock',
+            sectionTitleClass: 'sidebarWeekly',
+            filename: '',
+          })
           sectionCount++
         }
       } else {
@@ -320,7 +397,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "weekly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This week',
+          sectionType: 'W',
+          description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`,
+          FAIconClass: 'fa-light fa-calendar-week',
+          sectionTitleClass: 'sidebarWeekly',
+          filename: thisFilename,
+        })
         sectionCount++
       }
       // Get count of tasks/checklists done this week
@@ -340,7 +425,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       logDebug('getDataForDashboard', `---------------------------- Looking for Month items for section #${String(sectionCount)} -----------------------------`)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -353,7 +438,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "monthly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
-        sections.push({ ID: sectionCount, name: 'This Month', sectionType: 'M', description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This Month',
+          sectionType: 'M',
+          description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`,
+          FAIconClass: 'fa-light fa-calendar-range',
+          sectionTitleClass: 'sidebarMonthly',
+          filename: thisFilename,
+        })
         sectionCount++
 
         // clo(sortedRefParas, "monthly sortedRefParas")
@@ -364,7 +457,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} scheduled to ${dateStr}`, FAIconClass: "fa-light fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+          sections.push({
+            ID: sectionCount,
+            name: 'This month',
+            sectionType: 'M',
+            description: `{count} scheduled to ${dateStr}`,
+            FAIconClass: 'fa-light fa-clock',
+            sectionTitleClass: 'sidebarMonthly',
+            filename: '',
+          })
           sectionCount++
         }
       } else {
@@ -376,7 +477,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "monthly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This month',
+          sectionType: 'M',
+          description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`,
+          FAIconClass: 'fa-light fa-calendar-range',
+          sectionTitleClass: 'sidebarMonthly',
+          filename: thisFilename,
+        })
         sectionCount++
       }
 
@@ -397,7 +506,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       logDebug('getDataForDashboard', `---------------------------- Looking for Quarter items for section #${String(sectionCount)} -----------------------------`)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('quarter', currentQuarterlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -410,7 +519,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "quarterly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} quarterly items`)
-        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from ${dateStr} {addItems}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This quarter',
+          sectionType: 'Q',
+          description: `{count} from ${dateStr} {addItems}`,
+          FAIconClass: 'fa-light fa-calendar-days',
+          sectionTitleClass: 'sidebarQuarterly',
+          filename: thisFilename,
+        })
         sectionCount++
 
         // clo(sortedRefParas, "quarterly sortedRefParas")
@@ -421,7 +538,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} scheduled to ${dateStr}`, FAIconClass: "fa-light fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '' })
+          sections.push({
+            ID: sectionCount,
+            name: 'This quarter',
+            sectionType: 'Q',
+            description: `{count} scheduled to ${dateStr}`,
+            FAIconClass: 'fa-light fa-clock',
+            sectionTitleClass: 'sidebarQuarterly',
+            filename: '',
+          })
           sectionCount++
         }
       } else {
@@ -433,7 +558,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "quarterly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from ${dateStr} {addItems}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({
+          ID: sectionCount,
+          name: 'This quarter',
+          sectionType: 'Q',
+          description: `{count} from ${dateStr} {addItems}`,
+          FAIconClass: 'fa-light fa-calendar-days',
+          sectionTitleClass: 'sidebarQuarterly',
+          filename: thisFilename,
+        })
         sectionCount++
       }
       // Get count of tasks/checklists done this quarter
@@ -470,16 +603,17 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         const totalOverdue = reducedParas.length
 
         // Sort paragraphs by one of several options
-        const sortOrder = (config.overdueSortOrder === 'priority')
-          ? ['-priority', '-changedDate']
-          : (config.overdueSortOrder === 'earliest')
+        const sortOrder =
+          config.overdueSortOrder === 'priority'
+            ? ['-priority', '-changedDate']
+            : config.overdueSortOrder === 'earliest'
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedOverdueTaskParas = sortListBy(reducedParas, sortOrder)
         logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
         // Apply limit to set of ordered results
-        const overdueTaskParasLimited = (sortedOverdueTaskParas.length > maxInSection) ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
+        const overdueTaskParasLimited = sortedOverdueTaskParas.length > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
         logDebug('getDataForDashboard', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
         let itemCount = 0
         overdueTaskParasLimited.map((p) => {
@@ -488,13 +622,19 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
 
-        let overdueSectionDescription = (totalOverdue > itemCount)
-          ? `first {count} of {totalCount:${String(totalOverdue)}} tasks ordered by ${config.overdueSortOrder}`
-          : `all {count} tasks ordered by ${config.overdueSortOrder}`
-        overdueSectionDescription += ` {scheduleAllOverdueToday}`
+        let overdueSectionDescription =
+          totalOverdue > itemCount
+            ? `first {count} of {totalCount:${String(totalOverdue)}} tasks ordered by ${config.overdueSortOrder}`
+            : `all {count} tasks ordered by ${config.overdueSortOrder}`
+        overdueSectionDescription += `{scheduleAllOverdueToday}`
         sections.push({
           ID: sectionCount,
-          name: 'Overdue Tasks', sectionType: 'OVERDUE', description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", filename: ''
+          name: 'Overdue Tasks',
+          sectionType: 'OVERDUE',
+          description: overdueSectionDescription,
+          FAIconClass: 'fa-regular fa-alarm-exclamation',
+          sectionTitleClass: 'overdue',
+          filename: '',
         })
         sectionCount++
       }
@@ -527,19 +667,18 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           }
 
           // Get the relevant paras from this note
-          const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
+          const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
           // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
 
           // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
 
           for (const p of tagParasFromNote) {
-              if (config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
-                filteredTagParas.push(p)
-              } else {
-                logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
-              }
+            if (config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+              filteredTagParas.push(p)
+            } else {
+              logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
             }
-
+          }
         }
         logInfo('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
@@ -560,16 +699,17 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           totalCount = reducedParas.length
 
           // Sort paragraphs by one of several options
-          const sortOrder = (config.overdueSortOrder === 'priority')
-            ? ['-priority', '-changedDate']
-            : (config.overdueSortOrder === 'earliest')
+          const sortOrder =
+            config.overdueSortOrder === 'priority'
+              ? ['-priority', '-changedDate']
+              : config.overdueSortOrder === 'earliest'
               ? ['changedDate', 'priority']
               : ['-changedDate', 'priority'] // 'most recent'
           const sortedTagParas = sortListBy(reducedParas, sortOrder)
           logInfo('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} (after ${timer(thisStartTime)})`)
 
           // Apply limit to set of ordered results
-          const sortedTagParasLimited = (sortedTagParas.length > maxInSection) ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
+          const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
           logDebug('getDataForDashboard', `- after limit, now ${sortedTagParasLimited.length} items to show`)
 
           for (const p of sortedTagParasLimited) {
@@ -581,16 +721,18 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         }
 
         if (itemCount > 0) {
-          const tagSectionDescription = (totalCount > itemCount) ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}`
-            : `all {count} items ordered by ${config.overdueSortOrder}`
+          const tagSectionDescription =
+            totalCount > itemCount
+              ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}`
+              : `all {count} items ordered by ${config.overdueSortOrder}`
           sections.push({
             ID: sectionCount,
             name: `${config.tagToShow}`,
             sectionType: 'TAG',
             description: tagSectionDescription,
-            FAIconClass: (isHashtag) ? 'fa-light fa-hashtag' : 'fa-light fa-at',
-            sectionTitleClass: (isHashtag) ? 'sidebarHashtag' : 'sidebarMention',
-            filename: ''
+            FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
+            sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
+            filename: '',
           })
           sectionCount++
         }
@@ -612,7 +754,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       const reviewListDate = moment(reviewListDateStr).toDate()
       const fileAge = Date.now() - reviewListDate
       // If this note is more than a day old, then regenerate it
-      if (fileAge > (1000 * 60 * 60 * 24)) {
+      if (fileAge > 1000 * 60 * 60 * 24) {
         logDebug('getDataForDashboard', `Regenerating fullReviewList as too old`)
         // Call plugin command makeFullReviewList
         await makeFullReviewList()
@@ -625,7 +767,11 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           const thisID = `${sectionCount}-${itemCount}`
           const thisFilename = n.filename ?? '<filename not found>'
           sectionItems.push({
-            ID: thisID, content: '', rawContent: '', filename: thisFilename, type: 'review'
+            ID: thisID,
+            content: '',
+            rawContent: '',
+            filename: thisFilename,
+            type: 'review',
           })
           itemCount++
         })
@@ -637,7 +783,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           description: `{count} next projects to review {startReviews}`,
           FAIconClass: 'fa-light fa-calendar-check',
           sectionTitleClass: 'sidebarYearly',
-          filename: ''
+          filename: '',
         })
         sectionCount++
       } else {
@@ -655,7 +801,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       description: ``,
       FAIconClass: '',
       sectionTitleClass: '',
-      filename: ''
+      filename: '',
     })
 
     logInfo('getDataForDashboard', `finished generating ${String(sections.length)} sections and ${String(sectionItems.length)} items in ${timer(startTime)}`)

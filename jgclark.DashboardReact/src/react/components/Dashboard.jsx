@@ -12,8 +12,6 @@ type Props = {
   pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
 }
 
-
-
 /**
  * Dashboard component aggregating data and layout for the dashboard.
  */
@@ -28,11 +26,6 @@ function Dashboard({ pluginData }: Props): React$Node {
   const sections = sharedSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
   console.log('Dashboard: pluginData:', pluginData, sections)
   const { dialogData } = reactSettings ?? {}
-
-  const updateDialogOpen = (isOpen: boolean) => {
-    // generally only used for closing dialog
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen }, lastChange: `_Dashboard-DialogClosed` }))
-  }
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
@@ -50,7 +43,6 @@ function Dashboard({ pluginData }: Props): React$Node {
     }
   }, [reactSettings])
 
-
   // when sharedSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
   useEffect(() => {
@@ -59,14 +51,16 @@ function Dashboard({ pluginData }: Props): React$Node {
       const strSharedSetings = JSON.stringify(sharedSettings)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
     }
-    clo(sharedSettings,`Dashboard: sharedSettings is currently ${sharedSettings ? 'set to' : 'undefined'}`)
+    clo(sharedSettings, `Dashboard: sharedSettings is currently ${sharedSettings ? 'set to' : 'undefined'}`)
   }, [sharedSettings])
 
   // const handleDialogOpen = () => {
   //   updateDialogOpen(true)
   // }
-  const handleDialogClose = () => {
-    updateDialogOpen(false)
+
+  const handleDialogClose = (xWasClicked: boolean = false) => {
+    const overdueProcessing = xWasClicked ? { overdueProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...overdueProcessing }))
   }
   return (
     <div style={dashboardContainerStyle}>

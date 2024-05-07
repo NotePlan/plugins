@@ -22,7 +22,7 @@ type TDialogDetails = {
   title: string,
   reschedOrMove: string,
   content: string,
-  noteType: string
+  noteType: string,
 }
 
 type Props = {
@@ -143,7 +143,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
             <span id="dialogItemNote">{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
-          <button className="closeButton" onClick={onClose} style={{ float: 'right', marginRight: '-2px', marginTop: '-5px' }}>
+          <button className="closeButton" onClick={() => onClose(true)} style={{ float: 'right', marginRight: '-2px', marginTop: '-5px' }}>
             <i className="fa fa-times"></i>
           </button>
         </div>
