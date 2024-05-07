@@ -74,16 +74,17 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 export async function getAllSectionsData(demoMode: boolean = false): Promise<Array<TSection>> {
   try {
     // const config: dashboardConfigType = await getSettings()
-    const config: any = getSharedSettings()
+    const config: any = await getSharedSettings()
+    clo(config, 'getAllSectionsData config is currently',2)
     const sections: Array<TSection> = []
     sections.push(getTodaySectionData(config, demoMode))
-    if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
-    if (config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
-    if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
-    if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
-    if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
-    if (config.showTagSection) sections.push(getTaggedSectionData(config, demoMode))
-    if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
+    /* if (config.showYesterdaySection) */ sections.push(getYesterdaySectionData(config, demoMode))
+    /* if (config.showWeekSection)  */ sections.push(getTomorrowSectionData(config, demoMode))
+    /* if (config.showWeekSection)  */ sections.push(getThisWeekSectionData(config, demoMode))
+    /* if (config.showMonthSection)  */ sections.push(getThisMonthSectionData(config, demoMode))
+    /* if (config.showQuarterSection)  */ sections.push(getThisQuarterSectionData(config, demoMode))
+    /* if (config.showTagSection)  */ sections.push(getTaggedSectionData(config, demoMode))
+    /* if (config.showOverdueSection)  */ sections.push(await getOverdueSectionData(config, demoMode))
     sections.push(await getProjectSectionData(config, demoMode))
 
     return sections

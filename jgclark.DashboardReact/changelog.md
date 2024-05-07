@@ -10,6 +10,22 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+## [2.0.0.a11] @dbw
+- fixed the React side of the bug that was keeping data from displaying
+- fixed the bug on the data generation side that was keeping a lot of the data from generating
+- added sharedData to plugin.json and to context, added reading/initializing/setting functions
+- refactored all the reactSettings calls to be sharedData calls instead
+- the specific settings should be added to TSharedSettings in types
+- ran around in circles trying to figure out why it was refreshing in an endless loop. then figured out that there was some old refresh dashboard code on a settings change, so every time i flipped one switch, it looped forever reloading reloading. i commented out the onSettingsUpdated refresh code.
+- As of now, reactSettings is used only for things that are react-only (like dialogData which is used to open the dialog with certain info)
+- sharedData holds all the values that you created/saved
+- Both are stringified and saved to DataStore.settings in fields "sharedSettings" and "reactSettings". This way even reactSettings can persist (though currently it doesn't matter)
+
+  "reactSettings" : "{\"lastChange\":\"_Saving\",\"dialogData\":{\"isOpen\":false,\"isTask\":true,\"details\":{}}}",
+
+  "sharedSettings" : "{\"lastChange\":\"ignoreChecklistItems change\",\"ignoreChecklistItems\":true,\"showYesterdaySection\":true,\"showWeekSection\":false,\"showTagSection\":false,\"filterPriorityItems\":false,\"hideDuplicates\":false,\"showTomorrowSection\":false,\"showMonthSection\":true,\"showQuarterSection\":false,\"showOverdueSection\":true,\"showProjectSection\":false}",
+
+
 ## [2.0.0.a10] @jgc
 - added shared::getSharedSettings() function. **HELP: how to get sharedSettings into appContext, so it can be picked up in Section?**
 - added all sections (except TD and COUNT) to the Dropdown menu. Note: These are now called e.g. showTodaySection not earlier e.g. show_today -- this is to align with existing naming in our setting.json files.

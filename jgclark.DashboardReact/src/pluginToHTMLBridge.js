@@ -30,7 +30,7 @@ import {
   doUpdateTaskDate,
   refreshAllSections,
   refreshSomeSections,
-  doReactSettingsChanged,
+  doSettingsChanged,
   doSetSpecificDate,
 } from './clickHandlers'
 // import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
@@ -272,7 +272,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'reactSettingsChanged': {
-        result = await doReactSettingsChanged(data)
+        result = await doSettingsChanged(data,'reactSettings')
+        break
+      }
+      case 'sharedSettingsChanged': {
+        result = await doSettingsChanged(data,'sharedSettings')
         break
       }
       case 'setSpecificDate': {
@@ -290,7 +294,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       logWarn('bCDI', `false result from call`)
     }
 
-    logDebug(pluginJson, `pluginToHTML bridge: RUNNING TEMPORARY FULL REFRESH OF JSON AFTER ANY COMMANDS WITHOUT A RETURN STATEMENT`)
+    // logDebug(pluginJson, `pluginToHTML bridge: RUNNING TEMPORARY FULL REFRESH OF JSON AFTER ANY COMMANDS WITHOUT A RETURN STATEMENT`)
     // await refreshData()
 
     // Other info from DW:
@@ -321,6 +325,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    if (!actionsOnSuccess.length) {
+      logDebug(`bCDI / processActionOnReturn: no post process actions to perform`)
+      return
+    }
     const { success, updatedParagraph } = handlerResult
     const filename: string = data.item?.para?.filename ?? ''
     if (filename === '') throw new Error(`Cannot find filename in passed data`)

@@ -4,9 +4,9 @@
 // Last updated 15.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
-import { logDebug } from '@helpers/dev.js'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
+import { logDebug } from '@helpers/dev.js'
 // import { useAppContext } from './AppContext.jsx'
 
 type Props = {
@@ -26,13 +26,6 @@ function ItemGrid(inputObj: Props): React$Node {
 
   // // FIXME:
   // console.log('- reactSettings.filterPriorityItems = ' + String(reactSettings.filterPriorityItems))
-
-  // const visibleItems = items?.map((item, index) => (
-  //   !reactSettings.filterPriorityItems || item.para?.priority || 0 > 0
-  //     ? <ItemRow key={index} item={item} thisSection={thisSection} />
-  //     : null)) ?? []
-  // const filteredOut = items.length - visibleItems.length
-  // console.log(`- selected ${visibleItems.length} visible items, with ${String(filteredOut)} filtered out`)
 
   const visibleItems = items?.map((item, index) => <ItemRow key={index} item={item} thisSection={thisSection} />) ?? []
 

@@ -65,18 +65,20 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
-  try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated started`)
-    // If v3.11+, can now refresh Dashboard
-    if (NotePlan.environment.buildVersion >= 1181) {
-      if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-        logDebug(pluginJson, `will refresh Dashboard as it is open`)
-        await showDashboardReact('refresh', false) // probably don't need await
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
-  }
+  logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated Called doing nothing.`)
+  return
+  // probably get rid of all of this because it's not used
+  // try {
+  //   // If v3.11+, can now refresh Dashboard
+  //   if (NotePlan.environment.buildVersion >= 1181) {
+  //     if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+  //       logDebug(pluginJson, `will refresh Dashboard as it is open`)
+  //       await showDashboardReact('refresh', false) // probably don't need await
+  //     }
+  //   }
+  // } catch (error) {
+  //   logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+  // }
 }
 
 /**

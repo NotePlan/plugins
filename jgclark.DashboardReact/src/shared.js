@@ -10,31 +10,41 @@ import { allSectionDetails, type MessageDataObject, type TSectionItem } from './
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
-  filename: string,
-  content: any,
-  item?: TSectionItem,
-  [string]: any,
+    filename: string,
+    content: any,
+    item?: TSectionItem,
+    [string]: any,
+}
+
+export function parseSettings(settings: string): any {
+    try {
+        return JSON.parse(settings)
+    } catch (error) {
+        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${settings}`)
+    }
 }
 
 /**
  * TODO(@dwertheimer): Please check this!
  * Return Object that includes those settings that are needed on front-end (Window) and back-end (Plugin)
  */
-export async function getSharedSettings(): any {
-  const pluginSettings = await getSettings()
-  const reactSettings: any = pluginSettings.reactSettings ?? {}
-  const returnObj: any = {}
-  returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
-  returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
-  // Now add all the show*Section settings (or default to true)
-  for (const sd of allSectionDetails) {
-    const thisShowSettingName = sd.showSettingName
-    if (thisShowSettingName !== '' && reactSettings[thisShowSettingName]) {
-      returnObj[thisShowSettingName] = true
+export async function getSharedSettings(): Promise<any> {
+    const pluginSettings = await getSettings() // get settings + timeblockMustContainString
+    const sharedSettings: any = parseSettings(pluginSettings.sharedSettings) ?? {}
+    const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
+    returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
+    returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
+    returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
+    // Now add all the show*Section settings (or default to true)
+    for (const sd of allSectionDetails) {
+        const thisShowSettingName = sd.showSettingName
+        if (thisShowSettingName) {
+            // Default to true unless user has explictly set to false
+            returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
+        }
     }
-  }
-  clo(returnObj)
-  return returnObj
+    clo(returnObj, 'getSharedSettings: returnObj:', 2)
+    return returnObj
 }
 
 /**
@@ -52,44 +62,44 @@ export async function getSharedSettings(): any {
  * @example const { filename, content, item, para, someOtherProp } = validateAndFlattenMessageObject(data)
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
-  if (!data?.item?.para) {
-    throw new Error(`Error validating data: 'item.para' is missing: ${JSON.stringify(data)}`)
-  }
-
-  const { item } = data
-  const { para } = item
-
-  // Check for required fields in para
-  if (!para?.filename) {
-    throw new Error("Error validating data: 'filename' is null or undefined.")
-  }
-  if (para.content === null || para.content === undefined) {
-    throw new Error("Error validating data: 'content' is null or undefined.")
-  }
-
-  // Merge objects with collision detection
-  const allKeys = new Set()
-  const result = {}
-
-  const objectsToMerge = [{ ...data }, { ...item }, { ...para }]
-
-  for (const obj of objectsToMerge) {
-    for (const [key, value] of Object.entries(obj)) {
-      if (allKeys.has(key)) {
-        logError(`Key collision detected: '${key}' exists in multiple objects.`)
-        clo(data, `validateAndFlattenMessageObject: key collision detected: '${key}' exists in multiple objects. data`)
-      }
-      allKeys.add(key)
-      //$FlowIgnore[prop-missing]
-      result[key] = value
+    if (!data?.item?.para) {
+        throw new Error(`Error validating data: 'item.para' is missing: ${JSON.stringify(data)}`)
     }
-  }
 
-  // Add 'item' and 'para' back to the result
-  //$FlowIgnore[prop-missing]
-  result.item = { ...item }
-  //$FlowIgnore[prop-missing]
-  result.para = { ...para }
-  //$FlowIgnore[prop-missing]
-  return result
+    const { item } = data
+    const { para } = item
+
+    // Check for required fields in para
+    if (!para?.filename) {
+        throw new Error("Error validating data: 'filename' is null or undefined.")
+    }
+    if (para.content === null || para.content === undefined) {
+        throw new Error("Error validating data: 'content' is null or undefined.")
+    }
+
+    // Merge objects with collision detection
+    const allKeys: Set<string> = new Set()
+    const result = {}
+
+    const objectsToMerge = [{ ...data }, { ...item }, { ...para }]
+
+    for (const obj of objectsToMerge) {
+        for (const [key, value] of Object.entries(obj)) {
+            if (allKeys.has(key)) {
+                logError(`Key collision detected: '${key}' exists in multiple objects.`)
+                clo(data, `validateAndFlattenMessageObject: key collision detected: '${key}' exists in multiple objects. data`)
+            }
+            allKeys.add(key)
+            //$FlowIgnore[prop-missing]
+            result[key] = value
+        }
+    }
+
+    // Add 'item' and 'para' back to the result
+    //$FlowIgnore[prop-missing]
+    result.item = { ...item }
+    //$FlowIgnore[prop-missing]
+    result.para = { ...para }
+    //$FlowIgnore[prop-missing]
+    return result
 }

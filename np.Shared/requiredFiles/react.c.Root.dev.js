@@ -452,7 +452,6 @@ var RootBundle = (function (exports, React$1) {
     const error = formatReactError(e, i.componentStack);
     console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff');
   };
-  logDebug(`Root`, `loading file outside component code`);
 
   /****************************************************************************************************************************
    *                             globalSharedData

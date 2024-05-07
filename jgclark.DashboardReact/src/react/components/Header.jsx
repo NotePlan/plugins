@@ -18,47 +18,45 @@ type Props = {
 }
 
 const Header = ({ lastFullRefresh }: Props): React$Node => {
-  const { reactSettings, setReactSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
 
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (reactSettings?.refreshing) {
-        setTimeAgo('Refreshing Data...')
-      } else {
-        setTimeAgo(getTimeAgo(lastFullRefresh))
-      }
+      setTimeAgo(getTimeAgo(lastFullRefresh))
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [lastFullRefresh, reactSettings])
+  }, [lastFullRefresh])
 
   const handleSwitchChange = (key: string) => (e: any) => {
     const isChecked = e?.target.checked || false
-    logDebug('Header', `Checkbox clicked. setting in global Context reactSettings.${key} to ${String(isChecked)}`)
-    setReactSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `${key} change` }))
+    logDebug('Header', `Checkbox clicked. setting in global Context sharedSettings.${key} to ${String(isChecked)}`)
+    // this saves the change in local context, and then it will be picked up and sent to plugin
+    if (setSharedSettings && sharedSettings[key] !== isChecked) {
+      setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `${key} change` }))
+    }
   }
 
   const handleRefreshClick = () => {
     logDebug('Header', 'Refresh button clicked')
     const actionType = 'refresh'
     sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
-    setReactSettings((prev) => ({ ...prev, refreshing: true, lastChange: `_Dashboard-RefreshClick` }))
   }
 
   const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? ''
   // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
   const dropdownSectionNames = allSectionDetails.filter(s => s.showSettingName !== '').map(s => ({
     label: `Show ${s.sectionCode !== 'TAG' ? s.sectionName : tagSectionStr}`,
-    key: `${s.showSettingName}`,
-    checked: reactSettings?.[`${s.showSettingName}`] ?? true,
+    key: s.showSettingName,
+    checked: (typeof sharedSettings !== undefined && sharedSettings[s.showSettingName]) ?? true,
   }))
 
   let dropdownItems = [
-    { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', checked: reactSettings?.filterPriorityItems || false },
-    { label: 'Hide checklist items?', key: 'ignoreChecklistItems', checked: reactSettings?.ignoreChecklistItems || false },
-    { label: 'Hide duplicates?', key: 'hideDuplicates', checked: reactSettings?.hideDuplicates || false },
+    { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', checked: sharedSettings?.filterPriorityItems || false },
+    { label: 'Hide checklist items?', key: 'ignoreChecklistItems', checked: sharedSettings?.ignoreChecklistItems || false },
+    { label: 'Hide duplicates?', key: 'hideDuplicates', checked: sharedSettings?.hideDuplicates || false },
   ]
 
   dropdownItems = [...dropdownItems, ...dropdownSectionNames]

@@ -537,15 +537,15 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   }
 }
 
-export function doReactSettingsChanged(data: MessageDataObject): TBridgeClickHandlerResult {
+export function doSettingsChanged(data: MessageDataObject,settingName:string): TBridgeClickHandlerResult {
   const settings = DataStore.settings
-  const reactSettings = data.reactSettings
-  if (!reactSettings || !settings) {
-    throw new Error(`Error validating data: reactSettings ${JSP(reactSettings)} or settings is null or undefined.`)
+  const newSettings = data.settings
+  if (!settings || !newSettings) {
+    throw new Error(`Error validating data: newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  DataStore.settings = { ...DataStore.settings, reactSettings: data.reactSettings }
-  logDebug('doReactSettingsChanged', `React settings changed: ${data.controlStr}`)
-  return handlerResult(true)
+  DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
+  logDebug('doSettingsChanged', `${settingName} updated`)
+  return handlerResult(true, [])
 }
 
 export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {

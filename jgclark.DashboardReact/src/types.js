@@ -140,7 +140,7 @@ export type MessageDataObject = {
   actionType: TActionType, // main verb (was .type)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
-  reactSettings?: string,
+  newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
   metaModifier: any,
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
@@ -182,5 +182,10 @@ export type TReactSettings = {
 
 export type TPluginData = {
   settings: any,
+  [key: string]: any,
+}
+
+export type TSharedSettings = {
+  //TODO: jgclark: add the specific shared settings
   [key: string]: any,
 }

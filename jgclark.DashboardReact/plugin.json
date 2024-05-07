@@ -5,7 +5,7 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a10",
+  "plugin.version": "2.0.0-a11",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
@@ -170,6 +170,13 @@
       "type": "hidden",
       "key": "reactSettings",
       "description": "Saves last state of react UI choices as JSON string.",
+      "required": true,
+      "default":""
+    },
+    {
+      "type": "hidden",
+      "key": "sharedSettings",
+      "description": "Saves last state of shared settings as JSON string.",
       "required": true,
       "default":""
     },

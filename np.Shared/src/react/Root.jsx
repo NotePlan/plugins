@@ -45,8 +45,6 @@ const myErrorLogger = (e: Error, i: { componentStack: string }) => {
   console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff')
 }
 
-logDebug(`Root`, `loading file outside component code`)
-
 /****************************************************************************************************************************
  *                             globalSharedData
  ****************************************************************************************************************************/

@@ -19,16 +19,16 @@ type SectionProps = {
 /**
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
-function Section(inputObj: SectionProps): Promise<React$Node> {
+function Section(inputObj: SectionProps): React$Node {
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
     // TODO(@dwertheimer): how to get sharedSettings into appContext?
-    const { reactSettings, sharedSettings } = useAppContext()
+    const { sharedSettings } = useAppContext()
 
     // Check to see if we want to see this section
-    if (reactSettings && section.showSettingName !== '' && !reactSettings?.[`section.showSettingName`]) {
-      logDebug('Section', `Section: ${section.ID} is currently filtered out.`)
+    if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName]===false) {
+      logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
       return
     }
 
@@ -56,7 +56,7 @@ function Section(inputObj: SectionProps): Promise<React$Node> {
     const buttons = section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} />) ?? []
 
     // Filter down by priority (if desired)
-    const filterPriorityItems = reactSettings?.filterPriorityItems ?? false
+    const filterPriorityItems = sharedSettings?.filterPriorityItems ?? false
     let maxPrioritySeen = 0
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
@@ -108,7 +108,7 @@ function Section(inputObj: SectionProps): Promise<React$Node> {
     // logDebug('Section', `- After sort:\n${JSON.stringify(filteredItems, null, 2)}`)
 
     // Now apply limit (if desired)
-    const limit = sharedSettings?.maxTasksToShowInSection ?? 20
+    const limit = 20 // sharedSettings?.maxTasksToShowInSection ?? 20
     const itemsToShow = filteredItems.slice(0, limit)
     // Caclculate how many are not shown: not as simple as 'items.length - itemsToShow.length'
     // because there can be a pre-filter in Overdue generation, given by section.totalCount
@@ -146,16 +146,16 @@ function Section(inputObj: SectionProps): Promise<React$Node> {
     }
 
     // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
-    const hideSection = !items.length || (reactSettings && reactSettings[`${section.showSettingName}`] === false)
+    const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
 
     return hideSection ? null : (
       <div className="section">
         <div className="sectionInfo">
-          <span className={`${section.sectionTitleClass} sectionName`}>
+          <div className={`${section.sectionTitleClass} sectionName`}>
             <i className={`sectionIcon ${section.FAIconClass}`}></i>
             {section.name}
-          </span>{' '}
-          <span className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></span>
+          </div>{' '}
+          <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           {buttons}
         </div>
         <ItemGrid thisSection={inputObj.section} items={itemsToShow} />

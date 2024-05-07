@@ -2,7 +2,6 @@
 import * as React from 'react'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { getFolderFromFilename } from '@helpers/folders'
 
 type Props = {
@@ -10,7 +9,7 @@ type Props = {
 }
 
 function ReviewItem({ item }: Props): React.Node {
-  const { pluginData, setReactSettings } = useAppContext()
+  const { pluginData, setReactSettings /*, sharedSettings, setSharedSettings */ } = useAppContext()
   const { settings } = pluginData
 
   const itemFilename = item.project?.filename ?? '<no filename>'
