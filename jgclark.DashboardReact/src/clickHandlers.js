@@ -67,6 +67,26 @@ function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnRetur
   }
 }
 
+/**
+ * Merge existing sections data with replacement data
+ * If the section existed before, it will be replaced with the new data
+ * If the section did not exist before, it will be added to the end of sections
+ * @param {Array<TSectionItem>} existingSections 
+ * @param {Array<TSectionItem>} newSections 
+ * @returns {Array<TSectionItem>} - merged sections
+ */
+function mergeSections(existingSections: Array<TSectionItem>, newSections: Array<TSectionItem>): Array<TSectionItem> {
+  newSections.forEach((newSection) => {
+    const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
+    if (existingIndex > -1) {
+      existingSections[existingIndex] = newSection
+    } else {
+      existingSections.push(newSection)
+    }
+  })
+  return existingSections
+}
+
 /****************************************************************************************************************************
  *                             HANDLERS
  ****************************************************************************************************************************/
@@ -80,7 +100,6 @@ export async function refreshAllSections(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
   reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
-
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for all sections`)
 }
 
@@ -88,12 +107,20 @@ export async function refreshAllSections(): Promise<void> {
  * Refresh the data in the HTML view - JSON only
  * And tell the React window to update the data
  */
-export async function refreshSomeSections(sectionCodes: Array<TSectionCode>): Promise<void> {
+export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const start = new Date()
+  const {sectionCodes} = data
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  reactWindowData.pluginData.sections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode)
-  reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
-
+  reactWindowData.pluginData.refreshing = true // show refreshing message until done
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(sectionCodes)}`)
+  const existingSections = reactWindowData.pluginData.sections
+  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode,true) // force the section refresh for the wanted sections
+  reactWindowData.pluginData.sections = mergeSections(existingSections, newSections)
+  reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
+  reactWindowData.pluginData.refreshing = false // show refreshing message until done
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for sections ${String(sectionCodes)}`)
+  logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)
+  return handlerResult(true)
 }
 
 // Complete the task in the actual Note

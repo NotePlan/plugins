@@ -26,6 +26,7 @@ body {
 	position: sticky;
 	top: 0px;
 	z-index: 1000;
+	border-bottom: solid 1px var(--tint-color);
 }
 
 .lastUpdated {
@@ -441,4 +442,9 @@ input.apple-switch:checked:after {
   box-shadow: -2px 4px 3px rgba(0,0,0,0.1); /* 0.05;*/
 }
 
-  
+/* Header waiting spinner */
+
+.fa-spin {
+	color: var(--tint-color);
+    animation: spin 1s infinite linear;
+}

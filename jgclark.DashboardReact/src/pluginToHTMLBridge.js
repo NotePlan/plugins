@@ -283,6 +283,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doSetSpecificDate(data)
         break
       }
+      case 'refreshSomeSections': {
+        result = await refreshSomeSections(data)
+        break
+      }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
