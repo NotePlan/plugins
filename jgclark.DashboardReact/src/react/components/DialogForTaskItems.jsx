@@ -3,7 +3,8 @@
 // Dashboard React component to show the Dialog for tasks
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
-import React, { useRef, useEffect } from 'react'
+// TODO: dbw Flip in/out
+import React, { useRef, useEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
@@ -11,6 +12,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import '../css/animation.css'
 
 type RefType<T> = {| current: null | T |}
 
@@ -32,6 +34,8 @@ type Props = {
 }
 
 const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
+  const [animationClass, setAnimationClass] = useState('')
+
   logDebug(`DialogForTaskItems`, `inside component code details=`, details)
   // FIXME(@dwertheimer): I create a Type for this, but then your function doesn't like it
   const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(details)
@@ -124,19 +128,42 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     // refreshTimer()
     logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
+    // Start the flip-out animation
+    setAnimationClass('flip-out')
+
     // Dismiss dialog, unless meta key pressed
     if (!metaKey) {
-      onClose()
+      // Wait for animation to finish before actually closing
+      setTimeout(() => {
+        onClose()
+      }, 500) // Match the duration of the flip-out animation
     } else {
       console.log(`Option key pressed. But closing dialog anyway.`)
       onClose()
     }
   }
+
+  useEffect(() => {
+    // Trigger the 'flip-in' effect when the component mounts
+    setAnimationClass('flip-in')
+
+    // Setup to flip out before the component unmounts
+    return () => {
+      setAnimationClass('flip-out')
+    }
+  }, [])
+
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
       {/*----------- Single dialog that can be shown for any task-based item -----------*/}
-      <dialog id="itemControlDialog" className="itemControlDialog" aria-labelledby="Actions Dialog" aria-describedby="Actions that can be taken on items" ref={dialogRef}>
+      <dialog
+        id="itemControlDialog"
+        className={`itemControlDialog ${animationClass}`}
+        aria-labelledby="Actions Dialog"
+        aria-describedby="Actions that can be taken on items"
+        ref={dialogRef}
+      >
         <div className="dialogTitle" onClick={() => handleTitleClick()}>
           From: <i className="pad-left pad-right fa-regular fa-file-lines"></i>
           <b>
