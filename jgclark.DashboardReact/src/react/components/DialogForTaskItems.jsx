@@ -3,6 +3,9 @@
 // Dashboard React component to show the Dialog for tasks
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
+// Notes:
+// - onClose & details are passed down from Dashboard.jsx::handleDialogClose
+//
 // TODO: dbw Flip in/out
 import React, { useRef, useEffect, useState } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
@@ -43,7 +46,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
-  const { sendActionToPlugin } = useAppContext()
+  const { sendActionToPlugin, reactSettings } = useAppContext()
   const inputRef = useRef()
   const dialogRef = useRef(null)
 
@@ -87,6 +90,11 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
   }
 
+  // during overduecycle, user wants to skip this item (leave it overdue)
+  const handleSkipClick = () => {
+    onClose()
+  }
+
   // Handle the date selected from CalendarPicker
   const handleDateSelect = (date: Date) => {
     if (!date) return
@@ -121,7 +129,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
     sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, false)
-    if (controlStr === 'openNote') return //don't close dialog yet
+    if (controlStr === 'openNote' || controlStr.startsWith("pri")) return //don't close dialog yet
 
     // Send 'refresh' action to plugin after n ms - this is a bit of a hack
     // to get around the updateCache not being reliable.
@@ -170,9 +178,15 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
             <span id="dialogItemNote">{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
-          <button className="closeButton" onClick={() => onClose(true)} style={{ float: 'right', marginRight: '-2px', marginTop: '-5px' }}>
-            <i className="fa fa-times"></i>
-          </button>
+          <div className="dialog-top-right">
+            {reactSettings?.overdueProcessing && (<button className="skipButton" onClick={handleSkipClick}>
+              <i className="far fa-forward"></i>
+            </button>
+            )}
+            <button className="closeButton" onClick={() => onClose(true)}>
+              <i className="fa fa-times"></i>
+            </button>
+          </div>
         </div>
         <div className="dialogBody">
           <div className="buttonGrid" id="itemDialogButtons">

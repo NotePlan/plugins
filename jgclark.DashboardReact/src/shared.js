@@ -39,7 +39,8 @@ export function parseSettings(settings: string): any {
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
     if (!data?.item?.para) {
-        throw new Error(`Error validating data: 'item.para' is missing: ${JSON.stringify(data)}`)
+        logError(`Error validating data: 'item.para' is missing in data:\n${JSP(data,2)}`)
+        throw new Error(`Error validating data: 'item.para' is missing:\n${JSP(data,2)}`)
     }
 
     const { item } = data

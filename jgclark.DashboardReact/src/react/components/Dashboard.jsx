@@ -2,11 +2,13 @@
 
 import React, { useEffect } from 'react'
 import { removeDuplicates } from '../support/sectionHelpers.js'
+import { findSectionItems } from '../../dataGeneration.js'
+// import { type TDialogData } from '../../types.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import Dialog from './Dialog.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, clo } from '@helpers/react/reactDev.js'
+import { logDebug, clo, JSP } from '@helpers/react/reactDev.js'
 
 type Props = {
   pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
@@ -25,7 +27,6 @@ function Dashboard({ pluginData }: Props): React$Node {
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
   const sections = sharedSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
   console.log('Dashboard: pluginData:', pluginData, sections)
-  const { dialogData } = reactSettings ?? {}
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
@@ -58,10 +59,40 @@ function Dashboard({ pluginData }: Props): React$Node {
   //   updateDialogOpen(true)
   // }
 
+  // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
+  useEffect(() => {
+    if (!(reactSettings?.dialogData?.isOpen)) return
+    const { dialogData } = reactSettings
+    const {details:dialogItemDetails} = dialogData
+    if (!dialogItemDetails) return
+    logDebug('Dashboard', `top of useEffect: isOpen=${String(dialogData?.isOpen) || ''} itemID="${reactSettings?.dialogData?.details?.item?.ID || ''}"  dialogData=${JSP(reactSettings?.dialogData) || ''}  pluginData`, pluginData)
+    if (dialogData.isOpen && dialogItemDetails?.item.ID) {
+      if (!dialogData?.details?.item) return
+      const { ID: openItemInDialogID } = dialogItemDetails.item
+      const sectionIndexes = findSectionItems(origSections, ['ID'], { ID: openItemInDialogID })
+      logDebug('Dashboard', `sectionIndexes: ${JSP(sectionIndexes)}`)
+      if (!sectionIndexes?.length) return
+      const firstMatch = sectionIndexes[0]
+      const newDialogItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
+      logDebug('Dashboard', `newDialogItem: ${JSON.stringify(newDialogItem)}`)
+      if (newDialogItem && JSON.stringify(newDialogItem) !== JSON.stringify(dialogData)) {
+        setReactSettings(prev => ({
+          ...prev,
+          dialogData: {
+            ...dialogData,
+            details: newDialogItem
+          },
+          lastChange: '_Dialog was open, and data changed underneath'
+        }))
+      }
+    }
+  }, [pluginData, setReactSettings, reactSettings?.dialogData])
+
   const handleDialogClose = (xWasClicked: boolean = false) => {
     const overdueProcessing = xWasClicked ? { overdueProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...overdueProcessing }))
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: false, details: {} }, lastChange: `_Dashboard-DialogClosed`, ...overdueProcessing }))
   }
+
   return (
     <div style={dashboardContainerStyle}>
       {/* CSS for this part is in dashboard.css */}
@@ -72,7 +103,11 @@ function Dashboard({ pluginData }: Props): React$Node {
           <Section key={index} section={section} />
         ))}
       </div>
-      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen || false} isTask={dialogData?.isTask || true} details={dialogData?.details || {}} />
+      <Dialog onClose={handleDialogClose}
+        isOpen={reactSettings?.dialogData?.isOpen || false}
+        isTask={reactSettings?.dialogData?.isTask || true}
+        details={reactSettings?.dialogData?.details || {}}
+      />
     </div>
   )
 }

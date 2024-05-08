@@ -351,7 +351,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        logDebug('bCDI / processActionOnReturn', `UPDATE_CONTENT to {${updatedParagraph?.content ?? '(error)'}}: calling updateReactWindow..()`)
+        logDebug('bCDI / processActionOnReturn', `UPDATE_CONTENT to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
         await updateReactWindowFromLineChange(handlerResult, data, ['para.content', 'para.type'])
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
@@ -411,7 +411,7 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
       const { sectionIndex, itemIndex } = indexes[0]
       clo(indexes, 'updateReactWindow: indexes to update')
       clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-      logDebug('updateReactWindow', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${newParaContent}"`)
+      logDebug('updateReactWindow', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${JSP(newParaContent)}"`)
       if (shouldRemove) {
         // TEST:
         indexes.forEach((index) => {
@@ -420,6 +420,7 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
           sections[sectionIndex].items.splice(itemIndex, 1)
         })
       } else {
+        logDebug('updateReactWindow', `should update sections [${JSP(indexes)}] fields:${fieldPathsToUpdate.toString()} using para=\n\t${JSP(newPara)}`)
         sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: newPara }, sections)
       }
       clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)

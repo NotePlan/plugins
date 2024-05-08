@@ -164,9 +164,17 @@ export type TBridgeClickHandlerResult = {
   errorMsg?: string,
 }
 
-export type DialogData = {
+export type TDialogData = {
   isOpen: boolean,
-  [key: string]: any,
+  isTask?: boolean,
+  clickPosition?: {
+    clickX: number,
+    clickY: number,
+  },
+  details?: {
+    item: TSectionItem,
+    actionType?: string,
+  }
 }
 
 export type TReactSettings = {
@@ -175,7 +183,7 @@ export type TReactSettings = {
   ignoreChecklistItems?: boolean,
   hideDuplicates?: boolean,
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
-  dialogData?: DialogData,
+  dialogData?: TDialogData,
   refreshing?: boolean,
   [key: string]: any,
 }

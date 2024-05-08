@@ -231,7 +231,8 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     // Note: next 2 lines have to be this way around, otherwise a race condition
     const newPriority = (getTaskPriority(paraContent) + 1) % 5
     const updatedContent = cyclePriorityStateUp(para)
-    logDebug('doCyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
+    para.content = updatedContent
+    logDebug('doCyclePriorityStateUp', `cycling priority -> {${JSP(updatedContent)}}`)
 
     // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboardReact('refresh')
     // Note: But this doesn't work, because of race condition.
@@ -242,7 +243,7 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     //   newPriority: newPriority,
     // }
     // sendToHTMLWindow(windowId, 'cyclePriorityStateUp', updatedData)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedContent: updatedContent })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
     return handlerResult(false)
@@ -260,6 +261,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     // Note: next 2 lines have to be this way around, otherwise a race condition
     const newPriority = (getTaskPriority(paraContent) - 1) % 5
     const updatedContent = cyclePriorityStateDown(para)
+    para.content = updatedContent
     logDebug('doCyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
 
     // Update the content in place
@@ -269,7 +271,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     //   newPriority: newPriority,
     // }
     // sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedContent: updatedContent })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
     return handlerResult(false)
@@ -568,7 +570,7 @@ export function doSettingsChanged(data: MessageDataObject,settingName:string): T
   const settings = DataStore.settings
   const newSettings = data.settings
   if (!settings || !newSettings) {
-    throw new Error(`Error validating data: newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
+    throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
   logDebug('doSettingsChanged', `${settingName} updated`)

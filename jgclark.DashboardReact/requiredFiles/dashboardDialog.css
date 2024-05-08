@@ -124,3 +124,14 @@ dialog {
 i.fa-solid, i.fa-regular {
   color: var(--tint-color);
 }
+
+.dialog-top-right { 
+  float: right;
+  margin-right: -2px; 
+  margin-top: -5px;
+  margin-bottom: 5px;
+}
+
+.skipButton {
+  margin-right: 5px;
+}

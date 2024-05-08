@@ -993,12 +993,12 @@ export function findSectionItems(
         if (fieldValue instanceof RegExp) {
           return fieldValue.test(itemFieldValue)
         } else {
-          logDebug(
-            `findSectionItems:`,
-            `${item.ID} itemFieldValue: ${itemFieldValue} ${
-              itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
-            } fieldValue: ${fieldValue}`,
-          )
+          // logDebug(
+          //   `findSectionItems:`,
+          //   `${item.ID} itemFieldValue: ${itemFieldValue} ${
+          //     itemFieldValue ? (itemFieldValue === fieldValue ? 'equals' : 'does not equal') : 'is undefined'
+          //   } fieldValue: ${fieldValue}`,
+          // )
           return itemFieldValue ? itemFieldValue === fieldValue : false
         }
       })
@@ -1085,6 +1085,6 @@ function setNestedValue(obj: any, path: string, value: any) {
     currentObj = currentObj[field]
   }
   const finalField = fields[fields.length - 1]
-  clo(currentObj, 'setNestedValue, setting ${finalField} to ${value} = currentObj')
+  clo(currentObj, `setNestedValue, setting ${finalField} to ${value} = currentObj`)
   currentObj[finalField] = value
 }

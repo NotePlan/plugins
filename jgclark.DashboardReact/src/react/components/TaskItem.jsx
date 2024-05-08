@@ -32,7 +32,6 @@ function TaskItem({ item, thisSection }: Props): Node {
   const updateObj: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
-    metaModifier: '', // TODO: now applied below into actionType -- delete?
   }
 
   /**
