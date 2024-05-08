@@ -596,7 +596,7 @@ var RootBundle = (function (exports, React$1) {
                   ...globalSharedData,
                   ...payload
                 };
-                logDebug(`Root`, `SET_DATA after setting globalSharedData=`, globalSharedData);
+                // logDebug(`Root`, `SET_DATA after setting globalSharedData=`, globalSharedData)
                 break;
               case 'SHOW_BANNER':
                 showBanner(payload.msg, payload.color, payload.border);
@@ -606,7 +606,7 @@ var RootBundle = (function (exports, React$1) {
                 // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
                 break;
               case 'SEND_TO_PLUGIN':
-                logDebug(`Root`, ` onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`);
+                // logDebug(`Root`, ` onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`)
                 sendToPlugin(payload);
                 break;
               case 'RETURN_VALUE' /* function called returned a value */:
