@@ -12,7 +12,7 @@ import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard,
   // TProjectForDashboard
 } from './types'
-import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
+import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
 import {
   openTodayItems,
   refTodayItems,
@@ -77,13 +77,13 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
     clo(config, 'getAllSectionsData config is currently',2)
     const sections: Array<TSection> = []
     sections.push(getTodaySectionData(config, demoMode))
-    /* if (config.showYesterdaySection) */ sections.push(getYesterdaySectionData(config, demoMode))
-    /* if (config.showWeekSection)  */ sections.push(getTomorrowSectionData(config, demoMode))
-    /* if (config.showWeekSection)  */ sections.push(getThisWeekSectionData(config, demoMode))
-    /* if (config.showMonthSection)  */ sections.push(getThisMonthSectionData(config, demoMode))
-    /* if (config.showQuarterSection)  */ sections.push(getThisQuarterSectionData(config, demoMode))
-    /* if (config.showTagSection)  */ sections.push(getTaggedSectionData(config, demoMode))
-    /* if (config.showOverdueSection)  */ sections.push(await getOverdueSectionData(config, demoMode))
+    if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
+    if (config.showWeekSection)  sections.push(getTomorrowSectionData(config, demoMode))
+    if (config.showWeekSection)  sections.push(getThisWeekSectionData(config, demoMode))
+    if (config.showMonthSection)  sections.push(getThisMonthSectionData(config, demoMode))
+    if (config.showQuarterSection)  sections.push(getThisQuarterSectionData(config, demoMode))
+    if (config.showTagSection)  sections.push(getTaggedSectionData(config, demoMode))
+    if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
     sections.push(await getProjectSectionData(config, demoMode))
 
     return sections
@@ -97,22 +97,22 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
  * Generate data for some specified sections (subject to user currently wanting them as well)
  * @param {Array<string>} sectionCodes (default: allSectionCodes)
  * @param {boolean} demoMode (default: false)
+ * @param {boolean} force (default: false) - refresh sections even if setting is not enabled
  * @returns {Array<TSection>}
  */
-export async function getSomeSectionsData(sectionCodes: Array<TSectionCode> = allSectionCodes, demoMode: boolean = false): Promise<Array<TSection>> {
+export async function getSomeSectionsData(sectionCodes: Array<TSectionCode> = allSectionCodes, demoMode: boolean = false, force: boolean = false): Promise<Array<TSection>> {
   try {
-    const config: dashboardConfigType = await getSettings()
+    const sharedSettings: dashboardConfigType = await getSharedSettings()
     const sections: Array<TSection> = []
-    if (sectionCodes.includes('DT')) sections.push(getTodaySectionData(config, demoMode))
-    if (sectionCodes.includes('DY') && config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
-    if (sectionCodes.includes('DO') && config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
-    if (sectionCodes.includes('W') && config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
-    if (sectionCodes.includes('M') && config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
-    if (sectionCodes.includes('Q') && config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
-    if (sectionCodes.includes('TAG') && config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
-    if (sectionCodes.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
-    if (sectionCodes.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, demoMode))
-
+    if (sectionCodes.includes('DT')) sections.push(getTodaySectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('DY') && force || sharedSettings.showYesterdaySection) sections.push(getYesterdaySectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('DO') && force || sharedSettings.showWeekSection) sections.push(getTomorrowSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('W') && force || sharedSettings.showWeekSection) sections.push(getThisWeekSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('M') && force || sharedSettings.showMonthSection) sections.push(getThisMonthSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('Q') && force || sharedSettings.showQuarterSection) sections.push(getThisQuarterSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('TAG') && force || sharedSettings.tagToShow) sections.push(getTaggedSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('OVERDUE') && force || sharedSettings.showOverdueSection) sections.push(await getOverdueSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('PROJ') && force || sharedSettings.showProjectSection) sections.push(await getProjectSectionData(sharedSettings, demoMode))
     return sections
   } catch (error) {
     logError('getSomeSectionDetails', error.message)

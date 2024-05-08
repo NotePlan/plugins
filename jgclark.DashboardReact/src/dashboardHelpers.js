@@ -493,7 +493,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
       noteTitle,
     )}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   } catch (error) {

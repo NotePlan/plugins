@@ -29,10 +29,8 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
   // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
   if (filename !== thisSection.sectionFilename) {
     const dataObjectToPassToFunction = {
-      itemID: 'fake',
-      type: 'showNoteInEditorFromTitle',
-      filename: filename,
-      content: '-',
+      actionType: 'showNoteInEditorFromTitle',
+      ...item,
     }
     return (
       <a className="noteTitle sectionItem" onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}>

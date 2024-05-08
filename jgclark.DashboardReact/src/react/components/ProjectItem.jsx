@@ -38,7 +38,7 @@ function ReviewItem({ item }: Props): React.Node {
   const dataObjectToPassToControlDialog = {
     OS: 'macOS', // TODO: NotePlan.environment.platform,
     itemID: item.ID,
-    type: 'showNoteInEditorFromFilename',
+    actionType: 'showNoteInEditorFromFilename',
     filename: itemFilename,
     title: noteTitle,
     encodedContent: '',
