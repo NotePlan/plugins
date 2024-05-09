@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
+import {parseSettings} from "../../shared.js"
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -25,7 +26,8 @@ function Section(inputObj: SectionProps): React$Node {
     const items: Array<TSectionItem> = section.sectionItems
     // TODO(@dwertheimer): how to get sharedSettings into appContext?
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
-    const { overdueProcessing:overdueProcessingFeatureFlag } = pluginData?.settings?.featureFlags
+    const { featureFlags:ffStr } = pluginData?.settings || {}
+    const featureFlags = parseSettings(ffStr) || {}
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName]===false) {
@@ -166,7 +168,7 @@ function Section(inputObj: SectionProps): React$Node {
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && overdueProcessingFeatureFlag && (
+            {section.sectionCode === "OVERDUE" && featureFlags.overdueProcessing && (
             <button className="PCButton" onClick={handleProcessTasksClick}>
               Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             </div>
