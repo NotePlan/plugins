@@ -162,7 +162,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       return {
         filename: note.filename,
         noteType: note.type,
-        title: (note.type === 'Notes') ? displayTitle(note) : getISODateStringFromYYYYMMDD(note.filename),
+        title: (note.type === 'Notes') ? displayTitle(note) : note.title /* will be ISO-8601 date */,
         type: p.type,
         prefix: p.rawContent.replace(p.content, ''),
         content: p.content,
@@ -488,19 +488,19 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
-  try {
-    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
-    // Pass request back to plugin
-    // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
-      noteTitle,
-    )}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  } catch (error) {
-    logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
-    return '(error)'
-  }
-}
+// export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
+//   try {
+//     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
+//     // Pass request back to plugin
+//     // Note: not passing rawContent (param 4) as its not needed
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
+//       noteTitle,
+//     )}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+//   } catch (error) {
+//     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
  * Wrap string with href onClick event to show note in editor,

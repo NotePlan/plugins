@@ -10,7 +10,6 @@ type Props = {
   onChange?: (value: string) => void,
 }
 
-// Correctly defining the ref type as a callable type
 type RefType = {
   /** Method to retrieve the current value of the input. */
   getValue: () => string,
@@ -30,6 +29,11 @@ type RefType = {
  */
 const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardRef<Props, RefType>((props, ref): React.Element<'input'> => {
   const [inputValue, setInputValue] = React.useState(props.initialValue || '')
+
+  // Effect to update state if initialValue prop changes
+  React.useEffect(() => {
+    setInputValue(props.initialValue || '')
+  }, [props.initialValue])
 
   const handleChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
     const newValue = event.target.value

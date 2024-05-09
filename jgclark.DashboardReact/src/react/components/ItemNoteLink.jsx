@@ -29,11 +29,11 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
   // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
   if (filename !== thisSection.sectionFilename) {
     const dataObjectToPassToFunction = {
-      actionType: 'showNoteInEditorFromTitle',
-      ...item,
+      actionType: 'showNoteInEditorFromFilename',
+      item,
     }
     return (
-      <a className="noteTitle sectionItem" onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}>
+      <a className="noteTitle sectionItem" onClick={() => sendActionToPlugin('showNoteInEditorFromFilename', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}>
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
         {noteTitle}
       </a>

@@ -24,7 +24,8 @@ function Section(inputObj: SectionProps): React$Node {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
     // TODO(@dwertheimer): how to get sharedSettings into appContext?
-    const { sharedSettings, setReactSettings } = useAppContext()
+    const { sharedSettings, setReactSettings, pluginData } = useAppContext()
+    const { overdueProcessing:overdueProcessingFeatureFlag } = pluginData?.settings?.featureFlags
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName]===false) {
@@ -150,8 +151,8 @@ function Section(inputObj: SectionProps): React$Node {
         ...prevSettings,
         overdueProcessing: true,
         currentOverdueIndex: 0,
-      }));
-    };
+      }))
+    }
 
     // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
     const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
@@ -165,8 +166,9 @@ function Section(inputObj: SectionProps): React$Node {
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && (
-            <button className="PCButton" onClick={handleProcessTasksClick}>Process Tasks</button>)}
+            {section.sectionCode === "OVERDUE" && overdueProcessingFeatureFlag && (
+            <button className="PCButton" onClick={handleProcessTasksClick}>
+              Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             </div>
           {buttons}
         </div>

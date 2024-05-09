@@ -29,3 +29,35 @@
     animation: flip-in 0.5s forwards;
   }
   
+  /*************************************/
+
+  /* CSS for zooming animations */
+@keyframes zoom-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes zoom-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.zoom-out {
+  animation: zoom-out 0.5s forwards;
+}
+
+.zoom-in {
+  animation: zoom-in 0.5s forwards;
+}

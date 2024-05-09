@@ -29,7 +29,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   const [visible, setVisible] = useState(true)
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
-  const updateObj: MessageDataObject = {
+  const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
   }
@@ -43,24 +43,24 @@ function TaskItem({ item, thisSection }: Props): Node {
 
     switch (itemType) {
       case 'open':
-        updateObj.actionType = metaKey ? 'cancelTask' : 'completeTask'
+        messageObject.actionType = metaKey ? 'cancelTask' : 'completeTask'
         setVisible(false)
         break
       case 'checklist':
-        updateObj.actionType = metaKey ? 'cancelChecklist' : 'completeChecklist'
+        messageObject.actionType = metaKey ? 'cancelChecklist' : 'completeChecklist'
         setVisible(false)
         break
       case 'project':
-        updateObj.actionType = 'showNoteInEditorFromFilename'
+        messageObject.actionType = 'showNoteInEditorFromFilename'
         break
       default:
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
         break
     }
 
-    clo(updateObj, `ItemRow: item clicked: ${item.ID}`)
+    clo(messageObject, `ItemRow: item clicked: ${item.ID}`)
 
-    sendActionToPlugin(updateObj.actionType, updateObj, `${item.ID} Row icon clicked`, true)
+    sendActionToPlugin(messageObject.actionType, messageObject, `${item.ID} Row icon clicked`, true)
 
     // Send 'refresh' action to plugin after n seconds - this is a bit of a hack
     // to get around the updateCache not being reliable.
@@ -68,11 +68,11 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   const handleDialogClick = (e: MouseEvent): void => {
-    logDebug('TaskItem', 'handleDialogClick - setting dialogData to: ', updateObj)
+    logDebug('TaskItem', 'handleDialogClick - setting dialogData to: ', messageObject)
     // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
     // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
-    setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: true, details: updateObj, clickPosition } }))
+    setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition } }))
   }
 
   const statusDivClass =

@@ -10,6 +10,17 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+## [2.0.0.a13] @dbw
+- Fixed the open note by title that broke in the refactor of actionType
+- Fixed the broken note links to items that were not daily notes (e.g. weekly note links did not work) - was using a helper function getISODateStringFromYYYYMMDD(), but I changed it to use note.title
+- Added a click on the title of the task dialog to open the underlying note
+- Fix some types issues that were causing issues left over from the refactor
+- Added content refreshing from server when dialog box is open (e.g. priority flip, content update, etc.) -- this turned out to be quite challenging :)
+- Added some animation to the dialog opening/closing
+
+## [2.0.0.a12] @dbw
+- fixed some small things, but one big thing. conditional loading of data on load is back the way you wanted it. If you have the setting off, it doesn't pull the data on the initial load. if you then turn it on with a show* setting, it calls refreshSomeSections() and adds that section to the existing JSON. 
+
 ## [2.0.0.a11] @dbw
 - fixed the React side of the bug that was keeping data from displaying
 - fixed the bug on the data generation side that was keeping a lot of the data from generating

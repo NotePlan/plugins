@@ -4,11 +4,12 @@
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
-// - onClose & details are passed down from Dashboard.jsx::handleDialogClose
+// - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 // TODO: dbw Flip in/out
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, type ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
+import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
@@ -17,38 +18,25 @@ import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
 
-type RefType<T> = {| current: null | T |}
-
-type TDialogDetails = {
-  id: string,
-  itemType: string,
-  para: TParagraph,
-  filename: string,
-  title: string,
-  reschedOrMove: string,
-  content: string,
-  noteType: string,
-}
-
 type Props = {
-  onClose: () => void,
-  details: TDialogDetails,
-  positionDialog: (dialogRef: RefType<any>) => {},
+  onClose: (xWasClicked?: boolean) => void,
+  details: MessageDataObject,
+  positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
 
-const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$Node => {
+const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
-
-  logDebug(`DialogForTaskItems`, `inside component code details=`, details)
-  // FIXME(@dwertheimer): I create a Type for this, but then your function doesn't like it
-  const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(details)
+  const inputRef = useRef<?ElementRef<'dialog'>>(null)
+  const dialogRef = useRef<?ElementRef<'dialog'>>(null)
+  
+  logDebug(`DialogForTaskItems`, `inside component code detailsMessageObject=`, detailsMessageObject)
+  const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const { sendActionToPlugin, reactSettings } = useAppContext()
-  const inputRef = useRef()
-  const dialogRef = useRef(null)
+
 
   const dateChangeFunctionToUse = reschedOrMove === 'resched' ? 'updateTaskDate' : 'moveFromCalToCal'
 
@@ -77,22 +65,31 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
   ]
 
   useEffect(() => {
-    logDebug(`DialogForTaskItems`, `BEFORE POSITION details`, details)
-    positionDialog(dialogRef)
-    logDebug(`DialogForTaskItems`, `AFTER POSITION details`, details)
+    logDebug(`DialogForTaskItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
+    //$FlowIgnore
+    positionDialog(dialogRef) 
+    logDebug(`DialogForTaskItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
   function handleTitleClick() {
-    const dataObjectToPassToFunction = {
-      actionType: 'showNoteInEditorFromFilename',
-      ...details,
-    }
-    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
+    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
+    // Handle the shared closing functionality
+    const closeDialog = (forceClose: boolean = false) => {
+      // Start the zoom-out animation
+      setAnimationClass('zoom-out')
+  
+      // Wait for animation to finish before actually closing
+      setTimeout(() => {
+        onClose(forceClose)
+      }, 500) // Match the duration of the animation
+    }
+    
   // during overduecycle, user wants to skip this item (leave it overdue)
   const handleSkipClick = () => {
-    onClose()
+    closeDialog()
   }
 
   // Handle the date selected from CalendarPicker
@@ -102,14 +99,15 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     const str = date.toISOString().split('T')[0]
     const actionType = `setSpecificDate`
     logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin(actionType, { ...details, actionType, dateString: str }, 'Date selected', false)
-    onClose()
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', false)
+    closeDialog()
   }
 
   function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
     const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
-    clo(details, 'handleButtonClick details')
+    clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
+    // $FlowIgnore
     const updatedContent = inputRef?.current?.getValue() || ''
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
@@ -121,7 +119,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
     const dataToSend = {
-      ...details,
+      ...detailsMessageObject,
       actionType: type,
       controlStr: controlStr,
       updatedContent: '',
@@ -129,35 +127,35 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
     if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
     sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, false)
-    if (controlStr === 'openNote' || controlStr.startsWith("pri")) return //don't close dialog yet
+    if (controlStr === 'openNote' || controlStr.startsWith("pri") || controlStr === "update") return //don't close dialog yet
 
     // Send 'refresh' action to plugin after n ms - this is a bit of a hack
     // to get around the updateCache not being reliable.
     // refreshTimer()
     logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
-    // Start the flip-out animation
-    setAnimationClass('flip-out')
+    // Start the zoom/flip-out animation
+    setAnimationClass('zoom-out') //flip-out
 
     // Dismiss dialog, unless meta key pressed
     if (!metaKey) {
       // Wait for animation to finish before actually closing
       setTimeout(() => {
         onClose()
-      }, 500) // Match the duration of the flip-out animation
+      }, 500) // Match the duration of the animation
     } else {
-      console.log(`Option key pressed. But closing dialog anyway.`)
+      console.log(`Option key pressed. Closing without animation.`)
       onClose()
     }
   }
 
   useEffect(() => {
-    // Trigger the 'flip-in' effect when the component mounts
-    setAnimationClass('flip-in')
+    // Trigger the 'effect when the component mounts
+    setAnimationClass('zoom-in')
 
-    // Setup to flip out before the component unmounts
+    // run before the component unmounts
     return () => {
-      setAnimationClass('flip-out')
+      setAnimationClass('zoom-out')
     }
   }, [])
 
@@ -183,7 +181,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
               <i className="far fa-forward"></i>
             </button>
             )}
-            <button className="closeButton" onClick={() => onClose(true)}>
+            <button className="closeButton" onClick={() => closeDialog(true)}>
               <i className="fa fa-times"></i>
             </button>
           </div>
@@ -192,6 +190,7 @@ const DialogForTaskItems = ({ details, onClose, positionDialog }: Props): React$
           <div className="buttonGrid" id="itemDialogButtons">
             <div>For</div>
             <div className="dialogDescription">
+              {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
               <button className="updateItemContentButton" data-control-str="update" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
                 Update

@@ -61,26 +61,29 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
   useEffect(() => {
-    if (!(reactSettings?.dialogData?.isOpen)) return
+    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
     const { dialogData } = reactSettings
     const {details:dialogItemDetails} = dialogData
     if (!dialogItemDetails) return
+    // Note, dialogItemDetails is a MessageDataObject
     logDebug('Dashboard', `top of useEffect: isOpen=${String(dialogData?.isOpen) || ''} itemID="${reactSettings?.dialogData?.details?.item?.ID || ''}"  dialogData=${JSP(reactSettings?.dialogData) || ''}  pluginData`, pluginData)
-    if (dialogData.isOpen && dialogItemDetails?.item.ID) {
-      if (!dialogData?.details?.item) return
+    if (!dialogData?.details?.item) return
+    if (dialogItemDetails?.item?.ID) {
       const { ID: openItemInDialogID } = dialogItemDetails.item
       const sectionIndexes = findSectionItems(origSections, ['ID'], { ID: openItemInDialogID })
       logDebug('Dashboard', `sectionIndexes: ${JSP(sectionIndexes)}`)
       if (!sectionIndexes?.length) return
       const firstMatch = sectionIndexes[0]
-      const newDialogItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
-      logDebug('Dashboard', `newDialogItem: ${JSON.stringify(newDialogItem)}`)
-      if (newDialogItem && JSON.stringify(newDialogItem) !== JSON.stringify(dialogData)) {
+      const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
+      logDebug('Dashboard', `newDialogItem: ${JSP(newSectionItem,2)}`)
+      if (newSectionItem && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
         setReactSettings(prev => ({
           ...prev,
           dialogData: {
             ...dialogData,
-            details: newDialogItem
+            details: {
+              ...dialogData.details, item: newSectionItem
+            }
           },
           lastChange: '_Dialog was open, and data changed underneath'
         }))

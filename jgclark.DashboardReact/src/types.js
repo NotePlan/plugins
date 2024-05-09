@@ -87,8 +87,7 @@ export type TActionButton = {
   tooltip: string,
 }
 
-export type TActionType =
-  | 'onClickDashboardItem'
+export type TActionType = 'onClickDashboardItem'
   | 'refresh'
   | 'completeTask'
   | 'completeTaskThen'
@@ -141,7 +140,7 @@ export type MessageDataObject = {
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
-  metaModifier: any,
+  metaModifier?: any, /* probably not used */
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item
@@ -168,13 +167,10 @@ export type TDialogData = {
   isOpen: boolean,
   isTask?: boolean,
   clickPosition?: {
-    clickX: number,
-    clickY: number,
+    clientX: number,
+    clientY: number,
   },
-  details?: {
-    item: TSectionItem,
-    actionType?: string,
-  }
+  details?: MessageDataObject
 }
 
 export type TReactSettings = {
