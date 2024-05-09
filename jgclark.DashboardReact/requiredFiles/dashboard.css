@@ -8,6 +8,7 @@
 
 body {
 	margin: 0px;
+	width: 90vw;
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +64,8 @@ body {
 /* Large rows on page */
 .sections {
 	display: block;
+	padding-right: 10px;
+	margin-right: 10px;
 }
 
 /* Specific alignment fixes for icons inside buttons or links */
@@ -178,7 +181,12 @@ body {
 	align-items: start;
 	/* horizontal for all items this contains */
 	justify-items: start;
+	/*
+	opacity: 1; 
+	transition: opacity 500ms ease-in-out;
+	*/
 }
+
 /* General item icon details */
 .itemIcon {
 	margin-bottom: unset !important;
@@ -211,7 +219,7 @@ body {
 
 .dropdown-content {
     position: absolute;
-    right: 0;
+    right: 30px;
     padding-right: 5px;
     padding-top: 5px;
     padding-bottom: 10px;
@@ -219,6 +227,11 @@ body {
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
+	display: none;
+}
+
+.dropdown .dropdown-content {
+	display: block;
 }
 
 .dropdown-content.show {
@@ -377,11 +390,11 @@ button, .fake-button, .clickTarget {
 .avoidColumnBreakHere { /* apply to a <div> to avoid column break part-way through item */
 	break-inside: avoid;
 }
-.fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
-	visibility: hidden;
-	opacity: 0;
-	transition: visibility 0s 1.0s, opacity 1.0s linear;
-}
+.fadeOutAndHide {
+	transition: opacity 500ms ease-out;
+	opacity: 0;  /* Start from fully visible */
+  }
+
 /* Some headings specified from measuring the colour of NP sidebar elements */
 .sidebarDaily { font-size: 1.0rem; color: #d0703c; }
 .sidebarWeekly { font-size: 1.0rem; color: #be23b6; }

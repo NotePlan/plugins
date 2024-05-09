@@ -11,8 +11,9 @@ import React, { useRef, useEffect, useState, type ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
-import useRefreshTimer from './useRefreshTimer.jsx'
+// import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import StatusIcon from './StatusIcon.jsx'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -26,19 +27,20 @@ type Props = {
 
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
-  const inputRef = useRef<?ElementRef<'dialog'>>(null)
-  const dialogRef = useRef<?ElementRef<'dialog'>>(null)
+  const inputRef = useRef <? ElementRef < 'dialog' >> (null)
+  const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   
   logDebug(`DialogForTaskItems`, `inside component code detailsMessageObject=`, detailsMessageObject)
-  const { id, itemType, para, filename, title, reschedOrMove, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
+  const { id, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
-  const { sendActionToPlugin, reactSettings } = useAppContext()
+  const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
 
+  const resched = sharedSettings?.rescheduleNotMove || pluginData?.settings.rescheduleNotMove || false
 
-  const dateChangeFunctionToUse = reschedOrMove === 'resched' ? 'updateTaskDate' : 'moveFromCalToCal'
+  const dateChangeFunctionToUse = resched ? 'updateTaskDate' : 'moveFromCalToCal'
 
   /**
    * Array of buttons to render.
@@ -67,7 +69,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   useEffect(() => {
     logDebug(`DialogForTaskItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
     //$FlowIgnore
-    positionDialog(dialogRef) 
+    positionDialog(dialogRef)
     logDebug(`DialogForTaskItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
@@ -76,17 +78,17 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
-    // Handle the shared closing functionality
-    const closeDialog = (forceClose: boolean = false) => {
-      // Start the zoom-out animation
-      setAnimationClass('zoom-out')
-  
-      // Wait for animation to finish before actually closing
-      setTimeout(() => {
-        onClose(forceClose)
-      }, 500) // Match the duration of the animation
-    }
-    
+  // Handle the shared closing functionality
+  const closeDialog = (forceClose: boolean = false) => {
+    // Start the zoom-out animation
+    setAnimationClass('zoom-out')
+
+    // Wait for animation to finish before actually closing
+    setTimeout(() => {
+      onClose(forceClose)
+    }, 500) // Match the duration of the animation
+  }
+
   // during overduecycle, user wants to skip this item (leave it overdue)
   const handleSkipClick = () => {
     closeDialog()
@@ -101,6 +103,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
     sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', false)
     closeDialog()
+  }
+
+  function handleIconClick() {
+    //TODO: do something here
+    logDebug(`DialogForTaskItems`, `handleIconClick: something was clicked. what to do?`)
   }
 
   function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
@@ -137,7 +144,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     // Start the zoom/flip-out animation
     setAnimationClass('zoom-out') //flip-out
 
-    // Dismiss dialog, unless meta key pressed
+    // Dismiss dialog, unless meta key pressed //TODO: change this to option key
     if (!metaKey) {
       // Wait for animation to finish before actually closing
       setTimeout(() => {
@@ -170,12 +177,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         aria-describedby="Actions that can be taken on items"
         ref={dialogRef}
       >
-        <div className="dialogTitle" onClick={() => handleTitleClick()}>
-          From: <i className="pad-left pad-right fa-regular fa-file-lines"></i>
+        <div className="dialogTitle dialogHeader" onClick={() => handleTitleClick()}>
+        <div id="dialogFileParts">
+          <div className="preText">From:</div><i className="pad-left pad-right fa-regular fa-file-lines"></i>
           <b>
             <span id="dialogItemNote">{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </b>
+          </div>
           <div className="dialog-top-right">
             {reactSettings?.overdueProcessing && (<button className="skipButton" onClick={handleSkipClick}>
               <i className="far fa-forward"></i>
@@ -187,34 +196,45 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           </div>
         </div>
         <div className="dialogBody">
-          <div className="buttonGrid" id="itemDialogButtons">
-            <div>For</div>
+          <div id="line1" className="contentLine">
+            <div className="preText">For:</div>
+            <StatusIcon
+              item={detailsMessageObject?.item}
+              respondToClicks={true}
+              onIconClick={handleIconClick}
+            />
             <div className="dialogDescription">
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
-              <button className="updateItemContentButton" data-control-str="update" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
-                Update
-              </button>
             </div>
-            <div>Move to</div>
-            <div id="itemControlDialogMoveControls">
-              {buttons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
-                  {button.label}
-                </button>
-              ))}
-              <CalendarPicker onSelectDate={handleDateSelect} />
+            <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
+              Update
+            </button>
+          </div>
+          <div className="buttonGrid" id="itemDialogButtons">
+            <div id="line2" className="buttonLine">
+              <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
+              <div id="itemControlDialogMoveControls">
+                {buttons.map((button, index) => (
+                  <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                    {button.label}
+                  </button>
+                ))}
+                <CalendarPicker onSelectDate={handleDateSelect} />
+              </div>
             </div>
-            <div>Other controls</div>
-            <div id="itemControlDialogOtherControls">
-              {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
-                  {button.icons?.map((icon) => (
-                    <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
-                  ))}
-                  {button.label}
-                </button>
-              ))}
+            <div id="line3" className="buttonLine">
+              <div className="preText">Other controls:</div>
+              <div id="itemControlDialogOtherControls">
+                {otherControlButtons.map((button, index) => (
+                  <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                    {button.icons?.map((icon) => (
+                      <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
+                    ))}
+                    {button.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

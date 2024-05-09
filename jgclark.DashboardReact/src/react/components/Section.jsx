@@ -139,9 +139,9 @@ function Section(inputObj: SectionProps): React$Node {
     let descriptionToUse = section.description
     if (descriptionToUse.includes('{count}')) {
       if (limitApplied) {
-        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'}>first ${String(itemsToShow.length)}</span>`)
+        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(itemsToShow.length)}</span>`)
       } else {
-        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'}>${String(itemsToShow.length)}</span>`)
+        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(itemsToShow.length)}</span>`)
       }
     }
     if (descriptionToUse.includes('{totalCount}')) {

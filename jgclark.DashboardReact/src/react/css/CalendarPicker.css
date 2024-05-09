@@ -1,39 +1,47 @@
-
 .calendarPickerCustom {
-    margin-top: 0px;
-    padding-top: 0px;
+  margin-top: 0px;
+  padding-top: 0px;
+}
+.rdp-day {
+  box-shadow: none;
 }
 
-.rdp-months, .rdp-month {
-    margin-top: 0px;
-    padding-top: 0px;
+.rdp-months,
+.rdp-month {
+  margin-top: 0px;
+  padding-top: 0px;
 }
 
-.rdp-day_selected {
-    background-color: #4CAF50; /* Example: Green background for selected days */
-    color: white; /* White text color */
+.rdp-nav {
+  scale: 75%;
+  margin-bottom: 5px;
+  padding-bottom: 10px;
+  top: 40%;
+  z-index:10;
 }
 
 .dayPicker-container {
-    overflow: hidden;  
-    position: relative;  
-    width: 100%;  
-    height: auto;  
-  }
-  
-  /* have not figured out how to set the size of the calendar itself yet */
-  /* changing the cell size here helps but i don't know how to set the whole container size */
-  .rdp {
-    --rdp-cell-size: '30px';
-  }
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin-top: 20px;
+}
 
-  /* reduce padding at the top of the calendar */
-  .dayPicker-container .buttonGrid div:nth-child(1) { 
-    padding-block-start: 0px; 
-  }
+/* have not figured out how to set the size of the calendar itself yet */
+/* changing the cell size here helps but i don't know how to set the whole container size */
+.rdp {
+  --rdp-cell-size: '30px';
+  box-shadow: none;
+}
 
-  /* change the color of the today button */
-  .rdp-day_selected {
-    background-color: var(--tint-color);
-    color: var(--fg-main-color);
-  }
+/* reduce padding at the top of the calendar */
+.dayPicker-container .buttonGrid div:nth-child(1) {
+  padding-block-start: 0px;
+}
+
+/* change the color of the today button */
+.rdp-day_selected {
+  background-color: var(--tint-color);
+  color: var(--fg-main-color);
+}

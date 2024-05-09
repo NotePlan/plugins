@@ -1,55 +1,51 @@
-// @flow
 //--------------------------------------------------------------------------
 // TaskItem.jsx
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
-
+// @flow
 import React, { useState } from 'react'
 import { type Node } from 'react'
 import { type TSectionItem, type TSection, type MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
-import useRefreshTimer from './useRefreshTimer.jsx'
-import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import StatusIcon from './StatusIcon.jsx'
 import { logDebug, clo } from '@helpers/react/reactDev.js'
 
 type Props = {
   item: TSectionItem,
   thisSection: TSection,
-}
+};
 
 function TaskItem({ item, thisSection }: Props): Node {
-  const { setReactSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { setReactSettings, pluginData } = useAppContext()
   const { settings } = pluginData
 
-  // Hooks
   const [visible, setVisible] = useState(true)
-  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
   }
 
-  /**
-   * Handle clicking on item icons
-   */
-  function handleIconClick(event: MouseEvent) {
-    const { metaKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
+  function handleIconClick() {
     const { itemType } = item
 
     switch (itemType) {
       case 'open':
-        messageObject.actionType = metaKey ? 'cancelTask' : 'completeTask'
-        setVisible(false)
+      case 'checklist': {
+        // Start the fade out effect
+        const fadeElement = document.getElementById(item.ID)
+        if (fadeElement) fadeElement.classList.add('fadeOutAndHide')
+
+        // Set visible to false after 500ms
+        setTimeout(() => {
+          setVisible(false)
+        }, 500)
         break
-      case 'checklist':
-        messageObject.actionType = metaKey ? 'cancelChecklist' : 'completeChecklist'
-        setVisible(false)
-        break
+      }
       case 'project':
         messageObject.actionType = 'showNoteInEditorFromFilename'
         break
@@ -57,53 +53,35 @@ function TaskItem({ item, thisSection }: Props): Node {
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
         break
     }
-
     clo(messageObject, `ItemRow: item clicked: ${item.ID}`)
-
-    sendActionToPlugin(messageObject.actionType, messageObject, `${item.ID} Row icon clicked`, true)
-
-    // Send 'refresh' action to plugin after n seconds - this is a bit of a hack
-    // to get around the updateCache not being reliable.
-    refreshTimer()
   }
 
-  const handleDialogClick = (e: MouseEvent): void => {
-    logDebug('TaskItem', 'handleDialogClick - setting dialogData to: ', messageObject)
-    // NEED TO SAVE JUST THE TWO FIELDS YOU WANT TO PASS TO THE DIALOG
-    // IF YOU TRY TO SAVE THE WHOLE OBJECT, IT CAUSES A CIRCULAR REFERENCE
+  const handleClickToOpenDialog = (e: MouseEvent): void => {
+    logDebug('TaskItem', 'handleClickToOpenDialog - setting dialogData to: ', messageObject)
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
-    setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-DialogOpen`, dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition } }))
+    setReactSettings((prev) => ({
+      ...prev,
+      lastChange: `_Dashboard-DialogOpen`,
+      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
+    }))
   }
-
-  const statusDivClass =
-    item.itemType === 'open' ? 'sectionItemTodo todo' : item.itemType === 'checklist' ? 'sectionItemChecklist todo' : item.itemType === 'congrats' ? 'checked' : ''
-  const iconClassName =
-    item.itemType === 'open'
-      ? 'todo fa-regular fa-circle'
-      : item.itemType === 'checklist'
-      ? 'todo fa-regular fa-square'
-      : item.itemType === 'congrats'
-      ? 'fa-regular fa-circle-check'
-      : ''
-
-  // Note the visible && below removes the item immediately
-  // Removing that will cause a fade-out to occur but leaves the space on the page
 
   return (
-    visible && (
-      <div className={`sectionItemRow${visible ? '' : ' fadeOutAndHide'}`} id={item.ID}>
-        <div className={`${statusDivClass} TaskItem`} onClick={handleIconClick}>
-          <i id={`${item.ID}I`} className={`${iconClassName}`}></i>
-        </div>
-        <div className="sectionItemContent sectionItem">
-          <ItemContent item={item} />
-          {settings?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
-          <a className="dialogTrigger">
-            <i className="fa-light fa-edit pad-left" onClick={handleDialogClick}></i>
-          </a>
-        </div>{' '}
+    visible ? (
+      <div className={`sectionItemRow`} id={item.ID}>
+        <StatusIcon
+          item={item}
+          respondToClicks={true}
+          onIconClick={handleIconClick}
+        />
+        <ItemContent item={item} >
+        {settings?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
+        <a className="dialogTrigger">
+          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+        </a>
+        </ItemContent>
       </div>
-    )
+    ) : null
   )
 }
 

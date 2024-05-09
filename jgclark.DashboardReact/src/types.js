@@ -87,7 +87,8 @@ export type TActionButton = {
   tooltip: string,
 }
 
-export type TActionType = 'onClickDashboardItem'
+export type TActionType = 
+  | 'onClickDashboardItem'
   | 'refresh'
   | 'completeTask'
   | 'completeTaskThen'
@@ -107,7 +108,10 @@ export type TActionType = 'onClickDashboardItem'
   | 'showLineInEditorFromTitle'
   | 'moveToNote'
   | 'moveFromCalToCal'
-  | 'updateTaskDate' // 'windowResized'
+  | 'updateTaskDate' 
+  | '(not yet set)'
+  | 'unknown'
+  // 'windowResized'
 
 export type TControlString =
   | 't'

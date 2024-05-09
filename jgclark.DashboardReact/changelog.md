@@ -10,6 +10,17 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+
+## [2.0.0.a14] @dbw
+- abstracted the status icon into its own component StatusIcon so it can be re-used
+- fixed iphone settings not working
+- fixed some css tweaks (Dialog still needs some styling refinements)
+- fixed dropdown menu flashing open. needed to display:none and then display:block when it is open
+- fixed some layout issues on the dialog menu
+- removed w3.css because it was conflicting
+- continued to clean up types and remove flow errors
+- we need to test/fix/implement each of the clickActions
+
 ## [2.0.0.a13] @dbw
 - Fixed the open note by title that broke in the refactor of actionType
 - Fixed the broken note links to items that were not daily notes (e.g. weekly note links did not work) - was using a helper function getISODateStringFromYYYYMMDD(), but I changed it to use note.title

@@ -5,7 +5,6 @@ import pluginJson from '../plugin.json' // gives you access to the contents of p
 import { showDashboardReact } from './reactMain'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { editSettings } from '@helpers/NPSettings'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
@@ -17,19 +16,6 @@ import { showMessage } from '@helpers/userInput'
  *
  */
 
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings started`)
-    const res = await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.

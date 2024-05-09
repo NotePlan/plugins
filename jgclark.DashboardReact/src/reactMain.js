@@ -77,7 +77,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     // w3.css reference: https://www.w3schools.com/w3css/default.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <!-- <link rel="stylesheet" href="../np.Shared/css.w3.css"> -->
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
 		  <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css"> -->

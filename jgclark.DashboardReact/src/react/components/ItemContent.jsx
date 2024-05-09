@@ -38,12 +38,13 @@ import {
 
 type Props = {
   item: TSectionItem,
+  children: Array<Node>
 }
 
 /**
  * Represents the main content for a single item within a section
  */
-function ItemContent({ item }: Props): React$Node {
+function ItemContent({ item, children }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
   // const itemType = para.type
 
@@ -63,7 +64,7 @@ function ItemContent({ item }: Props): React$Node {
   // console.log(`-> ${mainContent}`)
 
   // TODO(later): try not to live dangerously!
-  return <a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
+  return <div className="sectionItemContent sectionItem"><a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
 }
 
 /**
