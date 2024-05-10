@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 6.5.2024 for v2.0.0 by @jgclark
+// Last updated 10.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 import { type MessageDataObject, type TSectionItem } from './types'
@@ -17,6 +17,9 @@ export type ValidatedData = {
 
 export function parseSettings(settings: string): any {
     try {
+        if (!settings) {
+            throw new Error('Undefined settings passed')
+        }
         return JSON.parse(settings)
     } catch (error) {
         logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${settings}`)

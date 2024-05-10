@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
-// Last updated 6.5.2024 for v2.0.0 by @jgclark
+// Last updated 10.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -17,6 +17,7 @@ import StatusIcon from './StatusIcon.jsx'
 import { logDebug, clo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+// TODO(dbw): can you explain this kind of import, which I have never seen before:
 import '../css/animation.css'
 
 type Props = {
@@ -30,8 +31,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   
-  logDebug(`DialogForTaskItems`, `inside component code detailsMessageObject=`, detailsMessageObject)
-  const { id, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
+  // logDebug(`DialogForTaskItems`, `inside component code detailsMessageObject=`, detailsMessageObject)
+  const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
   // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
@@ -56,12 +57,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     { label: 'this month', controlStr: '+0m' },
     { label: 'this quarter', controlStr: '+0q' },
   ]
+  // Note: Extra setup is required for certain buttons:
+  // - Cancel button icon circle or square, and function
+  // - Toggle Type icon circle or square
   const otherControlButtons = [
-    { label: 'Cancel', controlStr: 'canceltask', handlingFunction: 'cancelTask' },
+    { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
     { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'left' }] },
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
-    { label: 'Toggle Type', controlStr: 'tog', handlingFunction: 'toggleType' },
+    { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
     { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
     { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
   ]
@@ -118,7 +122,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     const updatedContent = inputRef?.current?.getValue() || ''
     logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
-      `Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
+      `Button clicked on ID: ${ID} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
         altKey,
       )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
     )
@@ -177,65 +181,73 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         aria-describedby="Actions that can be taken on items"
         ref={dialogRef}
       >
-        <div className="dialogTitle dialogHeader" onClick={() => handleTitleClick()}>
-        <div id="dialogFileParts">
-          <div className="preText">From:</div><i className="pad-left pad-right fa-regular fa-file-lines"></i>
-          <b>
-            <span id="dialogItemNote">{title}</span>
+        <div className="dialogTitle" onClick={() => handleTitleClick()}>
+          <div id="dialogFileParts">
+            <span className="preText">From:</span>
+            <i className="pad-left pad-right fa-regular fa-file-lines"></i>
+            <span className="dialogItemNote" id="dialogItemNote">{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
-          </b>
           </div>
           <div className="dialog-top-right">
             {reactSettings?.overdueProcessing && (<button className="skipButton" onClick={handleSkipClick}>
-              <i className="far fa-forward"></i>
+              <i className="fa-regular fa-forward"></i>
             </button>
             )}
             <button className="closeButton" onClick={() => closeDialog(true)}>
-              <i className="fa fa-times"></i>
+              <i className="fa-solid fa-square-xmark"></i>
             </button>
           </div>
         </div>
+
         <div className="dialogBody">
-          <div id="line1" className="contentLine">
+          <div className="buttonGrid" id="itemDialogButtons">
+            {/* line1 ---------------- */}
             <div className="preText">For:</div>
-            {detailsMessageObject?.item ?<StatusIcon
-              item={detailsMessageObject?.item}
-              respondToClicks={true}
-              onIconClick={handleIconClick}
-            /> : null}
             <div className="dialogDescription">
+              {/* FIXME: try to bring back in as a span not as a div */}
+              {/* {detailsMessageObject?.item ? <StatusIcon
+                item={detailsMessageObject?.item}
+                respondToClicks={true}
+                onIconClick={handleIconClick}
+              /> : null}  */}
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
+              <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
+                Update
+              </button>
             </div>
-            <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
-              Update
-            </button>
-          </div>
-          <div className="buttonGrid" id="itemDialogButtons">
-            <div id="line2" className="buttonLine">
+
+            {/* line2 ---------------- */}
               <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
               <div id="itemControlDialogMoveControls">
                 {buttons.map((button, index) => (
-                  <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                  <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
                     {button.label}
                   </button>
                 ))}
                 <CalendarPicker onSelectDate={handleDateSelect} />
               </div>
-            </div>
-            <div id="line3" className="buttonLine">
+            {/* </div> */}
+
+            {/* line3 ---------------- */}
               <div className="preText">Other controls:</div>
               <div id="itemControlDialogOtherControls">
                 {otherControlButtons.map((button, index) => (
-                  <button key={index} className="PCButton" data-control-str={button.controlStr} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
-                    {button.icons?.map((icon) => (
+                  <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                    {/* {button.icons?.map((icon) => (
                       <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
+                    ))} */}
+                    {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
+                      <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                     ))}
                     {button.label}
+                    {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
+                      <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    ))}
                   </button>
                 ))}
               </div>
-            </div>
+            {/* </div> */}
           </div>
         </div>
       </dialog>

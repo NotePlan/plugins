@@ -59,7 +59,7 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
 
 // eslint-disable-next-line max-len
 export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, setReactSettings, updatePluginData, sharedSettings, setSharedSettings }: Props): Node => {
-  logDebug(`AppProvider`, `inside component code`)
+  // logDebug(`AppProvider`, `inside component code`)
 
   const contextValue: AppContextType = {
     sendActionToPlugin,

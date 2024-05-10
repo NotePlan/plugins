@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard compponent
-// Last updated 6.5.2024 for v2.0.0 by @jgclark
+// Last updated 10.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
@@ -24,14 +24,14 @@ function Section(inputObj: SectionProps): React$Node {
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
-    // TODO(@dwertheimer): how to get sharedSettings into appContext?
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
+    // in destructuring rename "featureFlags" to 'ffStr':
     const { featureFlags:ffStr } = pluginData?.settings || {}
     const featureFlags = parseSettings(ffStr) || {}
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName]===false) {
-      logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
+      // logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
       return
     }
 
@@ -39,11 +39,11 @@ function Section(inputObj: SectionProps): React$Node {
       throw new Error(`❓Section doesn't exist.`)
     } else if (!section.sectionItems || section.sectionItems.length === 0) {
       if (section.ID !== 0) {
-        logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
+        // logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
         return
       } else {
         // As there are no items in first section, then add a congratulatory message
-        logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
+        // logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
         items.push({
           ID: '0-Congrats',
           itemType: 'congrats',
@@ -52,7 +52,7 @@ function Section(inputObj: SectionProps): React$Node {
         })
       }
     } else {
-      logDebug(`Section`, `Section: ${section.ID} / ${section.sectionCode} with ${section.sectionItems.length} items`)
+      // logDebug(`Section`, `Section: ${section.ID} / ${section.sectionCode} with ${section.sectionItems.length} items`)
     }
 
     // Produce set of actionButtons, if present
@@ -117,7 +117,7 @@ function Section(inputObj: SectionProps): React$Node {
     // because there can be a pre-filter in Overdue generation, given by section.totalCount
     const filteredOut = section.totalCount ? section.totalCount - itemsToShow.length : items.length - itemsToShow.length
     const limitApplied = (section.totalCount ?? 0) > itemsToShow.length
-    logDebug('Section', `- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
+    // logDebug('Section', `- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
 
     // Send an extra line if we've applied filtering/limit
     if (filteredOut > 0) {
@@ -178,7 +178,6 @@ function Section(inputObj: SectionProps): React$Node {
       </div>
     )
   } catch (error) {
-    // logError('Section', `❗️ERROR❗️: ${error.message}`)
     logError('Section', `${error.message}`)
   }
 }

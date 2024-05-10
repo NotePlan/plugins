@@ -19,7 +19,7 @@ type Props = {
  */
 function Dashboard({ pluginData }: Props): React$Node {
   //   const { sendActionToPlugin, sendToPlugin, dispatch, pluginData }  = useAppContext()
-  logDebug(`Dashboard`, `inside component code`)
+  // logDebug(`Dashboard`, `inside component code`)
 
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData

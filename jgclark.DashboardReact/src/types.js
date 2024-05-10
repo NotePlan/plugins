@@ -4,7 +4,7 @@
 // Last updated 6.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
 type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -19,7 +19,7 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'TAG', sectionName: 'Tag', showSettingName: `showTagSection` },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
-  { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
+  // { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
