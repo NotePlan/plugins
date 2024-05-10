@@ -22,6 +22,7 @@ dialog {
   border: solid 1px var(--tint-color);
   border-radius: 0.5em;
   box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
+  display: none;
 }
 
 .dialogTitle {
@@ -118,3 +119,5 @@ dialog {
 i.fa-solid, i.fa-regular {
   color: var(--tint-color);
 }
+
+/** Animations are in the animations.css file */

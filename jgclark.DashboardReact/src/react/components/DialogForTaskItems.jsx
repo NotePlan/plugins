@@ -7,7 +7,7 @@
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 // TODO: dbw Flip in/out
-import React, { useRef, useEffect, useState, type ElementRef } from 'react'
+import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
@@ -82,11 +82,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const closeDialog = (forceClose: boolean = false) => {
     // Start the zoom-out animation
     setAnimationClass('zoom-out')
+    scheduleClose(500, forceClose)  // Match the duration of the animation
+  }
 
-    // Wait for animation to finish before actually closing
-    setTimeout(() => {
-      onClose(forceClose)
-    }, 500) // Match the duration of the animation
+  const scheduleClose = (delay: number, forceClose: boolean = false) => {
+    setTimeout(() => onClose(forceClose), delay)
   }
 
   // during overduecycle, user wants to skip this item (leave it overdue)
@@ -106,7 +106,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   }
 
   function handleIconClick() {
-    //TODO: do something here
+    closeDialog()
     logDebug(`DialogForTaskItems`, `handleIconClick: something was clicked. what to do?`)
   }
 
@@ -146,7 +146,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
     // Dismiss dialog, unless meta key pressed //TODO: change this to option key
     if (!metaKey) {
-      // Wait for animation to finish before actually closing
+      // Wait for zoom animation animation to finish before actually closing
       setTimeout(() => {
         onClose()
       }, 500) // Match the duration of the animation
@@ -156,7 +156,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Trigger the 'effect when the component mounts
     setAnimationClass('zoom-in')
 
@@ -198,11 +198,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         <div className="dialogBody">
           <div id="line1" className="contentLine">
             <div className="preText">For:</div>
-            <StatusIcon
+            {detailsMessageObject?.item ?<StatusIcon
               item={detailsMessageObject?.item}
               respondToClicks={true}
               onIconClick={handleIconClick}
-            />
+            /> : null}
             <div className="dialogDescription">
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />

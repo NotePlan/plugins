@@ -39,7 +39,6 @@ function TaskItem({ item, thisSection }: Props): Node {
         // Start the fade out effect
         const fadeElement = document.getElementById(item.ID)
         if (fadeElement) fadeElement.classList.add('fadeOutAndHide')
-
         // Set visible to false after 500ms
         setTimeout(() => {
           setVisible(false)
