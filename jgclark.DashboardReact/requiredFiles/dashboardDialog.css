@@ -1,160 +1,145 @@
+/**
+  CSS for the items Actions Dialog 
+  Last updated: 5.5.2024 for v2.0.0 by @jgclark
+  */
+dialog:modal {
+  max-width: 92%;
+}
+
+/* @media screen and (width <= 420px) {
+  dialog:modal {
+    max-width: 90%;
+    left: 5%;
+  }
+} */
+
 dialog {
-  display: block;
-  margin: 0;
+  /* Unset the margin around it, to allow absolute positioning by left/top */
+  display:block;
+  margin: 0rem;
   color: var(--fg-main-color);
   background: var(--bg-main-color);
-  padding: 0;
-  border: 1px solid var(--tint-color);
+  padding: 0rem;
+  border: solid 1px var(--tint-color);
   border-radius: 0.5em;
-  box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
   z-index: 50;
-  max-width: 92%;
-  /* Adjusted to be outside media query for consistent application */
+}
 
+.dialogTitle {
+  display: grid;
+  background: var(--bg-alt-color);
+  padding-block-start: 0.6rem;
+  padding-inline-start: 0.5rem;
+  padding-inline-end: 0.5rem;
+  padding-block-end: 0.2rem;
+  border-block-end: 1px solid gray;
+  /* margin-block-end: 4px; */
+  grid-template-columns: auto auto;
+  /* vertically align content items in center */
+  align-items: center; 
+}
 
-  .dialogHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+.dialogTitle div:nth-last-child(1) {
+  /* Put very last div (Close button etc.) on RHS */
+  justify-self: end;
+  /* margin-bottom: 5px; */
+}
 
-  #dialogFileParts {
-    display: flex;
-    align-items: center;
-    justify-content: start;
-  }
+.dialogItemNote {
+  font-weight: 600;
+}
 
-  /*** ALL THIS IS SCOPED INSIDE OF dialog to keep it from bleeding
-   * outside of the dialog ***/
+.dialogItemNoteType {
+  font-weight: 400;
+}
 
-  .todo {
-    margin-bottom: 0px;
-    margin-right: 0px
-  }
+.dialogBody {
+  padding-block-start: 0.3rem;
+  padding-inline-start: 0.5rem;
+  padding-inline-end: 0.5rem;
+  padding-block-end: 0.6rem;
+}
 
-  .dialogTitle {
-    display: flex;
-    justify-content: space-between;
-    background: var(--bg-alt-color);
-    padding: 0.6rem 0.5rem 0.2rem 0.5rem;
-    border-bottom: 1px solid gray;
-  }
+.dialogDescription {
+  padding-block-start: 5px;
+  display: grid;
+  grid-template-columns: 1fr auto; /* mostly the input */
+}
 
-  .dialogItemNote {
-    font-weight: 600;
-  }
+.buttonGrid {
+  display: grid;
+  grid-template-columns: auto minmax(15rem, auto);
+  column-gap: 0.3rem;
+  row-gap: 0.2rem;
+  /* vertically align content items in center */
+  align-items: center; 
+}
 
-  .dialogItemNoteType {
-    font-weight: 400;
-  }
+.buttonGrid div:nth-child(odd) {
+  align-self: self-start;
+  padding-block-start: 5px;
+  justify-self: end;
+}
 
-  .dialogBody {
-    display: grid;
-    grid-template-rows: auto auto auto;
-    /* Clearly define three rows */
-    gap: 10px;
-    padding: 10px 10px 0px 10px;
-    /* Adding some padding inside the dialog body for spacing */
-  }
+.buttonGrid div:nth-last-child(1) {
+  /* Put very last div (Close button) on RHS */
+  justify-self: end;
+}
 
-  .contentLine {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    /* Align items to the start of the line */
-  }
+.buttonGrid div:nth-child(1) {
+  /* Put very first div down a bit to try to align with input field */
+  padding-block-start: 10px;
+}
 
-  .preText {
-    width: 100px;
-    /* Fixed width for label texts */
-    text-align: right;
-    margin-right: 10px;
-    /* Consistent margin for spacing */
-    flex-shrink: 0;
-    /* Prevents the label from shrinking */
-  }
+/* for Dialog main buttons: a little more pronounced */
+.mainButton {
+	background-color: var(--bg-alt-color);
+	font-size: 0.9rem;
+	font-weight: 600;
+	border: 1px solid var(--tint-color);
+	padding: 2px 5px 2px 5px;
+	margin: 2px 4px;
+}
 
-  .itemIcon {
-    width: 30px;
-    /* Width fixed to accommodate the icon */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+.dialogBody button {
+  font-size: 0.85rem;
+  font-weight: 400;
+  /* add a clearer border to buttons */
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+  border-radius: 4px;
+  padding: 1px 4px 1px 4px;
+  margin: 3px 1px;
+}
 
-  .dialogDescription,
-  .buttonGrid {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-  }
+.itemActionsDialog {
+  max-width: 32rem;
+}
 
+.fullTextInput {
+  width: calc(100% - 4rem); /* TODO: fix if adding extra icon */
+  font-size: 0.85rem;
+  padding: 1px 4px 1px 4px;
+  border-radius: 4px;
+}
+/* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
+ * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
+ * PS Apple says user-scalable, min-scale and max-scale settings are ignored: https://webkit.org/blog/7367/new-interaction-behaviors-in-ios-10/ 
+*/ 
+@media screen and (width <= 420px) {
   .fullTextInput {
-    flex-grow: 1;
-    border-radius: 4px;
-    /* Softens the corners */
-    border: 1px solid #ccc;
-    /* Lighter border to distinguish from buttons */
-    padding: 0.5em;
-    /* Internal padding to move the text a bit from the edges */
-    margin-left: 10px;
-    /* Left margin for aesthetic spacing from the icon */
-    margin-right: 10px;
-    /* Margin to separate from the next button */
-    font-size: 0.9rem;
-    /* Adjusts text size if needed */
-    font-weight: 600;
+    font-size: 16pt;
   }
+}
 
-  .updateItemContentButton {
-    white-space: nowrap;
-    /* Prevents text wrapping within the button */
-  }
+/* set fa icon colour to tint color */
+i.fa-solid, i.fa-regular {
+  color: var(--tint-color);
+}
 
-  .buttonGrid {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .buttonLine {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    margin-bottom: 8px;
-  }
-
-  .PCButton {
-    padding: 5px 10px;
-    border: 1px solid #ccc;
-    cursor: pointer;
-  }
-
-  @media screen and (max-width: 420px) {
-    dialog {
-      max-width: 90%;
-      left: 5%;
-    }
-
-    .fullTextInput {
-      font-size: 16pt;
-      /* Prevents iOS zoom effect */
-    }
-  }
-
-  /* Color settings for icons */
-  i.fa-solid,
-  i.fa-regular {
-    color: var(--tint-color);
-  }
-
-  .dialog-top-right {
-    float: right;
-    margin-bottom: 5px;
-  }
-
-
-  .skipButton {
-    margin-right: 5px;
-  }
+.closeButton, .skipButton {
+  margin-right: 5px;
+	font-size: 0.9rem;
+  /* background-color: none; */
+  border: none;
 }

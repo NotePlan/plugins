@@ -10,6 +10,19 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+## [2.0.0.a15] @jgclark
+- added logic to task dialog for conditional display of 'cancel' and 'toggle type' buttons
+- more clean up of types and previous HTML data passing mechanism
+- partially fixed toggleType button (though see below)
+- turned off logging in Section component
+- reverted recent dialog layout and CSS; this involved turning off the new StatusIcon in the dialog
+- fixed CSS for CalendarPicker to work in dark mode, and look a bit nicer. More to do.
+- failed to fix why CommandButton aren't doing anything
+
+**TODO(dbw):**
+- please turn off "Root: type: SET_DATA payload" logging
+- figure out why dataGeneration::copyUpdatedSectionItemData() appears to be doing the wrong thing for toggleType when called by pluginToHTMLBridge::updateReactWindowFromLineChange().  Logging shows that "new JSON item" is the same as "old JSON item"
+- figure out why CommandButton isn't working as expected. I've had a go but failed. See more detailed comments and FIXME in the code.
 
 ## [2.0.0.a14] @dbw
 - abstracted the status icon into its own component StatusIcon so it can be re-used

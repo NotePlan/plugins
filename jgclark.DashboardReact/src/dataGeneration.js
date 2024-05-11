@@ -579,7 +579,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
 
 export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
   const sectionNum = 5
-  const thissectionCode = 'M'
+  const thissectionCode = 'Q'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
   const dateStr = getNPQuarterStr(today)
   const thisFilename = `${dateStr}.md`

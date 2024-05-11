@@ -19,7 +19,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isDone } from '@helpers/utils'
 import { getWindowFromId } from '@helpers/NPWindows'
 
-export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
+export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
 
 export type PassedData = {
@@ -77,10 +77,8 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     // w3.css reference: https://www.w3schools.com/w3css/default.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const resourceLinksInHeader = `
-      <!-- <link rel="stylesheet" href="../np.Shared/css.w3.css"> -->
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
-		  <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css"> -->
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">

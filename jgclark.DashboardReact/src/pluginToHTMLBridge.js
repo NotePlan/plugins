@@ -55,7 +55,7 @@ import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeW
 
 type SettingDataObject = { settingName: string, state: string }
 
-const windowCustomId = `${pluginJson['plugin.id']} React Window` // TODO(later): update me
+const windowCustomId = `${pluginJson['plugin.id']}.main` // TODO(later): update me
 const WEBVIEW_WINDOW_ID = windowCustomId
 
 //-----------------------------------------------------------------
@@ -391,13 +391,13 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
  * @returns {Promise<void>} A Promise that resolves once the update is done.
  */
 export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
-  clo(res, 'updateReactWindow: res')
+  clo(res, 'updateReactWindowFLC: res')
   const { errorMsg, success, updatedParagraph } = res
   const actionsOnSuccess = res.actionsOnSuccess ?? []
   const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
   const { ID } = data.item ?? { ID: '?' }
   const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-  clo(res.updatedParagraph, 'updateReactWindow: res.updatedParagraph:')
+  clo(res.updatedParagraph, 'updateReactWindowFLC: res.updatedParagraph:')
   if (success) {
     const newPara = updatedParagraph || ''
     const newParaContent = updatedParagraph?.content ?? ''
@@ -408,13 +408,13 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
       'para.filename': oldFilename,
       'para.content': oldContent,
     }) // find all references to this content (could be in multiple sections)
-    clo(indexes, 'updateReactWindow: matching indexes found')
+    clo(indexes, 'updateReactWindowFLC: matching indexes found')
 
     if (indexes.length) {
       const { sectionIndex, itemIndex } = indexes[0]
-      clo(indexes, 'updateReactWindow: indexes to update')
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-      logDebug('updateReactWindow', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${JSP(newParaContent)}"`)
+      clo(indexes, 'updateReactWindowFLC: indexes to update')
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      logDebug('updateReactWindowFLC', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${JSP(newParaContent)}"`)
       if (shouldRemove) {
         // TEST:
         indexes.forEach((index) => {
@@ -423,18 +423,19 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
           sections[sectionIndex].items.splice(itemIndex, 1)
         })
       } else {
-        logDebug('updateReactWindow', `should update sections [${JSP(indexes)}] fields:${fieldPathsToUpdate.toString()} using para=\n\t${JSP(newPara)}`)
+        logDebug('updateReactWindowFLC', `should update sections [${JSP(indexes)}] fields:${fieldPathsToUpdate.toString()} using para=\n\t${JSP(newPara)}`) // ✅
+        // FIXME: In this the old value reappears, at least for toggleType
         sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: newPara }, sections)
       }
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindow new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
-      logError('updateReactWindow', errorMsg)
-      throw `updateReactWindow: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
+      logError('updateReactWindowFLC', errorMsg)
+      throw `updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
     }
     // update ID in data object
   } else {
-    logError('updateReactWindow', errorMsg)
-    throw `updateReactWindow: failed to update item: ID ${ID}: ${errorMsg || ''}`
+    logError('updateReactWindowFLC', errorMsg)
+    throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
 }

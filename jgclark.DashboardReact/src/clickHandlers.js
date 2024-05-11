@@ -45,7 +45,7 @@ import { chooseHeading, showMessage } from '@helpers/userInput'
  *                             Data types + constants
  ****************************************************************************************************************************/
 
-const windowCustomId = `${pluginJson['plugin.id']} React Window`
+const windowCustomId = `${pluginJson['plugin.id']}.main`
 const WEBVIEW_WINDOW_ID = windowCustomId
 
 /****************************************************************************************************************************
@@ -199,10 +199,33 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
 
 // Send a request to toggleType to plugin
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedType = toggleTaskChecklistParaType(filename, content)
+  try {
+    const { filename, content } = validateAndFlattenMessageObject(data)
+
+    // V1: original from v0.x
+    // const updatedType = toggleTaskChecklistParaType(filename, content)
+
+    // V2: move most of toggleTaskChecklistParaType() into here, as we need access to the full para
+    // find para
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('toggleTaskChecklistParaType: no para found')
+    }
+    // logDebug('toggleTaskChecklistParaType', `toggling type for {${content}} in filename: ${filename}`)
+    // Get the paragraph to change
+    const updatedPara = possiblePara
+    const thisNote = updatedPara.note
+    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
+    const existingType = updatedPara.type
+    logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
+    const updatedType = (existingType === 'checklist') ? 'open' : 'checklist'
+    updatedPara.type = updatedType
   logDebug('doToggleType', `-> ${updatedType}`)
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedType: updatedType })
+    thisNote.updateParagraph(updatedPara)
+    DataStore.updateCache(thisNote, false)
+    // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
+    // FIXME: this still isn't updating the window correctly
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedPara })
 
   // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
   // Update display in Dashboard too
@@ -210,6 +233,10 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
   // Only use if necessary:
   // Warnbug('bCDI', '------- refreshturned off at the moment ---------------')
   // await showDashboardReact('refresh')
+  } catch (error) {
+    logError('doToggleType', error.message)
+    return '(error)'
+  }
 }
 
 // Send a request to unscheduleItem to plugin

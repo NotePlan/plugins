@@ -32,13 +32,13 @@ const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
     caption: { color: 'var(--tint-color)' },
     navButtonPrev: { color: 'var(--tint-color)' },
     navButtonNext: { color: 'var(--tint-color)' },
-    weekdays: { backgroundColor: '#f0f0f0' },
+    weekdays: { backgroundColor: 'var(--bg-main-color)' },
     weekday: { fontWeight: 'bold' },
-    weekend: { backgroundColor: '#f0f0f0' },
+    weekend: { backgroundColor: 'var(--bg-alt-color)' },
     week: { color: '#333' },
-    day: { color: 'black' },
-    today: { backgroundColor: 'var(--tint-color)', color: 'var(--fg-main-color)' },
-    selected: { color: 'var(--tint-color)', backgroundColor: 'var(--fg-main-color)' },
+    day: { color: 'var(--fg-main-color)' },
+    today: { color: 'var(--hashtag-color)', backgroundColor: 'var(--bg-alt-color)' },
+    selected: { color: 'var(--tint-color)', backgroundColor: 'var(--bg-alt-color)' },
   }
 
   return (
