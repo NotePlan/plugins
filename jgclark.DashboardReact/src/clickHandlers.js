@@ -11,7 +11,7 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode } from './types'
+import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode, type TPluginData } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
@@ -110,14 +110,19 @@ export async function refreshAllSections(): Promise<void> {
 export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const start = new Date()
   const {sectionCodes} = data
+  if (!sectionCodes) {
+    logError('refreshSomeSections', 'No sectionCodes provided')
+    return
+  }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  reactWindowData.pluginData.refreshing = true // show refreshing message until done
+  const pluginData:TPluginData = reactWindowData.pluginData
+  pluginData.refreshing = sectionCodes // show refreshing message until done
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(sectionCodes)}`)
-  const existingSections = reactWindowData.pluginData.sections
+  const existingSections = pluginData.sections
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode,true) // force the section refresh for the wanted sections
-  reactWindowData.pluginData.sections = mergeSections(existingSections, newSections)
-  reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
-  reactWindowData.pluginData.refreshing = false // show refreshing message until done
+  pluginData.sections = mergeSections(existingSections, newSections)
+  pluginData.lastFullRefresh = new Date().toLocaleString()
+  pluginData.refreshing = false // show refreshing message until done
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for sections ${String(sectionCodes)}`)
   logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)
   return handlerResult(true)

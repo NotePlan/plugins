@@ -17,9 +17,9 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
   // TODO(later): this needs special handling in v2.1+
   { sectionCode: 'TAG', sectionName: 'Tag', showSettingName: `showTagSection` },
-  { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
+  { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
 ]
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
@@ -145,6 +145,7 @@ export type MessageDataObject = {
   updatedContent?: string, // where we have made an update in React window
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
   metaModifier?: any, /* probably not used */
+  sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item
@@ -190,6 +191,8 @@ export type TReactSettings = {
 
 export type TPluginData = {
   settings: any,
+  refreshing: Array<TSectionCode>|boolean, /* true if all, or array of sectionCodes if some */
+  sections: Array<TSection>,
   [key: string]: any,
 }
 

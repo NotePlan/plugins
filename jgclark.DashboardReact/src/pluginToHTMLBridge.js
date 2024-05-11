@@ -37,6 +37,7 @@ import {
 // import { showDashboardReact } from './reactMain'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { TActionType, TActionOnReturn, TBridgeClickHandlerResult, MessageDataObject } from './types'
+import { allSectionCodes } from './types'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -162,8 +163,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logDebug('', `------------------- bridgeClickDashboardItem: ${actionType} -------------------`)
     logDebug(
       'bridgeClickDashboardItem',
-      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${
-        data.item?.para?.content ?? '<no content found>'
+      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${data.item?.para?.content ?? '<no content found>'
       }`,
     )
     // if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
@@ -272,11 +272,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'reactSettingsChanged': {
-        result = await doSettingsChanged(data,'reactSettings')
+        result = await doSettingsChanged(data, 'reactSettings')
         break
       }
       case 'sharedSettingsChanged': {
-        result = await doSettingsChanged(data,'sharedSettings')
+        result = await doSettingsChanged(data, 'sharedSettings')
         break
       }
       case 'setSpecificDate': {
@@ -327,6 +327,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
+  if (!handlerResult) return
   try {
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     if (!actionsOnSuccess.length) {
@@ -344,7 +345,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
 
     if (success) {
       // const { filename, content } = data.item.para
-      const updatedNote = DataStore.updateCache(getNoteByFilename(filename), false)
+      const updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an await at some point */
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
         logDebug('bCDI / processActionOnReturn', `REMOVE_LINE_FROM_JSON ..`)
@@ -356,19 +357,21 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_SECTIONS: calling refreshData()`)
-        await refreshAllSections()
+        // await refreshAllSections()
+        logDebug(pluginJson, `bCDI / processActionOnReturn: FULL SEQUENTIAL REFRESH AFTER ${JSP(data)}\n${JSP(handlerResult)}`) // FIXME: temp full sequential refresh no matter what
+        for (const sectionCode of allSectionCodes) {
+          await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+        }
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
         logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
-        const someNewSectionsData = getSomeSectionsData(wantedsectionCodes)
-
-        // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
+        await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         logDebug('bCDI / processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
-        const someNewSectionsData = getSomeSectionsData(wantedsectionCodes)
+        await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
       }
