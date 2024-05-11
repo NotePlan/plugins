@@ -170,9 +170,9 @@ function Section(inputObj: SectionProps): React$Node {
           <div className="sectionButtons">
             {section.sectionCode === "OVERDUE" && featureFlags.overdueProcessing && (
             <button className="PCButton" onClick={handleProcessTasksClick}>
-              Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
-            </div>
-          {buttons}
+                Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
+            {buttons}
+          </div>
         </div>
         <ItemGrid thisSection={inputObj.section} items={itemsToShow} />
       </div>

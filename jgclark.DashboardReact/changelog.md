@@ -17,10 +17,12 @@ Misc TODO:
 - turned off logging in Section component
 - reverted recent dialog layout and CSS; this involved turning off the new StatusIcon in the dialog
 - fixed CSS for CalendarPicker to work in dark mode, and look a bit nicer. More to do.
+- failed to fix why CommandButton aren't doing anything
 
 **TODO(dbw):**
 - please turn off "Root: type: SET_DATA payload" logging
 - figure out why dataGeneration::copyUpdatedSectionItemData() appears to be doing the wrong thing for toggleType when called by pluginToHTMLBridge::updateReactWindowFromLineChange().  Logging shows that "new JSON item" is the same as "old JSON item"
+- figure out why CommandButton isn't working as expected. I've had a go but failed. See more detailed comments and FIXME in the code.
 
 ## [2.0.0.a14] @dbw
 - abstracted the status icon into its own component StatusIcon so it can be re-used
