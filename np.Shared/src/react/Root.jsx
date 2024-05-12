@@ -20,6 +20,12 @@ declare var WebView: any // No props specified, use an empty object or specific 
 declare function runPluginCommand(command: string, id: string, args: Array<any>): void
 declare function sendMessageToPlugin(Array<string | any>): void
 
+type TWarning = {
+  warn: boolean,
+  msg?: string,
+  color?: string,
+  border?: string,
+}
 /****************************************************************************************************************************
  *                             TYPES
  ****************************************************************************************************************************/
@@ -59,8 +65,6 @@ if (typeof globalSharedData === 'undefined') throw (`Root: globalSharedData is u
 if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`
 
 export function Root(/* props: Props */): Node {
-  logDebug(`Root`, `inside component`)
-
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -68,10 +72,10 @@ export function Root(/* props: Props */): Node {
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
   const [reactSettings, setReactSettings] = useState({})
 
-  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red' })
+  const [warning, setWarning] = useState<TWarning>({ warn: false, msg: '', color: 'w3-pale-red', border: '' })
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
-  const tempSavedClicksRef = React.useRef([]) //temporarily store the clicks in the webview
+  const tempSavedClicksRef: any = React.useRef([]) //temporarily store the clicks in the webview
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -152,13 +156,11 @@ export function Root(/* props: Props */): Node {
         if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
         if (type && payload) {
           logDebug(`Root`, ` onMessageReceived: ${type}`)
-          // logDebug(`Root`,` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
           // Spread existing state into new object to keep it immutable
           // TODO: ideally, you would use a reducer here
           if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`
           setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
           tempSavedClicksRef.current = []
-          // logDebug(`Root`,` onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
           switch (type) {
             case 'SET_TITLE':
               // Note this works because we are using payload.title in npData
@@ -166,24 +168,16 @@ export function Root(/* props: Props */): Node {
               break
             case 'SET_DATA':
             case 'UPDATE_DATA':
-              // logDebug('Root: SET_DATA before')
               setNPData((prevData) => ({ ...prevData, ...payload }))
               globalSharedData = { ...globalSharedData, ...payload }
-              // logDebug(`Root`, `SET_DATA after setting globalSharedData=`, globalSharedData)
               break
             case 'SHOW_BANNER':
               showBanner(payload.msg, payload.color, payload.border)
-              // const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
-              // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
-              // setWarning(warnObj)
-              // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
               break
             case 'SEND_TO_PLUGIN':
-              // logDebug(`Root`, ` onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`)
               sendToPlugin(payload)
               break
             case 'RETURN_VALUE' /* function called returned a value */:
-              logDebug(`Root`, ` onMessageReceived: processing payload`)
               // $FlowIgnore
               // setMessageFromPlugin(payload)
               break
@@ -220,7 +214,7 @@ export function Root(/* props: Props */): Node {
       if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin'
       if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin'
       if (!action) throw new Error('sendToPlugin: command/action must be called with a string')
-      logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
+      // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object')
       console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
       const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
@@ -235,7 +229,6 @@ export function Root(/* props: Props */): Node {
    */
   const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
     const warnObj = { warn: true, msg, color, border }
-    logDebug(`Root`, ` showBanner: sending: ${JSON.stringify(warnObj)}`)
     setWarning(warnObj)
   }
 
@@ -287,7 +280,6 @@ export function Root(/* props: Props */): Node {
   useEffect(() => {
     // the name of this function is important. it corresponds with the Bridge call in the HTMLView
     // I don't recommend changing this function name here or in the bridge
-    logDebug(`Root`, `effect setting up eventListener`)
     window.addEventListener('message', onMessageReceived)
     return () => window.removeEventListener('message', onMessageReceived)
   }, [])
@@ -299,16 +291,16 @@ export function Root(/* props: Props */): Node {
    */
   useEffect(() => {
     if (npData?.passThroughVars?.lastWindowScrollTop !== undefined && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`)
+      // debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`)
       window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop)
     } else {
-      logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
+      // logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
   }, [npData])
 
-  useEffect(() => {
-    logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
-  }, [reactSettings])
+  // useEffect(() => {
+  //   logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
+  // }, [reactSettings])
 
   /****************************************************************************************************************************
    *                             RENDER
