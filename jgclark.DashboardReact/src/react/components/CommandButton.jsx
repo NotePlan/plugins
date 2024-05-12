@@ -16,7 +16,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
   const { button } = inputObj
 
-  logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
+  // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
 
   // For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
