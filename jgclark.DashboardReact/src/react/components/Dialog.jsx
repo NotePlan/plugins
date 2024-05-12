@@ -59,7 +59,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
     } else {
       // If no click event, center the dialog vertically in the viewport, accounting for the scroll position
       dialogTop = (window.innerHeight - dialogHeight) / 2 + window.scrollY
-      console.log(`Dialog`, `No click data: positionDialog dialogTop=${dialogTop}`)
+      logDebug(`Dialog`, `No click data: positionDialog dialogTop=${dialogTop}`)
     }
 
     // Center the dialog horizontally in the viewport
@@ -69,7 +69,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
     // Apply the calculated position to the dialog
     dialog.style.top = `${dialogTop}px`
     dialog.style.left = `${dialogLeft}px`
-    console.log(`Dialog`, `LEAVING positionDialog() set: top=${dialogTop} left=${dialogLeft}`)
+    logDebug(`Dialog`, `LEAVING positionDialog() set: top=${dialogTop} left=${dialogLeft}`)
     return {}
   }
 

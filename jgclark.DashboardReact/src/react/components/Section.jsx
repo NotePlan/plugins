@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
-import {parseSettings} from "../../shared.js"
+import { parseSettings } from "../../shared.js"
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -26,11 +26,11 @@ function Section(inputObj: SectionProps): React$Node {
     const items: Array<TSectionItem> = section.sectionItems
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
     // in destructuring rename "featureFlags" to 'ffStr':
-    const { featureFlags:ffStr } = pluginData?.settings || {}
+    const { featureFlags: ffStr } = pluginData?.settings || {}
     const featureFlags = parseSettings(ffStr) || {}
 
     // Check to see if we want to see this section
-    if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName]===false) {
+    if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
       // logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
       return
     }
@@ -158,18 +158,19 @@ function Section(inputObj: SectionProps): React$Node {
 
     // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
     const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
-
+    const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
     return hideSection ? null : (
       <div className="section">
         <div className="sectionInfo">
           <div className={`${section.sectionTitleClass} sectionName`}>
-            <i className={`sectionIcon ${section.FAIconClass}`}></i>
+              <i className={`sectionIcon ${section.FAIconClass}`}></i>
             {section.name}
+            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
             {section.sectionCode === "OVERDUE" && featureFlags.overdueProcessing && (
-            <button className="PCButton" onClick={handleProcessTasksClick}>
+              <button className="PCButton" onClick={handleProcessTasksClick}>
                 Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             {buttons}
           </div>

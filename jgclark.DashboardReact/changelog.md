@@ -10,6 +10,16 @@ Misc TODO:
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 
+## [2.0.0.a16] @dwertheimer
+- Changed StatusIcon to output a <span> rather than a <div> per your note in Discord
+- Implemented the sectionItem generation function and refactored the dupe code getSectionItemObject()
+- You wrote: "please turn off "Root: type: SET_DATA payload" logging", what's weird is that it's already off. I removed virtually all logging in Root and re-released np.Shared. I would suggest you delete your np.Shared folder and re-download it. You should be seeing np.Shared 0.5.10 
+- You wrote "dataGeneration::copyUpdatedSectionItemData() appears to be doing the wrong thing for toggleType...". I made a bunch of changes to make the updating on the back end more resilient and the rendering on the front-end better also
+- UPDATE_LINE_IN_JSON: Now all the paragraph details, including priority and rawContent etc are updated after a change to the para. Have a look at updateReactWindowFromLineChange() -- and hopefully fix the Flow issue there
+- Added a useEffect to the StatusIcon component to watch for external changes to the icon's status -- even when the JSON was updated underneath, the fa-icon class wasn't changing. Now it is.
+- Added visual feedback for REFRESH_ALL_CALENDAR_SECTIONS, refreshing sections sequentially
+- You wrote: figure out why CommandButton isn't working as expected - I got it to send the messages. You just need to do the back-end clickHandlers. The data payload looks like this: `{actionType: addTask|addChecklist etc., toFilename:xxxxx}`. I used actionFunctionParam because that's what it was called before but you may instead want to use one of the existing MessageObject fields, e.g. "toFilename" 
+
 ## [2.0.0.a15] @jgclark
 - added logic to task dialog for conditional display of 'cancel' and 'toggle type' buttons
 - more clean up of types and previous HTML data passing mechanism

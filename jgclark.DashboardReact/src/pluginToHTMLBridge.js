@@ -34,6 +34,7 @@ import {
   doSetSpecificDate,
 } from './clickHandlers'
 // import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
+import {makeDashboardParas} from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { TActionType, TActionOnReturn, TBridgeClickHandlerResult, MessageDataObject } from './types'
@@ -352,21 +353,18 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        logDebug('bCDI / processActionOnReturn', `UPDATE_CONTENT to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['para.content', 'para.type'])
+        logDebug('bCDI / processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
+        await updateReactWindowFromLineChange(handlerResult, data, ['itemType','para']) // replace the whole paragraph with new data
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_SECTIONS: calling refreshData()`)
-        // await refreshAllSections()
-        logDebug(pluginJson, `bCDI / processActionOnReturn: FULL SEQUENTIAL REFRESH AFTER ${JSP(data)}\n${JSP(handlerResult)}`) // FIXME: temp full sequential refresh no matter what
-        for (const sectionCode of allSectionCodes) {
-          await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        }
+        await refreshAllSections()
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
-        logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
-        await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+        for (const sectionCode of wantedsectionCodes) {
+          await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+        }
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
@@ -397,24 +395,23 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
   const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
   const { ID } = data.item ?? { ID: '?' }
   const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-  clo(res.updatedParagraph, 'updateReactWindowFLC: res.updatedParagraph:')
+  // clo(res.updatedParagraph, 'updateReactWindowFLC: res.updatedParagraph:')
   if (success) {
-    const newPara = updatedParagraph || ''
-    const newParaContent = updatedParagraph?.content ?? ''
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    // TODO: @jgclark: this should really recalculate the whole paragraph, including priority and other fields
+    // Not sure how/where you do that in dataGeneration, but we need to do that here
+    const newPara = makeDashboardParas([updatedParagraph])[0] // FIXME: this needs to be updated flat object (and then see below)
+      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
     const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
       itemType: /open|checklist/,
       'para.filename': oldFilename,
       'para.content': oldContent,
     }) // find all references to this content (could be in multiple sections)
-    clo(indexes, 'updateReactWindowFLC: matching indexes found')
 
     if (indexes.length) {
       const { sectionIndex, itemIndex } = indexes[0]
       clo(indexes, 'updateReactWindowFLC: indexes to update')
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC old JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-      logDebug('updateReactWindowFLC', `should update sections[${sectionIndex}].sectionItems[${itemIndex}] to "${JSP(newParaContent)}"`)
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       if (shouldRemove) {
         // TEST:
         indexes.forEach((index) => {
@@ -423,11 +420,11 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
           sections[sectionIndex].items.splice(itemIndex, 1)
         })
       } else {
-        logDebug('updateReactWindowFLC', `should update sections [${JSP(indexes)}] fields:${fieldPathsToUpdate.toString()} using para=\n\t${JSP(newPara)}`) // ✅
-        // FIXME: In this the old value reappears, at least for toggleType
-        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { para: newPara }, sections)
+        // FIXME: once we have a new calculated object from above, the passed fieldpaths should replace the whole para rather than just para fields
+        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
       }
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC new JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+
+      clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
       logError('updateReactWindowFLC', errorMsg)
@@ -438,4 +435,5 @@ export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerRe
     logError('updateReactWindowFLC', errorMsg)
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
+  
 }

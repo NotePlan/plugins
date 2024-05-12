@@ -19,14 +19,12 @@ type Props = {
  */
 function Dashboard({ pluginData }: Props): React$Node {
   //   const { sendActionToPlugin, sendToPlugin, dispatch, pluginData }  = useAppContext()
-  // logDebug(`Dashboard`, `inside component code`)
 
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
   const sections = sharedSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
-  console.log('Dashboard: pluginData:', pluginData, sections)
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
@@ -52,7 +50,6 @@ function Dashboard({ pluginData }: Props): React$Node {
       const strSharedSetings = JSON.stringify(sharedSettings)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
     }
-    clo(sharedSettings, `Dashboard: sharedSettings is currently ${sharedSettings ? 'set to' : 'undefined'}`)
   }, [sharedSettings])
 
   // const handleDialogOpen = () => {
@@ -61,32 +58,41 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
   useEffect(() => {
+    logDebug('Dashboard', `in useEffect one of these changed: pluginData, setReactSettings, reactSettings?.dialogData isOpen=${String(reactSettings?.dialogData?.isOpen)}`)
     if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
     const { dialogData } = reactSettings
     const {details:dialogItemDetails} = dialogData
-    if (!dialogItemDetails) return
-    // Note, dialogItemDetails is a MessageDataObject
-    logDebug('Dashboard', `top of useEffect: isOpen=${String(dialogData?.isOpen) || ''} itemID="${reactSettings?.dialogData?.details?.item?.ID || ''}"  dialogData=${JSP(reactSettings?.dialogData) || ''}  pluginData`, pluginData)
-    if (!dialogData?.details?.item) return
+    logDebug('Dashboard', `dialogData.isOpen: ${String(dialogData.isOpen)}, dialogItemDetails: ${JSP(dialogItemDetails,2)}`)
+    if (!dialogData.isOpen  || !dialogItemDetails) return
+    // Note, dialogItemDetails (aka dialogData.details) is a MessageDataObject
+    logDebug('Dashboard', `dialogData?.details?.item=${JSP(dialogItemDetails?.item,2)}`)
+    if (!(dialogData?.details?.item)) return
     if (dialogItemDetails?.item?.ID) {
       const { ID: openItemInDialogID } = dialogItemDetails.item
       const sectionIndexes = findSectionItems(origSections, ['ID'], { ID: openItemInDialogID })
-      logDebug('Dashboard', `sectionIndexes: ${JSP(sectionIndexes)}`)
+      logDebug('Dashboard', `sectionIndexes: ${JSP(sectionIndexes,2)}`)
       if (!sectionIndexes?.length) return
       const firstMatch = sectionIndexes[0]
       const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
-      logDebug('Dashboard', `newDialogItem: ${JSP(newSectionItem,2)}`)
+      clo('Dashboard',`in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
       if (newSectionItem && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
-        setReactSettings(prev => ({
-          ...prev,
-          dialogData: {
-            ...dialogData,
-            details: {
-              ...dialogData.details, item: newSectionItem
-            }
-          },
-          lastChange: '_Dialog was open, and data changed underneath'
-        }))
+        logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem,2)}\n...will update dialogData`)
+        setReactSettings(prev => {
+          const newData = {
+            ...prev,
+            dialogData: {
+              ...prev.dialogData,
+              details: {
+                ...prev.dialogData.details, item: newSectionItem
+              }
+            },
+            lastChange: '_Dialog was open, and data changed underneath'
+          }
+          logDebug('Dashboard', `in useEffect on dialog details change, setting reactSettings to: ${JSP(newData,2)}`)
+          return newData
+        })
+      } else {
+        logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem,2)}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])

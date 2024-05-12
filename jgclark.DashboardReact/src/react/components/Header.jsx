@@ -77,7 +77,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
 
-      <RefreshControl refreshing={pluginData.refreshing} handleRefreshClick={handleRefreshClick} />
+      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick} />
       
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed

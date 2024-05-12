@@ -15,7 +15,6 @@ const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [isOpen, setIsOpen] = useState(false)
 
-  logDebug('CalendarPicker', `selectedDate=${selectedDate} isOpen=${isOpen}`)
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)

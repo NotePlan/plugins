@@ -64,7 +64,7 @@ function TaskItem({ item, thisSection }: Props): Node {
       dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
     }))
   }
-
+  logDebug('TaskItem', `rendering: ${item.ID} ${item.itemType} ${item.para?.type ||''}`, )
   return (
     visible ? (
       <div className={`sectionItemRow`} id={item.ID}>

@@ -1,6 +1,6 @@
 // StatusIcon.jsx
 // @flow
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
 import type { TSectionItem, MessageDataObject } from '../../types'
 import { useAppContext } from './AppContext.jsx'
@@ -20,6 +20,12 @@ const StatusIcon = ({
 }: Props): Node => {
 
     const { sendActionToPlugin } = useAppContext()
+
+    useEffect(() => {
+        // This effect runs when `item.itemType` changes
+        setIconClassName(getClassNameFromType(item.itemType))
+    }, [item.itemType])  // Depend on `item.itemType` to update the icon when it changes
+
 
     // Initial state setup for iconClassName based on the item type
     const [iconClassName, setIconClassName] = useState(getClassNameFromType(item.itemType))
@@ -98,9 +104,9 @@ const StatusIcon = ({
     }
 
     return (
-        <div className="sectionItemTodo itemIcon todo">
+        <span className="sectionItemTodo itemIcon todo">
             <i className={iconClassName} onClick={handleIconClick}></i>
-        </div>
+        </span>
     )
 }
 

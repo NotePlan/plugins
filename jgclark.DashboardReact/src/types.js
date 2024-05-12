@@ -109,6 +109,9 @@ export type TActionType =
   | 'moveToNote'
   | 'moveFromCalToCal'
   | 'updateTaskDate' 
+  | 'reactSettingsChanged'
+  | 'sharedSettingsChanged'
+  | 'setSpecificDate'
   | '(not yet set)'
   | 'unknown'
   // 'windowResized'
@@ -146,6 +149,7 @@ export type MessageDataObject = {
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
   metaModifier?: any, /* probably not used */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
+  toFilename?: string, // now in item
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item

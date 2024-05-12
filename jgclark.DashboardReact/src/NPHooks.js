@@ -2,10 +2,8 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { showDashboardReact } from './reactMain'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -51,7 +49,7 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated Called doing nothing.`)
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated() but we are not doing anything.`)
   return
   // probably get rid of all of this because it's not used
   // try {

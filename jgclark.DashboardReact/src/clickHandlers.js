@@ -11,7 +11,7 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode, type TPluginData } from './types'
+import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode, type TPluginData, allSectionCodes } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
@@ -98,9 +98,12 @@ function mergeSections(existingSections: Array<TSectionItem>, newSections: Array
 export async function refreshAllSections(): Promise<void> {
   // TODO(@dwertheimer): I'm not sure that ...global... is the best name. Can we discuss?
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  reactWindowData.pluginData.refreshing = true
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Starting JSON data for all sections`)
   reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
   reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for all sections`)
+  reactWindowData.pluginData.refreshing = false
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for all sections`)
 }
 
 /**
@@ -112,7 +115,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   const {sectionCodes} = data
   if (!sectionCodes) {
     logError('refreshSomeSections', 'No sectionCodes provided')
-    return
+    return handlerResult(false)
   }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData:TPluginData = reactWindowData.pluginData
@@ -121,7 +124,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   const existingSections = pluginData.sections
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode,true) // force the section refresh for the wanted sections
   pluginData.sections = mergeSections(existingSections, newSections)
-  pluginData.lastFullRefresh = new Date().toLocaleString()
+  // pluginData.lastFullRefresh = new Date().toLocaleString()
   pluginData.refreshing = false // show refreshing message until done
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for sections ${String(sectionCodes)}`)
   logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)

@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import { allSectionCodes } from './types'
 import type {
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard,
+  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType
   // TProjectForDashboard
 } from './types'
 import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
@@ -159,7 +159,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         combinedSortedParas.map((p) => {
           const thisID = `${sectionNum}-${itemCount}`
           // $FlowIgnore[incompatible-call]
-          items.push({ ID: thisID, itemType: p.type, para: p })
+          items.push(getSectionItemObject(thisID,p))
           itemCount++
         })
 
@@ -287,7 +287,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         // $FlowIgnore[incompatible-call]
-        items.push({ ID: thisID, itemType: p.type, para: p })
+        items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
 
@@ -363,7 +363,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
         combinedSortedParas.map((p) => {
           const thisID = `${sectionNum}-${itemCount}`
           // $FlowIgnore[incompatible-call]
-          items.push({ ID: thisID, itemType: p.type, para: p })
+          items.push(getSectionItemObject(thisID,p))
           itemCount++
         })
 
@@ -430,7 +430,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         // $FlowIgnore[incompatible-call]
-        items.push({ ID: thisID, itemType: p.type, para: p })
+        items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
 
@@ -521,7 +521,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         // $FlowIgnore[incompatible-call]
-        items.push({ ID: thisID, itemType: p.type, para: p })
+        items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
 
@@ -606,7 +606,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         // $FlowIgnore[incompatible-call]
-        items.push({ ID: thisID, itemType: p.type, para: p })
+        items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
 
@@ -753,7 +753,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
           const thisID = `${sectionNum}-${itemCount}`
           // const thisFilename = p.filename ?? ''
           // $FlowIgnore[incompatible-call]
-          items.push({ ID: thisID, itemType: p.type, para: p })
+          items.push(getSectionItemObject(thisID,p))
           itemCount++
         }
       }
@@ -856,7 +856,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
         const thisID = `${sectionNum}-${itemCount}`
         // const thisFilename = p.filename ?? ''
         // $FlowIgnore[incompatible-call]
-        items.push({ ID: thisID, itemType: p.type, para: p })
+        items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
     }
@@ -1031,10 +1031,8 @@ export function copyUpdatedSectionItemData(
     const sectionItem = sections[sectionIndex].sectionItems[itemIndex]
 
     fieldPaths.forEach((fieldPath) => {
-      // FIXME(@dwertheimer): flow errors
-      const [firstField, ...remainingPath] = fieldPath.split('.')
+      // const [firstField, ...remainingPath] = fieldPath.split('.')
       const value = getNestedValue(updatedValues, fieldPath)
-
       if (value !== undefined) {
         setNestedValue(sectionItem, fieldPath, value)
       }
@@ -1085,6 +1083,18 @@ function setNestedValue(obj: any, path: string, value: any) {
     currentObj = currentObj[field]
   }
   const finalField = fields[fields.length - 1]
-  clo(currentObj, `setNestedValue, setting ${finalField} to ${value} = currentObj`)
   currentObj[finalField] = value
+}
+
+/**
+ * Helper function to create a sectionItem object.
+ *
+ * @param {string} id - The ID of the sectionItem.
+ * @param {TParagraph} p - The paragraph data for the sectionItem.
+ * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
+ * @returns {SectionItem} A sectionItem object.
+ */
+export function getSectionItemObject(id:string,p:TParagraph|null = null,theType?:TItemType):TSectionItem {
+  // $FlowIgnore - we are not using all the types in TParagraph
+  return ({ ID: id, itemType: theType ?? p.type, para: p })
 }
