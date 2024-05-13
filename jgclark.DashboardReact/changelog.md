@@ -2,14 +2,19 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 Misc TODO:
-- There is no REFRESH OF DATA yet. I'm not sure I follow the gathering code well enough to know how to re-gather it.
-- Projects Dialog - make more like the Tasks Dialog
+- Projects Dialog - fix to make like the Tasks Dialog
 - Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - (dwertheimer) Banners are not working
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
+- will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
 
+## [2.0.0.a17] @jgc
+- added 'onEditorWillSave' trigger
+- stopped dashboard refresh getting focus when started by a trigger
+- hooked up add task and add checklist buttons (but race condition persists, despite updateCache)
+ 
 ## [2.0.0.a16] @dwertheimer
 - Changed StatusIcon to output a <span> rather than a <div> per your note in Discord
 - Implemented the sectionItem generation function and refactored the dupe code getSectionItemObject()
@@ -27,6 +32,8 @@ Misc TODO:
 - turned off logging in Section component
 - reverted recent dialog layout and CSS; this involved turning off the new StatusIcon in the dialog
 - fixed CSS for CalendarPicker to work in dark mode, and look a bit nicer. More to do.
+- restored size of icon circle and square from before ~a6
+- fixed 'add' buttons getting very wide on <500px
 - failed to fix why CommandButton aren't doing anything
 
 **TODO(dbw):**

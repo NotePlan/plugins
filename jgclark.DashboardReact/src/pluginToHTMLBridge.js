@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 4.5.2024 for v2.0.0 by @jgclark
+// Last updated 13.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,6 +9,7 @@ import pluginJson from '../plugin.json'
 // import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
+  doAddItem,
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
@@ -38,16 +39,16 @@ import {makeDashboardParas} from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { TActionType, TActionOnReturn, TBridgeClickHandlerResult, MessageDataObject } from './types'
-import { allSectionCodes } from './types'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
+// import { allSectionCodes } from './types'
+// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+// import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+// import { displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
-import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import { cancelItem, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
+// import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
+// import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+// import { cancelItem, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 // import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 
@@ -141,7 +142,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 }
 
 /**
- * Somebody clicked on a something in the HTML view
+ * Somebody clicked on a something in the HTML React view
  * NOTE: processActionOnReturn will be called for each item after the CASES based on TBridgeClickHandlerResult
  * @param {MessageDataObject} data - details of the item clicked
  */
@@ -170,23 +171,21 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     // if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
     // clo(data, 'bridgeClickDashboardItem received data object')
 
-    // TODO: move this to a function
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
       logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
       // $FlowIgnore[incompatible-call]
       result = doContentUpdate(data)
       if (result.success) {
-        content = result.updatedParagraph.content // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - ultimately delete this
+        // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
+        content = result.updatedParagraph.content
+        // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         data.item.para.content = content
-        // data.item.para.content = content // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
         // await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
     }
-    //TODO: implement the buttons addTask, addChecklist etc.
-    // the payload looks like this {actionType: 'addTask', toFilename: '2024-05-04.md'}
-    //
+
     switch (actionType) {
       case 'refresh': {
         await refreshAllSections()
@@ -288,6 +287,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await refreshSomeSections(data)
         break
       }
+      case 'addChecklist': {
+        result = await doAddItem(data)
+        break
+      }
+      case 'addTask': {
+        result = await doAddItem(data)
+        break
+      }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -332,7 +339,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
   try {
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     if (!actionsOnSuccess.length) {
-      logDebug(`bCDI / processActionOnReturn: no post process actions to perform`)
+      logDebug(`processActionOnReturn: no post process actions to perform`)
       return
     }
     const { success, updatedParagraph } = handlerResult
@@ -342,22 +349,22 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     const thisNote = getNoteByFilename(filename)
     clo(handlerResult, `processActionOnReturn: handlerResult for ${filename}`)
     // always update the cache for the note, as it might have changed
-    const changedNote = DataStore.updateCache(thisNote)
+    const _changedNote = DataStore.updateCache(thisNote)
 
     if (success) {
       // const { filename, content } = data.item.para
-      const updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an await at some point */
+      const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an await at some point */
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('bCDI / processActionOnReturn', `REMOVE_LINE_FROM_JSON ..`)
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON ..`)
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        logDebug('bCDI / processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['itemType','para']) // replace the whole paragraph with new data
+        logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
+        await updateReactWindowFromLineChange(handlerResult, data, ['itemType', 'para']) // FIXME: replace the whole paragraph with new data
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logDebug('bCDI / processActionOnReturn', `REFRESH_ALL_SECTIONS: calling refreshData()`)
+        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling refreshData()`)
         await refreshAllSections()
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
@@ -368,7 +375,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
-        logDebug('bCDI / processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
         await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
 
         // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
@@ -388,25 +395,28 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
  * @param {string[]} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  * @returns {Promise<void>} A Promise that resolves once the update is done.
  */
-export async function updateReactWindowFromLineChange(res: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
-  clo(res, 'updateReactWindowFLC: res')
-  const { errorMsg, success, updatedParagraph } = res
-  const actionsOnSuccess = res.actionsOnSuccess ?? []
+export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
+  clo(handlerResult, 'updateReactWindowFLC: handlerResult')
+  const { errorMsg, success, updatedParagraph } = handlerResult
+  const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
   const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
   const { ID } = data.item ?? { ID: '?' }
   const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-  // clo(res.updatedParagraph, 'updateReactWindowFLC: res.updatedParagraph:')
+  // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
   if (success) {
     // TODO: @jgclark: this should really recalculate the whole paragraph, including priority and other fields
     // Not sure how/where you do that in dataGeneration, but we need to do that here
-    const newPara = makeDashboardParas([updatedParagraph])[0] // FIXME: this needs to be updated flat object (and then see below)
-      const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-    let sections = reactWindowData.pluginData.sections // this is a reference so we can overwrite it later
+    clo(updatedParagraph.note.filename, `updateReactWindowFLC -> updatedParagraph.note.filename`)
+    const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0] // FIXME: this needs to be updated flat object (and then see below)
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    // get a reference so we can overwrite it later
+    let sections = reactWindowData.pluginData.sections
+    // find all references to this content (could be in multiple sections)
     const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
       itemType: /open|checklist/,
       'para.filename': oldFilename,
       'para.content': oldContent,
-    }) // find all references to this content (could be in multiple sections)
+    })
 
     if (indexes.length) {
       const { sectionIndex, itemIndex } = indexes[0]

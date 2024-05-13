@@ -24,6 +24,8 @@ export const allSectionDetails: Array<TSectionDetails> = [
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
+export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+
 // details for a section
 export type TSection = {
   ID: number,
@@ -88,16 +90,13 @@ export type TActionButton = {
 }
 
 export type TActionType = 
-  | 'onClickDashboardItem'
-  | 'refresh'
+  | 'addChecklist'
+  | 'addTask'
   | 'completeTask'
   | 'completeTaskThen'
   | 'cancelTask'
   | 'completeChecklist'
   | 'cancelChecklist'
-  | 'unscheduleItem'
-  | 'updateItemContent'
-  | 'toggleType'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'setNextReviewDate'
@@ -108,12 +107,18 @@ export type TActionType =
   | 'showLineInEditorFromTitle'
   | 'moveToNote'
   | 'moveFromCalToCal'
-  | 'updateTaskDate' 
+  | 'onClickDashboardItem'
   | 'reactSettingsChanged'
+  | 'refresh' // TODO: keep?
+  | 'refreshSomeSections'
   | 'sharedSettingsChanged'
   | 'setSpecificDate'
   | '(not yet set)'
+  | 'toggleType'
   | 'unknown'
+  | 'unscheduleItem'
+  | 'updateItemContent'
+  | 'updateTaskDate' 
   // 'windowResized'
 
 export type TControlString =

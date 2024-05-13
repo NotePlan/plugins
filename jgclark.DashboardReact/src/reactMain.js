@@ -1,15 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 19.4.2024 for v2.0.0 by @jgclark
+// Last updated 12.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
-import { bridgeClickDashboardItem, bridgeChangeCheckbox, runPluginCommand } from './pluginToHTMLBridge'
-import type { TSection } from './types'
+import {
+  bridgeClickDashboardItem,
+  // bridgeChangeCheckbox, runPluginCommand
+} from './pluginToHTMLBridge'
+// import type { TSection } from './types'
 import { getAllSectionsData } from './dataGeneration'
 import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
@@ -70,12 +73,12 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
+    // log warnings if we don't have required files
+    await checkForRequiredSharedFiles(pluginJson)
+
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
 
-    // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
-    // w3.css reference: https://www.w3schools.com/w3css/default.asp
-    // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const resourceLinksInHeader = `
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
@@ -91,7 +94,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       customId: WEBVIEW_WINDOW_ID,
       makeModal: false,
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html` /* for saving a debug version of the html file */,
-      shouldFocus: callMode !== 'refresh' /* focus window every time (unless this is a refresh) */,
+      shouldFocus: callMode !== 'trigger' /* focus window (unless called by a trigger) */,
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
@@ -196,35 +199,23 @@ export async function updateReactWindowData(actionType: string, data: any = null
  */
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
   try {
-    let newData = null
+    let _newData = null
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     // clo(data, `Plugin onMessageFromHTMLView data=`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
-      /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
       case 'SHOW_BANNER':
         sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', data)
         break
       // WEBVIEW_WINDOW_ID
-      // NOTE: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
+      // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
-        newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        _newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
-
-    //FIXME: for the moment, we are going to force a refresh of the data in the React Window every time
-    // Does not work because updateCache does not actually update in time
-    // const updatedReactWindowData = await refreshDashboardData(reactWindowData)
-    // logDebug(pluginJson, `onMessageFromHTMLView: updatedReactWindowData TEMP FORCED UPDATE EVERY COMMAND`)
-    // if (updatedReactWindowData) {
-    //   const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-    //   clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,updatedReactWindowData=`, 2)
-    //   clof(reactWindowData, `After refreshDashboardData`, ['pluginData', 'sections', 'sectionItems', 'para', 'content'], true)
-    //   sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', updatedReactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
-    // }
 
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
@@ -240,9 +231,9 @@ async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
   const sections = await getAllSectionsData(demoMode)
-  logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para.content}`)
+  logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
   reactWindowData.pluginData.sections = sections
-  logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para.content}`)
+  logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
   clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
   return reactWindowData
 }

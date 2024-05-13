@@ -213,6 +213,7 @@ export async function addChecklistToNoteHeading(
         logDebug('addChecklistToNoteHeading', `- then adding text '${checklistText}' after `)
         note.insertParagraph(checklistText, insertionIndex + 1, 'checklist')
       }
+      DataStore.updateCache(note)
     }
   } catch (err) {
     logError(pluginJson, `addChecklistToNoteHeading: ${err.name}: ${err.message}`)
@@ -305,6 +306,8 @@ export async function addTaskToNoteHeading(
         logDebug('addTaskToNoteHeading', `- then adding text '${taskText}' after `)
         note.insertParagraph(taskText, insertionIndex + 1, 'open')
       }
+
+      DataStore.updateCache(note)
     }
   } catch (err) {
     logError(pluginJson, `addTaskToNoteHeading: ${err.name}: ${err.message}`)

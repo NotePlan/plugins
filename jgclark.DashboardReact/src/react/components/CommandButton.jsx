@@ -1,6 +1,8 @@
 // @flow
+//--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Note: 
+// Last updated 10.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TActionButton } from '../../types.js'
@@ -23,15 +25,14 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
 
+  // TODO: Also pass sectionCode to refresh
+
   return (
     <>
       {' '}
       <button
         className="PCButton tooltip"
         data-tooltip={button.tooltip}
-        // data-plugin-id={button.actionPluginID}
-        // v1 onClick={() => sendActionToPlugin(button.actionFunctionName, button.actionFunctionParam, 'CommandButton', false)}
-        // v2a onClick={() => sendMessageToPlugin('runPluginCommand', { pluginID: button.actionPluginID, commandName: button.actionFunctionName, commandArgs: button.actionFunctionParam })}
         onClick={() => sendActionToPlugin(button.actionPluginID, {actionType: button.actionFunctionName, toFilename:button.actionFunctionParam})}
         dangerouslySetInnerHTML={{ __html: button.display }}
       >

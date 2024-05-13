@@ -139,6 +139,10 @@ export async function getSettings(): Promise<any> {
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
     config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
 
+    // Get a setting from QuickCapture
+    // FIXME: should return 3 for me, but returns 2
+    config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

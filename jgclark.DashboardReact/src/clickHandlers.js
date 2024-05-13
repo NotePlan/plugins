@@ -3,35 +3,50 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2.5.2024 for v2.0.0 by @jgclark
+// Last updated 13.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
-import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem, type TSectionCode, type TPluginData, allSectionCodes } from './types'
+import {
+  // copyUpdatedSectionItemData, findSectionItems,
+  getAllSectionsData, getSomeSectionsData
+} from './dataGeneration'
+import {
+  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem,
+  // type TSectionCode,
+  type TPluginData,
+  allCalendarSectionCodes, allSectionCodes
+} from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
-import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
-import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
+// import { displayTitle } from '@helpers/general'
+import {
+  sendToHTMLWindow, getGlobalSharedData,
+  // updateGlobalSharedData
+} from '@helpers/HTMLView'
+// import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cancelItem,
   completeItem,
   completeItemEarlier,
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
-  toggleTaskChecklistParaType,
+  // toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
 import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
-import { chooseHeading, showMessage } from '@helpers/userInput'
+import {
+  // getLiveWindowRectFromWin, getWindowFromCustomId,
+  logWindowsList,
+  // storeWindowRect
+} from '@helpers/NPWindows'
+// import { chooseHeading, showMessage } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -92,23 +107,23 @@ function mergeSections(existingSections: Array<TSectionItem>, newSections: Array
  ****************************************************************************************************************************/
 
 /**
- * Refresh the data in the HTML view - JSON only
- * And tell the React window to update the data
+ * Tell the React window to update by re-generating all Sections
  */
 export async function refreshAllSections(): Promise<void> {
-  // TODO(@dwertheimer): I'm not sure that ...global... is the best name. Can we discuss?
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  // show refreshing message until done
   reactWindowData.pluginData.refreshing = true
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Starting JSON data for all sections`)
   reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
   reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
+
+  // turn off refreshing message now done
   reactWindowData.pluginData.refreshing = false
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for all sections`)
 }
 
 /**
- * Refresh the data in the HTML view - JSON only
- * And tell the React window to update the data
+ * Tell the React window to update by re-generating a subset of Sections
  */
 export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const start = new Date()
@@ -119,23 +134,73 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData:TPluginData = reactWindowData.pluginData
-  pluginData.refreshing = sectionCodes // show refreshing message until done
+  // show refreshing message until done
+  pluginData.refreshing = sectionCodes
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(sectionCodes)}`)
   const existingSections = pluginData.sections
-  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode,true) // force the section refresh for the wanted sections
+
+  // force the section refresh for the wanted sections
+  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, true)
   pluginData.sections = mergeSections(existingSections, newSections)
   // pluginData.lastFullRefresh = new Date().toLocaleString()
-  pluginData.refreshing = false // show refreshing message until done
+
+  // turn off refreshing message now done
+  pluginData.refreshing = false
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for sections ${String(sectionCodes)}`)
   logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)
   return handlerResult(true)
+}
+
+/**
+ * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for
+ * @param {MessageDataObject} {actionType: addTask|addChecklist etc., toFilename:xxxxx}
+ */
+export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  try {
+    const config = await getSettings()
+    const { actionType, toFilename } = data
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename}`)
+
+    const todoType = (actionType === 'addTask') ? 'task' : 'checklist'
+
+    const calNoteDateStr = getDateStringFromCalendarFilename(toFilename, true)
+    // logDebug('addTask', `= date ${calNoteDateStr}`)
+    if (!calNoteDateStr) {
+      throw new Error(`calNoteDateStr isn't defined for ${toFilename}`)
+    }
+
+    const content = await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
+
+    // Add text to the new location in destination note
+    // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
+    const newHeadingLevel = config.headingLevel
+    const headingToUse = config.newTaskSectionHeading
+    // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
+
+    // await prependTodoToCalendarNote('task', calNoteDateStr)
+    if (actionType === 'addTask') {
+      addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
+    } else {
+      addChecklistToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
+    }
+    // TODO: updateCache?
+
+    // trigger refresh
+    // TODO: pass in just the section we've added to
+    const res = await refreshSomeSections({ actionType: actionType, sectionCodes: allCalendarSectionCodes })
+    return res
+  }
+  catch (err) {
+    logError('doAddItem', err.message)
+    return { success: false }
+  }
 }
 
 // Complete the task in the actual Note
 export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
-  logDebug('doCompleteTask', `-> ${String(updatedPara)}`)
+  // clo(updatedPara, `doCompleteTask -> updatedPara`) // ✅
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
 }
 
@@ -159,7 +224,8 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
 export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItem(filename, content)
-  logDebug('doCompleteChecklist', `-> ${String(updatedPara)}`)
+  // clo(updatedPara, `doCompleteChecklist -> updatedPara`) // ✅
+  // clo(updatedPara.note.filename, `doCompleteChecklist -> updatedPara.note.filename`)// ✅
   return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
 }
 

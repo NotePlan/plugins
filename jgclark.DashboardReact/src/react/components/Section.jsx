@@ -135,6 +135,12 @@ function Section(inputObj: SectionProps): React$Node {
       })
     }
 
+    // If nothing to show, return nothing
+    if (itemsToShow.length === 0) {
+      logDebug('Section', `Section ${section.ID} / ${section.sectionCode}: No items to show`)
+      return
+    }
+
     // Insert items count
     let descriptionToUse = section.description
     if (descriptionToUse.includes('{count}')) {
@@ -159,6 +165,7 @@ function Section(inputObj: SectionProps): React$Node {
     // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
     const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
     const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
+
     return hideSection ? null : (
       <div className="section">
         <div className="sectionInfo">
