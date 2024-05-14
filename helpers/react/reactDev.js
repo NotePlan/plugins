@@ -6,6 +6,7 @@
  * @returns {string} cleaned text without HTML entities
  */
 // eslint-disable-next-line no-unused-vars
+
 export function decodeHTMLEntities(text: string): string {
   const textArea = document.createElement('textarea')
   textArea.innerHTML = text

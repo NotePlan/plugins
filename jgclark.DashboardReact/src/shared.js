@@ -42,8 +42,8 @@ export function parseSettings(settings: string): any {
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
     if (!data?.item?.para) {
-        logError(`Error validating data: 'item.para' is missing in data:\n${JSP(data,2)}`)
-        throw new Error(`Error validating data: 'item.para' is missing:\n${JSP(data,2)}`)
+        logError(`Error validating data: 'item.para' is missing in data:\n${JSP(data, 2)}`)
+        throw new Error(`Error validating data: 'item.para' is missing:\n${JSP(data, 2)}`)
     }
 
     const { item } = data
@@ -82,4 +82,15 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
     result.para = { ...para }
     //$FlowIgnore[prop-missing]
     return result
+}
+
+/**
+ * Get the feature flags from the JSON stringified setting called featureFlags
+ * @param {any} pluginData - the full pluginData object
+ * @returns {Object} - the feature flags
+ * @example: const { overdueProcessing } = getFeatureFlags(pluginData)
+ */
+export function getFeatureFlags(pluginData:any):any {
+    const { featureFlags: ffStr } = pluginData?.settings || {}
+    return parseSettings(ffStr) || {}
 }

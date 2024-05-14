@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
-import { parseSettings } from "../../shared.js"
+import { getFeatureFlags } from "../../shared.js"
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -26,8 +26,7 @@ function Section(inputObj: SectionProps): React$Node {
     const items: Array<TSectionItem> = section.sectionItems
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
     // in destructuring rename "featureFlags" to 'ffStr':
-    const { featureFlags: ffStr } = pluginData?.settings || {}
-    const featureFlags = parseSettings(ffStr) || {}
+    const { overdueProcessing } = getFeatureFlags(pluginData)
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
@@ -176,7 +175,7 @@ function Section(inputObj: SectionProps): React$Node {
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && featureFlags.overdueProcessing && (
+            {section.sectionCode === "OVERDUE" && overdueProcessing && (
               <button className="PCButton" onClick={handleProcessTasksClick}>
                 Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             {buttons}
