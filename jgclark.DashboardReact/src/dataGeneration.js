@@ -211,7 +211,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
           actionParam: thisFilename,
           actionPluginID: 'jgclark.DashboardReact',
           display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
-          tooltip: "Add a new task to today's note",
+          tooltip: "Add a checklist item to today's note",
           postActionRefresh: ['DT'],
         },
         {
@@ -227,7 +227,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
           actionParam: nextPeriodFilename,
           actionPluginID: 'jgclark.DashboardReact',
           display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
-          tooltip: "Add a new task to tomorrow's note",
+          tooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
         },
         {
@@ -473,7 +473,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       {
         actionName: 'addChecklist',
         actionPluginID: 'jgclark.DashboardReact',
-        tooltip: "Add a new task to this week's note",
+        tooltip: "Add a checklist item to this week's note",
         display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
         actionParam: thisFilename,
         postActionRefresh: ['W'],
@@ -488,7 +488,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       {
         actionName: 'addChecklist',
         actionPluginID: 'jgclark.DashboardReact',
-        tooltip: "Add a new task to next week's note",
+        tooltip: "Add a checklist item to next week's note",
         display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
         actionParam: nextPeriodFilename,
       },
@@ -566,7 +566,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       {
         actionName: 'addChecklist',
         actionPluginID: 'jgclark.DashboardReact',
-        tooltip: "Add a new task to this month's note",
+        tooltip: "Add a checklist item to this month's note",
         display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ',
         actionParam: thisFilename,
         postActionRefresh: ['M'],
@@ -581,7 +581,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       {
         actionName: 'addChecklist',
         actionPluginID: 'jgclark.DashboardReact',
-        tooltip: "Add a new checklist to next month's note",
+        tooltip: "Add a checklist item to next month's note",
         display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ',
         actionParam: nextPeriodFilename,
       },
@@ -653,7 +653,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       {
         actionName: 'addChecklist',
         actionPluginID: 'jgclark.DashboardReact',
-        tooltip: "Add a new task to this quarter's note",
+        tooltip: "Add a checklist item to this quarter's note",
         display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ',
         actionParam: thisFilename,
         postActionRefresh: ['Q']
