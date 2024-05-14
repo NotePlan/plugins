@@ -17,9 +17,7 @@ import {
 import {
   type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem,
   // type TSectionCode,
-  type TPluginData,
-  allCalendarSectionCodes, allSectionCodes
-} from './types'
+  type TPluginData, allCalendarSectionCodes, allSectionCodes} from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'

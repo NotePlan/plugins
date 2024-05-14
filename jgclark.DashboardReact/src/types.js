@@ -8,6 +8,7 @@ export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'T
 
 type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
+//TODO: @jgclark, the things in this file that are not sections should be moved out of the "types" file
 export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
@@ -25,6 +26,13 @@ export const allSectionDetails: Array<TSectionDetails> = [
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
 export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+
+export const nonSectionSwitches = [
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
+  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false,  refreshAllOnChange: true },
+  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false },
+]
+
 
 // details for a section
 export type TSection = {
@@ -89,7 +97,7 @@ export type TActionButton = {
   tooltip: string,
 }
 
-export type TActionType = 
+export type TActionType =
   | 'addChecklist'
   | 'addTask'
   | 'completeTask'
@@ -118,8 +126,8 @@ export type TActionType =
   | 'unknown'
   | 'unscheduleItem'
   | 'updateItemContent'
-  | 'updateTaskDate' 
-  // 'windowResized'
+  | 'updateTaskDate'
+// 'windowResized'
 
 export type TControlString =
   | 't'
@@ -200,7 +208,7 @@ export type TReactSettings = {
 
 export type TPluginData = {
   settings: any,
-  refreshing: Array<TSectionCode>|boolean, /* true if all, or array of sectionCodes if some */
+  refreshing: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
   sections: Array<TSection>,
   [key: string]: any,
 }

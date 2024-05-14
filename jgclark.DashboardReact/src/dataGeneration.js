@@ -7,9 +7,8 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
-import { allSectionCodes } from './types'
 import type {
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType
+  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, allSectionCodes
   // TProjectForDashboard
 } from './types'
 import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'

@@ -6,7 +6,7 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import  { type TParagraphForDashboard, allSectionDetails } from './types'
+import { type TParagraphForDashboard, allSectionDetails, nonSectionSwitches } from './types'
 import { parseSettings } from './shared'
 import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -35,7 +35,7 @@ import {
 } from '@helpers/timeblocks'
 import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
- //-----------------------------------------------------------------
+//-----------------------------------------------------------------
 
 // Note: types.js now contains the Type definitions
 
@@ -82,7 +82,7 @@ export type dashboardConfigType = {
  * Get the sharedSettings values as an object
  * @returns {any} the settings object or an empty object if there are none 
  */
-export function getSharedSettings():any {
+export function getSharedSettings(): any {
   return parseSettings(DataStore.settings?.sharedSettings) ?? {}
 }
 
@@ -99,11 +99,16 @@ export async function getCombinedSettings(): Promise<any> {
   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
   // Now add all the show*Section settings (or default to true)
   for (const sd of allSectionDetails) {
-      const thisShowSettingName = sd.showSettingName
-      if (thisShowSettingName) {
-          // Default to true unless user has explictly set to false
-          returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
-      }
+    const thisShowSettingName = sd.showSettingName
+    if (thisShowSettingName) {
+      // Default to true unless user has explictly set to false
+      returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
+    }
+  }
+  for (const switchObj of nonSectionSwitches) {
+    if (typeof sharedSettings[switchObj.key] !== 'undefined') {
+      returnObj[switchObj.key] = sharedSettings[switchObj.key]
+    }
   }
   return returnObj
 }
@@ -275,7 +280,7 @@ export function getOpenItemParasForCurrentTimePeriod(
       refOpenParas = config.ignoreChecklistItems
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         : // try make this a single filter
-          getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
+        getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
     logDebug('getOpenItemParasForCurrent...', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
 
