@@ -33,7 +33,11 @@ function CommandButton(inputObj: ButtonProps): React$Node {
       <button
         className="PCButton tooltip"
         data-tooltip={button.tooltip}
-        onClick={() => sendActionToPlugin(button.actionPluginID, {actionType: button.actionFunctionName, toFilename:button.actionFunctionParam})}
+        onClick={() => sendActionToPlugin(button.actionPluginID, {
+          actionType: button.actionName,
+          toFilename: button.actionParam,
+          sectionCodes: button.postActionRefresh
+        })}
         dangerouslySetInnerHTML={{ __html: button.display }}
       >
       </button>

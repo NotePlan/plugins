@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 6.5.2024 for v2.0.0 by @jgclark
+// Last updated 14.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -92,8 +92,9 @@ export type TProjectForDashboard = {
 export type TActionButton = {
   display: string,
   actionPluginID: string,
-  actionFunctionName: string,
-  actionFunctionParam: string /* NB: all have to be passed as a string for simplicity */,
+  actionName: string,
+  actionParam: string /* NB: all have to be passed as a string for simplicity */,
+  postActionRefresh?: Array<TSectionCode>,
   tooltip: string,
 }
 
@@ -113,12 +114,15 @@ export type TActionType =
   | 'showNoteInEditorFromTitle'
   | 'showLineInEditorFromFilename'
   | 'showLineInEditorFromTitle'
-  | 'moveToNote'
+  | 'moveAllTodayToTomorrow'
+  | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'
+  | 'moveToNote'
   | 'onClickDashboardItem'
   | 'reactSettingsChanged'
-  | 'refresh' // TODO: keep?
+  | 'refresh'
   | 'refreshSomeSections'
+  | 'scheduleAllOverdueToday'
   | 'sharedSettingsChanged'
   | 'setSpecificDate'
   | '(not yet set)'
@@ -162,7 +166,7 @@ export type MessageDataObject = {
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
   metaModifier?: any, /* probably not used */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
-  toFilename?: string, // now in item
+  toFilename?: string, 
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item
@@ -200,6 +204,7 @@ export type TReactSettings = {
   timeblockMustContainString?: string,
   ignoreChecklistItems?: boolean,
   hideDuplicates?: boolean,
+  rescheduleNotMove: boolean, // TODO: finish wiring me up
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
   dialogData?: TDialogData,
   refreshing?: boolean,

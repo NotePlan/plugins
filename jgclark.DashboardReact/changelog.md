@@ -10,6 +10,16 @@ Misc TODO:
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 - will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
 
+## [2.0.0.a18] @jgc/@dbw
+- got most of "All Today -> Tomorrow" operation working
+- got most of "All Yesterday -> Today" operation working
+- got most of "All Overdue -> Today" operation working
+- added refresh spinners for the 3 new "move" buttons
+- fixed background colour of dropdown menu (wrong in dark mode)
+- fixed Overdue section description
+- make the ignoreChecklist setting work properly
+- all the UI switches are saved and can potentially refresh the interface.
+
 ## [2.0.0.a17] @jgc
 - added 'onEditorWillSave' trigger
 - stopped dashboard refresh getting focus when started by a trigger

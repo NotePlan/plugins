@@ -37,24 +37,24 @@ export type PassedData = {
   windowID?: string,
 }
 
-const commsBridge = `
-<!-- commsBridge scripts -->
-<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-<script>
-/* you must set this before you import the CommsBridge file */
-const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
-// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
-// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
+// const commsBridge = `
+// <!-- commsBridge scripts -->
+// <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+// <script>
+// /* you must set this before you import the CommsBridge file */
+// const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
+// // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
+// // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
-/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
-   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
-   below and your processing functions can be in your html document or could be imported in an external file. The only
-   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
-   be in your html document or could be imported in an external file */
-</script>
-<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
-<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
+// /* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
+//    should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
+//    below and your processing functions can be in your html document or could be imported in an external file. The only
+//    requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+//    be in your html document or could be imported in an external file */
+// </script>
+// <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
+// <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+// `
 
 // ------------------------------------------------------------
 
