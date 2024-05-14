@@ -18,27 +18,35 @@ import {
   doCompleteChecklist,
   doCyclePriorityStateDown,
   doCyclePriorityStateUp,
-  doToggleType,
-  doUnscheduleItem,
-  doSetNextReviewDate,
+  doMoveToNote,
   doReviewFinished,
+  doSetNextReviewDate,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
   doShowLineInEditorFromTitle,
-  doMoveToNote,
   doMoveFromCalToCal,
+  doSettingsChanged,
+  doSetSpecificDate,
+  doToggleType,
+  doUnscheduleItem,
   doUpdateTaskDate,
   refreshAllSections,
   refreshSomeSections,
-  doSettingsChanged,
-  doSetSpecificDate,
 } from './clickHandlers'
+import {
+  scheduleAllOverdueOpenToToday,
+  scheduleAllTodayTomorrow,
+  scheduleAllYesterdayOpenToToday,
+} from './moveClickHandlers'
 // import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 import {makeDashboardParas} from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
-import { copyUpdatedSectionItemData, findSectionItems, getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { TActionType, TActionOnReturn, TBridgeClickHandlerResult, MessageDataObject } from './types'
+import {
+  copyUpdatedSectionItemData, findSectionItems,
+  // getAllSectionsData, getSomeSectionsData
+} from './dataGeneration'
+import type { TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, MessageDataObject } from './types'
 // import { allSectionCodes } from './types'
 // import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 // import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
@@ -295,6 +303,18 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doAddItem(data)
         break
       }
+      case 'moveAllTodayToTomorrow': {
+        result = await scheduleAllTodayTomorrow(data)
+        break
+      }
+      case 'moveAllYesterdayToToday': {
+        result = await scheduleAllYesterdayOpenToToday(data)
+        break
+      }
+      case 'scheduleAllOverdueToday': {
+        result = await scheduleAllOverdueOpenToToday(data)
+        break
+      }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -356,7 +376,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an await at some point */
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON ..`)
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON:`)
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
@@ -392,8 +412,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
  * Update React window data based on the result of handling item content update.
  * @param {TBridgeClickHandlerResult} res The result of handling item content update.
  * @param {MessageDataObject} data The data of the item that was updated.
- * @param {string[]} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
- * @returns {Promise<void>} A Promise that resolves once the update is done.
+ * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  */
 export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
   clo(handlerResult, 'updateReactWindowFLC: handlerResult')
@@ -403,11 +422,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   const { ID } = data.item ?? { ID: '?' }
   const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
   // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
-  if (success) {
-    // TODO: @jgclark: this should really recalculate the whole paragraph, including priority and other fields
-    // Not sure how/where you do that in dataGeneration, but we need to do that here
-    clo(updatedParagraph.note.filename, `updateReactWindowFLC -> updatedParagraph.note.filename`)
-    const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0] // FIXME: this needs to be updated flat object (and then see below)
+  if (!success) {
+    logWarn('updateReactWindowFLC', `failed, so won't update window`)
+    throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
+  }
+
+  if (updatedParagraph) {
+    clo(updatedParagraph.note?.filename ?? '<empty>', `updateReactWindowFLC -> updatedParagraph.note.filename`)
+    const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     // get a reference so we can overwrite it later
     let sections = reactWindowData.pluginData.sections
@@ -437,13 +459,13 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
-      logError('updateReactWindowFLC', errorMsg)
+      logError('updateReactWindowFLC', `unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
       throw `updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
     }
     // update ID in data object
   } else {
-    logError('updateReactWindowFLC', errorMsg)
+    logWarn('updateReactWindowFLC', `no updated paragraph: ID ${ID}: ${errorMsg || ''}`)
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
-  
+
 }

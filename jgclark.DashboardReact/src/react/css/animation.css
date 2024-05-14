@@ -38,14 +38,14 @@
     opacity: 1;
   }
   100% {
-    transform: scale(0);
+    transform: scale(0.5);
     opacity: 0;
   }
 }
 
 @keyframes zoom-in {
   0% {
-    transform: scale(0);
+    transform: scale(0.5);
     opacity: 0;
   }
   100% {
@@ -55,9 +55,9 @@
 }
 
 .zoom-out {
-  animation: zoom-out 0.5s forwards;
+  animation: zoom-out 0.3s forwards;
 }
 
 .zoom-in {
-  animation: zoom-in 0.5s forwards;
+  animation: zoom-in 0.2s forwards;
 }

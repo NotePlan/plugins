@@ -23,19 +23,19 @@ export async function toggleOverdueSection(): Promise<void> {
   try {
     // Get plugin settings
     const config: dashboardConfigType = await getSettings()
-    logDebug('toggleOverdueSection', `starting with existing value ${String(config.showOverdueTaskSection)}`)
+    logDebug('toggleOverdueSection', `starting with existing value ${String(config.showOverdueSection)}`)
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(
         `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
       )
     }
-    config.showOverdueTaskSection = !config.showOverdueTaskSection
+    config.showOverdueSection = !config.showOverdueSection
 
     // Save it back
     const res = await saveSettings(pluginID, config)
     // logDebug('toggleOverdueSection', `result -> ${String(res)}`)
-    logDebug('toggleOverdueSection', `-> new value ${String(config.showOverdueTaskSection)}`)
+    logDebug('toggleOverdueSection', `-> new value ${String(config.showOverdueSection)}`)
     logDebug('toggleOverdueSection', `------- now Refresh ---------`)
     // await showDashboard()
   } catch (error) {
@@ -201,7 +201,7 @@ export async function turnOnAllSections(): Promise<void> {
     config.showWeekSection = true
     config.showMonthSection = true
     config.showQuarterSection = true
-    config.showOverdueTaskSection = true
+    config.showOverdueSection = true
 
     // Save it back
     const res = await saveSettings(pluginID, config)

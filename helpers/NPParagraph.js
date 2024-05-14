@@ -1490,9 +1490,9 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
- * @returns {boolean} true if succesful, false if unsuccesful
+ * @returns {TParagraph | boolean} completed paragraph if succesful, false if unsuccesful
  */
-export function completeItemEarlier(filenameIn: string, content: string): boolean {
+export function completeItemEarlier(filenameIn: string, content: string): boolean | TParagraph {
   try {
     logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: <${content}>`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)

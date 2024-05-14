@@ -19,7 +19,7 @@ import {
   // type TSectionCode,
   type TPluginData, allCalendarSectionCodes, allSectionCodes} from './types'
 import { validateAndFlattenMessageObject } from './shared'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 // import { displayTitle } from '@helpers/general'
@@ -206,16 +206,22 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
 export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedPara = completeItemEarlier(filename, content)
-  logDebug('doCompleteTaskThen', `-> ${String(updatedPara)}`)
-  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  if (typeof updatedPara !== "boolean") {
+    logDebug('doCompleteTaskThen', `-> {${updatedPara.content
+      }}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  } else {
+    logDebug('doCompleteTaskThen', `-> failed`)
+    return handlerResult(false)
+  }
 }
 
 // Cancel the task in the actual Note
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = cancelItem(filename, content)
-  logDebug('doCancelTask', `-> ${String(updatedPara)}`)
-  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  const res = cancelItem(filename, content)
+  logDebug('doCancelTask', `-> ${String(res)}`)
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'])
 }
 
 // Complete the checklist in the actual Note
@@ -230,9 +236,9 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 // Cancel the checklist in the actual Note
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = cancelItem(filename, content)
-  logDebug('doCancelChecklist', `-> ${String(updatedPara)}`)
-  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  const res = cancelItem(filename, content)
+  logDebug('doCancelChecklist', `-> ${String(res)}`)
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'])
 }
 
 /**

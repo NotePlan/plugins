@@ -8,7 +8,10 @@
 import pluginJson from '../plugin.json'
 import { type TParagraphForDashboard, allSectionDetails, nonSectionSwitches } from './types'
 import { parseSettings } from './shared'
-import { removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getISODateStringFromYYYYMMDD } from '@helpers/dateTime'
+import {
+  removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate,
+  // getISODateStringFromYYYYMMDD
+} from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
@@ -64,8 +67,8 @@ export type dashboardConfigType = {
   showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
-  showOverdueTaskSection: boolean,
-  showProjectsSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
@@ -134,11 +137,11 @@ export async function getSettings(): Promise<any> {
     // Set local pref Dashboard-filterPriorityItems to default false
     // if it doesn't exist already
     const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
     // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
@@ -319,6 +322,78 @@ export function getOpenItemParasForCurrentTimePeriod(
     return [[], []] // for completeness
   }
 }
+
+// ---------------------------------------------------
+// TODO: write something to test if a note has been updated yet
+/**
+ * Note: suggested by ChatGPT
+ * Compares two objects' properties returned by `getFilteredProps`, logs the differences in properties and their values.
+ * Handles deep comparison if the property values are objects.
+ * 
+ * @param {Object} obj1 The first object to compare.
+ * @param {Object} obj2 The second object to compare.
+ */
+function compareObjects(obj1: Object, obj2: Object): void {
+  const props1 = getFilteredProps(obj1)
+  const props2 = getFilteredProps(obj2)
+
+  // Log property names that are not the same
+  const allProps = new Set([...Object.keys(props1), ...Object.keys(props2)])
+  allProps.forEach(prop => {
+    if (!(prop in props1)) {
+      logDebug(`Property ${prop} is missing in the first object`)
+    } else if (!(prop in props2)) {
+      logDebug(`Property ${prop} is missing in the second object`)
+    }
+  })
+
+  // Deep compare properties that are in both objects
+  Object.keys(props1).forEach(prop => {
+    if (prop in props2) {
+      deepCompare(props1[prop], props2[prop], prop)
+    }
+  })
+}
+
+/**
+ * Note: suggested by ChatGPT
+ * Deeply compares values, potentially recursively if they are objects.
+ * Logs differences with a path to the differing property.
+ * 
+ * @param {any} value1 The first value to compare.
+ * @param {any} value2 The second value to compare.
+ * @param {string} path The base path to the property being compared.
+ */
+function deepCompare(value1: any, value2: any, path: string): void {
+  if (isObject(value1) && isObject(value2)) {
+    const keys1 = Object.keys(value1)
+    const keys2 = Object.keys(value2)
+    const allKeys = new Set([...keys1, ...keys2])
+    allKeys.forEach(key => {
+      if (!(key in value1)) {
+        logDebug(`Property ${path}.${key} is missing in the first object value`)
+      } else if (!(key in value2)) {
+        logDebug(`Property ${path}.${key} is missing in the second object value`)
+      } else {
+        deepCompare(value1[key], value2[key], `${path}.${key}`)
+      }
+    })
+  } else if (value1 !== value2) {
+    logDebug(`Value difference at ${path}: ${value1} vs ${value2}`)
+  }
+}
+
+/**
+ * Note: suggested by ChatGPT
+ * Helper function to determine if a value is an object.
+ * 
+ * @param {any} value The value to check.
+ * @return {boolean} True if the value is an object, false otherwise.
+ */
+function isObject(value: any): boolean {
+  return value !== null && typeof value === 'object'
+}
+// ---------------------------------------------------
 
 /**
  * Decide whether this line contains an active time block.
