@@ -20,6 +20,9 @@
     "projectList.css",
     "projectListDialog.css",
     "projectListEvents.js",
+    "HTMLWinCommsSwitchboard.js",
+    "shortcut.js",
+    "showTimeAgo.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",

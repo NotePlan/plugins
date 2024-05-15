@@ -27,7 +27,7 @@
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
-    "pluginToHTMLCommsBridge.js",
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DashboardReact/readme.md",
