@@ -322,6 +322,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     if (result) {
       await processActionOnReturn(result, data) // process all actions based on result of handler
+      // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', {msg:"Action processed\n\n\n\n\nYASSSSS" })
     } else {
       logWarn('bCDI', `false result from call`)
     }

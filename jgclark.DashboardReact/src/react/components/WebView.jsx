@@ -179,6 +179,7 @@ useEffect(() => {
     } else {
       logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
+    dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
 
   /****************************************************************************************************************************

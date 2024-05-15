@@ -82,6 +82,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     const resourceLinksInHeader = `
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">
