@@ -10,6 +10,12 @@ Misc TODO:
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 - will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
 
+## [2.0.0.a19] @dbw
+- Fix tooltips that said add new task for checklists
+- Remove several JS files
+- Remove bugs caused by sending "updatedPara" rather than "updatedParagraph"
+- Verify and cross off a lot of todos
+
 ## [2.0.0.a18] @jgc/@dbw
 - got most of "All Today -> Tomorrow" operation working
 - got most of "All Yesterday -> Today" operation working

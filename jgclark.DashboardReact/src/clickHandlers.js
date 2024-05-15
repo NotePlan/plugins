@@ -197,19 +197,19 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 // Complete the task in the actual Note
 export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = completeItem(filename, content)
-  // clo(updatedPara, `doCompleteTask -> updatedPara`) // ✅
-  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  const updatedParagraph = completeItem(filename, content)
+  // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`) // ✅
+  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 // Complete the task in the actual Note, but with the date it was scheduled for
 export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = completeItemEarlier(filename, content)
-  if (typeof updatedPara !== "boolean") {
-    logDebug('doCompleteTaskThen', `-> {${updatedPara.content
+  const updatedParagraph = completeItemEarlier(filename, content)
+  if (typeof updatedParagraph !== "boolean") {
+    logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content
       }}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
   } else {
     logDebug('doCompleteTaskThen', `-> failed`)
     return handlerResult(false)
@@ -227,10 +227,10 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
 // Complete the checklist in the actual Note
 export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = completeItem(filename, content)
-  // clo(updatedPara, `doCompleteChecklist -> updatedPara`) // ✅
-  // clo(updatedPara.note.filename, `doCompleteChecklist -> updatedPara.note.filename`)// ✅
-  return handlerResult(Boolean(updatedPara), ['REMOVE_LINE_FROM_JSON'], { updatedPara })
+  const updatedParagraph = completeItem(filename, content)
+  // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`) // ✅
+  // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)// ✅
+  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 // Cancel the checklist in the actual Note
@@ -286,19 +286,19 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     }
     // logDebug('toggleTaskChecklistParaType', `toggling type for {${content}} in filename: ${filename}`)
     // Get the paragraph to change
-    const updatedPara = possiblePara
-    const thisNote = updatedPara.note
+    const updatedParagraph = possiblePara
+    const thisNote = updatedParagraph.note
     if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
-    const existingType = updatedPara.type
+    const existingType = updatedParagraph.type
     logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
     const updatedType = (existingType === 'checklist') ? 'open' : 'checklist'
-    updatedPara.type = updatedType
+    updatedParagraph.type = updatedType
   logDebug('doToggleType', `-> ${updatedType}`)
-    thisNote.updateParagraph(updatedPara)
+    thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
     // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
     // FIXME: this still isn't updating the window correctly
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedPara })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
 
   // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
   // Update display in Dashboard too
@@ -315,13 +315,13 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
 // Send a request to unscheduleItem to plugin
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const updatedPara = unscheduleItem(filename, content)
-  logDebug('doUnscheduleItem', `-> ${String(updatedPara)}`)
+  const updatedParagraph = unscheduleItem(filename, content)
+  logDebug('doUnscheduleItem', `-> ${String(updatedParagraph)}`)
 
   // logDebug('doUnscheduleItem', `  -> result ${String(res)}`)
   // Update display in Dashboard too
   // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedPara })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
 }
 
 // Send a request to cyclePriorityStateUp to plugin
@@ -550,7 +550,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   // // Send a message to update the row in the dashboard
   // logDebug('moveToNote', `- Sending request to window to update`)
   // // sendToHTMLWindow(windowId, 'updatefilename', { itemID: ID, filename: destNote.filename })
-  // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedPara })
+  // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
 
   // // Ask for cache refresh for this note
   // DataStore.updateCache(origNote, false)
