@@ -10,12 +10,6 @@
  * RUN FROM THE SHELL: node 'jgclark.DashboardReact/src/react/support/performRollup.node.js' --watch
  */
 
-type Props = {
-  data: any /* passed in from the plugin as globalSharedData */,
-  dispatch: Function,
-  reactSettings: ReactSettings,
-  setReactSettings: Function,
-}
 /****************************************************************************************************************************
  *                             NOTES
  * WebView should act as a "controlled component", as far as the data from the plugin is concerned.
@@ -32,19 +26,24 @@ type Props = {
 
 import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
+import { type TReactSettings } from '../../types'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug } from '@helpers/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
  */
 
-logDebug(`WebView`, `loading file outside component code`)
+type Props = {
+  data: any /* passed in from the plugin as globalSharedData */,
+  dispatch: Function,
+  reactSettings: TReactSettings,
+  setReactSettings: Function,
+}
 
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
-  logDebug(`WebView`, `inside component code`)
 
   /****************************************************************************************************************************
    *                             HOOKS
@@ -58,12 +57,16 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // this will save the data at the Root React Component level, which will give the plugin access to this data also
   // sending this dispatch will re-render the Webview component with the new data
 
+  const [sharedSettings, setSharedSettings] = React.useState({})
+
   /****************************************************************************************************************************
    *                             VARIABLES
    ****************************************************************************************************************************/
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
+  // pluginData.sections = pluginData.sections.slice(0, 1) //FIXME: dbw remove this
+  // logDebug('WebView', `DBW TEMPORARILY LIMITING TO ONE ITEM - REMOVE THIS`)
 
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
@@ -72,8 +75,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * Settings which are local to the React window
    */
   const defaultReactSettings = {
+    dialogData: { isOpen: false, isTask: true, details: {} },
+  }
+
+  const defaultSharedSettings = {
     filterPriorityItems: false,
-    dialogData: { isOpen: false, isTask: true },
+    ignoreChecklistItems: false, // TODO: this needs to interact with main settings
+    lastChange: `_WebView_DefaultSettings`,
   }
 
   /****************************************************************************************************************************
@@ -84,12 +92,81 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             EFFECTS
    ****************************************************************************************************************************/
 
-  // Set up the initial React Settings (runs only on load)
-  useEffect(() => {
-    logDebug(`Webview`, `setReactSettings effect running: setting Default settings. setReactSettings exists? ${setReactSettings !== undefined}`)
-    if (!setReactSettings) return
-    setReactSettings((prev) => ({ ...prev, ...defaultReactSettings }))
-  }, [])
+type Settings = {
+  setter: (prev: any) => void,
+  currentSettings: ?Object,
+  settingsKey: string,
+  defaultSettings: Object,
+  effectName: string
+};
+
+/**
+ * @typedef {Object} Settings
+ * @property {Function} setter - Function to set settings state.
+ * @property {Object|null} currentSettings - Current settings state.
+ * @property {string} settingsKey - Key to access the right settings from plugin data.
+ * @property {Object} defaultSettings - Default settings to apply.
+ * @property {string} effectName - Name of the effect for debugging purposes.
+ */
+/**
+ * Helper function to initialize settings (used for reactSettings and sharedSettings)
+ * @param {Settings} settings
+ */
+function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }:Settings) {
+  const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
+  logDebug
+  const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
+  logDebug(
+    `Webview`,
+    `${effectName} effect running: ${effectName} must have changed. Setting default settings. ${effectName} exists? ${String(
+      setter !== undefined,
+    )}, settingsExist? ${String(settingsExist)} currentSettings: ${JSON.stringify(
+      currentSettings || {},
+      null,
+      2,
+    )} pluginSettingsValue: ${pluginSettingsValue}`,
+  )
+
+  if (!setter || settingsExist) return
+
+  let parsedSettings = defaultSettings
+  if (pluginSettingsValue) {
+    try {
+      parsedSettings = JSON.parse(pluginData.settings[settingsKey])
+    } catch (error) {
+      logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
+    }
+  }
+
+  setter((prev) => ({ ...prev, lastChange: `_Webview_firstLoad`, ...parsedSettings }))
+}
+
+/**
+ * Set up the initial React Settings (runs only on load)
+ */
+useEffect(() => {
+  initializeSettings({
+    setter: setReactSettings,
+    currentSettings: reactSettings,
+    settingsKey: 'reactSettings',
+    defaultSettings: defaultReactSettings,
+    effectName: 'setReactSettings'
+  })
+}, [setReactSettings])
+
+/**
+ * Set up the initial Shared Settings (runs only on load)
+ */
+useEffect(() => {
+  initializeSettings({
+    setter: setSharedSettings,
+    currentSettings: sharedSettings,
+    settingsKey: 'sharedSettings',
+    defaultSettings: defaultSharedSettings,
+    effectName: 'setSharedSettings'
+  })
+}, [setSharedSettings])
+
 
   /**
    * When the data changes, console.log it so we know and scroll the window
@@ -97,11 +174,12 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   useEffect(() => {
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
+      debug && logDebug(`WebView`, `FYI data watch (for scroll): underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     } else {
-      logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
+      logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
+    dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
 
   /****************************************************************************************************************************
@@ -117,7 +195,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData?.passThroughVars) newData.passThroughVars = {}
+    if (!newData?.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -128,15 +206,16 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * For instance, saving where the scroll position was so that when data changes and the Webview re-renders, it can scroll back to where it was
    * @param {string} command
    * @param {any} dataToSend
+   * @oaram {any} additionalInfo
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
-  const sendActionToPlugin = (command: string, dataToSend: any, updateGlobalData: boolean = true) => {
-    logDebug(`Webview: sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
+  const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
+    logDebug(`Webview`, `sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
-      dispatch('UPDATE_DATA', newData, '') // save the data at the Root React Component level, which will give the plugin access to this data also
+      dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also
     }
-    sendToPlugin([command, dataToSend, '']) // send action to plugin
+    sendToPlugin([command, dataToSend, additionalInfo]) // send action to plugin
   }
 
   /**
@@ -169,21 +248,22 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     const newFullData = { ...data, pluginData: newData }
     dispatch('UPDATE_DATA', newFullData, messageForLog) // save the data at the Root React Component level, which will give the plugin access to this data also
   }
-  if (!pluginData.reactSettings) pluginData.reactSettings = {}
-
   /****************************************************************************************************************************
    *                             RENDER
    ****************************************************************************************************************************/
 
   return (
+    // $FlowIgnore
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}
       dispatch={dispatch}
-      pluginData={pluginData}
+      pluginData={pluginData} 
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}
+      sharedSettings={sharedSettings}
+      setSharedSettings={setSharedSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>

@@ -154,10 +154,10 @@ export function getWindowIdFromCustomId(customId: string): string | false {
     // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       thisWin.customId = customId
-      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
+      // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
       return thisWin.id
     } else {
-      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
+      logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
     }
   }
   return false

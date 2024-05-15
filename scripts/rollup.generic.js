@@ -20,6 +20,7 @@ const json = require('@rollup/plugin-json')
 const rollup = require('rollup')
 const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
+const postcss = require('rollup-plugin-postcss') // read CSS files
 
 const NOTIFY = true
 
@@ -240,6 +241,10 @@ function getRollupConfig(options) {
       extensions: ['.jsx', '.js'],
     }),
     json(),
+    postcss({
+      // plugins: [], // You can add PostCSS plugins here
+      minimize: true, // If you want to minify the CSS (you can also specify options for cssnano here)
+    }),
   ]
 
   // if production, minify everything

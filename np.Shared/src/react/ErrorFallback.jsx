@@ -1,4 +1,4 @@
-import { JSP, formatReactError, clo } from '@helpers/dev'
+import { JSP, formatReactError, clo } from '@helpers/react/reactDev'
 
 export const ErrorFallback = (props) => {
   clo(props)

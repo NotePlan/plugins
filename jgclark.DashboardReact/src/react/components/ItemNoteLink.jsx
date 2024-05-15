@@ -7,6 +7,7 @@
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
+import { logDebug, clo } from '@helpers/react/reactDev'
 
 // import {
 //   getAPIDateStrFromDisplayDateStr,
@@ -20,65 +21,24 @@ type Props = {
 /**
  * Represents the main content for a single item within a section
  */
-function ItemNoteLink(inputObj: Props): React$Node {
-  const { item, thisSection } = inputObj
+function ItemNoteLink({ item, thisSection }: Props): React$Node {
   const { sendActionToPlugin } = useAppContext()
-
-  console.log(`ItemNoteLink for ${item.itemFilename}`)
-
+  const filename = item.para?.filename ?? '<no filename found>'
   // compute the things we need later
-  const noteTitle = item.itemNoteTitle
-  if (noteTitle && noteTitle !== thisSection.sectionFilename) {
-    const encodedNoteTitle = encodeURIComponent(noteTitle)
-
+  const noteTitle = item?.para?.title || ''
+  // logDebug(`ItemNoteLink`, `ItemNoteLink for item.itemFilename:${filename} noteTitle:${noteTitle} thisSection.sectionFilename=${thisSection.sectionFilename || ''}`)
+  if (filename !== thisSection.sectionFilename) {
     const dataObjectToPassToFunction = {
-      itemID: 'fake',
-      type: 'showNoteInEditorFromTitle',
-      encodedFilename: encodedNoteTitle,
-      encodedContent: '',
+      actionType: 'showNoteInEditorFromFilename',
+      item,
     }
     return (
-      <a
-        className="noteTitle sectionItem"
-        // $FlowIgnore[cannot-resolve-name]
-        onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction)}
-      >
+      <a className="noteTitle sectionItem" onClick={() => sendActionToPlugin('showNoteInEditorFromFilename', dataObjectToPassToFunction, `${noteTitle} clicked`, true)}>
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
         {noteTitle}
       </a>
     )
-  } else {
-    console.log()
-    return
   }
-}
-
-// Now include an active link to the note, if 'noteTitle' is given
-// TODO(later): remove once checked that it works in separate function
-/**
- *
- * @param {SectionItem} thisItem
- * @param {string?} noteLinkStyle: "append" or "all"
- * @returns {string}
- */
-function makeNoteLinkToAppend(thisItem: TSectionItem, noteLinkStyle: string = 'all'): string {
-  let output = ''
-  const noteTitle = thisItem.para.title
-  if (noteTitle) {
-    // console.log(`makeParaContet...: - before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-    switch (noteLinkStyle) {
-      case 'append': {
-        output += thisItem + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
-        break
-      }
-      case 'all': {
-        output += thisItem
-        break
-      }
-    }
-    // console.log(`makeParaContet...: - after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-  }
-  return output
 }
 
 export default ItemNoteLink

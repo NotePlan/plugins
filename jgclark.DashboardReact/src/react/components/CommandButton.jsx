@@ -1,9 +1,13 @@
-// Buttons for adding tasks and checklists to today's note
 // @flow
+//--------------------------------------------------------------------------
+// Buttons on the UI, including adding tasks and checklists to today's note
+// Last updated 10.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
+import {logDebug,JSP} from '@helpers/react/reactDev.js'
 
 type ButtonProps = {
   button: TActionButton,
@@ -14,25 +18,29 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
   const { button } = inputObj
 
-  // console.log('CommandButton: ' + button.display)
+  // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
 
-  // Tried this approach but decided it's not flexible enough
+  // For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
+  // Instead will use dangerouslySetInnerHTML, so we can set anything.
+
+  // TODO: Also pass sectionCode to refresh
 
   return (
     <>
+      {' '}
       <button
         className="PCButton tooltip"
         data-tooltip={button.tooltip}
-        data-plugin-id={button.actionPluginID}
-        // data-command={button.actionFunctionName}
-        // data-command-args={filename}
-        onClick={() => sendActionToPlugin(button.actionFunctionName, button.actionFunctionParam)}
+        onClick={() => sendActionToPlugin(button.actionPluginID, {
+          actionType: button.actionName,
+          toFilename: button.actionParam,
+          sectionCodes: button.postActionRefresh
+        })}
         dangerouslySetInnerHTML={{ __html: button.display }}
       >
-        {/* {possIconBefore}{button.display}{possIconAfter} */}
-      </button>{' '}
+      </button>
     </>
   )
 }

@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 26.2.2024 for v0.9.0 by @jgclark
+  Last updated: 5.5.2024 for v2.0.0 by @jgclark
   */
 dialog:modal {
   max-width: 92%;
@@ -23,9 +23,11 @@ dialog {
   border: solid 1px var(--tint-color);
   border-radius: 0.5em;
   box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
+  z-index: 50;
 }
 
 .dialogTitle {
+  display: grid;
   background: var(--bg-alt-color);
   padding-block-start: 0.6rem;
   padding-inline-start: 0.5rem;
@@ -33,10 +35,23 @@ dialog {
   padding-block-end: 0.2rem;
   border-block-end: 1px solid gray;
   /* margin-block-end: 4px; */
+  grid-template-columns: auto auto;
+  /* vertically align content items in center */
+  align-items: center; 
+}
+
+.dialogTitle div:nth-last-child(1) {
+  /* Put very last div (Close button etc.) on RHS */
+  justify-self: end;
+  /* margin-bottom: 5px; */
 }
 
 .dialogItemNote {
   font-weight: 600;
+}
+
+.dialogItemNoteType {
+  font-weight: 400;
 }
 
 .dialogBody {
@@ -48,6 +63,8 @@ dialog {
 
 .dialogDescription {
   padding-block-start: 5px;
+  display: grid;
+  grid-template-columns: 1fr auto; /* mostly the input */
 }
 
 .buttonGrid {
@@ -100,7 +117,7 @@ dialog {
 }
 
 .fullTextInput {
-  width: calc(100% - 4rem);
+  width: calc(100% - 4rem); /* TODO: fix if adding extra icon */
   font-size: 0.85rem;
   padding: 1px 4px 1px 4px;
   border-radius: 4px;
@@ -118,4 +135,11 @@ dialog {
 /* set fa icon colour to tint color */
 i.fa-solid, i.fa-regular {
   color: var(--tint-color);
+}
+
+.closeButton, .skipButton {
+  margin-right: 5px;
+	font-size: 0.9rem;
+  /* background-color: none; */
+  border: none;
 }

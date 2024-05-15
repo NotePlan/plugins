@@ -2,11 +2,8 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { showDashboardReact } from './reactMain'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { editSettings } from '@helpers/NPSettings'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -17,19 +14,6 @@ import { showMessage } from '@helpers/userInput'
  *
  */
 
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings started`)
-    const res = await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -65,18 +49,20 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
-  try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated started`)
-    // If v3.11+, can now refresh Dashboard
-    if (NotePlan.environment.buildVersion >= 1181) {
-      if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-        logDebug(pluginJson, `will refresh Dashboard as it is open`)
-        await showDashboardReact('refresh', false) // probably don't need await
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
-  }
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated() but we are not doing anything.`)
+  return
+  // probably get rid of all of this because it's not used
+  // try {
+  //   // If v3.11+, can now refresh Dashboard
+  //   if (NotePlan.environment.buildVersion >= 1181) {
+  //     if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+  //       logDebug(pluginJson, `will refresh Dashboard as it is open`)
+  //       await showDashboardReact('refresh', false) // probably don't need await
+  //     }
+  //   }
+  // } catch (error) {
+  //   logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+  // }
 }
 
 /**

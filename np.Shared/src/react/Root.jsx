@@ -34,14 +34,13 @@ type TWarning = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useState, useEffect, Profiler, type Node } from 'react'
+import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
 // import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug } from '@helpers/reactDev'
-import { JSP, formatReactError } from '@helpers/dev'
+import { logDebug, formatReactError, JSP } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
 
@@ -50,8 +49,6 @@ const myErrorLogger = (e: Error, i: { componentStack: string }) => {
   const error = formatReactError(e, i.componentStack)
   console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff')
 }
-
-logDebug(`Root`, `loading file outside component code`)
 
 /****************************************************************************************************************************
  *                             globalSharedData
@@ -72,10 +69,11 @@ export function Root(/* props: Props */): Node {
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
   const [reactSettings, setReactSettings] = useState({})
 
-  const [warning, setWarning] = useState<TWarning>({ warn: false, msg: '', color: 'w3-pale-red', border: '' })
+  const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
   // const [setMessageFromPlugin] = useState({})
   const [history, setHistory] = useState([lastUpdated])
-  const tempSavedClicksRef: any = React.useRef([]) //temporarily store the clicks in the webview
+  // $FlowFixMe
+  const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -114,7 +112,7 @@ export function Root(/* props: Props */): Node {
   // eslint-disable-next-line no-unused-vars
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
     // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    // console.log(`Root: Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
+    // logDebug(`Root`,`Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
     // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
@@ -155,10 +153,21 @@ export function Root(/* props: Props */): Node {
         if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
         if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
         if (type && payload) {
-          logDebug(`Root`, ` onMessageReceived: ${type}`)
+          // logDebug(`Root`, ` onMessageReceived: ${type}`)
+          // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
+          if (!payload.lastUpdated) payload.lastUpdated = { msg: '(no msg)' }
           // Spread existing state into new object to keep it immutable
           // TODO: ideally, you would use a reducer here
-          if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`
+          if (type === 'SHOW_BANNER') {
+            if (payload.lastUpdated?.msg) {
+              payload.lastUpdated.msg += `: ${payload.msg}`
+            } else {
+              logDebug(
+                `Root`,
+                ` onMessageReceived: payload.lastUpdated.msg is undefined: payload.lastUpdated:${payload.lastUpdated} payload.lastUpdated.msg:${payload.lastUpdated.msg}`,
+              )
+            }
+          }
           setHistory((prevData) => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated])
           tempSavedClicksRef.current = []
           switch (type) {
@@ -172,6 +181,13 @@ export function Root(/* props: Props */): Node {
               globalSharedData = { ...globalSharedData, ...payload }
               break
             case 'SHOW_BANNER':
+              if (npData.passThroughVars.lastWindowScrollTop) {
+                logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
+                setNPData((prevData) => {
+                  prevData.passThroughVars.lastWindowScrollTop = 0
+                  return { ...prevData, ...payload }
+                })
+              }
               showBanner(payload.msg, payload.color, payload.border)
               break
             case 'SEND_TO_PLUGIN':
@@ -188,7 +204,7 @@ export function Root(/* props: Props */): Node {
           logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
         }
       } catch (error) {
-        logDebug(`Root`, ` onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`)
+        logDebug(`Root`, ` onMessageReceived: error=${JSP(formatReactError(error))}`)
       }
     } else {
       // logDebug(`Root`,` onMessageReceived: called but event.data is undefined: noop`)
@@ -236,7 +252,7 @@ export function Root(/* props: Props */): Node {
    * handle click on X on banner to hide it
    */
   const hideBanner = () => {
-    setWarning({ warn: false, msg: '', color: 'w3-pale-red' })
+    setWarning({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
   }
 
   /**

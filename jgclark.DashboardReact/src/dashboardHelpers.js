@@ -1,44 +1,34 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 19.4.2024 for v2.0.0 by @jgclark
+// Last updated 5.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TSectionItem, TParagraphForDashboard } from './types'
-// import { showDashboard } from './HTMLGeneratorGrid'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { type TParagraphForDashboard, allSectionDetails, nonSectionSwitches } from './types'
+import { parseSettings } from './shared'
 import {
-  getAPIDateStrFromDisplayDateStr,
-  includesScheduledFutureDate,
+  removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate,
+  // getISODateStringFromYYYYMMDD
 } from '@helpers/dateTime'
-import {
-  createRunPluginCallbackUrl,
-  displayTitle,
-} from "@helpers/general"
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
+import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
-  getTaskPriority,
+  // getTaskPriority,
   isTermInURL,
-  removeTaskPriorityIndicators,
+  // removeTaskPriorityIndicators,
   smartPrependPara,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
-import {
-  RE_ARROW_DATES_G,
-  RE_SCHEDULED_DATES_G,
-} from '@helpers/regex'
-import {
-  addPriorityToParagraphs,
-  getNumericPriorityFromPara,
-  sortListBy,
-} from '@helpers/sorting'
+// import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
+import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   getTimeBlockString,
@@ -46,16 +36,8 @@ import {
   // isTimeBlockPara,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
-import {
-  displayTitleWithRelDate,
-  showMessage
-} from '@helpers/userInput'
-import {
-  isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
-  removeDuplicates
-} from '@helpers/utils'
-import { removeDateTagsAndToday } from '../../helpers/dateTime'
-
+import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
+import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
 //-----------------------------------------------------------------
 
 // Note: types.js now contains the Type definitions
@@ -85,7 +67,8 @@ export type dashboardConfigType = {
   showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
-  showOverdueTaskSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
@@ -95,7 +78,42 @@ export type dashboardConfigType = {
   useTodayDate: boolean,
   _logLevel: string,
   triggerLogging: boolean,
-  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+}
+
+/**
+ * Get the sharedSettings values as an object
+ * @returns {any} the settings object or an empty object if there are none 
+ */
+export function getSharedSettings(): any {
+  return parseSettings(DataStore.settings?.sharedSettings) ?? {}
+}
+
+/**
+ * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
+ * Calls DataStore.settings so can't be used on front-end
+ */
+export async function getCombinedSettings(): Promise<any> {
+  const sharedSettings = getSharedSettings()
+  const pluginSettings = await getSettings()
+  const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
+  returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
+  returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
+  returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
+  // Now add all the show*Section settings (or default to true)
+  for (const sd of allSectionDetails) {
+    const thisShowSettingName = sd.showSettingName
+    if (thisShowSettingName) {
+      // Default to true unless user has explictly set to false
+      returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
+    }
+  }
+  for (const switchObj of nonSectionSwitches) {
+    if (typeof sharedSettings[switchObj.key] !== 'undefined') {
+      returnObj[switchObj.key] = sharedSettings[switchObj.key]
+    }
+  }
+  return returnObj
 }
 
 /**
@@ -110,9 +128,7 @@ export async function getSettings(): Promise<any> {
     const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
-      throw new Error(
-        `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
-      )
+      throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
     }
     // clo(config, `settings`)
     // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
@@ -121,15 +137,19 @@ export async function getSettings(): Promise<any> {
     // Set local pref Dashboard-filterPriorityItems to default false
     // if it doesn't exist already
     const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
     // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
-    config.timeblockMustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
-    config.filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems')
+    config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
+    config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
+
+    // Get a setting from QuickCapture
+    // FIXME: should return 3 for me, but returns 2
+    config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
 
     return config
   } catch (err) {
@@ -143,28 +163,29 @@ export async function getSettings(): Promise<any> {
 
 /**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many)
- * @param {Array<TParagraph>} origParas 
+ * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
 export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
+      if (!note) throw new Error(`No note found for para {${p.content}}`)
       return {
-        filename: note?.filename ?? '<error>',
-        title: displayTitle(note), // this isn't expensive
+        filename: note.filename,
+        noteType: note.type,
+        title: (note.type === 'Notes') ? displayTitle(note) : note.title /* will be ISO-8601 date */,
         type: p.type,
-        // rawContent: p.rawContent,
         prefix: p.rawContent.replace(p.content, ''),
         content: p.content,
+        rawContent: p.rawContent,
         priority: getNumericPriorityFromPara(p),
-        changedDate: note?.changedDate,
         timeStr: getStartTimeFromPara(p),
+        changedDate: note?.changedDate,
       }
     })
     return dashboardParas
-  }
-  catch (error) {
+  } catch (error) {
     logError('makeDashboardParas', error.message)
     return []
   }
@@ -186,7 +207,9 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForCurrentTimePeriod(
-  timePeriodName: string, timePeriodNote: TNote, config: dashboardConfigType
+  timePeriodName: string,
+  timePeriodNote: TNote,
+  config: dashboardConfigType,
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
@@ -195,7 +218,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Get paras from calendar note
     // Note: this takes 100-110ms for me
     const startTime = new Date() // for timing only
-    if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
+    if (Editor && Editor?.note?.filename === timePeriodNote.filename) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       parasToUse = Editor.paragraphs
       logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
@@ -213,10 +236,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
     // Note: this operation is 100ms
-    let openParas = (config.ignoreChecklistItems)
+    let openParas = config.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
@@ -257,10 +280,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Allow to ignore checklist items.
-      refOpenParas = (config.ignoreChecklistItems)
+      refOpenParas = config.ignoreChecklistItems
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
-        // try make this a single filter
-        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
+        : // try make this a single filter
+        getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
     logDebug('getOpenItemParasForCurrent...', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
 
@@ -300,6 +323,78 @@ export function getOpenItemParasForCurrentTimePeriod(
   }
 }
 
+// ---------------------------------------------------
+// TODO: write something to test if a note has been updated yet
+/**
+ * Note: suggested by ChatGPT
+ * Compares two objects' properties returned by `getFilteredProps`, logs the differences in properties and their values.
+ * Handles deep comparison if the property values are objects.
+ * 
+ * @param {Object} obj1 The first object to compare.
+ * @param {Object} obj2 The second object to compare.
+ */
+function compareObjects(obj1: Object, obj2: Object): void {
+  const props1 = getFilteredProps(obj1)
+  const props2 = getFilteredProps(obj2)
+
+  // Log property names that are not the same
+  const allProps = new Set([...Object.keys(props1), ...Object.keys(props2)])
+  allProps.forEach(prop => {
+    if (!(prop in props1)) {
+      logDebug(`Property ${prop} is missing in the first object`)
+    } else if (!(prop in props2)) {
+      logDebug(`Property ${prop} is missing in the second object`)
+    }
+  })
+
+  // Deep compare properties that are in both objects
+  Object.keys(props1).forEach(prop => {
+    if (prop in props2) {
+      deepCompare(props1[prop], props2[prop], prop)
+    }
+  })
+}
+
+/**
+ * Note: suggested by ChatGPT
+ * Deeply compares values, potentially recursively if they are objects.
+ * Logs differences with a path to the differing property.
+ * 
+ * @param {any} value1 The first value to compare.
+ * @param {any} value2 The second value to compare.
+ * @param {string} path The base path to the property being compared.
+ */
+function deepCompare(value1: any, value2: any, path: string): void {
+  if (isObject(value1) && isObject(value2)) {
+    const keys1 = Object.keys(value1)
+    const keys2 = Object.keys(value2)
+    const allKeys = new Set([...keys1, ...keys2])
+    allKeys.forEach(key => {
+      if (!(key in value1)) {
+        logDebug(`Property ${path}.${key} is missing in the first object value`)
+      } else if (!(key in value2)) {
+        logDebug(`Property ${path}.${key} is missing in the second object value`)
+      } else {
+        deepCompare(value1[key], value2[key], `${path}.${key}`)
+      }
+    })
+  } else if (value1 !== value2) {
+    logDebug(`Value difference at ${path}: ${value1} vs ${value2}`)
+  }
+}
+
+/**
+ * Note: suggested by ChatGPT
+ * Helper function to determine if a value is an object.
+ * 
+ * @param {any} value The value to check.
+ * @return {boolean} True if the value is an object, false otherwise.
+ */
+function isObject(value: any): boolean {
+  return value !== null && typeof value === 'object'
+}
+// ---------------------------------------------------
+
 /**
  * Decide whether this line contains an active time block.
  * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
@@ -318,8 +413,7 @@ function isTimeBlockLine(contentString: string, mustContainString: string = ''):
     }
     const res2 = contentString.match(RE_TIMEBLOCK_APP) ?? []
     return res2.length > 0
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err)
     return false
   }
@@ -339,9 +433,8 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
     return false
   }
   const tbString = getTimeBlockString(para.content)
-  return (!isTermInURL(tbString, para.content))
+  return !isTermInURL(tbString, para.content)
 }
-
 
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
@@ -365,15 +458,14 @@ function convertTimeBlockToHTML(input: string): string {
  */
 function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
   const withDates = items
-    .map(item => ({
+    .map((item) => ({
       item,
-      date: Calendar.parseDateText(item.content)[0]?.start ?? null
+      date: Calendar.parseDateText(item.content)[0]?.start ?? null,
     })) // Map each item to an object including both the item and the parsed start date.
     .filter(({ date }) => date != null) // Filter out items without a valid start date.
 
   // Sort the intermediate structure by the start date and map back to the original items.
-  const sortedItems = withDates.sort((a, b) => a.date - b.date)
-    .map(({ item }) => item)
+  const sortedItems = withDates.sort((a, b) => a.date - b.date).map(({ item }) => item)
 
   return sortedItems
 }
@@ -422,55 +514,56 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
   }
 }
 
-
 /**
+ * Note: now replaced
  * Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
  * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: SectionItem, displayStr: string): string {
-  try {
-    // Method 2: pass request back to plugin
-    // TODO: is it right that this basically does nothing?
-    // const filenameEncoded = encodeURIComponent(item.filename)
+// export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string): string {
+//   try {
+//     // Method 2: pass request back to plugin
+//     // TODO: is it right that this basically does nothing?
+//     // const filenameEncoded = encodeURIComponent(item.filename)
 
-    if (item.para.content) {
-      // call showLineinEditor... with the filename and rawConetnt
-      // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    } else {
-      // call showNoteinEditor... with the filename
-      // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
-      // return `<a>${displayStr}</a>`
-      return `${displayStr}`
-    }
-  }
-  catch (error) {
-    logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
-    return '(error)'
-  }
-}
+//     if (item.para.content) {
+//       // call showLineinEditor... with the filename and rawConetnt
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     } else {
+//       // call showNoteinEditor... with the filename
+//       // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
+//       // return `<a>${displayStr}</a>`
+//       return `${displayStr}`
+//     }
+//   } catch (error) {
+//     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
+ * Note: now replaced
  * Wrap string with href onClick event to show note in editor,
  * using item.filename param.
  * @param {SectionItem} item's details
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
-  try {
-    // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
-    // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.para.filename)}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
-    logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
-    return '(error)'
-  }
-}
+// export function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: string): string {
+//   try {
+//     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
+//     // Pass request back to plugin, as a single object
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
+//       item.para.filename,
+//     )}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+//   } catch (error) {
+//     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
  * Wrap string with href onClick event to show note in editor,
@@ -479,18 +572,19 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
  * @param {string} noteTitle
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
-  try {
-    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
-    // Pass request back to plugin
-    // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
-    logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
-    return '(error)'
-  }
-}
+// export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
+//   try {
+//     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
+//     // Pass request back to plugin
+//     // Note: not passing rawContent (param 4) as its not needed
+//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
+//       noteTitle,
+//     )}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+//   } catch (error) {
+//     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
+//     return '(error)'
+//   }
+// }
 
 /**
  * Wrap string with href onClick event to show note in editor,
@@ -504,9 +598,10 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
     const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
-  }
-  catch (error) {
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
+      dateFilename,
+    )}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+  } catch (error) {
     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
     return '(error)'
   }
@@ -533,7 +628,7 @@ export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> 
         if (startTimeStr[1] === ':') {
           startTimeStr = `0${startTimeStr}`
         }
-        if (startTimeStr.endsWith("PM")) {
+        if (startTimeStr.endsWith('PM')) {
           startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
         }
         logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
@@ -541,14 +636,13 @@ export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> 
         extendedPara.timeStr = startTimeStr
       } else {
         // $FlowIgnore(prop-missing)
-        extendedPara.timeStr = "none"
+        extendedPara.timeStr = 'none'
       }
       extendedParas.push(extendedPara)
     }
 
     return extendedParas
-  }
-  catch (error) {
+  } catch (error) {
     logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
     return []
   }
@@ -567,21 +661,20 @@ export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> 
 export function getStartTimeFromPara(para: TParagraph): any {
   try {
     // logDebug('getStartTimeFromPara', `starting with ${String(paras.length)} paras`)
-    let startTimeStr = "none"
+    let startTimeStr = 'none'
     const thisTimeStr = getTimeBlockString(para.content)
     if (thisTimeStr !== '') {
       startTimeStr = thisTimeStr.split('-')[0]
       if (startTimeStr[1] === ':') {
         startTimeStr = `0${startTimeStr}`
       }
-      if (startTimeStr.endsWith("PM")) {
+      if (startTimeStr.endsWith('PM')) {
         startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
       }
       logDebug('extendParaToAddStartTime', `found timeStr: ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
-  }
-  catch (error) {
+  } catch (error) {
     logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
     return []
   }
@@ -600,7 +693,7 @@ export function getStartTimeFromPara(para: TParagraph): any {
  */
 export function makeFakeCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
   const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
-  const output = (tooltipText)
+  const output = tooltipText
     ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
     : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</a></span>`
   return output
@@ -621,7 +714,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
  */
 export function makeRealCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
   const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
-  const output = (tooltipText)
+  const output = tooltipText
     ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
     : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
   return output
@@ -673,13 +766,16 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       // so replace with one half of /qath:
       const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
       const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug('addTextToNoteHeading', `Adding line '${targetContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`)
+      logDebug(
+        'addTextToNoteHeading',
+        `Adding line '${targetContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
+      )
       if (matchedHeading !== '') {
         // Heading does exist in note already
         toNote.addParagraphBelowHeadingTitle(
           targetContent,
           itemType,
-          (matchedHeading !== '') ? matchedHeading : headingToPlaceUnder,
+          matchedHeading !== '' ? matchedHeading : headingToPlaceUnder,
           shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
           true, // create heading if needed (possible if supplied via headingArg)
         )
@@ -687,9 +783,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
         const headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
-        const insertionIndex = shouldAppend
-          ? findEndOfActivePartOfNote(toNote) + 1
-          : findStartOfActivePartOfNote(toNote)
+        const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
         logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
         toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
         logDebug('moveItemBetweenCalendarNotes', `- then adding text '${targetContent}' after `)

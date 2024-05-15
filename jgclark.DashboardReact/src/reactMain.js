@@ -1,27 +1,20 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 19.4.2024 for v2.0.0 by @jgclark
+// Last updated 12.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
-import { bridgeClickDashboardItem, bridgeChangeCheckbox, runPluginCommand } from './pluginToHTMLBridge'
-import type { TSection } from './types'
 import {
-  getTodaySectionData,
-  getYesterdaySectionData,
-  getTomorrowSectionData,
-  getThisWeekSectionData,
-  getThisMonthSectionData,
-  getThisQuarterSectionData,
-  getProjectSectionData,
-  getOverdueSectionData,
-  getTaggedSectionData,
-} from './dataGeneration'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+  bridgeClickDashboardItem,
+  // bridgeChangeCheckbox, runPluginCommand
+} from './pluginToHTMLBridge'
+// import type { TSection } from './types'
+import { getAllSectionsData } from './dataGeneration'
+import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -29,7 +22,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isDone } from '@helpers/utils'
 import { getWindowFromId } from '@helpers/NPWindows'
 
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
+export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
 
 export type PassedData = {
@@ -41,33 +34,30 @@ export type PassedData = {
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
+  windowID?: string,
 }
 
-const commsBridge = `
-<!-- commsBridge scripts -->
-<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
-<script>
-/* you must set this before you import the CommsBridge file */
-const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
-// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
-// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
+// const commsBridge = `
+// <!-- commsBridge scripts -->
+// <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+// <script>
+// /* you must set this before you import the CommsBridge file */
+// const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
+// // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
+// // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
-/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
-   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
-   below and your processing functions can be in your html document or could be imported in an external file. The only
-   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
-   be in your html document or could be imported in an external file */
-</script>
-<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
-<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
+// /* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
+//    should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
+//    below and your processing functions can be in your html document or could be imported in an external file. The only
+//    requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+//    be in your html document or could be imported in an external file */
+// </script>
+// <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
+// <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+// `
 
 // ------------------------------------------------------------
 
-/**
- * Plugin Entry Point for "Test React Window"
- * @author @dwertheimer
- */
 export async function showDemoDashboard(): Promise<void> {
   await showDashboardReact('full', true)
 }
@@ -83,17 +73,16 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
+    // log warnings if we don't have required files
+    await checkForRequiredSharedFiles(pluginJson)
+
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
 
-    // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
-    // w3.css reference: https://www.w3schools.com/w3css/default.asp
-    // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
-		  <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css"> -->
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">
@@ -106,17 +95,19 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       customId: WEBVIEW_WINDOW_ID,
       makeModal: false,
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html` /* for saving a debug version of the html file */,
-      shouldFocus: callMode !== 'refresh' /* focus window every time (unless this is a refresh) */,
+      shouldFocus: callMode !== 'trigger' /* focus window (unless called by a trigger) */,
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
       preBodyScript: ``,
       postBodyScript: `
+      <!--
       <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
       <script type="text/javascript" src="./dashboardShortcuts.js"></script>
       <script type="text/javascript" src="./dashboardEvents.js"></script>
-`,
+      -->
+      `,
     }
     logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)
     // clo(data, `showDashboardReact data object passed`)
@@ -138,15 +129,16 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const config: dashboardConfigType = await getSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
-    const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'development' // 'development' /* helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-      debug: ENV_MODE === 'development' ? true : false,
+      debug: false, // ENV_MODE === 'development' ? true : false,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
+      windowID: WEBVIEW_WINDOW_ID,
     }
     return dataToPass
   } catch (error) {
@@ -170,29 +162,12 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // you can pass any object with any number of fields you want
   return {
-    sections: await getAllSectionsData(config, demoMode),
-    lastUpdated: new Date().toLocaleString() /* placeholder */,
+    sections: await getAllSectionsData(demoMode),
+    lastFullRefresh: new Date().toLocaleString() /* placeholder */,
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
+    demoMode,
   }
-}
-
-/**
- * Get all the sections' data (that the user wants)
- */
-async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Promise<Array<TSection>> {
-  const data: Array<TSection> = []
-  data.push(getTodaySectionData(config, demoMode))
-  if (config.showYesterdaySection) data.push(getYesterdaySectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getTomorrowSectionData(config, demoMode))
-  if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
-  if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
-  if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
-  if (config.tagToShow) data.push(getTaggedSectionData(config, demoMode))
-  if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
-  data.push(await getProjectSectionData(config, demoMode))
-
-  return data
 }
 
 /**
@@ -225,33 +200,43 @@ export async function updateReactWindowData(actionType: string, data: any = null
  */
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
   try {
-    let newData = null
+    let _newData = null
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     // clo(data, `Plugin onMessageFromHTMLView data=`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
-      /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
       case 'SHOW_BANNER':
         sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', data)
         break
       // WEBVIEW_WINDOW_ID
-      // NOTE: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
+      // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
-        newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        _newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
-    if (newData) {
-      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-      // clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', newData, updateText) // note this will cause the React Window to re-render with the currentJSData
-    }
+
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+/**
+ * Update the sections data in the React Window data object
+ * @returns {Promise<any>} - returns the full reactWindowData
+ */
+async function refreshDashboardData(prevData?: any): any {
+  const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
+  const { demoMode } = reactWindowData
+  const sections = await getAllSectionsData(demoMode)
+  logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
+  reactWindowData.pluginData.sections = sections
+  logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
+  clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
+  return reactWindowData
 }
 
 /**

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Control settings for Dashboard
-// Last updated 22.3.2024 for v1.0.0 by @jgclark
+// Last updated 12.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,7 +9,7 @@ import {
   type dashboardConfigType,
   getSettings
 } from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
+// import { showDashboard } from './HTMLGeneratorGrid'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { saveSettings } from '@helpers/NPConfiguration'
 
@@ -23,21 +23,21 @@ export async function toggleOverdueSection(): Promise<void> {
   try {
     // Get plugin settings
     const config: dashboardConfigType = await getSettings()
-    logDebug('toggleOverdueSection', `starting with existing value ${String(config.showOverdueTaskSection)}`)
+    logDebug('toggleOverdueSection', `starting with existing value ${String(config.showOverdueSection)}`)
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(
         `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
       )
     }
-    config.showOverdueTaskSection = !config.showOverdueTaskSection
+    config.showOverdueSection = !config.showOverdueSection
 
     // Save it back
     const res = await saveSettings(pluginID, config)
     // logDebug('toggleOverdueSection', `result -> ${String(res)}`)
-    logDebug('toggleOverdueSection', `-> new value ${String(config.showOverdueTaskSection)}`)
+    logDebug('toggleOverdueSection', `-> new value ${String(config.showOverdueSection)}`)
     logDebug('toggleOverdueSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `toggleOverdueSection: ${error.name}: ${error.message}`)
   }
@@ -65,7 +65,7 @@ export async function toggleMonthSection(): Promise<void> {
     // logDebug('toggletoggleMonthSection', `result -> ${String(res)}`)
     logDebug('toggleMonthSection', `-> new value ${String(config.showMonthSection)}`)
     logDebug('toggleMonthSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `toggletoggleMonthSection: ${error.name}: ${error.message}`)
   }
@@ -93,7 +93,7 @@ export async function toggleTomorrowSection(): Promise<void> {
     // logDebug('toggleTomorrowSection', `result -> ${String(res)}`)
     logDebug('toggleTomorrowSection', `-> new value ${String(config.showTomorrowSection)}`)
     logDebug('toggleTomorrowSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `toggleTomorrowSection: ${error.name}: ${error.message}`)
   }
@@ -121,7 +121,7 @@ export async function toggleQuarterSection(): Promise<void> {
     // logDebug('toggleQuarterSection', `result -> ${String(res)}`)
     logDebug('toggleQuarterSection', `-> new value ${String(config.showQuarterSection)}`)
     logDebug('toggleQuarterSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `toggleQuarterSection: ${error.name}: ${error.message}`)
   }
@@ -149,14 +149,14 @@ export async function toggleWeekSection(): Promise<void> {
     // logDebug('toggleWeekSection', `result -> ${String(res)}`)
     logDebug('toggleWeekSection', `-> new value ${String(config.showWeekSection)}`)
     logDebug('toggleWeekSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `toggleWeekSection: ${error.name}: ${error.message}`)
   }
 }
 
 /**
- * TODO: Finish me
+ * TODO: Finish me -- if this is still used?
  * Note: A little different from the above, as this already had an existing UI element
  * and override on the settings.
  */
@@ -201,12 +201,12 @@ export async function turnOnAllSections(): Promise<void> {
     config.showWeekSection = true
     config.showMonthSection = true
     config.showQuarterSection = true
-    config.showOverdueTaskSection = true
+    config.showOverdueSection = true
 
     // Save it back
     const res = await saveSettings(pluginID, config)
     logDebug('toggleWeekSection', `------- now Refresh ---------`)
-    await showDashboard()
+    // await showDashboard()
   } catch (error) {
     logError(pluginJson, `turnOnAllSections: ${error.name}: ${error.message}`)
   }

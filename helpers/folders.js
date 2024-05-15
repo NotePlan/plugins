@@ -13,10 +13,7 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
  * @param {boolean} excludeSpecialFolders?
  * @returns {Array<string>} array of folder names
  */
-export function getFoldersMatching(
-  inclusions: Array<string>,
-  excludeSpecialFolders: boolean,
-): Array<string> {
+export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean): Array<string> {
   try {
     if (!inclusions && inclusions.length) {
       throw new Error('No inclusions given.')
@@ -30,9 +27,7 @@ export function getFoldersMatching(
     logDebug('folders / getFoldersMatching', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusionsWithoutRoot.toString()}]`)
 
     // if necessary filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = (excludeSpecialFolders)
-      ? fullFolderList.filter((folder) => !folder.startsWith('@'))
-      : fullFolderList
+    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
@@ -47,11 +42,11 @@ export function getFoldersMatching(
     //   inclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
     // }
 
-    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter(
-      (folder) => inclusionsWithoutRoot.some(
-        (f) => folder.includes(f))
+    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => folder.includes(f)))
+    logDebug(
+      'folders / getFoldersMatching',
+      `- after inclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`,
     )
-    logDebug('folders / getFoldersMatching', `- after inclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`)
 
     // now remove trailing slash characters
     const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
@@ -62,7 +57,6 @@ export function getFoldersMatching(
     }
     logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
-
   } catch (error) {
     logError('folders / getFoldersMatching', error.message)
     return ['(error)']
@@ -84,11 +78,7 @@ export function getFoldersMatching(
  * @param {boolean} forceExcludeRootFolder? (default: false)
  * @returns {Array<string>} array of folder names
  */
-export function getFolderListMinusExclusions(
-  exclusions: Array<string>,
-  excludeSpecialFolders: boolean = true,
-  forceExcludeRootFolder: boolean = false,
-): Array<string> {
+export function getFolderListMinusExclusions(exclusions: Array<string>, excludeSpecialFolders: boolean = true, forceExcludeRootFolder: boolean = false): Array<string> {
   try {
     // if (!inclusions && inclusions.length === 0 && !exclusions && exclusions.length === 0) {
     //   throw new Error('No inclusions or exclusions given.')
@@ -99,9 +89,7 @@ export function getFolderListMinusExclusions(
     // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
-    const reducedFolderList = (excludeSpecialFolders)
-      ? fullFolderList.filter((folder) => !folder.startsWith('@'))
-      : fullFolderList
+    const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
@@ -109,7 +97,7 @@ export function getFolderListMinusExclusions(
       reducedTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
     }
 
-// To aid partial matching, terminate all exclusion strings with a trailing /.
+    // To aid partial matching, terminate all exclusion strings with a trailing /.
     const exclusionsTerminatedWithSlash: Array<string> = []
     // Note: Root folder('/') here needs special handling: remove it now if found, but add back later.
     for (const e of exclusions) {
@@ -136,9 +124,8 @@ export function getFolderListMinusExclusions(
       const itemToRemove = outputList.indexOf('/')
       outputList.splice(itemToRemove, 1)
     }
-    logDebug('folders/getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
+    // logDebug('folders/getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
     return outputList
-
   } catch (error) {
     logError('folders/getFolderListMinusExclusions', error.message)
     return ['(error)']
@@ -169,7 +156,7 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
- * Get the folder name from the full NP (project) note filename, without leading or trailing slash. 
+ * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * Optionally remove file extension
  * @author @jgclark
  * @param {string} fullFilename - full filename to get folder name part from

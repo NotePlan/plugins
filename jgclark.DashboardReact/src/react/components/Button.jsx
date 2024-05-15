@@ -2,7 +2,7 @@
 import React from 'react'
 
 type ButtonProps = {
-  text: string,
+  text: string | React$Node,
   className?: string,
   clickHandler: () => void,
 }

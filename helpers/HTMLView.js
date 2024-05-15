@@ -10,10 +10,7 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
-import {
-  getTimeBlockString,
-  isTimeBlockLine
-} from '@helpers/timeblocks'
+import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -208,11 +205,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
  * @author @dwertheimer
  */
 export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
-  const preBody: Array<Object> = opts.preBodyScript
-    ? (Array.isArray(opts.preBodyScript)
-      ? opts.preBodyScript
-      : [opts.preBodyScript])
-    : []
+  const preBody: Array<Object> = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   if (opts.includeCSSAsJS) {
     const theme = getThemeJS(true, true)
     if (theme.values) {
@@ -968,7 +961,7 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
   let lengthLeft = maxLength
   for (let index = 0; index < htmlIn.length; index++) {
     if (!lengthLeft || lengthLeft === 0) {
-    // no lengthLeft: stop processing
+      // no lengthLeft: stop processing
       break
     }
     if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
@@ -997,7 +990,7 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
   if (dots) {
     truncatedHTML = `${truncatedHTML} …`
   }
-  logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
+  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
 }
 
@@ -1012,8 +1005,10 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
  * @returns {string}
  */
 export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
-  const output = (tooltipText)
-    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
+  const output = tooltipText
+    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+        commandArgs,
+      )}">${buttonText}</button>`
     : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
   return output
 }

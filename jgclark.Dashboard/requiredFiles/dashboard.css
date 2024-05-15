@@ -6,6 +6,10 @@
 	--minBreakPoint: 500px;
 }
 
+html, body {	  
+	font-size: 16px; /* This defines what 1rem equals */	
+}
+
 body {
 	margin: 0px;
 }
@@ -144,7 +148,7 @@ body {
 	break-inside: avoid;
 	display: grid;
 	grid-template-columns: [icon] 1rem [item-details] auto; /* was: minmax(20rem, 30rem); */
-	padding: 3px 4px 0px 4px; /* no bottom padding */
+	padding: 0px 4px;
 	border: 0px none;
 	column-gap: 6px;
 	/* vertical in containing block */

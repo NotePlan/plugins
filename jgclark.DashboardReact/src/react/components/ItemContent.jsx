@@ -4,17 +4,17 @@
 // Last updated 22.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
+import type { TSectionItem } from '../../types.js'
+import { useAppContext } from './AppContext.jsx'
+// import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
+import { logDebug, logError } from '@helpers/react/reactDev'
 import {
-  // makeNoteTitleWithOpenActionFromFilename,
-  // makeParaContentToLookLikeNPDisplayInHTML,
-} from '../../dashboardHelpers'
-import type { TSection, TSectionItem } from '../../types.js'
-import {
-  getAPIDateStrFromDisplayDateStr,
-  includesScheduledFutureDate,
-
-} from '@helpers/dateTime'
-import { logDebug, logError } from '@helpers/reactDev'
+  changeBareLinksToHTMLLink,
+  changeMarkdownLinksToHTMLLink,
+  stripBackwardsDateRefsFromString,
+  stripThisWeeksDateRefsFromString,
+  stripTodaysDateRefsFromString,
+} from '@helpers/stringTransforms'
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -27,51 +27,44 @@ import {
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
-  truncateHTML
+  truncateHTML,
 } from '@helpers/HTMLView'
-import {
-  RE_ARROW_DATES_G,
-  RE_SCHEDULED_DATES_G,
-} from '@helpers/regex'
-import {
-  changeBareLinksToHTMLLink,
-  changeMarkdownLinksToHTMLLink,
-  stripBackwardsDateRefsFromString,
-  stripThisWeeksDateRefsFromString,
-  stripTodaysDateRefsFromString
-} from '@helpers/stringTransforms'
+import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import {
   findLongestStringInArray,
   // getTimeBlockString,
-  isTimeBlockLine,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
 
-
 type Props = {
   item: TSectionItem,
-  // thisSection: TSection,
+  children: Array<Node>
 }
 
 /**
  * Represents the main content for a single item within a section
  */
-function ItemContent(inputObj: Props): React$Node {
-  const { item, /*thisSection*/ } = inputObj
-  const para = item.para
+function ItemContent({ item, children }: Props): React$Node {
+  const { sendActionToPlugin } = useAppContext()
   // const itemType = para.type
 
-  console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
+  // console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
 
+  function handleTaskClick() {
+    const dataObjectToPassToFunction = {
+      actionType: 'showLineInEditorFromFilename',
+      item,
+    }
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
+  }
+
   // console.log(`-> ${mainContent}`)
 
   // TODO(later): try not to live dangerously!
-  return (
-    <a className="content" dangerouslySetInnerHTML={{ __html: mainContent }}></a>
-  )
+  return <div className="sectionItemContent sectionItem"><a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
 }
 
 /**
@@ -95,16 +88,16 @@ function ItemContent(inputObj: Props): React$Node {
 function makeParaContentToLookLikeNPDisplayInReact(
   thisItem: TSectionItem,
   // noteLinkStyle: string = "all", // or "append"
-  truncateLength: number = 0): string {
+  truncateLength: number = 0,
+): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
       throw new Error(`No para/content in item ${thisItem.ID}`)
     }
-    const filename = para.filename ?? '<error>'
     const origContent = para.content ?? '<error>'
     const noteTitle = para.title ?? ''
-    console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
+    // console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
     // Start with the content of the item
     let output = origContent
 
@@ -143,7 +136,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     output = convertPreformattedToHTML(output)
 
     // Display time blocks with .timeBlock style
-    if (thisItem.para.startTime) {
+    if (thisItem.para?.startTime) {
       logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
       output = convertTimeBlockToHTML(output)
     }
@@ -227,15 +220,14 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // console.log(`makeParaContet...: \n-> ${output}`)
     return output
-  }
-  catch (error) {
+  } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, `❗️ERROR❗️ ${error.message}`)
     return ''
   }
 }
 
 /**
- * 
+ * Now replaced
  * @param {SectionItem} thisItem
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string}
@@ -302,10 +294,10 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // console.log(`makeNoteTitleWithOpenActionFromTitle: - making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    // return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
+      noteTitle,
+    )}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+  } catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `❗️ERROR❗️ ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
@@ -340,7 +332,7 @@ function convertTimeBlockToHTML(input: string): string {
   // if (isTimeBlockLine(input, timeblockTextMustContainString)) {
   const timeBlockPart = getTimeBlockString(input)
   logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
-  let output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   // }
   return output
 }

@@ -6,6 +6,7 @@
  * @returns {string} cleaned text without HTML entities
  */
 // eslint-disable-next-line no-unused-vars
+
 export function decodeHTMLEntities(text: string): string {
   const textArea = document.createElement('textarea')
   textArea.innerHTML = text
@@ -74,7 +75,7 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
  * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
  * @returns {void}
  */
-export const logDebug = (componentName: string, detail: string, ...args: any): void =>
+export const logDebug = (componentName: string, detail?: string, ...args?: any): void =>
   console.log(
     `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
     `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
@@ -93,3 +94,37 @@ export const logError = (componentName: string, detail?: string = '', ...args: a
     `${window.webkit ? '' : `color: #F00; background: #FFF`}`,
     ...args,
   )
+
+/**
+ * Create a deep copy of the input object so it can be safely modified without affecting the original
+ * Works on basic JS objects, but not on objects with functions or other non-JSON-serializable properties
+ * So will work in React but not on NotePlan objects
+ * @param {{[string]:any}} input
+ * @returns {{[string]:any}} copy
+ */
+export const deepCopy = (input: TAnyObject): TAnyObject => JSON.parse(JSON.stringify(input)) // Deep copy so we don't mutate the original pluginData
+
+/**
+ * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
+ * It also removes the redundant file path from the stack trace.
+ * @param {Error} error
+ * @param {string} cs - (optional) component stack
+ * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
+ */
+
+export const formatReactError = (error: Error, cs: string = '') => {
+  return {
+    name: error.name,
+    message: error.message,
+    inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
+    line: error.line || '',
+    column: error.column,
+    componentStack: cs
+      .split('\n')
+      .map((s) => s.replace(/\@file.*$/, ''))
+      .filter((s) => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary')
+      .join(' < '),
+  }
+}
+
+export { clo, JSP } from '@helpers/dev'

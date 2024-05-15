@@ -442,6 +442,7 @@ var RootBundle = (function (exports, React$1) {
    * @returns {void}
    */
   const logDebug = (componentName, detail, ...args) => console.log(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`, ...args);
+   // Deep copy so we don't mutate the original pluginData
 
   /****************************************************************************************************************************
    *                             ROOT COMPONENT
@@ -452,7 +453,6 @@ var RootBundle = (function (exports, React$1) {
     const error = formatReactError(e, i.componentStack);
     console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff');
   };
-  logDebug(`Root`, `loading file outside component code`);
 
   /****************************************************************************************************************************
    *                             globalSharedData
