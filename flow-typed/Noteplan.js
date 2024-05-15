@@ -646,11 +646,11 @@ declare class DataStore {
 
   /**
    * Updates the cache, so you can access changes faster.
-   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too. 
+   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too.
    * EM also commented "[and] things like .backlinks".
    * If so, the note has to be reloaded for the updated .mentions to be available.
    * EM has also said "It doesn't have to be async, because it runs on the same thread and updates the cache directly, but that has nothing to do with the content of the paragraph or note, that's read directly out of the file again".
-   * 
+   *
    * Note: Available from NotePlan v3.7.1
    * @param {TNote} note to update
    * @param {boolean} shouldUpdateTags?
@@ -2105,3 +2105,5 @@ declare function fetch(url: string, options?: FetchOptions): Promise<string> /* 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
 declare var globalThis: { [string]: () => mixed, document: mixed, [string]: mixed } | null
+
+declare type TAnyObject = { [key: string]: any }

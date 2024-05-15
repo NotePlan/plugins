@@ -104,4 +104,4 @@ export { clo, JSP } from '@helpers/dev'
  * @param {{[string]:any}} input
  * @returns {{[string]:any}} copy
  */
-export const deepCopy = (input) => JSON.parse(JSON.stringify(input)) // Deep copy so we don't mutate the original pluginData
+export const deepCopy = (input: TAnyObject): TAnyObject => JSON.parse(JSON.stringify(input)) // Deep copy so we don't mutate the original pluginData

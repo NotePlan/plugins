@@ -297,6 +297,7 @@ button, .fake-button, .clickTarget {
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
+	z-index: 1001; /* float above everything, including the header */
 	/* cursor: help; */
 }
 .tooltip::before, .tooltip::after {
