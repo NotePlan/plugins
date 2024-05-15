@@ -470,8 +470,6 @@ var RootBundle = (function (exports, React$1) {
   if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`;
   function Root( /* props: Props */
   ) {
-    logDebug(`Root`, `inside component`);
-
     /****************************************************************************************************************************
      *                             HOOKS
      ****************************************************************************************************************************/
@@ -481,7 +479,8 @@ var RootBundle = (function (exports, React$1) {
     const [warning, setWarning] = React$1.useState({
       warn: false,
       msg: '',
-      color: 'w3-pale-red'
+      color: 'w3-pale-red',
+      border: ''
     });
     // const [setMessageFromPlugin] = useState({})
     const [history, setHistory] = React$1.useState([lastUpdated]);
@@ -573,13 +572,11 @@ var RootBundle = (function (exports, React$1) {
           if (!payload) throw `onMessageReceived: event.data.payload is undefined`, event.data;
           if (type && payload) {
             logDebug(`Root`, ` onMessageReceived: ${type}`);
-            // logDebug(`Root`,` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             // Spread existing state into new object to keep it immutable
             // TODO: ideally, you would use a reducer here
             if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`;
             setHistory(prevData => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated]);
             tempSavedClicksRef.current = [];
-            // logDebug(`Root`,` onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
             switch (type) {
               case 'SET_TITLE':
                 // Note this works because we are using payload.title in npData
@@ -587,7 +584,6 @@ var RootBundle = (function (exports, React$1) {
                 break;
               case 'SET_DATA':
               case 'UPDATE_DATA':
-                // logDebug('Root: SET_DATA before')
                 setNPData(prevData => ({
                   ...prevData,
                   ...payload
@@ -596,21 +592,14 @@ var RootBundle = (function (exports, React$1) {
                   ...globalSharedData,
                   ...payload
                 };
-                // logDebug(`Root`, `SET_DATA after setting globalSharedData=`, globalSharedData)
                 break;
               case 'SHOW_BANNER':
                 showBanner(payload.msg, payload.color, payload.border);
-                // const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
-                // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
-                // setWarning(warnObj)
-                // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
                 break;
               case 'SEND_TO_PLUGIN':
-                // logDebug(`Root`, ` onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`)
                 sendToPlugin(payload);
                 break;
               case 'RETURN_VALUE' /* function called returned a value */:
-                logDebug(`Root`, ` onMessageReceived: processing payload`);
                 // $FlowIgnore
                 // setMessageFromPlugin(payload)
                 break;
@@ -644,7 +633,7 @@ var RootBundle = (function (exports, React$1) {
       if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin';
       if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin';
       if (!action) throw new Error('sendToPlugin: command/action must be called with a string');
-      logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails);
+      // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object');
       console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `);
       const {
@@ -665,7 +654,6 @@ var RootBundle = (function (exports, React$1) {
         color,
         border
       };
-      logDebug(`Root`, ` showBanner: sending: ${JSON.stringify(warnObj)}`);
       setWarning(warnObj);
     };
 
@@ -716,7 +704,6 @@ var RootBundle = (function (exports, React$1) {
     React$1.useEffect(() => {
       // the name of this function is important. it corresponds with the Bridge call in the HTMLView
       // I don't recommend changing this function name here or in the bridge
-      logDebug(`Root`, `effect setting up eventListener`);
       window.addEventListener('message', onMessageReceived);
       return () => window.removeEventListener('message', onMessageReceived);
     }, []);
@@ -728,15 +715,14 @@ var RootBundle = (function (exports, React$1) {
      */
     React$1.useEffect(() => {
       if (npData?.passThroughVars?.lastWindowScrollTop !== undefined && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-        debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`);
+        // debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`)
         window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop);
-      } else {
-        logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`);
       }
     }, [npData]);
-    React$1.useEffect(() => {
-      logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`);
-    }, [reactSettings]);
+
+    // useEffect(() => {
+    //   logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
+    // }, [reactSettings])
 
     /****************************************************************************************************************************
      *                             RENDER
