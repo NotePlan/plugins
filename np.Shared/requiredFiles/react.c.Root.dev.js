@@ -342,35 +342,6 @@ var RootBundle = (function (exports, React$1) {
     return log(pluginInfo, message, 'DEBUG');
   }
 
-  /**
-   * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
-   * It also removes the redundant file path from the stack trace.
-   * @param {Error} error
-   * @param {string} cs - (optional) component stack
-   * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
-   */
-  const formatReactError = (error, cs = '') => {
-    return {
-      name: error.name,
-      message: error.message,
-      inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
-      line: error.line || '',
-      column: error.column,
-      componentStack: cs.split('\n').map(s => s.replace(/\@file.*$/, '')).filter(s => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary').join(' < ')
-    };
-  };
-
-  const ErrorFallback = props => {
-    clo(props);
-    const {
-      error
-    } = props;
-    const formatted = formatReactError(error);
-    return /*#__PURE__*/React.createElement("div", {
-      role: "alert"
-    }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, formatted.name, ": ", formatted.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "See more detail in the console"));
-  };
-
   // Functions which can be imported into any React Component
 
   /****************************************************************************************************************************
@@ -442,7 +413,36 @@ var RootBundle = (function (exports, React$1) {
    * @returns {void}
    */
   const logDebug = (componentName, detail, ...args) => console.log(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`, ...args);
-   // Deep copy so we don't mutate the original pluginData
+
+  /**
+   * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
+   * It also removes the redundant file path from the stack trace.
+   * @param {Error} error
+   * @param {string} cs - (optional) component stack
+   * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
+   */
+
+  const formatReactError = (error, cs = '') => {
+    return {
+      name: error.name,
+      message: error.message,
+      inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
+      line: error.line || '',
+      column: error.column,
+      componentStack: cs.split('\n').map(s => s.replace(/\@file.*$/, '')).filter(s => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary').join(' < ')
+    };
+  };
+
+  const ErrorFallback = props => {
+    clo(props);
+    const {
+      error
+    } = props;
+    const formatted = formatReactError(error);
+    return /*#__PURE__*/React.createElement("div", {
+      role: "alert"
+    }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, formatted.name, ": ", formatted.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "See more detail in the console"));
+  };
 
   /****************************************************************************************************************************
    *                             ROOT COMPONENT
@@ -480,11 +480,12 @@ var RootBundle = (function (exports, React$1) {
       warn: false,
       msg: '',
       color: 'w3-pale-red',
-      border: ''
+      border: 'w3-border-red'
     });
     // const [setMessageFromPlugin] = useState({})
     const [history, setHistory] = React$1.useState([lastUpdated]);
-    const tempSavedClicksRef = React__default["default"].useRef([]); //temporarily store the clicks in the webview
+    // $FlowFixMe
+    const tempSavedClicksRef = React$1.useRef([]); // temporarily store the clicks in the webview
 
     /****************************************************************************************************************************
      *                             VARIABLES
@@ -522,7 +523,7 @@ var RootBundle = (function (exports, React$1) {
     // eslint-disable-next-line no-unused-vars
     const dispatch = (action, data, actionDescriptionForLog) => {
       // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-      // console.log(`Root: Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
+      // logDebug(`Root`,`Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
       // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
       const event = new MessageEvent('message', {
         data: {
@@ -571,10 +572,20 @@ var RootBundle = (function (exports, React$1) {
           if (!type) throw `onMessageReceived: event.data.type is undefined`, event.data;
           if (!payload) throw `onMessageReceived: event.data.payload is undefined`, event.data;
           if (type && payload) {
-            logDebug(`Root`, ` onMessageReceived: ${type}`);
+            // logDebug(`Root`, ` onMessageReceived: ${type}`)
+            // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
+            if (!payload.lastUpdated) payload.lastUpdated = {
+              msg: '(no msg)'
+            };
             // Spread existing state into new object to keep it immutable
             // TODO: ideally, you would use a reducer here
-            if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`;
+            if (type === 'SHOW_BANNER') {
+              if (payload.lastUpdated?.msg) {
+                payload.lastUpdated.msg += `: ${payload.msg}`;
+              } else {
+                logDebug(`Root`, ` onMessageReceived: payload.lastUpdated.msg is undefined: payload.lastUpdated:${payload.lastUpdated} payload.lastUpdated.msg:${payload.lastUpdated.msg}`);
+              }
+            }
             setHistory(prevData => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated]);
             tempSavedClicksRef.current = [];
             switch (type) {
@@ -594,6 +605,16 @@ var RootBundle = (function (exports, React$1) {
                 };
                 break;
               case 'SHOW_BANNER':
+                if (npData.passThroughVars.lastWindowScrollTop) {
+                  logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`);
+                  setNPData(prevData => {
+                    prevData.passThroughVars.lastWindowScrollTop = 0;
+                    return {
+                      ...prevData,
+                      ...payload
+                    };
+                  });
+                }
                 showBanner(payload.msg, payload.color, payload.border);
                 break;
               case 'SEND_TO_PLUGIN':
@@ -610,7 +631,7 @@ var RootBundle = (function (exports, React$1) {
             logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
           }
         } catch (error) {
-          logDebug(`Root`, ` onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`);
+          logDebug(`Root`, ` onMessageReceived: error=${JSP(formatReactError(error))}`);
         }
       }
     };
@@ -664,7 +685,8 @@ var RootBundle = (function (exports, React$1) {
       setWarning({
         warn: false,
         msg: '',
-        color: 'w3-pale-red'
+        color: 'w3-pale-red',
+        border: 'w3-border-red'
       });
     };
 
