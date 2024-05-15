@@ -5,7 +5,7 @@
 // Last updated 1.4.2024 by @jgclark
 // ---------------------------------------------------------
 
-import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
@@ -670,6 +670,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to window: "${windowId}"`)
+    const start = new Date()
     const result = await HTMLView.runJavaScript(
       `window.postMessage(
         {
@@ -680,6 +681,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
       );`,
       windowId,
     )
+    logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
