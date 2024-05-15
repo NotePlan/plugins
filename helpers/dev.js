@@ -538,25 +538,3 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
     logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
   }
 }
-
-/**
- * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
- * It also removes the redundant file path from the stack trace.
- * @param {Error} error
- * @param {string} cs - (optional) component stack
- * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
- */
-export const formatReactError = (error: Error, cs: string = '') => {
-  return {
-    name: error.name,
-    message: error.message,
-    inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
-    line: error.line || '',
-    column: error.column,
-    componentStack: cs
-      .split('\n')
-      .map((s) => s.replace(/\@file.*$/, ''))
-      .filter((s) => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary')
-      .join(' < '),
-  }
-}

@@ -2,6 +2,11 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.5.11] - @dwertheimer
+
+- Fix banners
+
+## [0.5.10] - @dwertheimer
 ## [0.5.9] - @dwertheimer
 
 - reduce logging
