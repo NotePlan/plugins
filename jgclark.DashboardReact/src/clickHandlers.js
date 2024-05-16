@@ -385,34 +385,35 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
 
 // Mimic the /skip review command.
 export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
+    if (!data.controlStr) throw 'No controlStr: stopping'
     const period = data.controlStr.replace('nr', '')
-    logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
+    logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
     skipReviewForNote(note, period)
     // Now send a message for the dashboard to update its display
     // sendToHTMLWindow(windowId, 'removeItem', data)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
   } else {
-    logWarn('bCDI / setNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
+    logWarn('doSetNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
     return handlerResult(false)
   }
 }
 
 // Mimic the /finish review command.
 export async function doReviewFinished(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
-    logDebug('bCDI / review', `-> reviewFinished on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
+    logDebug('doReviewFinished', `-> reviewFinished on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
     // update this to actually take a note to work on
     finishReviewForNote(note)
-    logDebug('bCDI / review', `-> after finishReview`)
+    logDebug('doReviewFinished', `-> after finishReview`)
     // sendToHTMLWindow(windowId, 'removeItem', data)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
   } else {
-    logWarn('bCDI / review', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
+    logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
     return handlerResult(false)
   }
 }

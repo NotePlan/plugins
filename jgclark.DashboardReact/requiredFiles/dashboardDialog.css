@@ -61,12 +61,6 @@ dialog {
   padding-block-end: 0.6rem;
 }
 
-.dialogDescription {
-  padding-block-start: 5px;
-  display: grid;
-  grid-template-columns: 1fr auto; /* mostly the input */
-}
-
 .buttonGrid {
   display: grid;
   grid-template-columns: auto minmax(15rem, auto);
@@ -117,10 +111,12 @@ dialog {
 }
 
 .fullTextInput {
-  width: calc(100% - 4rem); /* TODO: fix if adding extra icon */
+  width: calc(100% - 5.0rem); /* allow space for icon before and button after */
   font-size: 0.85rem;
   padding: 1px 4px 1px 4px;
   border-radius: 4px;
+  margin-left: 0.3rem;
+  margin-right: 0.3rem;
 }
 /* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
  * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139

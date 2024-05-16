@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
-// Last updated 10.5.2024 for v2.0.0 by @jgclark
+// Called by TaskItem component
+// Last updated 16.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -31,7 +32,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   
-  // logDebug(`DialogForTaskItems`, `inside component code detailsMessageObject=`, detailsMessageObject)
+  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
   const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
@@ -203,13 +204,12 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           <div className="buttonGrid" id="itemDialogButtons">
             {/* line1 ---------------- */}
             <div className="preText">For:</div>
-            <div className="dialogDescription">
-              {/* FIXME: try to bring back in as a span not as a div */}
-              {/* {detailsMessageObject?.item ? <StatusIcon
+            <div>
+              {detailsMessageObject?.item ? <StatusIcon
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
                 onIconClick={handleIconClick}
-              /> : null}  */}
+              /> : null} 
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
               <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>

@@ -60,10 +60,11 @@ function TaskItem({ item, thisSection }: Props): Node {
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
     setReactSettings((prev) => ({
       ...prev,
-      lastChange: `_Dashboard-DialogOpen`,
+      lastChange: `_Dashboard-TaskDialogOpen`,
       dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
     }))
   }
+
   return (
     visible ? (
       <div className={`sectionItemRow`} id={item.ID}>
