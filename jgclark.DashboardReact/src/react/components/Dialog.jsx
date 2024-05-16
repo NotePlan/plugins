@@ -10,7 +10,7 @@ import React from 'react'
 import DialogForProjectItems from './DialogForProjectItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug } from '@helpers/react/reactDev.js'
 
 type RefType<T> = {| current: null | T |}
 
@@ -28,6 +28,7 @@ type Props = {
  * @return {?React$Node} Renderable React node or null.
  */
 const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
+  console.log(`Dialog: starting for ${isTask ? 'task' : 'project'}`)
   const { reactSettings } = useAppContext()
 
   const positionDialog = (dialogRef: RefType<any>): any => {

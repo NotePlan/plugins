@@ -2,13 +2,16 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 Misc TODO:
-- Projects Dialog - fix to make like the Tasks Dialog
 - Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - (dwertheimer) Banners are not working
 - Bug (from 1.x) Checklists not ignored as per setting
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 - will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
+
+## [2.0.0.a20] @jgc
+- Added circle/square back into task dialog box display -- but actions from it not checked
+- Updated project dialog box to match the task dialog -- but have failed to get it to run
 
 ## [2.0.0.a19] @dbw
 - Fix tooltips that said add new task for checklists
