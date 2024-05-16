@@ -33,7 +33,6 @@ function Dashboard({ pluginData }: Props): React$Node {
   const { sections: origSections, lastFullRefresh } = pluginData
   const { metaTooltips:FFlagMetaTooltips } = getFeatureFlags(pluginData)
 
-  logDebug ('Dashboard', `FFlagMetaTooltips: ${FFlagMetaTooltips}`)
   const containerRef = useRef<?HTMLDivElement>(null)
 
   useEffect(() => {
@@ -93,7 +92,7 @@ function Dashboard({ pluginData }: Props): React$Node {
       if (!sectionIndexes?.length) return
       const firstMatch = sectionIndexes[0]
       const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
-      clo('Dashboard', `in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
+      clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
       if (newSectionItem && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
         logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
         setReactSettings(prev => {
@@ -132,9 +131,9 @@ function Dashboard({ pluginData }: Props): React$Node {
         ))}
       </div>
       <Dialog onClose={handleDialogClose}
-        isOpen={reactSettings?.dialogData?.isOpen || false}
-        isTask={reactSettings?.dialogData?.isTask || true}
-        details={reactSettings?.dialogData?.details || {}}
+        isOpen={reactSettings?.dialogData?.isOpen ?? false}
+        isTask={reactSettings?.dialogData?.isTask ?? false}
+        details={reactSettings?.dialogData?.details ?? {}}
       />
       {FFlagMetaTooltips && !(reactSettings?.dialogData?.isOpen) && <ToolTipOnModifierPress
         metaKey={metaKeyConfig}

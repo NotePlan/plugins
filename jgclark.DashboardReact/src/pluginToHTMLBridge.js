@@ -59,6 +59,7 @@ import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 // import { cancelItem, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 // import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import {formatReactError} from '@helpers/react/reactDev'
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -405,7 +406,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       logDebug('processActionOnReturn', `-> failed handlerResult`)
     }
   } catch (error) {
-    logError(`processActionOnReturn`, error.message)
+    logError(`processActionOnReturn error:${JSP(error)}`,JSP(formatReactError(error)))
   }
 }
 
@@ -442,22 +443,20 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     })
 
     if (indexes.length) {
-      const { sectionIndex, itemIndex } = indexes[0]
+      const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
       clo(indexes, 'updateReactWindowFLC: indexes to update')
       clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       if (shouldRemove) {
         // TEST:
-        indexes.forEach((index) => {
+        indexes.reverse().forEach((index) => {
           const { sectionIndex, itemIndex } = index
-          // FIXME: 'undefined' error here when cancelling a task. In log above sectionIndex=1, itemIndex=1, newParaContent=''
-          sections[sectionIndex].items.splice(itemIndex, 1)
+          sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+          clo(sections[sectionIndex],`After splicing sections[${sectionIndex}]`)
         })
       } else {
-        // FIXME: once we have a new calculated object from above, the passed fieldpaths should replace the whole para rather than just para fields
-        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
+        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
+        clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       }
-
-      clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
       logError('updateReactWindowFLC', `unable to find item to update: ID ${ID} : ${errorMsg || ''}`)

@@ -41,7 +41,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         if (fadeElement) fadeElement.classList.add('fadeOutAndHide')
         // Set visible to false after 500ms
         setTimeout(() => {
-          setVisible(false)
+          // setVisible(false) // Do not hide, because the array is rewritten and it may hide the wrong item
         }, 500)
         break
       }

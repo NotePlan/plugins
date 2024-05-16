@@ -41,27 +41,34 @@ export function parseSettings(settings: string): any {
  * @example const { filename, content, item, para, someOtherProp } = validateAndFlattenMessageObject(data)
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
-    if (!data?.item?.para) {
-        logError(`Error validating data: 'item.para' is missing in data:\n${JSP(data, 2)}`)
-        throw new Error(`Error validating data: 'item.para' is missing:\n${JSP(data, 2)}`)
-    }
-
     const { item } = data
-    const { para } = item
+    let { para, project } = item
+    const isProject = project !== undefined
+    const isTask = !isProject
+
+    if (!para) para = {}
+    if (!project) project = {}
 
     // Check for required fields in para
-    if (!para?.filename) {
+    const activeObject = isProject ? project : para
+    if (!activeObject?.filename) {
         throw new Error("Error validating data: 'filename' is null or undefined.")
     }
-    if (para.content === null || para.content === undefined) {
-        throw new Error("Error validating data: 'content' is null or undefined.")
+    if (isTask) {
+        if (!data?.item?.para) {
+            logError(`Error validating data: 'item.para' is missing in data:\n${JSP(data, 2)}`)
+            throw new Error(`Error validating data: 'item.para' is missing:\n${JSP(data, 2)}`)
+        }
+        if (para?.content === null || para?.content === undefined) {
+            throw new Error("Error validating data: 'content' is null or undefined.")
+        }
     }
 
     // Merge objects with collision detection
     const allKeys: Set<string> = new Set()
     const result = {}
 
-    const objectsToMerge = [{ ...data }, { ...item }, { ...para }]
+    const objectsToMerge = [{ ...data }, { ...item }, { ...para }, { ...project }]
 
     for (const obj of objectsToMerge) {
         for (const [key, value] of Object.entries(obj)) {
@@ -79,7 +86,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
     //$FlowIgnore[prop-missing]
     result.item = { ...item }
     //$FlowIgnore[prop-missing]
-    result.para = { ...para }
+    if (isTask) result.para = { ...para }
     //$FlowIgnore[prop-missing]
     return result
 }
@@ -90,7 +97,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * @returns {Object} - the feature flags
  * @example: const { overdueProcessing } = getFeatureFlags(pluginData)
  */
-export function getFeatureFlags(pluginData:any):any {
+export function getFeatureFlags(pluginData: any): any {
     const { featureFlags: ffStr } = pluginData?.settings || {}
     return parseSettings(ffStr) || {}
 }

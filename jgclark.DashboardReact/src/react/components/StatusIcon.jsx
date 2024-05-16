@@ -64,19 +64,9 @@ const StatusIcon = ({
         // Execute the internal logic before notifying the parent
         sendActionToPlugin(actionType, messageObject, `${item.ID} Row icon clicked`, true)
 
-        // Update icon class name on click if necessary
-        updateIconClassNameOnAction(actionType)
-
         // Call the external handler, if provided
         if (onIconClick) {
             onIconClick(item, actionType)
-        }
-    }
-
-    function updateIconClassNameOnAction(actionType: string) {
-        // Example of changing icon based on action, modify as needed
-        if (actionType === 'completeTask' || actionType === 'cancelTask') {
-            setIconClassName('fa-solid fa-check-circle') // Changing icon to a solid check-circle for example
         }
     }
 

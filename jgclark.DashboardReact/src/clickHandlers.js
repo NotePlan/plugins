@@ -219,9 +219,16 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
 // Cancel the task in the actual Note
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const res = cancelItem(filename, content)
+  let res = cancelItem(filename, content)
+  let updatedParagraph = {}
+  const possiblePara = findParaFromStringAndFilename(filename, content)
+  if (typeof possiblePara === 'boolean') {
+    res = false
+  } else {
+    updatedParagraph = possiblePara || {}
+  }
   logDebug('doCancelTask', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'])
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], {updatedParagraph})
 }
 
 // Complete the checklist in the actual Note
@@ -237,8 +244,15 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const res = cancelItem(filename, content)
+  let updatedParagraph = {}
+  const possiblePara = findParaFromStringAndFilename(filename, content)
+  if (typeof possiblePara === 'boolean') {
+    res = false
+  } else {
+    updatedParagraph = possiblePara || {}
+  }
   logDebug('doCancelChecklist', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'])
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'],{updatedParagraph})
 }
 
 /**

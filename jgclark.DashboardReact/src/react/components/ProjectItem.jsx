@@ -49,13 +49,9 @@ function ReviewItem({ item }: Props): React.Node {
   // TODO: most of this can go in just 'item'
   const dataObjectToPassToControlDialog = {
     // OS: 'macOS', // TODO: NotePlan.environment.platform,
-    ID: item.ID,
     item: item,
-    actionType: 'showNoteInEditorFromFilename',
-    filename: itemFilename,
-    title: noteTitle,
-    // encodedContent: '',
-  }
+    actionType: '' 
+   }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
     clo(dataObjectToPassToControlDialog, 'ReviewItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
