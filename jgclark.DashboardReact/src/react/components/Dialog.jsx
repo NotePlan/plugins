@@ -3,13 +3,14 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Item Control and Project dialogs.
-// Last updated 20.4.2024 for v2.0.0 by @jgclark
+// Last updated 17.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
+import { useAppContext } from './AppContext.jsx'
 import DialogForProjectItems from './DialogForProjectItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
-import { useAppContext } from './AppContext.jsx'
+import '../css/dashboardDialog.css'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 
 type RefType<T> = {| current: null | T |}

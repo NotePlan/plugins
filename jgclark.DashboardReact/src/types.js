@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 14.5.2024 for v2.0.0 by @jgclark
+// Last updated 17.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -17,7 +17,7 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'M', sectionName: 'Month', showSettingName: 'showMonthSection' },
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
   // TODO(later): this needs special handling in v2.1+
-  { sectionCode: 'TAG', sectionName: 'Tag', showSettingName: `showTagSection` },
+  { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   // { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },

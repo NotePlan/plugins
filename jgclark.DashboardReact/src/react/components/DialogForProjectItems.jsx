@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
-// import { validateAndFlattenMessageObject } from '../../shared'
+import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
@@ -26,15 +26,16 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
-  clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
+  // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
   // const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
   // const { ID, itemType, filename, title, content, noteType } = detailsMessageObject
-  const thisItem = detailsMessageObject.item
-  if (!thisItem) { throw `Cannot find item` }
-  const { ID, itemType } = thisItem
-  const thisProject = thisItem.project
-  if (!thisProject) { throw `Cannot find project` }
-  const { filename } = thisProject
+  // const thisItem = detailsMessageObject.item
+  // if (!thisItem) { throw `Cannot find item` }
+  // const { ID, itemType } = thisItem
+  // const thisProject = thisItem.project
+  // if (!thisProject) { throw `Cannot find project` }
+  // const { filename } = thisProject
+  const { ID, itemType, filename, title } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
 
@@ -57,7 +58,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   }, [])
 
   function handleTitleClick() {
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.actionType = 'showLineInEditorFromFilename' // FIXME: to note instead
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
@@ -81,11 +82,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
     sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', false)
     closeDialog()
-  }
-
-  function handleIconClick() {
-    closeDialog()
-    logDebug(`DialogForProjectItems`, `handleIconClick: something was clicked. what to do?`)
   }
 
   function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
@@ -129,7 +125,8 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
-      {/*----------- Single dialog that can be shown for any project item -----------*/}
+      {/* TODO(later): can remove most of the ids, I think */}
+      {/*----------- Dialog that can be shown for any project item -----------*/}
       <dialog
         id="projectControlDialog"
         className={`projectControlDialog ${animationClass}`}
@@ -137,11 +134,11 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         aria-describedby="Actions that can be taken on projects"
         ref={dialogRef}
       >
-        <div className="dialogHeader">
-          <div className="dialogTitle" onClick={() => handleTitleClick()}>
+        <div className="dialogTitle" onClick={() => handleTitleClick()}>
+          <div className="dialogFileParts">
             For <i className="pad-left pad-right fa-regular fa-file-lines"></i>
             <b>
-              <span id="dialogProjectNote">?</span>
+              <span className="dialogItemNote" /*id="dialogProjectNote"*/>{title}</span>
             </b>
           </div>
           <div className="dialog-top-right">
@@ -151,47 +148,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
           </div>
         </div>
 
-        {/* <div className="dialogBody">
-          <div className="buttonGrid" id="projectDialogButtons">
-            <div>Project Reviews</div>
-            <div id="projectControlDialogProjectControls">
-              <button data-control-str="finish">
-                <i className="fa-regular fa-calendar-check"></i> Finish Review
-              </button>
-              <button data-control-str="nr+1w">
-                <i className="fa-solid fa-forward"></i> Skip 1w
-              </button>
-              <button data-control-str="nr+2w">
-                <i className="fa-solid fa-forward"></i> Skip 2w
-              </button>
-              <button data-control-str="nr+1m">
-                <i className="fa-solid fa-forward"></i> Skip 1m
-              </button>
-              <button data-control-str="nr+1q">
-                <i className="fa-solid fa-forward"></i> Skip 1q
-              </button>
-            </div>
-            <div></div>
-            <div>
-              <form>
-                <button id="closeButton" className="mainButton">
-                  Close
-                </button>
-              </form>
-            </div>
-          </div>
-        </div> */}
-
         <div className="dialogBody">
-          <div className="buttonGrid" id="projectDialogButtons">
+          <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
-            <div>Project Reviews</div>
+            <div>Project Reviews:</div>
             <div id="projectControlDialogMoveControls">
               {buttons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
-                  {/* {button.icons?.map((icon) => (
-                      <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
-                    ))} */}
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                   ))}

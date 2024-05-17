@@ -28,21 +28,21 @@ body {
 /* ------------------------------------------------------------------ */
 /* New settings for Grid-based layout */
 .header {
-	display: grid;
-	/* Define grid-template-areas for better control */
 	/* TODO: improve spacing here */
+	/* Define grid-template-areas for better control */
+	display: grid;
+	/* Allocate space for each area */
 	grid-template-areas: "lastUpdated refresh counts filter settings";
 	grid-template-columns: auto auto 1fr auto;
-	/* Allocate space for each area */
-	align-items: center;
 	/* Vertical alignment */
-	gap: 20px;
+	align-items: center;
 	/* Space between grid items */
-	padding: 10px;
+	gap: 20px;
 	/* Padding around the header content */
+	padding: 10px;
 	background-color: var(--bg-alt-color);
-	width: 100%;
 	/* Ensure the header uses the full width */
+	width: 100%;
 	position: sticky;
 	top: 0px;
 	z-index: 1000;
@@ -50,20 +50,20 @@ body {
 }
 
 .lastUpdated {
-	grid-area: lastUpdated;
 	/* Assign the area */
-	align-items: center;
+	grid-area: lastUpdated;
 	/* This ensures that the content of these divs is also centered */
+	align-items: center;
 }
 
 .refreshButton {
-	grid-area: refresh;
 	/* Assign the area */
+	grid-area: refresh;
 }
 
 .totalCounts {
-	grid-area: counts;
 	/* Assign the area */
+	grid-area: counts;
 	/* Note: turned off given reduction in what needs to be shown in 2.0.0.a9 */
 	/* Make sure totalCounts only shows when necessary */
 	/* @media screen and (max-width: 500px) { */
@@ -73,18 +73,18 @@ body {
 }
 
 .filter {
-	grid-area: filter;
 	/* Assign the area */
-	justify-self: end;
+	grid-area: filter;
 	/* Align to the right edge */
-	margin-right: 20px;
+	justify-self: end;
+	/* margin-right: 20px; */
 }
 
 .settings {
-	grid-area: settings;
 	/* Assign the area */
-	justify-self: end;
+	grid-area: settings;
 	/* Align to the right edge */
+	justify-self: end;
 	margin-right: 20px;
 }
 
@@ -98,9 +98,9 @@ body {
 /* Specific alignment fixes for icons inside buttons or links */
 .fa-regular,
 .fa-solid {
+	/* Centers icon within its container, vertically and horizontally */
 	align-self: center;
 	margin: auto;
-	/* Centers icon within its container, vertically and horizontally */
 }
 
 .section {
@@ -116,7 +116,7 @@ body {
 	/* a little spacing at top and bottom of section */
 	/* padding: 2px 2px; */
 	/* turn on top border (from theme CSS) */
-	border-bottom: solid 1px var(--tint-color);
+	border-bottom: 0.75px solid var(--tint-color);
 }
 
 .sectionInfo {
@@ -204,8 +204,8 @@ body {
 	display: grid;
 	grid-template-columns: [icon] 1rem [item-details] auto;
 	/* was: minmax(20rem, 30rem); */
-	padding: 3px 4px 0px 4px;
 	/* no bottom padding */
+	padding: 3px 4px 0px 4px;
 	border: 0px none;
 	column-gap: 6px;
 	/* vertical in containing block */
@@ -252,7 +252,6 @@ body {
 	border-bottom: 0px;
 	break-inside: avoid;
 	line-height: 1.2rem;
-	/* get from a variable */
 }
 
 /* -------------------------------------------------------------- */
@@ -266,7 +265,7 @@ body {
 	background-color: var(--bg-alt-color);
 	min-width: 160px;
 	/* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
-	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+	box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
 	z-index: 1;
 	display: none;
 }
@@ -281,26 +280,25 @@ body {
 
 .switch-line {
 	display: flex;
-	justify-content: flex-end;
 	/* Aligns content to the right */
-	align-items: center;
+	justify-content: flex-end;
 	/* Center alignment of the checkbox and label */
-	width: 100%;
+	align-items: center;
 	/* Ensures the flex container takes full width */
+	width: 100%;
 	padding-top: 0.3rem;
-	/*5px;*/
 }
 
 .switch-label {
-	padding-left: 10px;
 	/* Space between label and switch */
-	padding-right: 5px;
+	padding-left: 10px;
 	/* Additional spacing if needed */
+	padding-right: 5px;
 }
 
 .apple-switch {
-	margin-left: 10px;
 	/* Ensures spacing between the label and the switch */
+	margin-left: 10px;
 }
 
 /* --------------------------------------------------------------- */
@@ -367,12 +365,12 @@ button,
 	transition-delay: 0.8;
 }
 
-/* Set tooltip little bit*/
+/* Set tooltip little triangle */
 .tooltip::before {
 	content: "";
 	border-width: 10px 8px 0 8px;
 	border-style: solid;
-	border-color: var(--bg-main-color) transparent transparent transparent;
+	border-color: var(--tint-color) transparent transparent transparent;
 	margin-left: -8px;
 	top: -12px;
 }

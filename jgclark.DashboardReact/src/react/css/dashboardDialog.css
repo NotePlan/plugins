@@ -83,7 +83,7 @@ dialog {
 
 .buttonGrid div:nth-child(1) {
   /* Put very first div down a bit to try to align with input field */
-  padding-block-start: 10px;
+  padding-block-start: 6px;
 }
 
 /* for Dialog main buttons: a little more pronounced */
@@ -103,7 +103,7 @@ dialog {
   border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
   border-radius: 4px;
   padding: 1px 4px 1px 4px;
-  margin: 3px 1px;
+  margin: 3px 2px;
 }
 
 .itemActionsDialog {
@@ -111,8 +111,9 @@ dialog {
 }
 
 .fullTextInput {
-  width: calc(100% - 5.0rem); /* allow space for icon before and button after */
+  width: calc(100% - 6rem); /* allow space for icon before and button after */
   font-size: 0.85rem;
+  font-weight: 600;
   padding: 1px 4px 1px 4px;
   border-radius: 4px;
   margin-left: 0.3rem;
@@ -134,6 +135,7 @@ i.fa-solid, i.fa-regular {
 }
 
 .closeButton, .skipButton {
+  color: var(--fg-main-color); /* FIXME: not being applied */
   margin-right: 5px;
 	font-size: 0.9rem;
   /* background-color: none; */

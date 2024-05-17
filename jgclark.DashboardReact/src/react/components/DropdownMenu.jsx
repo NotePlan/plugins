@@ -1,4 +1,9 @@
 // @flow
+//--------------------------------------------------------------------------
+// The dropdown menu with toggles for what to show.
+// Called by Header component.
+// Last updated 10.5.2024 for v2.0.0 by @dwertheimer
+//--------------------------------------------------------------------------
 import React, { useState } from 'react'
 import Switch from './Switch.jsx'
 

@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Header row in Dashboard
-// Last updated 6.5.2024 for v2.0.0 by @jgclark
+// Last updated 17.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
-import {allSectionDetails, nonSectionSwitches} from '../../types.js'
+import { allSectionDetails, nonSectionSwitches } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
@@ -14,7 +14,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 import { clo } from '@helpers/dev'
 
 type Props = {
-  lastFullRefresh: string,
+  lastFullRefresh: Date,
 }
 
 const Header = ({ lastFullRefresh }: Props): React$Node => {
@@ -25,7 +25,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeAgo(getTimeAgo(lastFullRefresh))
-    }, 1000)
+    }, 20000)
 
     return () => clearInterval(timer)
   }, [lastFullRefresh])
@@ -62,9 +62,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
   }
 
-  const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? ''
+  // FIXME: for empty tag setting
+  // for (const s of allSectionDetails) {
+  //   logDebug('', `${s.showSettingName} / ${s.sectionCode} / ${s.sectionName}`)
+  // }
+  const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? '' // TODO: settings.tagToShow
+  // logDebug('', `${tagSectionStr}`)
   // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
-  const dropdownSectionNames = allSectionDetails.filter(s => s.showSettingName !== '').map(s => ({
+  const dropdownSectionNames = allSectionDetails.filter(s => (s.showSettingName !== '')).map((s) => ({
     label: `Show ${s.sectionCode !== 'TAG' ? s.sectionName : tagSectionStr}`,
     key: s.showSettingName,
     checked: (typeof sharedSettings !== undefined && sharedSettings[s.showSettingName]) ?? true,
