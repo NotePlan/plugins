@@ -7,6 +7,7 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import {type TPluginData} from './types'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
@@ -143,7 +144,6 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
-    return
   }
 }
 
@@ -154,7 +154,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): Promise<{ [string]: mixed }> {
+export async function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): Promise<TPluginData> {
   // Get count of tasks/checklists done today
   const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
   const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
@@ -163,10 +163,12 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   // you can pass any object with any number of fields you want
   return {
     sections: await getAllSectionsData(demoMode),
-    lastFullRefresh: new Date().toLocaleString() /* placeholder */,
+    lastFullRefresh: new Date().toLocaleString(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
     demoMode,
+    platform: NotePlan.environment.platform,
+    themeName: Editor.currentTheme?.name || '<could not get theme>'
   }
 }
 

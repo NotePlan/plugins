@@ -189,13 +189,15 @@ export type TBridgeClickHandlerResult = {
   errorMsg?: string,
 }
 
+export type TClickPosition = {
+  clientX: number,
+  clientY: number,
+}
+
 export type TDialogData = {
   isOpen: boolean,
   isTask?: boolean,
-  clickPosition?: {
-    clientX: number,
-    clientY: number,
-  },
+  clickPosition?: TClickPosition,
   details?: MessageDataObject
 }
 
@@ -212,10 +214,14 @@ export type TReactSettings = {
 }
 
 export type TPluginData = {
-  settings: any,
+  settings: any, /* plugin settings, includes stringified sharedSettings */
   refreshing: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
   sections: Array<TSection>,
-  [key: string]: any,
+  lastFullRefresh: string, /* localized date string new Date().toLocaleString() */
+  fullRefreshSequence: Array<TSectionCode>,
+  themeName: string, /* the theme name used when generating the dashboard */
+  platform: string, /* the platform used when generating the dashboard */
+  demoMode: boolean, /* generate fake content */
 }
 
 export type TSharedSettings = {

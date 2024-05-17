@@ -1,7 +1,7 @@
 // @flow
 
 import React, { useEffect, useRef } from 'react'
-import { removeDuplicates } from '../support/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
 // import { type TDialogData } from '../../types.js'
 import {getFeatureFlags} from '../../shared.js'
@@ -42,7 +42,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   }, [])
 
   // remove duplicates if set
-  const sections = sharedSettings?.hideDuplicates ? removeDuplicates(origSections.slice(), ['filename', 'content'], sectionPriority) : origSections
+  const sections = sharedSettings?.hideDuplicates ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : origSections
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',

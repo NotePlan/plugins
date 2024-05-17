@@ -358,7 +358,7 @@ function showProjectControlDialog(dataObject) {
 //--------------------------------------------------------------------------------------
 // Set place in the HTML window for dialog to appear
 // Note: JGC's iPhone reports 375x812, but screen shots are 3x (1124x2436)
-function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event) {
+export function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event) {
   const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc.
   const mousex = event.clientX // Horizontal
   const mousey = event.clientY // Vertical
