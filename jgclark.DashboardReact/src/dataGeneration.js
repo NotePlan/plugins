@@ -74,6 +74,7 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
     // const config: dashboardConfigType = await getSettings()
     const config: any = await getCombinedSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
+    
     const sections: Array<TSection> = []
     sections.push(getTodaySectionData(config, demoMode))
     if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
@@ -101,17 +102,18 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
  */
 export async function getSomeSectionsData(sectionCodes: Array<TSectionCode> = allSectionCodes, demoMode: boolean = false, force: boolean = false): Promise<Array<TSection>> {
   try {
-    const sharedSettings: dashboardConfigType = await getSharedSettings()
+    const config: dashboardConfigType = await getCombinedSettings()
+    
     const sections: Array<TSection> = []
-    if (sectionCodes.includes('DT')) sections.push(getTodaySectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('DY') && force || sharedSettings.showYesterdaySection) sections.push(getYesterdaySectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('DO') && force || sharedSettings.showWeekSection) sections.push(getTomorrowSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('W') && force || sharedSettings.showWeekSection) sections.push(getThisWeekSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('M') && force || sharedSettings.showMonthSection) sections.push(getThisMonthSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('Q') && force || sharedSettings.showQuarterSection) sections.push(getThisQuarterSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('TAG') && force || sharedSettings.tagToShow) sections.push(getTaggedSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('OVERDUE') && force || sharedSettings.showOverdueSection) sections.push(await getOverdueSectionData(sharedSettings, demoMode))
-    if (sectionCodes.includes('PROJ') && force || sharedSettings.showProjectSection) sections.push(await getProjectSectionData(sharedSettings, demoMode))
+    if (sectionCodes.includes('DT')) sections.push(getTodaySectionData(config, demoMode))
+    if (sectionCodes.includes('DY') && force || config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
+    if (sectionCodes.includes('DO') && force || config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
+    if (sectionCodes.includes('W') && force || config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
+    if (sectionCodes.includes('M') && force || config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
+    if (sectionCodes.includes('Q') && force || config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
+    if (sectionCodes.includes('TAG') && force || config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
+    if (sectionCodes.includes('OVERDUE') && force || config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
+    if (sectionCodes.includes('PROJ') && force || config.showProjectSection) sections.push(await getProjectSectionData(config, demoMode))
     return sections
   } catch (error) {
     logError('getSomeSectionDetails', error.message)
@@ -705,7 +707,6 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes)
       const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow, true)
-
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
@@ -839,6 +840,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       // Note: Cannot move the reduce move into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       // TODO: find better way to dedupe again
       // const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
+      
       overdueParas = await getRelevantOverdueTasks(config, [])
       logDebug('getDataForDashboard', `- after reducing paras -> ${overdueParas.length} in ${timer(thisStartTime)}`)
     }
