@@ -164,7 +164,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   ))}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} />
+              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} />
             </div>
           </div>
         </div>

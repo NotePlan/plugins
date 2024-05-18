@@ -9,10 +9,12 @@ import { logDebug } from '@helpers/react/reactDev'
 
 type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected
+  numberOfMonths?: number, // Number of months to show in the calendar
+  startingSelectedDate?: Date, // Date to start with selected
 }
 
-const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate }: Props): React$Node => {
+  const [selectedDate, setSelectedDate] = useState(startingSelectedDate||new Date())
   const [isOpen, setIsOpen] = useState(false)
 
 
@@ -26,7 +28,7 @@ const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
   }
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
 
-  const calendarStyles = {
+  const calendarStyles = { /* note: the non-color styles are set in CalendarPicker.css */
     container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
     caption: { color: 'var(--tint-color)' },
     navButtonPrev: { color: 'var(--tint-color)' },
@@ -51,7 +53,7 @@ const CalendarPicker = ({ onSelectDate }: Props): React$Node => {
             selected={selectedDate}
             onSelect={handleDateChange}
             mode="single"
-            numberOfMonths={2}
+            numberOfMonths={numberOfMonths}
             required
             fixedHeight
             styles={calendarStyles}
