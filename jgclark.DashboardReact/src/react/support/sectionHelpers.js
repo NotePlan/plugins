@@ -2,7 +2,40 @@
 import { type TSection, type TSharedSettings, type TSectionCode, allSectionDetails } from '../../types.js'
 import { logDebug } from '@helpers/react/reactDev.js'
 
-// @flow
+/**
+ * Gets the visibility setting for a given section code.
+ * 
+ * @param {TSectionCode} sectionCode - The section code.
+ * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @returns {boolean} - Whether the section is visible.
+ */
+const isSectionVisible = (sectionCode: TSectionCode, sharedSettings: TSharedSettings): boolean => {
+  if (!sharedSettings) return false
+  const thisSection = allSectionDetails.find((section) => section.sectionCode === sectionCode)
+  if (!thisSection) {
+    logDebug('sectionHelpers', `Section code: ${sectionCode} not found in allSectionDetails`)
+    return false
+  }
+  const settingName = thisSection.showSettingName
+  if (!settingName) return true
+  const showSetting = sharedSettings[settingName]
+  return typeof showSetting === 'undefined' || showSetting === true
+}
+
+/**
+ * Filters and returns the prioritized section codes based on visibility settings.
+ *
+ * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
+ * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @returns {Array<TSectionCode>} - Filtered and prioritized section codes.
+ */
+function getUseFirstVisibleOnly(
+  useFirst: Array<TSectionCode>,
+  sharedSettings: TSharedSettings
+): Array<TSectionCode> {
+  return sharedSettings ? useFirst.filter((sectionCode) => isSectionVisible(sectionCode, sharedSettings)) : useFirst
+}
+
 /**
  * Removes duplicates from sections based on specified fields and prioritizes sections based on a given order.
  *
@@ -11,7 +44,6 @@ import { logDebug } from '@helpers/react/reactDev.js'
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
  * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
  * @returns {Array<TSection>} - The sections with duplicates removed according to the rules.
- * @usage
  */
 export function getSectionsWithoutDuplicateLines(
   _sections: Array<TSection>,
@@ -53,26 +85,27 @@ export function getSectionsWithoutDuplicateLines(
 }
 
 /**
- * Filters and returns the prioritized section codes based on visibility settings.
- *
- * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
- * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
- * @returns {Array<TSectionCode>} - Filtered and prioritized section codes.
+ * Counts the total number of sectionItems in an array of TSection objects
+ * @param {Array<TSection>} sections - The array of TSection objects
+ * @returns {number} The total number of sectionItems
  */
-function getUseFirstVisibleOnly(
-  useFirst: Array<TSectionCode>,
-  sharedSettings: TSharedSettings
-): Array<TSectionCode> {
-  return sharedSettings ? useFirst.filter((sectionCode) => {
-    const thisSection = allSectionDetails.find((section) => section.sectionCode === sectionCode)
-    if (!thisSection) {
-      logDebug('sectionHelpers', `getSectionsWithoutDuplicateLines sectionCode: ${sectionCode} not found in allSectionDetails`)
-      return false
+export const countTotalSectionItems = (sections: Array<TSection>): number => {
+  sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
+  return sections.reduce((total, section) => total + section.sectionItems.length, 0)
+}
+
+/**
+ * Counts the total number of sectionItems in visible sections based on shared settings
+ * @param {Array<TSection>} sections - The array of TSection objects
+ * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @returns {number} The total number of visible sectionItems
+ */
+export const countTotalVisibleSectionItems = (sections: Array<TSection>, sharedSettings: TSharedSettings): number => {
+  return sections.reduce((total, section) => {
+    if (isSectionVisible(section.sectionCode, sharedSettings)) {
+      logDebug('sectionHelpers', `countTotalVisibleSectionItems ${section.name} is visible and has ${section.sectionItems.length} items`)
+      return total + section.sectionItems.length
     }
-    const settingName = thisSection.showSettingName
-    if (!settingName) return true
-    const showSetting = sharedSettings[settingName]
-    // if (typeof showSetting === undefined) logDebug('sectionHelpers', `getSectionsWithoutDuplicateLines showSetting: sectionCode:${thisSection.sectionCode} name:${thisSection.sectionName} showSettingName:${thisSection?.showSettingName} not found in sharedSettings`)
-    return typeof showSetting === undefined || sharedSettings[settingName] === true
-  }) : useFirst
+    return total
+  }, 0)
 }

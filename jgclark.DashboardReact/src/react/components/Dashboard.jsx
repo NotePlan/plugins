@@ -1,7 +1,7 @@
 // @flow
 
 import React, { useEffect, useRef } from 'react'
-import { getSectionsWithoutDuplicateLines } from '../support/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
 // import { type TDialogData } from '../../types.js'
 import {getFeatureFlags} from '../../shared.js'
@@ -34,15 +34,29 @@ function Dashboard({ pluginData }: Props): React$Node {
   const { metaTooltips:FFlagMetaTooltips } = getFeatureFlags(pluginData)
 
   const containerRef = useRef<?HTMLDivElement>(null)
+  let sections = origSections
+  const unduplicatedSections = sharedSettings ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : []
+  sections = sharedSettings?.hideDuplicates ?  unduplicatedSections : origSections
 
+  // Force the window to be focused on load so that we can capture clicks on hover
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.focus()
     }
   }, [])
 
-  // remove duplicates if set
-  const sections = sharedSettings?.hideDuplicates ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : origSections
+  // Change the title when the section data changes
+  // TODO: this doesn't work and I'm not sure it ever can
+  useEffect(() => {
+      logDebug('Dashboard', `in useEffect for title setting, pluginData.sections changed; document.title was=${document.title}`)
+      const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections,sharedSettings)
+      const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
+      if (document.title !== windowTitle) {
+        logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
+        document.title = windowTitle
+        logDebug('Dashboard', `in useEffect, document.title now is: ${document.title}`)
+      }
+  }, [/* pluginData.sections */])
 
   const dashboardContainerStyle = {
     maxWidth: '100vw',
