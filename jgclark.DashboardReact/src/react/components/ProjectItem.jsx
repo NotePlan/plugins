@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by  component
-// Last updated 15.5.2024 for v2.0.0 by @jgclark
+// Last updated 16.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
@@ -46,15 +46,13 @@ function ReviewItem({ item }: Props): React.Node {
   //   setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-ProjectDialogOpen`, dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog } }))
   // }
 
-  // TODO: most of this can go in just 'item'
   const dataObjectToPassToControlDialog = {
-    // OS: 'macOS', // TODO: NotePlan.environment.platform,
     item: item,
     actionType: '' 
    }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
-    clo(dataObjectToPassToControlDialog, 'ReviewItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
+    // clo(dataObjectToPassToControlDialog, 'ReviewItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
     setReactSettings((prev) => ({
       ...prev,

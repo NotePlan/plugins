@@ -32,7 +32,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
   
-  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
+  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
   const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
   // TODO: disabling this for the moment so we can see logs without refreshes clouding them
@@ -174,7 +174,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
-      {/*----------- Single dialog that can be shown for any task-based item -----------*/}
+      {/* TODO(later): can remove most of the ids, I think */}
+      {/*----------- Dialog that can be shown for any task-based item -----------*/}
       <dialog
         id="itemControlDialog"
         className={`itemControlDialog ${animationClass}`}
@@ -186,7 +187,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           <div id="dialogFileParts">
             <span className="preText">From:</span>
             <i className="pad-left pad-right fa-regular fa-file-lines"></i>
-            <span className="dialogItemNote" id="dialogItemNote">{title}</span>
+            <span className="dialogItemNote" /*id="dialogItemNote"*/>{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           <div className="dialog-top-right">
@@ -201,10 +202,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         </div>
 
         <div className="dialogBody">
-          <div className="buttonGrid" id="itemDialogButtons">
+          <div className="buttonGrid taskButtonGrid" id="itemDialogButtons">
             {/* line1 ---------------- */}
             <div className="preText">For:</div>
-            <div>
+            <div id="taskControlLine1">
               {detailsMessageObject?.item ? <StatusIcon
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
@@ -234,9 +235,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
               <div id="itemControlDialogOtherControls">
                 {otherControlButtons.map((button, index) => (
                   <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
-                    {/* {button.icons?.map((icon) => (
-                      <i key={icon.className} className={`${icon.className} ${icon.position === 'left' ? 'icon-left pad-right' : 'icon-right pad-left'}`}></i>
-                    ))} */}
                     {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                       <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                     ))}

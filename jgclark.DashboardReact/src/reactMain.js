@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 12.5.2024 for v2.0.0 by @jgclark
+// Last updated 17.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -79,10 +79,11 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
+    // logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
-      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
+      <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css"> --Ю
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
@@ -130,6 +131,8 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const config: dashboardConfigType = await getSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
+    // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
+
     const ENV_MODE = 'development' // 'development' /* helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
@@ -160,10 +163,12 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
   const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
 
+  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
+
   // you can pass any object with any number of fields you want
   return {
     sections: await getAllSectionsData(demoMode),
-    lastFullRefresh: new Date().toLocaleString(),
+    lastFullRefresh: Date.now(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having?
     demoMode,

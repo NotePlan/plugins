@@ -9,6 +9,11 @@ Misc TODO:
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 - will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
 
+## [2.0.0.a22] @jgc
+- completed layout in Project dialog (apart from CalendarPicker)
+- tweaked display in Task dialog (apart from CalendarPicker)
+- fixed time ago in Header
+
 ## [2.0.0.a21] @dbw
 - got click actions to work from the new StatusIcon on the ItemDialog
 - doCancelTask & doCancelChecklist were not deleting the line properly because they were not passing {updatedParagraph} so it could be deleted. Fixed this.

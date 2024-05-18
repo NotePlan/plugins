@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Last updated 10.5.2024 for v2.0.0 by @jgclark
+// Last updated 15.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -24,8 +24,6 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
-
-  // TODO: Also pass sectionCode to refresh
 
   return (
     <>
