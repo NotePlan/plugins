@@ -10,8 +10,7 @@ import { allSectionDetails, nonSectionSwitches } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
-import { clo } from '@helpers/dev'
+import { logDebug, clo, JSP } from '@helpers/react/reactDev.js'
 
 type Props = {
   lastFullRefresh: Date,
@@ -67,6 +66,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //   logDebug('', `${s.showSettingName} / ${s.sectionCode} / ${s.sectionName}`)
   // }
   const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? '' // TODO: settings.tagToShow
+  logDebug(`Header`, `sections find TAG section: ${JSP(pluginData?.sections.find(a => a.sectionCode === 'TAG'))||''}`)
+
   // logDebug('', `${tagSectionStr}`)
   // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
   const dropdownSectionNames = allSectionDetails.filter(s => (s.showSettingName !== '')).map((s) => ({

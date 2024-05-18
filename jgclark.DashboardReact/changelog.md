@@ -13,6 +13,7 @@ Misc TODO:
 - fixed bug in overdues not respecting ignoreFolders on refresh
 - fixed top-alignment spacing for calendar picker
 - changed project dialog to have one month calendar picker so that it fits in the smaller dialog
+- fixed the #home not showing up if it was off on load
 
 ## [2.0.0.a22] @jgc
 - completed layout in Project dialog (apart from CalendarPicker)

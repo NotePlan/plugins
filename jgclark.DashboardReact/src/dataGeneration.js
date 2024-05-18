@@ -82,7 +82,7 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
     if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
     if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
     if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
-    if (config.showTagSection) sections.push(getTaggedSectionData(config, demoMode))
+    if (config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
     if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
     sections.push(await getProjectSectionData(config, demoMode))
 
@@ -95,6 +95,7 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
 
 /**
  * Generate data for some specified sections (subject to user currently wanting them as well)
+ * NOTE: Always refreshes today and the TAG sections
  * @param {Array<string>} sectionCodes (default: allSectionCodes)
  * @param {boolean} demoMode (default: false)
  * @param {boolean} force (default: false) - refresh sections even if setting is not enabled
