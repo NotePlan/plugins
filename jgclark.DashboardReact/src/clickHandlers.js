@@ -85,7 +85,7 @@ function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnRetur
  * Convenience function to update the global shared data in the webview window, telling React to update it
  * @param {TAnyObject} changeObject - the fields inside pluginData to update
  * @param {string} changeMessage 
- * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date().toLocaleString() }, 'Finished Refreshing all sections')
+ * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
  */
 async function setPluginData(changeObject: TAnyObject, changeMessage:string = ""): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -125,10 +125,10 @@ export async function refreshAllSections(): Promise<void> {
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
   reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
-  reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
+  reactWindowData.pluginData.lastFullRefresh = Date.now()
 
   // turn off refreshing message now done
-  await setPluginData({ refreshing: false, lastFullRefresh: new Date().toLocaleString() }, 'Finished Refreshing all sections')
+  await setPluginData({ refreshing: false, lastFullRefresh: Date.now() }, 'Finished Refreshing all sections')
 }
 
 /**
@@ -173,7 +173,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false)
   // $FlowFixMe
   const mergedSections = mergeSections(existingSections, newSections)
-  // pluginData.lastFullRefresh = new Date().toLocaleString()
+  // pluginData.lastFullRefresh = Date.now()
   const updates:TAnyObject = { sections: mergedSections }
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
