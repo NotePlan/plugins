@@ -10,6 +10,7 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
+import { getSectionDetailsFromSectionCode } from './react/support/sectionHelpers'
 import {
   // copyUpdatedSectionItemData, findSectionItems,
   getAllSectionsData, getSomeSectionsData
@@ -17,7 +18,8 @@ import {
 import {
   type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem,
   // type TSectionCode,
-  type TPluginData, allCalendarSectionCodes, allSectionCodes} from './types'
+  type TPluginData, allCalendarSectionCodes, allSectionCodes
+} from './types'
 import { validateAndFlattenMessageObject } from './shared'
 // import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
@@ -79,6 +81,17 @@ function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnRetur
     actionsOnSuccess,
   }
 }
+/**
+ * Convenience function to update the global shared data in the webview window, telling React to update it
+ * @param {TAnyObject} changeObject - the fields inside pluginData to update
+ * @param {string} changeMessage 
+ * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date().toLocaleString() }, 'Finished Refreshing all sections')
+ */
+async function setPluginData(changeObject: TAnyObject, changeMessage:string = ""): Promise<void> {
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
+}
 
 /**
  * Merge existing sections data with replacement data
@@ -110,14 +123,34 @@ function mergeSections(existingSections: Array<TSectionItem>, newSections: Array
 export async function refreshAllSections(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   // show refreshing message until done
-  reactWindowData.pluginData.refreshing = true
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Starting JSON data for all sections`)
+  await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
   reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
   reactWindowData.pluginData.lastFullRefresh = new Date().toLocaleString()
 
   // turn off refreshing message now done
-  reactWindowData.pluginData.refreshing = false
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for all sections`)
+  await setPluginData({ refreshing: false, lastFullRefresh: new Date().toLocaleString() }, 'Finished Refreshing all sections')
+}
+
+/**
+ * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections
+ * @param {*} data 
+ * @returns 
+ */
+export async function incrementallyRefreshSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { sectionCodes } = data
+  if (!sectionCodes) {
+    logError('refreshSomeSections', 'No sectionCodes provided')
+    return handlerResult(false)
+  }
+  // loop through sectionCodes
+  await setPluginData({ refreshing: true }, `Starting refresh for sections ${String(sectionCodes)}`)
+  for (const sectionCode of sectionCodes) {
+    const start = new Date()
+    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+    logDebug(`clickHandlers`, `incrementallyRefreshSections loading: ${sectionCode} (${getSectionDetailsFromSectionCode(sectionCode)?.sectionName||''}) took ${timer(start)}`)
+  }
+  await setPluginData({ refreshing: false }, `Ending refresh for sections ${String(sectionCodes)}`)
+  return handlerResult(true)
 }
 
 /**
@@ -125,26 +158,25 @@ export async function refreshAllSections(): Promise<void> {
  */
 export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const start = new Date()
-  const {sectionCodes} = data
+  const { sectionCodes } = data
   if (!sectionCodes) {
     logError('refreshSomeSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const pluginData:TPluginData = reactWindowData.pluginData
+  const pluginData: TPluginData = reactWindowData.pluginData
   // show refreshing message until done
-  pluginData.refreshing = sectionCodes
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(sectionCodes)}`)
+  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${String(sectionCodes)}`)
   const existingSections = pluginData.sections
 
   // force the section refresh for the wanted sections
-  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, true)
-  pluginData.sections = mergeSections(existingSections, newSections)
+  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false)
+  // $FlowFixMe
+  const mergedSections = mergeSections(existingSections, newSections)
   // pluginData.lastFullRefresh = new Date().toLocaleString()
-
-  // turn off refreshing message now done
-  pluginData.refreshing = false
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshed JSON data for sections ${String(sectionCodes)}`)
+  const updates:TAnyObject = { sections: mergedSections }
+  if (!pluginData.refreshing === true) updates.refreshing = false
+  await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
   logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)
   return handlerResult(true)
 }
@@ -157,8 +189,10 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
   try {
     const config = await getSettings()
     const { actionType, toFilename } = data
-    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename}`)
-
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''}`)
+    if (!toFilename) {
+      throw new Error('doAddItem: No toFilename provided')
+    }
     const todoType = (actionType === 'addTask') ? 'task' : 'checklist'
 
     const calNoteDateStr = getDateStringFromCalendarFilename(toFilename, true)
@@ -228,7 +262,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelTask', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], {updatedParagraph})
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 // Complete the checklist in the actual Note
@@ -243,7 +277,7 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 // Cancel the checklist in the actual Note
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
-  const res = cancelItem(filename, content)
+  let res = cancelItem(filename, content)
   let updatedParagraph = {}
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
@@ -252,7 +286,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelChecklist', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'],{updatedParagraph})
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
 }
 
 /**
@@ -307,19 +341,19 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
     const updatedType = (existingType === 'checklist') ? 'open' : 'checklist'
     updatedParagraph.type = updatedType
-  logDebug('doToggleType', `-> ${updatedType}`)
+    logDebug('doToggleType', `-> ${updatedType}`)
     thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
     // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
     // FIXME: this still isn't updating the window correctly
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
 
-  // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
-  // Update display in Dashboard too
-  // sendToHTMLWindow(windowId, 'toggleType', data)
-  // Only use if necessary:
-  // Warnbug('bCDI', '------- refreshturned off at the moment ---------------')
-  // await showDashboardReact('refresh')
+    // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
+    // Update display in Dashboard too
+    // sendToHTMLWindow(windowId, 'toggleType', data)
+    // Only use if necessary:
+    // Warnbug('bCDI', '------- refreshturned off at the moment ---------------')
+    // await showDashboardReact('refresh')
   } catch (error) {
     logError('doToggleType', error.message)
     return '(error)'
@@ -686,7 +720,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   }
 }
 
-export function doSettingsChanged(data: MessageDataObject,settingName:string): TBridgeClickHandlerResult {
+export function doSettingsChanged(data: MessageDataObject, settingName: string): TBridgeClickHandlerResult {
   const settings = DataStore.settings
   const newSettings = data.settings
   if (!settings || !newSettings) {

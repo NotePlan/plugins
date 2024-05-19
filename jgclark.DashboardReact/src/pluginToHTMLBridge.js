@@ -33,6 +33,7 @@ import {
   doUpdateTaskDate,
   refreshAllSections,
   refreshSomeSections,
+  incrementallyRefreshSections,
 } from './clickHandlers'
 import {
   scheduleAllOverdueOpenToToday,
@@ -172,13 +173,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
     logDebug('', `------------------- bridgeClickDashboardItem: ${actionType} -------------------`)
-    logDebug(
-      'bridgeClickDashboardItem',
-      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${data.item?.para?.content ?? '<no content found>'
-      }`,
-    )
-    // if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
-    // clo(data, 'bridgeClickDashboardItem received data object')
 
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
@@ -294,6 +288,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'refreshSomeSections': {
         result = await refreshSomeSections(data)
+        break
+      }
+      case 'incrementallyRefreshSections': {
+        result = await incrementallyRefreshSections(data)
         break
       }
       case 'addChecklist': {

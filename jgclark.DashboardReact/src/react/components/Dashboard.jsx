@@ -1,9 +1,9 @@
 // @flow
 
 import React, { useEffect, useRef } from 'react'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems } from '../support/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
-// import { type TDialogData } from '../../types.js'
+import { allSectionDetails, sectionDisplayOrder } from '../../types.js'
 import {getFeatureFlags} from '../../shared.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
@@ -35,8 +35,9 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const containerRef = useRef<?HTMLDivElement>(null)
   let sections = origSections
-  const unduplicatedSections = sharedSettings ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : []
+  const unduplicatedSections = sections.length === 1 ? sections : (sharedSettings ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : [])
   sections = sharedSettings?.hideDuplicates ?  unduplicatedSections : origSections
+  sections = sortSections(sections, sectionDisplayOrder)
 
   // Force the window to be focused on load so that we can capture clicks on hover
   useEffect(() => {
@@ -45,6 +46,12 @@ function Dashboard({ pluginData }: Props): React$Node {
     }
   }, [])
 
+  // Load the rest of the content (Today section loads first)
+  useEffect(() => {
+    const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
+    sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes }, 'Dashboard loaded', true)
+  }, [])
+  
   // Change the title when the section data changes
   // TODO: this doesn't work and I'm not sure it ever can
   useEffect(() => {

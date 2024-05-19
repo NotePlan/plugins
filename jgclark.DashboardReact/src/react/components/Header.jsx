@@ -61,14 +61,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
   }
 
-  // FIXME: for empty tag setting
-  // for (const s of allSectionDetails) {
-  //   logDebug('', `${s.showSettingName} / ${s.sectionCode} / ${s.sectionName}`)
-  // }
   const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? '' // TODO: settings.tagToShow
-  logDebug(`Header`, `sections find TAG section: ${JSP(pluginData?.sections.find(a => a.sectionCode === 'TAG'))||''}`)
 
-  // logDebug('', `${tagSectionStr}`)
   // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
   const dropdownSectionNames = allSectionDetails.filter(s => (s.showSettingName !== '')).map((s) => ({
     label: `Show ${s.sectionCode !== 'TAG' ? s.sectionName : tagSectionStr}`,

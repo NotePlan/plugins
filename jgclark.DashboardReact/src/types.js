@@ -6,7 +6,7 @@
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
-type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
+export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
 //TODO: @jgclark, the things in this file that are not sections should be moved out of the "types" file
 export const allSectionDetails: Array<TSectionDetails> = [
@@ -19,9 +19,12 @@ export const allSectionDetails: Array<TSectionDetails> = [
   // TODO(later): this needs special handling in v2.1+
   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
+  // overdue last becasue it takes the longest to load
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
   // { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
 ]
+
+export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG', 'PROJ']
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
@@ -42,7 +45,7 @@ export type TSection = {
   sectionCode: TSectionCode,
   description: string,
   sectionItems: Array<TSectionItem>,
-  FAIconClass: string, // CSS class to show FA Icons
+  FAIconClass?: string, // CSS class to show FA Icons
   sectionTitleClass: string, // CSS class
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
@@ -215,13 +218,13 @@ export type TReactSettings = {
 
 export type TPluginData = {
   settings: any, /* plugin settings, includes stringified sharedSettings */
-  refreshing: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
+  refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
   sections: Array<TSection>,
-  lastFullRefresh: string, /* localized date string new Date().toLocaleString() */
-  fullRefreshSequence: Array<TSectionCode>,
+  lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
   themeName: string, /* the theme name used when generating the dashboard */
   platform: string, /* the platform used when generating the dashboard */
   demoMode: boolean, /* generate fake content */
+  doneCount?: number,
 }
 
 export type TSharedSettings = {

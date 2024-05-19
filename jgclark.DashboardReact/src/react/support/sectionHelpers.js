@@ -1,5 +1,5 @@
 // @flow
-import { type TSection, type TSharedSettings, type TSectionCode, allSectionDetails } from '../../types.js'
+import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails, allSectionDetails } from '../../types.js'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 /**
@@ -9,31 +9,43 @@ import { logDebug } from '@helpers/react/reactDev.js'
  * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
  * @returns {boolean} - Whether the section is visible.
  */
-const isSectionVisible = (sectionCode: TSectionCode, sharedSettings: TSharedSettings): boolean => {
+const sectionIsVisible = (sectionCode: TSectionCode, sharedSettings: TSharedSettings): boolean => {
   if (!sharedSettings) return false
-  const thisSection = allSectionDetails.find((section) => section.sectionCode === sectionCode)
-  if (!thisSection) {
-    logDebug('sectionHelpers', `Section code: ${sectionCode} not found in allSectionDetails`)
-    return false
-  }
-  const settingName = thisSection.showSettingName
+  const thisSection = getSectionDetailsFromSectionCode(sectionCode) // get sectionCode, sectionName, showSettingName
+  const settingName = thisSection?.showSettingName
   if (!settingName) return true
-  const showSetting = sharedSettings[settingName]
+  //TODO: alter this first part of the ternary to do something like startsWitth
+  const showSetting = sectionCode === 'TAG' ? sharedSettings[settingName] : sharedSettings[settingName]
   return typeof showSetting === 'undefined' || showSetting === true
 }
 
 /**
+ * Taskes in a TSection (the full section data) and returns the visibility setting for a given section
+ * which may be the showSettingName or in the case of a TAG, will be an amalgamated string
+ * @param {TSection} section - The section to get the setting name for.
+ * @returns {string} - The setting name.
+ */
+export function getSettingName(section:TSection):string {
+  let settingName = getSectionDetailsFromSectionCode(section.sectionCode)?.showSettingName || ''
+  if (section.sectionCode === 'TAG') {
+    settingName = `${settingName}_${section.name}`
+  }
+  return settingName
+}
+
+/**
+ * Reduce the useFirst array to include only the visible sections
  * Filters and returns the prioritized section codes based on visibility settings.
  *
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
  * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
  * @returns {Array<TSectionCode>} - Filtered and prioritized section codes.
  */
-function getUseFirstVisibleOnly(
+function getUseFirstButVisible(
   useFirst: Array<TSectionCode>,
   sharedSettings: TSharedSettings
 ): Array<TSectionCode> {
-  return sharedSettings ? useFirst.filter((sectionCode) => isSectionVisible(sectionCode, sharedSettings)) : useFirst
+  return sharedSettings ? useFirst.filter((sectionCode) => sectionIsVisible(sectionCode, sharedSettings)) : useFirst
 }
 
 /**
@@ -54,7 +66,7 @@ export function getSectionsWithoutDuplicateLines(
   if (!paraMatcherFields) return _sections
   const sections = JSON.parse(JSON.stringify(_sections)) // Deep copy so we don't mutate the original pluginData
 
-  const useFirstVisibleOnly = getUseFirstVisibleOnly(useFirst, sharedSettings)
+  const useFirstVisibleOnly = getUseFirstButVisible(useFirst, sharedSettings)
 
   const orderedSections = useFirstVisibleOnly.map((st) =>
     sections.find((section) => section.sectionCode === st)
@@ -102,10 +114,48 @@ export const countTotalSectionItems = (sections: Array<TSection>): number => {
  */
 export const countTotalVisibleSectionItems = (sections: Array<TSection>, sharedSettings: TSharedSettings): number => {
   return sections.reduce((total, section) => {
-    if (isSectionVisible(section.sectionCode, sharedSettings)) {
+    if (sectionIsVisible(section.sectionCode, sharedSettings)) {
       logDebug('sectionHelpers', `countTotalVisibleSectionItems ${section.name} is visible and has ${section.sectionItems.length} items`)
       return total + section.sectionItems.length
     }
     return total
   }, 0)
+}
+
+/**
+ * Filters the global allSectionDetails array based on the sectionCode
+ * Returns a single section with the matching section code prefix
+ * @param {string} thisSectionCode - The section code to filter by.
+ * @returns {TSectionDetails} {sectionCode, sectionName, showSettingName}
+ */
+export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSectionDetails|void {
+  const found = allSectionDetails.find((section) => section.sectionCode.startsWith(thisSectionCode))
+  if (!found) logDebug('sectionHelpers', `Section code: ${thisSectionCode} not found in allSectionDetails`)
+  return found
+}
+
+/**
+ * Sorts the sections array by sectionCode based on a predefined order and then by sectionName alphabetically.
+ * @param {Array<TSection>} sections - The array of sections to be sorted.
+ * @param {Array<string>} order - The predefined order for sectionCode.
+ * @returns {Array<Section>} The sorted array of sections.
+ */
+export function sortSections(sections:Array<TSection>, order:Array<string>):Array<TSection> {
+  const orderMap = order.reduce((acc: {[key: string]: number}, code:string, index:number) => {
+    acc[code] = index
+    return acc
+  }, {})
+
+  return sections.sort((a, b) => {
+    // $FlowIgnore
+    const orderA = orderMap[a.sectionCode]
+    // $FlowIgnore
+    const orderB = orderMap[b.sectionCode]
+
+    if (orderA !== orderB) {
+      return orderA - orderB
+    }
+
+    return a.name.localeCompare(b.name)
+  })
 }

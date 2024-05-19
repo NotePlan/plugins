@@ -7,14 +7,14 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {type TPluginData} from './types'
+import {type TPluginData, allSectionDetails} from './types'
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
   // bridgeChangeCheckbox, runPluginCommand
 } from './pluginToHTMLBridge'
 // import type { TSection } from './types'
-import { getAllSectionsData } from './dataGeneration'
+import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -167,13 +167,13 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // you can pass any object with any number of fields you want
   return {
-    sections: await getAllSectionsData(demoMode),
+    sections: await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode),
     lastFullRefresh: Date.now(),
     settings: config,
-    doneCount: doneCount, // TODO: Is this worth having?
-    demoMode,
+    doneCount: doneCount, // TODO: Is this worth having? 
+    demoMode, 
     platform: NotePlan.environment.platform,
-    themeName: Editor.currentTheme?.name || '<could not get theme>'
+    themeName: Editor.currentTheme?.name || '<could not get theme>',
   }
 }
 
