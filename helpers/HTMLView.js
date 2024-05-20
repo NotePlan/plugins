@@ -296,7 +296,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
       fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
     }
     fullHTML.push(winOpts.headerTags ?? '')
-    fullHTML.push('<style type="text/css">')
+    fullHTML.push('<style type="text/css" title="Original Theme Styles">')
     // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
@@ -669,7 +669,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
   try {
     const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to window: "${windowId}"`)
+    logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
     const start = new Date()
     const result = await HTMLView.runJavaScript(
       `window.postMessage(
