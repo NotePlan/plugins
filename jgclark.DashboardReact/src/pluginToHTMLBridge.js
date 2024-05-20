@@ -61,6 +61,7 @@ import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 // import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {formatReactError} from '@helpers/react/reactDev'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -192,7 +193,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     switch (actionType) {
       case 'refresh': {
         await refreshAllSections()
-        return
+        break
       }
       case 'completeTask': {
         result = doCompleteTask(data) // , windowId
@@ -355,6 +356,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
+  await checkForThemeChange() // check to see if the theme has changed and if so, update it
   if (!handlerResult) return
   try {
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
@@ -466,4 +468,28 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
 
+}
+
+/**
+ * Check to see if the theme has changed since we initially drew the winodw
+ * This can happen when your computer goes from light to dark mode or you change the theme
+ * We want the dashboard to always match
+ */
+export async function checkForThemeChange(): Promise<void> {
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  const { pluginData } = reactWindowData
+  const { themeName: themeInWindow } = pluginData
+
+  logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
+  clo(NotePlan.editors.map(e=>e.currentTheme.name), 'checkForThemeChange: NotePlan.editors themes')
+  
+  const currentTheme = NotePlan.editors[0].currentTheme?.name || '<could not get theme>'
+  logDebug('checkForThemeChange', `currentTheme: ${currentTheme}, themeInWindow: ${themeInWindow}`)
+  if (currentTheme !== themeInWindow) {
+    logDebug('checkForThemeChange', `theme changed from ${themeInWindow} to ${currentTheme}`)
+    const themeCSS = generateCSSFromTheme()
+    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', {themeCSS}, `Theme CSS Changed`)
+    reactWindowData.themeName = currentTheme // save the theme in the reactWindowData
+    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
+  }
 }

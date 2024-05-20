@@ -133,8 +133,12 @@ export async function refreshAllSections(): Promise<void> {
 
 /**
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections
- * @param {*} data 
- * @returns 
+ * This is used on first launch to improve the UX and speed of first render
+ * And each section is returned to React as it's generated
+ * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx 
+ * to load the rest
+ * @param {MessageDataObject} data 
+ * @returns {Promise<TBridgeClickHandlerResult>}
  */
 export async function incrementallyRefreshSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { sectionCodes } = data
@@ -155,6 +159,7 @@ export async function incrementallyRefreshSections(data: MessageDataObject): Pro
 
 /**
  * Tell the React window to update by re-generating a subset of Sections
+ * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time
  */
 export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const start = new Date()

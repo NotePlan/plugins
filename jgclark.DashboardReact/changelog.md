@@ -16,6 +16,7 @@ Misc TODO:
 - fixed the #home not showing up if it was off on load
 - added incrementallyRefreshSections to load all sections (other than Today) on first load
 - Fix date handling to match @jgclark recent changes
+- Add CHANGE_THEME code to change the styles when your Editor theme changes. But for HTML reasons, it doesn't show. Hoping @jgclark can figure out why.
 
 ## [2.0.0.a22] @jgc
 - completed layout in Project dialog (apart from CalendarPicker)

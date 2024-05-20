@@ -6,13 +6,13 @@
 // Last updated 17.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
-import React, {  useRef } from 'react'
+import React, { useRef } from 'react'
+import { type TClickPosition } from '../../types'
 import DialogForProjectItems from './DialogForProjectItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug, JSP } from '@helpers/react/reactDev.js'
 import '../css/dashboardDialog.css'
-import {type TClickPosition} from '../../types'
 
 type RefType<T> = {| current: null | T |}
 
@@ -114,7 +114,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 // @jgclark dialog positioning code
 // Set place in the HTML window for dialog to appear
 // Note: JGC's iPhone reports 375x812, but screen shots are 3x (1124x2436)
-function setPositionForDialog(thisOS:string, dialogWidth:number, dialogHeight:number, dialog: any, event:TClickPosition) {
+function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight: number, dialog: any, event: TClickPosition) {
   logDebug(`Dialog`, `ENTERING setPositionForDialog() thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
   const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc.
   const mousex = event.clientX // Horizontal
