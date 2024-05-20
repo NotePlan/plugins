@@ -481,7 +481,7 @@ export async function checkForThemeChange(): Promise<void> {
   const { themeName: themeInWindow } = pluginData
 
   logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
-  clo(NotePlan.editors.map(e=>e.currentTheme.name), 'checkForThemeChange: NotePlan.editors themes')
+  clo(NotePlan.editors.map((e,i)=>`"${i}: ${e?.title??''}": "{e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
   
   const currentTheme = NotePlan.editors[0].currentTheme?.name || '<could not get theme>'
   logDebug('checkForThemeChange', `currentTheme: ${currentTheme}, themeInWindow: ${themeInWindow}`)
