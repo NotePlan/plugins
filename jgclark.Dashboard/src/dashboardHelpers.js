@@ -253,7 +253,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     let openParas = (config.ignoreChecklistItems)
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
@@ -298,14 +298,14 @@ export function getOpenItemParasForCurrentTimePeriod(
         // try make this a single filter
         : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
-    logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
+    // logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders, true)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refParas.length} paras (after ${timer(startTime)})`)
     // Temporarily extend TParagraph with the task's priority + start time (if present)
     refParas = addPriorityToParagraphs(refParas)
     refParas = extendParaToAddStartTime(refParas)
@@ -320,12 +320,12 @@ export function getOpenItemParasForCurrentTimePeriod(
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
       // come back to main thread
       // await CommandBar.onMainThread()
-      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      // logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
       return [sortedOpenParas, sortedRefParas]
     } else {
       const combinedParas = openParas.concat(refParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      // logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]

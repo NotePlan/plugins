@@ -25,7 +25,6 @@ import {
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
   doShowLineInEditorFromTitle,
-  doMoveFromCalToCal,
   doSettingsChanged,
   doSetSpecificDate,
   doToggleType,
@@ -36,6 +35,7 @@ import {
   incrementallyRefreshSections,
 } from './clickHandlers'
 import {
+  doMoveFromCalToCal,
   scheduleAllOverdueOpenToToday,
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
@@ -160,7 +160,6 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
     // const windowId = getWindowIdFromCustomId(windowCustomId);
-    // const windowId = windowCustomId // note that this is not used and should be deleted
     // if (!windowId) {
     //   logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
     //   return
@@ -168,12 +167,19 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     // const ID = data.item?.ID ?? '<no ID found>'
     const actionType: TActionType = data.actionType
-    // const filename = data.item?.para?.filename ?? '<no filename found>'
+    const filename = data.item?.para?.filename ?? '<no filename found>'
     let content = data.item?.para?.content ?? '<no content found>'
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug('', `------------------- bridgeClickDashboardItem: ${actionType} -------------------`)
+    logDebug('', `---------------- bridgeClickDashboardItem: ${actionType} ---`)
+    logDebug(
+      'bridgeClickDashboardItem',
+      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${data.item?.para?.content ?? '<no content found>'
+      }`,
+    )
+    // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
+    if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
@@ -361,21 +367,24 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
   try {
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     if (!actionsOnSuccess.length) {
-      logDebug(`processActionOnReturn: no post process actions to perform`)
+      logDebug('processActionOnReturn', `note: no post process actions to perform`)
       return
     }
     const { success, updatedParagraph } = handlerResult
     const filename: string = data.item?.para?.filename ?? ''
-    if (filename === '') throw new Error(`Cannot find filename in passed data`)
-
-    const thisNote = getNoteByFilename(filename)
-    clo(handlerResult, `processActionOnReturn: handlerResult for ${filename}`)
-    // always update the cache for the note, as it might have changed
-    const _changedNote = DataStore.updateCache(thisNote)
+    if (filename === '') {
+      logDebug('processActionOnReturn', `Starting with no filename`)
+    } else {
+      // always update the cache for the note, as it might have changed
+      const thisNote = getNoteByFilename(filename)
+      clo(handlerResult, `processActionOnReturn: handlerResult for ${filename}`)
+      const _changedNote = DataStore.updateCache(thisNote)
+    }
 
     if (success) {
-      // const { filename, content } = data.item.para
-      const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an await at some point */
+      if (filename !== '') {
+        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an async at some point */
+      }
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
         logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON:`)
@@ -399,14 +408,13 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
         await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
-
-        // TODO: Swap out old JSON sections with new sections: see updateReactWindow...
       }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult`)
     }
   } catch (error) {
-    logError(`processActionOnReturn error:${JSP(error)}`,JSP(formatReactError(error)))
+    clo(data.item, `processActionOnReturn data.item`)
+    logError(`processActionOnReturn error:${JSP(error)}`, JSP(formatReactError(error)))
   }
 }
 

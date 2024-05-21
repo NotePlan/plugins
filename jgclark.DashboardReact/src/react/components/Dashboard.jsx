@@ -3,8 +3,8 @@
 import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
-import { allSectionDetails, sectionDisplayOrder } from '../../types.js'
-import { getFeatureFlags } from '../../shared.js'
+import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
+import {getFeatureFlags} from '../../shared.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'

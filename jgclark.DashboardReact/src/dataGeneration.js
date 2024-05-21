@@ -10,7 +10,7 @@ import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/
 import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType,
 } from './types'
-import { allSectionCodes } from './types'
+import { allSectionCodes } from "./constants.js"
 import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -134,7 +134,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     const items: Array<TSectionItem> = []
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
     const thisFilename = `${getTodaysDateUnhyphenated()}.md`
-    logDebug('getDataForDashboard', `------- Gathering Today's items for section #${String(sectionNum)} ------------`)
+    // logDebug('getDataForDashboard', `------- Gathering Today's items for section #${String(sectionNum)} ------------`)
 
     if (useDemoData) {
       const combinedSortedItems = openTodayItems.concat(refTodayItems)
@@ -153,7 +153,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       if (currentDailyNote) {
         const thisFilename = currentDailyNote?.filename ?? '(error)'
         // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
-        logDebug('getDataForDashboard', `------------- Gathering Today's items for section #${String(sectionNum)} from ${filenameDateStr} --------------`)
+        logDebug('getDataForDashboard', `------- Gathering Today's items for section #${String(sectionNum)} from ${filenameDateStr} ------`)
         if (!thisFilename.includes(filenameDateStr)) {
           logError('getDataForDashboard', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
@@ -265,7 +265,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
   const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
-  logDebug('getDataForDashboard', `------- Gathering Yesterday's items for section #${String(sectionNum)} ------------`)
+    // logDebug('getDataForDashboard', `------- Gathering Yesterday's items for section #${String(sectionNum)} ------------`)
 
   if (useDemoData) {
     const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
@@ -351,7 +351,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
     let itemCount = 0
     const items: Array<TSectionItem> = []
-    logDebug('getDataForDashboard', `------- Gathering Tomorrow's items for section #${String(sectionNum)} ------------`)
+    // logDebug('getDataForDashboard', `------- Gathering Tomorrow's items for section #${String(sectionNum)} ------------`)
 
     if (useDemoData) {
       const combinedTomorrowSortedParas = openTomorrowParas.concat(refTomorrowParas)
@@ -419,7 +419,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
   const thisFilename = `${dateStr}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
-  logDebug('getDataForDashboard', `------- Gathering Week items for section #${String(sectionNum)} ------------`)
+  // logDebug('getDataForDashboard', `------- Gathering Week items for section #${String(sectionNum)} ------------`)
 
   if (useDemoData) {
     const combinedWeekSortedParas = openWeekParas.concat(refWeekParas)
@@ -513,7 +513,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
   const thisFilename = `${dateStr}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
-  logDebug('getDataForDashboard', `------- Gathering Month items for section #${String(sectionNum)} from ${dateStr} ------------`)
+  // logDebug('getDataForDashboard', `------- Gathering Month items for section #${String(sectionNum)} from ${dateStr} ------------`)
 
   if (useDemoData) {
     const combinedMonthSortedParas = openMonthParas.concat(refMonthParas)
@@ -532,6 +532,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       if (!thisFilename.includes(dateStr)) {
         logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
       }
+      logDebug('getDataForDashboard', `--------- Gathering Monthly items for section #${String(sectionNum)} from ${dateStr} ---------`)
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config)
@@ -615,7 +616,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       const startTime = new Date() // for timing only
       const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
-      logDebug('getDataForDashboard', `---------------------------- Gathering Quarterly items for section #${String(sectionNum)} from ${dateStr}`)
+      logDebug('getDataForDashboard', `-------- Gathering Quarterly items for section #${String(sectionNum)} from ${dateStr} ----------`)
       if (!thisFilename.includes(dateStr)) {
         logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
       }

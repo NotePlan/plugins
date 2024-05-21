@@ -3,26 +3,32 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 13.5.2024 for v2.0.0 by @jgclark
+// Last updated 20.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
+import { getSettings } from './dashboardHelpers'
 import { getSectionDetailsFromSectionCode } from './react/support/sectionHelpers'
+import { allCalendarSectionCodes } from "./constants"
 import {
   // copyUpdatedSectionItemData, findSectionItems,
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
 import {
+  // allSectionCodes,
   type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem,
   // type TSectionCode,
-  type TPluginData, allCalendarSectionCodes, allSectionCodes
+  type TPluginData,
 } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 // import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
+import {
+  calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL,
+  // RE_NP_WEEK_SPEC,
+  replaceArrowDatesInString
+} from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 // import { displayTitle } from '@helpers/general'
 import {
@@ -39,7 +45,10 @@ import {
   // toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
-import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
+import {
+  cyclePriorityStateDown, cyclePriorityStateUp,
+  // getTaskPriority
+} from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   // getLiveWindowRectFromWin, getWindowFromCustomId,
@@ -74,7 +83,7 @@ const WEBVIEW_WINDOW_ID = windowCustomId
  * @param {any} otherSettings - an object with any other settings, e.g. updatedParagraph
  * @returns {TBridgeClickHandlerResult}
  */
-function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnReturn> = [], otherSettings?: any = {}): TBridgeClickHandlerResult {
+export function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnReturn> = [], otherSettings?: any = {}): TBridgeClickHandlerResult {
   return {
     ...otherSettings,
     success,
@@ -236,7 +245,15 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`) // ✅
-  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+
+  if (typeof updatedParagraph !== "boolean") {
+    logDebug('doCompleteTask', `-> {${updatedParagraph.content
+      }}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  } else {
+    logDebug('doCompleteTask', `-> failed`)
+    return handlerResult(false)
+  }
 }
 
 // Complete the task in the actual Note, but with the date it was scheduled for
@@ -254,6 +271,7 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
 }
 
 // Cancel the task in the actual Note
+// FIXME: possiblePara problem
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -278,6 +296,7 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 }
 
 // Cancel the checklist in the actual Note
+// FIXME: possiblePara problem
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -382,10 +401,10 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
-    const paraContent = para.content ?? 'error'
+    // const paraContent = para.content ?? 'error'
     // logDebug('doCyclePriorityStateUp', `will cycle priority on para {${paraContent}}`)
     // Note: next 2 lines have to be this way around, otherwise a race condition
-    const newPriority = (getTaskPriority(paraContent) + 1) % 5
+    // const newPriority = (getTaskPriority(paraContent) + 1) % 5
     const updatedContent = cyclePriorityStateUp(para)
     para.content = updatedContent
     logDebug('doCyclePriorityStateUp', `cycling priority -> {${JSP(updatedContent)}}`)
@@ -412,10 +431,10 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
   // Get para
   const para = findParaFromStringAndFilename(filename, content)
   if (para && typeof para !== 'boolean') {
-    const paraContent = para.content ?? 'error'
+    // const paraContent = para.content ?? 'error'
     // logDebug('doCyclePriorityStateDown', `will cycle priority on para {${paraContent}}`)
     // Note: next 2 lines have to be this way around, otherwise a race condition
-    const newPriority = (getTaskPriority(paraContent) - 1) % 5
+    // const newPriority = (getTaskPriority(paraContent) - 1) % 5
     const updatedContent = cyclePriorityStateDown(para)
     para.content = updatedContent
     logDebug('doCyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
@@ -529,11 +548,11 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
 }
 
 // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
+// TODO: is this still needed?
 export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const wantedTitle = decodeURIComponent(filename)
-  const note = await Editor.openNoteByTitle(wantedTitle)
+  const { title, filename, content } = validateAndFlattenMessageObject(data)
+  const note = await Editor.openNoteByTitle(title)
   if (note) {
     const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
     logDebug(
@@ -542,7 +561,7 @@ export async function doShowLineInEditorFromTitle(data: MessageDataObject): Prom
     )
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title '${title}' in Editor`)
     return handlerResult(false)
   }
 }
@@ -606,59 +625,6 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 
   // // Ask for cache refresh for this note
   // DataStore.updateCache(origNote, false)
-}
-
-// Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
-export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  // Note: Overloads ID with the dateInterval to use
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  const config = await getSettings()
-  const dateInterval = data.controlStr
-  let startDateStr = ''
-  let newDateStr = ''
-  if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
-    logError('moveFromCalToCal', `bad move date interval: ${dateInterval}`)
-    return handlerResult(false)
-  }
-  if (dateInterval === 't') {
-    // Special case to change to '>today'
-
-    startDateStr = getDateStringFromCalendarFilename(filename, true)
-    newDateStr = getTodaysDateHyphenated()
-    logDebug('moveFromCalToCal', `move task from ${startDateStr} -> 'today'`)
-  } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-    const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
-
-    // Get the (ISO) current date on the task
-    startDateStr = getDateStringFromCalendarFilename(filename, true)
-    newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
-
-    // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
-    if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
-      const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-      const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
-      if (NPWeekData) {
-        newDateStr = NPWeekData.weekString
-        logDebug('moveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
-      } else {
-        throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
-      }
-    }
-    logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
-  }
-  // Do the actual move
-  const res = await moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
-  if (res) {
-    logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
-    // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
-    // await showDashboardReact()
-    // So instead send a message to delete the row in the dashboard
-    // sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
-    return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS'])
-  } else {
-    logWarn('moveFromCalToCal', `-> moveFromCalToCal to ${newDateStr} not successful`)
-    return handlerResult(false)
-  }
 }
 
 // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)

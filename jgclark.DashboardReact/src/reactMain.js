@@ -7,7 +7,8 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import {type TPluginData, allSectionDetails} from './types'
+import { type TPluginData } from './types'
+import { allSectionDetails } from "./constants"
 import { getSettings, type dashboardConfigType } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
@@ -147,6 +148,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
+    return {}
   }
 }
 
@@ -168,7 +170,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   // you can pass any object with any number of fields you want
   return {
     sections: await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode),
-    lastFullRefresh: Date.now(),
+    lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 
     demoMode, 

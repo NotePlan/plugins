@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 22.4.2024 for v2.0.0 by @jgclark
+// Last updated 20.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -137,7 +137,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // Display time blocks with .timeBlock style
     if (thisItem.para?.startTime) {
-      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      // logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
       output = convertTimeBlockToHTML(output)
     }
 
@@ -331,7 +331,7 @@ function convertTimeBlockToHTML(input: string): string {
   // let output = input
   // if (isTimeBlockLine(input, timeblockTextMustContainString)) {
   const timeBlockPart = getTimeBlockString(input)
-  logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
+  // logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
   const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   // }
   return output
@@ -347,7 +347,7 @@ function convertTimeBlockToHTML(input: string): string {
  * @returns {string} the time portion of the timeblock line
  */
 const getTimeBlockString = (contentString: string): string => {
-  logDebug('getTimeBlockString', `for '${contentString}'...`)
+  // logDebug('getTimeBlockString', `for '${contentString}'...`)
   const matchedStrings = []
   if (contentString) {
     const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []

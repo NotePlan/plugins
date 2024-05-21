@@ -22,7 +22,7 @@ function ReviewItem({ item }: Props): React.Node {
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
   const folderNamePart = settings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
-  logDebug(`ReviewItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
+  // logDebug(`ReviewItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
 
   const noteTitleWithOpenAction = (
     <a className="noteTitle sectionItem">

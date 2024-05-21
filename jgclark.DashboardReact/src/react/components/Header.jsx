@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { getTimeAgo } from '../support/showTimeAgo.js'
-import { allSectionDetails, nonSectionSwitches } from '../../types.js'
+import { allSectionDetails, nonSectionSwitches } from "../../constants.js"
 import { useAppContext } from './AppContext.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
