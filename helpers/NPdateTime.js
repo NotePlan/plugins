@@ -1108,7 +1108,7 @@ export function getTimeRangeFromTimeBlockString(timeBlockStr: string): [string, 
     const firstRange = parsedRanges[0]
     const startStr = toLocaleTime(firstRange.start)
     const endStr = toLocaleTime(firstRange.end)
-    logDebug('getTimeRangeFromTimeBlockString', `Found times: ${startStr} / ${endStr} in time block '${timeBlockStr}'`)
+    // logDebug('getTimeRangeFromTimeBlockString', `Found times: ${startStr} / ${endStr} in time block '${timeBlockStr}'`)
     return [startStr, endStr]
   } catch (error) {
     logError('getTimeRangeFromTimeBlockString', `${error.message} from time block '${timeBlockStr}'`)

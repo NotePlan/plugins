@@ -1,5 +1,6 @@
 // @flow
-import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails, allSectionDetails } from '../../types.js'
+import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../types.js'
+import { allSectionDetails } from "../../constants.js"
 import { logDebug } from '@helpers/react/reactDev.js'
 
 /**
@@ -14,7 +15,7 @@ const sectionIsVisible = (sectionCode: TSectionCode, sharedSettings: TSharedSett
   const thisSection = getSectionDetailsFromSectionCode(sectionCode) // get sectionCode, sectionName, showSettingName
   const settingName = thisSection?.showSettingName
   if (!settingName) return true
-  //TODO: alter this first part of the ternary to do something like startsWitth
+  // TODO(later): alter this first part of the ternary to do something like startsWitth
   const showSetting = sectionCode === 'TAG' ? sharedSettings[settingName] : sharedSettings[settingName]
   return typeof showSetting === 'undefined' || showSetting === true
 }

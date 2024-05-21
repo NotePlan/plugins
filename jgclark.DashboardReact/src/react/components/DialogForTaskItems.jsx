@@ -149,7 +149,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     // Start the zoom/flip-out animation
     setAnimationClass('zoom-out') //flip-out
 
-    // Dismiss dialog, unless meta key pressed //TODO: change this to option key
+    // Dismiss dialog, unless meta key pressed
     if (!metaKey) {
       // Wait for zoom animation animation to finish before actually closing
       setTimeout(() => {

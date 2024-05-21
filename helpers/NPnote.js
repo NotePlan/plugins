@@ -243,7 +243,7 @@ export function getReferencedParagraphs(note: Note, includeHeadings: boolean = t
       }
     })
   })
-  logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
+  // logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
   return wantedParas
 }
 

@@ -6,7 +6,8 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { type TParagraphForDashboard, allSectionDetails, nonSectionSwitches } from './types'
+import { type TParagraphForDashboard } from './types'
+import { allSectionDetails, nonSectionSwitches } from "./constants"
 import { parseSettings } from './shared'
 import {
   removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate,
@@ -221,11 +222,11 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (Editor && Editor?.note?.filename === timePeriodNote.filename) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       parasToUse = Editor.paragraphs
-      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
+      logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
       // read note from DataStore in the usual way
       parasToUse = timePeriodNote.paragraphs
-      logDebug('getOpenItemParasForCurrent...', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras (after ${timer(startTime)})`)
+      logDebug('getOpenItemPFCTP', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras (after ${timer(startTime)})`)
     }
 
     // Run following in background thread
@@ -239,39 +240,39 @@ export function getOpenItemParasForCurrentTimePeriod(
     let openParas = config.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content))
     if (openParas.length !== tempSize) {
-      // logDebug('getOpenItemParasForCurrent...', `- removed ${tempSize - openParas.length} future scheduled tasks`)
+      // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logDebug('getOpenItemParasForCurrent...', `- after 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
     }
-    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out tasks with timeblocks, if wanted
     // FIXME: though I thought I had sorted this out with new function below
     if (config.excludeTasksWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p, config.timeblockMustContainString)))
     }
-    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Extend TParagraph with the task's priority + start time (if present)
     const openDashboardParas = makeDashboardParas(openParas)
     // openParas = extendParaToAddStartTime(openParas)
-    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
+    logDebug('getOpenItemPFCTP', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -285,18 +286,18 @@ export function getOpenItemParasForCurrentTimePeriod(
         : // try make this a single filter
         getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
-    logDebug('getOpenItemParasForCurrent...', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
+    // logDebug('getOpenItemPFCTP', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'ignore' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
     // Extend TParagraph with the task's priority + start time (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
     // refOpenParas = extendParaToAddStartTime(refOpenParas)
-    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
+    logDebug('getOpenItemPFCTP', `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
@@ -307,12 +308,12 @@ export function getOpenItemParasForCurrentTimePeriod(
       const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
       // come back to main thread
       // await CommandBar.onMainThread()
-      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      // logDebug('getOpenItemPFCTP', `- sorted after ${timer(startTime)}`)
       return [sortedOpenParas, sortedRefOpenParas]
     } else {
       const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      // logDebug('getOpenItemPFCTP', `- sorted after ${timer(startTime)}`)
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]

@@ -650,12 +650,12 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
 export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {
     if (!excludedFolders) {
-      logDebug('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+      logInfo('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
       return paras
     }
     const noteFilenameList: Array<string> = paras.map((p) => p.note?.filename ?? '(unknown)')
     const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
-    logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
+    // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
       const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)

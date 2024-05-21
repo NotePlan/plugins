@@ -701,7 +701,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  */
 export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
-    logDebug(pluginJson, `getGlobalSharedData getting var:${varName} from window:${windowId}`)
+    logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue

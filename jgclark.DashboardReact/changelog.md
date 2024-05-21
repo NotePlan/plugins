@@ -9,7 +9,14 @@ Misc TODO:
 - the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
 - will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
 
-## [2.0.0.a23]
+## [2.0.0.a24] @jgc
+- when a trigger notices a change to one of the relevant calendar notes (typically the 'Today' note), it only updates the relevant section
+- Fix only partial window update after 'move' buttons clicked. **Note to @DBW**: the issue was processActionOnReturn() caring too much about data.item.para.filename. It now doesn't. Is that likely to be a problem?
+- fixed scheduleAllYesterdayOpenToToday() and scheduleAllTodayOpenToTomorrow() not moving referenced tasks
+- Get scheduleAllOverdue... working with TParas again. **@DBW: please test**
+- moved constant definitions from types.js to new constants.js file
+
+## [2.0.0.a23] @dbw
 - fixed bug in overdues not respecting ignoreFolders on refresh
 - fixed top-alignment spacing for calendar picker
 - changed project dialog to have one month calendar picker so that it fits in the smaller dialog

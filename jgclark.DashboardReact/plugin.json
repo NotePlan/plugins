@@ -5,16 +5,16 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a23",
+  "plugin.version": "2.0.0-a24",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "dashboard.css",
-    "dashboardEvents.js",
     "react.c.WebView.bundle.min.js",
     "react.c.WebView.bundle.dev.js"
   ],
-  "plugin.__requiredFiles": [
+  "plugin.noLongerRequiredFiles": [
+    "dashboardEvents.js",
     "dashboardDialog.css",
     "dashboardShortcuts.js",
     "HTMLWinCommsSwitchboard.js"
