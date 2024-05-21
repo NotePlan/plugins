@@ -202,3 +202,11 @@ export type TSharedSettings = {
   //TODO: jgclark: add the specific shared settings
   [key: string]: any,
 }
+
+// Feature flags for trying out features without other users seeing them
+// FeatureFlags are stored in the DataStore.settings.featureFlags JSON string
+export type FeatureFlags = {
+  autoRefresh: boolean,
+  overdueProcessing: boolean,
+  metaTooltips: boolean
+}

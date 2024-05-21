@@ -9,6 +9,7 @@ import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
 import Dialog from './Dialog.jsx'
+import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, clo, JSP } from '@helpers/react/reactDev.js'
 
@@ -31,7 +32,7 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
-  const { metaTooltips: FFlagMetaTooltips } = getFeatureFlags(pluginData)
+  const { metaTooltips: FFlagMetaTooltips, autoRefresh: FFlagAutoRefresh } = getFeatureFlags(pluginData)
 
   const containerRef = useRef <? HTMLDivElement > (null)
   let sections = origSections
@@ -151,9 +152,16 @@ function Dashboard({ pluginData }: Props): React$Node {
     const overdueProcessing = xWasClicked ? { overdueProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
     setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: false, details: {} }, lastChange: `_Dashboard-DialogClosed`, ...overdueProcessing }))
   }
+
+  const autoRefresh = () => {
+    const actionType = 'refresh'
+    sendActionToPlugin(actionType, { actionType }, 'Auto-Refresh time!', true)
+  }
+
   // Note the containerRef is used in the CSS to make the dashboard focusable to accept keyboard clicks; must have a non-negative tabIndex
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef}>
+      {FFlagAutoRefresh && <IdleTimer idleTime={5*60*1000 /* 5 minutes */} onIdleTimeout={autoRefresh} />}
       {/* CSS for this part is in dashboard.css */}
       <div className="dashboard" >
         <Header lastFullRefresh={lastFullRefresh} />

@@ -15,7 +15,7 @@ import { useAppContext } from './AppContext.jsx'
 // import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import StatusIcon from './StatusIcon.jsx'
-import { logDebug, clo } from '@helpers/react/reactDev'
+import { logDebug, clo, JSP } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 // TODO(dbw): can you explain this kind of import, which I have never seen before:
@@ -72,10 +72,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   ]
 
   useEffect(() => {
-    logDebug(`DialogForTaskItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
+    logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || "" }`)
     //$FlowIgnore
     positionDialog(dialogRef)
-    logDebug(`DialogForTaskItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
+    logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top||'') || "" }`)
   }, [])
 
   function handleTitleClick() {

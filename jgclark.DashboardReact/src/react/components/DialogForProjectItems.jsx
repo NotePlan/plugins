@@ -51,10 +51,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   ]
 
   useEffect(() => {
-    logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
+    // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
     //$FlowIgnore
     positionDialog(dialogRef)
-    logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
+    // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
   function handleTitleClick() {

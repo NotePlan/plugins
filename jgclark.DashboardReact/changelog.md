@@ -17,6 +17,9 @@ Misc TODO:
 - moved constant definitions from types.js to new constants.js file
 - dbw: Fix switches not working
 - dbw: Set interval to fire immediately when lastFullRefresh changes
+- dbw: change/fix positioning dialogs to use @jgclark's algorithm
+- dbw: Insert <IdleTimer> for testing
+
 
 ## [2.0.0.a23] @dbw
 - fixed bug in overdues not respecting ignoreFolders on refresh

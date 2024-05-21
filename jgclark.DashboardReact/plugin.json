@@ -191,7 +191,7 @@
       "key": "featureFlags",
       "description": "Allows us to test certain features in development.",
       "required": true,
-      "default":"{\"overdueProcessing\":false,\"metaTooltips\":false}"
+      "default":"{\"overdueProcessing\":false,\"metaTooltips\":false,\"autoRefresh\":false}"
     },
     {
       "key": "separateSectionForReferencedNotes",
