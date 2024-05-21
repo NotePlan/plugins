@@ -114,20 +114,18 @@ type Settings = {
  */
 function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }:Settings) {
   const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
-  logDebug
+  if (!setter || !settingsExist) return
   const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
   logDebug(
     `Webview`,
-    `${effectName} effect running: ${effectName} must have changed. Setting default settings. ${effectName} exists? ${String(
+    `${effectName} effect running: ${effectName} must have changed. ${effectName} exists? ${String(
       setter !== undefined,
-    )}, settingsExist? ${String(settingsExist)} currentSettings: ${JSON.stringify(
+    )}, settingsExist? ${String(settingsExist)} currentSettings: ${window.webkit && JSON.stringify(
       currentSettings || {},
       null,
       2,
-    )} pluginSettingsValue: ${pluginSettingsValue}`,
+    )} pluginSettingsValue: ${pluginSettingsValue}`,currentSettings
   )
-
-  if (!setter || settingsExist) return
 
   let parsedSettings = defaultSettings
   if (pluginSettingsValue) {

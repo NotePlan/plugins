@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from '../../types.js'
-import {getFeatureFlags} from '../../shared.js'
+import { getFeatureFlags } from '../../shared.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
@@ -31,12 +31,12 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
-  const { metaTooltips:FFlagMetaTooltips } = getFeatureFlags(pluginData)
+  const { metaTooltips: FFlagMetaTooltips } = getFeatureFlags(pluginData)
 
-  const containerRef = useRef<?HTMLDivElement>(null)
+  const containerRef = useRef <? HTMLDivElement > (null)
   let sections = origSections
   const unduplicatedSections = sections.length === 1 ? sections : (sharedSettings ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : [])
-  sections = sharedSettings?.hideDuplicates ?  unduplicatedSections : origSections
+  sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
   sections = sortSections(sections, sectionDisplayOrder)
 
   // Force the window to be focused on load so that we can capture clicks on hover
@@ -46,23 +46,34 @@ function Dashboard({ pluginData }: Props): React$Node {
     }
   }, [])
 
+  // temporary code to output settings to Chrome DevTools console
+  useEffect(() => {
+    if (!(sharedSettings && Object.keys(sharedSettings).length > 0)) return
+    if (!window.webkit) {
+      logDebug('Dashboard', `sharedSettings changed`)
+      logDebug('Dashboard', `pluginData`, pluginData)
+      logDebug('Dashboard', `plugin settings`, pluginData.settings)
+      logDebug('Dashboard', `sharedSettings`, sharedSettings)
+    }
+  }, [sharedSettings])
+
   // Load the rest of the content (Today section loads first)
   useEffect(() => {
     const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
     sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes }, 'Dashboard loaded', true)
   }, [])
-  
+
   // Change the title when the section data changes
   // TODO: this doesn't work and I'm not sure it ever can
   useEffect(() => {
-      logDebug('Dashboard', `in useEffect for title setting, pluginData.sections changed; document.title was=${document.title}`)
-      const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections,sharedSettings)
-      const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
-      if (document.title !== windowTitle) {
-        logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
-        document.title = windowTitle
-        logDebug('Dashboard', `in useEffect, document.title now is: ${document.title}`)
-      }
+    logDebug('Dashboard', `in useEffect for title setting, pluginData.sections changed; document.title was=${document.title}`)
+    const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, sharedSettings)
+    const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
+    if (document.title !== windowTitle) {
+      logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
+      document.title = windowTitle
+      logDebug('Dashboard', `in useEffect, document.title now is: ${document.title}`)
+    }
   }, [/* pluginData.sections */])
 
   const dashboardContainerStyle = {

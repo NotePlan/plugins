@@ -18,7 +18,7 @@ type Props = {
 
 const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
-
+  if (!sharedSettings || Object.keys(sharedSettings).length === 0) return
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
 
   useEffect(() => {
