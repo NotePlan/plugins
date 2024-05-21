@@ -1832,3 +1832,23 @@ export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: A
 
   return indentedParas
 }
+
+/**
+ * Returns an array of all "open" paragraphs and their children without duplicates.
+ * Children will adhere to the NotePlan API definition of children()
+ * Only tasks can have children, but any paragraph indented underneath a task
+ * can be a child of the task. This includes bullets, tasks, quotes, text.
+ * Children are counted until a blank line, HR, title, or another item at the
+ * same level as the parent task. So for items to be counted as children, they
+ * need to be contiguous vertically.
+ * @param {Array<TParagraph>} paragraphs - The initial array of paragraphs.
+ * @return {Array<TParagraph>} - The new array containing all unique "open" paragraphs and their children in lineIndex order.
+ */
+export const getOpenTasksAndChildren = (paragraphs: Array<TParagraph>): Array<TParagraph> => [
+  ...new Map(
+    paragraphs
+      .filter((p) => p.type === 'open') // Filter paragraphs with type "open"
+      .flatMap((p) => [p, ...p.children()]) // Flatten the array of paragraphs and their children
+      .map((p) => [p.lineIndex, p]), // Map each paragraph to a [lineIndex, paragraph] pair
+  ).values(),
+] // Extract the values (unique paragraphs) from the Map and spread into an array
