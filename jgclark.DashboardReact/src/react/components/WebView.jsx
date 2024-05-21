@@ -114,7 +114,7 @@ type Settings = {
  */
 function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }:Settings) {
   const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
-  if (!setter || !settingsExist) return
+  if (!setter) return
   const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
   logDebug(
     `Webview`,

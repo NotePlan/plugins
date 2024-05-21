@@ -15,6 +15,8 @@ Misc TODO:
 - fixed scheduleAllYesterdayOpenToToday() and scheduleAllTodayOpenToTomorrow() not moving referenced tasks
 - Get scheduleAllOverdue... working with TParas again. **@DBW: please test**
 - moved constant definitions from types.js to new constants.js file
+- dbw: Fix switches not working
+- dbw: Set interval to fire immediately when lastFullRefresh changes
 
 ## [2.0.0.a23] @dbw
 - fixed bug in overdues not respecting ignoreFolders on refresh

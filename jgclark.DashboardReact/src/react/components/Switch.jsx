@@ -14,7 +14,7 @@ const Switch = ({ label, checked, onChange }: SwitchProps): React$Node => {
         type="checkbox"
         className="apple-switch switch-input"
         onChange={(e) => {
-          logDebug('Switch',`${label} clicked`, e.target.checked)
+          logDebug('Switch',`"${label}" was clicked`, e.target.checked)
           onChange(e)
         }}
         checked={checked}

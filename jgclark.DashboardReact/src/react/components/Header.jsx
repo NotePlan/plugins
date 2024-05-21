@@ -10,7 +10,7 @@ import { allSectionDetails, nonSectionSwitches } from "../../constants.js"
 import { useAppContext } from './AppContext.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
-import { logDebug, clo, JSP } from '@helpers/react/reactDev.js'
+import { logDebug, clo, JSP, logError } from '@helpers/react/reactDev.js'
 
 type Props = {
   lastFullRefresh: Date,
@@ -30,8 +30,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     return () => clearInterval(timer)
   }, [lastFullRefresh])
 
-  const handleSwitchChange = (key:string) => (e: any) => {
-    if (!sharedSettings || Object.keys(sharedSettings).length === 0) return
+  useEffect(() => {
+    // Log the sharedSettings to see when it changes
+    logDebug('Header', 'sharedSettings updated', sharedSettings)
+  }, [sharedSettings])
+
+  const handleSwitchChange = (key: string) => (e: any) => {
+    if (!sharedSettings || Object.keys(sharedSettings).length === 0) {
+      logError('Header', `handleSwitchChange: Checkbox clicked but sharedSettings:${typeof sharedSettings} keys:${Object.keys(sharedSettings).length}`, sharedSettings)
+      return
+    }
 
     const isSection = key.startsWith('show')
     const isChecked = e?.target.checked || false
@@ -43,16 +51,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
         // call for new data for a section just turned on
         const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
-        logDebug(`Header`,`${key} turned on, so refreshing section: ${sectionCode||'<not set>'}`)
+        logDebug(`Header`, `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
         if (sectionCode) {
-          const payload = {actionType:'refreshSomeSections', sectionCodes:[sectionCode] }
+          const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
           sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
         }
       }
-      if(!isSection) {
+      if (!isSection) {
         const refreshAllOnChange = nonSectionSwitches.find(s => s.key === key)?.refreshAllOnChange
         if (refreshAllOnChange) {
-          sendActionToPlugin('refresh', {actionType:'refresh'}, `Refreshing all sections`, true)
+          sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
         }
       }
     }
@@ -86,7 +94,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
 
       <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick} />
-      
+
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
