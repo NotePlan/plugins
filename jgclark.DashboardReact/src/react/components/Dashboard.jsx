@@ -34,6 +34,8 @@ function Dashboard({ pluginData }: Props): React$Node {
   const { sections: origSections, lastFullRefresh } = pluginData
   const { metaTooltips: FFlagMetaTooltips, autoRefresh: FFlagAutoRefresh } = getFeatureFlags(pluginData)
 
+  // logDebug('Dashboard', `Feature Flags: metaTooltips: ${FFlagMetaTooltips}, autoRefresh: ${FFlagAutoRefresh}`)
+
   const containerRef = useRef <? HTMLDivElement > (null)
   let sections = origSections
   const unduplicatedSections = sections.length === 1 ? sections : (sharedSettings ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings) : [])
@@ -154,6 +156,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   }
 
   const autoRefresh = () => {
+    logDebug('Dashboard', `${new Date().toString()} Auto-Refresh time!`)
     const actionType = 'refresh'
     sendActionToPlugin(actionType, { actionType }, 'Auto-Refresh time!', true)
   }

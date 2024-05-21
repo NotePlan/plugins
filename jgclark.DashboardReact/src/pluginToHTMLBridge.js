@@ -172,12 +172,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug('', `---------------- bridgeClickDashboardItem: ${actionType} ---`)
-    logDebug(
-      'bridgeClickDashboardItem',
-      `item ID: ${data.item?.ID ?? '<no ID found>'}, actionType: ${actionType}, filename: ${data.item?.para?.filename ?? '<no filename found>'}, content: ${data.item?.para?.content ?? '<no content found>'
-      }`,
-    )
+    logDebug(`bridgeClickDashboardItem ---------------- bridgeClickDashboardItem: ${actionType} ----------------`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 

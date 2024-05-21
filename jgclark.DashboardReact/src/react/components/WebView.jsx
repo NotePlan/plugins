@@ -224,9 +224,9 @@ useEffect(() => {
    */
   const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
-    logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
+    // logDebug(`Webview`,`sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
-    console.log(`WebView: sendToPlugin: command:${command} data=${JSON.stringify(data)} `)
+    // console.log(`WebView: sendToPlugin: command:"${command}" data=${JSON.stringify(data)} `)
     dispatch('SEND_TO_PLUGIN', [command, data], `WebView sending: sendToPlugin: ${String(command)} ${additionalDetails} ${JSON.stringify(data)}`)
   }
 
