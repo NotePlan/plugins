@@ -21,9 +21,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
 
   useEffect(() => {
+    setTimeAgo(getTimeAgo(lastFullRefresh)) // Update timeAgo immediately when lastFullRefresh changes
+
     const timer = setInterval(() => {
       setTimeAgo(getTimeAgo(lastFullRefresh))
-    }, 1000)
+    }, 20000)
 
     return () => clearInterval(timer)
   }, [lastFullRefresh])
