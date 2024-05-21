@@ -124,11 +124,9 @@ export async function refreshAllSections(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
-  reactWindowData.pluginData.sections = await getAllSectionsData(reactWindowData.demoMode)
-  reactWindowData.pluginData.lastFullRefresh = Date.now()
-
-  // turn off refreshing message now done
-  await setPluginData({ refreshing: false, lastFullRefresh: Date.now() }, 'Finished Refreshing all sections')
+  const newSections = await getAllSectionsData(reactWindowData.demoMode)
+  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: Date.now() }
+  await setPluginData(changedData, 'Finished Refreshing all sections')
 }
 
 /**

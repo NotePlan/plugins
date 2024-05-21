@@ -161,12 +161,12 @@ function Dashboard({ pluginData }: Props): React$Node {
         {sections.map((section, index) => (
           <Section key={index} section={section} />
         ))}
+        <Dialog onClose={handleDialogClose}
+          isOpen={reactSettings?.dialogData?.isOpen ?? false}
+          isTask={reactSettings?.dialogData?.isTask ?? false}
+          details={reactSettings?.dialogData?.details ?? {}}
+        />
       </div>
-      <Dialog onClose={handleDialogClose}
-        isOpen={reactSettings?.dialogData?.isOpen ?? false}
-        isTask={reactSettings?.dialogData?.isTask ?? false}
-        details={reactSettings?.dialogData?.details ?? {}}
-      />
       {FFlagMetaTooltips && !(reactSettings?.dialogData?.isOpen) && <ToolTipOnModifierPress
         metaKey={metaKeyConfig}
         shiftKey={shiftKeyConfig}

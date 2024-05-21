@@ -18,18 +18,19 @@ type Props = {
 
 const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
-  if (!sharedSettings || Object.keys(sharedSettings).length === 0) return
   const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeAgo(getTimeAgo(lastFullRefresh))
-    }, 20000)
+    }, 1000)
 
     return () => clearInterval(timer)
   }, [lastFullRefresh])
 
   const handleSwitchChange = (key:string) => (e: any) => {
+    if (!sharedSettings || Object.keys(sharedSettings).length === 0) return
+
     const isSection = key.startsWith('show')
     const isChecked = e?.target.checked || false
     logDebug('Header', `Checkbox clicked. setting in global Context sharedSettings.${key} to ${String(isChecked)}`)

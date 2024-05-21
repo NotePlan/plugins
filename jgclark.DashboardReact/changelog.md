@@ -18,6 +18,8 @@ Misc TODO:
 - Fix date handling to match @jgclark recent changes
 - Add CHANGE_THEME code to change the styles when your Editor theme changes. But for HTML reasons, it doesn't show. Hoping @jgclark can figure out why.
 - Removed sharedSettings writing on initial load
+- Fix header disappeared
+- Fix timeAgo - @jgclark I had to turn the frequency of the check back up. It's no big deal at 1s check.
 
 ## [2.0.0.a22] @jgc
 - completed layout in Project dialog (apart from CalendarPicker)
