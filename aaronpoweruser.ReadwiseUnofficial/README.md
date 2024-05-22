@@ -1,10 +1,11 @@
 # Readwise Unofficial Noteplan Plugin
 
-## About This Plugin 
+## About This Plugin
 
 A sync engine for readwise
 
 ### Features
+
 - Daily review's via templates
 - Full highlight download
 - Highlight updates
@@ -17,13 +18,14 @@ A sync engine for readwise
 ![General features](docs/ReadwiseSync.png)
 
 ### Todo
-* Index note
-* Image support (needs Noteplan API update)
 
-### Known issues:
+- Index note
+- Image support (needs Noteplan API update)
+
+### Known issues
+
 - Using heading as metadata does not support tag updates
 - Images are not handled gracefully
-
 
 ## Commands
 
@@ -36,18 +38,16 @@ Downloads new highlights since last sync
 **Only needs to be used if highlights are deleted**
 Downloads all highlights (if they already exist they will be duplicated)
 
-
 ### //Readwise Daily review
 
 Downloads daily reviews (does not mark as read) with links to note and author.
 Can be added to a note with templates using
 
-```
+``` javascript
 <%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial") %>
 ```
 
 ![Daily review](docs/dailyReview.png)
-
 
 ## Settings
 
