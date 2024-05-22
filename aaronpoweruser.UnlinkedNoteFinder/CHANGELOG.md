@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.UnlinkedNoteFinder/README.md) for details on available commands and use case.
 
+## [0.0.2] - 2024-05-22 (@aaronpoweruser)
+
+- Handled markdown links
+- Handle partial strings.
+- Switch to regex parsing
+- Handle code blocks
+- Added loading dialogs for all cases
+
 ## [0.0.1] - 2024-05-22 (@aaronpoweruser)
 
 - Initial release.

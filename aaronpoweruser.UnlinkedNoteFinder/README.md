@@ -13,8 +13,3 @@ Searches through notes and find unlinked references to other note plan notes.
 - Add an action log note.
 
 ## Known issues
-
-- Breaks if word is in two notes
-- Links in code blocks are not ignored.
-- Links in urls are not ignored.
-- Speed of scanning all notes can be improved.
