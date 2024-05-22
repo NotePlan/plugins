@@ -74,13 +74,6 @@
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
     {
-      "title": "A string in prefs",
-      "key": "settingsString",
-      "type": "string",
-      "description": "Enter some string and see it change when the plugin is run",
-      "default": "This default setting was set in plugin preferences!"
-    },
-    {
       "note": "================== DEBUGGING SETTINGS ========================"
     },
     {
