@@ -6,7 +6,7 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.Unl
 
 ## About This Plugin
 
-Search through notes and find unlinked references to other note plan notes.
+Searches through notes and find unlinked references to other note plan notes.
 
 ## Todo
 
