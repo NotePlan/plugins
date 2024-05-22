@@ -24,9 +24,7 @@ export async function findUnlinkedNotesInAllNotes() {
     await CommandBar.onAsyncThread()
     CommandBar.showLoading(true, 'Finding unlinked notes')
     const allNotes = DataStore.projectNotes.concat(DataStore.calendarNotes)
-    allNotes.forEach((note) => {
-      findLinksInNote(note)
-    })
+    allNotes.forEach((note) => findUnlinkedNotesInNote(note))
     CommandBar.showLoading(false)
     CommandBar.onMainThread()
   } catch (error) {
