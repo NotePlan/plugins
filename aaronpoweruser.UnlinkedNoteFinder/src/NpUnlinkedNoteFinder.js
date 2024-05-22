@@ -39,8 +39,8 @@ export async function findUnlinkedNotesInAllNotes() {
 function getAllNoteTitlesSortedByLength(): Array<string> {
   return DataStore.projectNotes
     .filter((note) => note.title !== undefined && note.title !== '')
-    .map((note) => note.title)
-    .sort((a, b) => b.length - a.length) // sort by length to replace longer titles first
+    .map((note) => note.title ?? '')
+    .sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0)) // sort by length to replace longer titles first
 }
 
 /**
@@ -54,11 +54,11 @@ function getAllNoteTitlesSortedByLength(): Array<string> {
 function findUnlinkedNotesInNote(currentNote: TNote) {
   getAllNoteTitlesSortedByLength().forEach((note) => {
     if (note && currentNote.title !== note && currentNote.content?.includes(note)) {
-      logDebug(`In note: ${currentNote.title} found link to: ${note}`)
+      logDebug(`In note: ${currentNote.title ?? ''} found link to: ${note}`)
       if (!currentNote.content?.includes(`[[${note}]]`)) {
         currentNote.content = currentNote.content?.replaceAll(note, `[[${note}]]`)
       } else {
-        logDebug(`${currentNote.title} already contains link to: ${note}`)
+        logDebug(`${currentNote.title ?? ''} already contains link to: ${note}`)
       }
     }
   })
