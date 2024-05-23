@@ -4,6 +4,13 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.UnlinkedNoteFinder/README.md) for details on available commands and use case.
 
+## [0.0.3] - 2024-05-23 (@aaronpoweruser)
+
+- Improved regex performance (35%)
+- Code cleanup
+- Added test for regex
+- Added timing logic
+
 ## [0.0.2] - 2024-05-22 (@aaronpoweruser)
 
 - Handled markdown links
