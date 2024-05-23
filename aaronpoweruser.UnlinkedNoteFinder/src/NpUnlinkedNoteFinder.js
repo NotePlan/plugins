@@ -20,7 +20,7 @@ export async function findUnlinkedNotesInCurrentNote() {
  */
 export async function findUnlinkedNotesInAllNotes() {
   const runTime = new Date()
-  const allNotes = DataStore.projectNotes.concat(DataStore.calendarNotes)
+  const allNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   const foundLinks = await findUnlinkedNotes(allNotes)
   logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${(new Date().getTime() - runTime.getTime()) / 60}s`)
 }
@@ -36,7 +36,7 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
     await CommandBar.onAsyncThread()
     CommandBar.showLoading(true, 'Finding unlinked notes')
 
-    notes.forEach((note) => (foundLinks += findUnlinkedNotesInNote(note)))
+    foundLinks = notes.reduce((count, note) => count + findUnlinkedNotesInNote(note), 0)
 
     CommandBar.showLoading(false)
     CommandBar.onMainThread()
@@ -91,7 +91,9 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
     content = content ? content.replace(MARKDOWN_LINK_PLACEHOLDER, value) : ''
   })
 
-  currentNote.content = content
+  if (foundLinks > 0) {
+    currentNote.content = content
+  }
   logInfo(`Linked ${foundLinks} notes in ${currentNote.title ?? ''}, took: ${new Date().getTime() - overallTime.getTime()}ms`)
 
   return foundLinks
