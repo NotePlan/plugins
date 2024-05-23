@@ -6,12 +6,12 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
-import { getFeatureFlags } from "../../shared.js"
+import { getFeatureFlags } from '../../shared.js'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo } from '@helpers/dev'
-import { logDebug, logError } from '@helpers/react/reactDev' 
+import { logDebug, logError } from '@helpers/react/reactDev'
 
 type SectionProps = {
   section: TSection
@@ -26,7 +26,7 @@ function Section(inputObj: SectionProps): React$Node {
     const items: Array<TSectionItem> = section.sectionItems
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
     // in destructuring rename "featureFlags" to 'ffStr':
-    const { overdueProcessing } = getFeatureFlags(pluginData)
+    const { FFlag_OverdueProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
@@ -169,13 +169,13 @@ function Section(inputObj: SectionProps): React$Node {
       <div className="section">
         <div className="sectionInfo">
           <div className={`${section.sectionTitleClass} sectionName`}>
-              <i className={`sectionIcon ${section.FAIconClass}`}></i>
+            <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
             {section.name}
             {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && overdueProcessing && (
+            {section.sectionCode === "OVERDUE" && FFlag_OverdueProcessing && (
               <button className="PCButton" onClick={handleProcessTasksClick}>
                 Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             {buttons}

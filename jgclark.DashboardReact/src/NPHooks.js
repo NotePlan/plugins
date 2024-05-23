@@ -2,6 +2,8 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
+import { setPluginData } from './clickHandlers'
+import { getSettings } from './dashboardHelpers'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
@@ -49,7 +51,8 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated() but we are not doing anything.`)
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
+  await setPluginData({ settings: await getSettings() }, '_settings were updated')
   return
   // probably get rid of all of this because it's not used
   // try {

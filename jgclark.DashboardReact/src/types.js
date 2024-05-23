@@ -210,3 +210,16 @@ export type FeatureFlags = {
   overdueProcessing: boolean,
   metaTooltips: boolean
 }
+
+export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header';
+ 
+export type TDropdownItem = {
+  label?: string,
+  key: string,
+  type: TDropdownItemType,
+  checked?: boolean,
+  value?: string,
+  options?: Array<string>,
+  textType?: 'title' | 'description' | 'separator',
+  tooltip?: string,
+};

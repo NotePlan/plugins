@@ -1,91 +1,41 @@
 // @flow
-//-----------------------------------------------------------------------------
-// Header row in Dashboard
-// Last updated 17.5.2024 for v2.0.0 by @jgclark
-//-----------------------------------------------------------------------------
-
 import React, { useState, useEffect } from 'react'
-import { getTimeAgo } from '../support/showTimeAgo.js'
-import { allSectionDetails, nonSectionSwitches } from "../../constants.js"
-import { useAppContext } from './AppContext.jsx'
-import RefreshControl from './RefreshControl.jsx'
+import { getFeatureFlags } from '../../shared.js'
+import { createDropdownItems } from '../support/filterDropdownItems'
+import { createFeatureFlagItems } from '../support/featureFlagItems'
+import { createDashboardSettingsItems } from '../support/dashboardSettingsItems.js'
+import { handleSwitchChange, handleRefreshClick, handleSaveInput, handleDropdownFieldChange, handleToggleDropdownMenu, handleOpenMenuEffect, onDropdownMenuChangesMade } from '../support/headerHandlers'
+import useLastFullRefresh from '../support/useLastFullRefresh'
+import useSharedSettingsLogger from '../support/useSharedSettingsLogger'
 import DropdownMenu from './DropdownMenu.jsx'
-import { logDebug, clo, JSP, logError } from '@helpers/react/reactDev.js'
+import RefreshControl from './RefreshControl.jsx'
+import { useAppContext } from './AppContext.jsx'
 
 type Props = {
   lastFullRefresh: Date,
-}
+};
 
 const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
-  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastFullRefresh))
+  const timeAgo = useLastFullRefresh(lastFullRefresh)
+  useSharedSettingsLogger(sharedSettings)
+  const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
+  const { settings } = pluginData
 
-  useEffect(() => {
-    setTimeAgo(getTimeAgo(lastFullRefresh)) // Update timeAgo immediately when lastFullRefresh changes
-
-    const timer = setInterval(() => {
-      setTimeAgo(getTimeAgo(lastFullRefresh))
-    }, 20000)
-
-    return () => clearInterval(timer)
-  }, [lastFullRefresh])
-
-  useEffect(() => {
-    // Log the sharedSettings to see when it changes
-    logDebug('Header', 'sharedSettings updated', sharedSettings)
-  }, [sharedSettings])
-
-  const handleSwitchChange = (key: string) => (e: any) => {
-    if (!sharedSettings || Object.keys(sharedSettings).length === 0) {
-      logError('Header', `handleSwitchChange: Checkbox clicked but sharedSettings:${typeof sharedSettings} keys:${Object.keys(sharedSettings).length}`, sharedSettings)
-      return
-    }
-
-    const isSection = key.startsWith('show')
-    const isChecked = e?.target.checked || false
-    logDebug('Header', `Checkbox clicked. setting in global Context sharedSettings.${key} to ${String(isChecked)}`)
-    // this saves the change in local context, and then it will be picked up and sent to plugin
-    if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
-      logDebug('Header', `Checkbox clicked. sharedSettings[key] was ${sharedSettings[key]}. setting in global Context sharedSettings.${key} to ${String(isChecked)}`)
-      setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `showKey changed: ${key}=${isChecked}` }))
-      if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
-        // call for new data for a section just turned on
-        const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
-        logDebug(`Header`, `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
-        if (sectionCode) {
-          const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
-          sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
-        }
-      }
-      if (!isSection) {
-        const refreshAllOnChange = nonSectionSwitches.find(s => s.key === key)?.refreshAllOnChange
-        if (refreshAllOnChange) {
-          sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
-        }
-      }
-    }
-  }
-
-  const handleRefreshClick = () => {
-    logDebug('Header', 'Refresh button clicked')
-    const actionType = 'refresh'
-    sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
-  }
+  const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
+  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)
 
   const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? '' // TODO: settings.tagToShow
 
-  // const dropdownSectionNames = (pluginData?.sections ?? []).map((section: TSection) => ({
-  const dropdownSectionNames = allSectionDetails.filter(s => (s.showSettingName !== '')).map((s) => ({
-    label: `Show ${s.sectionCode !== 'TAG' ? s.sectionName : tagSectionStr}`,
-    key: s.showSettingName,
-    checked: (typeof sharedSettings !== undefined && sharedSettings[s.showSettingName]) ?? true,
-  }))
-  // NOTE: only section name on/off can start with the word "show" (e.g. showOverdueSection, showYesterdaySection, etc.)
-  // Other settings can be any text but should not start with show (e.g. filterPriorityItems, hideDuplicates, etc.)
-  // They should all be pulled from the [types] file 
-  let dropdownItems = nonSectionSwitches.map(s => ({ label: s.label, key: s.key, checked: (typeof sharedSettings !== undefined && sharedSettings[s.key]) ?? s.default }))
+  const dropdownItems = createDropdownItems(sharedSettings, tagSectionStr, pluginData.settings)
+  const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
+  const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
 
-  dropdownItems = [...dropdownItems, ...dropdownSectionNames]
+  const onChangesMade = onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)
+
+  useEffect(() => {
+    handleOpenMenuEffect(openDropdownMenu, dropdownMenuChangesMade, onChangesMade)
+  }, [openDropdownMenu, dropdownMenuChangesMade, onChangesMade])
 
   return (
     <div className="header">
@@ -93,13 +43,65 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
 
-      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick} />
+      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin)} />
 
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
-      <DropdownMenu items={dropdownItems} handleSwitchChange={handleSwitchChange} className={'filter'} />
-      {/* TODO(later): more detailed setting dialog, using className={'settings'} and icon fa-gear */}
+      <div id="dropdowns">
+        {settings?._logLevel === 'DEV' && <DropdownMenu
+          items={featureFlagItems}
+          handleSwitchChange={(key) => (e) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+          }}
+          className={'feature-flags'}
+          iconClass="fa-solid fa-flag"
+          isOpen={openDropdownMenu === 'featureFlags'}
+          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('featureFlags')}
+          labelPosition="left"
+          style={{ width: "200px", right: "10px" }} // Adjust the width as needed
+        />}
+        {FFlag_DashboardSettings && <DropdownMenu
+          items={dashboardSettingsItems}
+          handleSaveInput={(key) => (newValue) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSaveInput(setSharedSettings)(key)(newValue)
+          }}
+          handleSwitchChange={(key) => (e) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+          }}
+          handleComboChange={(key) => (e) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSaveInput(setSharedSettings)(key)(e)
+          }}
+          className={'dashboard-settings'}
+          iconClass="fa-solid fa-gear"
+          isOpen={openDropdownMenu === 'dashboardSettings'}
+          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('dashboardSettings')}
+          style={{ width: "550px", right: "10px" }} // Adjust the width as needed
+          onChangesMade={onChangesMade}
+        />}
+        <DropdownMenu
+          items={dropdownItems}
+          handleSwitchChange={(key) => (e) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+          }}
+          handleSaveInput={(key) => (newValue) => {
+            handleDropdownFieldChange(setDropdownMenuChangesMade)()
+            handleSaveInput(setSharedSettings)(key)(newValue)
+          }}
+          className={'filter'}
+          iconClass="fa-solid fa-filter"
+          isOpen={openDropdownMenu === 'filter'}
+          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('filter')}
+          labelPosition="left"
+          style={{ width: "300px", right: "10px" }} // Adjust the width as needed
+        />
+      </div>
+      {/* TODO: more detailed setting dialog, using className={'settings'} and icon fa-gear */}
     </div>
   )
 }

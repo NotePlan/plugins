@@ -172,7 +172,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`bridgeClickDashboardItem ---------------- bridgeClickDashboardItem: ${actionType} ----------------`)
+    logDebug(`bridgeClickDashboardItem |******************** bridgeClickDashboardItem: ${actionType} ********************|`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -483,11 +483,11 @@ export async function checkForThemeChange(): Promise<void> {
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
 
-  logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
-  clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
+  // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
+  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
   
   const currentTheme = NotePlan.editors[0].currentTheme?.name || '<could not get theme>'
-  logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
+  // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (currentTheme !== themeInWindow) {
     logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
     const themeCSS = generateCSSFromTheme()

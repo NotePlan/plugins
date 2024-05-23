@@ -24,7 +24,7 @@ body { padding-left: 15px; padding-right: 15px; }
     display: flex;
     height: 100vh;
     justify-content: center;
-    width: 100vw;
+    width: 98vw;
   }
 
   @keyframes sk-scaleout {

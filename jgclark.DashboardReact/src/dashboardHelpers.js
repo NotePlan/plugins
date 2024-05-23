@@ -100,7 +100,7 @@ export async function getCombinedSettings(): Promise<any> {
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
   returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
-  returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? ""
+  returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
   // Now add all the show*Section settings (or default to true)
   for (const sd of allSectionDetails) {
     const thisShowSettingName = sd.showSettingName
@@ -109,10 +109,10 @@ export async function getCombinedSettings(): Promise<any> {
       returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
     }
   }
-  for (const switchObj of nonSectionSwitches) {
-    if (typeof sharedSettings[switchObj.key] !== 'undefined') {
-      returnObj[switchObj.key] = sharedSettings[switchObj.key]
-    }
+  const sharedSettingsKeys = Object.keys(sharedSettings)
+  for (const key of sharedSettingsKeys) {
+    // sharedSettings should override any pre-existing setting
+      returnObj[key] = sharedSettings[key]
   }
   return returnObj
 }
@@ -151,7 +151,7 @@ export async function getSettings(): Promise<any> {
     // Get a setting from QuickCapture
     // FIXME: should return 3 for me, but returns 2
     config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
-
+    clo(config, 'getSettings() returning config')
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

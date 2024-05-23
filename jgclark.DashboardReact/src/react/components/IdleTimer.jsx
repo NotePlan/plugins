@@ -4,6 +4,7 @@
 
 // @flow
 import { useEffect, useState } from 'react'
+import { logDebug } from '@helpers/react/reactDev'
 
 /**
  * Props type for IdleTimer component.
@@ -24,7 +25,6 @@ type IdleTimerProps = {|
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
-
   useEffect(() => {
     const handleUserActivity = () => {
       setLastActivity(Date.now())
@@ -50,8 +50,10 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   }, [])
 
   useEffect(() => {
+    // debug all this       if (Date.now() - lastActivity >= idleTime) {
     const interval = setInterval(() => {
       if (Date.now() - lastActivity >= idleTime) {
+        logDebug('IdleTimer', 'we are over the limit now, calling onIdleTimeout')
         onIdleTimeout()
       }
     }, idleTime)

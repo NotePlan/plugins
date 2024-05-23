@@ -116,7 +116,6 @@ export const countTotalSectionItems = (sections: Array<TSection>): number => {
 export const countTotalVisibleSectionItems = (sections: Array<TSection>, sharedSettings: TSharedSettings): number => {
   return sections.reduce((total, section) => {
     if (sectionIsVisible(section.sectionCode, sharedSettings)) {
-      logDebug('sectionHelpers', `countTotalVisibleSectionItems ${section.name} is visible and has ${section.sectionItems.length} items`)
       return total + section.sectionItems.length
     }
     return total

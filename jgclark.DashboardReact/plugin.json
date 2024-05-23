@@ -5,7 +5,7 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a24",
+  "plugin.version": "2.0.0-a25",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
@@ -191,7 +191,7 @@
       "key": "featureFlags",
       "description": "Allows us to test certain features in development.",
       "required": true,
-      "default":"{\"overdueProcessing\":false,\"metaTooltips\":false,\"autoRefresh\":false}"
+      "default":"{\"overdueProcessing\":false,\"metaTooltips\":false,\"autoRefresh\":false},\"dashboardSettings\":false}"
     },
     {
       "key": "separateSectionForReferencedNotes",
@@ -389,6 +389,7 @@
       "type": "string",
       "title": "Log Level",
       "choices": [
+        "DEV",
         "DEBUG",
         "INFO",
         "WARN",

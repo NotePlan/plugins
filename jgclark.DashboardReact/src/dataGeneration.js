@@ -986,7 +986,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
         },
       ],
     }
-    console.log(JSON.stringify(section))
+    // console.log(JSON.stringify(section))
     return section
   } else {
     logDebug('getDataForDashboard', `looked but found no notes to review`)

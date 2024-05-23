@@ -92,12 +92,17 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 }
 
 /**
- * Get the feature flags from the JSON stringified setting called featureFlags
- * @param {any} pluginData - the full pluginData object
- * @returns {Object} - the feature flags
- * @example: const { overdueProcessing } = getFeatureFlags(pluginData)
+ * Get the feature flags which are set.
+ * Note: Feature flags are only available to people with DEBUG logging enabled
+ * @param {TAnyObject} pluginSettings 
+ * @param {TAnyObject} sharedSettings 
+ * @usage const { FFlagOverdueProcessing } = getgetFeatureFlags(pluginSettings, sharedSettings)
  */
-export function getFeatureFlags(pluginData: any): any {
-    const { featureFlags: ffStr } = pluginData?.settings || {}
-    return parseSettings(ffStr) || {}
+export function getFeatureFlags(pluginSettings:TAnyObject, sharedSettings:TSharedSettings): TAnyObject {
+    const isDebugLogging = pluginSettings?._logLevel === 'DEV'
+    // find all keys that start with Fflag
+    return (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
+        acc[k] = sharedSettings[k]
+        return acc
+    }, {}) : {})
 }

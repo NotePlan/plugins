@@ -96,7 +96,7 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
  * @param {string} changeMessage 
  * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
  */
-async function setPluginData(changeObject: TAnyObject, changeMessage:string = ""): Promise<void> {
+export async function setPluginData(changeObject: TAnyObject, changeMessage:string = ""): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)

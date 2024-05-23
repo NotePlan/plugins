@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
-import {getFeatureFlags} from '../../shared.js'
+import { getFeatureFlags } from '../../shared.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
@@ -17,6 +17,7 @@ type Props = {
   pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
 }
 
+// TODO: Move these to a separate file
 const metaKeyConfig = { text: 'Meta Key Pressed', style: { color: 'red' } }
 const shiftKeyConfig = { text: 'Shift Key Pressed', style: { color: 'blue' } }
 const ctrlKeyConfig = { text: 'Ctrl Key Pressed', style: { color: 'green' } }
@@ -32,9 +33,10 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
-  const { metaTooltips: FFlagMetaTooltips, autoRefresh: FFlagAutoRefresh } = getFeatureFlags(pluginData)
+  const { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings)
 
-  // logDebug('Dashboard', `Feature Flags: metaTooltips: ${FFlagMetaTooltips}, autoRefresh: ${FFlagAutoRefresh}`)
+
+  // logDebug('Dashboard', `Feature Flags: metaTooltips: ${FFlag_MetaTooltips}, autoRefresh: ${FFlagAutoRefresh}`)
 
   const containerRef = useRef <? HTMLDivElement > (null)
   let sections = origSections
@@ -69,19 +71,17 @@ function Dashboard({ pluginData }: Props): React$Node {
   // Change the title when the section data changes
   // TODO: this doesn't work and I'm not sure it ever can
   useEffect(() => {
-    logDebug('Dashboard', `in useEffect for title setting, pluginData.sections changed; document.title was=${document.title}`)
     const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, sharedSettings)
     const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
     if (document.title !== windowTitle) {
       logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle
-      logDebug('Dashboard', `in useEffect, document.title now is: ${document.title}`)
     }
-  }, [/* pluginData.sections */])
+  }, [pluginData.sections])
 
   const dashboardContainerStyle = {
-    maxWidth: '100vw',
-    width: '100vw',
+    maxWidth: '98vw',
+    width: '98vw',
   }
 
   // when reactSettings changes anywhere, send it to the plugin to save in settings
@@ -102,6 +102,8 @@ function Dashboard({ pluginData }: Props): React$Node {
       logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
       const strSharedSetings = JSON.stringify(sharedSettings)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
+    } else if (sharedSettings && Object.keys(sharedSettings).length > 0) {
+      logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)
     }
   }, [sharedSettings])
 
@@ -111,7 +113,7 @@ function Dashboard({ pluginData }: Props): React$Node {
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
   useEffect(() => {
-    logDebug('Dashboard', `in useEffect one of these changed: pluginData, setReactSettings, reactSettings?.dialogData isOpen=${String(reactSettings?.dialogData?.isOpen)}`)
+    // logDebug('Dashboard', `in useEffect one of these changed: pluginData, setReactSettings, reactSettings?.dialogData isOpen=${String(reactSettings?.dialogData?.isOpen)}`)
     if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData
@@ -164,7 +166,9 @@ function Dashboard({ pluginData }: Props): React$Node {
   // Note the containerRef is used in the CSS to make the dashboard focusable to accept keyboard clicks; must have a non-negative tabIndex
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef}>
-      {FFlagAutoRefresh && <IdleTimer idleTime={5*60*1000 /* 5 minutes */} onIdleTimeout={autoRefresh} />}
+      {FFlag_AutoRefresh &&
+        <IdleTimer idleTime={parseInt(sharedSettings && sharedSettings.autoUpdateAfterIdleTime?.length ?
+          sharedSettings.autoUpdateAfterIdleTime : "5") * 60 * 1000 /* 5 minutes default */} onIdleTimeout={autoRefresh} />}
       {/* CSS for this part is in dashboard.css */}
       <div className="dashboard" >
         <Header lastFullRefresh={lastFullRefresh} />
@@ -178,7 +182,7 @@ function Dashboard({ pluginData }: Props): React$Node {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {FFlagMetaTooltips && !(reactSettings?.dialogData?.isOpen) && <ToolTipOnModifierPress
+      {FFlag_MetaTooltips && !(reactSettings?.dialogData?.isOpen) && <ToolTipOnModifierPress
         metaKey={metaKeyConfig}
         shiftKey={shiftKeyConfig}
         ctrlKey={ctrlKeyConfig}
