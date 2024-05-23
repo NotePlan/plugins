@@ -22,7 +22,7 @@ export async function findUnlinkedNotesInAllNotes() {
   const runTime = new Date()
   const allNotes = DataStore.projectNotes.concat(DataStore.calendarNotes)
   const foundLinks = await findUnlinkedNotes(allNotes)
-  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${new Date().getTime() - runTime.getTime()}ms`)
+  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${(new Date().getTime() - runTime.getTime()) / 60}s`)
 }
 
 /**
@@ -40,10 +40,10 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
 
     CommandBar.showLoading(false)
     CommandBar.onMainThread()
-    return foundLinks
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+  return foundLinks
 }
 
 /**
@@ -59,17 +59,15 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
   let startTime = new Date()
   let content = currentNote.content
 
-  if (!content) return 0
-
   logDebug(`Searching for unlinked notes in: ${currentNote.title ?? ''}`)
-  content = content.replaceAll(/```([^`]|\n)*```/gim, (match) => {
+  content = (content ?? '').replaceAll(/```([^`]|\n)*```/gim, (match) => {
     codeblockReversalTracker.push(match)
     return CODE_BLOCK_PLACEHOLDER
   })
   logDebug(`Replaced ${codeblockReversalTracker.length} code blocks, took: ${new Date().getTime() - startTime.getTime()}ms`)
 
   startTime = new Date()
-  content = content.replaceAll(/\[(([^\[\]]|\\\[|\\\])+)\]\(.*\)/g, (match) => {
+  content = (content ?? '').replaceAll(/\[(([^\[\]]|\\\[|\\\])+)\]\(.*\)/g, (match) => {
     markdownLinkTracker.push(match)
     return MARKDOWN_LINK_PLACEHOLDER
   })
