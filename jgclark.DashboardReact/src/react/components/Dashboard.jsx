@@ -5,6 +5,7 @@ import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSe
 import { findSectionItems } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
 import { getFeatureFlags } from '../../shared.js'
+import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
@@ -34,7 +35,8 @@ function Dashboard({ pluginData }: Props): React$Node {
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
   const { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings)
-
+  
+  useWatchForResizes(sendActionToPlugin)
 
   // logDebug('Dashboard', `Feature Flags: metaTooltips: ${FFlag_MetaTooltips}, autoRefresh: ${FFlagAutoRefresh}`)
 

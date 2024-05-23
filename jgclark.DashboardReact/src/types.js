@@ -105,6 +105,7 @@ export type TActionType =
   | 'unscheduleItem'
   | 'updateItemContent'
   | 'updateTaskDate'
+  | 'windowWasResized'
 // 'windowResized'
 
 export type TControlString =
@@ -141,6 +142,7 @@ export type MessageDataObject = {
   metaModifier?: any, /* probably not used */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string, 
+  newDimensions?: { width: number, height: number },
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item

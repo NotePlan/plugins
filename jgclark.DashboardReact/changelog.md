@@ -13,6 +13,8 @@ Misc TODO:
 - Feature Flags
 - Settings window
 - Autorefresh
+- Moved some hooks around
+- Created resize watcher custom hook
 
 ## [2.0.0.a24] @jgc
 - when a trigger notices a change to one of the relevant calendar notes (typically the 'Today' note), it only updates the relevant section

@@ -7,7 +7,7 @@
 // @flow
 
 import { useState, useEffect } from 'react'
-import { useAppContext } from './AppContext.jsx'
+import { useAppContext } from '../components/AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 /**
