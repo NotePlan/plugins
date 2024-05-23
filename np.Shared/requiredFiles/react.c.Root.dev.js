@@ -415,6 +415,14 @@ var RootBundle = (function (exports, React$1) {
   const logDebug = (componentName, detail, ...args) => console.log(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`, ...args);
 
   /**
+   * Logs an error message to the console.. (Similar to above.)
+   * @param {string} componentName The error message to log.
+   * @param {string} detail The detail of the error message.
+   * @param {...any} args The arguments to log.
+   */
+  const logError = (componentName, detail = '', ...args) => console.error(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #F00; background: #FFF`}`, ...args);
+
+  /**
    * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
    * It also removes the redundant file path from the stack trace.
    * @param {Error} error
@@ -567,30 +575,38 @@ var RootBundle = (function (exports, React$1) {
       // this approach won't work, so for now, we are going to add it as another stylesheet
       // Find the stylesheet with the specified name or href
       const oldSheet = styleSheetsArray.find(sheet => sheet && sheet.title === oldName);
+      let wasSaved = false;
       // $FlowIgnore
       if (oldSheet && typeof oldSheet.replaceSync === 'function') {
         // Use replaceSync to replace the stylesheet's content
-        // $FlowIgnore
-        oldSheet.replaceSync(newStyles);
-      } else {
+        logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`);
+        try {
+          // $FlowIgnore
+          oldSheet.replaceSync(newStyles);
+          wasSaved = true;
+        } catch (error) {
+          logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`);
+        }
+      }
+      if (!wasSaved) {
         // If the old stylesheet is not found, create a new one
         const newStyle = document.createElement('style');
         newStyle.title = oldName;
         newStyle.textContent = newStyles;
         document?.head?.appendChild(newStyle);
         // Check to make sure it's there
+        testOutputStylesheets();
         const styleElement = document.querySelector(`style[title="${oldName}"]`);
         if (styleElement) {
           logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document');
         } else {
           logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document");
         }
-        outputStylesheetContents();
       }
     }
 
     // Function to get the first 55 characters of each stylesheet's content
-    function outputStylesheetContents() {
+    function testOutputStylesheets() {
       const styleSheets = document.styleSheets;
       for (let i = 0; i < styleSheets.length; i++) {
         const styleSheet = styleSheets[i];

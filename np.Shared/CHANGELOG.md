@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.6.1] - @dwertheimer 
+
+- more logging to setTheme
+
 ## [0.6.0] - @dwertheimer
 
 - add theme change route UPDATE_THEME

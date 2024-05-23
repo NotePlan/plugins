@@ -40,7 +40,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug, formatReactError, JSP, clo } from '@helpers/react/reactDev'
+import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
 
@@ -153,30 +153,38 @@ export function Root(/* props: Props */): Node {
     // this approach won't work, so for now, we are going to add it as another stylesheet
     // Find the stylesheet with the specified name or href
     const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
+    let wasSaved = false
     // $FlowIgnore
     if (oldSheet && typeof oldSheet.replaceSync === 'function') {
       // Use replaceSync to replace the stylesheet's content
-      // $FlowIgnore
-      oldSheet.replaceSync(newStyles)
-    } else {
+      logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
+      try {
+        // $FlowIgnore
+        oldSheet.replaceSync(newStyles)
+        wasSaved = true
+      } catch (error) {
+        logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`)
+      }
+    }
+    if (!wasSaved) {
       // If the old stylesheet is not found, create a new one
       const newStyle = document.createElement('style')
       newStyle.title = oldName
       newStyle.textContent = newStyles
       document?.head?.appendChild(newStyle)
       // Check to make sure it's there
+      testOutputStylesheets()
       const styleElement = document.querySelector(`style[title="${oldName}"]`)
       if (styleElement) {
         logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document')
       } else {
         logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document")
       }
-      outputStylesheetContents()
     }
   }
 
   // Function to get the first 55 characters of each stylesheet's content
-  function outputStylesheetContents() {
+  function testOutputStylesheets() {
     const styleSheets = document.styleSheets
     for (let i = 0; i < styleSheets.length; i++) {
       const styleSheet = styleSheets[i]
