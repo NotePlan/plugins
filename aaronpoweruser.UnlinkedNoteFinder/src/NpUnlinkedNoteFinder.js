@@ -75,19 +75,19 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
 
   getAllNoteTitlesSortedByLength().forEach((note) => {
     if (currentNote.title !== note && content?.includes(note)) {
-      content = (content ?? '').replaceAll(buildRegex(note), (match) => {
+      content = (content ?? '').replaceAll(buildRegex(note), (_) => {
         logDebug(`Found link to: ${note}`)
         foundLinks++
-        return `[[${match}]]`
+        return `[[${note}]]`
       })
     }
   })
 
-  codeblockReversalTracker?.forEach((value, _) => {
+  codeblockReversalTracker?.forEach((value) => {
     content = content ? content.replace(CODE_BLOCK_PLACEHOLDER, value) : ''
   })
 
-  markdownLinkTracker?.forEach((value, _) => {
+  markdownLinkTracker?.forEach((value) => {
     content = content ? content.replace(MARKDOWN_LINK_PLACEHOLDER, value) : ''
   })
 
