@@ -9,7 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { type TPluginData } from './types'
 import { allSectionDetails } from "./constants"
-import { getSettings, type dashboardConfigType } from './dashboardHelpers'
+import { type dashboardConfigType, getCombinedSettings } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
   // bridgeChangeCheckbox, runPluginCommand
@@ -92,7 +92,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = await getSettings()
+    const config = await getCombinedSettings()
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -129,7 +129,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: dashboardConfigType = await getSettings()
+    const config: dashboardConfigType = await getCombinedSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -167,9 +167,11 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
-  // you can pass any object with any number of fields you want
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow config.FFlag_ForceInitialLoad=${String(config.FFlag_ForceInitialLoad)}`)
+  const sections = config.FFlag_ForceInitialLoad === true ? await getAllSectionsData(demoMode) : await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode)
+
   return {
-    sections: await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode),
+    sections,
     lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 

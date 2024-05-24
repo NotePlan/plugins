@@ -15,6 +15,9 @@ Misc TODO:
 - Autorefresh
 - Moved some hooks around
 - Created resize watcher custom hook
+- Fixed bug: tags not showing up after new settings added
+- Added multiple tags, separated by commas
+- Add force full initial load feature flag so browser debugging can have all sections
 
 ## [2.0.0.a24] @jgc
 - when a trigger notices a change to one of the relevant calendar notes (typically the 'Today' note), it only updates the relevant section

@@ -1,7 +1,7 @@
 // @flow
 import React, { useState, useEffect } from 'react'
 import { getFeatureFlags } from '../../shared.js'
-import { createDropdownItems } from '../support/filterDropdownItems'
+import { createFilterDropdownItems } from '../support/filterDropdownItems'
 import { createFeatureFlagItems } from '../support/featureFlagItems'
 import { createDashboardSettingsItems } from '../support/dashboardSettingsItems.js'
 import { handleSwitchChange, handleRefreshClick, handleSaveInput, handleDropdownFieldChange, handleToggleDropdownMenu, handleOpenMenuEffect, onDropdownMenuChangesMade } from '../support/headerHandlers'
@@ -23,11 +23,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const { settings } = pluginData
 
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
-  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)
+  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)  
 
-  const tagSectionStr = pluginData?.sections.find(a => a.sectionCode === 'TAG')?.name ?? '' // TODO: settings.tagToShow
-
-  const dropdownItems = createDropdownItems(sharedSettings, tagSectionStr, pluginData.settings)
+  const dropdownItems = createFilterDropdownItems(sharedSettings, pluginData.settings)
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
 

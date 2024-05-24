@@ -80,6 +80,7 @@ export type dashboardConfigType = {
   _logLevel: string,
   triggerLogging: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  FFlag_ForceInitialLoad: boolean,
 }
 
 /**
@@ -118,6 +119,7 @@ export async function getCombinedSettings(): Promise<any> {
 }
 
 /**
+ * BEWARE: You should probably be using getCombinedSettings() instead of this function
  * Get config settings
  * TODO: Decide whether to make these DashboardReact instead ...
  * @author @jgclark
@@ -151,7 +153,6 @@ export async function getSettings(): Promise<any> {
     // Get a setting from QuickCapture
     // FIXME: should return 3 for me, but returns 2
     config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
-    clo(config, 'getSettings() returning config')
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)

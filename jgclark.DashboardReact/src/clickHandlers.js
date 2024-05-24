@@ -9,8 +9,7 @@
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { getSettings } from './dashboardHelpers'
-import { getSectionDetailsFromSectionCode } from './react/support/sectionHelpers'
+import { getCombinedSettings } from './dashboardHelpers'
 import { allCalendarSectionCodes } from "./constants"
 import {
   // copyUpdatedSectionItemData, findSectionItems,
@@ -158,7 +157,7 @@ export async function incrementallyRefreshSections(data: MessageDataObject): Pro
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-    logDebug(`clickHandlers`, `incrementallyRefreshSections loading: ${sectionCode} (${getSectionDetailsFromSectionCode(sectionCode)?.sectionName||''}) took ${timer(start)}`)
+    logDebug(`clickHandlers`, `incrementallyRefreshSections loading: ${sectionCode} - took ${timer(start)}`)
   }
   await setPluginData({ refreshing: false }, `Ending refresh for sections ${String(sectionCodes)}`)
   return handlerResult(true)
@@ -199,7 +198,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
  */
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const config = await getSettings()
+    const config = await getCombinedSettings()
     const { actionType, toFilename } = data
     logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''}`)
     if (!toFilename) {
@@ -631,7 +630,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 export async function doUpdateTaskDate(data: MessageDataObject, dateString: string = ''): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const dateInterval = controlStr || ''
-  const config = await getSettings()
+  const config = await getCombinedSettings()
   // const startDateStr = ''
   let newDateStr = dateString || ''
   if (dateInterval !== 't' && !dateString && !dateInterval.match(RE_DATE_INTERVAL)) {

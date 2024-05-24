@@ -8,9 +8,10 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import type {
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType,
+  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails
 } from './types'
 import { allSectionCodes } from "./constants.js"
+import { getTagSectionDetails } from './react/support/sectionHelpers.js'
 import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -71,18 +72,18 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 export async function getAllSectionsData(demoMode: boolean = false): Promise<Array<TSection>> {
   try {
-    // const config: dashboardConfigType = await getSettings()
     const config: any = await getCombinedSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
     
-    const sections: Array<TSection> = []
+    let sections: Array<TSection> = []
     sections.push(getTodaySectionData(config, demoMode))
     if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
     if (config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
     if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
     if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
     if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
-    if (config.tagToShow) sections.push(getTaggedSectionData(config, demoMode))
+    if (config.tagToShow) sections = sections.concat(getTaggedSections(config, demoMode))
+      
     if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
     sections.push(await getProjectSectionData(config, demoMode))
 
@@ -109,14 +110,14 @@ export async function getSomeSectionsData(
   try {
     const config: dashboardConfigType = await getCombinedSettings()
 
-    const sections: Array<TSection> = []
+    let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(getTodaySectionData(config, demoMode))
     if (sectionCodesToGet.includes('DY') && (force || config.showYesterdaySection))  sections.push(getYesterdaySectionData(config, demoMode))
     if (sectionCodesToGet.includes('DO') && (force || config.showWeekSection))  sections.push(getTomorrowSectionData(config, demoMode))
     if (sectionCodesToGet.includes('W') && (force || config.showWeekSection))  sections.push(getThisWeekSectionData(config, demoMode))
     if (sectionCodesToGet.includes('M') && (force || config.showMonthSection))  sections.push(getThisMonthSectionData(config, demoMode))
     if (sectionCodesToGet.includes('Q') && (force || config.showQuarterSection))  sections.push(getThisQuarterSectionData(config, demoMode))
-    if (sectionCodesToGet.includes('TAG') && (force || config.tagToShow))  sections.push(getTaggedSectionData(config, demoMode))
+    if (sectionCodesToGet.includes('TAG') && (force || config.tagToShow)) sections = sections.concat(getTaggedSections(config, demoMode))
     if (sectionCodesToGet.includes('OVERDUE') && (force || config.showOverdueSection))  sections.push(await getOverdueSectionData(config, demoMode))
     if (sectionCodesToGet.includes('PROJ') && (force || config.showProjectSection))  sections.push(await getProjectSectionData(config, demoMode))
     return sections
@@ -679,13 +680,30 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
 //-----------------------------------------------------------
 
 /**
+ * Get the tagged sections for each tag - they will all be sectionCode=TAG
+ * sectionName will be the tag name, and showSettingName will be unique for this tag
+ * @param {dashboardConfigType} config
+ * @param {boolean} [useDemoData=false]
+ * @returns {Array<TSection>}
+ */
+export function getTaggedSections(config: dashboardConfigType, useDemoData: boolean = false): Array<TSection> {
+  const tagSections = getTagSectionDetails(config, {})
+  return tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
+    const showSettingForTag = config[sectionDetail.showSettingName]
+    logDebug(`getTaggedSections sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
+    if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
+    return acc  // Return the accumulator
+  }, [])
+}
+
+/**
  * Add a section for tagToShow, if wanted, and if not running because triggered by a change in the daily note.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
  * @param {dashboardConfigType} config
  * @param {boolean} useDemoData?
  */
-export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
-  const sectionNum = 7
+export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false, sectionDetail:TSectionDetails, index: number): TSection {
+  const sectionNum = `7-${index}`
   const thissectionCode = 'TAG'
   const maxInSection = config.maxTasksToShowInSection ?? 30
   logDebug('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)} --------`)
@@ -705,14 +723,14 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
     })
   } else {
     const thisStartTime = new Date()
-    isHashtag = config.tagToShow.startsWith('#')
-    isMention = config.tagToShow.startsWith('@')
+    isHashtag = sectionDetail.sectionName.startsWith('#')
+    isMention = sectionDetail.sectionName.startsWith('@')
     if (isHashtag || isMention) {
       let filteredTagParas: Array<TParagraph> = []
 
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes)
-      const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow, true)
+      const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
@@ -722,7 +740,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         }
 
         // Get the relevant paras from this note
-        const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(config.tagToShow))
+        const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
         // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras`)
 
         // Further filter out checklists and otherwise empty items
@@ -773,7 +791,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         logDebug('getTaggedSectionData', `- after limit, now ${sortedTagParasLimited.length} items to show`)
 
         for (const p of sortedTagParasLimited) {
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNum}.${itemCount}`
           // const thisFilename = p.filename ?? ''
           // $FlowIgnore[incompatible-call]
           items.push(getSectionItemObject(thisID,p))
@@ -788,8 +806,8 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
     totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} items ordered by ${config.overdueSortOrder}`
   const section: TSection = {
     ID: sectionNum,
-    name: `${config.tagToShow}`,
-    showSettingName: `showTagSection`, // TODO(later): will need to change in v2.1
+    name: sectionDetail.sectionName,
+    showSettingName: sectionDetail.showSettingName,
     sectionCode: thissectionCode,
     description: tagSectionDescription,
     FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',

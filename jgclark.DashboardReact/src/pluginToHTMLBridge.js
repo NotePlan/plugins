@@ -40,7 +40,6 @@ import {
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
-// import { getSettings, moveItemBetweenCalendarNotes } from './dashboardHelpers'
 import {makeDashboardParas} from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import {

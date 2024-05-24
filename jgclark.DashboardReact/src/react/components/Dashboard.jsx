@@ -35,10 +35,8 @@ function Dashboard({ pluginData }: Props): React$Node {
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
   const { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings)
-  
-  useWatchForResizes(sendActionToPlugin)
 
-  // logDebug('Dashboard', `Feature Flags: metaTooltips: ${FFlag_MetaTooltips}, autoRefresh: ${FFlagAutoRefresh}`)
+  useWatchForResizes(sendActionToPlugin)
 
   const containerRef = useRef <? HTMLDivElement > (null)
   let sections = origSections

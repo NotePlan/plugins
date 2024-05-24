@@ -10,8 +10,7 @@ import { getFeatureFlags } from '../../shared.js'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { clo } from '@helpers/dev'
-import { logDebug, logError } from '@helpers/react/reactDev'
+import { logDebug, logError, clo, JSP } from '@helpers/react/reactDev'
 
 type SectionProps = {
   section: TSection
@@ -34,8 +33,8 @@ function Section(inputObj: SectionProps): React$Node {
       return
     }
 
-    if (!section || isNaN(section.ID)) {
-      throw new Error(`❓Section doesn't exist.`)
+    if (!section /* || isNaN(section.ID) */) {
+      throw new Error(`❓Section doesn't exist. ${JSP(section)}`)
     } else if (!section.sectionItems || section.sectionItems.length === 0) {
       if (section.ID !== 0) {
         // logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
@@ -170,7 +169,7 @@ function Section(inputObj: SectionProps): React$Node {
         <div className="sectionInfo">
           <div className={`${section.sectionTitleClass} sectionName`}>
             <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
-            {section.name}
+            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') :  section.name}
             {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
