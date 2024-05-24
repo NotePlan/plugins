@@ -39,10 +39,11 @@ export function buildReadwiseNoteTitle(source: any): string {
  * @returns {string} - the sanitized string
  */
 export function removeInvalidChars(string: string): string {
-  return string
-    .replace(/^"/, '') // remove leading double quote
-    .replace(/\n/g, '') // remove all new line characters
-    .trim()
+  return removeNewlines(
+    string
+      .replace(/^"/, '') // remove leading double quote
+      .trim(),
+  )
 }
 
 /**
@@ -75,7 +76,7 @@ export function buildReadwiseFrontMatter(source: any): any {
  * @returns {string} - the formatted heading
  */
 export function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `author: [[${escapeTwitterHandle(source.author)}]]` + '\n'
+  let metadata = `author: [[${escapeTwitterHandle(source.author)}]]\n`
   if (source.book_tags !== null && source.book_tags.length > 0) {
     metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
@@ -103,12 +104,12 @@ function formatTag(tag: string): string {
 }
 
 /**
- * Remove newline characters from a string
+ * Remove all newline characters from a string
  * @param {string} text - the text to remove newline characters from
  * @returns {string} - the text with newline characters removed
  */
 export function removeNewlines(text: string): string {
-  return text.replace(/\n/g, ' ')
+  return text.replaceAll(/\n/g, ' ')
 }
 
 /**
