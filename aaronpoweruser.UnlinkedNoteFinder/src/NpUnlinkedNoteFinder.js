@@ -53,29 +53,20 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
  */
 function findUnlinkedNotesInNote(currentNote: TNote): number {
   let foundLinks = 0
-  const codeblockReversalTracker = []
-  const markdownLinkTracker = []
   const overallTime = new Date()
-  let startTime = new Date()
-  let content = currentNote.content
+  let content = currentNote.content ?? ''
 
   logDebug(`Searching for unlinked notes in: ${currentNote.title ?? ''}`)
-  content = (content ?? '').replaceAll(/```([^`]|\n)*```/gim, (match) => {
-    codeblockReversalTracker.push(match)
-    return CODE_BLOCK_PLACEHOLDER
-  })
-  logDebug(`Replaced ${codeblockReversalTracker.length} code blocks, took: ${new Date().getTime() - startTime.getTime()}ms`)
 
-  startTime = new Date()
-  content = (content ?? '').replaceAll(/\[(([^\[\]]|\\\[|\\\])+)\]\(.*\)/g, (match) => {
-    markdownLinkTracker.push(match)
-    return MARKDOWN_LINK_PLACEHOLDER
-  })
-  logDebug(`Replaced ${markdownLinkTracker.length} markdown links, took: ${new Date().getTime() - startTime.getTime()}ms`)
+  const [contentWithCodeBlocksRemoved, codeBlockTracker] = extractCodeBlocks(content)
+  content = contentWithCodeBlocksRemoved
+
+  const [contentWithLinksRemoved, markdownLinkTracker] = extractMarkdownLinks(content)
+  content = contentWithLinksRemoved
 
   getAllNoteTitlesSortedByLength().forEach((note) => {
     if (currentNote.title !== note && content?.includes(note)) {
-      content = (content ?? '').replaceAll(buildRegex(note), (_) => {
+      content = content.replaceAll(buildRegex(note), (_) => {
         logDebug(`Found link to: ${note}`)
         foundLinks++
         return `[[${note}]]`
@@ -83,13 +74,8 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
     }
   })
 
-  codeblockReversalTracker?.forEach((value) => {
-    content = content ? content.replace(CODE_BLOCK_PLACEHOLDER, value) : ''
-  })
-
-  markdownLinkTracker?.forEach((value) => {
-    content = content ? content.replace(MARKDOWN_LINK_PLACEHOLDER, value) : ''
-  })
+  content = replaceCodeBlocks(content, codeBlockTracker)
+  content = replaceMarkdownLinks(content, markdownLinkTracker)
 
   if (foundLinks > 0) {
     currentNote.content = content
@@ -114,6 +100,66 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
  */
 export function buildRegex(noteTitle: string): RegExp {
   return new RegExp(`(\\w*(?<!\\[{2}[^[\\]]*)\\w*(?<!\\#)\\w*)(?<=[\\s,.:;"']|^)(${sanitizeForRegex(noteTitle)})(?![^[\\]]*\\]{2})(?=[\\s,.:;"']|$)`, 'gi')
+}
+
+/**
+ * Extracts code blocks from the content and replaces them with a placeholder
+ * @param {string} content - the content to extract code blocks from
+ * @returns {[string, Array<string>]} - the content with code blocks replaced and the code blocks
+ */
+function extractMarkdownLinks(content: string): [string, Array<string>] {
+  const markdownLinkTracker: Array<string> = []
+  const startTime = new Date()
+  const filteredContent = (content ?? '').replaceAll(/\[([^\]]+)\]\(([^)]+)\)/gim, (match) => {
+    markdownLinkTracker.push(match)
+    return MARKDOWN_LINK_PLACEHOLDER
+  })
+  logDebug(`Replaced ${markdownLinkTracker.length} markdown links, took: ${new Date().getTime() - startTime.getTime()}ms`)
+  return [filteredContent, markdownLinkTracker]
+}
+
+/**
+ * Extracts code blocks from the content and replaces them with a placeholder
+ * @param {string} content - the content to extract code blocks from
+ * @returns {[string, Array<string>]} - the content with code blocks replaced and the code blocks
+ */
+function extractCodeBlocks(content: string): [string, Array<string>] {
+  const codeBlockTracker: Array<string> = []
+  const startTime = new Date()
+  const filteredContent = (content ?? '').replaceAll(/```([^`]|\n)*```/gim, (match) => {
+    codeBlockTracker.push(match)
+    return CODE_BLOCK_PLACEHOLDER
+  })
+  logDebug(`Replaced ${codeBlockTracker.length} code blocks, took: ${new Date().getTime() - startTime.getTime()}ms`)
+  return [filteredContent, codeBlockTracker]
+}
+
+/**
+ * Replaces code blocks in the content with the original code blocks
+ * @param {string} content - the content to replace code blocks in
+ * @param {Array<string>} codeblockReversalTracker - the code blocks to replace
+ * @returns {string} - the content with code blocks replaced
+ */
+function replaceCodeBlocks(content: string, codeblockReversalTracker: Array<string>): string {
+  let contentWithCodeBlocks = content
+  codeblockReversalTracker.forEach((value) => {
+    contentWithCodeBlocks = contentWithCodeBlocks.replace(CODE_BLOCK_PLACEHOLDER, value)
+  })
+  return contentWithCodeBlocks
+}
+
+/**
+ * Replaces markdown links in the content with the original markdown links
+ * @param {string} content - the content to replace markdown links in
+ * @param {Array<string>} markdownLinkTracker - the markdown links to replace
+ * @returns {string} - the content with markdown links replaced
+ */
+function replaceMarkdownLinks(content: string, markdownLinkTracker: Array<string>): string {
+  let contentWithMarkdownLinks = content
+  markdownLinkTracker.forEach((value) => {
+    contentWithMarkdownLinks = contentWithMarkdownLinks.replace(MARKDOWN_LINK_PLACEHOLDER, value)
+  })
+  return contentWithMarkdownLinks
 }
 
 /**
