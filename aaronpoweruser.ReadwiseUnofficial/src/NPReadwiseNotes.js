@@ -99,5 +99,6 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  outputNote.appendParagraph(removeNewlines(highlight.text) + userNote + linkToHighlightOnWeb, 'quote')
+  const paragraphType = DataStore.settings.paragraphType ?? 'quote'
+  outputNote.appendParagraph(removeNewlines(highlight.text) + userNote + linkToHighlightOnWeb, paragraphType)
 }
