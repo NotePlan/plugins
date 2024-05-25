@@ -2,9 +2,9 @@
 .dropdown-content {
     display: none;
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
     position: absolute;
-    background-color: white;
+    background-color: var(--bg-alt-color);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 1;
     overflow: hidden; /* Hide content when collapsed */
@@ -38,15 +38,20 @@
   /* Show the dropdown content when the menu is open */
   .dropdown-content.show {
     display: block;
-    animation: unfurl 0.3s ease-out forwards, showScrollbar 0s 0.3s forwards; /* Apply animations */
+    width: max-content; /* Note: needs to be overridden by the settings menu which otherwise goes super-wide */
+    /* move slightly to right to flow more naturally from the button it comes from */
+    right: -1rem;
+    animation: unfurl 0.3s ease-out forwards, showScrollbar 0s 0.3s forwards;
     opacity: 1;
   }
   
   /* Flex container to align dropdowns */
   #dropdowns {
     display: flex;
-    gap: 10px; /* Adds 10px padding between each dropdown */
-    align-items: flex-start; /* Aligns items vertically at the top */
+    /* Add vertical padding between each dropdown */
+    gap: 10px;
+    /* Align items vertically at the top */
+    align-items: flex-start;
   }
   
   .dropdown {
@@ -58,7 +63,7 @@
   .switch-line {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.3rem;
   }
   
   /* Style for switch-input */
@@ -69,7 +74,7 @@
   /* Style for switch-label */
   .switch-label {
     font-weight: 400;
-    color: #333;
+    color: var(--fg-alt-color);
     flex-shrink: 0;
   }
   
@@ -84,7 +89,7 @@
   .input-box-label {
     margin-bottom: 5px;
     font-weight: 600;
-    color: #333;
+    color: var(--fg-alt-color);
   }
   
   /* Style for input-box-wrapper */
@@ -147,13 +152,13 @@
   
   .dashboard-settings .switch-line, .dropdown-item,
   .input-box-container {
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-bottom: 10px;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    padding-bottom: 0.5rem;
   }
   
   .dropdown-item {
-    margin-left: 8px;
+    margin-left: 0.6rem;
   }
   
   /* Style for combobox-container */
@@ -167,7 +172,7 @@
   .combobox-label {
     margin-bottom: 5px;
     font-weight: bold;
-    color: #333;
+    color: var(--fg-alt-color);
   }
   
   /* Style for combobox-wrapper */
@@ -241,8 +246,9 @@
   }
 
   .dropdown-header {
-    font-size: x-large;
-    background-color: var(--bg-main-color);
+    font-size: large;
+    font-weight: 600;
+    background-color: var(--bg-alt-color);
     color: var(--tint-color);
     padding-top: 10px;
     padding-bottom: 10px;
@@ -250,5 +256,5 @@
     margin-left: -12px;
     margin-right: -12px;
     margin-top: -4px;
-    width:100vw;
+    /* width:100vw; -- this was making it go way too wide */
   }

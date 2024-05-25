@@ -1,4 +1,10 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the Header at the top of the Dashboard window.
+// Called by Dashboard component.
+// Last updated 25.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
+
 import React, { useState, useEffect } from 'react'
 import { getFeatureFlags } from '../../shared.js'
 import { createFilterDropdownItems } from '../support/filterDropdownItems'
@@ -47,6 +53,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
       <div id="dropdowns">
+        {/* Feature Flags dropdown */}
         {settings?._logLevel === 'DEV' && <DropdownMenu
           items={featureFlagItems}
           handleSwitchChange={(key) => (e) => {
@@ -58,8 +65,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           isOpen={openDropdownMenu === 'featureFlags'}
           toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('featureFlags')}
           labelPosition="left"
-          style={{ width: "200px", right: "10px" }} // Adjust the width as needed
+          // style={{ width: "200px", right: "10px" }} // Adjust the width as needed
         />}
+        {/* More detailed settings dialog */}
         {FFlag_DashboardSettings && <DropdownMenu
           items={dashboardSettingsItems}
           handleSaveInput={(key) => (newValue) => {
@@ -78,9 +86,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           iconClass="fa-solid fa-gear"
           isOpen={openDropdownMenu === 'dashboardSettings'}
           toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('dashboardSettings')}
-          style={{ width: "550px", right: "10px" }} // Adjust the width as needed
+          // style={{ width: "80vw" }} // Stop it getting too wide
           onChangesMade={onChangesMade}
         />}
+        {/* Display toggles dropdown menu */}
         <DropdownMenu
           items={dropdownItems}
           handleSwitchChange={(key) => (e) => {
@@ -96,10 +105,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           isOpen={openDropdownMenu === 'filter'}
           toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('filter')}
           labelPosition="left"
-          style={{ width: "300px", right: "10px" }} // Adjust the width as needed
+          // style={{ width: "300px", right: "10px" }} // Adjust the width as needed
         />
       </div>
-      {/* TODO: more detailed setting dialog, using className={'settings'} and icon fa-gear */}
     </div>
   )
 }

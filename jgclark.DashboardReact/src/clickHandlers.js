@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 20.5.2024 for v2.0.0 by @jgclark
+// Last updated 23.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -133,41 +133,45 @@ export async function refreshAllSections(): Promise<void> {
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
   const newSections = await getAllSectionsData(reactWindowData.demoMode)
-  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: new Date() }
+  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: Date.now() }
   await setPluginData(changedData, 'Finished Refreshing all sections')
 }
 
 /**
- * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections
- * This is used on first launch to improve the UX and speed of first render
- * And each section is returned to React as it's generated
- * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx 
- * to load the rest
+ * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
+ * This is used on first launch to improve the UX and speed of first render.
+ * Each section is returned to React as it's generated.
+ * Today loads first and then this function is automatically called from a useEffect in 
+ * Dashboard.jsx to load the rest.
  * @param {MessageDataObject} data 
- * @returns {Promise<TBridgeClickHandlerResult>}
+ * @param {boolean} calledByTrigger? (default: false)
+ * @returns {TBridgeClickHandlerResult}
  */
-export async function incrementallyRefreshSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function incrementallyRefreshSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
   const { sectionCodes } = data
   if (!sectionCodes) {
-    logError('refreshSomeSections', 'No sectionCodes provided')
+    logError('incrementallyRefreshSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
   // loop through sectionCodes
-  await setPluginData({ refreshing: true }, `Starting refresh for sections ${String(sectionCodes)}`)
+  await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
   for (const sectionCode of sectionCodes) {
     const start = new Date()
-    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-    logDebug(`clickHandlers`, `incrementallyRefreshSections loading: ${sectionCode} - took ${timer(start)}`)
+    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
+    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode} (${getSectionDetailsFromSectionCode(sectionCode)?.sectionName || ''}) took ${timer(start)}`)
   }
-  await setPluginData({ refreshing: false }, `Ending refresh for sections ${String(sectionCodes)}`)
+  await setPluginData({ refreshing: false }, `Ending incremental refresh for sections ${String(sectionCodes)}`)
   return handlerResult(true)
 }
 
 /**
- * Tell the React window to update by re-generating a subset of Sections
- * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time
+ * Tell the React window to update by re-generating a subset of Sections.
+ * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time.
+ * @param {MessageDataObject} data 
+ * @param {boolean} calledByTrigger? (default: false)
+ * @returns {TBridgeClickHandlerResult}
  */
-export async function refreshSomeSections(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
   const start = new Date()
   const { sectionCodes } = data
   if (!sectionCodes) {
@@ -181,7 +185,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   const existingSections = pluginData.sections
 
   // force the section refresh for the wanted sections
-  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false)
+  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false, calledByTrigger)
   // $FlowFixMe
   const mergedSections = mergeSections(existingSections, newSections)
   // pluginData.lastFullRefresh = new Date()

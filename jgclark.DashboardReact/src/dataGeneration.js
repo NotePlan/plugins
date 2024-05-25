@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 14.5.2024 for v2.0.0 by @jgclark
+// Last updated 24.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -12,7 +12,11 @@ import type {
 } from './types'
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/support/sectionHelpers.js'
-import { getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getSharedSettings, makeDashboardParas, type dashboardConfigType } from './dashboardHelpers'
+import {
+  getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  // getSharedSettings,
+  makeDashboardParas, type dashboardConfigType
+} from './dashboardHelpers'
 import {
   openTodayItems,
   refTodayItems,
@@ -68,22 +72,23 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 
 /**
  * Generate data for all the sections (that the user currently wants)
- * @param {boolean} demoMode (default: false)
+ * @param {boolean} demoMode? (default: false)
+ * @param {boolean} useEditorWherePossible?
+ * @returns {Array<TSection>} array of sections
  */
-export async function getAllSectionsData(demoMode: boolean = false): Promise<Array<TSection>> {
+export async function getAllSectionsData(demoMode: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
     const config: any = await getCombinedSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
     
     let sections: Array<TSection> = []
-    sections.push(getTodaySectionData(config, demoMode))
-    if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode))
-    if (config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode))
-    if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode))
-    if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode))
-    if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode))
+    sections.push(getTodaySectionData(config, demoMode, useEditorWherePossible))
+    if (config.showYesterdaySection) sections.push(getYesterdaySectionData(config, demoMode, useEditorWherePossible))
+    if (config.showWeekSection) sections.push(getTomorrowSectionData(config, demoMode, useEditorWherePossible))
+    if (config.showWeekSection) sections.push(getThisWeekSectionData(config, demoMode, useEditorWherePossible))
+    if (config.showMonthSection) sections.push(getThisMonthSectionData(config, demoMode, useEditorWherePossible))
+    if (config.showQuarterSection) sections.push(getThisQuarterSectionData(config, demoMode, useEditorWherePossible))
     if (config.tagToShow) sections = sections.concat(getTaggedSections(config, demoMode))
-      
     if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, demoMode))
     sections.push(await getProjectSectionData(config, demoMode))
 
@@ -100,23 +105,25 @@ export async function getAllSectionsData(demoMode: boolean = false): Promise<Arr
  * @param {Array<string>} sectionCodes (default: allSectionCodes)
  * @param {boolean} demoMode (default: false)
  * @param {boolean} force (default: false) - refresh sections even if setting is not enabled
- * @returns {Array<TSection>}
+ * @param {boolean} useEditorWherePossible?
+ * @returns {Array<TSection>} array of sections
  */
 export async function getSomeSectionsData(
   sectionCodesToGet: Array<TSectionCode> = allSectionCodes,
   demoMode: boolean = false,
-  force: boolean = false
+  force: boolean = false,
+  useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
     const config: dashboardConfigType = await getCombinedSettings()
 
     let sections: Array<TSection> = []
-    if (sectionCodesToGet.includes('DT')) sections.push(getTodaySectionData(config, demoMode))
-    if (sectionCodesToGet.includes('DY') && (force || config.showYesterdaySection))  sections.push(getYesterdaySectionData(config, demoMode))
-    if (sectionCodesToGet.includes('DO') && (force || config.showWeekSection))  sections.push(getTomorrowSectionData(config, demoMode))
-    if (sectionCodesToGet.includes('W') && (force || config.showWeekSection))  sections.push(getThisWeekSectionData(config, demoMode))
-    if (sectionCodesToGet.includes('M') && (force || config.showMonthSection))  sections.push(getThisMonthSectionData(config, demoMode))
-    if (sectionCodesToGet.includes('Q') && (force || config.showQuarterSection))  sections.push(getThisQuarterSectionData(config, demoMode))
+    if (sectionCodesToGet.includes('DT')) sections.push(getTodaySectionData(config, demoMode, useEditorWherePossible))
+    if (sectionCodesToGet.includes('DY') && (force || config.showYesterdaySection)) sections.push(getYesterdaySectionData(config, demoMode, useEditorWherePossible))
+    if (sectionCodesToGet.includes('DO') && (force || config.showWeekSection)) sections.push(getTomorrowSectionData(config, demoMode, useEditorWherePossible))
+    if (sectionCodesToGet.includes('W') && (force || config.showWeekSection)) sections.push(getThisWeekSectionData(config, demoMode, useEditorWherePossible))
+    if (sectionCodesToGet.includes('M') && (force || config.showMonthSection)) sections.push(getThisMonthSectionData(config, demoMode, useEditorWherePossible))
+    if (sectionCodesToGet.includes('Q') && (force || config.showQuarterSection)) sections.push(getThisQuarterSectionData(config, demoMode, useEditorWherePossible))
     if (sectionCodesToGet.includes('TAG') && (force || config.tagToShow)) sections = sections.concat(getTaggedSections(config, demoMode))
     if (sectionCodesToGet.includes('OVERDUE') && (force || config.showOverdueSection))  sections.push(await getOverdueSectionData(config, demoMode))
     if (sectionCodesToGet.includes('PROJ') && (force || config.showProjectSection))  sections.push(await getProjectSectionData(config, demoMode))
@@ -127,7 +134,14 @@ export async function getSomeSectionsData(
   }
 }
 
-export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from Today's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   try {
     const sectionNum = 0
     const thissectionCode = 'DT'
@@ -160,7 +174,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         }
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config)
+        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
 
         // write one combined section
         combinedSortedParas.map((p) => {
@@ -257,7 +271,14 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
   }
 }
 
-export function getYesterdaySectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from Yesterday's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getYesterdaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   try {
   const sectionNum = 1
   const thissectionCode = 'DY'
@@ -293,7 +314,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
 
       // write one combined section
       let itemCount = 0
@@ -341,7 +362,14 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
   }
 }
 
-export function getTomorrowSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from Tomorrow's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getTomorrowSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   try {
     const sectionNum = 2
     const thissectionCode = 'DO'
@@ -374,7 +402,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
         }
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', tomorrowsNote, config)
+        const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
 
         // write one combined section
         let itemCount = 0
@@ -408,11 +436,18 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
   } catch (error) {
     console.error(`ERROR: ${error.message}`)
     // TODO(@dwertheimer): what's a more elegant solution than flow can like?
-    return null
+    return {}
   }
 }
 
-export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from this Week's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   const sectionNum = 3
   const thissectionCode = 'W'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -442,7 +477,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('week', currentWeeklyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -506,7 +541,14 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
   return section
 }
 
-export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from this Month's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   const sectionNum = 4
   const thissectionCode = 'M'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -536,7 +578,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       logDebug('getDataForDashboard', `--------- Gathering Monthly items for section #${String(sectionNum)} from ${dateStr} ---------`)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config, useEditorWherePossible)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -600,7 +642,14 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
   return section
 }
 
-export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
+/**
+ * Get open items from this Quarter's note
+ * @param {dashboardConfigType} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): TSection {
   const sectionNum = 5
   const thissectionCode = 'Q'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -623,7 +672,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('quarter', currentQuarterlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('quarter', currentQuarterlyNote, config, useEditorWherePossible)
 
       // write one combined section
       combinedSortedParas.map((p) => {
@@ -939,7 +988,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
   }
 }
 
-export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(_config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = 9
   const thissectionCode = 'PROJ'
   let itemCount = 0
@@ -1008,7 +1057,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
     return section
   } else {
     logDebug('getDataForDashboard', `looked but found no notes to review`)
-    return null
+    return {}
   }
 }
 
