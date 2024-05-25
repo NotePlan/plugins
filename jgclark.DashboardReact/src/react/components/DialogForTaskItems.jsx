@@ -183,15 +183,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         aria-describedby="Actions that can be taken on items"
         ref={dialogRef}
       >
-        <div className="dialogTitle" onClick={() => handleTitleClick()}>
-          <div id="dialogFileParts">
+        <div className="dialogTitle">
+          <div id="dialogFileParts" onClick={() => handleTitleClick()}>
             <span className="preText">From:</span>
             <i className="pad-left pad-right fa-regular fa-file-lines"></i>
             <span className="dialogItemNote" /*id="dialogItemNote"*/>{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           <div className="dialog-top-right">
-            {reactSettings?.overdueProcessing && (<button className="skipButton" onClick={handleSkipClick}>
+            {reactSettings?.interactiveProcessing && (<button className="skipButton" onClick={handleSkipClick} title="Skip this item">
               <i className="fa-regular fa-forward"></i>
             </button>
             )}

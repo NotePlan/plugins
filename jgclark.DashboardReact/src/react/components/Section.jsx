@@ -25,7 +25,7 @@ function Section(inputObj: SectionProps): React$Node {
     const items: Array<TSectionItem> = section.sectionItems
     const { sharedSettings, setReactSettings, pluginData } = useAppContext()
     // in destructuring rename "featureFlags" to 'ffStr':
-    const { FFlag_OverdueProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
+    const { FFlag_InteractiveProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
@@ -152,11 +152,14 @@ function Section(inputObj: SectionProps): React$Node {
       descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
     }
 
-    const handleProcessTasksClick = () => {
+    const handleProcessTasksClick = (e: MouseEvent):void => {
+      const clickPosition = { clientY: e.clientY, clientX: e.clientX+200 /* push it off the left edge a little */ }
       setReactSettings(prevSettings => ({
         ...prevSettings,
-        overdueProcessing: true,
+        lastChange: `_ProcessTasksClick`,
+        interactiveProcessing: true,
         currentOverdueIndex: 0,
+        dialogData: { isOpen: false, isTask: true, details: {}, clickPosition }
       }))
     }
 
@@ -174,7 +177,7 @@ function Section(inputObj: SectionProps): React$Node {
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && FFlag_OverdueProcessing && (
+            {section.sectionCode === "OVERDUE" && FFlag_InteractiveProcessing && (
               <button className="PCButton" onClick={handleProcessTasksClick}>
                 Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             {buttons}

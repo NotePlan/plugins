@@ -96,7 +96,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * Note: Feature flags are only available to people with DEBUG logging enabled
  * @param {TAnyObject} pluginSettings 
  * @param {TAnyObject} sharedSettings 
- * @usage const { FFlagOverdueProcessing } = getgetFeatureFlags(pluginSettings, sharedSettings)
+ * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, sharedSettings)
  */
 export function getFeatureFlags(pluginSettings:TAnyObject, sharedSettings:TSharedSettings): TAnyObject {
     const isDebugLogging = pluginSettings?._logLevel === 'DEV'

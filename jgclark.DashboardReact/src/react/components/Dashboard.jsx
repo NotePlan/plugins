@@ -153,8 +153,8 @@ function Dashboard({ pluginData }: Props): React$Node {
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
 
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    const overdueProcessing = xWasClicked ? { overdueProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
-    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen: false, details: {} }, lastChange: `_Dashboard-DialogClosed`, ...overdueProcessing }))
+    const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
+    setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
   }
 
   const autoRefresh = () => {

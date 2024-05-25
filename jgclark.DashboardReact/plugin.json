@@ -187,13 +187,6 @@
       "default":""
     },
     {
-      "type": "hidden",
-      "key": "featureFlags",
-      "description": "Allows us to test certain features in development.",
-      "required": true,
-      "default":"{\"overdueProcessing\":false,\"metaTooltips\":false,\"autoRefresh\":false},\"dashboardSettings\":false}"
-    },
-    {
       "key": "separateSectionForReferencedNotes",
       "title": "Show referenced items in separate section?",
       "description": "Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes.\nThe same also goes for Weekly/Monthly/Quarterly notes.",
