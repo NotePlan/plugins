@@ -1,15 +1,15 @@
 // @flow
 import { useState, useEffect } from 'react'
-import { getTimeAgo } from '../support/showTimeAgo.js'
-
+import { getTimeAgoString } from '@helpers/dateTime.js'
+ 
 const useLastFullRefresh = (lastFullRefresh: Date): string => {
-  const [timeAgo, setTimeAgo] = useState<string>(getTimeAgo(lastFullRefresh))
-
+  const [timeAgo, setTimeAgo] = useState<string>(getTimeAgoString(lastFullRefresh))
+ 
   useEffect(() => {
-    setTimeAgo(getTimeAgo(lastFullRefresh)) // Update timeAgo immediately when lastFullRefresh changes
+    setTimeAgo(getTimeAgoString(lastFullRefresh)) // Update timeAgo immediately when lastFullRefresh changes
 
     const timer = setInterval(() => {
-      setTimeAgo(getTimeAgo(lastFullRefresh))
+      setTimeAgo(getTimeAgoString(lastFullRefresh))
     }, 20000)
 
     return () => clearInterval(timer)

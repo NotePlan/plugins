@@ -80,7 +80,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
-    // logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
+    logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
@@ -171,7 +171,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   const sections = config.FFlag_ForceInitialLoad === true ? await getAllSectionsData(demoMode) : await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode)
 
   return {
-    sections: await getSomeSectionsData([allSectionDetails[0].sectionCode], demoMode, true),
+    sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 

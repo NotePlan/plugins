@@ -159,11 +159,7 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
 export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 'month' | 'quarter' | 'year' {
   if (note.type === 'Calendar') {
     return (
-      (isDailyNote(note) && 'day') ||
-      (isWeeklyNote(note) && 'week') ||
-      (isMonthlyNote(note) && 'month') ||
-      (isQuarterlyNote(note) && 'quarter') ||
-      (isYearlyNote(note) && 'year')
+      (isDailyNote(note) && 'day') || (isWeeklyNote(note) && 'week') || (isMonthlyNote(note) && 'month') || (isQuarterlyNote(note) && 'quarter') || (isYearlyNote(note) && 'year')
     )
   }
   return false // all other cases
@@ -1042,13 +1038,9 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 export function splitIntervalToParts(intervalStr: string): { number: number, type: string } {
   const interval = intervalStr.replace(/[{}]/g, '')
   const intervalNumber = Number(interval.slice(0, interval.length - 1))
-  const intervalChar = interval.charAt(interval.length - 1);
-  const intervalType = (intervalChar === 'd') ? 'day'
-    : (intervalChar === 'w') ? 'week'
-      : (intervalChar === 'm') ? 'month'
-        : (intervalChar === 'q') ? 'quarter'
-          : (intervalChar === 'y') ? 'year'
-            : 'error'
+  const intervalChar = interval.charAt(interval.length - 1)
+  const intervalType =
+    intervalChar === 'd' ? 'day' : intervalChar === 'w' ? 'week' : intervalChar === 'm' ? 'month' : intervalChar === 'q' ? 'quarter' : intervalChar === 'y' ? 'year' : 'error'
   const intervalParts = { number: intervalNumber, type: intervalType }
   return intervalParts
 }
@@ -1127,7 +1119,10 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
-      logInfo('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`)
+      logInfo(
+        'dateTime / cODS',
+        `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`,
+      )
       logDebug(
         'dateTime / cODS',
         `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,
@@ -1462,4 +1457,41 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
     value: format(i['d'], formats[i['vf']]),
   }))
   return options
+}
+// @flow
+// Show relative time
+// TODO: use MOMENT moment.duration(-1, "minutes").humanize(true);
+// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
+// or https://theprogrammingexpert.com/javascript-count-up-timer/
+// import { logDebug } from '@helpers/react/reactDev.js'
+/**
+ * Calculates how long ago a given timestamp occurred.
+ * @param {Date} pastDate - date of the past time to evaluate.
+ * @returns {string} - A human-readable string indicating time elapsed.
+ */
+export function getTimeAgoString(pastDate: Date): string {
+  const pastDateTimestamp: number = new Date(pastDate).getTime()
+  const nowTimestamp: number = Date.now()
+  const diff: number = Math.round((nowTimestamp - pastDateTimestamp) / 1000) / 60 // Convert to minutes
+
+  let output = ''
+  if (diff <= 0.1) {
+    output = 'just now'
+  } else if (diff <= 1) {
+    output = '<1 min ago'
+  } else if (diff < 1.5) {
+    output = '1 min ago'
+  } else if (diff <= 90) {
+    output = `${Math.round(diff)} mins ago`
+  } else if (diff <= 1440) {
+    output = `${Math.round(diff / 60)} hours ago`
+  } else if (diff <= 43776) {
+    output = `${Math.round(diff / 1440)} days ago`
+  } else if (diff <= 525312) {
+    output = `${Math.round(diff / 43800)} mon ago`
+  } else {
+    output = `${Math.round(diff / 525600)} yrs ago`
+  }
+
+  return output
 }

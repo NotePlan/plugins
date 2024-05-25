@@ -133,7 +133,7 @@ export async function refreshAllSections(): Promise<void> {
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
   const newSections = await getAllSectionsData(reactWindowData.demoMode, false)
-  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: Date.now() }
+  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: new Date() }
   await setPluginData(changedData, 'Finished Refreshing all sections')
 }
 
@@ -158,7 +158,7 @@ export async function incrementallyRefreshSections(data: MessageDataObject, call
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode} (${getSectionDetailsFromSectionCode(sectionCode)?.sectionName || ''}) took ${timer(start)}`)
+    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
   }
   await setPluginData({ refreshing: false }, `Ending incremental refresh for sections ${String(sectionCodes)}`)
   return handlerResult(true)
@@ -188,7 +188,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false, calledByTrigger)
   // $FlowFixMe
   const mergedSections = mergeSections(existingSections, newSections)
-  // pluginData.lastFullRefresh = Date.now()
+  // pluginData.lastFullRefresh = new Date()
   const updates:TAnyObject = { sections: mergedSections }
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
@@ -278,7 +278,7 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
-  let updatedParagraph = {}
+  let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
     res = false
@@ -693,9 +693,8 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
 }
 
 export function doSettingsChanged(data: MessageDataObject, settingName: string): TBridgeClickHandlerResult {
-  const settings = DataStore.settings
   const newSettings = data.settings
-  if (!settings || !newSettings) {
+  if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
