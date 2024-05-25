@@ -153,6 +153,7 @@ export async function getSettings(): Promise<any> {
     // Get a setting from QuickCapture
     // FIXME: should return 3 for me, but returns 2
     config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+    // clo(config, 'getSettings() returning config')
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -206,12 +207,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
  * @param {dashboardConfigType} config
+ * @param {boolean} useEditorWherePossible? use the open Editor to read from it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForCurrentTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
   config: dashboardConfigType,
+  useEditorWherePossible: boolean = false
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
@@ -220,8 +223,8 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Get paras from calendar note
     // Note: this takes 100-110ms for me
     const startTime = new Date() // for timing only
-    if (Editor && Editor?.note?.filename === timePeriodNote.filename) {
-      // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
+    if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
+    // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
       logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
@@ -438,9 +441,14 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
   return !isTermInURL(tbString, para.content)
 }
 
-// Display time blocks with .timeBlock style
-// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
-// Note: copy from HTMLView.js to avoid React problem
+/** 
+ * Display time blocks with .timeBlock style
+* Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+* Note: copy from HTMLView.js to avoid React problem
+* @param {string} input
+* @returns {string}
+* FIXME: why is this not used?
+ */
 function convertTimeBlockToHTML(input: string): string {
   let output = input
   if (isTimeBlockLine(input)) {
@@ -457,6 +465,7 @@ function convertTimeBlockToHTML(input: string): string {
  * @author @jgclark, @dwertheimer, ChatGPT
  * @param {Array<TParagraph>} items - Array of Paragraphs with a content field.
  * @returns {Array<TParagraph>} - Array of Paragraphs sorted by the computed start time represented in the text, ignoring ones that do not contain times.
+ * // FIXME: why is this not used?
  */
 function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
   const withDates = items
@@ -484,7 +493,6 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
 
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
-    
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
     
 

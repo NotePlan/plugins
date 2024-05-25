@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 20.5.2024 for v2.0.0 by @jgclark
+// Last updated 24.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -180,7 +180,8 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         const thisObject = FTSCList.find((obj) => obj.filename === filename)
         const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
-        const res = await incrementallyRefreshSections(data)
+        // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
+        const res = await incrementallyRefreshSections(data, true)
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }

@@ -1,6 +1,6 @@
 // @flow
 // Show relative time
-// TODO: use MOMENT moment.duration(-1, "minutes").humanize(true);
+// COULD DO: use MOMENT moment.duration(-1, "minutes").humanize(true);
 // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
 // or https://theprogrammingexpert.com/javascript-count-up-timer/
 

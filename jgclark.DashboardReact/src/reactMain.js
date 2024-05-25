@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 17.5.2024 for v2.0.0 by @jgclark
+// Last updated 23.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -171,7 +171,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   const sections = config.FFlag_ForceInitialLoad === true ? await getAllSectionsData(demoMode) : await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode)
 
   return {
-    sections,
+    sections: await getSomeSectionsData([allSectionDetails[0].sectionCode], demoMode, true),
     lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 
@@ -242,7 +242,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
 async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
-  const sections = await getAllSectionsData(demoMode)
+  const sections = await getAllSectionsData(demoMode, false)
   logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
   reactWindowData.pluginData.sections = sections
   logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)

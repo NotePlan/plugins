@@ -1,18 +1,29 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-Misc TODO:
-- Bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
-- Bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
-- (dwertheimer) Banners are not working
-- Bug (from 1.x) Checklists not ignored as per setting
-- the moveNote function requires a DataStore call under the hood, so needs moving back to the plugin side
-- will addTask button to today mean we'll get a double refresh if there's a trigger? Can that be stopped in the trigger checker?
+## What has changed since v1.x
+- The different sections are now refreshed progressively, so the first sections appear more quickly.
+- When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
+- Can now show multiple tags/mentions, by specifying them in the settings separated by commas
+- New 'filter' menu with a dropdown that allows you to toggle on or off all the main display settings -- moved from the Preferences Pane
+- New 'settings' menu ⚙️ which has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
+- Extended the task dialog box, with a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
+- Extended the project dialog box, with a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
+- TODO: fixed bug: checklists not ignored as per setting
+- TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
+- ??? TODO: fied bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
+- other bug fixes
+
+## [2.0.0.a26] @jgc 2024-05-24
+- fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor
+- fixing dark mode CSS for new Settings dropdown
+- set more natural widths for the various dropdown menus
+- WIP moved "Show referenced items in separate section?" from setting to toggles dropdown -- but it's not yet making an effect. Note: I don't understand the settings system completely now, so don't know what's wrong.
 
 ## [2.0.0.a25] @dwertheimer
-- Feature Flags
-- Settings window
-- Autorefresh
+- added Feature Flags
+- initial Settings dropdown for testing
+- initial Autorefresh for testing
 - Moved some hooks around
 - Created resize watcher custom hook
 - Fixed bug: tags not showing up after new settings added

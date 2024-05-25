@@ -17,7 +17,8 @@ import {
 import { validateAndFlattenMessageObject } from './shared'
 import {
   type MessageDataObject,
-  type TBridgeClickHandlerResult, type TControlString,
+  type TBridgeClickHandlerResult,
+  // type TControlString,
 } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
@@ -394,10 +395,11 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
-      logWarn('scheduleAllYesterdayOpenToToday', `Can't find any overdue items, which was not expected.`)
+      // FIXME: can get here with duplicate between Yesterday and Overdue
+      logWarn('scheduleAllOverdueOpenToToday', `Can't find any overdue items, which was not expected.`)
       return { success: false }
     } else {
-      logInfo('getDataForDashboard', `Found ${totalOverdue} overdue items to move to today (in ${timer(thisStartTime)})`)
+      logInfo('scheduleAllOverdueOpenToToday', `Found ${totalOverdue} overdue items to move to today (in ${timer(thisStartTime)})`)
     }
 
     const todayDateStr = getTodaysDateHyphenated()
@@ -482,8 +484,8 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     reactWindowData.pluginData.refreshing = false
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllYesterdayOpenToToday finished `)
 
-    // Update display of this section
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON'], sectionCodes: ['OVERDUE'] }
+    // Update display of this section (and Today)
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON'], sectionCodes: ['TD', 'OVERDUE'] }
 
   }
   catch (error) {

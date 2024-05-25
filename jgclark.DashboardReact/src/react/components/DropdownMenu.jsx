@@ -1,4 +1,9 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the Dropdown menu with display toggles.
+// Called by Header component.
+// Last updated 25.5.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState } from 'react'
 import type { TDropdownItem } from '../../types'
 import Switch from './Switch.jsx'

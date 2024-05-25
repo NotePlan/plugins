@@ -3,6 +3,12 @@ import { allSectionDetails, nonSectionSwitches } from "../../constants.js"
 import type { TDropdownItem, TSharedSettings } from "../../types.js"
 import { getTagSectionDetails } from "./sectionHelpers.js"
 
+/**
+ * Create array of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, nonSectionSwitches
+ * @param {TSharedSettings} sharedSettings 
+ * @param {TAnyObject} pluginSettings 
+ * @returns {Array<TDropdownItem>}
+ */
 export const createFilterDropdownItems = (
   sharedSettings: TSharedSettings,
   pluginSettings: TAnyObject

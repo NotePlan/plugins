@@ -1,5 +1,3 @@
-// Dialog.jsx
-
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Item Control and Project dialogs.
