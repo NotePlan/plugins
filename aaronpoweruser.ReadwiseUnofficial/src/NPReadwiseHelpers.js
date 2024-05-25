@@ -135,3 +135,18 @@ export function getLocalDate(): string {
   const local_dateTime = new Date(local_dateTime_in_mills).toISOString()
   return local_dateTime.split('T')[0]
 }
+
+/**
+ * Get the paragraph type character based on settings
+ * @returns {string} - the paragraph type character
+ */
+export function getParagraphTypeChar(): string {
+  const paragraphType = DataStore.settings.paragraphType ?? 'quote'
+  let paragraphChar = '>'
+  if (paragraphType === 'quote') {
+    paragraphChar = '>'
+  } else if (paragraphType === 'list') {
+    paragraphChar = '-'
+  }
+  return paragraphChar
+}

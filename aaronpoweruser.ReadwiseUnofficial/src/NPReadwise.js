@@ -1,7 +1,7 @@
 // @flow
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
-import { checkAccessToken, escapeTwitterHandle, removeInvalidChars, removeNewlines } from './NPReadwiseHelpers'
+import { checkAccessToken, escapeTwitterHandle, getParagraphTypeChar, removeInvalidChars, removeNewlines } from './NPReadwiseHelpers'
 import { parseHighlightsAndWriteToNote } from './NPReadwiseNotes'
 import { startReadwiseSyncLog, finishReadwiseSyncLog } from './NPReadwiseSyncLog'
 import { log, logDebug, logError } from '@helpers/dev'
@@ -126,7 +126,7 @@ async function getReadwiseDailyReview(): Promise<string> {
 
     await highlights.map((highlight) => {
       const formattedHighlight = `${removeNewlines(highlight.text)} [ [[${removeInvalidChars(highlight.title)}]], [[${escapeTwitterHandle(highlight.author)}]] ]`
-      highlightString += `> ${formattedHighlight}\n`
+      highlightString += `${getParagraphTypeChar()} ${formattedHighlight}\n`
     })
     if (highlightString.endsWith('\n')) {
       // remove the last newline
