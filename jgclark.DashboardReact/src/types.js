@@ -143,6 +143,7 @@ export type MessageDataObject = {
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string, 
   newDimensions?: { width: number, height: number },
+  settings?: TAnyObject,
   // filename: string, // now in item
   // encodedFilename?: string, // now in item
   // content: string, // now in item
