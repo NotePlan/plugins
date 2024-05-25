@@ -171,7 +171,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   const sections = config.FFlag_ForceInitialLoad === true ? await getAllSectionsData(demoMode) : await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode)
 
   return {
-    sections: await getSomeSectionsData([allSectionDetails[0].sectionCode], demoMode, true),
+    sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 
