@@ -133,7 +133,7 @@ export async function refreshAllSections(): Promise<void> {
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
   const newSections = await getAllSectionsData(reactWindowData.demoMode)
-  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: Date.now() }
+  const changedData = { refreshing: false, sections: newSections, lastFullRefresh: new Date() }
   await setPluginData(changedData, 'Finished Refreshing all sections')
 }
 
@@ -184,7 +184,7 @@ export async function refreshSomeSections(data: MessageDataObject): Promise<TBri
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false)
   // $FlowFixMe
   const mergedSections = mergeSections(existingSections, newSections)
-  // pluginData.lastFullRefresh = Date.now()
+  // pluginData.lastFullRefresh = new Date()
   const updates:TAnyObject = { sections: mergedSections }
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)

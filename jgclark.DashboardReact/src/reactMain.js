@@ -80,7 +80,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
-    // logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
+    logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
