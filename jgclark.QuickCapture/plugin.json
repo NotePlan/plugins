@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.16.0",
+  "plugin.version": "0.16.1",
   "plugin.lastUpdateInfo": "0.16.0: new \"/jot\" and \"/quick add checklist under heading\" commands. Some bug fixes.\n0.15.2: bug fix.\n0.15.1: new x-callback args when creating headings. Bug fixes.\n0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.\n0.14.1: bug fixes\n0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
