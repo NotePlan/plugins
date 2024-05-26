@@ -658,6 +658,10 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<So
         newInfo = processByTimeBlockTag(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
         break
       }
+      case 'MANUAL_ORDERING': {
+        const sortedTaskList = sortListBy(todosWithDurations, ['lineIndex'])
+        newInfo = matchTasksToSlots(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
+      }
     }
   } else {
     logDebug(

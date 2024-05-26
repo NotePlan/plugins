@@ -62,7 +62,7 @@ export async function createSyncedCopies(todos: Array<SortableParagraphSubset>, 
  * @param {Object} pluginJson - Plugin metadata for logging purposes.
  * @returns {Promise<Array<TParagraph>>} - The prepared list of todo items for today.
  */
-export async function gatherAndPrepareTodos(config: AutoTimeBlockingConfig, completedItems: Array<TParagraph>, pluginJson: Object): Promise<$ReadOnlyArray<TParagraph>> {
+export async function gatherAndPrepareTodos(config: AutoTimeBlockingConfig, completedItems: Array<TParagraph>): Promise<$ReadOnlyArray<TParagraph>> {
   deleteParagraphsContainingString(Editor, config.timeBlockTag)
 
   // Fetch todo items for today
@@ -118,17 +118,19 @@ export function getConfig(): AutoTimeBlockingConfig {
  * - items in the current note that are synced tasks to elsewhere (will be in references also)
  *
  * @param {*} config
+ * @param {Boolean} isSyncedCopyRun - true if we are just trying to get synced copies output (makes a difference in MANUAL_ORDERING mode)
  * @returns
  */
-export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
+export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig, isSyncedCopyRun = false): Array<TParagraph> {
   const { includeTasksWithText, excludeTasksWithText, includeAllTodos, timeBlockTag } = config
   // filter down to just the open todos
   const backlinkParas = getTodaysReferences(Editor.note).filter((p) => p.type === 'open')
   logDebug(pluginJson, `Found ${backlinkParas.length} backlink paras`)
   clof(backlinkParas, `getTodaysFilteredTodos backlinkParas filtered to open`, ['filename', 'type', 'content'], true)
-  let todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, includeAllTodos) : []
+  let todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, includeAllTodos).filter((p) => p.type === 'open') : []
   if (todosInNote.length > 0) {
     logDebug(pluginJson, ` getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them to the possibilities.`)
+    clof(todosInNote, `getTodaysFilteredTodos todosInNote filtered to open`, ['filename', 'type', 'content'], true)
     // we want to eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
     // but it's possible that this is a normal task in the note that is not in references, so for now, commenting this filter out
@@ -141,7 +143,8 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
     todosInNote = todosInNote.filter((todo) => !isTimeBlockLine(todo.content)) // if a user is using the todo character for timeblocks, eliminate those lines
     todosInNote = todosInNote.filter((todo) => !new RegExp(timeBlockTag).test(todo.content)) // just to be extra safe, make sure we're not adding our own timeblocks
   }
-  const backLinksAndNoteTodos = [...backlinkParas, ...todosInNote]
+  const backLinksAndNoteTodos = config.mode === 'MANUAL_ORDERING' && !isSyncedCopyRun ? todosInNote : [...backlinkParas, ...todosInNote]
+
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
   const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos, 'first', true)
   logDebug(pluginJson, `Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
@@ -152,6 +155,7 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
   logDebug(pluginJson, `After includeTasksWithPatterns (${(includeTasksWithText ?? []).join(', ')}), ${todosParagraphs.length} potential items`)
   todosParagraphs = Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0 ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
   logDebug(pluginJson, `After excludeTasksWithPatterns (${(excludeTasksWithText ?? []).join(', ')}), ${todosParagraphs.length} potential items`)
+  clof(todosParagraphs, `getTodaysFilteredTodos todosParagraphs`, ['filename', 'type', 'content'], true)
   return todosParagraphs.filter((t) => t.content)
 }
 

@@ -298,13 +298,17 @@ export async function insertSyncedCopiesOfTodayTodos(passBackResults?: string): 
     await saveEditorIfNecessary()
     logDebug(pluginJson, `insertSyncedCopiesOfTodayTodos after saveEditorIfNecessary`)
     const start = Editor.selection?.start // try to keep it from scrolling to end of doc
-    const todosParagraphs = await getTodaysFilteredTodos(config)
-    clof(todosParagraphs, 'insertSyncedCopiesOfTodayTodos todosParagraphs', ['filename', 'content'], true)
+    const todosParagraphs = await getTodaysFilteredTodos(config, true)
+    clof(todosParagraphs, 'insertSyncedCopiesOfTodayTodos todosParagraphs', ['filename', 'type', 'content'], true)
     const sortedParasExcludingCurrentNote = sortListBy(
       todosParagraphs.filter((p) => p.filename !== Editor.filename),
       'content',
     )
-    clof(sortedParasExcludingCurrentNote, 'insertSyncedCopiesOfTodayTodos sortedParasExcludingCurrentNote', ['filename', 'content'])
+    clof(sortedParasExcludingCurrentNote, 'insertSyncedCopiesOfTodayTodos sortedParasExcludingCurrentNote ${sortedParasExcludingCurrentNote.length} items', [
+      'filename',
+      'type',
+      'content',
+    ])
     if (passBackResults && /[Yy]es/.test(passBackResults)) {
       // called from a template, so send a string back
       const syncedList = getSyncedCopiesAsList(sortedParasExcludingCurrentNote)
@@ -445,7 +449,7 @@ export async function markDoneAndRecreateTimeblocks(incoming: string | null = nu
  * @param {AutoTimeBlockingConfig} config - The configuration object for auto time blocking.
  * @param {Object} pluginJson - Plugin metadata for logging purposes.
  */
-function initializeAndLogStart(config: AutoTimeBlockingConfig, pluginJson: Object): void {
+function initializeAndLogStart(config: AutoTimeBlockingConfig): void {
   const { timeBlockTag } = config
 
   // Log the start of the operation with the current time
@@ -468,7 +472,7 @@ function initializeAndLogStart(config: AutoTimeBlockingConfig, pluginJson: Objec
  * @param {Object} pluginJson - Plugin metadata for logging purposes.
  * @returns {Array<TParagraph>} - The sorted list of todo items, ready for time block allocation.
  */
-function categorizeAndSortTasks(todosWithLinks: $ReadOnlyArray<TParagraph>, pluginJson: Object): Array<SortableParagraphSubset> {
+function categorizeAndSortTasks(todosWithLinks: $ReadOnlyArray<TParagraph>, config: AutoTimeBlockingConfig): Array<SortableParagraphSubset> {
   if (todosWithLinks.length === 0) {
     logDebug(pluginJson, `No todos to categorize and sort.`)
     return []
@@ -481,7 +485,8 @@ function categorizeAndSortTasks(todosWithLinks: $ReadOnlyArray<TParagraph>, plug
   // Combine open and scheduled tasks, then sort by priority
   const openOrScheduledForToday = [...(tasksByType.open ?? []), ...(tasksByType.scheduled ?? [])]
   clof(openOrScheduledForToday, `categorizeAndSortTasks openOrScheduledForToday`, ['filename', 'type', 'content'], true)
-  const sortedTodos = sortListBy(openOrScheduledForToday, ['-priority', 'filename', '-duration'])
+  const sortKeys = config.mode === 'MANUAL_ORDERING' ? ['lineIndex'] : ['-priority', 'filename', '-duration']
+  const sortedTodos = sortListBy(openOrScheduledForToday, sortKeys)
   clof(sortedTodos, `categorizeAndSortTasks sortedTodos`, ['priority', 'filename', 'duration', 'content'], true)
   logDebug(pluginJson, `After sortListBy, sorted ${sortedTodos.length} tasks by priority.`)
 
@@ -499,7 +504,7 @@ function categorizeAndSortTasks(todosWithLinks: $ReadOnlyArray<TParagraph>, plug
  * @param {Object} pluginJson - Plugin metadata for logging and debugging.
  * @returns {Promise<?Array<string>>} - The results to be passed back, if any.
  */
-function handleNoTodosOrResults(passBackResults: boolean, timeBlockTextList: ?Array<string>, pluginJson: Object): Array<string> {
+function handleNoTodosOrResults(passBackResults: boolean, timeBlockTextList: ?Array<string>): Array<string> {
   // Check if there are no todos or results to pass back
   if (!passBackResults) {
     const message =
@@ -574,12 +579,16 @@ async function generateTimeBlocks(
 ): Promise<{ blockList: Array<string>, noTimeForTasks: Object, timeBlockTextList: Array<string> }> {
   // Generate a populated time map for today
   const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, config.intervalMins, config)
-  logDebug(pluginJson, `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
-
+  logDebug(pluginJson, `generateTimeBlocks: After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots`)
+  clof(sortedTodos, `generateTimeBlocks sortedTodos`, ['lineIndex', 'content'], true)
   // Calculate time blocks for events based on the populated time map and sorted todo tasks
   const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-  logDebug(pluginJson, `After getTimeBlockTimesForEvents`)
-
+  logDebug(
+    pluginJson,
+    `generateTimeBlocks after getTimeBlockTimesForEvents; eventsToTimeblock.timeMap.length=${eventsToTimeblock.timeMap.length}, eventsToTimeblock.blockList.length=${
+      eventsToTimeblock.blockList.length
+    } eventsToTimeblock.timeBlockTextList.length=${eventsToTimeblock?.timeBlockTextList?.toString() || ''}`,
+  )
   // Prepare the list of text entries for time blocks
   const { blockList, noTimeForTasks } = eventsToTimeblock
   let { timeBlockTextList } = eventsToTimeblock
@@ -610,26 +619,26 @@ async function generateTimeBlocks(
  */
 export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig(), completedItems: Array<TParagraph> = []): Promise<?Array<string>> {
   // Step 1: Initialize and log start
-  initializeAndLogStart(config, pluginJson)
+  initializeAndLogStart(config)
 
   // Step 2: Fetch and prepare todos
-  const cleanTodayTodoParas = await gatherAndPrepareTodos(config, completedItems, pluginJson)
+  const cleanTodayTodoParas = await gatherAndPrepareTodos(config, completedItems)
 
   // Step 3: Categorize and sort tasks
-  const sortedTodos = categorizeAndSortTasks(cleanTodayTodoParas, pluginJson)
+  const sortedTodos = categorizeAndSortTasks(cleanTodayTodoParas, config)
 
   // Step 4: Generate time blocks
   const dateStr = getDateStringFromCalendarFilename(Editor.filename) // Assuming this utility function exists and is accurate
   if (!dateStr) {
-    return handleNoTodosOrResults(config.passBackResults || false, null, pluginJson)
+    return handleNoTodosOrResults(config.passBackResults || false, null)
   }
 
-  const { blockList, noTimeForTasks, timeBlockTextList } = await generateTimeBlocks(sortedTodos, dateStr, config, pluginJson)
+  const { blockList, noTimeForTasks, timeBlockTextList } = await generateTimeBlocks(sortedTodos, dateStr, config)
 
   // Check if time blocks were successfully generated
   if (blockList.length === 0 && Object.keys(noTimeForTasks).length === 0) {
     // If no blocks were created and no tasks are without time, handle accordingly
-    return handleNoTodosOrResults(config.passBackResults || false, null, pluginJson)
+    return handleNoTodosOrResults(config.passBackResults || false, null)
   }
 
   // Step 5: Insert and finalize time blocks
@@ -640,5 +649,5 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   }
 
   // Step 6: Handle no todos or results scenario and return results
-  return handleNoTodosOrResults(config.passBackResults || false, timeBlockTextList, pluginJson)
+  return handleNoTodosOrResults(config.passBackResults || false, timeBlockTextList)
 }

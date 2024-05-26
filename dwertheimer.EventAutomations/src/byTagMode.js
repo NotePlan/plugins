@@ -76,7 +76,7 @@ export function handleUnprocessedTasks(
   }
 
   config.mode = 'PRIORITY_FIRST'
-  clof(finalUnprocessedTasks, `handleUnprocessedTasks finalUnprocessedTasks=`)
+  clof(finalUnprocessedTasks, `handleUnprocessedTasks finalUnprocessedTasks=`, 'content', true)
 
   return matchTasksToSlots(finalUnprocessedTasks, { blockList: newBlockList, timeMap }, config)
 }

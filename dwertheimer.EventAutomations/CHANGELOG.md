@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.21.0] 2024-05-26 @dwertheimer
+
+- added MANUAL_ORDERING mode (for @Thor)
+
 ## [1.20.0] 2024-02-23 @dwertheimer - thx @Werwowolf
 
 - Feature: add named timeframes in settings (e.g. "morning", "early", "afternoon") and a task tagged with #afternoon will get placed there

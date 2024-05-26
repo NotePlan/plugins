@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.20.0",
-  "plugin.lastUpdateInfo": "1.20.0: Add timeframes tags to have tasks placed in a time of day (see readme). Also Sort todos by priority then date (oldest to newest), then duration. Bug fix: Ignore backlinks which are not todos",
+  "plugin.version": "1.21.0",
+  "plugin.lastUpdateInfo": "1.21.0: Add Manual Ordering mode (orders todos in today's note by the order in the note) -- feature request from @Thor\n Previously:\n- Add timeframes tags to have tasks placed in a time of day (see readme). Also Sort todos by priority then date (oldest to newest), then duration. Bug fix: Ignore backlinks which are not todos",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -345,9 +345,10 @@
       "choices": [
         "PRIORITY_FIRST",
         "LARGEST_FIRST",
-        "BY_TIMEBLOCK_TAG"
+        "BY_TIMEBLOCK_TAG",
+        "MANUAL_ORDERING"
       ],
-      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first. BY_TIMEBLOCK_TAG will try to slot items into a pre-existing timeblock that matches a tag on the task (e.g. a pre-existing timeblock called \"production\" and a task \"* do something #production\"). Will then fall back to PRIORITY_FIRST if no matching timeblock is found.",
+      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first. BY_TIMEBLOCK_TAG will try to slot items into a pre-existing timeblock that matches a tag on the task (e.g. a pre-existing timeblock called \"production\" and a task \"* do something #production\"). Will then fall back to PRIORITY_FIRST if no matching timeblock is found. MANUAL_ORDERING limits tasks to ones in today's note and orders them in the order they appear in the note.",
       "default": "PRIORITY_FIRST",
       "required": true
     },
