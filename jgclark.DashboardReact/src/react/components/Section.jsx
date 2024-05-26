@@ -185,18 +185,10 @@ function Section(inputObj: SectionProps): React$Node {
           <div className="sectionButtons">
             {buttons}
             {section.sectionItems.length /* && section.sectionCode === "OVERDUE" */ && FFlag_InteractiveProcessing && (
-              <>
-                <span className="fa-layers fa-fw" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
-                  <i className="fa-solid  fa-arrows-rotate" style="opacity:0.25"></i>
-                  <span className="fa-layers-text" data-fa-transform="shrink-8 " style="font-weight:900; ">{items.length}</span>
-                </span>
-                <button className="fa-layers fa-fw" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
-                  <i className="fa-solid  fa-arrows-rotate" style="opacity:0.25"></i>
-                  <span className="fa-layers-text" data-fa-transform="shrink-8 " style="font-weight:900; ">{items.length}</span>
-                </button>
-                <button className="PCButton" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
-                  Process Tasks <i className="fa-regular fa-person-digging"></i>
-                </button>
+              <><button className="PCButton" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
+                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.5 }}></i>
+                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{items.length}</span>
+              </button>
               </>
             )}
           </div>
