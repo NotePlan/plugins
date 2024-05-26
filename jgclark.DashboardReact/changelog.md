@@ -4,6 +4,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## What has changed since v1.x
 - The different sections are now refreshed progressively, so the first sections appear more quickly.
 - When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
+- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for [5m]
 - Can now show multiple tags/mentions, by specifying them in the settings separated by commas
 - New 'filter' menu with a dropdown that allows you to toggle on or off all the main display settings -- moved from the Preferences Pane
 - New 'settings' menu ⚙️ which has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane

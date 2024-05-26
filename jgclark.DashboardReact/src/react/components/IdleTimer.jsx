@@ -31,6 +31,7 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     }
 
     const handleVisibilityChange = () => {
+      // $FlowIgnore
       if (document.visibilityState === 'visible') {
         setLastActivity(Date.now())
       }
@@ -39,12 +40,14 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     window.addEventListener('mousemove', handleUserActivity)
     window.addEventListener('keydown', handleUserActivity)
     window.addEventListener('scroll', handleUserActivity)
+    // $FlowIgnore
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('mousemove', handleUserActivity)
       window.removeEventListener('keydown', handleUserActivity)
       window.removeEventListener('scroll', handleUserActivity)
+      // $FlowIgnore
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
@@ -53,7 +56,7 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
     // debug all this       if (Date.now() - lastActivity >= idleTime) {
     const interval = setInterval(() => {
       if (Date.now() - lastActivity >= idleTime) {
-        logDebug('IdleTimer', 'we are over the limit now, calling onIdleTimeout')
+        logDebug('IdleTimer', `we are over the ${idleTime/1000/60}m limit now, calling onIdleTimeout`)
         onIdleTimeout()
       }
     }, idleTime)
