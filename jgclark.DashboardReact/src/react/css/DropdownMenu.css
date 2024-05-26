@@ -6,7 +6,7 @@
     position: absolute;
     background-color: var(--bg-alt-color);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1;
+    /* z-index: 1; */
     overflow: hidden; /* Hide content when collapsed */
     max-height: 0; /* Initially hidden */
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out; /* Transition for the unfurl effect */
@@ -220,7 +220,7 @@
     border-radius: 4px;
     background-color: var(--bg-main-color);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+    z-index: 5; /* needs to be able to cover other content in dropdown */
   }
   
   /* Style for combobox-option */

@@ -102,7 +102,7 @@ export async function getAllSectionsData(demoMode: boolean = false, useEditorWhe
 /**
  * Generate data for some specified sections (subject to user currently wanting them as well)
  * NOTE: Always refreshes today and the TAG sections
- * @param {Array<string>} sectionCodes (default: allSectionCodes)
+ * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} demoMode (default: false)
  * @param {boolean} force (default: false) - refresh sections even if setting is not enabled
  * @param {boolean} useEditorWherePossible?
@@ -133,6 +133,7 @@ export async function getSomeSectionsData(
     return []
   }
 }
+
 
 /**
  * Get open items from Today's note
@@ -175,6 +176,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
         // Get list of open tasks/checklists from this calendar note
         const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
+        logDebug('getDataForDashboard', `getOpenItemParasForCurrentTimePeriod Found ${combinedSortedParas.length} open items and ${_sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // write one combined section
         combinedSortedParas.map((p) => {

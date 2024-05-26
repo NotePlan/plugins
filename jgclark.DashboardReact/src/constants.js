@@ -32,7 +32,7 @@ export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
 
 export const nonSectionSwitches = [
   { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
-  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false },
+  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', default: false },
 ]

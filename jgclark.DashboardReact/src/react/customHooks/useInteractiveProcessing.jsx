@@ -26,11 +26,12 @@ function useInteractiveProcessing(
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void
 ): void {
+// Sets the items to be interactively processed when reactSettings.interactiveProcessing has been set
 useEffect(() => {
     if (!reactSettings) return
-    if (!(thisSection.sectionCode === 'OVERDUE')) return
     if (!reactSettings.interactiveProcessing) return
-    logDebug('useInteractiveProcessing', `reactSettings.interactiveProcessing: ${reactSettings?.interactiveProcessing}; items in section: ${items.length} items, itemsCopy (overdue loop items to work on): ${itemsCopy.length} items`)
+    if (reactSettings.interactiveProcessing !== thisSection.name) return
+    logDebug('useInteractiveProcessing', `reactSettings.interactiveProcessing: ${reactSettings?.interactiveProcessing ? 'yes' : 'no'}; items in section ${String(thisSection.name)}: ${items.length} items, itemsCopy (overdue loop items to work on): ${itemsCopy.length} items`)
     if (reactSettings?.interactiveProcessing && items.length > 0 && itemsCopy.length === 0) {
         logDebug('useInteractiveProcessing', `Initializing itemsCopy to: ${items.length} items`)
         setItemsCopy([...items])
@@ -39,10 +40,11 @@ useEffect(() => {
     }
 }, [reactSettings?.interactiveProcessing, reactSettings, items, itemsCopy, thisSection.sectionCode, setItemsCopy])
 
+  // Sets the next item in itemsCopy to be processed and opens the dialog
   useEffect(() => {
     if (!reactSettings) return
-    if (!(thisSection.sectionCode === 'OVERDUE')) return
     if (!reactSettings.interactiveProcessing) return
+    if (reactSettings.interactiveProcessing !== thisSection.name) return
     if (itemsCopy.length === 0) return
     logDebug('useInteractiveProcessing', 'overdue processing, check for items to process', reactSettings)
     const currentOverdueIndex = reactSettings.currentOverdueIndex || 0
@@ -57,7 +59,7 @@ useEffect(() => {
           ...prev.dialogData,
           isOpen: true,
           isTask: true,
-          details: { item: itemsCopy[currentOverdueIndex] },
+          details: { ...prev.dialogData.details, item: itemsCopy[currentOverdueIndex] },
         },
         currentOverdueIndex: currentOverdueIndex + 1,
       }))

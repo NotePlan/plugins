@@ -4,9 +4,10 @@
 // Called by Dashboard compponent
 // Last updated 10.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
-import React from 'react'
+import React, { useState } from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
 import { getFeatureFlags } from '../../shared.js'
+import useInteractiveProcessing from '../customHooks/useInteractiveProcessing.jsx'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -20,12 +21,18 @@ type SectionProps = {
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(inputObj: SectionProps): React$Node {
+
+  const [itemsCopy, setItemsCopy] = useState<Array<TSectionItem>>([])
+
   try {
     const { section } = inputObj
     const items: Array<TSectionItem> = section.sectionItems
-    const { sharedSettings, setReactSettings, pluginData } = useAppContext()
+    const { sharedSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
+
     // in destructuring rename "featureFlags" to 'ffStr':
     const { FFlag_InteractiveProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
+
+    useInteractiveProcessing(items, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin)
 
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
@@ -157,13 +164,12 @@ function Section(inputObj: SectionProps): React$Node {
       setReactSettings(prevSettings => ({
         ...prevSettings,
         lastChange: `_ProcessTasksClick`,
-        interactiveProcessing: true,
+        interactiveProcessing: section.name /* clickPosition save to keep track of where it was clicked and not the action buttons clicks */,
         currentOverdueIndex: 0,
-        dialogData: { isOpen: false, isTask: true, details: {}, clickPosition }
+        dialogData: { isOpen: false, isTask: true, details: {}, clickPosition: prevSettings.interactiveProcessing || clickPosition }
       }))
     }
 
-    // TODO(later): @DW: "this will need making 'less binary' when wanting to have multiple tags"
     const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
     const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
 
@@ -177,10 +183,12 @@ function Section(inputObj: SectionProps): React$Node {
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
-            {section.sectionCode === "OVERDUE" && FFlag_InteractiveProcessing && (
-              <button className="PCButton" onClick={handleProcessTasksClick}>
-                Process Tasks <i className="fa-regular fa-person-digging"></i></button>)}
             {buttons}
+            {section.sectionItems.length /* && section.sectionCode === "OVERDUE" */ && FFlag_InteractiveProcessing && (
+              <button className="PCButton" onClick={handleProcessTasksClick}>
+                Process Tasks <i className="fa-regular fa-person-digging"></i>
+              </button>)
+            }
           </div>
         </div>
         <ItemGrid thisSection={inputObj.section} items={itemsToShow} />

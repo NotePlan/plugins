@@ -20,6 +20,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - set more natural widths for the various dropdown menus
 - WIP moved "Show referenced items in separate section?" from setting to toggles dropdown -- but it's not yet making an effect. Note: I don't understand the settings system completely now, so don't know what's wrong.
 
+- dbw: Started Architecture/How Stuff Works Notes
+- dbw: fixed z-index bugs which caused floating issues
+- dbw: WIP interactive processing loop for all sections (fflag)
+
 ## [2.0.0.a25] @dwertheimer
 - added Feature Flags
 - initial Settings dropdown for testing
