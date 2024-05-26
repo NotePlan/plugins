@@ -22,7 +22,7 @@ type SectionProps = {
  */
 function Section(inputObj: SectionProps): React$Node {
 
-  const [itemsCopy, setItemsCopy] = useState<Array<TSectionItem>>([])
+  const [itemsCopy, setItemsCopy] = useState < Array < TSectionItem >> ([])
 
   try {
     const { section } = inputObj
@@ -159,8 +159,8 @@ function Section(inputObj: SectionProps): React$Node {
       descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
     }
 
-    const handleProcessTasksClick = (e: MouseEvent):void => {
-      const clickPosition = { clientY: e.clientY, clientX: e.clientX+200 /* push it off the left edge a little */ }
+    const handleProcessTasksClick = (e: MouseEvent): void => {
+      const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 /* push it off the left edge a little */ }
       setReactSettings(prevSettings => ({
         ...prevSettings,
         lastChange: `_ProcessTasksClick`,
@@ -178,17 +178,27 @@ function Section(inputObj: SectionProps): React$Node {
         <div className="sectionInfo">
           <div className={`${section.sectionTitleClass} sectionName`}>
             <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
-            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') :  section.name}
+            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
             {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
           </div>{' '}
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
             {buttons}
             {section.sectionItems.length /* && section.sectionCode === "OVERDUE" */ && FFlag_InteractiveProcessing && (
-              <button className="PCButton" onClick={handleProcessTasksClick}>
-                Process Tasks <i className="fa-regular fa-person-digging"></i>
-              </button>)
-            }
+              <>
+                <span className="fa-layers fa-fw" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
+                  <i className="fa-solid  fa-arrows-rotate" style="opacity:0.25"></i>
+                  <span className="fa-layers-text" data-fa-transform="shrink-8 " style="font-weight:900; ">{items.length}</span>
+                </span>
+                <button className="fa-layers fa-fw" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
+                  <i className="fa-solid  fa-arrows-rotate" style="opacity:0.25"></i>
+                  <span className="fa-layers-text" data-fa-transform="shrink-8 " style="font-weight:900; ">{items.length}</span>
+                </button>
+                <button className="PCButton" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
+                  Process Tasks <i className="fa-regular fa-person-digging"></i>
+                </button>
+              </>
+            )}
           </div>
         </div>
         <ItemGrid thisSection={inputObj.section} items={itemsToShow} />
