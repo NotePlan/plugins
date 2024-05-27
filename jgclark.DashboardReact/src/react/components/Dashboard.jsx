@@ -88,7 +88,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   // if you don't want the info sent, use a _ for the first char of lastChange
   useEffect(() => {
     if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
-      logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
+      // logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
       const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
       sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', settings: strReactSettings }, 'Dashboard reactSettings updated', false)
@@ -103,7 +103,7 @@ function Dashboard({ pluginData }: Props): React$Node {
       const strSharedSetings = JSON.stringify(sharedSettings)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
     } else if (sharedSettings && Object.keys(sharedSettings).length > 0) {
-      logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)
+      // logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)
     }
   }, [sharedSettings])
 

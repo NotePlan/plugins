@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // @flow
 //--------------------------------------------------------------------------
 // Custom hook to handle the SettingsDialog in the Header component.

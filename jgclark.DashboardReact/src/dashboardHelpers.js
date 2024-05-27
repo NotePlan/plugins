@@ -128,6 +128,7 @@ export async function getSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getSettings()`)
   try {
     // Get plugin settings
+    // Question: Why not just use DataStore.settings?
     const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {

@@ -119,9 +119,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     if (settingsExist) {
       logDebug(
         `Webview`,
-        `${effectName} effect running: ${effectName} must have changed. ${effectName} exists? ${String(
-          setter !== undefined,
-        )}, settingsExist? ${String(settingsExist)} currentSettings: ${window.webkit && JSON.stringify(
+        `${effectName} effect running: ${effectName} must have changed. currentSettings: ${window.webkit && JSON.stringify(
           currentSettings || {},
           null,
           2,
