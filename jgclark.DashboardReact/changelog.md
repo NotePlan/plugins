@@ -25,6 +25,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: turn on checklist filtering in ItemGrid to make filtering immediate while refresh happens in background
 - dbw: fix bug in demo dashboard refresh forgetting demoMode
 - dbw: fix a couple of type paste errors in demo data
+- dbw: added fflag limit overdues to last 2w for @jgclark
 
 ## [2.0.0.a26] @jgc 2024-05-24
 - fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor
