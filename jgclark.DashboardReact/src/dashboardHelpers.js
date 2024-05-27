@@ -4,7 +4,7 @@
 // Last updated 28.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-// import moment from 'moment/min/moment-with-locales'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
@@ -88,6 +88,7 @@ export type dashboardConfigType = {
   triggerLogging: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   FFlag_ForceInitialLoad: boolean,
+  FFlag_LimitOverdues: boolean,
 }
 
 /**
@@ -120,7 +121,7 @@ export async function getCombinedSettings(): Promise<any> {
   const sharedSettingsKeys = Object.keys(sharedSettings)
   for (const key of sharedSettingsKeys) {
     // sharedSettings should override any pre-existing setting
-      returnObj[key] = sharedSettings[key]
+    returnObj[key] = sharedSettings[key]
   }
   return returnObj
 }
@@ -231,7 +232,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Note: this takes 100-110ms for me
     const startTime = new Date() // for timing only
     if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
-    // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
+      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
       logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
@@ -502,7 +503,15 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
-    
+
+    // Limit overdues to last n days for testing purposes
+    clo(config, 'getRelevantOverdueTasks looking for FFlag_LimitOverdues config: ${config.FFlag_LimitOverdues}')
+    if (config.FFlag_LimitOverdues) {
+      const cutoffDate = moment().subtract(14, 'days').format('YYYYMMDD')
+      logDebug('getRelevantOverdueTasks', `FFlag_LimitOverdues limiting to last 14 days (2w): > ${cutoffDate}`)
+      filteredOverdueParas = filteredOverdueParas.filter((p) => p.filename ? p.filename > cutoffDate : true)
+    }
+
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time

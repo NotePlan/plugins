@@ -12,8 +12,8 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
  * @returns {Function} - A function to handle the click event.
  */
 export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean = false):Function => (): void => {
-  const actionType = /*isDev ? 'windowReload' : */ 'refresh'
-  logDebug('Header', 'Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}')
+  const actionType = isDev ? 'windowReload' : 'refresh'
+  logDebug('Header', `Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}`)
   sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
 }
 
@@ -47,7 +47,7 @@ export const handleSwitchChange = (
   const isSection = key.startsWith('show')
   const isChecked = e?.target?.checked || false
 
-  logDebug('handleSwitchChange', `isSection: ${isSection}, isChecked: ${isChecked}`)
+  logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
 
   // This saves the change in local context, and then it will be picked up and sent to plugin
   if (setTSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
