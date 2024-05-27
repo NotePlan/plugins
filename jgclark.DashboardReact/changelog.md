@@ -15,6 +15,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - ??? TODO: fied bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - other bug fixes
 
+## [2.0.0.a27] @jgc 2024-05-27
+- restored the 'show referenced data in separate section' again when generating data
+- window dimensions are saved again between refreshes
+- note to DBW: I have moved some of the 'force' logic to getAllSectionsData, which is I think where it needs to be as that's used on initialLoad. I have left it in getSomeSectionsData as well, though I think it could be removed.
+
 ## [2.0.0.a26] @jgc 2024-05-24
 - fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor
 - fixing dark mode CSS for new Settings dropdown
