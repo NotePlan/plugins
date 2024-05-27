@@ -2,110 +2,147 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 25.5.2024 for v2.0.0 by @jgclark
+// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
 //--------------------------------------------------------------------------
 
-import React, { useState, useEffect } from 'react'
+//--------------------------------------------------------------------------
+// Imports
+//--------------------------------------------------------------------------
+import React from 'react'
 import { getFeatureFlags } from '../../shared.js'
 import { createFilterDropdownItems } from '../support/filterDropdownItems'
 import { createFeatureFlagItems } from '../support/featureFlagItems'
 import { createDashboardSettingsItems } from '../support/dashboardSettingsItems.js'
-import { handleSwitchChange, handleRefreshClick, handleSaveInput, handleDropdownFieldChange, handleToggleDropdownMenu, handleOpenMenuEffect, onDropdownMenuChangesMade } from '../support/headerHandlers'
+import {
+  handleSwitchChange,
+  handleRefreshClick,
+  handleSaveInput,
+  handleDropdownFieldChange,
+  onDropdownMenuChangesMade
+} from '../support/headerDropdownHandlers.js'
 import useLastFullRefresh from '../customHooks/useLastFullRefresh.js'
-import useSharedSettingsLogger from '../customHooks/useSharedSettingsLogger.js'
+import { useSettingsDialogHandler } from '../customHooks/useSettingsDialogHandler.jsx'
+import { useDropdownMenuHandler } from '../customHooks/useDropdownMenuHandler.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
+import SettingsDialog from './SettingsDialog.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import { useAppContext } from './AppContext.jsx'
+
+//--------------------------------------------------------------------------
+// Type Definitions
+//--------------------------------------------------------------------------
 
 type Props = {
   lastFullRefresh: Date,
 };
 
+type DropdownMenuHandlerType = {
+  openDropdownMenu: string | null,
+  dropdownMenuChangesMade: boolean,
+  setDropdownMenuChangesMade: (value: boolean) => void,
+  handleToggleDropdownMenu: (dropdown: string) => void,
+};
+
+//--------------------------------------------------------------------------
+// Header Component
+//--------------------------------------------------------------------------
+
 const Header = ({ lastFullRefresh }: Props): React$Node => {
+  //----------------------------------------------------------------------
+  // Context
+  //----------------------------------------------------------------------
   const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
+
+  //----------------------------------------------------------------------
+  // Hooks
+  //----------------------------------------------------------------------
   const timeAgo = useLastFullRefresh(lastFullRefresh)
-  useSharedSettingsLogger(sharedSettings)
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
+  const dropdownMenuHandler: DropdownMenuHandlerType = useDropdownMenuHandler(() => {
+    onDropdownMenuChangesMade(dropdownMenuHandler.setDropdownMenuChangesMade, sendActionToPlugin)()
+  })
+
+  const { openDropdownMenu, dropdownMenuChangesMade, setDropdownMenuChangesMade, handleToggleDropdownMenu } = dropdownMenuHandler
+
+  const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
+
+  //----------------------------------------------------------------------
+  // Constants
+  //----------------------------------------------------------------------
   const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
   const { settings } = pluginData
-
-  const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
-  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)  
 
   const dropdownItems = createFilterDropdownItems(sharedSettings, pluginData.settings)
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
 
-  const onChangesMade = onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)
-
-  useEffect(() => {
-    handleOpenMenuEffect(openDropdownMenu, dropdownMenuChangesMade, onChangesMade)
-  }, [openDropdownMenu, dropdownMenuChangesMade, onChangesMade])
-
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
   return (
     <div className="header">
       <div className="lastFullRefresh">
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
 
-      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin)} />
-
+      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, pluginData.settings._logLevel === 'DEV')} />
+      
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
       <div id="dropdowns">
         {/* Feature Flags dropdown */}
-        {settings?._logLevel === 'DEV' && <DropdownMenu
-          items={featureFlagItems}
-          handleSwitchChange={(key) => (e) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
-          }}
-          className={'feature-flags'}
-          iconClass="fa-solid fa-flag"
-          isOpen={openDropdownMenu === 'featureFlags'}
-          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('featureFlags')}
-          labelPosition="left"
-          // style={{ width: "200px", right: "10px" }} // Adjust the width as needed
-        />}
-        {/* More detailed settings dialog */}
-        {FFlag_DashboardSettings && <DropdownMenu
-          items={dashboardSettingsItems}
-          handleSaveInput={(key) => (newValue) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSaveInput(setSharedSettings)(key)(newValue)
-          }}
-          handleSwitchChange={(key) => (e) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
-          }}
-          handleComboChange={(key) => (e) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSaveInput(setSharedSettings)(key)(e)
-          }}
-          className={'dashboard-settings'}
-          iconClass="fa-solid fa-gear"
-          isOpen={openDropdownMenu === 'dashboardSettings'}
-          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('dashboardSettings')}
-          // style={{ width: "80vw" }} // Stop it getting too wide
-          onChangesMade={onChangesMade}
-        />}
+        {settings?._logLevel === 'DEV' && (
+          <DropdownMenu
+            items={featureFlagItems}
+            handleSwitchChange={(key, e) => {
+              handleDropdownFieldChange(setDropdownMenuChangesMade)()
+              handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+            }}
+            className={'feature-flags'}
+            iconClass="fa-solid fa-flag"
+            isOpen={openDropdownMenu === 'featureFlags'}
+            toggleMenu={() => handleToggleDropdownMenu('featureFlags')}
+            labelPosition="left"
+          />
+        )}
+
+        {/* Cog Icon for opening the settings dialog */}
+        {FFlag_DashboardSettings && (
+          <i
+            className="fa-solid fa-gear"
+            onClick={handleToggleDialog}
+            style={{ cursor: 'pointer' }}
+          ></i>
+        )}
+        {/* Render the SettingsDialog only when it is open */}
+        {isDialogOpen && (
+          <SettingsDialog
+            items={dashboardSettingsItems}
+            className={'dashboard-settings'}
+            isOpen={isDialogOpen}
+            toggleDialog={handleToggleDialog}
+          />
+        )}
         {/* Display toggles dropdown menu */}
         <DropdownMenu
           items={dropdownItems}
-          handleSwitchChange={(key) => (e) => {
+          handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
             handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
           }}
-          handleSaveInput={(key) => (newValue) => {
+          handleSaveInput={(key, newValue) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
             handleSaveInput(setSharedSettings)(key)(newValue)
           }}
           className={'filter'}
           iconClass="fa-solid fa-filter"
           isOpen={openDropdownMenu === 'filter'}
-          toggleMenu={() => handleToggleDropdownMenu(openDropdownMenu, setOpenDropdownMenu, dropdownMenuChangesMade, onChangesMade)('filter')}
+          toggleMenu={() => handleToggleDropdownMenu('filter')}
           labelPosition="left"
-          // style={{ width: "300px", right: "10px" }} // Adjust the width as needed
         />
       </div>
     </div>

@@ -82,7 +82,7 @@ export const openTodayItems: Array<TSectionItem> = [
     itemType: "checklist",
     para: {
       noteType: "Calendar",
-      type: "open",
+      type: "checklist",
       filename: thisFilename,
       priority: 0,
       content: "morning checklist 8:00AM",
@@ -95,7 +95,7 @@ export const openTodayItems: Array<TSectionItem> = [
     itemType: "checklist",
     para: {
       noteType: "Calendar",
-      type: "open",
+      type: "checklist",
       filename: thisFilename,
       priority: 0,
       content: "earliest task with timeblock 08:00-09:00",

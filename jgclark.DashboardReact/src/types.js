@@ -106,6 +106,8 @@ export type TActionType =
   | 'updateItemContent'
   | 'updateTaskDate'
   | 'windowWasResized'
+  | 'incrementallyRefreshSections'
+  | 'windowReload'
 // 'windowResized'
 
 export type TControlString =
@@ -217,4 +219,5 @@ export type TDropdownItem = {
   options?: Array<string>,
   textType?: 'title' | 'description' | 'separator',
   tooltip?: string,
+  description?: string,
 };

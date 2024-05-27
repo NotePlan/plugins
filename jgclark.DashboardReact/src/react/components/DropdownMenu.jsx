@@ -2,23 +2,28 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dropdown menu with display toggles.
 // Called by Header component.
-// Last updated 25.5.2024 for v2.0.0 by @jgclark
+// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+//--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+// Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState } from 'react'
 import type { TDropdownItem } from '../../types'
-import Switch from './Switch.jsx'
-import InputBox from './InputBox.jsx'
-import ComboBox from './ComboBox.jsx'
-import TextComponent from './TextComponent.jsx'
+import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/DropdownMenu.css' // Import the CSS file
+import { logDebug } from '@helpers/react/reactDev.js'
 
+//--------------------------------------------------------------------------
+// Type Definitions
+//--------------------------------------------------------------------------
 type DropdownMenuProps = {
   items: Array<TDropdownItem>,
-  handleSwitchChange?: (key: string) => (e: any) => void,
-  handleInputChange?: (key: string) => (e: any) => void,
-  handleComboChange?: (key: string) => (e: any) => void,
-  handleSaveInput?: (key: string) => (newValue: string) => void,
-  onChangesMade?: () => void,
+  handleSwitchChange?: (key: string, e: any) => void,
+  handleInputChange?: (key: string, e: any) => void,
+  handleComboChange?: (key: string, e: any) => void,
+  handleSaveInput?: (key: string, newValue: string) => void,
+  onSaveChanges?: () => void,
   iconClass?: string,
   className?: string,
   labelPosition?: 'left' | 'right',
@@ -27,13 +32,17 @@ type DropdownMenuProps = {
   style?: Object, // Add style prop
 };
 
+//--------------------------------------------------------------------------
+// DropdownMenu Component Definition
+//--------------------------------------------------------------------------
+
 const DropdownMenu = ({
   items,
-  handleSwitchChange,
-  handleInputChange,
-  handleComboChange,
-  handleSaveInput,
-  onChangesMade,
+  handleSwitchChange = (key, e) => {},
+  handleInputChange = (key, e) => {},
+  handleComboChange = (key, e) => {},
+  handleSaveInput = (key, newValue) => {},
+  onSaveChanges,
   iconClass = 'fa-solid fa-filter',
   className,
   labelPosition = 'right',
@@ -41,25 +50,26 @@ const DropdownMenu = ({
   toggleMenu,
   style, // Destructure style prop
 }: DropdownMenuProps): React$Node => {
+  //----------------------------------------------------------------------
+  // Refs
+  //----------------------------------------------------------------------
   const dropdownRef = useRef<?HTMLDivElement>(null)
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
   const [changesMade, setChangesMade] = useState(false)
 
+  //----------------------------------------------------------------------
+  // Effects
+  //----------------------------------------------------------------------
   const handleClickOutside = (event: MouseEvent) => {
     if (
       dropdownRef.current &&
-      !(event.target instanceof Node) || (dropdownRef.current &&!dropdownRef.current.contains((event.target: any)))
+      !(event.target instanceof Node) || (dropdownRef.current && !dropdownRef.current.contains((event.target: any)))
     ) {
-      if (changesMade && onChangesMade) {
-        onChangesMade()
-      }
-      toggleMenu()
-    }
-  }
-
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      if (changesMade && onChangesMade) {
-        onChangesMade()
+      if (changesMade && onSaveChanges) {
+        onSaveChanges()
       }
       toggleMenu()
     }
@@ -79,94 +89,40 @@ const DropdownMenu = ({
     }
   }, [isOpen])
 
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
   const handleFieldChange = () => {
+    logDebug('DropdownMenu', 'Field change detected')
     setChangesMade(true)
   }
 
-  const renderItem = (item: TDropdownItem) => {
-    const element = () => {
-      switch (item.type) {
-        case 'switch':
-          return (
-            <Switch
-              key={item.key}
-              label={item.label || ''}
-              checked={item.checked || false}
-              onChange={(e) => {
-                handleFieldChange()
-                if (handleSwitchChange) {
-                  handleSwitchChange(item.key)(e)
-                }
-              }}
-              labelPosition={labelPosition}
-            />
-          )
-        case 'input':
-          return (
-            <InputBox
-              key={item.key}
-              label={item.label || ''}
-              value={item.value || ''}
-              onChange={(e) => {
-                handleFieldChange()
-                if (handleInputChange) {
-                  handleInputChange(item.key)(e)
-                }
-              }}
-              onSave={(newValue) => {
-                handleFieldChange()
-                if (handleSaveInput) {
-                  handleSaveInput(item.key)(newValue)
-                }
-              }}
-            />
-          )
-        case 'combo':
-          return (
-            <ComboBox
-              key={item.key}
-              label={item.label || ''}
-              options={item.options || []}
-              value={item.value || ''}
-              onChange={(e) => {
-                handleFieldChange()
-                if (handleComboChange) {
-                  handleComboChange(item.key)(e)
-                }
-              }}
-            />
-          )
-        case 'text':
-          return (
-            <TextComponent
-              key={item.key}
-              textType={item.textType || 'description'}
-              label={item.label || ''}
-            />
-          )
-        case 'separator':
-          return <hr key={item.key} />
-        case 'heading':
-          return <div className="dropdown-heading" key={item.key}>{item.label || ''}</div>
-        case 'header':
-          return <div className="dropdown-header" key={item.key}>{item.label || ''}</div>
-        default:
-          return null
+  const handleEscapeKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      logDebug('DropdownMenu', 'Escape key detected')
+      if (changesMade && onSaveChanges) {
+        onSaveChanges()
       }
+      toggleMenu()
     }
-
-    return (
-      <div className="dropdown-item" key={item.key} title={item.tooltip || ''}>
-        {element()}
-      </div>
-    )
   }
 
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
   return (
     <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content ${isOpen ? 'show' : ''}`} style={style}>
-        {items.map(renderItem)}
+        {items.map((item) => renderItem({
+          item,
+          labelPosition,
+          handleFieldChange,
+          handleSwitchChange,
+          handleInputChange,
+          handleComboChange,
+          handleSaveInput,
+        }))}
       </div>
     </div>
   )

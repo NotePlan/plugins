@@ -6,6 +6,8 @@ As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings.
 - For the time being, the back-end (plugin) gets its config from `getCombinedSettings()` which uses the sharedSettings set in react first, and falls back to the DataStore settings if the react settings have not been set yet. This way, if somone has made a change to a React switch, it's used. Otherwise, their 1.0 setting is used.
 - Under the hood, "sharedSettings" is actually saved in `DataStore.settings.sharedSettings` in stringified JSON, and parsed when needed on the front-end or back end.
 - Any time any change is made to a setting, a useEffect listener, watching for changes to sharedSettings will fire off a command to update the back-end (DataStore.settings.sharedSetttings) with the latest value.
+- For the front-end, settings are defined in the file: 
+    `src/react/support.dashboardSettingsItems.js`
 
 
 ## Custom Hooks (src/react/customHooks)

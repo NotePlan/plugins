@@ -66,7 +66,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
  * @param {TClickPosition} event - The event containing click position
  */
 function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight: number, dialog: HTMLElement, event: TClickPosition) {
-  console.log(`ENTERING setPositionForDialog() thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
+  logDebug(`ENTERING setPositionForDialog() thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
   const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc.
   const mousex = event.clientX // Horizontal
   const mousey = event.clientY // Vertical
@@ -80,28 +80,28 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
   const winHeight = window.visualViewport.height
   const winWidth = window.visualViewport.width
-  console.log(`Window dimensions (approx): w${winWidth} x h${winHeight}`)
-  console.log(`Mouse at x${mousex}, y${mousey}`)
-  console.log(`Dialog ~ w${dialogWidth} x h${dialogHeight}`)
+  logDebug(`Window dimensions (approx): w${winWidth} x h${winHeight}`)
+  logDebug(`Mouse at x${mousex}, y${mousey}`)
+  logDebug(`Dialog ~ w${dialogWidth} x h${dialogHeight}`)
 
   // WIDTH + X position
   if (winWidth < dialogWidth) {
     dialog.style.left = `2%`
     dialog.style.width = `96%`
-    console.log(`Forcing narrower dialog to fit inside window: now centred with width 96%`)
+    logDebug(`Forcing narrower dialog to fit inside window: now centred with width 96%`)
   } else if (winWidth - dialogWidth < 100) {
     x = Math.round((winWidth - dialogWidth) / 2) + scrollX
     dialog.style.left = `${x}px`
-    console.log(`Forcing narrower dialog to be centred horizontally inside window: now x${x}`)
+    logDebug(`Forcing narrower dialog to be centred horizontally inside window: now x${x}`)
   } else {
     x = mousex - Math.round(dialogWidth / 3) + scrollX
     if (x + dialogWidth > winWidth + scrollX) {
       x = winWidth - fudgeFactor - dialogWidth + scrollX
-      console.log(`Move left: now x${x}`)
+      logDebug(`Move left: now x${x}`)
     }
     if (x < fudgeFactor + scrollX) {
       x = fudgeFactor + scrollX
-      console.log(`Off left: now x=${x}; width=${dialog.style.width}`)
+      logDebug(`Off left: now x=${x}; width=${dialog.style.width}`)
     }
     dialog.style.left = `${x}px`
   }
@@ -109,25 +109,25 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   // HEIGHT + Y position
   if (winHeight < dialogHeight) {
     dialog.style.top = `0`
-    console.log(`Forcing shorter dialog to start inside window: now fixed to top`)
+    logDebug(`Forcing shorter dialog to start inside window: now fixed to top`)
   } else if (winHeight - dialogHeight < 100) {
     y = Math.round((winHeight - dialogHeight) / 2) + scrollY
     dialog.style.top = `${y}px`
-    console.log(`Forcing shorter dialog to be centred vertically inside viewport: now y${y}`)
+    logDebug(`Forcing shorter dialog to be centred vertically inside viewport: now y${y}`)
   } else {
     y = mousey - Math.round(dialogHeight / 2) + scrollY
     if (y + dialogHeight > winHeight + scrollY) {
       y = winHeight - fudgeFactor - dialogHeight + scrollY
-      console.log(`Move up: now y${y}`)
+      logDebug(`Move up: now y${y}`)
     }
     if (y < fudgeFactor + scrollY) {
       y = fudgeFactor + scrollY
-      console.log(`Off top: now y=${y}; height=${dialog.style.height}`)
+      logDebug(`Off top: now y=${y}; height=${dialog.style.height}`)
     }
     dialog.style.top = `${y}px`
   }
 
-  console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
+  logDebug(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
   // const winDetailsSpan = document.getElementById('winDebugDetails')
   // winDetailsSpan.innerHTML = `f${fudgeFactor} / vw${winWidth} x vh${winHeight} / x${dialog.style.left} y${dialog.style.top} w${dialog.style.width} x h${dialog.style.height}`
 }

@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 
 // import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
+import {showDashboardReact} from './reactMain'
 import {
   doAddItem,
   doCancelChecklist,
@@ -194,6 +195,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'refresh': {
         await refreshAllSections()
         break
+      }
+      case 'windowReload': {
+        showDashboardReact()
+        return
       }
       case 'completeTask': {
         result = doCompleteTask(data) // , windowId

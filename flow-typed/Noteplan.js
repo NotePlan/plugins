@@ -2084,14 +2084,16 @@ declare class HTMLView {
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
 type Window = HTMLView | Editor
 
-/** JGC: I'm not sure about this next bit, but document.title is possible from b1201 */
-declare class document {
-  /**
-   * Set the title of the HTML window. 
-   * Note: Available From 3.12 b1201.
-   */
-  title: string
-}
+// dbw commenting this out because it doesn't work and causes Flow errors
+// type document = {
+//   /**
+//    * Set the title of the HTML window.
+//    * Note: Available From 3.12 b1201.
+//    */
+//   title?: string,
+//   addEventListener?: any,
+//   removeEventListener?: any,
+// }
 
 type FetchOptions = {
   /* all optional */

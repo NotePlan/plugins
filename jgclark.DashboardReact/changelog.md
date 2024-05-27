@@ -19,6 +19,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - restored the 'show referenced data in separate section' again when generating data
 - window dimensions are saved again between refreshes
 - note to DBW: I have moved some of the 'force' logic to getAllSectionsData, which is I think where it needs to be as that's used on initialLoad. I have left it in getSomeSectionsData as well, though I think it could be removed.
+- dbw: added windowReload clickHandler to force full window reload when the refresh button is clicked and you have loggingLevel set to "DEV"
+- dbw: moved settings to dialog to mirror NP per @jgclark suggestion
+- dbw: remove shared/reactSettings logging on init
+- dbw: turn on checklist filtering in ItemGrid to make filtering immediate while refresh happens in background
+- dbw: fix bug in demo dashboard refresh forgetting demoMode
+- dbw: fix a couple of type paste errors in demo data
 
 ## [2.0.0.a26] @jgc 2024-05-24
 - fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor

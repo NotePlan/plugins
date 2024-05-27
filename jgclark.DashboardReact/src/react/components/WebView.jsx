@@ -92,78 +92,80 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             EFFECTS
    ****************************************************************************************************************************/
 
-type Settings = {
-  setter: (prev: any) => void,
-  currentSettings: ?Object,
-  settingsKey: string,
-  defaultSettings: Object,
-  effectName: string
-};
+  type Settings = {
+    setter: (prev: any) => void,
+    currentSettings: ?Object,
+    settingsKey: string,
+    defaultSettings: Object,
+    effectName: string
+  };
 
-/**
- * @typedef {Object} Settings
- * @property {Function} setter - Function to set settings state.
- * @property {Object|null} currentSettings - Current settings state.
- * @property {string} settingsKey - Key to access the right settings from plugin data.
- * @property {Object} defaultSettings - Default settings to apply.
- * @property {string} effectName - Name of the effect for debugging purposes.
- */
-/**
- * Helper function to initialize settings (used for reactSettings and sharedSettings)
- * @param {Settings} settings
- */
-function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }:Settings) {
-  const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
-  if (!setter) return
-  const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
-  logDebug(
-    `Webview`,
-    `${effectName} effect running: ${effectName} must have changed. ${effectName} exists? ${String(
-      setter !== undefined,
-    )}, settingsExist? ${String(settingsExist)} currentSettings: ${window.webkit && JSON.stringify(
-      currentSettings || {},
-      null,
-      2,
-    )} pluginSettingsValue: ${pluginSettingsValue}`,currentSettings
-  )
-
-  let parsedSettings = defaultSettings
-  if (pluginSettingsValue) {
-    try {
-      parsedSettings = JSON.parse(pluginData.settings[settingsKey])
-    } catch (error) {
-      logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
+  /**
+   * @typedef {Object} Settings
+   * @property {Function} setter - Function to set settings state.
+   * @property {Object|null} currentSettings - Current settings state.
+   * @property {string} settingsKey - Key to access the right settings from plugin data.
+   * @property {Object} defaultSettings - Default settings to apply.
+   * @property {string} effectName - Name of the effect for debugging purposes.
+   */
+  /**
+   * Helper function to initialize settings (used for reactSettings and sharedSettings)
+   * @param {Settings} settings
+   */
+  function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
+    const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
+    if (!setter) return
+    const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
+    if (settingsExist) {
+      logDebug(
+        `Webview`,
+        `${effectName} effect running: ${effectName} must have changed. ${effectName} exists? ${String(
+          setter !== undefined,
+        )}, settingsExist? ${String(settingsExist)} currentSettings: ${window.webkit && JSON.stringify(
+          currentSettings || {},
+          null,
+          2,
+        )} pluginSettingsValue: ${pluginSettingsValue}`, currentSettings
+      )
     }
+
+    let parsedSettings = defaultSettings
+    if (pluginSettingsValue) {
+      try {
+        parsedSettings = JSON.parse(pluginData.settings[settingsKey])
+      } catch (error) {
+        logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
+      }
+    }
+
+    setter((prev) => ({ ...prev, lastChange: `_Webview_firstLoad`, ...parsedSettings }))
   }
 
-  setter((prev) => ({ ...prev, lastChange: `_Webview_firstLoad`, ...parsedSettings }))
-}
+  /**
+   * Set up the initial React Settings (runs only on load)
+   */
+  useEffect(() => {
+    initializeSettings({
+      setter: setReactSettings,
+      currentSettings: reactSettings,
+      settingsKey: 'reactSettings',
+      defaultSettings: defaultReactSettings,
+      effectName: 'setReactSettings'
+    })
+  }, [setReactSettings])
 
-/**
- * Set up the initial React Settings (runs only on load)
- */
-useEffect(() => {
-  initializeSettings({
-    setter: setReactSettings,
-    currentSettings: reactSettings,
-    settingsKey: 'reactSettings',
-    defaultSettings: defaultReactSettings,
-    effectName: 'setReactSettings'
-  })
-}, [setReactSettings])
-
-/**
- * Set up the initial Shared Settings (runs only on load)
- */
-useEffect(() => {
-  initializeSettings({
-    setter: setSharedSettings,
-    currentSettings: sharedSettings,
-    settingsKey: 'sharedSettings',
-    defaultSettings: defaultSharedSettings,
-    effectName: 'setSharedSettings'
-  })
-}, [setSharedSettings])
+  /**
+   * Set up the initial Shared Settings (runs only on load)
+   */
+  useEffect(() => {
+    initializeSettings({
+      setter: setSharedSettings,
+      currentSettings: sharedSettings,
+      settingsKey: 'sharedSettings',
+      defaultSettings: defaultSharedSettings,
+      effectName: 'setSharedSettings'
+    })
+  }, [setSharedSettings])
 
 
   /**
@@ -226,7 +228,7 @@ useEffect(() => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     // logDebug(`Webview`,`sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
-    // console.log(`WebView: sendToPlugin: command:"${command}" data=${JSON.stringify(data)} `)
+    // logDebug(`WebView: sendToPlugin: command:"${command}" data=${JSON.stringify(data)} `)
     dispatch('SEND_TO_PLUGIN', [command, data], `WebView sending: sendToPlugin: ${String(command)} ${additionalDetails} ${JSON.stringify(data)}`)
   }
 
@@ -256,7 +258,7 @@ useEffect(() => {
       sendActionToPlugin={sendActionToPlugin}
       sendToPlugin={sendToPlugin}
       dispatch={dispatch}
-      pluginData={pluginData} 
+      pluginData={pluginData}
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}

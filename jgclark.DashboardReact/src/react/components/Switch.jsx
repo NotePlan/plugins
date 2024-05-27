@@ -1,6 +1,3 @@
-// Switch.jsx
-// on/off switch
-
 // @flow
 import React from 'react'
 import { logDebug } from '@helpers/react/reactDev.js'
@@ -20,7 +17,7 @@ const Switch = ({ label, checked, onChange, labelPosition = 'right' }: SwitchPro
         type="checkbox"
         className="apple-switch switch-input"
         onChange={(e) => {
-          logDebug('Switch', `"${label}" was clicked`, e.target.checked)
+          logDebug('Switch Component', `"${label}" was clicked`, e.target.checked)
           onChange(e)
         }}
         checked={checked}

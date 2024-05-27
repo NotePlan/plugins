@@ -4,6 +4,8 @@
 // Last updated 20.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
+// NOTE: Dashboard Settings are in the react/support.dashboardSettingsItems.js file
+
 import type { TSectionDetails, TSectionCode } from "./types"
 
 //TODO: @jgclark, the things in this file that are not sections should be moved out of the "types" file

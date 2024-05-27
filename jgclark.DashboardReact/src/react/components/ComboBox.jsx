@@ -1,7 +1,5 @@
 // @flow
-import React, { useState, useEffect, useRef } from 'react'
-import type { TDropdownItemType } from '../../types'
-import {logDebug,JSP} from '@helpers/react/reactDev.js'
+import React, { useState, useEffect, useRef, type ElementRef } from 'react'
 
 type ComboBoxProps = {
   label: string,
@@ -13,7 +11,7 @@ type ComboBoxProps = {
 const ComboBox = ({ label, options, value, onChange }: ComboBoxProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
-  const dropdownRef = useRef(null)
+  const dropdownRef = useRef<?ElementRef<'div'>>(null)
 
   const toggleDropdown = () => setIsOpen(!isOpen)
   const handleOptionClick = (option: string) => {
@@ -22,7 +20,7 @@ const ComboBox = ({ label, options, value, onChange }: ComboBoxProps): React$Nod
     setIsOpen(false)
   }
 
-  const handleClickOutside = (event) => {
+  const handleClickOutside = (event: any) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
       setIsOpen(false)
     }

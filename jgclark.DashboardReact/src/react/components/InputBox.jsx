@@ -1,3 +1,4 @@
+// InputBox.jsx
 // @flow
 import React, { useState, useEffect } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
@@ -6,10 +7,11 @@ type InputBoxProps = {
   label: string,
   value: string,
   onChange: (e: any) => void,
-  onSave: (newValue: string) => void,
+  onSave?: (newValue: string) => void,
+  showSaveButton?: boolean,
 };
 
-const InputBox = ({ label, value, onChange, onSave }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, onChange, onSave, showSaveButton = true }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
 
@@ -24,7 +26,9 @@ const InputBox = ({ label, value, onChange, onSave }: InputBoxProps): React$Node
 
   const handleSaveClick = () => {
     logDebug('InputBox', `handleSaveClick: inputValue=${inputValue}`)
-    onSave(inputValue)
+    if (onSave) {
+      onSave(inputValue)
+    }
   }
 
   return (
@@ -37,13 +41,15 @@ const InputBox = ({ label, value, onChange, onSave }: InputBoxProps): React$Node
           value={inputValue}
           onChange={handleInputChange}
         />
-        <button
-          className="input-box-save"
-          onClick={handleSaveClick}
-          disabled={!isSaveEnabled}
-        >
-          Save
-        </button>
+        {showSaveButton && (
+          <button
+            className="input-box-save"
+            onClick={handleSaveClick}
+            disabled={!isSaveEnabled}
+          >
+            Save
+          </button>
+        )}
       </div>
     </div>
   )

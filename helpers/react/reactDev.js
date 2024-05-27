@@ -127,4 +127,4 @@ export const formatReactError = (error: Error, cs: string = '') => {
   }
 }
 
-export { clo, JSP } from '@helpers/dev'
+export { clo, JSP, clof, timer, log } from '@helpers/dev'

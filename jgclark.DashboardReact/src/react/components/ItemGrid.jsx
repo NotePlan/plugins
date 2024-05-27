@@ -4,11 +4,11 @@
  * A grid layout for items within a section.
  */
 
-import React, { useState } from 'react'
+import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, clof } from '@helpers/react/reactDev.js'
 
 type Props = {
   items: Array<TSectionItem>,
@@ -16,9 +16,14 @@ type Props = {
 };
 
 function ItemGrid({ items, thisSection }: Props): React$Node {
-  const { reactSettings, setReactSettings, sendActionToPlugin } = useAppContext()
+  const { sharedSettings /*, reactSettings, setReactSettings, sendActionToPlugin */ } = useAppContext()
 
-  const visibleItems = items.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />)
+  clof(items,'ItemGrid',['type','content','para'])
+  const tasksToShow = (sharedSettings && sharedSettings.ignoreChecklistItems && items.length) 
+  ? items.filter(si => !(si.para?.type === "checklist")) 
+  : items
+
+  const visibleItems = tasksToShow.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />)
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`}>

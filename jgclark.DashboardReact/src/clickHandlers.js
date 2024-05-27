@@ -172,7 +172,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const existingSections = pluginData.sections
 
   // force the section refresh for the wanted sections
-  const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false, calledByTrigger)
+  const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, false, calledByTrigger)
   const mergedSections = mergeSections(existingSections, newSections)
   // pluginData.lastFullRefresh = new Date()
   const updates:TAnyObject = { sections: mergedSections }
@@ -684,7 +684,7 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
-  logDebug('doSettingsChanged', `${settingName} updated`)
+  logDebug('doSettingsChanged', `${settingName} updated to: ${JSP(newSettings,2)}`)
   return handlerResult(true, [])
 }
 
