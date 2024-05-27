@@ -8,7 +8,7 @@ import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, clof } from '@helpers/react/reactDev.js'
+import { logDebug } from '@helpers/react/reactDev.js'
 
 type Props = {
   items: Array<TSectionItem>,
@@ -18,7 +18,6 @@ type Props = {
 function ItemGrid({ items, thisSection }: Props): React$Node {
   const { sharedSettings /*, reactSettings, setReactSettings, sendActionToPlugin */ } = useAppContext()
 
-  clof(items,'ItemGrid',['type','content','para'])
   const tasksToShow = (sharedSettings && sharedSettings.ignoreChecklistItems && items.length) 
   ? items.filter(si => !(si.para?.type === "checklist")) 
   : items
