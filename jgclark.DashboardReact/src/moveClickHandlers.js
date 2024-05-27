@@ -103,14 +103,16 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
-    const config = await getCombinedSettings()
-    // For these purposes override one config item:
+    const config: any = await getCombinedSettings()
+    // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const reactWindowData: any = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    // clo(reactWindowData)
 
     // Get paras for all open items in yesterday's note
     // TODO: get this from reactWindowData.pluginData instead
+    // will be .pluginData.sections.name=Today.sectionItems
     const yesterdayDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
     const todayDateStr = getTodaysDateHyphenated()
     const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
@@ -238,7 +240,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 
     let numberScheduled = 0
     const config = await getCombinedSettings()
-    // For these purposes override one config item:
+    // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -366,7 +368,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
   try {
     let numberChanged = 0
     const config = await getCombinedSettings()
-    // For these purposes override one config item:
+    // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)

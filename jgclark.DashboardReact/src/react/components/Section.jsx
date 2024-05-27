@@ -52,8 +52,7 @@ function Section(inputObj: SectionProps): React$Node {
         items.push({
           ID: '0-Congrats',
           itemType: 'congrats',
-          // noteType: 'Notes', // for sake of something
-          // Note: no para
+          // Note: no para or noteType
         })
       }
     } else {

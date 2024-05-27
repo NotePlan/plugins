@@ -307,7 +307,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Then decide whether to return two separate arrays, or one combined one
     // Note: This takes 100ms
     // TODO: extend to deal with 12hr (AM/PM) time blocks
-    logDebug('getOpenItemPFCTP', `- config.separateSectionForReferencedNotes ${String(config.separateSectionForReferencedNotes)})`)
+    logDebug('getOpenItemPFCTP', `- config.separateSectionForReferencedNotes ${String(config.separateSectionForReferencedNotes)}`)
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
       const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])

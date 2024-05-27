@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 23.5.2024 for v2.0.0 by @jgclark
+// Last updated 26.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,29 +12,21 @@ import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/sr
 import { getCombinedSettings } from './dashboardHelpers'
 import { allCalendarSectionCodes } from "./constants"
 import {
-  // copyUpdatedSectionItemData, findSectionItems,
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
 import {
-  // allSectionCodes,
-  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSectionItem,
-  // type TSectionCode,
+  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSection, type TSectionItem,
   type TPluginData,
 } from './types'
 import { validateAndFlattenMessageObject } from './shared'
-// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL,
-  // RE_NP_WEEK_SPEC,
   replaceArrowDatesInString
 } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general'
 import {
   sendToHTMLWindow, getGlobalSharedData,
-  // updateGlobalSharedData
 } from '@helpers/HTMLView'
-// import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cancelItem,
   completeItem,
@@ -49,12 +41,7 @@ import {
   // getTaskPriority
 } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import {
-  // getLiveWindowRectFromWin, getWindowFromCustomId,
-  logWindowsList,
-  // storeWindowRect
-} from '@helpers/NPWindows'
-// import { chooseHeading, showMessage } from '@helpers/userInput'
+import { logWindowsList } from '@helpers/NPWindows'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -105,11 +92,11 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage:stri
  * Merge existing sections data with replacement data
  * If the section existed before, it will be replaced with the new data
  * If the section did not exist before, it will be added to the end of sections
- * @param {Array<TSectionItem>} existingSections 
- * @param {Array<TSectionItem>} newSections 
- * @returns {Array<TSectionItem>} - merged sections
+ * @param {Array<TSection>} existingSections 
+ * @param {Array<TSection>} newSections 
+ * @returns {Array<TSection>} - merged sections
  */
-function mergeSections(existingSections: Array<TSectionItem>, newSections: Array<TSectionItem>): Array<TSectionItem> {
+function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {
   newSections.forEach((newSection) => {
     const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
     if (existingIndex > -1) {
@@ -186,7 +173,6 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   // force the section refresh for the wanted sections
   const newSections = await getSomeSectionsData(sectionCodes, reactWindowData.demoMode, false, calledByTrigger)
-  // $FlowFixMe
   const mergedSections = mergeSections(existingSections, newSections)
   // pluginData.lastFullRefresh = new Date()
   const updates:TAnyObject = { sections: mergedSections }
@@ -377,7 +363,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     // Update display in Dashboard too
     // sendToHTMLWindow(windowId, 'toggleType', data)
     // Only use if necessary:
-    // Warnbug('bCDI', '------- refreshturned off at the moment ---------------')
+    // Warnbug('bCDI', '------------ refresh turned off at the moment ---------------')
     // await showDashboardReact('refresh')
   } catch (error) {
     logError('doToggleType', error.message)

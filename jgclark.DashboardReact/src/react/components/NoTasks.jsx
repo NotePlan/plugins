@@ -15,7 +15,7 @@ const NoTasks = (): React.Node => {
       <div className="sectionItemContent sectionItem">
         <a className="content">
           <i>
-            Nothing to do: take a break <i className="fa-regular fa-mug"></i>
+            Nothing to do: take a break <i className="fa-solid fa-mug pad-left"></i>
           </i>
         </a>
       </div>

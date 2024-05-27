@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 23.5.2024 for v2.0.0 by @jgclark
+// Last updated 27.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -25,7 +25,6 @@ import { isDone } from '@helpers/utils'
 import { getWindowFromId } from '@helpers/NPWindows'
 
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
-// you can leave it like this or if you plan to open multiple windows, make it more specific per window
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -67,10 +66,12 @@ export async function showDemoDashboard(): Promise<void> {
 /**
  * Plugin Entry Point for "Test React Window"
  * @author @dwertheimer
+ * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus)
+ * @param {boolean} useDemoData (default: false)
  */
-export async function showDashboardReact(callMode: string = 'full', demoMode: boolean = false): Promise<void> {
+export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
   try {
-    logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${demoMode ? ' in DEMO MODE' : ''}`)
+    logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
@@ -79,7 +80,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     await checkForRequiredSharedFiles(pluginJson)
 
     // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
+    const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
@@ -99,6 +100,7 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       makeModal: false,
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html` /* for saving a debug version of the html file */,
       shouldFocus: callMode !== 'trigger' /* focus window (unless called by a trigger) */,
+      reuseUsersWindowRect: true,
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
@@ -159,7 +161,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): Promise<TPluginData> {
+export async function getInitialDataForReactWindow(config: dashboardConfigType, useDemoData: boolean = false): Promise<TPluginData> {
   // Get count of tasks/checklists done today
   const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
   const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
@@ -167,15 +169,18 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow config.FFlag_ForceInitialLoad=${String(config.FFlag_ForceInitialLoad)}`)
-  const sections = config.FFlag_ForceInitialLoad === true ? await getAllSectionsData(demoMode) : await getSomeSectionsData([allSectionDetails[0].sectionCode],demoMode)
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoad=${String(config.FFlag_ForceInitialLoad)}`)
+  const sections = config.FFlag_ForceInitialLoad === true
+    ? await getAllSectionsData(useDemoData, true, true)
+    // : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, false, true)
+    : await getAllSectionsData(useDemoData, false, true)
 
   return {
     sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
     doneCount: doneCount, // TODO: Is this worth having? 
-    demoMode, 
+    demoMode: useDemoData, 
     platform: NotePlan.environment.platform,
     themeName: Editor.currentTheme?.name || '<could not get theme>',
   }
