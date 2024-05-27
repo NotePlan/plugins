@@ -202,10 +202,10 @@ body {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
 	display: grid;
-	grid-template-columns: [icon] 1rem [item-details] auto;
+	grid-template-columns: [icon] 1.2rem [item-details] auto;
 	/* was: minmax(20rem, 30rem); */
 	/* no bottom padding */
-	padding: 3px 4px 0px 4px;
+	padding: 3px 4px 0px 2px;
 	border: 0px none;
 	column-gap: 6px;
 	/* vertical in containing block */

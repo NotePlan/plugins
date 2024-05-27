@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 26.4.2024 for v2.0.0 by @jgclark
+// Last updated 27.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -110,7 +110,8 @@ export const refTodayItems: Array<TSectionItem> = [
     itemType: "open",
     para: {
       noteType: "Notes",
-      filename: "Ministry Projects/Repair Cafe.md",
+      title: 'Repair Café operation',
+      filename: "Ministry Projects/Repair Café operation.md",
       type: "open",
       priority: 0,
       prefix: "* ",
@@ -124,6 +125,7 @@ export const refTodayItems: Array<TSectionItem> = [
     para: {
       noteType: 'Notes',
       type: 'open',
+      title: 'Mission Partners',
       filename: 'CCC Areas/Mission Partners.md',
       priority: 0,
       content: 'Update display board 12:30PM',
@@ -189,6 +191,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       noteType: 'Notes',
       type: 'open',
       filename: 'CCC Areas/Services.md',
+      title: 'Services',
       priority: 1,
       content: 'write 5/3 sermon >2023-03-02',
       rawContent: 'write 5/3 sermon >2023-03-02',
@@ -201,7 +204,8 @@ export const refYesterdayParas: Array<TSectionItem> = [
     itemType: 'open',
     para: {
       noteType: 'Notes',
-      filename: 'Ministry Projects/Repair Cafe.md',
+      title: 'Repair Café operation',
+      filename: "Ministry Projects/Repair Café operation.md",
       type: 'open',
       priority: 1,
       prefix: '* ',
@@ -217,6 +221,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       noteType: 'Notes',
       type: 'open',
       filename: 'CCC Areas/Mission Partners.md',
+      title: 'Mission Partners',
       priority: 0,
       content: 'Edit video from CFL visit https://bcfd.org.uk',
       rawContent: 'Edit video from CFL visit https://bcfd.org.uk',
@@ -231,6 +236,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Services.md',
+      title: 'Services',
       content: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
       rawContent: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
       prefix: '* ',
@@ -333,6 +339,7 @@ export const refWeekParas: Array<TSectionItem> = [
       type: 'checklist',
       noteType: 'Notes',
       filename: 'CCC Areas/Pastoral.md',
+      title: 'Pastoral',
       priority: 0,
       content: 'Send @Linda a link to welcome presentation >2023-W09',
       rawContent: 'Send @Linda a link to welcome presentation >2023-W09',
@@ -347,6 +354,7 @@ export const refWeekParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Notes',
       filename: 'Home 🏠 Areas/Garden.md',
+      title: 'Garden 🌿',
       priority: 0,
       content: 'Re-plant two shrubs in new blue pots >2023-W09',
       rawContent: 'Re-plant two shrubs in new blue pots >2023-W09',
@@ -361,6 +369,7 @@ export const refWeekParas: Array<TSectionItem> = [
       type: 'checklist',
       noteType: 'Notes',
       filename: 'Home 🏠 Areas/Macs.md',
+      title: 'Macs 🖥',
       priority: 0,
       content: 'Backup Mac - with an arrow date >2023-W09< reference',
       rawContent: 'Backup Mac - with an arrow date >2023-W09< reference',
@@ -396,6 +405,7 @@ export const refMonthParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Notes',
       filename: 'Home 🏠 Areas/Tax Returns.md',
+      title: 'Tax Returns',
       priority: 1,
       content: 'Pay tax bill',
       rawContent: 'Pay tax bill',

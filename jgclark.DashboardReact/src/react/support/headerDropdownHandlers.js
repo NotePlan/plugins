@@ -8,10 +8,11 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
  * Handles the click event for the refresh button, triggering a plugin refresh action.
  * 
  * @param {Function} sendActionToPlugin - Function to send actions to the plugin.
+ * @param {boolean} isDev? (default: false) If true, then pressing refresh will do a complete reload, not just a refresh.
  * @returns {Function} - A function to handle the click event.
  */
 export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean = false):Function => (): void => {
-  const actionType = isDev ? 'windowReload' : 'refresh'
+  const actionType = /*isDev ? 'windowReload' : */ 'refresh'
   logDebug('Header', 'Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}')
   sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
 }

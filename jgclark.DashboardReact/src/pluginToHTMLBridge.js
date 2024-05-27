@@ -1,14 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 13.5.2024 for v2.0.0 by @jgclark
+// Last updated 27.5.2024 for v2.0.0 by @dbw
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 
 // import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import {showDashboardReact} from './reactMain'
 import {
   doAddItem,
   doCancelChecklist,
@@ -41,25 +40,22 @@ import {
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
-import {makeDashboardParas} from './dashboardHelpers'
-// import { showDashboardReact } from './reactMain'
+import { makeDashboardParas } from './dashboardHelpers'
+import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
 import {
   copyUpdatedSectionItemData, findSectionItems,
-  // getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
-import type { TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, MessageDataObject } from './types'
-// import { allSectionCodes } from './types'
-// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-// import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL, RE_NP_WEEK_SPEC, replaceArrowDatesInString } from '@helpers/dateTime'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general'
-import { sendToHTMLWindow, getGlobalSharedData, updateGlobalSharedData } from '@helpers/HTMLView'
-import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
-// import { cyclePriorityStateDown, cyclePriorityStateUp, getTaskPriority } from '@helpers/paragraph'
-// import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-// import { cancelItem, findParaFromStringAndFilename, highlightParagraphInEditor, toggleTaskChecklistParaType, unscheduleItem } from '@helpers/NPParagraph'
-import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
-// import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import {
+  sendToHTMLWindow, getGlobalSharedData,
+  // updateGlobalSharedData
+} from '@helpers/HTMLView'
+import {
+  // projectNotesSortedByChanged,
+  getNoteByFilename
+} from '@helpers/note'
+// import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 import {formatReactError} from '@helpers/react/reactDev'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
@@ -74,58 +70,11 @@ const WEBVIEW_WINDOW_ID = windowCustomId
 //-----------------------------------------------------------------
 
 /**
- * Callback function to receive async messages from HTML view
- * Plugin entrypoint for command: "/onMessageFromHTMLView" (called by plugin via sendMessageToHTMLView command)
- * Do not do the processing in this function, but call a separate function to do the work.
- * @author @dwertheimer
- * @param {string} type - the type of action the HTML view wants the plugin to perform
- * @param {any} data - the data that the HTML view sent to the plugin
- */
-// export async function onMessageFromHTMLView(actionType: string, data: any): any {
-//   try {
-//     logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${actionType}:`)
-//     // clo(data, 'onMessageFromHTMLView dispatching data object:')
-
-//     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
-
-//     switch (actionType) {
-//       case 'onClickDashboardItem':
-//         await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
-//         break
-//       case 'onChangeCheckbox':
-//         await bridgeChangeCheckbox(data) // data is a string
-//         break
-//       case 'refresh':
-//         logWarn('onMessageFromHTMLView', `'refresh' is currently turned off in onMessageFromHTMLView to avoid circular dependency`)
-//         // await showDashboardReact() // no await needed, I think
-//         break
-//       case 'runPluginCommand':
-//         await runPluginCommand(data) // no await needed, I think
-//         break
-//       default:
-//         logError(pluginJson, `onMessageFromHTMLView(): unknown ${actionType} cannot be dispatched`)
-//         break
-//     }
-
-//     // TEST: New things for React copied from @DW version
-//     const reactWindowData = await refreshDashboardData()
-//     if (reactWindowData) {
-//       const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
-//       clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-//       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
-//     }
-
-//     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
-//   } catch (error) {
-//     logError(pluginJson, JSP(error))
-//   }
-// }
-
-/**
  * HTML View requests running a plugin command
- * @param {any} data object TODO: Type me
+ * TODO(@dbw): can this be removed -- there's something with the same name in np.Shared/Root.jsx
+ * @param {TPluginCommandSimplified} data object with plugin details
  */
-export async function runPluginCommand(data: any) {
+export async function runPluginCommand(data: TPluginCommandSimplified) {
   try {
     // clo(data, 'runPluginCommand received data object')
     logDebug('pluginToHTMLBridge/runPluginCommand', `running ${data.commandName} in ${data.pluginID}`)
@@ -172,7 +121,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`bridgeClickDashboardItem |******************** bridgeClickDashboardItem: ${actionType} ********************|`)
+    logDebug(`******************** bridgeClickDashboardItem: ${actionType} ********************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -197,27 +146,28 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowReload': {
+        // logWarn('windowReload is currently turned off to avoid a circular dependency')
         showDashboardReact()
         return
       }
       case 'completeTask': {
-        result = doCompleteTask(data) // , windowId
+        result = doCompleteTask(data)
         break
       }
       case 'completeTaskThen': {
-        result = doCompleteTaskThen(data) // , windowId
+        result = doCompleteTaskThen(data)
         break
       }
       case 'cancelTask': {
-        result = doCancelTask(data) // , windowId
+        result = doCancelTask(data)
         break
       }
       case 'completeChecklist': {
-        result = doCompleteChecklist(data) // , windowId
+        result = doCompleteChecklist(data)
         break
       }
       case 'cancelChecklist': {
-        result = doCancelChecklist(data) // , windowId
+        result = doCancelChecklist(data)
         break
       }
       case 'unscheduleItem': {

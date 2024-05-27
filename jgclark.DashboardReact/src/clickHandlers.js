@@ -3,13 +3,13 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 26.5.2024 for v2.0.0 by @jgclark
+// Last updated 27.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { getCombinedSettings } from './dashboardHelpers'
+import { getCombinedSettings, moveItemToRegularNote } from './dashboardHelpers'
 import { allCalendarSectionCodes } from "./constants"
 import {
   getAllSectionsData, getSomeSectionsData
@@ -119,7 +119,7 @@ export async function refreshAllSections(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
-  const newSections = await getAllSectionsData(reactWindowData.demoMode, false)
+  const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
   const changedData = { refreshing: false, sections: newSections, lastFullRefresh: new Date() }
   await setPluginData(changedData, 'Finished Refreshing all sections')
 }
@@ -260,7 +260,6 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
 }
 
 // Cancel the task in the actual Note
-// FIXME: possiblePara problem
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -285,11 +284,10 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 }
 
 // Cancel the checklist in the actual Note
-// FIXME: possiblePara problem
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
-  let updatedParagraph = {}
+  let updatedParagraph = null
   const possiblePara = findParaFromStringAndFilename(filename, content)
   if (typeof possiblePara === 'boolean') {
     res = false
@@ -356,18 +354,12 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
     // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
-    // FIXME: this still isn't updating the window correctly
+    // FIXME: this still isn't updating the window correctly?
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
 
-    // logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
-    // Update display in Dashboard too
-    // sendToHTMLWindow(windowId, 'toggleType', data)
-    // Only use if necessary:
-    // Warnbug('bCDI', '------------ refresh turned off at the moment ---------------')
-    // await showDashboardReact('refresh')
   } catch (error) {
     logError('doToggleType', error.message)
-    return '(error)'
+    return handlerResult(false)
   }
 }
 
@@ -398,15 +390,7 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     para.content = updatedContent
     logDebug('doCyclePriorityStateUp', `cycling priority -> {${JSP(updatedContent)}}`)
 
-    // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboardReact('refresh')
-    // Note: But this doesn't work, because of race condition.
-    // So we better try that logic after all.
-    // const updatedData = {
-    //   itemID: ID,
-    //   newContent: updatedContent,
-    //   newPriority: newPriority,
-    // }
-    // sendToHTMLWindow(windowId, 'cyclePriorityStateUp', updatedData)
+    // Now ask to update this line in the display
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
@@ -428,13 +412,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     para.content = updatedContent
     logDebug('doCyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
 
-    // Update the content in place
-    // const updatedData = {
-    //   itemID: ID,
-    //   newContent: updatedContent,
-    //   newPriority: newPriority,
-    // }
-    // sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
+    // Now ask to update this line in the display
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
@@ -451,8 +429,8 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
     const period = data.controlStr.replace('nr', '')
     logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
     skipReviewForNote(note, period)
-    // Now send a message for the dashboard to update its display
-    // sendToHTMLWindow(windowId, 'removeItem', data)
+
+    // Now remove the line from the display
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
   } else {
     logWarn('doSetNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
@@ -469,7 +447,8 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
     // update this to actually take a note to work on
     finishReviewForNote(note)
     logDebug('doReviewFinished', `-> after finishReview`)
-    // sendToHTMLWindow(windowId, 'removeItem', data)
+
+    // Now ask to update this line in the display
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
   } else {
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
@@ -556,64 +535,17 @@ export async function doShowLineInEditorFromTitle(data: MessageDataObject): Prom
 }
 
 // Instruction to move task from a note to a project note.
-// Note: Requires user input
-// FIXME: Therefore probably makes sense to move this back to the plugin side.
-// Note: Therefore this button is currently turned off
+// Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
-  logInfo('moveToNote', 'Note: doMoveToNote not yet fully implemented; stopping.')
-  return handlerResult(false)
+  const { filename, content, itemType } = validateAndFlattenMessageObject(data)
 
-  // const itemType = data.itemType
-  // logDebug('moveToNote', `starting with itemType: ${itemType}`)
+  const result = await moveItemToRegularNote(filename, content, itemType)
+  logDebug('doMoveToNote', `→ ${String(result)}`)
 
-  // // Start by getting settings from *Filer plugin*
-  // // const config = await getFilerSettings() ?? { whereToAddInSection: 'start', allowNotePreambleBeforeHeading: true }
-
-  // // const startDateStr = getDateStringFromCalendarFilename(filename, true)
-
-  // // Ask user for destination project note
-  // const allNotes = projectNotesSortedByChanged()
-
-  // const res = await CommandBar.showOptions(
-  //   allNotes.map((n) => n.title ?? 'untitled'),
-  //   `Select note to move this ${itemType} to`,
-  // )
-  // const destNote = allNotes[res.index]
-
-  // // Ask to which heading to add the selectedParas
-  // // FIXME: this calls getRelativeDates(), which calls DataStore.
-  // const headingToFind = await chooseHeading(destNote, true, true, false)
-  // logDebug('moveToNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-
-  // // Add text to the new location in destination note
-  // // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
-  // const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
-  // logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
-  // if (itemType === 'task') {
-  //   addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
-  // } else {
-  //   addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
-  // }
-  // // Ask for cache refresh for this note
-  // DataStore.updateCache(destNote, false)
-
-  // // delete from existing location
-  // const origNote = getNoteByFilename(filename)
-  // const origPara = findParaFromStringAndFilename(filename, content)
-  // if (origNote && origPara) {
-  //   logDebug('moveToNote', `- Removing 1 para from original note ${filename}`)
-  //   origNote.removeParagraph(origPara)
-  // } else {
-  //   logWarn('moveToNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
-  // }
-  // // Send a message to update the row in the dashboard
-  // logDebug('moveToNote', `- Sending request to window to update`)
-  // // sendToHTMLWindow(windowId, 'updatefilename', { itemID: ID, filename: destNote.filename })
-  // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
-
-  // // Ask for cache refresh for this note
-  // DataStore.updateCache(origNote, false)
+  // Send a message to update the row in the dashboard
+  logDebug('doMoveToNote', `- Sending request to window to update`)
+  // TODO: following is probably correct, but isn't handled fully yet in handlerResult
+  return handlerResult(result !== '', ['UPDATE_LINE_IN_JSON'], { updatedFilename: result })
 }
 
 // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
@@ -653,6 +585,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   const thePara = findParaFromStringAndFilename(filename, content)
   if (typeof thePara !== 'boolean') {
     const theLine = thePara.content
+    // FIXME: this is only resched not moving. doMoveBetweenCalendar. rescheduleNotMove setting.
     const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
     logDebug('doUpdateTaskDate', `Found line {${theLine}}\n-> changed line: {${changedLine}}`)
     thePara.content = changedLine
@@ -684,7 +617,7 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
-  logDebug('doSettingsChanged', `${settingName} updated to: ${JSP(newSettings,2)}`)
+  logDebug('doSettingsChanged', `${settingName} updated`)
   return handlerResult(true, [])
 }
 

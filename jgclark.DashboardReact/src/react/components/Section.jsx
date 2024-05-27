@@ -183,9 +183,9 @@ function Section(inputObj: SectionProps): React$Node {
           <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
           <div className="sectionButtons">
             {buttons}
-            {section.sectionItems.length /* && section.sectionCode === "OVERDUE" */ && FFlag_InteractiveProcessing && (
+            {section.sectionItems.length && section.sectionCode !== "PROJ" && FFlag_InteractiveProcessing && (
               <><button className="PCButton" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
-                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.5 }}></i>
+                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
                 <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{items.length}</span>
               </button>
               </>

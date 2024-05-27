@@ -1,22 +1,28 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 5.5.2024 for v2.0.0 by @jgclark
+// Last updated 28.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { type TParagraphForDashboard } from './types'
-import { allSectionDetails, nonSectionSwitches } from "./constants"
+import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
+import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
 import { parseSettings } from './shared'
+import type { TItemType, TParagraphForDashboard } from './types'
+import {
+  allSectionDetails,
+  // nonSectionSwitches
+} from "./constants"
 import {
   removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate,
   // getISODateStringFromYYYYMMDD
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import { filterOutParasInExcludeFolders } from '@helpers/note'
+import { filterOutParasInExcludeFolders, getNoteByFilename, projectNotesSortedByChanged } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+// import { getTimeRangeFromTimeBlockString } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
@@ -37,8 +43,9 @@ import {
   // isTimeBlockPara,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
-import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
+import { chooseHeading, displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
+
 //-----------------------------------------------------------------
 
 // Note: types.js now contains the Type definitions
@@ -119,10 +126,8 @@ export async function getCombinedSettings(): Promise<any> {
 }
 
 /**
- * BEWARE: You should probably be using getCombinedSettings() instead of this function
+ * WARNING: You should probably now be using getCombinedSettings() instead of this function
  * Get config settings
- * TODO: Decide whether to make these DashboardReact instead ...
- * @author @jgclark
  */
 export async function getSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getSettings()`)
@@ -135,21 +140,21 @@ export async function getSettings(): Promise<any> {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
     }
     // clo(config, `settings`)
-    // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
-    DataStore.setPreference('Dashboard-triggerLogging', config.triggerLogging ?? false)
 
-    // Set local pref Dashboard-filterPriorityItems to default false
-    // if it doesn't exist already
-    const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
-    if (!savedValue) {
-      DataStore.setPreference('Dashboard-filterPriorityItems', false)
-    }
-    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    // // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
+    // DataStore.setPreference('Dashboard-triggerLogging', config.triggerLogging ?? false)
+
+    // // Set local pref Dashboard-filterPriorityItems to default false
+    // // if it doesn't exist already
+    // const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
+    // // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    // if (!savedValue) {
+    //   DataStore.setPreference('Dashboard-filterPriorityItems', false)
+    // }
 
     // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
-    config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
+    // config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
 
     // Get a setting from QuickCapture
     // FIXME: should return 3 for me, but returns 2
@@ -184,7 +189,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         content: p.content,
         rawContent: p.rawContent,
         priority: getNumericPriorityFromPara(p),
-        timeStr: getStartTimeFromPara(p),
+        timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
+        startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
       }
     })
@@ -274,9 +280,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     }
     // logDebug('getOpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
-    // Extend TParagraph with the task's priority + start time (if present)
+    // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
-    // openParas = extendParaToAddStartTime(openParas)
+    // clo(openDashboardParas)
+
     logDebug('getOpenItemPFCTP', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // -------------------------------------------------------------
@@ -291,7 +298,6 @@ export function getOpenItemParasForCurrentTimePeriod(
         : // try make this a single filter
         getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
-    // logDebug('getOpenItemPFCTP', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)
@@ -299,16 +305,16 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
     // logDebug('getOpenItemPFCTP', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
-    // Extend TParagraph with the task's priority + start time (if present)
+    // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
-    // refOpenParas = extendParaToAddStartTime(refOpenParas)
+    // clo(refOpenDashboardParas)
+
     logDebug('getOpenItemPFCTP', `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     // Note: This takes 100ms
     // TODO: extend to deal with 12hr (AM/PM) time blocks
-    logDebug('getOpenItemPFCTP', `- config.separateSectionForReferencedNotes ${String(config.separateSectionForReferencedNotes)}`)
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
       const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
@@ -626,10 +632,10 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
  * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
- * @param {Array<TParagraph>} paras to extend
- * @returns {Array<TParagraph>} paras extended by .timeStr
+ * @param {Array<TParagraph | TParagraphForDashboard>} paras to extend
+ * @returns {Array<TParagraph | TParagraphForDashboard>} paras extended by .timeStr
  */
-export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> {
+export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphForDashboard>): Array<TParagraph | TParagraphForDashboard> {
   try {
     // logDebug('extendParaToAddStartTime', `starting with ${String(paras.length)} paras`)
     const extendedParas = []
@@ -640,6 +646,9 @@ export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> 
         let startTimeStr = thisTimeStr.split('-')[0]
         if (startTimeStr[1] === ':') {
           startTimeStr = `0${startTimeStr}`
+        }
+        if (startTimeStr.endsWith('AM')) {
+          startTimeStr = startTimeStr.slice(0, 5)
         }
         if (startTimeStr.endsWith('PM')) {
           startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
@@ -656,22 +665,21 @@ export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> 
 
     return extendedParas
   } catch (error) {
-    logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
+    logError('extendParaToAddTimeBlock', `${JSP(error)}`)
     return []
   }
 }
 
 /**
- * FIXME: write some tests
- * FIXME: extend to allow AM/PM times as well
+ * FIXME: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
- * @param {TParagraph} para to process
+ * @param {TParagraph| TParagraphForDashboard} para to process
  * @returns {string} time string found
  */
-export function getStartTimeFromPara(para: TParagraph): any {
+export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard): string {
   try {
     // logDebug('getStartTimeFromPara', `starting with ${String(paras.length)} paras`)
     let startTimeStr = 'none'
@@ -681,15 +689,18 @@ export function getStartTimeFromPara(para: TParagraph): any {
       if (startTimeStr[1] === ':') {
         startTimeStr = `0${startTimeStr}`
       }
+      if (startTimeStr.endsWith('AM')) {
+        startTimeStr = startTimeStr.slice(0, 5)
+      }
       if (startTimeStr.endsWith('PM')) {
         startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
       }
-      logDebug('extendParaToAddStartTime', `found timeStr: ${startTimeStr} from timeblock ${thisTimeStr}`)
+      logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
   } catch (error) {
-    logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
-    return []
+    logError('getStartTimeFromPara', `${JSP(error)}`)
+    return ''
   }
 }
 
@@ -816,5 +827,66 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
   } catch (err) {
     logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
     return false
+  }
+}
+
+/**
+ * Note: has to be on the Plugin side, as it makes calls to the NP API.
+ * @param {string} filename line is currently in
+ * @param {string} content of line
+ * @param {TItemType} itemType of line
+ * @returns {string} returns new filename on success, otherwise ''
+ */
+export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<string> {
+  try {
+    // const { filename, content } = validateAndFlattenMessageObject(data)
+    logInfo('moveItemToRegularNote', 'Starting with {${content}} in ${filename}')
+
+    // find para in the given filename
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('moveItemToRegularNote: no para found')
+    }
+
+    // const itemType = data.itemType
+    logDebug('moveItemToRegularNote', `- itemType: ${itemType}`)
+
+    // Ask user for destination project note
+    const allRegularNotes = projectNotesSortedByChanged()
+    const destNote = await getNoteFromParamOrUser('checklist', '', false, allRegularNotes)
+
+    // Ask to which heading to add the selectedParas
+    const headingToFind = await chooseHeading(destNote, true, true, false)
+    logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+
+    // Add text to the new location in destination note
+    // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
+    const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+    logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
+    if (itemType === 'task') {
+      addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
+    } else {
+      addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
+    }
+    // Ask for cache refresh for this note
+    DataStore.updateCache(destNote, false)
+
+    // delete from existing location
+    const origNote = getNoteByFilename(filename)
+    const origPara = findParaFromStringAndFilename(filename, content)
+    if (origNote && origPara) {
+      logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${filename}`)
+      origNote.removeParagraph(origPara)
+      DataStore.updateCache(origNote, false)
+    } else {
+      logWarn('moveItemToRegularNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
+    }
+    // Return new filename or ''
+    return destNote.filename
+
+    // Ask for cache refresh for this note
+  } catch (error) {
+    logError('', error.message)
+    return ''
   }
 }

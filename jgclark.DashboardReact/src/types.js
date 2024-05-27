@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 20.5.2024 for v2.0.0 by @jgclark
+// Last updated 27.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -48,8 +48,8 @@ export type TParagraphForDashboard = {
   rawContent: string,
   priority: number,
   blockId?: string,
-  timeStr?: string, // = timeblock
-  startTime?: string,
+  timeStr?: string, // = timeblock. TODO: is this still used?
+  startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
 }
@@ -208,7 +208,7 @@ export type TSharedSettings = {
   [key: string]: any,
 }
 
-export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header';
+export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
  
 export type TDropdownItem = {
   label?: string,
@@ -218,6 +218,12 @@ export type TDropdownItem = {
   value?: string,
   options?: Array<string>,
   textType?: 'title' | 'description' | 'separator',
-  tooltip?: string,
+  tooltip?: string, // TODO(dbw): is this unused, now you have changed to use descriptions in the settings dialog?
   description?: string,
-};
+}
+
+export type TPluginCommandSimplified = {
+  commandName: string,
+  pluginID: string,
+  commandArgs: $ReadOnlyArray<mixed>,
+}

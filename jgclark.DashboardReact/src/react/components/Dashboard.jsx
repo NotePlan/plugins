@@ -117,7 +117,7 @@ function Dashboard({ pluginData }: Props): React$Node {
     if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData
-    logDebug('Dashboard', `dialogData.isOpen: ${String(dialogData.isOpen)}, dialogItemDetails: ${JSP(dialogItemDetails, 2)}`)
+    // logDebug('Dashboard', `dialogData.isOpen: ${String(dialogData.isOpen)}, dialogItemDetails: ${JSP(dialogItemDetails, 2)}`)
     if (!dialogData.isOpen || !dialogItemDetails) return
     // Note, dialogItemDetails (aka dialogData.details) is a MessageDataObject
     logDebug('Dashboard', `dialogData?.details?.item=${JSP(dialogItemDetails?.item, 2)}`)

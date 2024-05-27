@@ -13,7 +13,9 @@ import type {
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/support/sectionHelpers.js'
 import {
+  // extendParasToAddStartTimes,
   getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  getStartTimeFromPara,
   // getSharedSettings,
   makeDashboardParas, type dashboardConfigType
 } from './dashboardHelpers'
@@ -100,7 +102,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     sections.push(await getProjectSectionData(config, useDemoData))
 
-    logInfo('getAllSectionDetails', `Finishing ${useDemoData ? 'in DEMO MODE' : ''}`)
+    logInfo('getAllSectionDetails', `Finishing`)
     return sections
   } catch (error) {
     logError('getAllSectionDetails', error.message)
@@ -139,7 +141,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('OVERDUE') && (force || config.showOverdueSection)) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PROJ') && (force || config.showProjectSection)) sections.push(await getProjectSectionData(config, useDemoData))
 
-    logInfo('getSomeSectionsData', `Finishing ${useDemoData ? 'in DEMO MODE' : ''}`)
+    logInfo('getSomeSectionsData', `Finishing`)
 
     return sections
   } catch (error) {
@@ -177,6 +179,11 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       // write first or combined section items
       const sortedItems = (config.separateSectionForReferencedNotes) ? openTodayItems : openTodayItems.concat(refTodayItems)
       sortedItems.map((item) => {
+        if (item.para) {
+          const timeStr = getStartTimeFromPara(item.para)
+          // $FlowFixMe[incompatible-use] already checked item.para exists
+          item.para.startTime = timeStr
+        }
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
@@ -201,22 +208,6 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         })
       } else {
         logDebug('getDataForDashboard', `No daily note found using filename '${thisFilename}'`)
-      }
-    }
-
-    // Now find time blocks and save start and end times
-    // finish TEST: support 12-hour times as well
-    for (const item of items) {
-      const para = item.para
-      if (!para) {
-        throw new Error(`No para found for item ${item.ID}`)
-      }
-      const timeBlock = getTimeBlockString(para.content)
-      if (timeBlock) {
-        // const [startTimeStr, endTimeStr] = timeBlock.split('-')
-        const [startTimeStr, endTimeStr] = getTimeRangeFromTimeBlockString(timeBlock)
-        para.startTime = startTimeStr
-        para.endTime = endTimeStr ?? '' // might not have an end time
       }
     }
 
@@ -285,6 +276,11 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       if (useDemoData) {
         const sortedRefParas = refTodayItems
         sortedRefParas.map((item) => {
+          if (item.para) {
+            const timeStr = getStartTimeFromPara(item.para)
+            // $FlowFixMe[incompatible-use] already checked item.para exists
+            item.para.startTime = timeStr
+          }
           const thisID = `${sectionNum}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
@@ -300,8 +296,6 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
           })
         }
       }
-
-      // TODO: time blocks here as well?  Should these live in earlier function?
 
       const section: TSection = {
         ID: sectionNum,
@@ -358,6 +352,11 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       // write one or combined section items
       const sortedItems = (config.separateSectionForReferencedNotes) ? openYesterdayParas : openYesterdayParas.concat(refYesterdayParas)
       sortedItems.map((item) => {
+        if (item.para) {
+          const timeStr = getStartTimeFromPara(item.para)
+          // $FlowFixMe[incompatible-use] already checked item.para exists
+          item.para.startTime = timeStr
+        }
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
@@ -383,22 +382,6 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
         // logDebug('getDataForDashboard', `- finished finding yesterday's items from ${filenameDateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getDataForDashboard', `No yesterday note found using filename '${thisFilename}'`)
-      }
-    }
-
-    // Now find time blocks and save start and end times
-    // finish TEST: support 12-hour times as well
-    for (const item of items) {
-      const para = item.para
-      if (!para) {
-        throw new Error(`No para found for item ${item.ID}`)
-      }
-      const timeBlock = getTimeBlockString(para.content)
-      if (timeBlock) {
-        // const [startTimeStr, endTimeStr] = timeBlock.split('-')
-        const [startTimeStr, endTimeStr] = getTimeRangeFromTimeBlockString(timeBlock)
-        para.startTime = startTimeStr
-        para.endTime = endTimeStr ?? '' // might not have an end time
       }
     }
 
@@ -434,6 +417,11 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       if (useDemoData) {
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
+          if (item.para) {
+            const timeStr = getStartTimeFromPara(item.para)
+            // $FlowFixMe[incompatible-use] already checked item.para exists
+            item.para.startTime = timeStr
+          }
           const thisID = `${sectionNum}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
@@ -449,7 +437,6 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
           })
         }
       }
-      // TODO: time blocks here as well?  Should these live in earlier function?
       const section: TSection = {
         ID: sectionNum,
         name: 'Yesterday',
@@ -504,6 +491,11 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       // write one or combined section items
       const sortedParas = (config.separateSectionForReferencedNotes) ? openTomorrowParas : openTomorrowParas.concat(refTomorrowParas)
       sortedParas.map((item) => {
+        if (item.para) {
+          const timeStr = getStartTimeFromPara(item.para)
+          // $FlowFixMe[incompatible-use] already checked item.para exists
+          item.para.startTime = timeStr
+        }
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
@@ -531,22 +523,6 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       }
     }
 
-    // Now find time blocks and save start and end times
-    // finish TEST: support 12-hour times as well
-    for (const item of items) {
-      const para = item.para
-      if (!para) {
-        throw new Error(`No para found for item ${item.ID}`)
-      }
-      const timeBlock = getTimeBlockString(para.content)
-      if (timeBlock) {
-        // const [startTimeStr, endTimeStr] = timeBlock.split('-')
-        const [startTimeStr, endTimeStr] = getTimeRangeFromTimeBlockString(timeBlock)
-        para.startTime = startTimeStr
-        para.endTime = endTimeStr ?? '' // might not have an end time
-      }
-    }
-
     const section: TSection = {
       ID: sectionNum,
       name: 'Tomorrow',
@@ -570,6 +546,11 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       if (useDemoData) {
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
+          if (item.para) {
+            const timeStr = getStartTimeFromPara(item.para)
+            // $FlowFixMe[incompatible-use] already checked item.para exists
+            item.para.startTime = timeStr
+          }
           const thisID = `${sectionNum}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++

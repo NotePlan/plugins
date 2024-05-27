@@ -15,6 +15,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - ??? TODO: fied bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - other bug fixes
 
+## [2.0.0.a28] @jgc 2024-05-28
+- 'move to note' dialog button now works again (though handler needs extending slightly)
+- updated demoData to suit latest data types
+- removed 3 superseded code files
+- removed 2 settings from getSettings that are now handled elsewhere
+- removee about 15 plugin commands from plugin.json, as we are 
+
 ## [2.0.0.a27] @jgc 2024-05-27
 - restored the 'show referenced data in separate section' again when generating data
 - window dimensions are saved again between refreshes

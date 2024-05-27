@@ -5,7 +5,7 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a27",
+  "plugin.version": "2.0.0-a28",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
@@ -14,10 +14,7 @@
     "react.c.WebView.bundle.dev.js"
   ],
   "plugin.noLongerRequiredFiles": [
-    "dashboardEvents.js",
-    "dashboardDialog.css",
-    "dashboardShortcuts.js",
-    "HTMLWinCommsSwitchboard.js"
+    "dashboardDialog.css"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -53,12 +50,6 @@
       "arguments": []
     },
     {
-      "name": "refreshDashboard",
-      "hidden": true,
-      "description": "Refresh Dashboard window if already open",
-      "jsFunction": "refreshDashboard"
-    },
-    {
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
@@ -69,6 +60,25 @@
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
+    },
+    {
+      "name": "onUpdateOrInstall",
+      "description": "test: onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall",
+      "hidden": true
+    },
+    {
+      "name": "Dashboard: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.commands_unused": [
+    {
+      "name": "refreshDashboard",
+      "hidden": true,
+      "description": "Refresh Dashboard window if already open",
+      "jsFunction": "refreshDashboard"
     },
     {
       "name": "addTask",
@@ -147,17 +157,6 @@
       "description": "turn on all sections",
       "jsFunction": "turnOnAllSections",
       "hidden": true
-    },
-    {
-      "name": "onUpdateOrInstall",
-      "description": "test: onUpdateOrInstall",
-      "jsFunction": "onUpdateOrInstall",
-      "hidden": true
-    },
-    {
-      "name": "Dashboard: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "editSettings"
     }
   ],
   "plugin.settings": [
