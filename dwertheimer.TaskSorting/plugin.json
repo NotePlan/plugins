@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "Initial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
+  "plugin.version": "1.1.0",
+  "plugin.lastUpdateInfo": "Added \\cnt copy noteTags command.\nInitial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [
@@ -116,6 +116,11 @@
       "name": "ctt - Copy line for each hashtag",
       "description": "Copy line for each #hashtag, listing it first",
       "jsFunction": "copyLineForEachHashtag"
+    },
+    {
+      "name": "cnt - Copy tags from frontMatter noteTags",
+      "description": "Copies all noteTags to all tasks in note",
+      "jsFunction": "addNoteTagsToAllTask"
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",

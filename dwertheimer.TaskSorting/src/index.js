@@ -29,7 +29,7 @@ export {
   sortTasksDefault,
   sortTasksUnderHeading,
 } from './sortTasks'
-export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
+export { addNoteTagsToAllTask, copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export { default as markTasks } from './markTasks'
 
 /**
