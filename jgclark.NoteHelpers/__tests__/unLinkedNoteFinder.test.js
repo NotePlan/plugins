@@ -4,7 +4,7 @@
 
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
-import { buildRegex } from '../src/NpUnlinkedNoteFinder'
+import { buildRegex } from '../src/unlinkedNoteFinder'
 
 const PLUGIN_NAME = `{{pluginID}}`
 const FILENAME = `NPPluginMain`

@@ -54,7 +54,7 @@
       "alias": [
         "unlinked"
       ],
-      "description": "Find and create links to unlinked notes ",
+      "description": "Find and create links to unlinked notes",
       "jsFunction": "findUnlinkedNotesInCurrentNote"
     },
     {
