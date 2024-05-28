@@ -199,7 +199,7 @@ export async function copyTagsFromHeadingAbove() {
  */
 function findTagsInFrontMatter(): Array<string> | null {
     const frontMatter = getFrontMatterAttributes(Editor)
-    if (frontMatter) {
+    if (frontMatter && frontMatter.noteTags) {
         const tags = frontMatter.noteTags.replaceAll(',', ' ').trim().split(' ').filter(tag => tag !== '')
         return tags
     }
@@ -218,12 +218,12 @@ export function addNoteTagsToAllTask(): void {
        const tasksParagraphs = Editor.paragraphs.filter(p => taskTypes.includes(p.type))
        tasksParagraphs.forEach(currentPara => {
           const updatedText = appendTagsToText(currentPara.content, {hashtags: tags, mentions: []})
-          if (updatedText) {
+          if (updatedText !== null && updatedText !== '') {
             currentPara.content = updatedText
             Editor.updateParagraph(currentPara)
           }
         })
     } else {
-        showMessage('No task tags found in front matter')
+        showMessage('No \'noteTags\' found in front matter')
     }
 }

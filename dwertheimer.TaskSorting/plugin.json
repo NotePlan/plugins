@@ -118,7 +118,7 @@
       "jsFunction": "copyLineForEachHashtag"
     },
     {
-      "name": "cnt - Copy tags from frontMatter noteTags",
+      "name": "cnt - Copy tags from noteTags",
       "description": "Copies all noteTags to all tasks in note",
       "jsFunction": "addNoteTagsToAllTask"
     },
