@@ -4,23 +4,26 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## What has changed since v1.x
 - The different sections are now refreshed progressively, so the first sections appear more quickly.
 - When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
-- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for [5m]
+- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for a given number of minutes (default: 5 mins).
 - Can now show multiple tags/mentions, by specifying them in the settings separated by commas
 - New 'filter' menu with a dropdown that allows you to toggle on or off all the main display settings -- moved from the Preferences Pane
 - New 'settings' menu ⚙️ which has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
 - Extended the task dialog box, with a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
 - Extended the project dialog box, with a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
-- TODO: fixed bug: checklists not ignored as per setting
+- When the NotePlan Theme is changed (manually or automatically), the Dashboard window will pick this up on the next refresh.
+- fixed bug: A task in today's note "* a task >today" doesn't show up on today's dashboard
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
-- ??? TODO: fied bug: A task in today's note "* a task >today" doesn't show up on today's dashboard for some reason
 - other bug fixes
 
-## [2.0.0.a28] @jgc 2024-05-28
+## [2.0.0.a28] @jgc, @dbw 2024-05-28
+- now forces a window reload on theme change
+- fix some of the header layout (Components and CSS) so that buttons can be added removed with relative impunity
+- fixed positioning of dialogs which could get hidden under the floating header
 - 'move to note' dialog button now works again (though handler needs extending slightly)
 - updated demoData to suit latest data types
 - removed 3 superseded code files
 - removed 2 settings from getSettings that are now handled elsewhere
-- removee about 15 plugin commands from plugin.json, as we are 
+- removed about 15 plugin commands from plugin.json, as we have moved the command triggering to internal calls
 - dbw: Added hard refresh button. Not doing any styling for now, so it pushes over the filters
 - dbw: fix bugs where arrow dates were not showing up in dashboard. there were two bugs, and extended a helper (includesScheduledFutureDate) to look forward from a date passed to it (not always today).
 - dbw: fix refresh after move to today (turned it into an incremental refresh of all sections, which seems to work)

@@ -89,18 +89,20 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
 
-      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin,false)} />
-      {showHardRefreshButton && 
-        <button onClick={handleRefreshClick(sendActionToPlugin,true)} className="PCButton hardRefreshButton">
-              <i className={"fa-solid fa-arrows-retweet"}></i>
-              <span className="pad-left">Hard Refresh</span>
-        </button>
-      }
+      <div className="refresh">
+        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, false)} />
+        {showHardRefreshButton &&
+          <button onClick={handleRefreshClick(sendActionToPlugin, true)} className="PCButton hardRefreshButton">
+            <i className={"fa-solid fa-arrows-retweet"}></i>
+            <span className="pad-left">Hard Refresh</span>
+          </button>
+        }
+      </div>
       
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
-      <div id="dropdowns">
+      <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
         {settings?._logLevel === 'DEV' && (
           <DropdownMenu
@@ -119,11 +121,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
         {/* Cog Icon for opening the settings dialog */}
         {FFlag_DashboardSettings && (
-          <i
+          <div><i
             className="fa-solid fa-gear"
             onClick={handleToggleDialog}
             style={{ cursor: 'pointer' }}
-          ></i>
+          ></i></div>
         )}
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
