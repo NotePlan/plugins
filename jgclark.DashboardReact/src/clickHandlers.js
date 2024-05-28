@@ -539,13 +539,22 @@ export async function doShowLineInEditorFromTitle(data: MessageDataObject): Prom
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, itemType } = validateAndFlattenMessageObject(data)
 
-  const result = await moveItemToRegularNote(filename, content, itemType)
-  logDebug('doMoveToNote', `→ ${String(result)}`)
-
+  const newFilenameOrEmpty: string = await moveItemToRegularNote(filename, content, itemType)
+  if (newFilenameOrEmpty !== '') {
+    logDebug('doMoveToNote', `Success: moved -> ${newFilenameOrEmpty}`)
+    if (data.item?.para) {
+      data.item.para.filename = newFilenameOrEmpty
   // Send a message to update the row in the dashboard
-  logDebug('doMoveToNote', `- Sending request to window to update`)
-  // TODO: following is probably correct, but isn't handled fully yet in handlerResult
-  return handlerResult(result !== '', ['UPDATE_LINE_IN_JSON'], { updatedFilename: result })
+      logDebug('doMoveToNote', `- Sending update line request`)
+      // FIXME: following is probably correct, but isn't handled fully yet in handlerResult
+      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: data.item?.para })
+    } else {
+      logWarn('doMoveToNote', `Couldn't update the para with the new filename. Resorting to refreshing all sections ☹️`)
+      return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: [] })
+    }
+  } else {
+    return handlerResult(false)
+  }
 }
 
 // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)

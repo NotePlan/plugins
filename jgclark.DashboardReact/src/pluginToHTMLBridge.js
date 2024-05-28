@@ -312,37 +312,36 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {MessageDataObject} data
  */
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
-  await checkForThemeChange() // check to see if the theme has changed and if so, update it
-  if (!handlerResult) return
   try {
+    // check to see if the theme has changed and if so, update it
+    await checkForThemeChange()
+    if (!handlerResult) return
+
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
     if (!actionsOnSuccess.length) {
       logDebug('processActionOnReturn', `note: no post process actions to perform`)
       return
     }
     const { success, updatedParagraph } = handlerResult
+    logDebug('processActionOnReturn', `starting with updatedParagraph {${updatedParagraph?.content ?? '-'}}`)
     const filename: string = data.item?.para?.filename ?? ''
     if (filename === '') {
       logDebug('processActionOnReturn', `Starting with no filename`)
-    } else {
-      // always update the cache for the note, as it might have changed
-      const thisNote = getNoteByFilename(filename)
-      clo(handlerResult, `processActionOnReturn: handlerResult for ${filename}`)
-      const _changedNote = DataStore.updateCache(thisNote)
     }
 
     if (success) {
       if (filename !== '') {
-        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* making await in case Eduard makes it an async at some point */
+        // update the cache for the note, as it might have changed
+        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
       }
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: ${data.item}`)
+        clo(data.item, 'processActionOnReturn: `REMOVE_LINE_FROM_JSON')
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['itemType', 'para']) 
+        logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
+        await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) // FIXME: replace the whole paragraph with new data
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
@@ -364,8 +363,8 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       logDebug('processActionOnReturn', `-> failed handlerResult`)
     }
   } catch (error) {
-    // clo(data.item, `processActionOnReturn data.item`)
-    logError(`processActionOnReturn error:${JSP(error)}`, JSP(formatReactError(error)))
+    logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
+    clo(data.item, `- data.item at error:`)
   }
 }
 
@@ -375,7 +374,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
  * @param {MessageDataObject} data The data of the item that was updated.
  * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  */
-export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: string[]): Promise<void> {
+export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: Array<string>): Promise<void> {
   clo(handlerResult, 'updateReactWindowFLC: handlerResult')
   const { errorMsg, success, updatedParagraph } = handlerResult
   const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
@@ -389,6 +388,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   }
 
   if (updatedParagraph) {
+    // FIXME: when used from doMoveToNote() .note does not exist, and then it throws various errors
     clo(updatedParagraph.note?.filename ?? '<empty>', `updateReactWindowFLC -> updatedParagraph.note.filename`)
     const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -426,7 +426,6 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     logWarn('updateReactWindowFLC', `no updated paragraph: ID ${ID}: ${errorMsg || ''}`)
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
-
 }
 
 /**
@@ -446,9 +445,36 @@ export async function checkForThemeChange(): Promise<void> {
   // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (currentTheme !== themeInWindow) {
     logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
-    const themeCSS = generateCSSFromTheme()
-    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', {themeCSS}, `Theme CSS Changed`)
-    reactWindowData.themeName = currentTheme // save the theme in the reactWindowData
-    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
+    // Update the CSS in the window
+    // The following doesn't work in practice ...
+    // const themeCSS = generateCSSFromTheme()
+    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', {themeCSS}, `Theme CSS Changed`)
+    // reactWindowData.themeName = currentTheme // save the theme in the reactWindowData
+    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
+
+    // ... so for now, force a reload instead
+    showDashboardReact('full')
+
+    // TODO: look further at this:
+
+    //     Identify the < link > element: Make sure your HTML page has a < link > element for the CSS file, such as:
+
+    //       < link id = "theme-stylesheet" rel = "stylesheet" href = "old-styles.css" >
+    //         JavaScript to replace CSS: Use the following JavaScript code to change the href attribute of the < link > element to the new CSS file:
+
+    //       < script >
+    //       function replaceCSS(newCSS) {
+    //         var link = document.getElementById('theme-stylesheet');
+    //         if (link) {
+    //           link.href = newCSS;
+    //         } else {
+    //           console.error('The link element with the specified ID was not found.');
+    //         }
+    //       }
+
+    //     // Example usage:
+    //     replaceCSS('new-styles.css');
+    // </script >
+    //       In this example, calling replaceCSS('new-styles.css') will change the CSS file from old - styles.css to new- styles.css without reloading the page.Make sure the id of the < link > element matches the one used in the JavaScript(theme - stylesheet in this case).
   }
 }

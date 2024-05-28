@@ -930,7 +930,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
         logDebug('getDataForDashboard', `No Quarterly note found for filename '${thisFilename}'`)
       }
     }
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')?.filename
+    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')?.filename ?? ''
     const section: TSection = {
       ID: sectionNum,
       name: 'This Quarter',
@@ -1488,7 +1488,7 @@ function setNestedValue(obj: any, path: string, value: any) {
  * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
  * @returns {SectionItem} A sectionItem object.
  */
-export function getSectionItemObject(id:string,p:TParagraph|null = null,theType?:TItemType):TSectionItem {
+export function getSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
   // $FlowIgnore - we are not using all the types in TParagraph
   return ({ ID: id, itemType: theType ?? p.type, para: p })
 }

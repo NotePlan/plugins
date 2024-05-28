@@ -67,7 +67,8 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
  */
 function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight: number, dialog: HTMLElement, event: TClickPosition) {
   logDebug(`ENTERING setPositionForDialog() thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
-  const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc.
+  const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc. round Left, Right, Bottom sides
+  const fudgeFactorTop = 40 // small border (in pixels) to take account of header bar which floats over the top
   const mousex = event.clientX // Horizontal
   const mousey = event.clientY // Vertical
   const scrollX = window.scrollX
@@ -120,8 +121,8 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
       y = winHeight - fudgeFactor - dialogHeight + scrollY
       logDebug(`Move up: now y${y}`)
     }
-    if (y < fudgeFactor + scrollY) {
-      y = fudgeFactor + scrollY
+    if (y < fudgeFactorTop + scrollY) {
+      y = fudgeFactorTop + scrollY
       logDebug(`Off top: now y=${y}; height=${dialog.style.height}`)
     }
     if (y < 80) y = 80 // Make sure it doesn't disappear under the Header bar

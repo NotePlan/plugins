@@ -32,14 +32,14 @@ body {
 	/* Define grid-template-areas for better control */
 	display: grid;
 	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated refresh counts filter settings";
-	grid-template-columns: auto auto 1fr auto;
+	grid-template-areas: "lastUpdated counts refresh empty dropdowns";
+	grid-template-columns: max-content max-content max-content 1fr min-content;
 	/* Vertical alignment */
 	align-items: center;
 	/* Space between grid items */
-	gap: 20px;
+	gap: 0.5rem;
 	/* Padding around the header content */
-	padding: 10px;
+	padding: 0.4rem;
 	background-color: var(--bg-alt-color);
 	/* Ensure the header uses the full width */
 	width: 100%;
@@ -49,18 +49,19 @@ body {
 	border-bottom: solid 1px var(--tint-color);
 }
 
-.lastUpdated {
+.lastFullRefresh {
 	/* Assign the area */
 	grid-area: lastUpdated;
 	/* This ensures that the content of these divs is also centered */
 	align-items: center;
 }
 
-.refreshButton {
+.refresh {
 	/* Assign the area */
 	grid-area: refresh;
 }
 
+/* may use in future */
 .totalCounts {
 	/* Assign the area */
 	grid-area: counts;
@@ -72,14 +73,15 @@ body {
 	/* } */
 }
 
-.filter {
+.dropdownButtons {
 	/* Assign the area */
-	grid-area: filter;
-	/* Align to the right edge */
+	grid-area: dropdowns;
 	justify-self: end;
-	/* margin-right: 20px; */
+	/* Align to the right edge */
+	margin-right: 20px;
 }
 
+/* unused */
 .settings {
 	/* Assign the area */
 	grid-area: settings;
@@ -320,7 +322,7 @@ body {
 	font-weight: 500;
 	border-style: none;
 	border-radius: 4px;
-	padding: 2px 3px 0px 3px;
+	padding: 2px 3px 0px 4px;
 	margin: 2px 2px;
 	/* a little all round */
 	white-space: nowrap;
