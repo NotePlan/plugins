@@ -123,6 +123,17 @@
       "jsFunction": "addNoteTagsToAllTask"
     },
     {
+      "name": "Add a onSave trigger to copy noteTags to all tasks",
+      "description": "Copies all noteTags to all tasks in note",
+      "jsFunction": "addNoteTagsTriggerToFm"
+    },
+    {
+      "name": "triggerCopyNoteTags",
+      "description": "onEditorWillSave",
+      "jsFunction": "triggerCopyNoteTags",
+      "hidden": true
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Task Sorting: Version",
       "description": "Update + Check Version",
