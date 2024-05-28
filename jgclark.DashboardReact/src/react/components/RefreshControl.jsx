@@ -21,16 +21,16 @@ type Props = {
 const RefreshControl = (props: Props): React$Node => {
   const { refreshing, handleRefreshClick } = props
   return (
-    <Button
-      text={
-        <>
-          <i className={refreshing ? "fa fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
-          <span className="pad-left">{refreshing ? "Refreshing" : "Refresh"}</span>
-        </>
-      }
-      clickHandler={handleRefreshClick}
-      className="PCButton refreshButton"
-    />
+      <Button
+        text={
+          <>
+            <i className={refreshing ? "fa fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
+            <span className="pad-left">{refreshing ? "Refreshing" : "Refresh"}</span>
+          </>
+        }
+        clickHandler={handleRefreshClick}
+        className="PCButton refreshButton"
+      />
   )
 }
 

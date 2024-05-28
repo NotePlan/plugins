@@ -31,7 +31,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const [animationClass, setAnimationClass] = useState('')
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  
+
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
   const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
 
@@ -72,10 +72,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   ]
 
   useEffect(() => {
-    logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || "" }`)
+    logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
     //$FlowIgnore
     positionDialog(dialogRef)
-    logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top||'') || "" }`)
+    logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
 
   function handleTitleClick() {
@@ -106,7 +106,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     const str = date.toISOString().split('T')[0]
     const actionType = `setSpecificDate`
     logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', false)
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', true)
     closeDialog()
   }
 
@@ -117,7 +117,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
     const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
-    clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
+    // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
     // $FlowIgnore
     const updatedContent = inputRef?.current?.getValue() || ''
@@ -138,13 +138,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
     if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
-    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, false)
+    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
     if (controlStr === 'openNote' || controlStr.startsWith("pri") || controlStr === "update") return //don't close dialog yet
 
     // Send 'refresh' action to plugin after n ms - this is a bit of a hack
     // to get around the updateCache not being reliable.
     // refreshTimer()
-    logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
     // Start the zoom/flip-out animation
     setAnimationClass('zoom-out') //flip-out
@@ -171,6 +171,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
   }, [])
 
+  const { currentIPIndex, totalTasks } = reactSettings?.interactiveProcessing || {}
+
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
@@ -191,9 +193,22 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           <div className="dialog-top-right">
-            {reactSettings?.interactiveProcessing && (<button className="skipButton" onClick={handleSkipClick} title="Skip this item">
-              <i className="fa-regular fa-forward"></i>
-            </button>
+            {reactSettings?.interactiveProcessing && currentIPIndex && (
+              <>
+                <span className="interactive-processing-status">
+                  <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
+                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                    {currentIPIndex}
+                  </span>
+                  /
+                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                    {totalTasks}
+                  </span>
+                </span>
+                <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
+                  <i className="fa-regular fa-forward"></i>
+                </button>
+              </>
             )}
             <button className="closeButton" onClick={() => closeDialog(true)}>
               <i className="fa-solid fa-square-xmark"></i>
@@ -210,7 +225,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
                 onIconClick={handleIconClick}
-              /> : null} 
+              /> : null}
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
               <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
@@ -219,32 +234,32 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             </div>
 
             {/* line2 ---------------- */}
-              <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
-              <div id="itemControlDialogMoveControls">
-                {buttons.map((button, index) => (
-                  <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
-                    {button.label}
-                  </button>
-                ))}
-                <CalendarPicker onSelectDate={handleDateSelect} />
-              </div>
+            <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
+            <div id="itemControlDialogMoveControls">
+              {buttons.map((button, index) => (
+                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                  {button.label}
+                </button>
+              ))}
+              <CalendarPicker onSelectDate={handleDateSelect} />
+            </div>
             {/* </div> */}
 
             {/* line3 ---------------- */}
-              <div className="preText">Other controls:</div>
-              <div id="itemControlDialogOtherControls">
-                {otherControlButtons.map((button, index) => (
-                  <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
-                    {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                      <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
-                    ))}
-                    {button.label}
-                    {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                      <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
-                    ))}
-                  </button>
-                ))}
-              </div>
+            <div className="preText">Other controls:</div>
+            <div id="itemControlDialogOtherControls">
+              {otherControlButtons.map((button, index) => (
+                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                  {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                  ))}
+                  {button.label}
+                  {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                  ))}
+                </button>
+              ))}
+            </div>
             {/* </div> */}
           </div>
         </div>

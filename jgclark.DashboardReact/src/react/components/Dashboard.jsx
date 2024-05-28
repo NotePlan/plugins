@@ -91,7 +91,7 @@ function Dashboard({ pluginData }: Props): React$Node {
       // logDebug('Dashboard', `React settings updated: ${reactSettings.lastChange} sending to plugin to be saved`, reactSettings)
       const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
-      sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', settings: strReactSettings }, 'Dashboard reactSettings updated', false)
+      sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', settings: strReactSettings }, 'Dashboard reactSettings updated', true)
     }
   }, [reactSettings])
 
@@ -101,7 +101,7 @@ function Dashboard({ pluginData }: Props): React$Node {
     if (sharedSettings?.lastChange && typeof sharedSettings.lastChange === 'string' && sharedSettings.lastChange.length > 0 && sharedSettings.lastChange[0] !== '_') {
       logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
       const strSharedSetings = JSON.stringify(sharedSettings)
-      sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', false)
+      sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', true)
     } else if (sharedSettings && Object.keys(sharedSettings).length > 0) {
       // logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)
     }
@@ -153,7 +153,7 @@ function Dashboard({ pluginData }: Props): React$Node {
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
 
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, currentOverdueIndex: -1, dialogData: { isOpen: false, details: null } } : {}
+    const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : {}
     setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
   }
 

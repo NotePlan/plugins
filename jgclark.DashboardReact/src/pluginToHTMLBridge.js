@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 
 // import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
+import { allSectionCodes } from "./constants"
 import {
   doAddItem,
   doCancelChecklist,
@@ -336,16 +337,17 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       }
 
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON:`)
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: ${data.item}`)
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindow..()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['itemType', 'para']) // FIXME: replace the whole paragraph with new data
+        await updateReactWindowFromLineChange(handlerResult, data, ['itemType', 'para']) 
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling refreshData()`)
-        await refreshAllSections()
+        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
+        // await refreshAllSections() // this works fine
+        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
@@ -362,7 +364,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       logDebug('processActionOnReturn', `-> failed handlerResult`)
     }
   } catch (error) {
-    clo(data.item, `processActionOnReturn data.item`)
+    // clo(data.item, `processActionOnReturn data.item`)
     logError(`processActionOnReturn error:${JSP(error)}`, JSP(formatReactError(error)))
   }
 }

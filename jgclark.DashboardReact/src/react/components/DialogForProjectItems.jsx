@@ -80,7 +80,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     const str = date.toISOString().split('T')[0]
     const actionType = `setSpecificDate`
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', false)
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', true)
     closeDialog()
   }
 
@@ -100,7 +100,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       updatedContent: '',
     }
 
-    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, false)
+    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
 
     // Start the zoom/flip-out animation
     setAnimationClass('zoom-out') //flip-out

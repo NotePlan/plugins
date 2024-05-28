@@ -24,13 +24,13 @@ export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean 
  * The outer function takes the necessary parameters and returns an inner function that handles the specific change event.
  * 
  * @param {TSharedSettings} sharedSettings - The current shared settings.
- * @param {Function} setTSharedSettings - Function to update the shared settings.
+ * @param {Function} setSharedSettings - Function to update the shared settings.
  * @param {Function} sendActionToPlugin - Function to send actions to the plugin.
  * @returns {Function} - A function that takes a key and returns a function to handle the change event.
  */
 export const handleSwitchChange = (
   sharedSettings: TSharedSettings,
-  setTSharedSettings: Function,
+  setSharedSettings: Function,
   sendActionToPlugin: Function
 ):Function => (key: string) => (e: any): void => {
   logDebug('handleSwitchChange', `Invoked with key: ${key} and event:`, e)
@@ -50,9 +50,9 @@ export const handleSwitchChange = (
   logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
 
   // This saves the change in local context, and then it will be picked up and sent to plugin
-  if (setTSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
+  if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
     logDebug('handleSwitchChange', `Updating sharedSettings. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`)
-    setTSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `showKey changed: ${key}=${isChecked}` }))
+    setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `showKey changed: ${key}=${isChecked}` }))
     if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
       // call for new data for a section just turned on
       const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
@@ -80,12 +80,12 @@ export const handleSwitchChange = (
  * This function uses function composition to separate the initialization logic from the event handling logic. 
  * The outer function takes the necessary parameters and returns an inner function that handles the specific save input event.
  * 
- * @param {Function} setTSharedSettings - Function to update the shared settings.
+ * @param {Function} setSharedSettings - Function to update the shared settings.
  * @returns {Function} - A function that takes a key and returns a function to handle the save input event.
  */
-export const handleSaveInput = (setTSharedSettings: Function):Function => (key: string) => (newValue: string) => {
+export const handleSaveInput = (setSharedSettings: Function):Function => (key: string) => (newValue: string) => {
   logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue}`)
-  setTSharedSettings((prev) => {
+  setSharedSettings((prev) => {
     logDebug('Header', `Previous sharedSettings:`, prev)
     const newSettings = { ...prev, [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
     logDebug('Header', `New sharedSettings: ${JSP(newSettings,2)}`)

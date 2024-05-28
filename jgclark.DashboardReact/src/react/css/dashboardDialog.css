@@ -134,10 +134,15 @@ i.fa-solid, i.fa-regular {
   color: var(--tint-color);
 }
 
-.closeButton, .skipButton {
+.closeButton, .skip-button {
   color: var(--fg-main-color); /* FIXME: not being applied */
   margin-right: 5px;
 	font-size: 0.9rem;
   /* background-color: none; */
   border: none;
+}
+
+.interactive-processing-status {
+  margin-right: 5px;
+  margin-top: 2px;
 }

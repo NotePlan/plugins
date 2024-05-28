@@ -79,6 +79,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
 
+  const showHardRefreshButton = pluginData.settings._logLevel === 'DEV'&&sharedSettings?.FFlag_HardRefreshButton
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -88,7 +89,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         Last updated: <span id="timer">{timeAgo}</span>
       </div>
 
-      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, pluginData.settings._logLevel === 'DEV')} />
+      <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin,false)} />
+      {showHardRefreshButton && 
+        <button onClick={handleRefreshClick(sendActionToPlugin,true)} className="PCButton hardRefreshButton">
+              <i className={"fa-solid fa-arrows-retweet"}></i>
+              <span className="pad-left">Hard Refresh</span>
+        </button>
+      }
       
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}

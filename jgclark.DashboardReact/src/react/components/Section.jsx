@@ -158,14 +158,14 @@ function Section(inputObj: SectionProps): React$Node {
       descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
     }
 
-    const handleProcessTasksClick = (e: MouseEvent): void => {
+    const handleInteractiveProcessingClick = (e: MouseEvent): void => {
+      logDebug(`Section`, `handleInteractiveProcessingClick x,y=(${e.clientX}, ${e.clientY})`)
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 /* push it off the left edge a little */ }
       setReactSettings(prevSettings => ({
         ...prevSettings,
-        lastChange: `_ProcessTasksClick`,
-        interactiveProcessing: section.name /* clickPosition save to keep track of where it was clicked and not the action buttons clicks */,
-        currentOverdueIndex: 0,
-        dialogData: { isOpen: false, isTask: true, details: {}, clickPosition: prevSettings.interactiveProcessing || clickPosition }
+        lastChange: `_InteractiveProcessing Click`,
+        interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: items.length, clickPosition }, 
+        dialogData: { isOpen: false, isTask: true, details: {}, clickPosition: /* prevSettings.interactiveProcessing?.clickPosition || */ clickPosition }
       }))
     }
 
@@ -184,7 +184,7 @@ function Section(inputObj: SectionProps): React$Node {
           <div className="sectionButtons">
             {buttons}
             {section.sectionItems.length && section.sectionCode !== "PROJ" && FFlag_InteractiveProcessing && (
-              <><button className="PCButton" onClick={handleProcessTasksClick} title="Interactively process tasks one at a time">
+              <><button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
                 <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{items.length}</span>
               </button>

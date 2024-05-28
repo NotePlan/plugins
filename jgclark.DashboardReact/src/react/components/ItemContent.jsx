@@ -6,7 +6,6 @@
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-// import { getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate } from '@helpers/dateTime'
 import { logDebug, logError } from '@helpers/react/reactDev'
 import {
   changeBareLinksToHTMLLink,
@@ -64,6 +63,7 @@ function ItemContent({ item, children }: Props): React$Node {
   // console.log(`-> ${mainContent}`)
 
   // TODO(later): try not to live dangerously!
+  // $FlowIgnore[incompatible-type] -- eventually we will remove the dangerousness
   return <div className="sectionItemContent sectionItem"><a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
 }
 

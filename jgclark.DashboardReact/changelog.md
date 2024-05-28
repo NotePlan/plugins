@@ -21,6 +21,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - removed 3 superseded code files
 - removed 2 settings from getSettings that are now handled elsewhere
 - removee about 15 plugin commands from plugin.json, as we are 
+- dbw: Added hard refresh button. Not doing any styling for now, so it pushes over the filters
+- dbw: fix bugs where arrow dates were not showing up in dashboard. there were two bugs, and extended a helper (includesScheduledFutureDate) to look forward from a date passed to it (not always today).
+- dbw: fix refresh after move to today (turned it into an incremental refresh of all sections, which seems to work)
+- dbw: interactiveProcessing: add indicator of where you are in the list
 
 ## [2.0.0.a27] @jgc 2024-05-27
 - restored the 'show referenced data in separate section' again when generating data

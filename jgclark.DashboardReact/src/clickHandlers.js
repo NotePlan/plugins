@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getCombinedSettings, moveItemToRegularNote } from './dashboardHelpers'
-import { allCalendarSectionCodes } from "./constants"
+import { allCalendarSectionCodes, allSectionCodes } from "./constants"
 import {
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
@@ -553,6 +553,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const dateInterval = controlStr || ''
   const config = await getCombinedSettings()
+  logDebug('doUpdateTaskDate', `filename: ${filename}, content: ${content}, dateInterval: ${dateInterval}`)
   // const startDateStr = ''
   let newDateStr = dateString || ''
   if (dateInterval !== 't' && !dateString && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -599,7 +600,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
 
       // refresh whole display, as we don't know which if any section the moved task might need to be added to
       logDebug('doUpdateTaskDate', `------------ refresh ------------`)
-      return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+      return handlerResult(true, ['REMOVE_LINE_FROM_JSON','REFRESH_ALL_SECTIONS'])
       // await showDashboardReact()
     } else {
       logWarn('doUpdateTaskDate', `- can't find note to update to {${changedLine}}`)

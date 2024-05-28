@@ -29,7 +29,7 @@ type Props = {
  */
 const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 
-  isOpen ? logDebug(`Dialog`, `starting for ${isTask ? 'task' : 'project'} isOpen: ${isOpen ? 'true' : ''} details: ${JSP(details)}`) : null
+  // isOpen ? logDebug(`Dialog`, `starting for ${isTask ? 'task' : 'project'} isOpen: ${isOpen ? 'true' : ''} details: ${JSP(details)}`) : null
   const { reactSettings, pluginData } = useAppContext()
 
   // the child dialogs (Task & Project) will call this function to position the dialog

@@ -143,7 +143,7 @@ export type MessageDataObject = {
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
   metaModifier?: any, /* probably not used */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
-  toFilename?: string, 
+  toFilename?: string,
   newDimensions?: { width: number, height: number },
   settings?: TAnyObject,
   // filename: string, // now in item
@@ -181,15 +181,17 @@ export type TDialogData = {
 }
 
 export type TReactSettings = {
+  /*
   filterPriorityItems?: boolean,
   timeblockMustContainString?: string,
   ignoreChecklistItems?: boolean,
   hideDuplicates?: boolean,
   rescheduleNotMove: boolean, // TODO: finish wiring me up
+  refreshing?: boolean,
+  */
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
   dialogData?: TDialogData,
-  refreshing?: boolean,
-  [key: string]: any,
+  interactiveProcessing?: TInteractiveProcessing,
 }
 
 export type TPluginData = {
@@ -209,7 +211,7 @@ export type TSharedSettings = {
 }
 
 export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
- 
+
 export type TDropdownItem = {
   label?: string,
   key: string,
@@ -226,4 +228,11 @@ export type TPluginCommandSimplified = {
   commandName: string,
   pluginID: string,
   commandArgs: $ReadOnlyArray<mixed>,
+}
+
+export type TInteractiveProcessing = {
+  sectionName: string, 
+  currentIPIndex: number, 
+  totalTasks: number, 
+  clickPosition: TClickPosition
 }

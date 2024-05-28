@@ -82,7 +82,7 @@ const SettingsDialog = ({
         if (onSaveChanges) {
             onSaveChanges(updatedSettings)
         }
-        sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: updatedSettings }, 'Dashboard Settings Panel updates', false)
+        sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: updatedSettings }, 'Dashboard Settings Panel updates', true)
         toggleDialog()
     }
     //----------------------------------------------------------------------

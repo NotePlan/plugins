@@ -1251,39 +1251,41 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
  * @author @jgclark
  *
  * @param {string} line to search in
+ * @param {string?} fromDateStr - optional date to compare against (defaults to today's date) -- format 8601 (YYYY-MM-DD)
  * @return {boolean}
  * @test - available in jest file
  */
-export function includesScheduledFutureDate(line: string): boolean {
+export function includesScheduledFutureDate(line: string, fromDateStr?: string): boolean {
   // Test for days
   let m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return ISODateFromMatch > todaysDateISOString
+    logDebug(`includesScheduledFutureDate / ISODateFromMatch > todaysDateISOString : ${ISODateFromMatch} > ${todaysDateISOString}`)
+    return ISODateFromMatch > (fromDateStr ?? todaysDateISOString)
   }
   // Test for weeks
   m = line.match(RE_SCHEDULED_WEEK_NOTE_LINK) ?? []
   if (m.length > 0) {
     const weekDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return weekDateFromMatch > getNPWeekStr(new Date())
+    return weekDateFromMatch > getNPWeekStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for months
   m = line.match(RE_SCHEDULED_MONTH_NOTE_LINK) ?? []
   if (m.length > 0) {
     const monthDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return monthDateFromMatch > getNPMonthStr(new Date())
+    return monthDateFromMatch > getNPMonthStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for quarters
   m = line.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) ?? []
   if (m.length > 0) {
     const quarterDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return quarterDateFromMatch > getNPQuarterStr(new Date())
+    return quarterDateFromMatch > getNPQuarterStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for years
   m = line.match(RE_SCHEDULED_YEARLY_NOTE_LINK) ?? []
   if (m.length > 0) {
     const yearDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return yearDateFromMatch > getNPYearStr(new Date())
+    return yearDateFromMatch > getNPYearStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   return false
 }

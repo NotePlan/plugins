@@ -16,7 +16,7 @@ As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings.
 This is the hook that handles interactive processing of all items in a section
 - Section.jsx: 
     - Every section with items gets the button 
-    - clicking the button calls handleProcessTasksClick() which sets reactSettings.interactiveProcessing to the name of the section clicked -- a truthy value
+    - clicking the button calls handleInteractiveProcessingClick() which sets reactSettings.interactiveProcessing to an object with details (type TInteractiveProcessing)
     - useInteractiveProcessing is loaded by Section.jsx
 - useInteractiveProcessing
     - Has effects that monitor reactSettings looking for reactSettings.interactiveProcessing having been set

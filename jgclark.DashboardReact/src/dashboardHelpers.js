@@ -15,7 +15,7 @@ import {
   // nonSectionSwitches
 } from "./constants"
 import {
-  removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate,
+  removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getTodaysDateHyphenated
   // getISODateStringFromYYYYMMDD
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -249,14 +249,47 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
     // Note: this operation is 100ms
+    const todayHyphenated = getTodaysDateHyphenated()
+    const theNoteDateHyphenated = timePeriodNote.title || ''
+    const isToday = theNoteDateHyphenated === todayHyphenated
+    const latestDate = todayHyphenated >  theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
+    // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
     let openParas = config.ignoreChecklistItems
-      ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
-      : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    // logDebug('getOpenItemPFCTP', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    ? parasToUse.filter((p) => {
+        const contentTrimmed = p.content.trim()
+        const dateRegex = new RegExp(`>${theNoteDateHyphenated}`)
+        const todayRegex = new RegExp('>today')
+    
+        const isMatch =
+          (isOpenTaskNotScheduled(p) && contentTrimmed !== '') ||
+          (isOpenTask(p) &&
+            (dateRegex.test(contentTrimmed) || (isToday && todayRegex.test(contentTrimmed))))
+  
+            // logDebug(`getOpenItemPFCTP theNoteDateHyphenated: "${contentTrimmed}" >${theNoteDateHyphenated} isMatch: ${String(isMatch)}`)
+            return isMatch
+      })
+    : parasToUse.filter((p) => {
+        const contentTrimmed = p.content.trim()
+        const dateRegex = new RegExp(`>${theNoteDateHyphenated}`)
+        const todayRegex = new RegExp('>today')
+  
+        // logDebug('getOpenItemPFCTP Checking paragraph:', contentTrimmed)
+  
+        const isMatch =
+          (isOpenNotScheduled(p) && contentTrimmed !== '') ||
+          (isOpen(p) &&
+            (dateRegex.test(contentTrimmed) || (isToday && todayRegex.test(contentTrimmed))))
+  
+        // logDebug(`getOpenItemPFCTP theNoteDateHyphenated: "${contentTrimmed}" >${theNoteDateHyphenated} isMatch: ${String(isMatch)}`)
+        return isMatch
+      })
+      // logDebug('getOpenItemPFCTP', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
-    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content))
+
+    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content,latestDate))
+
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
@@ -291,6 +324,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
     // Note: the getReferencedParagraphs() operation take 70-140ms
+    // A task in today dated for today doesn't show here b/c it's not in backlinks
     let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Allow to ignore checklist items.
@@ -505,7 +539,6 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
 
     // Limit overdues to last n days for testing purposes
-    clo(config, 'getRelevantOverdueTasks looking for FFlag_LimitOverdues config: ${config.FFlag_LimitOverdues}')
     if (config.FFlag_LimitOverdues) {
       const cutoffDate = moment().subtract(14, 'days').format('YYYYMMDD')
       logDebug('getRelevantOverdueTasks', `FFlag_LimitOverdues limiting to last 14 days (2w): > ${cutoffDate}`)
