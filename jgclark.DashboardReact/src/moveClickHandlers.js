@@ -28,13 +28,12 @@ import {
   getTodaysDateUnhyphenated,
   RE_DATE_INTERVAL,
   RE_NP_WEEK_SPEC,
-  removeDateTagsAndToday,
+  replaceArrowDatesInString
 } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { showMessageYesNo } from '@helpers/userInput'
-
 //-----------------------------------------------------------------
 // constants
 
@@ -152,11 +151,16 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
           logDebug('scheduleAllYesterdayOpenToToday', `- scheduling {${dashboardPara.content}} to ${newDateStr}`)
-          dashboardPara.content = `${dashboardPara.content} >${newDateStr}`
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) yesterdaysNote.updateParagraph(p)
-          numberScheduled++
+          if (p) {
+            p.content = replaceArrowDatesInString(p.content,`>${newDateStr}`)
+            p.note?.updateParagraph(p)
+            DataStore.updateCache(p.note, false)
+            numberScheduled++
+          } else {
+            logError('scheduleAllYesterdayOpenToToday', `Couldn't find para matching {${dashboardPara.content}}`)
+          }
         }
 
         logDebug('scheduleAllYesterdayOpenToToday', `scheduled ${String(numberScheduled)} open items from yesterday's note to today's`)
@@ -201,13 +205,13 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = `${removeDateTagsAndToday(p.content)} >${newDateStr}`
+            p.content = replaceArrowDatesInString(p.content,`>${newDateStr}`)
             logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content {${p.content}} `)
             thisNote.updateParagraph(p)
+            numberScheduled++
           } else {
             logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching {${dashboardPara.content}}`)
           }
-          numberScheduled++
           // TEST: Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote)
         }
@@ -284,11 +288,14 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
           logDebug('scheduleAllTodayTomorrow', `- scheduling {${dashboardPara.content}} to tomorrow`)
-          dashboardPara.content = `${dashboardPara.content} >${tomorrowISODateStr}`
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
-          if (p) todaysNote.updateParagraph(p)
-          numberScheduled++
+          if (p) {
+            p.content = replaceArrowDatesInString(p.content,`>${tomorrowISODateStr}`)
+            p.note?.updateParagraph(p)
+            DataStore.updateCache(p.note)
+            numberScheduled++
+          }
         }
         logDebug('scheduleAllTodayTomorrow', `scheduled ${String(numberScheduled)} open items from today's note`)
       } else {
@@ -327,7 +334,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = `${removeDateTagsAndToday(p.content)} >${tomorrowISODateStr}`
+            p.content = replaceArrowDatesInString(p.content,`>${tomorrowISODateStr}`)
             logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para {${p.content}} from note ${thisNote.filename}`)
             thisNote.updateParagraph(p)
           } else {
@@ -434,7 +441,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
             continue
           }
           // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
-          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+          para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
@@ -470,7 +477,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
           } else {
             // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
 
-            para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
+            para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
             logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
             numberChanged++
             thisNote.updateParagraph(para)
