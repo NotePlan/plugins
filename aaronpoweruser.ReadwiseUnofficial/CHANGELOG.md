@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [1.1.4] Readwise 2024-05-28 (@aaronpoweruser)
+
+- Add a setting for paragraph type.
+
 ## [1.1.3] Readwise 2024-05-22 (@aaronpoweruser)
 
 - Ignore leading escaped quotes

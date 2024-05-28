@@ -123,11 +123,10 @@ async function getReadwiseDailyReview(): Promise<string> {
     }
     const response = await fetch(url, options)
     const highlights = JSON.parse(response).highlights
-    const paragraphTypeChar = getParagraphTypeChar()
 
     await highlights.map((highlight) => {
       const formattedHighlight = `${removeNewlines(highlight.text)} [ [[${removeInvalidChars(highlight.title)}]], [[${escapeTwitterHandle(highlight.author)}]] ]`
-      highlightString += `${paragraphTypeChar} ${formattedHighlight}\n`
+      highlightString += `${getParagraphTypeChar()} ${formattedHighlight}\n`
     })
     if (highlightString.endsWith('\n')) {
       // remove the last newline
