@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "1.1.2",
-  "plugin.lastUpdateInfo": "Fix sync log dates being wrong.\nAdd a sync log note. \nAdd support for daily reviews via templates",
+  "plugin.version": "1.1.3",
+  "plugin.lastUpdateInfo": "Ignore leading escaped quotes. Fixed links to highlights on web.\nFix sync log dates being wrong.\nAdd a sync log note. \nAdd support for daily reviews via templates",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -118,7 +118,7 @@
       "required": true
     },
     {
-      "COMMENT": "Enable to force resyncing of all highlights",
+      "COMMENT": "Enable to force a resync of all highlights",
       "title": "Force sync all highlights",
       "key": "forceSync",
       "type": "hidden",

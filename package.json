@@ -110,7 +110,8 @@
     "security:critical": "npm audit | grep -B 1 -A 10 critical",
     "dev": "node ./tasks/start.js",
     "start": "node ./tasks/start.js",
-    "docs": "./node_modules/.bin/documentation build helpers/*.js -c docs/documentation.cfg.json -o docs -f html --shallow --document-exported --theme docs/theme; open docs/index.html"
+    "docs": "./node_modules/.bin/documentation build helpers/*.js -c docs/documentation.cfg.json -o docs -f html --shallow --document-exported --theme docs/theme; open docs/index.html",
+    "flow": "flow"
   },
   "prettier": {
     "printWidth": 180,

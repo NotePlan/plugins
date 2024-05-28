@@ -4,14 +4,23 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [1.1.3] Readwise 2024-05-22 (@aaronpoweruser)
+
+- Ignore leading escaped quotes
+- Code cleanup
+- Remove illegal characters in daily review titles.
+- Switch book highlight links to Kindle web reader as deep links are [deprecated](https://help.readwise.io/article/40-can-i-jump-to-a-highlight-directly-in-the-kindle-app).
 
 ## [1.1.2] Readwise 2024-04-22 (aaronpoweruser)
+
 - Fix Sync log dates not respecting time zones.
 
 ## [1.1.1] Readwise 2024-04-20 (aaronpoweruser)
+
 - Fix internal links in daily reviews.
 
 ## [1.1.0] Readwise 2024-04-19 (aaronpoweruser)
+
 - Refactor
 - Added a sync log see [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md).
 - Fixed alert dialog count being wrong sometimes.
@@ -19,19 +28,26 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser
 - Add support for daily reviews via template.
 
 ## [1.0.1] Readwise 2023-08-20 (aaronpoweruser)
-* [#452] Fix pagination issue for users with large libraries thanks @TobiasMende
+
+- [#452] Fix pagination issue for users with large libraries thanks @TobiasMende
 
 ## [1.0.0] Readwise  2023-02-07 (aaronpoweruser)
-* public release
+
+- public release
 
 ## [0.1.8] Readwise  2023-02-07 (aaronpoweruser)
-* Show user notes
-* Add support for highlight headings
+
+- Show user notes
+- Add support for highlight headings
+
 ## [0.1.7] Readwise  2023-01-25 (aaronpoweruser)
-* Settings description clean up
-* Fix null highlight links
-* Fix unneeded long titles
+
+- Settings description clean up
+- Fix null highlight links
+- Fix unneeded long titles
+
 ## [0.1.6] - 2023-01-12 (aaronpoweruser)
+
 - Fix access token dialog
 - Use readable titles to make linking to notes easier
 - Add long title field
@@ -39,27 +55,32 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser
 - Change highlights from list to quotes
 
 ## [0.1.5] - 2023-01-12 (aaronpoweruser)
+
 - Fix metadata not being created
 - Fixed double metadata when not using group by type
 - Allow empty tag prefixes
 
 Known issues:
+
 - "Don’t Set Goals… Do This Instead" causes a new note to be created
 - Using heading as metadata does not support tag updates
 - Images are not handled gracefully
 
 ## [0.1.4] - 2023-01-09 (aaronpoweruser)
+
 - Clean up new lines in notes
 - add success message
 - Fix rebuild
 
 ## [0.1.3] - 2023-01-03 (aaronpoweruser)
+
 - Add front matter support
 - Add optional tag prefix
 - Clean up settings
 - Code cleanup
 
 ## [0.1.2] - 2023-01-02 (aaronpoweruser)
+
 - Add missing highlight header
 - Increase timeout when checking for new note
 
@@ -71,6 +92,7 @@ Known issues:
 - Add link to kindle for books (fixes links being null)
 
 ## [0.1.0] - 2022-12-28 (aaronpoweruser)
+
 First release
 
 ## Changelog

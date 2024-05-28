@@ -1,3 +1,4 @@
+// @flow
 import { getLocalDate } from './NPReadwiseHelpers'
 import { getOrMakeNote } from '@helpers/note'
 
@@ -14,7 +15,7 @@ export async function startReadwiseSyncLog(): Promise<void> {
 export async function writeReadwiseSyncLogLine(title: string, count: number): Promise<void> {
   if (DataStore.settings.writeSyncLog === true) {
     const outputNote = await getOrMakeNote(SYNC_NOTE_TITLE, DataStore.settings.baseFolder)
-    await outputNote?.addParagraphBelowHeadingTitle(`${count} highlights from [[${title}]]`, 'list', SYNC_LOG_TOKEN, true, false)
+    await outputNote?.addParagraphBelowHeadingTitle(`${count} highlight${count !== 1 ? 's' : ''} from [[${title}]]`, 'list', SYNC_LOG_TOKEN, true, false)
   }
 }
 
@@ -23,7 +24,9 @@ export async function finishReadwiseSyncLog(downloadHighlightCount: number, upda
     const outputNote = await getOrMakeNote(SYNC_NOTE_TITLE, DataStore.settings.baseFolder, '')
     const dateString =
       `[[${getLocalDate()}]] ${new Date().toLocaleTimeString([], { timeStyle: 'short' })} ` +
-      `— synced ${downloadHighlightCount} highlights from ${updatedSourceCount} documents.`
-    outputNote.content = outputNote?.content?.replace(SYNC_LOG_TOKEN, dateString)
+      `— synced ${downloadHighlightCount} highlight${downloadHighlightCount !== 1 ? 's' : ''} from ${updatedSourceCount} documents.`
+    if (outputNote) {
+      outputNote.content = outputNote.content?.replace(SYNC_LOG_TOKEN, dateString)
+    }
   }
 }

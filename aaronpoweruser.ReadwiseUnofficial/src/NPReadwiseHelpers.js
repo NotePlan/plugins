@@ -8,7 +8,7 @@ const READWISE_API_KEY_LENGTH = 50
 /**
  * Checks if the readwise access token is valid
  */
-export async function checkAccessToken(): void {
+export async function checkAccessToken(): Promise<void> {
   const accessToken = DataStore.settings.accessToken ?? ''
   logDebug(pluginJson, `access token is : ${accessToken}`)
 
@@ -25,21 +25,25 @@ export async function checkAccessToken(): void {
  */
 export function buildReadwiseNoteTitle(source: any): string {
   if (source.readable_title !== '') {
-    return source.readable_title
-      .replace(/\/*$/, '')
-      .replace(/^(.+)\/[^\/]*?$/, '$1')
-      .replace('\n', '')
+    return removeInvalidChars(source.readable_title)
   } else if (source.title !== '') {
-    return source.title
-      .replace(/\/*$/, '')
-      .replace(/^(.+)\/[^\/]*?$/, '$1')
-      .replace('\n', '')
+    return removeInvalidChars(source.title)
   } else {
-    return source.author
-      .replace(/\/*$/, '')
-      .replace(/^(.+)\/[^\/]*?$/, '$1')
-      .replace('\n', '')
+    return removeInvalidChars(source.author)
   }
+}
+
+/**
+ * Sanitize the string by removing invalid characters
+ * @param {string} string - the string to sanitize
+ * @returns {string} - the sanitized string
+ */
+export function removeInvalidChars(string: string): string {
+  return removeNewlines(
+    string
+      .replace(/^"/, '') // remove leading double quote
+      .trim(),
+  )
 }
 
 /**
@@ -49,14 +53,18 @@ export function buildReadwiseNoteTitle(source: any): string {
  */
 export function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
+  // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
   frontMatter.author = `[[${escapeTwitterHandle(source.author)}]]`
   if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
-    frontMatter.long_title = source.title
+    // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
+    frontMatter.long_title = removeInvalidChars(source.title)
   }
   if (source.book_tags !== null && source.book_tags.length > 0) {
+    // $FlowIgnore[prop-missing] - intentionally setting properties dynamically as frontMatter keys are dynamic
     frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
   if (source.unique_url !== null) {
+    // $FlowIgnore[prop-missing] - we are intentionally setting properties dynamically
     frontMatter.url = source.unique_url
   }
   return frontMatter
@@ -68,7 +76,7 @@ export function buildReadwiseFrontMatter(source: any): any {
  * @returns {string} - the formatted heading
  */
 export function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `author: [[${escapeTwitterHandle(source.author)}]]` + '\n'
+  let metadata = `author: [[${escapeTwitterHandle(source.author)}]]\n`
   if (source.book_tags !== null && source.book_tags.length > 0) {
     metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
@@ -76,7 +84,7 @@ export function buildReadwiseMetadataHeading(source: any): string {
     metadata += `url: ${source.unique_url}`
   }
   if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
-    metadata += `long_title: ${source.title}`
+    metadata += `long_title: ${removeInvalidChars(source.title)}`
   }
   return metadata
 }
@@ -95,12 +103,13 @@ function formatTag(tag: string): string {
   }
 }
 
-/*
- * removes all empty lines in a note
- * @param {Tnote} note - the note to remove empty lines from
+/**
+ * Remove all newline characters from a string
+ * @param {string} text - the text to remove newline characters from
+ * @returns {string} - the text with newline characters removed
  */
-export function removeEmptyLines(note: ?Tnote): void {
-  note.content = note?.content?.replace(/^\s*\n/gm, '')
+export function removeNewlines(text: string): string {
+  return text.replaceAll(/\n/g, ' ')
 }
 
 /**
