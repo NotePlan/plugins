@@ -193,7 +193,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           <div className="dialog-top-right">
-            {reactSettings?.interactiveProcessing && currentIPIndex && (
+            {reactSettings?.interactiveProcessing && currentIPIndex !== undefined && (
               <>
                 <span className="interactive-processing-status">
                   <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

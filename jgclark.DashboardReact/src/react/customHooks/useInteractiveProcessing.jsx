@@ -15,7 +15,7 @@
 
 import { useEffect } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, JSP } from '@helpers/react/reactDev.js'
 
 function useInteractiveProcessing(
   items: Array<TSectionItem>,
@@ -26,47 +26,66 @@ function useInteractiveProcessing(
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void
 ): void {
-// Sets the items to be interactively processed when reactSettings.interactiveProcessing has been set
+
+// Initialization effect. Sets the items to be interactively processed when reactSettings.interactiveProcessing has been set
 useEffect(() => {
     if (!reactSettings) return
     if (!reactSettings.interactiveProcessing) return
     if (reactSettings.interactiveProcessing.sectionName !== thisSection.name) return
-    logDebug('useInteractiveProcessing', `reactSettings.interactiveProcessing: ${reactSettings?.interactiveProcessing ? 'yes' : 'no'}; items in section ${String(thisSection.name)}: ${items.length} items, itemsCopy (overdue loop items to work on): ${itemsCopy.length} items`)
-    if (reactSettings?.interactiveProcessing && items.length > 0 && itemsCopy.length === 0) {
-        logDebug('useInteractiveProcessing', `Initializing itemsCopy to: ${items.length} items`)
+    // logDebug('useInteractiveProcessing', `reactSettings.interactiveProcessing: ${reactSettings?.interactiveProcessing ? 'yes' : 'no'}; items in section ${String(thisSection.name)}: ${items.length} items, itemsCopy (remaining items): ${itemsCopy.length} items`)
+    if (reactSettings?.interactiveProcessing && items.length > 0 && reactSettings.interactiveProcessing.startingUp) {
+        logDebug('useInteractiveProcessing', `startingUp==true,Initializing itemsCopy to: ${items.length} items`)
         setItemsCopy([...items])
+        setReactSettings((prev) => ({ ...prev, interactiveProcessing: { ...prev.interactiveProcessing, startingUp: false } }))
     } else {
-        logDebug('useInteractiveProcessing', `No initialization necessary...continuing`)
+        // logDebug('useInteractiveProcessing', `No initialization necessary...continuing`)
     }
 }, [reactSettings?.interactiveProcessing, reactSettings, items, itemsCopy, thisSection.sectionCode, setItemsCopy])
 
+useEffect(() => {
+  if (!reactSettings) return
+  if (!reactSettings.interactiveProcessing) return
+  const { interactiveProcessing, dialogData } = reactSettings
+  const {startingUp, currentIPIndex, totalTasks} = interactiveProcessing
+  const dialogIsOpen = dialogData?.isOpen || false
+  logDebug('useInteractiveProcessing', `currentIPIndex: ${currentIPIndex}, dialogIsOpen: ${dialogIsOpen} itemsCopy.length: ${itemsCopy.length}`, itemsCopy[0])
+  if (!dialogIsOpen && currentIPIndex < totalTasks && !startingUp) {
+    logDebug('useInteractiveProcessing', `Opening next overdue item at index: ${currentIPIndex + 1}`)
+    // remove the first item off itemsCopy
+    setItemsCopy([...itemsCopy.slice(1)])
+  }
+}, [itemsCopy, reactSettings, setItemsCopy])
+
+  // Processing effect
   // Sets the next item in itemsCopy to be processed and opens the dialog
   useEffect(() => {
     if (!reactSettings) return
     if (!reactSettings.interactiveProcessing) return
-    const { interactiveProcessing } = reactSettings
-    if (interactiveProcessing.sectionName !== thisSection.name) return
+    const { interactiveProcessing, dialogData } = reactSettings
+    const {startingUp, sectionName, currentIPIndex, totalTasks} = interactiveProcessing
+    // logDebug('useInteractiveProcessing', `thisSection.name=${thisSection.name} / interactiveProcessing sectionName=${sectionName}`)
+    if (sectionName !== thisSection.name) return
+    if (startingUp) return
+    logDebug('useInteractiveProcessing', `${startingUp ? 'startingUp==true STOPPING' : 'startingUp==false'} ${JSP(interactiveProcessing)} itemsCopy.length=${itemsCopy.length}`)
     if (itemsCopy.length === 0) return
-    logDebug('useInteractiveProcessing', 'overdue processing, check for items to process', reactSettings, interactiveProcessing)
-    const currentIPIndex = interactiveProcessing?.currentIPIndex || 0
-    const dialogIsOpen = reactSettings.dialogData?.isOpen || false
+    logDebug('useInteractiveProcessing', `overdue processing, check for items to process, dialogData?.isOpen=${dialogData?.isOpen}`, reactSettings, interactiveProcessing)
+    const dialogIsOpen = dialogData?.isOpen || false
 
-    logDebug('useInteractiveProcessing', `currentIPIndex: ${currentIPIndex}, dialogIsOpen: ${dialogIsOpen} itemsCopy.length: ${itemsCopy.length}`, itemsCopy[currentIPIndex])
-    if (!dialogIsOpen && currentIPIndex < itemsCopy.length && itemsCopy[currentIPIndex]) {
-      logDebug('useInteractiveProcessing', `Opening next overdue item at index: ${currentIPIndex}`)
+    if (!dialogIsOpen && currentIPIndex < totalTasks && itemsCopy[0]) {
+      logDebug('useInteractiveProcessing', `Opening next overdue item at index: ${0}`)
       setReactSettings((prev) => ({
         ...prev,
         dialogData: {
           ...prev.dialogData,
           isOpen: true,
           isTask: true,
-          details: { ...prev.dialogData.details, item: itemsCopy[currentIPIndex] },
+          details: { ...prev.dialogData.details, item: itemsCopy[0] },
         },
-        interactiveProcessing: {...prev.interactiveProcessing,currentIPIndex: currentIPIndex + 1}
+        interactiveProcessing: {...prev.interactiveProcessing,currentIPIndex: currentIPIndex + 1, startingUp: false}
       }))
       const actionType = 'showLineInEditorFromFilename'
-      sendActionToPlugin(actionType, { actionType, item: itemsCopy[currentIPIndex] }, 'Title clicked in Dialog', true)
-    } else if (!dialogIsOpen && currentIPIndex >= itemsCopy.length) {
+      sendActionToPlugin(actionType, { actionType, item: itemsCopy[0] }, 'Title clicked in Dialog', true)
+    } else if (!dialogIsOpen && currentIPIndex >= totalTasks) {
         logDebug('useInteractiveProcessing', `Over the limit?  ${String(currentIPIndex >= itemsCopy.length)} ${currentIPIndex.toString()} >= ${itemsCopy.length.toString()}`)
         if (itemsCopy?.length > 0) {
             setReactSettings((prev) => ({

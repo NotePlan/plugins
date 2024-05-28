@@ -231,8 +231,9 @@ export type TPluginCommandSimplified = {
 }
 
 export type TInteractiveProcessing = {
-  sectionName: string, 
-  currentIPIndex: number, 
-  totalTasks: number, 
-  clickPosition: TClickPosition
-}
+  sectionName: string,
+  currentIPIndex: number,
+  totalTasks: number,
+  clickPosition: TClickPosition,
+  startingUp?: boolean,
+} | false

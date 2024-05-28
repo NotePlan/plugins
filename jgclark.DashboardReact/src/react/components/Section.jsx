@@ -32,8 +32,6 @@ function Section(inputObj: SectionProps): React$Node {
     // in destructuring rename "featureFlags" to 'ffStr':
     const { FFlag_InteractiveProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
 
-    useInteractiveProcessing(items, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin)
-
     // Check to see if we want to see this section
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
       // logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
@@ -42,7 +40,7 @@ function Section(inputObj: SectionProps): React$Node {
 
     if (!section /* || isNaN(section.ID) */) {
       throw new Error(`❓Section doesn't exist. ${JSP(section)}`)
-    } else if (!section.sectionItems || section.sectionItems.length === 0) {
+    } else if (!items || items.length === 0) {
       if (section.ID !== 0) {
         // logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
         return
@@ -117,6 +115,9 @@ function Section(inputObj: SectionProps): React$Node {
     // Now apply limit (if desired)
     const limit = 20 // sharedSettings?.maxTasksToShowInSection ?? 20
     const itemsToShow = filteredItems.slice(0, limit)
+
+    useInteractiveProcessing(itemsToShow, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin)
+
     // Caclculate how many are not shown: not as simple as 'items.length - itemsToShow.length'
     // because there can be a pre-filter in Overdue generation, given by section.totalCount
     const filteredOut = section.totalCount ? section.totalCount - itemsToShow.length : items.length - itemsToShow.length
@@ -164,7 +165,7 @@ function Section(inputObj: SectionProps): React$Node {
       setReactSettings(prevSettings => ({
         ...prevSettings,
         lastChange: `_InteractiveProcessing Click`,
-        interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: items.length, clickPosition }, 
+        interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: itemsToShow.length, clickPosition, startingUp: true }, 
         dialogData: { isOpen: false, isTask: true, details: {}, clickPosition: /* prevSettings.interactiveProcessing?.clickPosition || */ clickPosition }
       }))
     }
@@ -186,7 +187,7 @@ function Section(inputObj: SectionProps): React$Node {
             {section.sectionItems.length && section.sectionCode !== "PROJ" && FFlag_InteractiveProcessing && (
               <><button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{items.length}</span>
+                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{itemsToShow.length}</span>
               </button>
               </>
             )}

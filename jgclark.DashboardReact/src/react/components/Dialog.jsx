@@ -124,6 +124,7 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
       y = fudgeFactor + scrollY
       logDebug(`Off top: now y=${y}; height=${dialog.style.height}`)
     }
+    if (y < 80) y = 80 // Make sure it doesn't disappear under the Header bar
     dialog.style.top = `${y}px`
   }
 
