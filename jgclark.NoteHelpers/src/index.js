@@ -34,6 +34,7 @@ export {
   showQuarter,
   showYear,
 } from './noteNavigation'
+export { findUnlinkedNotesInCurrentNote } from './unlinkedNoteFinder'
 
 export function resetCaches() {
   NotePlan.resetCaches()
