@@ -49,7 +49,7 @@ const Section = ({ section }: SectionProps): React$Node => {
     }
 
     if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
-      logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings?.[section.showSettingName]=${sharedSettings?.[section.showSettingName]}`)
+      logDebug('Section', `Section: ${section.ID} ("${section.name}") is currently filtered out sharedSettings[${section.showSettingName}]=${sharedSettings?.[section.showSettingName]}`)
       return
     }
 
@@ -73,7 +73,7 @@ const Section = ({ section }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  useInteractiveProcessing(items, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin)
+  useInteractiveProcessing(items, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, sharedSettings)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -94,7 +94,7 @@ const Section = ({ section }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   const buttons = section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} />) ?? []
 
-  const { FFlag_InteractiveProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
+  const { enableInteractiveProcessing } = sharedSettings
 
   const filterPriorityItems = sharedSettings?.filterPriorityItems ?? false
   let maxPrioritySeen = 0
@@ -187,7 +187,7 @@ const Section = ({ section }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {buttons}
-          {section.sectionItems.length && section.sectionCode !== "PROJ" && FFlag_InteractiveProcessing && (
+          {section.sectionItems.length && section.sectionCode !== "PROJ" && enableInteractiveProcessing && (
             <><button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">
               <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
               <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>{itemsToShow.length}</span>

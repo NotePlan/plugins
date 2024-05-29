@@ -44,6 +44,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   const dateChangeFunctionToUse = resched ? 'updateTaskDate' : 'moveFromCalToCal'
 
+  const { interactiveProcessing } = reactSettings??{}
+  const { currentIPIndex, totalTasks } = interactiveProcessing || {}
+  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = sharedSettings || {}
+  const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
   /**
    * Array of buttons to render.
    */
@@ -86,7 +90,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // Handle the shared closing functionality
   const closeDialog = (forceClose: boolean = false) => {
     // Start the zoom-out animation
-    setAnimationClass('zoom-out')
+    showAnimations ? setAnimationClass('zoom-out') : null
     scheduleClose(500, forceClose)  // Match the duration of the animation
   }
 
@@ -163,15 +167,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   useLayoutEffect(() => {
     // Trigger the 'effect when the component mounts
-    setAnimationClass('zoom-in')
+    showAnimations ? setAnimationClass('zoom-in') : null
 
     // run before the component unmounts
     return () => {
-      setAnimationClass('zoom-out')
+      showAnimations ? setAnimationClass('zoom-out') : null
     }
   }, [])
-
-  const { currentIPIndex, totalTasks } = reactSettings?.interactiveProcessing || {}
 
   return (
     <>
@@ -193,7 +195,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           <div className="dialog-top-right">
-            {reactSettings?.interactiveProcessing && currentIPIndex !== undefined && (
+            {interactiveProcessing && currentIPIndex !== undefined && (
               <>
                 <span className="interactive-processing-status">
                   <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

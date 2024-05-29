@@ -20,6 +20,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 //--------------------------------------------------------------------------
 type RenderItemProps = {
   item: TDropdownItem,
+  index:number,
   labelPosition: 'left' | 'right',
   handleFieldChange: (key: string, value: any) => void,
   handleSwitchChange?: (key: string, e: any) => void,
@@ -37,6 +38,7 @@ type RenderItemProps = {
  */
 export function renderItem({
   item,
+  index,
   labelPosition,
   handleFieldChange,
   handleSwitchChange = (key, e) => {},
@@ -46,7 +48,6 @@ export function renderItem({
   showSaveButton = true,
 }: RenderItemProps): React$Node {
   const element = () => {
-    if (!item?.key) { logDebug('renderItem', `No key for item: ${JSON.stringify(item)}`); return }
     switch (item.type) {
       case 'switch':
         return (
@@ -87,8 +88,8 @@ export function renderItem({
             options={item.options || []}
             value={item.value || ''}
             onChange={(option: string) => {
-              handleFieldChange(item.key, option)
-              handleComboChange(item.key, { target: { value: option }})
+              handleFieldChange(item.key||'', option)
+              handleComboChange(item.key||'', { target: { value: option }})
             }}
           />
         )
@@ -101,16 +102,16 @@ export function renderItem({
           />
         )
       case 'separator':
-        return <hr key={item.key} className="ui-separator ${item.key||''}" />
+        return <hr key={index} className="ui-separator ${item.key||''}" />
       case 'heading':
-        return <div className="ui-heading" key={item.key}>{item.label || ''}</div>
+        return <div key={index} className="ui-heading">{item.label || ''}</div>
       default:
         return null
     }
   }
 
   return (
-    <div className="ui-item" key={item.key} title={item.tooltip || ''}>
+    <div className="ui-item" key={`item${index}`} title={item.tooltip || ''}>
       {element()}
     </div>
   )

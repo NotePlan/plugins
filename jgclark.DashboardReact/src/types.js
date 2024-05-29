@@ -213,9 +213,9 @@ export type TSharedSettings = {
 export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
 
 export type TDropdownItem = {
-  label?: string,
-  key: string,
   type: TDropdownItemType,
+  label?: string,
+  key?: string,
   checked?: boolean,
   value?: string,
   options?: Array<string>,

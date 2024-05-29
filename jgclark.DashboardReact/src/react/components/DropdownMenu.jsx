@@ -114,7 +114,8 @@ const DropdownMenu = ({
     <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content ${isOpen ? 'show' : ''}`} style={style}>
-        {items.map((item) => renderItem({
+        {items.map((item,index) => renderItem({
+          index,
           item,
           labelPosition,
           handleFieldChange,

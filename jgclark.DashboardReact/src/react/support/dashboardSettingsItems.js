@@ -81,11 +81,9 @@ const settings = [
     default: "",
   },
   {
-    key: "separator1",
     type: 'separator',
   },
   {
-    key: "heading1",
     type: 'heading',
     label: "Overdue Tasks section",
   },
@@ -106,11 +104,9 @@ const settings = [
     default: true,
   },
   {
-    key: "separator2",
     type: 'separator',
   },
   {
-    key: "heading2",
     type: 'heading',
     label: "Tag/Mention section",
   },
@@ -137,11 +133,9 @@ const settings = [
     default: true,
   },
   {
-    key: "separator3",
     type: 'separator',
   },
   {
-    key: "heading3",
     type: 'heading',
     label: "Automatic Refresh"
   },
@@ -159,6 +153,34 @@ const settings = [
     type: 'input',
     default: "5",
   },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "Interactive Processing"
+  },
+  {
+    key: "enableInteractiveProcessing",
+    label: "Enable interactive processing for each section?",
+    description: "If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.",
+    type: 'switch',
+    default: true,
+  },
+  {
+    key: "interactiveProcessingHighlightTask",
+    label: "Open note and highlight task when processing?",
+    description: "If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window",
+    type: 'switch',
+    default: false,
+  },
+  {
+    key: "enableInteractiveProcessingTransitions",
+    label: "Show interactive processing transitions?",
+    description: "By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.",
+    type: 'switch',
+    default: true,
+  },
 ] 
 
 export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject  ): Array<TDropdownItem> => {
@@ -167,13 +189,11 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
       case 'separator':
         return {
           type: 'separator',
-          key: setting.key || 'separator',
         }
       case 'heading':
       case 'header':
         return {
           label: setting.label || '',
-          key: setting.key,
           type: 'heading',
         }
       case 'switch':
@@ -204,7 +224,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
       default:
         return {
           label: setting.label || '',
-          key: setting.key,
+          key: setting.key || '',
           type: 'text',
           value: sharedSettings[setting.key] ??  pluginSettings[setting.key] ?? setting.default,
           description: setting.description,

@@ -28,9 +28,11 @@ import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { type TReactSettings } from '../../types'
 import { parseSettings, getSettingsRedacted } from '../../shared.js'
+import {createDashboardSettingsItems} from '../support/dashboardSettingsItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, clo } from '@helpers/react/reactDev.js'
+
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
@@ -60,7 +62,15 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
   const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings) || {}
-  const combinedSettings = {...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
+  const dashboardSettingsItems = createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings)
+  const settingsIncludingDefaults = dashboardSettingsItems.reduce((acc, item) => {
+    // $FlowFixMe
+    item.key ? acc[item.key] = item.value || item.checked || '' : null
+    return acc
+  }, {})
+  //   if (item.key) initialSettings[item.key] = item.value || item.checked || ''
+
+  const combinedSettings = {...settingsIncludingDefaults, ...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
   const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************

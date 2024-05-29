@@ -47,7 +47,7 @@ const SettingsDialog = ({
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { sendActionToPlugin, sharedSettings } = useAppContext()
+    const { sendActionToPlugin, sharedSettings, setSharedSettings } = useAppContext()
 
     //----------------------------------------------------------------------
     // State
@@ -57,7 +57,7 @@ const SettingsDialog = ({
     const [updatedSettings, setUpdatedSettings] = useState(() => {
         const initialSettings: Settings = {}
         items.forEach(item => {
-            initialSettings[item.key] = item.value || item.checked || ''
+            if (item.key) initialSettings[item.key] = item.value || item.checked || ''
         })
         return initialSettings
     })
@@ -83,9 +83,11 @@ const SettingsDialog = ({
         if (onSaveChanges) {
             onSaveChanges(updatedSettings)
         }
-        const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
+        // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
+        setSharedSettings({...sharedSettings,...updatedSettings})
         logDebug('Dashboard', `Dashboard Settings Panel updates`,updatedSettings)
-        sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
+        // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
+        sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
         toggleDialog()
     }
     //----------------------------------------------------------------------
@@ -127,16 +129,17 @@ const SettingsDialog = ({
                 )}
             </div>
             <div className="settings-dialog-content">
-                {items.map(item => (
+                {items.map((item,index) => (
                     <div key={item.key}>
                         {renderItem({
+                            index,
                             item: {
                                 ...item,
-                                value:
+                                value: (typeof item.key === "undefined") ? '' :
                                     typeof updatedSettings[item.key] === 'boolean'
                                         ? ''
                                         : updatedSettings[item.key],
-                                checked:
+                                checked: (typeof item.key === "undefined") ? false :
                                     typeof updatedSettings[item.key] === 'boolean'
                                         ? updatedSettings[item.key]
                                         : false,
