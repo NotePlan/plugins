@@ -28,6 +28,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fix bugs where arrow dates were not showing up in dashboard. there were two bugs, and extended a helper (includesScheduledFutureDate) to look forward from a date passed to it (not always today).
 - dbw: fix refresh after move to today (turned it into an incremental refresh of all sections, which seems to work)
 - dbw: interactiveProcessing: add indicator of where you are in the list
+- dbw: remove rescheduleOrMove which was similarly named but confusing/not used
+- dbw: fixed feature flags not saving
+- dbw: fixed settings panel values sometimes not saving (still some clean-up to do)
+- dbw: improved sharedSettings initialization (made it happen earlier)
+- dbw: fixed errant reloads at launch
 
 ## [2.0.0.a27] @jgc 2024-05-27
 - restored the 'show referenced data in separate section' again when generating data

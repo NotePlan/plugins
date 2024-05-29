@@ -96,7 +96,7 @@ export type dashboardConfigType = {
  * @returns {any} the settings object or an empty object if there are none 
  */
 export function getSharedSettings(): any {
-  return parseSettings(DataStore.settings?.sharedSettings) ?? {}
+  return parseSettings(DataStore.settings?.sharedSettings||'') ?? {}
 }
 
 /**
@@ -108,7 +108,6 @@ export async function getCombinedSettings(): Promise<any> {
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
-  returnObj.rescheduleOrMove = pluginSettings.rescheduleOrMove ?? "reschedule"
   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
   // Now add all the show*Section settings (or default to true)
   for (const sd of allSectionDetails) {

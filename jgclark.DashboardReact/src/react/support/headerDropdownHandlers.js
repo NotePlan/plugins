@@ -11,7 +11,7 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
  * @param {boolean} isDev? (default: false) If true, then pressing refresh will do a complete reload, not just a refresh.
  * @returns {Function} - A function to handle the click event.
  */
-export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean = false):Function => (): void => {
+export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean = false): Function => (): void => {
   const actionType = isDev ? 'windowReload' : 'refresh'
   logDebug('Header', `Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}`)
   sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
@@ -32,44 +32,48 @@ export const handleSwitchChange = (
   sharedSettings: TSharedSettings,
   setSharedSettings: Function,
   sendActionToPlugin: Function
-):Function => (key: string) => (e: any): void => {
-  logDebug('handleSwitchChange', `Invoked with key: ${key} and event:`, e)
-  
-  if (!sharedSettings || Object.keys(sharedSettings).length === 0) {
-    logError(
-      'Header',
-      `handleSwitchChange: Checkbox clicked but sharedSettings is empty or undefined`,
-      sharedSettings
-    )
-    return
-  }
+): Function => {
+  // Return the event handler function
+  return (key: string) => (e: any): void => {
 
-  const isSection = key.startsWith('show')
-  const isChecked = e?.target?.checked || false
+    logDebug('handleSwitchChange', `Invoked with key: ${key} and event:`, e)
 
-  logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
-
-  // This saves the change in local context, and then it will be picked up and sent to plugin
-  if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
-    logDebug('handleSwitchChange', `Updating sharedSettings. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`)
-    setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `showKey changed: ${key}=${isChecked}` }))
-    if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
-      // call for new data for a section just turned on
-      const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
-      logDebug('handleSwitchChange', `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
-      if (sectionCode) {
-        const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
-        sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
-      }
+    if (!sharedSettings || Object.keys(sharedSettings).length === 0) {
+      logError(
+        'Header',
+        `handleSwitchChange: Checkbox clicked but sharedSettings is empty or undefined`,
+        sharedSettings
+      )
+      return
     }
-    if (!isSection) {
-      const refreshAllOnChange = nonSectionSwitches.find(s => s.key === key)?.refreshAllOnChange
-      if (refreshAllOnChange) {
-        sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
+
+    const isSection = key.startsWith('show')
+    const isChecked = e?.target?.checked || false
+
+    logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
+
+    // This saves the change in local context, and then it will be picked up and sent to plugin
+    if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
+      logDebug('handleSwitchChange', `Updating sharedSettings["${key}"]. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`,sharedSettings)
+      setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
+      if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
+        // call for new data for a section just turned on
+        const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
+        logDebug('handleSwitchChange', `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
+        if (sectionCode) {
+          const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
+          sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
+        }
       }
+      if (!isSection) {
+        const refreshAllOnChange = nonSectionSwitches.find(s => s.key === key)?.refreshAllOnChange
+        if (refreshAllOnChange) {
+          sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
+        }
+      }
+    } else {
+      logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${sharedSettings[key]}, new value: ${isChecked}`)
     }
-  } else {
-    logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${sharedSettings[key]}, new value: ${isChecked}`)
   }
 }
 
@@ -83,12 +87,12 @@ export const handleSwitchChange = (
  * @param {Function} setSharedSettings - Function to update the shared settings.
  * @returns {Function} - A function that takes a key and returns a function to handle the save input event.
  */
-export const handleSaveInput = (setSharedSettings: Function):Function => (key: string) => (newValue: string) => {
+export const handleSaveInput = (setSharedSettings: Function): Function => (key: string) => (newValue: string) => {
   logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue}`)
   setSharedSettings((prev) => {
     logDebug('Header', `Previous sharedSettings:`, prev)
     const newSettings = { ...prev, [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
-    logDebug('Header', `New sharedSettings: ${JSP(newSettings,2)}`)
+    logDebug('Header', `New sharedSettings: ${JSP(newSettings, 2)}`)
     return newSettings
   })
 }
@@ -101,7 +105,7 @@ export const handleSaveInput = (setSharedSettings: Function):Function => (key: s
  * @param {Function} setDropdownMenuChangesMade - Function to set the dropdown menu changes made state.
  * @returns {Function} - A function to set the changes made state.
  */
-export const handleDropdownFieldChange = (setDropdownMenuChangesMade: Function):Function => (): void => {
+export const handleDropdownFieldChange = (setDropdownMenuChangesMade: Function): Function => (): void => {
   setDropdownMenuChangesMade(true)
 }
 
@@ -122,8 +126,9 @@ export const handleToggleDropdownMenu = (
   setOpenDropdownMenu: (menu: string | null) => void,
   dropdownMenuChangesMade: boolean,
   onDropdownMenuChangesMade: () => void
-):Function => (menu: string): void => {
+): Function => (menu: string): void => {
   if (openDropdownMenu && openDropdownMenu !== menu && dropdownMenuChangesMade) {
+    logDebug('Header headerDropdownHandlers', `handleToggleDropdownMenu: dropdown menu changes made, refreshing sections`)
     onDropdownMenuChangesMade()
   }
   setOpenDropdownMenu(openDropdownMenu === menu ? null : menu)
@@ -142,6 +147,7 @@ export const handleOpenMenuEffect = (
   onDropdownMenuChangesMade: () => void
 ): void => {
   if (!openDropdownMenu && dropdownMenuChangesMade) {
+    logDebug('Header headerDropdownHandlers', `handleOpenMenuEffect: dropdown menu changes made, refreshing sections`)
     onDropdownMenuChangesMade()
   }
 }
@@ -160,9 +166,9 @@ export const handleOpenMenuEffect = (
 export const onDropdownMenuChangesMade = (
   setDropdownMenuChangesMade: (changesMade: boolean) => void,
   sendActionToPlugin: Function
-):Function => (): void => {
+): Function => (): void => {
   setDropdownMenuChangesMade(false) // Reset changes made
-
+  logDebug('Header headerDropdownHandlers', `onDropdownMenuChangesMade called -- refreshing sections after dropdown changes`)
   const payload = { actionType: 'incrementallyRefreshSections', sectionCodes: allSectionCodes }
   sendActionToPlugin('incrementallyRefreshSections', payload, `Refreshing b/c settings were changed`, true)
 }

@@ -27,6 +27,7 @@ import DropdownMenu from './DropdownMenu.jsx'
 import SettingsDialog from './SettingsDialog.jsx'
 import RefreshControl from './RefreshControl.jsx'
 import { useAppContext } from './AppContext.jsx'
+import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -62,10 +63,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
   const dropdownMenuHandler: DropdownMenuHandlerType = useDropdownMenuHandler(() => {
-    onDropdownMenuChangesMade(dropdownMenuHandler.setDropdownMenuChangesMade, sendActionToPlugin)()
+    // Removed the call to `onDropdownMenuChangesMade` here
   })
 
-  const { openDropdownMenu, dropdownMenuChangesMade, setDropdownMenuChangesMade, handleToggleDropdownMenu } = dropdownMenuHandler
+  const { openDropdownMenu, setDropdownMenuChangesMade, handleToggleDropdownMenu } = dropdownMenuHandler
 
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
 
@@ -73,13 +74,15 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // Constants
   //----------------------------------------------------------------------
   const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
+
   const { settings } = pluginData
 
   const dropdownItems = createFilterDropdownItems(sharedSettings, pluginData.settings)
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
 
-  const showHardRefreshButton = pluginData.settings._logLevel === 'DEV'&&sharedSettings?.FFlag_HardRefreshButton
+  const showHardRefreshButton = pluginData.settings._logLevel === 'DEV' && sharedSettings?.FFlag_HardRefreshButton
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -90,15 +93,21 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
 
       <div className="refresh">
-        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, false)} />
-        {showHardRefreshButton &&
-          <button onClick={handleRefreshClick(sendActionToPlugin, true)} className="PCButton hardRefreshButton">
+        <RefreshControl
+          refreshing={pluginData.refreshing === true}
+          handleRefreshClick={handleRefreshClick(sendActionToPlugin, false)}
+        />
+        {showHardRefreshButton && (
+          <button
+            onClick={handleRefreshClick(sendActionToPlugin, true)}
+            className="PCButton hardRefreshButton"
+          >
             <i className={"fa-solid fa-arrows-retweet"}></i>
             <span className="pad-left">Hard Refresh</span>
           </button>
-        }
+        )}
       </div>
-      
+
       <div className="totalCounts">
         {/* <span id="totalDoneCount">0</span> items closed */}
       </div>
@@ -110,6 +119,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
               handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+              onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
             }}
             className={'feature-flags'}
             iconClass="fa-solid fa-flag"
@@ -121,11 +131,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
         {/* Cog Icon for opening the settings dialog */}
         {FFlag_DashboardSettings && (
-          <div><i
-            className="fa-solid fa-gear"
-            onClick={handleToggleDialog}
-            style={{ cursor: 'pointer' }}
-          ></i></div>
+          <div>
+            <i
+              className="fa-solid fa-gear"
+              onClick={handleToggleDialog}
+              style={{ cursor: 'pointer' }}
+            ></i>
+          </div>
         )}
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
@@ -142,10 +154,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
             handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+            onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           handleSaveInput={(key, newValue) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
             handleSaveInput(setSharedSettings)(key)(newValue)
+            onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           className={'filter'}
           iconClass="fa-solid fa-filter"

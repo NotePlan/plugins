@@ -55,7 +55,7 @@ export function renderItem({
             label={item.label || ''}
             checked={item.checked || false}
             onChange={(e) => {
-              logDebug('Switch', `"${item?.label||''}" (${item.key}) was clicked`, e.target.checked)
+              logDebug('Switch', `onChange "${item?.label||''}" (${item.key}) was clicked`, e.target.checked)
               handleFieldChange(item.key, e.target.checked)
               handleSwitchChange(item.key, e)
             }}

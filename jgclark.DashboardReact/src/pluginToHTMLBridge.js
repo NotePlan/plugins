@@ -232,10 +232,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'reactSettingsChanged': {
+        // $FlowIgnore
+        if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
         result = await doSettingsChanged(data, 'reactSettings')
         break
       }
       case 'sharedSettingsChanged': {
+        // $FlowIgnore
+        if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
         result = await doSettingsChanged(data, 'sharedSettings')
         break
       }

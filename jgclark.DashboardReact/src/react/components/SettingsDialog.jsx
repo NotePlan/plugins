@@ -14,6 +14,7 @@ import type { TDropdownItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
+import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -46,7 +47,7 @@ const SettingsDialog = ({
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { sendActionToPlugin } = useAppContext()
+    const { sendActionToPlugin, sharedSettings } = useAppContext()
 
     //----------------------------------------------------------------------
     // State
@@ -82,7 +83,9 @@ const SettingsDialog = ({
         if (onSaveChanges) {
             onSaveChanges(updatedSettings)
         }
-        sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: updatedSettings }, 'Dashboard Settings Panel updates', true)
+        const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
+        logDebug('Dashboard', `Dashboard Settings Panel updates`,updatedSettings)
+        sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
         toggleDialog()
     }
     //----------------------------------------------------------------------

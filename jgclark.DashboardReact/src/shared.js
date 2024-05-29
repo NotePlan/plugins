@@ -5,7 +5,7 @@
 // Last updated 10.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type MessageDataObject, type TSectionItem } from './types'
+import { type MessageDataObject, type TSectionItem, type TSharedSettings } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -22,7 +22,7 @@ export function parseSettings(settings: string): any {
         }
         return JSON.parse(settings)
     } catch (error) {
-        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${settings}`)
+        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${(settings)}`)
     }
 }
 
@@ -97,12 +97,30 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * @param {TAnyObject} pluginSettings 
  * @param {TAnyObject} sharedSettings 
  * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, sharedSettings)
- */
-export function getFeatureFlags(pluginSettings:TAnyObject, sharedSettings:TSharedSettings): TAnyObject {
+//  */
+export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSharedSettings): TAnyObject {
     const isDebugLogging = pluginSettings?._logLevel === 'DEV'
     // find all keys that start with Fflag
     return (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
         acc[k] = sharedSettings[k]
         return acc
     }, {}) : {})
+}
+
+/**
+ * Returns a reduced version of the provided settings object
+ * without the sharedSettings and reactSettings objects
+ * @param {TAnyObject} settings
+ * @returns {TAnyObject} The redacted settings object
+ */
+export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
+    const keysToEliminate = ['sharedSettings', 'reactSettings', "_logLevel","timeblockMustContainString"]
+    const settingsRedacted = JSON.parse(JSON.stringify(settings))
+    const keys = Object.keys(settingsRedacted)
+    for (const key of keys) {
+        if (keysToEliminate.includes(key)) {
+            delete settingsRedacted[key]
+        }
+    }
+    return settingsRedacted
 }

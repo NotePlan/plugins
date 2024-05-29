@@ -24,9 +24,10 @@
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, type Node } from 'react'
+import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { type TReactSettings } from '../../types'
+import { parseSettings, getSettingsRedacted } from '../../shared.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
@@ -57,14 +58,17 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // this will save the data at the Root React Component level, which will give the plugin access to this data also
   // sending this dispatch will re-render the Webview component with the new data
 
-  const [sharedSettings, setSharedSettings] = React.useState({})
+  const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
+  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings) || {}
+  const combinedSettings = {...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
+  const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************
    *                             VARIABLES
    ****************************************************************************************************************************/
 
   // destructure all the startup data we expect from the plugin
-  const { pluginData, debug } = data
+  const { pluginData } = data
   // pluginData.sections = pluginData.sections.slice(0, 1) //FIXME: dbw remove this
   // logDebug('WebView', `DBW TEMPORARILY LIMITING TO ONE ITEM - REMOVE THIS`)
 
@@ -76,12 +80,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const defaultReactSettings = {
     dialogData: { isOpen: false, isTask: true, details: {} },
-  }
-
-  const defaultSharedSettings = {
-    filterPriorityItems: false,
-    ignoreChecklistItems: false, // TODO: this needs to interact with main settings
-    lastChange: `_WebView_DefaultSettings`,
   }
 
   /****************************************************************************************************************************
@@ -113,30 +111,31 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {Settings} settings
    */
   function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
-    const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
     if (!setter) return
     const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
-    if (settingsExist) {
-      logDebug(
-        `Webview`,
-        `${effectName} effect running: ${effectName} must have changed. currentSettings: ${window.webkit && JSON.stringify(
-          currentSettings || {},
-          null,
-          2,
-        )} pluginSettingsValue: ${pluginSettingsValue}`, currentSettings
-      )
-    }
+    // const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
+    // if (settingsExist) {
+    //   logDebug(
+    //     `Webview`,
+    //     `${effectName} initializer running. currentSettings: ${window.webkit && JSON.stringify(
+    //       currentSettings || {},
+    //       null,
+    //       2,
+    //     )} pluginSettingsValue: ${pluginSettingsValue}`, currentSettings
+    //   )
+    // }
 
     let parsedSettings = defaultSettings
     if (pluginSettingsValue) {
       try {
-        parsedSettings = JSON.parse(pluginData.settings[settingsKey])
+        logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.settings.${settingsKey}`)
+        parsedSettings = parseSettings(pluginData.settings[settingsKey])
       } catch (error) {
         logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
       }
     }
 
-    setter((prev) => ({ ...prev, lastChange: `_Webview_firstLoad`, ...parsedSettings }))
+    setter((prev) => ({ ...prev, ...parsedSettings, lastChange: `_Webview_firstLoad` }))
   }
 
   /**
@@ -154,28 +153,29 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   /**
    * Set up the initial Shared Settings (runs only on load)
+   * TODO: Maybe remove this...may not be necessary now that I am initializing in state
    */
-  useEffect(() => {
-    initializeSettings({
-      setter: setSharedSettings,
-      currentSettings: sharedSettings,
-      settingsKey: 'sharedSettings',
-      defaultSettings: defaultSharedSettings,
-      effectName: 'setSharedSettings'
-    })
-  }, [setSharedSettings])
+  // useEffect(() => {
+  //   initializeSettings({
+  //     setter: setSharedSettings,
+  //     currentSettings: sharedSettings,
+  //     settingsKey: 'sharedSettings',
+  //     defaultSettings: combinedSettings,
+  //     effectName: 'setSharedSettings'
+  //   })
+  // }, [setSharedSettings])
 
 
   /**
    * When the data changes, console.log it so we know and scroll the window
    * Fires after components draw
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`WebView`, `FYI data watch (for scroll): underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
+      // debug && logDebug(`WebView`, `FYI data watch (for scroll): underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     } else {
-      logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
+      // logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
@@ -208,7 +208,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
-    logDebug(`Webview`, `sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
+    // logDebug(`Webview`, `sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
       dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also

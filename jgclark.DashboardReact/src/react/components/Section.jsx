@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
 import useInteractiveProcessing from '../customHooks/useInteractiveProcessing.jsx'
+import { getFeatureFlags } from '../../shared.js'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -55,7 +56,7 @@ const Section = ({ section }: SectionProps): React$Node => {
     let sectionItems = section.sectionItems
     if (!sectionItems || sectionItems.length === 0) {
       if (section.ID !== 0) {
-        logDebug('Section', `Section: ${section.ID} / ${section.sectionCode} doesn't have any sectionItems, so not displaying.`)
+        // logDebug('Section', `Section: ${section.ID} / ${section.name} (${section.sectionCode}) is switched off or has no sectionItems`)
         sectionItems = []
       } else {
         logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
@@ -93,7 +94,7 @@ const Section = ({ section }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   const buttons = section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} />) ?? []
 
-  const { FFlag_InteractiveProcessing } = sharedSettings
+  const { FFlag_InteractiveProcessing } = getFeatureFlags(pluginData.settings, sharedSettings)
 
   const filterPriorityItems = sharedSettings?.filterPriorityItems ?? false
   let maxPrioritySeen = 0
