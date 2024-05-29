@@ -543,14 +543,14 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   if (newNote) {
     logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title||''}"`)
     clo(newNote.paragraphs,`doMoveToNote -> newNote.paragraphs; looking for ${para.type}:"${content}"`)
+    // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
     const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
     if (updatedParagraph) {
       logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
-      // @jgclark: updatedParagraph is an actual NP object (TParagraph) not a TParagraphForDashboard
       return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
     } else {
       logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections ☹️`)
-      return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: [] })
+      return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
     }
   } else {
     return handlerResult(false)

@@ -24,7 +24,7 @@ const RefreshControl = (props: Props): React$Node => {
       <Button
         text={
           <>
-            <i className={refreshing ? "fa fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
+          <i className={refreshing ? "fa fa-spinner-scale fa-spin" : "fa-regular fa-rotate-right"}></i>
             <span className="pad-left">{refreshing ? "Refreshing" : "Refresh"}</span>
           </>
         }

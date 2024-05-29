@@ -169,7 +169,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
       clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
       if (newSectionItem && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
-        logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
+        // logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
+        logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
         setReactSettings(prev => {
           const newData = {
             ...prev,
@@ -181,11 +182,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
             },
             lastChange: '_Dialog was open, and data changed underneath'
           }
-          logDebug('Dashboard', `in useEffect on dialog details change, setting reactSettings to: ${JSP(newData, 2)}`)
+          // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, setting reactSettings to: ${JSP(newData, 2)}`)
           return newData
         })
       } else {
-        logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem, 2)}`)
+        // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem, 2)}`)
+        logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])

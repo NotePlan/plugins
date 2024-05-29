@@ -133,6 +133,4 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   // winDetailsSpan.innerHTML = `f${fudgeFactor} / vw${winWidth} x vh${winHeight} / x${dialog.style.left} y${dialog.style.top} w${dialog.style.width} x h${dialog.style.height}`
 }
 
-
 export default Dialog
-

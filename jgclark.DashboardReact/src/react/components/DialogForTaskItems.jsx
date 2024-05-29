@@ -2,12 +2,11 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 16.5.2024 for v2.0.0 by @jgclark
+// Last updated 29.5.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
-// TODO: dbw Flip in/out
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
@@ -91,7 +90,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const closeDialog = (forceClose: boolean = false) => {
     // Start the zoom-out animation
     showAnimations ? setAnimationClass('zoom-out') : null
-    scheduleClose(500, forceClose)  // Match the duration of the animation
+    scheduleClose(300, forceClose)  // Match the duration of the animation
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
@@ -158,7 +157,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       // Wait for zoom animation animation to finish before actually closing
       setTimeout(() => {
         onClose()
-      }, 500) // Match the duration of the animation
+      }, 300) // Match the duration of the animation
     } else {
       console.log(`Option key pressed. Closing without animation.`)
       onClose()
