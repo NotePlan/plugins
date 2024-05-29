@@ -73,7 +73,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
+  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
 
   const { settings } = pluginData
 
@@ -128,17 +128,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             labelPosition="left"
           />
         )}
-
-        {/* Cog Icon for opening the settings dialog */}
-        {FFlag_DashboardSettings && (
-          <div>
-            <i
-              className="fa-solid fa-gear"
-              onClick={handleToggleDialog}
-              style={{ cursor: 'pointer' }}
-            ></i>
-          </div>
-        )}
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
           <SettingsDialog
@@ -167,6 +156,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           toggleMenu={() => handleToggleDropdownMenu('filter')}
           labelPosition="left"
         />
+                {/* Cog Icon for opening the settings dialog */}
+                <div>
+            <i
+              className="fa-solid fa-gear"
+              onClick={handleToggleDialog}
+              style={{ cursor: 'pointer' }}
+            ></i>
+          </div>
       </div>
     </div>
   )
