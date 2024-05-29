@@ -43,7 +43,7 @@ import {
   // isTimeBlockPara,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
-import { chooseHeading, displayTitleWithRelDate, showMessage } from '@helpers/userInput'
+import { chooseHeading, displayTitleWithRelDate, showMessage, chooseNote } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -876,12 +876,12 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
  * @param {string} filename line is currently in
  * @param {string} content of line
  * @param {TItemType} itemType of line
- * @returns {string} returns new filename on success, otherwise ''
+ * @returns {TNote} returns new note the line was moved to
  */
-export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<string> {
+export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<TNote|null> {
   try {
     // const { filename, content } = validateAndFlattenMessageObject(data)
-    logInfo('moveItemToRegularNote', 'Starting with {${content}} in ${filename}')
+    logDebug('moveItemToRegularNote', `Starting with {${content}} in ${filename}`)
 
     // find para in the given filename
     const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
@@ -894,7 +894,12 @@ export async function moveItemToRegularNote(filename: string, content: string, i
 
     // Ask user for destination project note
     const allRegularNotes = projectNotesSortedByChanged()
-    const destNote = await getNoteFromParamOrUser('checklist', '', false, allRegularNotes)
+    const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
+    // @jgclark, is there a reason you wanted to use this QuickCapture function instead of the chooseNote helper?
+    // const destNote = await getNoteFromParamOrUser(typeToDisplayToUser, '', false, allRegularNotes)
+    const destNote = await chooseNote(true,false,[],`Choose Note to Move ${typeToDisplayToUser} to`,false,true)
+    logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
+    if (!destNote) return null
 
     // Ask to which heading to add the selectedParas
     const headingToFind = await chooseHeading(destNote, true, true, false)
@@ -903,14 +908,22 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     // Add text to the new location in destination note
     // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
     const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
-    if (itemType === 'task') {
-      addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
+    if (itemType === 'open') { // there is no "task" in itemType
+      // FIXME: @jgclark: We had the exact note (destNote), but now we are going to try to find it again by title?
+      // this is not great because we could have multiple notes with the same title
+      // ok for now, but this helper should be able to accept a specific filename
+      await addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
     } else {
-      addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
+      await addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
     }
+
+    // Trying to get the note again from DataStore in case that helps find the task (it doesn't)
+    // $FlowIgnore
+    const noteAfterChanges:TNote = DataStore.noteByFilename(destNote.filename,destNote.type)
     // Ask for cache refresh for this note
-    DataStore.updateCache(destNote, false)
+    const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
 
     // delete from existing location
     const origNote = getNoteByFilename(filename)
@@ -922,12 +935,12 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     } else {
       logWarn('moveItemToRegularNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
     }
-    // Return new filename or ''
-    return destNote.filename
+    // Return the destNote
+    return updatedDestNote
 
     // Ask for cache refresh for this note
   } catch (error) {
     logError('', error.message)
-    return ''
+    return null
   }
 }

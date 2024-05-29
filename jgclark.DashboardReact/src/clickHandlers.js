@@ -537,19 +537,19 @@ export async function doShowLineInEditorFromTitle(data: MessageDataObject): Prom
 // Instruction to move task from a note to a project note.
 // Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType } = validateAndFlattenMessageObject(data)
-
-  const newFilenameOrEmpty: string = await moveItemToRegularNote(filename, content, itemType)
-  if (newFilenameOrEmpty !== '') {
-    logDebug('doMoveToNote', `Success: moved -> ${newFilenameOrEmpty}`)
-    if (data.item?.para) {
-      data.item.para.filename = newFilenameOrEmpty
-  // Send a message to update the row in the dashboard
-      logDebug('doMoveToNote', `- Sending update line request`)
-      // FIXME: following is probably correct, but isn't handled fully yet in handlerResult
-      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: data.item?.para })
+  const { filename, content, itemType, para } = validateAndFlattenMessageObject(data)
+  logDebug('doMoveToNote', `starting -> ${filename} / ${content} / ${itemType}`)
+  const newNote: TNote|null|void = await moveItemToRegularNote(filename, content, itemType)
+  if (newNote) {
+    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title||''}"`)
+    clo(newNote.paragraphs,`doMoveToNote -> newNote.paragraphs; looking for ${para.type}:"${content}"`)
+    const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
+    if (updatedParagraph) {
+      logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
+      // @jgclark: updatedParagraph is an actual NP object (TParagraph) not a TParagraphForDashboard
+      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
     } else {
-      logWarn('doMoveToNote', `Couldn't update the para with the new filename. Resorting to refreshing all sections ☹️`)
+      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections ☹️`)
       return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: [] })
     }
   } else {

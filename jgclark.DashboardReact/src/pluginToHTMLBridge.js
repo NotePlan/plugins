@@ -392,8 +392,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   }
 
   if (updatedParagraph) {
-    // FIXME: when used from doMoveToNote() .note does not exist, and then it throws various errors
-    clo(updatedParagraph.note?.filename ?? '<empty>', `updateReactWindowFLC -> updatedParagraph.note.filename`)
+    logDebug(`updateReactWindowFromLineChange`, ` -> updatedParagraph.filename`)
     const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     // get a reference so we can overwrite it later
@@ -406,19 +405,19 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     })
 
     if (indexes.length) {
-      const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-      clo(indexes, 'updateReactWindowFLC: indexes to update')
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      // const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
+      // clo(indexes, 'updateReactWindowFLC: indexes to update')
+      // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       if (shouldRemove) {
         // TEST:
         indexes.reverse().forEach((index) => {
           const { sectionIndex, itemIndex } = index
           sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-          clo(sections[sectionIndex],`After splicing sections[${sectionIndex}]`)
+          // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
         })
       } else {
         sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
-        clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
+        // clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       }
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
