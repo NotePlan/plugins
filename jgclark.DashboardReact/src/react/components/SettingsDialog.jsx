@@ -84,7 +84,7 @@ const SettingsDialog = ({
             onSaveChanges(updatedSettings)
         }
         // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
-        setSharedSettings({...sharedSettings,...updatedSettings})
+        setSharedSettings({...sharedSettings,...updatedSettings, lastChange: 'Dashboard Settings Modal saved'})
         logDebug('Dashboard', `Dashboard Settings Panel updates`,updatedSettings)
         // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
         sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
@@ -130,7 +130,7 @@ const SettingsDialog = ({
             </div>
             <div className="settings-dialog-content">
                 {items.map((item,index) => (
-                    <div key={item.key}>
+                    <div key={`sdc${index}`}>
                         {renderItem({
                             index,
                             item: {

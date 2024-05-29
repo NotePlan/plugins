@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
@@ -20,7 +21,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 //--------------------------------------------------------------------------
 type RenderItemProps = {
   item: TDropdownItem,
-  index:number,
+  index: number,
   labelPosition: 'left' | 'right',
   handleFieldChange: (key: string, value: any) => void,
   handleSwitchChange?: (key: string, e: any) => void,
@@ -52,13 +53,15 @@ export function renderItem({
       case 'switch':
         return (
           <Switch
-            key={item.key}
+            key={`sw${index}`}
             label={item.label || ''}
             checked={item.checked || false}
             onChange={(e) => {
-              logDebug('Switch', `onChange "${item?.label||''}" (${item.key}) was clicked`, e.target.checked)
-              handleFieldChange(item.key, e.target.checked)
-              handleSwitchChange(item.key, e)
+              if (item.key) {
+                logDebug('Switch', `onChange "${item.label || ''}" (${item.key || ''}) was clicked`, e.target.checked)
+                item.key && handleFieldChange(item.key, e.target.checked)
+                item.key && handleSwitchChange(item.key, e)
+              }
             }}
             labelPosition={labelPosition}
           />
@@ -66,16 +69,16 @@ export function renderItem({
       case 'input':
         return (
           <InputBox
-            key={item.key}
+            key={`ibx${index}`}
             label={item.label || ''}
             value={item.value || ''}
             onChange={(e) => {
-              handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
-              handleInputChange(item.key, e)
+              item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
+              item.key && handleInputChange(item.key, e)
             }}
             onSave={(newValue) => {
-              handleFieldChange(item.key, newValue)
-              handleSaveInput(item.key, newValue)
+              item.key && handleFieldChange(item.key, newValue)
+              item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
           />
@@ -83,28 +86,28 @@ export function renderItem({
       case 'combo':
         return (
           <ComboBox
-            key={item.key}
+            key={`cmb${index}`}
             label={item.label || ''}
             options={item.options || []}
             value={item.value || ''}
             onChange={(option: string) => {
-              handleFieldChange(item.key||'', option)
-              handleComboChange(item.key||'', { target: { value: option }})
+              item.key && handleFieldChange(item.key, option)
+              item.key && handleComboChange(item.key, { target: { value: option } })
             }}
           />
         )
       case 'text':
         return (
           <TextComponent
-            key={item.key}
+            key={`text${index}`}
             textType={item.textType || 'description'}
             label={item.label || ''}
           />
         )
       case 'separator':
-        return <hr key={index} className="ui-separator ${item.key||''}" />
+        return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
-        return <div key={index} className="ui-heading">{item.label || ''}</div>
+        return <div key={`hed${index}`} className="ui-heading">{item.label || ''}</div>
       default:
         return null
     }
