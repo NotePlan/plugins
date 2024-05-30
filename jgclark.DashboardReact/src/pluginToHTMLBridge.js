@@ -311,10 +311,11 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     }
     const { success, updatedParagraph } = handlerResult
     const isProject = data.item?.itemType === 'project'
+    const actsOnALine = actionsOnSuccess.some(str => str.includes("LINE"))
 
     const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? '-'}"`)
-    if (filename === '') {
+    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`)
+    if (actsOnALine && filename === '') {
       logWarn('processActionOnReturn', `Starting with no filename`)
     }
 
@@ -329,7 +330,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) // FIXME: replace the whole paragraph with new data
+        await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) 
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
@@ -339,13 +340,16 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
         for (const sectionCode of wantedsectionCodes) {
-          await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+          // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+          await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
+        if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
         logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
-        await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+        // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+        await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
       }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult`)
