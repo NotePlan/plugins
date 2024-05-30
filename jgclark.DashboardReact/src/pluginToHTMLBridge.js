@@ -86,23 +86,6 @@ export async function runPluginCommand(data: TPluginCommandSimplified) {
 }
 
 /**
- * Somebody clicked on a checkbox in the HTML view
- * @param {SettingDataObject} data - setting name
- */
-export async function bridgeChangeCheckbox(data: SettingDataObject) {
-  try {
-    // clo(data, 'bridgeChangeCheckbox received data object')
-    const { settingName, state } = data
-    logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
-    DataStore.setPreference('Dashboard-filterPriorityItems', state)
-    // having changed this pref, refresh the dashboard
-    // await showDashboardReact()
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
  * Somebody clicked on a something in the HTML React view
  * NOTE: processActionOnReturn will be called for each item after the CASES based on TBridgeClickHandlerResult
  * @param {MessageDataObject} data - details of the item clicked
@@ -327,10 +310,12 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       return
     }
     const { success, updatedParagraph } = handlerResult
-    logDebug('processActionOnReturn', `starting with updatedParagraph {${updatedParagraph?.content ?? '-'}}`)
-    const filename: string = data.item?.para?.filename ?? ''
+    const isProject = data.item?.itemType === 'project'
+
+    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? '-'}"`)
     if (filename === '') {
-      logDebug('processActionOnReturn', `Starting with no filename`)
+      logWarn('processActionOnReturn', `Starting with no filename`)
     }
 
     if (success) {
@@ -338,9 +323,8 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         // update the cache for the note, as it might have changed
         const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
       }
-
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        clo(data.item, 'processActionOnReturn: `REMOVE_LINE_FROM_JSON')
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : 'task:"${data?.item.para.content}"'}`)
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
@@ -384,19 +368,20 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
   const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
   const { ID } = data.item ?? { ID: '?' }
-  const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
   // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
   if (!success) {
-    logWarn('updateReactWindowFLC', `failed, so won't update window`)
+    logWarn('updateReactWindowFLC', `failed, so won't update window; handlerResult: ${JSP(handlerResult)} data: ${JSP(data)}`)
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  let sections = reactWindowData.pluginData.sections
+  const isProject = data.item?.itemType === "project"
 
   if (updatedParagraph) {
     logDebug(`updateReactWindowFromLineChange`, ` -> updatedParagraph.filename`)
+    const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
     const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
-    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     // get a reference so we can overwrite it later
-    let sections = reactWindowData.pluginData.sections
     // find all references to this content (could be in multiple sections)
     const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
       itemType: /open|checklist/,
@@ -419,16 +404,34 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
         sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
         // clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       }
-      await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
     } else {
       logError('updateReactWindowFLC', `unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
       throw `updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
     }
     // update ID in data object
+  } else if (isProject) {
+    const projFilename = data.item?.project?.filename
+    if (!projFilename) throw `updateReactWindowFLC: unable to find data.item.project.filename in ${JSP(data)}`
+    const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
+      itemType: "project",
+      'project.filename': projFilename,
+    })
+    // clo(indexes, 'updateReactWindowFLC: indexes to update')
+    if (shouldRemove) {
+      indexes.reverse().forEach((index) => {
+        const { sectionIndex, itemIndex } = index
+        sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+        // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+      })
+    } else {
+      logError('updateReactWindowFLC', `Project type sent but not a remove action, but don't know how to do anything else yet. So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
+      // sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
+    }
   } else {
-    logWarn('updateReactWindowFLC', `no updated paragraph: ID ${ID}: ${errorMsg || ''}`)
+    logError('updateReactWindowFLC', `no updatedParagraph param was supplied to updateReactWindowFromLineChange(). So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
     throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
   }
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
 }
 
 /**

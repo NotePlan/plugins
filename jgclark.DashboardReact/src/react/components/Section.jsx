@@ -140,8 +140,8 @@ const Section = ({ section }: SectionProps): React$Node => {
   const limit = 20
   const itemsToShow = filteredItems.slice(0, limit)
 
-  const filteredOut = section.totalCount ? section.totalCount - itemsToShow.length : items.length - itemsToShow.length
-  const limitApplied = (section.totalCount ?? 0) > itemsToShow.length
+  const filteredOut = items.length ? items.length - itemsToShow.length : items.length - itemsToShow.length
+  const limitApplied = (items.length ?? 0) > itemsToShow.length
 
   if (filteredOut > 0) {
     itemsToShow.push({

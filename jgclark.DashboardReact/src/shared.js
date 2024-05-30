@@ -31,7 +31,7 @@ export function parseSettings(settings: string): any {
  * and are non-null, so we don't have to write this checking code in every handler.
  * All properties of data, data.item, and data.item.para are included in the return object
  * and can be destructured directly. In case of key collisions, an error is thrown.
- * Additionally, 'item' and 'para' themselves are included in the result set.
+ * Additionally, 'item' and 'para' and 'project' themselves are included in the result set.
  * In case of key collisions, it throws an error indicating where the collisions are.
  * However, no validation is done on any params other than 'filename' and 'content'.
  * If 'filename' or 'content' is null, an error is thrown specifying the issue.
@@ -42,7 +42,7 @@ export function parseSettings(settings: string): any {
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
     const { item } = data
-    let { para, project } = item
+    let { para, project } = item||{}
     const isProject = project !== undefined
     const isTask = !isProject
 
@@ -61,6 +61,12 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
         }
         if (para?.content === null || para?.content === undefined) {
             throw new Error("Error validating data: 'content' is null or undefined.")
+        }
+    } else {
+        // is project
+        if (!project?.title || !project?.filename) {
+            logError(`Error validating data: ${JSP(data, 2)}`)
+            throw new Error("Error validating data: Projects must have title and filename set.")
         }
     }
 
@@ -87,6 +93,8 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
     result.item = { ...item }
     //$FlowIgnore[prop-missing]
     if (isTask) result.para = { ...para }
+    //$FlowIgnore[prop-missing]
+    if (isProject) result.project = { ...project }
     //$FlowIgnore[prop-missing]
     return result
 }

@@ -431,7 +431,7 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
     skipReviewForNote(note, period)
 
     // Now remove the line from the display
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
   } else {
     logWarn('doSetNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
     return handlerResult(false)
@@ -449,7 +449,7 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
     logDebug('doReviewFinished', `-> after finishReview`)
 
     // Now ask to update this line in the display
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'])
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
   } else {
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
     return handlerResult(false)
@@ -562,7 +562,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const dateInterval = controlStr || ''
   const config = await getCombinedSettings()
-  logDebug('doUpdateTaskDate', `filename: ${filename}, content: ${content}, dateInterval: ${dateInterval}`)
+  logDebug('doUpdateTaskDate', `filename: ${filename}, content: "${content}", dateInterval: ${dateInterval}`)
   // const startDateStr = ''
   let newDateStr = dateString || ''
   if (dateInterval !== 't' && !dateString && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -597,7 +597,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
     const theLine = thePara.content
     // FIXME: this is only resched not moving. doMoveBetweenCalendar. rescheduleNotMove setting.
     const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
-    logDebug('doUpdateTaskDate', `Found line {${theLine}}\n-> changed line: {${changedLine}}`)
+    logDebug('doUpdateTaskDate', `Found line "${theLine}" -> changed line: "${changedLine}"`)
     thePara.content = changedLine
     const thisNote = thePara.note
     if (thisNote) {
@@ -609,7 +609,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
 
       // refresh whole display, as we don't know which if any section the moved task might need to be added to
       logDebug('doUpdateTaskDate', `------------ refresh ------------`)
-      return handlerResult(true, ['REMOVE_LINE_FROM_JSON','REFRESH_ALL_SECTIONS'])
+      return handlerResult(true, ['REMOVE_LINE_FROM_JSON','REFRESH_ALL_SECTIONS'],{ updatedParagraph: thePara } )
       // await showDashboardReact()
     } else {
       logWarn('doUpdateTaskDate', `- can't find note to update to {${changedLine}}`)
@@ -632,6 +632,13 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
 }
 
 export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { dateString } = validateAndFlattenMessageObject(data)
-  return await doUpdateTaskDate(data, dateString)
+  const { dateString, itemType, filename } = validateAndFlattenMessageObject(data)
+  if (itemType === "project") {
+    // FIXME: @jgclark - please implement 
+    throw(`doSetSpecificDate -> itemType: ${itemType} - not supported yet, data:${JSP(data)}`)
+    // @jgclark: leaing this here, because you will probably want a return like this:
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+  } else {
+    return await doUpdateTaskDate(data, dateString)
+  }
 }

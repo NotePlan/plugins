@@ -15,6 +15,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - other bug fixes
 
+## [2.0.0.a29]
+- Fixed bug in doUpdateTaskDate that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
+- Realized this would cause another bug that Reviews would not be passing updatedParagraph. So fixed this. 
+
 ## [2.0.0.a28] @jgc, @dbw 2024-05-28
 - now forces a window reload on theme change
 - fix some of the header layout (Components and CSS) so that buttons can be added removed with relative impunity

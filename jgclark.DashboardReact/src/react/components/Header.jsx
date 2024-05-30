@@ -9,7 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React from 'react'
-import { getFeatureFlags } from '../../shared.js'
+// import { getFeatureFlags } from '../../shared.js'
 import { createFilterDropdownItems } from '../support/filterDropdownItems'
 import { createFeatureFlagItems } from '../support/featureFlagItems'
 import { createDashboardSettingsItems } from '../support/dashboardSettingsItems.js'
