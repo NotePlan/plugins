@@ -2,6 +2,7 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
+import { addNoteTagsToAllTask } from './tagTasks'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
@@ -112,6 +113,16 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function versionCheck(): Promise<void> {
   try {
     await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+/**
+ * Trigger to copy tags from the front matter to all tasks in the note
+ */
+export async function triggerCopyNoteTags(): Promise<void> {
+  try {
+    await addNoteTagsToAllTask()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

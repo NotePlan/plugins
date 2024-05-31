@@ -8,6 +8,7 @@ import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { getTagsFromString, type TagsList } from '../../helpers/paragraph'
+import { addTrigger } from '../../helpers/NPFrontMatter'
 import { getFrontMatterAttributes } from '@helpers/NPFrontMatter'
 import { getSelectedParagraph, getParagraphContainingPosition } from '@helpers/NPParagraph'
 
@@ -200,12 +201,12 @@ export async function copyTagsFromHeadingAbove() {
 function findTagsInFrontMatter(): Array<string> | null {
   const frontMatter = getFrontMatterAttributes(Editor)
   if (frontMatter) {
-    const tags = (frontMatter.noteTags || '')
+    const tags = frontMatter.noteTags
       .replaceAll(',', ' ')
       .trim()
       .split(' ')
       .filter((tag) => tag !== '')
-    return tags?.length ? tags : null
+    return tags
   }
   return null
 }
@@ -228,6 +229,10 @@ export function addNoteTagsToAllTask(): void {
       }
     })
   } else {
-    showMessage('No noteTags field or tags found in frontmatter. Make sure you have frontmatter with a "noteTags" line and #tags.')
+    showMessage('No task tags found in front matter')
   }
+}
+
+export function addNoteTagsTriggerToFm(): void {
+  addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'triggerCopyNoteTags')
 }
