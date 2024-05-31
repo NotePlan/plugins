@@ -5,7 +5,7 @@ import type { TDropdownItem, TSharedSettings } from "../../types.js"
 const featureFlagSettings = [
     { key: 'FFlag_AutoRefresh', label: 'Auto Refresh', tooltip: 'Enable Automatic Refreshing' },
     { key: 'FFlag_MetaTooltips', label: 'Meta Tooltips', tooltip: 'Show tooltips for meta information' },
-    { key: 'FFlag_ForceInitialLoad', label: 'Force Full Initial Load', tooltip: 'Rather than incremental section loading, force full initial load. Mostly useful for testing full data in a browser.' },
+    { key: 'FFlag_ForceInitialLoadForBrowserDebugging', label: 'Force Full Initial Load', tooltip: 'Rather than incremental section loading, force full initial load. Mostly useful for testing full data in a browser.' },
     { key: 'FFlag_LimitOverdues', label: 'Limit Overdues to Last 2w', tooltip: 'Pull overdues from last 2 weeks only. Requires a refresh after setting.' },
     { key: 'FFlag_HardRefreshButton', label: 'Show Hard Refresh Button', tooltip: 'Show button that does a full window reload with changed React components and data' },
 ]

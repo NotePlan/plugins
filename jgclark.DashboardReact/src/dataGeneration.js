@@ -46,7 +46,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { getFolderFromFilename } from '@helpers/folders'
 // import { displayTitle } from '@helpers/general'
 import {
-  getTimeRangeFromTimeBlockString,
+  // getTimeRangeFromTimeBlockString,
   // localeDateStr,
   toNPLocaleDateString,
   // setMomentLocaleFromEnvironment,
@@ -57,7 +57,7 @@ import {
 } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getTimeBlockString } from '@helpers/timeblocks'
+// import { getTimeBlockString } from '@helpers/timeblocks'
 import {
   // isOpen, isOpenTask,
   isOpenNotScheduled, isOpenTaskNotScheduled,
@@ -86,13 +86,6 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
 
     let sections: Array<TSection> = []
     sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    // if (config.tagToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    // if (config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
@@ -115,15 +108,12 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
  * NOTE: Always refreshes today and the TAG sections
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
- * @param {boolean} force (default: false) - refresh sections even if setting is not enabled
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} array of sections
- * TODO: remove the 'force' logic from here, as I have added it to getAllSectionsData instead.
  */
 export async function getSomeSectionsData(
   sectionCodesToGet: Array<TSectionCode> = allSectionCodes,
   useDemoData: boolean = false,
-  force: boolean = false,
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
@@ -132,14 +122,14 @@ export async function getSomeSectionsData(
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('DY') && (force || config.showYesterdaySection)) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('DO') && (force || config.showWeekSection)) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('W') && (force || config.showWeekSection)) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('M') && (force || config.showMonthSection)) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('Q') && (force || config.showQuarterSection)) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('TAG') && (force || config.tagToShow)) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (sectionCodesToGet.includes('OVERDUE') && (force || config.showOverdueSection)) sections.push(await getOverdueSectionData(config, useDemoData))
-    if (sectionCodesToGet.includes('PROJ') && (force || config.showProjectSection)) sections.push(await getProjectSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('DO') && config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('TAG') && config.tagToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
 
     logInfo('getSomeSectionsData', `Finishing`)
 
@@ -159,7 +149,7 @@ export async function getSomeSectionsData(
  */
 export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 0
+    let sectionNum = '0'
     const thisSectionCode = 'DT'
     const sections: Array<TSection> = []
     const items: Array<TSectionItem> = []
@@ -272,7 +262,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '1'
       if (useDemoData) {
         const sortedRefParas = refTodayItems
         sortedRefParas.map((item) => {
@@ -331,7 +321,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
  */
 export function getYesterdaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 2
+    let sectionNum = '2'
     let itemCount = 0
     const sections: Array<TSection> = []
     const thisSectionCode = 'DY'
@@ -413,7 +403,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '3'
       if (useDemoData) {
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
@@ -471,7 +461,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
  */
 export function getTomorrowSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 4
+    let sectionNum = '4'
     const thisSectionCode = 'DO'
     const sections: Array<TSection> = []
     const items: Array<TSectionItem> = []
@@ -528,7 +518,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       name: 'Tomorrow',
       showSettingName: 'showTomorrowSection',
       sectionCode: thisSectionCode,
-      description: `{count} from ${yesterdayDateLocale}`,
+      description: `{count} from ${tomorrowDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-arrow-down',
       sectionTitleClass: 'sidebarDaily',
       sectionFilename: thisFilename,
@@ -542,7 +532,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '5'
       if (useDemoData) {
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
@@ -582,12 +572,11 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       // clo(section)
       sections.push(section)
     }
-    // TODO: time blocks here as well?  Should these live in earlier function?
 
     logInfo('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
     return [section]
   } catch (error) {
-    console.error(`ERROR: ${error.message}`)
+    logError('getDataForDashboard/tomorrow', `ERROR: ${error.message}`)
     return []
   }
 }
@@ -601,7 +590,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
  */
 export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 6
+    let sectionNum = '6'
     const thisSectionCode = 'W'
     const sections: Array<TSection> = []
     const items: Array<TSectionItem> = []
@@ -695,7 +684,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '7'
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
@@ -733,7 +722,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     logInfo('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
-    console.error(`ERROR: ${error.message}`)
+    logError('xxx', `ERROR: ${error.message}`)
     return []
   }
 }
@@ -746,7 +735,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
  */
 export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 8
+    let sectionNum = '8'
     const thisSectionCode = 'M'
     const sections: Array<TSection> = []
     const items: Array<TSectionItem> = []
@@ -840,7 +829,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '9'
       if (useDemoData) {
         const sortedRefParas = refMonthParas
         sortedRefParas.map((item) => {
@@ -878,7 +867,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     logInfo('getDataForDashboard', `- found ${itemCount} monthly items from ${thisFilename} in ${timer(startTime)}`)
     return sections
   } catch (error) {
-    console.error(`ERROR: ${error.message}`)
+    logError('getDataForDashboard/month', `ERROR: ${error.message}`)
     return []
   }
 }
@@ -891,7 +880,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
  */
 export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = 10
+    let sectionNum = '10'
     const thisSectionCode = 'Q'
     const sections: Array<TSection> = []
     const items: Array<TSectionItem> = []
@@ -909,7 +898,6 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     } else {
       const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
       if (currentQuarterlyNote) {
-        const startTime = new Date() // for timing only
         const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
@@ -980,7 +968,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       const items: Array<TSectionItem> = []
-      sectionNum++
+      sectionNum = '11'
       if (useDemoData) {
         // No demo data
       } else {
@@ -1013,7 +1001,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     logInfo('getDataForDashboard', `- found ${itemCount} quarterly items from ${dateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
-    console.error(`ERROR: ${error.message}`)
+    logError('getDataForDashboard/quarter', `ERROR: ${error.message}`)
     return []
   }
 }
@@ -1046,7 +1034,7 @@ export function getTaggedSections(config: dashboardConfigType, useDemoData: bool
  * @param {boolean} useDemoData?
  */
 export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false, sectionDetail:TSectionDetails, index: number): TSection {
-  const sectionNum = `11-${index}`
+  const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
   const maxInSection = config.maxTasksToShowInSection ?? 30
   logDebug('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)} --------`)
@@ -1167,7 +1155,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
 // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
 export async function getOverdueSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
   try {
-    const sectionNum = 12
+    const sectionNum = '13'
     const thisSectionCode = 'OVERDUE'
     let totalOverdue = 0
     let itemCount = 0
@@ -1204,7 +1192,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       }
     } else {
       // Get overdue tasks (and dedupe)
-      // Note: Cannot move the reduce move into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
+      // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       // TODO: find better way to dedupe again
       // const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
       
@@ -1278,12 +1266,13 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
+    // $FlowFixMe[incompatible-return]
     return null
   }
 }
 
 export async function getProjectSectionData(_config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
-  const sectionNum = 13
+  const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
   const maxProjectsToShow = 6
@@ -1351,7 +1340,8 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
     return section
   } else {
     logDebug('getDataForDashboard', `looked but found no notes to review`)
-    return {}
+    // $FlowFixMe[incompatible-return]
+    return null
   }
 }
 

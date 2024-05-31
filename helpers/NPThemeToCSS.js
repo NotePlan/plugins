@@ -174,6 +174,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
+    // Following added to mimic what the NP settings screen main background is
     rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)

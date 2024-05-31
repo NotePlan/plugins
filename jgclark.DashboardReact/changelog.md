@@ -21,6 +21,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - stopped IP button from being shown for Projects section
 - updated display of referenced section names: now start with '>'
 - updated settings CSS to use values from the theme, and to make it look more like the main NP preferences dialog
+- to help browser debugging, updated getInitialDataForReactWindow() to change the way initial load works, and document what's going on. (Also rename FFlag_ForceInitialLoad to FFlag_ForceInitialLoadForBrowserDebugging.)
+- changed section.ID from number to string throughout (to reduce flow errors)
 
 ## [2.0.0.a29] @dbw 2024-05-30
 - Fixed bug in doUpdateTaskDate (for +1d etc) that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
