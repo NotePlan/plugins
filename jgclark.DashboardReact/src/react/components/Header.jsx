@@ -95,7 +95,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       <div className="refresh">
         <RefreshControl
           refreshing={pluginData.refreshing === true}
-          handleRefreshClick={handleRefreshClick(sendActionToPlugin, false)}
+          handleRefreshClick={handleRefreshClick(sendActionToPlugin, true)}
         />
         {showHardRefreshButton && (
           <button

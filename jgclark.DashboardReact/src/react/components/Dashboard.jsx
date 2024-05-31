@@ -78,9 +78,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings)
   }
   
-  logDebug('Dashboard', `sharedSettings?.hideDuplicates: ${sharedSettings?.hideDuplicates}`)
-  logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
   logDebug('Dashboard', `origSections length: ${origSections.length}`)
+  logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
   clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
