@@ -27,7 +27,7 @@ import {
   doShowLineInEditorFromFilename,
   doShowLineInEditorFromTitle,
   doSettingsChanged,
-  doSetSpecificDate,
+  // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
   doUpdateTaskDate,
@@ -63,7 +63,7 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 //-----------------------------------------------------------------
 // Data types + constants
 
-type SettingDataObject = { settingName: string, state: string }
+// type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = `${pluginJson['plugin.id']}.main` // TODO(later): update me
 const WEBVIEW_WINDOW_ID = windowCustomId
@@ -226,10 +226,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doSettingsChanged(data, 'sharedSettings')
         break
       }
-      case 'setSpecificDate': {
-        result = await doSetSpecificDate(data)
-        break
-      }
+      // case 'setSpecificDate': {
+      //   result = await doSetSpecificDate(data)
+      //   break
+      // }
       case 'refreshSomeSections': {
         result = await refreshSomeSections(data)
         break

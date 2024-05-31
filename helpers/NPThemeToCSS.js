@@ -174,6 +174,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
+    rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)
     output.push(makeCSSSelector('button, input', [
@@ -608,6 +609,23 @@ export function RGBColourConvert(RGBIn: string): string {
     logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
     return '#888888' // for completeness
   }
+}
+
+/**
+ * Note: in future it should be possible to do this in CSS with `color-mix(in srgb, <color-A>, <color-B>)`
+ * From https://stackoverflow.com/a/66402402/3238281
+ */
+export function mixHexColors(color1: string, color2: string): string {
+  const valuesColor1 = color1.replace('#', '').match(/.{2}/g).map((value) =>
+    parseInt(value, 16)
+  )
+  const valuesColor2 = color2.replace('#', '').match(/.{2}/g).map((value) =>
+    parseInt(value, 16)
+  )
+  const mixedValues = valuesColor1.map((value, index) =>
+    ((value + valuesColor2[index]) / 2).toString(16).padStart(2, '')
+  )
+  return `#${mixedValues.join('')}`
 }
 
 /**

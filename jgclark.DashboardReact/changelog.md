@@ -20,6 +20,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'reschedule' accordingly
 - stopped IP button from being shown for Projects section
 - updated display of referenced section names: now start with '>'
+- updated settings CSS to use values from the theme, and to make it look more like the main NP preferences dialog
 
 ## [2.0.0.a29] @dbw 2024-05-30
 - Fixed bug in doUpdateTaskDate (for +1d etc) that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
