@@ -26,12 +26,29 @@
 
 import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
-import { type TReactSettings } from '../../types'
+import { type TReactSettings, type TDropdownItem } from '../../types'
 import { parseSettings, getSettingsRedacted } from '../../shared.js'
 import {createDashboardSettingsItems} from '../support/dashboardSettingsItems.js'
+import {  createFilterDropdownItems } from '../support/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
 import { logDebug, clo } from '@helpers/react/reactDev.js'
+
+/**
+ * Reduces an array of dashboard settings items into an object including default values.
+ *
+ * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
+ * @returns {Object} - The resulting object with settings including defaults.
+ */
+function getSettingsDefaults(items: Array<TDropdownItem>): { [key: string]: any } {
+  return items.reduce((acc: { [key: string]: any }, item) => {
+    // $FlowFixMe
+    if (item.key) {
+      acc[item?.key] = item.value || item.checked || ''
+    }
+    return acc
+  }, {})
+}
 
 /**
  * Root element for the Plugin's React Tree
@@ -61,16 +78,11 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // sending this dispatch will re-render the Webview component with the new data
 
   const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
-  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings) || {}
-  const dashboardSettingsItems = createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings)
-  const settingsIncludingDefaults = dashboardSettingsItems.reduce((acc, item) => {
-    // $FlowFixMe
-    item.key ? acc[item.key] = item.value || item.checked || '' : null
-    return acc
-  }, {})
-  //   if (item.key) initialSettings[item.key] = item.value || item.checked || ''
+  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings||"{}") || {}
+  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings))
+  const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.settings))
 
-  const combinedSettings = {...settingsIncludingDefaults, ...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
+  const combinedSettings = {...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
   const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************

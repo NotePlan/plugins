@@ -1,7 +1,7 @@
 // @flow
 import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../types.js'
 import { allSectionDetails } from "../../constants.js"
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, clof } from '@helpers/react/reactDev.js'
 
 const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]
 
@@ -83,37 +83,53 @@ export function getSectionsWithoutDuplicateLines(
   sharedSettings: TSharedSettings
 ): Array<TSection> {
   if (!paraMatcherFields) return _sections
-  const sections = JSON.parse(JSON.stringify(_sections)) // Deep copy so we don't mutate the original pluginData
-
-  const useFirstVisibleOnly = getUseFirstButVisible(useFirst, sharedSettings, sections)
-
-  const orderedSections = useFirstVisibleOnly.map((st) =>
-    sections.find((section) => section.sectionCode === st)
-  ).filter(Boolean)
-
+  
+  // Deep copy the sections to avoid mutating the original data
+  const sections = JSON.parse(JSON.stringify(_sections))
+  
+  // Get ordered sections based on visibility and priority
+  // These are just sectionCodes
+  const useFirstVisibleOnly:Array<TSectionCode> = getUseFirstButVisible(useFirst, sharedSettings, sections)
+  
+// Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
+// For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:
+// - Filter the `sections` array to find all sections with a matching `sectionCode`.
+// - Flatten these arrays into a single array of sections.
+// This ensures `orderedSections` contains all sections, ordered by `useFirstVisibleOnly` with duplicates included.
+// because there could be multiples (e.g. TAGs or Today/>Today with the same sectionCode)
+const orderedSections = useFirstVisibleOnly.flatMap(st =>
+    sections.filter(section => section.sectionCode === st)
+  )
+  
   // Include sections not listed in useFirst at the end of the array
-  orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
-
+  orderedSections.push(...sections.filter(section => !useFirst.includes(section.sectionCode)))
+  clof(orderedSections, `getSectionsWithoutDuplicateLines orderedSections (length=${orderedSections.length})`,['sectionCode','name'],true)
+  // logDebug('Dashboard sectionHelpers', `orderedSections: ${orderedSections.toString()}`)
+  
+  // Map to track unique items
+  const itemMap:any = new Map()
+  
+  // Now we are working with actual TSection objects, not sectionCodes anymore
   // Process each section (but not if it's a "PROJ" section)
-  const itemMap: Map<string, boolean> = new Map()
-  orderedSections.forEach((section) => {
-    section.sectionItems =
-      section.sectionCode === 'PROJ'
-        ? section.sectionItems
-        : section.sectionItems.filter((item) => {
-            const key = paraMatcherFields.map((field) =>
-              item?.para ? item?.para[field] : '<no value>'
-            ).join('|')
-            if (!itemMap.has(key)) {
-              itemMap.set(key, true)
-              return true
-            }
-            return false
-          })
-  })
+  orderedSections.forEach(section => {
+    if (section.sectionCode === 'PROJ') return
 
-  return sections
+    section.sectionItems = section.sectionItems.filter(item => {
+      const key = paraMatcherFields.map(field => item?.para ? item.para[field] : '<no value>').join('|')
+      
+      if (!itemMap.has(key)) {
+        itemMap.set(key, true)
+        return true
+      }
+      
+      return false
+    })
+  })
+  
+  // Return the orderedSections instead of the original sections
+  return orderedSections
 }
+
 
 /**
  * Counts the total number of sectionItems in an array of TSection objects

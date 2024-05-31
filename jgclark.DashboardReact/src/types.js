@@ -32,6 +32,8 @@ export type TSectionItem = {
   itemType: TItemType,
   para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'project') */,
   project?: TProjectForDashboard,
+  updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
+  // updated will be set by the copyUpdatedSectionItemData function when content is modified
   // itemFilename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   // itemNoteTitle?: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   // noteType: NoteType /* Notes | Calendar */,

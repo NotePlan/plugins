@@ -1,8 +1,17 @@
 // @flow
 import type {TDropdownItem,TSharedSettings} from "../../types.js"
 
+// Filters are rendered in the file filterDropdownItems
+// Note that filters are automatically created for each section in the dashboard
+// The filters below are non-section switches that display in the filters menu
+export const dashboardFilters = [
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
+  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
+  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
+  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false },
+]
 
-const settings = [
+const dashboardSettings = [
   {
     key: "ignoreTasksWithPhrase",
     label: "Ignore items in calendar sections with this phrase",
@@ -184,7 +193,7 @@ const settings = [
 ] 
 
 export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject  ): Array<TDropdownItem> => {
-  return settings.map(setting => {
+  return dashboardSettings.map(setting => {
     switch (setting.type) {
       case 'separator':
         return {

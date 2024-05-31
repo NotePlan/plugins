@@ -20,7 +20,7 @@ import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, clo, JSP } from '@helpers/react/reactDev.js'
+import { logDebug, logError, clo, clof, JSP } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -68,16 +68,30 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const shiftKeyConfig = { text: 'Shift Key Pressed', style: { color: 'blue' } }
   const ctrlKeyConfig = { text: 'Ctrl Key Pressed', style: { color: 'green' } }
   const altKeyConfig = { text: 'Alt Key Pressed', style: { color: 'yellow' } }
+
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
 
   let sections = origSections
-  const unduplicatedSections = sections.length === 1
-    ? sections
-    : (sharedSettings
-      ? getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings)
-      : [])
+  let unduplicatedSections = sections
+  
+  if (sections.length > 1 && sharedSettings) {
+    unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings)
+  }
+  
+  logDebug('Dashboard', `sharedSettings?.hideDuplicates: ${sharedSettings?.hideDuplicates}`)
+  logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
+  logDebug('Dashboard', `origSections length: ${origSections.length}`)
+  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+
   sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
+  
+  logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
+  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+
   sections = sortSections(sections, sectionDisplayOrder)
+  logDebug('Dashboard', `sections after sort length: ${sections.length}`)
+  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+
 
   const dashboardContainerStyle = {
     maxWidth: '98vw',
@@ -94,6 +108,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [])
 
+  useEffect(() => {
+    if (!sharedSettings) {
+      // Fallback or initialization logic for sharedSettings
+      logError('Dashboard', 'sharedSettings is undefined')
+    }
+  }, [sharedSettings])
+  
   // temporary code to output variable changes to Chrome DevTools console
   const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length===0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
@@ -124,7 +145,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, sharedSettings)
     const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
     if (document.title !== windowTitle) {
-      logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
+      // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle
     }
   }, [pluginData.sections])
@@ -158,26 +179,27 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     const { details: dialogItemDetails } = dialogData
     if (!dialogData.isOpen || !dialogItemDetails) return
     // Note, dialogItemDetails (aka dialogData.details) is a MessageDataObject
-    logDebug('Dashboard', `dialogData?.details?.item=${JSP(dialogItemDetails?.item, 2)}`)
     if (!(dialogData?.details?.item)) return
     if (dialogItemDetails?.item?.ID) {
       const { ID: openItemInDialogID } = dialogItemDetails.item
       const sectionIndexes = findSectionItems(origSections, ['ID'], { ID: openItemInDialogID })
-      logDebug('Dashboard', `sectionIndexes: ${JSP(sectionIndexes, 2)}`)
+      // logDebug('Dashboard', `JSON data changed; sectionIndexes: ${JSP(sectionIndexes, 2)}`)
       if (!sectionIndexes?.length) return
       const firstMatch = sectionIndexes[0]
       const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
       clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
-      if (newSectionItem && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
-        // logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
-        logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
+      // used to do the JSON.stringify to compare, but now that an .updated field is used, they will be different
+      if (newSectionItem && newSectionItem.updated /* && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item) */) {
+        logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
+        // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
         setReactSettings(prev => {
           const newData = {
             ...prev,
             dialogData: {
               ...prev.dialogData,
               details: {
-                ...prev.dialogData.details, item: newSectionItem
+                ...prev.dialogData.details /* to save the clickPosition */, 
+                item: newSectionItem
               }
             },
             lastChange: '_Dialog was open, and data changed underneath'
@@ -185,9 +207,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, setting reactSettings to: ${JSP(newData, 2)}`)
           return newData
         })
+        logError('Dashboard', `TODO: need to reset the updated field in sections after using it here`)
+
       } else {
-        // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem, 2)}`)
-        logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous`)
+        // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem)}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])

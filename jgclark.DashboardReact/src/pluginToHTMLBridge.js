@@ -325,11 +325,12 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
       }
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : 'task:"${data?.item.para.content}"'}`)
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content||''}"`}`)
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
+        handlerResult.updatedParagraph.isUpdating = true
         await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) 
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
@@ -391,6 +392,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       itemType: /open|checklist/,
       'para.filename': oldFilename,
       'para.content': oldContent,
+      isUpdating: true
     })
 
     if (indexes.length) {

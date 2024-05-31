@@ -299,7 +299,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
       const section: TSection = {
         ID: sectionNum,
-        name: 'Today',
+        name: 'Today ', // the space after is intentional so it has a different "name"
         showSettingName: 'showTodaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
@@ -439,7 +439,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'Yesterday',
+        name: 'Yesterday ', // the space after is intentional so it has a different "name"
         showSettingName: 'showYesterdaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
@@ -477,7 +477,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const items: Array<TSectionItem> = []
     let itemCount = 0
     const tomorrow = new moment().add(1, 'days').toDate()
-    const yesterdayDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
+    const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
     const filenameDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowsNote = DataStore.calendarNoteByDateString(filenameDateStr)
     const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
@@ -568,10 +568,10 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'Tomorrow',
+        name: 'Tomorrow ', // the space after is intentional so it has a different "name"
         showSettingName: 'showTomorrowSection',
         sectionCode: thisSectionCode,
-        description: `{count} scheduled to ${yesterdayDateLocale}`,
+        description: `{count} scheduled to ${tomorrowDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-arrow-down',
         sectionTitleClass: 'sidebarDaily',
         sectionFilename: thisFilename,
@@ -716,7 +716,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Week',
+        name: 'This Week ', // the space after is intentional so it has a different "name"
         showSettingName: 'showWeekSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
@@ -861,7 +861,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Month',
+        name: 'This Month ', // the space after is intentional so it has a different "name"
         showSettingName: 'showMonthSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
@@ -996,7 +996,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Quarter',
+        name: 'This Quarter ', // the space after is intentional so it has a different "name"
         showSettingName: 'showQuarterSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
@@ -1361,7 +1361,7 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
  * Finds all items within the provided sections that match the given field/value pairs.
  *
  * @param {Array<TSection>} sections - An array of section objects containing sectionItems.
- * @param {Array<string>} fieldPaths - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
+ * @param {Array<string>} fieldPathsToMatch - An array of field paths (e.g., 'para.filename', 'itemType') to match against.
  * @param {Object<string, string|RegExp>} fieldValues - An object containing the field values to match against. Values can be strings or regular expressions.
  * @returns {Array<SectionItemIndex>} An array of objects containing the section index and item index for each matching item.
  * @example const indexes = findSectionItems(sections, ['itemType', 'filename', 'para.content'], { itemType: /open|checklist/, filename: oldFilename, 'para.content': oldContent }) // find all references to this content (could be in multiple sections)
@@ -1370,14 +1370,14 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
  */
 export function findSectionItems(
   sections: Array<TSection>,
-  fieldPaths: Array<string>,
+  fieldPathsToMatch: Array<string>,
   fieldValues: { [key: string]: string | RegExp },
 ): Array<{ sectionIndex: number, itemIndex: number }> {
   const matches: Array<{ sectionIndex: number, itemIndex: number }> = []
 
   sections.forEach((section, sectionIndex) => {
     section.sectionItems.forEach((item, itemIndex) => {
-      const isMatch = fieldPaths.every((fieldPath) => {
+      const isMatch = fieldPathsToMatch.every((fieldPath) => {
         const itemFieldValue = getNestedValue(item, fieldPath)
         if (!itemFieldValue) {
           logDebug(`findSectionItems: ${fieldPath} is undefined in ${JSP(item)} -- may be ok if you are looking for a task and this is a review item`)
@@ -1410,27 +1410,28 @@ export function findSectionItems(
  * Copies specified fields from a provided object into the corresponding sectionItems in the sections array.
  *
  * @param {Array<SectionItemIndex>} results - An array of results from the findSectionItems function, containing section and item indices.
- * @param {Array<string>} fieldPaths - An array of field paths (e.g., 'para.filename', 'itemType') to copy from the provided object.
- * @param {Object} updatedValues - The object containing the field values to be copied.
+ * @param {Array<string>} fieldPathsToReplace - An array of field paths (e.g., 'para.filename', 'itemType') to copy from the provided object.
+ * @param {Object} updatedValues - The object containing the field values to be copied -- the keys are the field paths (can be strings with dots, e.g. para.filename) and the values are the values to copy.
  * @param {Array<TSection>} sections - The original sections array to be modified.
  * @returns {Array<TSection>} The modified sections array with the specified fields copied into the corresponding sectionItems.
  */
 export function copyUpdatedSectionItemData(
   results: Array<{ sectionIndex: number, itemIndex: number }>,
-  fieldPaths: Array<string>,
+  fieldPathsToReplace: Array<string>,
   updatedValues: { [key: string]: any },
   sections: Array<TSection>,
 ): Array<TSection> {
   results.forEach(({ sectionIndex, itemIndex }) => {
     const sectionItem = sections[sectionIndex].sectionItems[itemIndex]
 
-    fieldPaths.forEach((fieldPath) => {
+    fieldPathsToReplace.forEach((fieldPath) => {
       // const [firstField, ...remainingPath] = fieldPath.split('.')
       const value = getNestedValue(updatedValues, fieldPath)
       if (value !== undefined) {
         setNestedValue(sectionItem, fieldPath, value)
       }
     })
+    sectionItem.updated = true 
   })
 
   return sections

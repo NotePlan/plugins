@@ -1,6 +1,6 @@
 // @flow
 import { createFilterDropdownItems } from '../filterDropdownItems'
-import {nonSectionSwitches } from "../../../constants.js"
+import {dashboardFilters } from "../../../constants.js"
 import type { TDropdownItem, TSharedSettings } from "../../../types.js"
 import { getShowTagSettingName } from "../sectionHelpers"
 
@@ -21,8 +21,8 @@ describe('helpers', () => {
       }
 
       const expectedDropdownItems = [
-        // Expected items for nonSectionSwitches
-        ...nonSectionSwitches.map(s => ({
+        // Expected items for dashboardFilters
+        ...dashboardFilters.map(s => ({
           label: s.label,
           key: s.key,
           type: 'switch',
@@ -63,8 +63,8 @@ describe('helpers', () => {
       }
 
       const expectedDropdownItems = [
-        // Expected items for nonSectionSwitches
-        ...nonSectionSwitches.map(s => ({
+        // Expected items for dashboardFilters
+        ...dashboardFilters.map(s => ({
           label: s.label,
           key: s.key,
           type: 'switch',
@@ -104,8 +104,8 @@ describe('helpers', () => {
       }
 
       const expectedDropdownItems = [
-        // Expected items for nonSectionSwitches
-        ...nonSectionSwitches.map(s => ({
+        // Expected items for dashboardFilters
+        ...dashboardFilters.map(s => ({
           label: s.label,
           key: s.key,
           type: 'switch',

@@ -16,8 +16,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 
 ## [2.0.0.a29]
-- Fixed bug in doUpdateTaskDate that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
-- Realized this would cause another bug that Reviews would not be passing updatedParagraph. So fixed this. 
+- Fixed bug in doUpdateTaskDate (for +1d etc) that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
+- Realized this would cause another bug that Reviews would not be passing updatedParagraph either. So fixed this. Reviews are now removed when you click "Review Complete"
+- Added a Projects section refresh after handling a review - do you will always have 6 (unless you don't have)
+- Put in note re: setSpecificDate -- jgclark needs to update the doSetSpecificDate() function to do the right thing with reviews
+- Fixed some bugs with duplicates with multiple sections with the same sectionCode
 
 ## [2.0.0.a28] @jgc, @dbw 2024-05-28
 - now forces a window reload on theme change

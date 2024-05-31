@@ -1,10 +1,10 @@
 // @flow
-import { allSectionDetails, nonSectionSwitches } from "../../constants.js"
+import { allSectionDetails } from "../../constants.js"
 import type { TDropdownItem, TSharedSettings } from "../../types.js"
 import { getTagSectionDetails } from "./sectionHelpers.js"
-
+import { dashboardFilters} from "./dashboardSettingsItems.js"
 /**
- * Create array of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, nonSectionSwitches
+ * Create array of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters
  * @param {TSharedSettings} sharedSettings 
  * @param {TAnyObject} pluginSettings 
  * @returns {Array<TDropdownItem>}
@@ -23,7 +23,7 @@ export const createFilterDropdownItems = (
     checked: (typeof sharedSettings !== undefined && sharedSettings[s.showSettingName]) ?? pluginSettings[s.showSettingName] ?? true,
   }))
 
-  const nonSectionItems = nonSectionSwitches.map(s => ({
+  const nonSectionItems = dashboardFilters.map(s => ({
     label: s.label,
     key: s.key,
     type: 'switch',

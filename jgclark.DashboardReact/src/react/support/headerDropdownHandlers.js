@@ -1,6 +1,7 @@
 // @flow
-import { allSectionDetails, allSectionCodes, nonSectionSwitches } from "../../constants.js"
+import { allSectionDetails, allSectionCodes } from "../../constants.js"
 import type { TSharedSettings } from "../../types.js"
+import { dashboardFilters } from "./dashboardSettingsItems.js"
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 
 
@@ -66,7 +67,7 @@ export const handleSwitchChange = (
         }
       }
       if (!isSection) {
-        const refreshAllOnChange = nonSectionSwitches.find(s => s.key === key)?.refreshAllOnChange
+        const refreshAllOnChange = dashboardFilters.find(s => s.key === key)?.refreshAllOnChange
         if (refreshAllOnChange) {
           sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
         }

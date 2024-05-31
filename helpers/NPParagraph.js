@@ -1356,7 +1356,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
           }
           c++
         }
-        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} to complete`)
+        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} in note '${filename}'`)
         return false
       } else {
         logInfo('NPP/findParaFromStringAndFilename', `Note '${filename}' appears to be empty?`)

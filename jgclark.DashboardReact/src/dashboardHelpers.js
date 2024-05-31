@@ -12,7 +12,7 @@ import { parseSettings } from './shared'
 import type { TItemType, TParagraphForDashboard } from './types'
 import {
   allSectionDetails,
-  // nonSectionSwitches
+  // dashboardFilters
 } from "./constants"
 import {
   removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getTodaysDateHyphenated
