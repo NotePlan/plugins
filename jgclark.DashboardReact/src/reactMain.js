@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Last updated 31.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -169,25 +169,32 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
 
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoad=${String(config.FFlag_ForceInitialLoad)}`)
-  const sections = config.FFlag_ForceInitialLoad === true
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoadForBrowserDebugging=${String(config.FFlag_ForceInitialLoadForBrowserDebugging)}`)
+  // const sections = config.FFlag_ForceInitialLoadForBrowserDebugging === true
+  //   ? await getAllSectionsData(useDemoData, true, true)
+  //   // : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+  //   : await getAllSectionsData(useDemoData, false, true)
+
+  // Important Note: If we need to force load everything, it's easy.
+  // But if we don't then 2 things are needed:
+  // - the getSomeSectionsData() for just the Today section(s)
+  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+  const sections = config.FFlag_ForceInitialLoadForBrowserDebugging === true
     ? await getAllSectionsData(useDemoData, true, true)
-    // : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, false, true)
-    : await getAllSectionsData(useDemoData, false, true)
+    : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
   return {
     sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
-    doneCount: doneCount, // TODO: Is this worth having? 
     demoMode: useDemoData, 
-    platform: NotePlan.environment.platform,
+    platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: Editor.currentTheme?.name || '<could not get theme>',
   }
 }
 
 /**
- * TODO: think about doing a function to remove all duplicates from sections *on completoin* not on display
+ * TODO: think about doing a function to remove all duplicates from sections *on completion* not on display
  */
 
 /**

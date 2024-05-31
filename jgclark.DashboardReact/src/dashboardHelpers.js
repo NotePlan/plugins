@@ -87,7 +87,7 @@ export type dashboardConfigType = {
   _logLevel: string,
   triggerLogging: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
-  FFlag_ForceInitialLoad: boolean,
+  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
   FFlag_LimitOverdues: boolean,
 }
 

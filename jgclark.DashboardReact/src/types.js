@@ -10,7 +10,7 @@ export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, 
 
 // details for a section
 export type TSection = {
-  ID: number,
+  ID: string,
   name: string, // display name 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
   showSettingName: string, // setting for whether to hide this section
   sectionCode: TSectionCode,

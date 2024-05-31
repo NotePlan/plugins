@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-05-30 for v2.0.0 by @jgclark
+// Last updated 2024-05-31 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -54,7 +54,7 @@ const Section = ({ section }: SectionProps): React$Node => {
 
     let sectionItems = section.sectionItems
     if (!sectionItems || sectionItems.length === 0) {
-      if (section.ID !== 0) {
+      if (section.ID !== '0') {
         sectionItems = []
       } else {
         logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
