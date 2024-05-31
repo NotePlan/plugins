@@ -8,6 +8,8 @@ import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { getTagsFromString, type TagsList } from '../../helpers/paragraph'
+import { addTrigger } from '../../helpers/NPFrontMatter'
+import { getFrontMatterAttributes } from '@helpers/NPFrontMatter'
 import { getSelectedParagraph, getParagraphContainingPosition } from '@helpers/NPParagraph'
 
 /**
@@ -189,4 +191,48 @@ export async function copyTagsFromHeadingAbove() {
       showMessage(`Can only run this command on a line under a heading`)
     }
   }
+}
+
+/**
+ * Copy the tags from the front matter
+ * Supports comma or space separated tags
+ *
+ */
+function findTagsInFrontMatter(): Array<string> | null {
+  const frontMatter = getFrontMatterAttributes(Editor)
+  if (frontMatter) {
+    const tags = frontMatter.noteTags
+      .replaceAll(',', ' ')
+      .trim()
+      .split(' ')
+      .filter((tag) => tag !== '')
+    return tags
+  }
+  return null
+}
+
+/**
+ * Add all noteTags to all tasks in the note
+ * (plugin Entry Point for "cnt - Copy tags from front matter to all tasks")
+ *
+ */
+export function addNoteTagsToAllTask(): void {
+  const tags = findTagsInFrontMatter()
+  if (tags) {
+    const taskTypes = ['open', 'done', 'scheduled']
+    const tasksParagraphs = Editor.paragraphs.filter((p) => taskTypes.includes(p.type))
+    tasksParagraphs.forEach((currentPara) => {
+      const updatedText = appendTagsToText(currentPara.content, { hashtags: tags, mentions: [] })
+      if (updatedText) {
+        currentPara.content = updatedText
+        Editor.updateParagraph(currentPara)
+      }
+    })
+  } else {
+    showMessage('No task tags found in front matter')
+  }
+}
+
+export function addNoteTagsTriggerToFm(): void {
+  addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'triggerCopyNoteTags')
 }
