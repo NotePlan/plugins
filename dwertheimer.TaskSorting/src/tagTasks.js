@@ -198,12 +198,16 @@ export async function copyTagsFromHeadingAbove() {
  *
  */
 function findTagsInFrontMatter(): Array<string> | null {
-    const frontMatter = getFrontMatterAttributes(Editor)
-    if (frontMatter) {
-        const tags = frontMatter.noteTags.replaceAll(',', ' ').trim().split(' ').filter(tag => tag !== '')
-        return tags
-    }
-    return null
+  const frontMatter = getFrontMatterAttributes(Editor)
+  if (frontMatter) {
+    const tags = (frontMatter.noteTags || '')
+      .replaceAll(',', ' ')
+      .trim()
+      .split(' ')
+      .filter((tag) => tag !== '')
+    return tags?.length ? tags : null
+  }
+  return null
 }
 
 /**
@@ -212,18 +216,18 @@ function findTagsInFrontMatter(): Array<string> | null {
  *
  */
 export function addNoteTagsToAllTask(): void {
-    const tags = findTagsInFrontMatter()
-    if (tags) {
-      const taskTypes = ['open', 'done', 'scheduled']
-       const tasksParagraphs = Editor.paragraphs.filter(p => taskTypes.includes(p.type))
-       tasksParagraphs.forEach(currentPara => {
-          const updatedText = appendTagsToText(currentPara.content, {hashtags: tags, mentions: []})
-          if (updatedText) {
-            currentPara.content = updatedText
-            Editor.updateParagraph(currentPara)
-          }
-        })
-    } else {
-        showMessage('No task tags found in front matter')
-    }
+  const tags = findTagsInFrontMatter()
+  if (tags) {
+    const taskTypes = ['open', 'done', 'scheduled']
+    const tasksParagraphs = Editor.paragraphs.filter((p) => taskTypes.includes(p.type))
+    tasksParagraphs.forEach((currentPara) => {
+      const updatedText = appendTagsToText(currentPara.content, { hashtags: tags, mentions: [] })
+      if (updatedText) {
+        currentPara.content = updatedText
+        Editor.updateParagraph(currentPara)
+      }
+    })
+  } else {
+    showMessage('No noteTags field or tags found in frontmatter. Make sure you have frontmatter with a "noteTags" line and #tags.')
+  }
 }

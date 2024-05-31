@@ -314,7 +314,7 @@ export async function addFrontmatterToNote(note: TNote): Promise<void> {
       throw new Error(`No note supplied, and can't find Editor either.`)
     }
     const config = await getSettings()
-    const res = convertNoteToFrontmatter(thisNote, config.defaultFMText ?? '')
+    const res = await convertNoteToFrontmatter(thisNote, config.defaultFMText ?? '')
     logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
   }
   catch (error) {
