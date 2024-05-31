@@ -1335,7 +1335,7 @@ export async function skipReview(): Promise<void> {
   }
 }
 
-export async function skipReviewForNote(note: TNote, skipPeriod: string): Promise<void> {
+export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1344,17 +1344,22 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
 
-    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)}`)
+    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)} with ${skipIntervalOrDate}`)
+
     const thisNoteAsProject = new Project(note)
 
-    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
-      ? calcOffsetDateStr(todaysDateISOString, skipPeriod)
-      : ''
+    // Get new date from parameter as date interval or iso date 
+    const newDateStr: string = skipIntervalOrDate.match(RE_DATE_INTERVAL)
+      ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
+      : skipIntervalOrDate.match(RE_DATE)
+        ? skipIntervalOrDate
+        : ''
     if (newDateStr === '') {
-      logWarn('skipReviewForNote', `${skipPeriod} is not a valid interval, so will stop.`)
+      logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
       return
     }
+
+    // create new metadata`@nextReview(date)`. Note: different from `@reviewed(date)` below.
     const nextReviewDate = getDateObjFromDateString(newDateStr)
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReviewForNote', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)

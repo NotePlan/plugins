@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Last updated 31.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -299,7 +299,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
       const section: TSection = {
         ID: sectionNum,
-        name: 'Today ', // the space after is intentional so it has a different "name"
+        name: '>Today',
         showSettingName: 'showTodaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
@@ -439,7 +439,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'Yesterday ', // the space after is intentional so it has a different "name"
+        name: '>Yesterday',
         showSettingName: 'showYesterdaySection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
@@ -568,7 +568,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'Tomorrow ', // the space after is intentional so it has a different "name"
+        name: '>Tomorrow',
         showSettingName: 'showTomorrowSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${tomorrowDateLocale}`,
@@ -716,7 +716,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Week ', // the space after is intentional so it has a different "name"
+        name: '>This Week',
         showSettingName: 'showWeekSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
@@ -861,7 +861,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Month ', // the space after is intentional so it has a different "name"
+        name: '>This Month',
         showSettingName: 'showMonthSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
@@ -996,7 +996,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
       const section: TSection = {
         ID: sectionNum,
-        name: 'This Quarter ', // the space after is intentional so it has a different "name"
+        name: '>This Quarter',
         showSettingName: 'showQuarterSection',
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,

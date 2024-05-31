@@ -9,14 +9,23 @@
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { getCombinedSettings, moveItemToRegularNote } from './dashboardHelpers'
-import { allCalendarSectionCodes, allSectionCodes } from "./constants"
+import {
+  getCombinedSettings,
+  moveItemBetweenCalendarNotes,
+  moveItemToRegularNote
+} from './dashboardHelpers'
+import {
+  allCalendarSectionCodes,
+  // allSectionCodes
+} from "./constants"
 import {
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
 import {
-  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject, type TSection, type TSectionItem,
+  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject,
   type TPluginData,
+  type TSection,
+  // type TSectionItem,
 } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import {
@@ -425,10 +434,19 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
   const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
-    if (!data.controlStr) throw 'No controlStr: stopping'
+    if (!data.controlStr) throw 'doSetNextReviewDate: No controlStr: stopping'
+
+    // Either we have a date interval prefixed with 'nr' ...
     const period = data.controlStr.replace('nr', '')
-    logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
-    skipReviewForNote(note, period)
+    if (period.match(RE_DATE_INTERVAL)) {
+      logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
+      skipReviewForNote(note, period)
+    } else if (data.controlStr.match()) {
+      logDebug('doSetNextReviewDate', `-> will skip review to date '${data.controlStr}' for filename ${filename}.`)
+      skipReviewForNote(note, period)
+    } else {
+      throw `doSetNextReviewDate: invalid controlStr ${data.controlStr}: stopping`
+    }
 
     // Now remove the line from the display
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
@@ -542,14 +560,14 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   const newNote: TNote|null|void = await moveItemToRegularNote(filename, content, itemType)
   if (newNote) {
     logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title||''}"`)
-    clo(newNote.paragraphs,`doMoveToNote -> newNote.paragraphs; looking for ${para.type}:"${content}"`)
+    logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
     // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
     const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
     if (updatedParagraph) {
       logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
       return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
     } else {
-      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections ☹️`)
+      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections :-(`)
       return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
     }
   } else {
@@ -557,18 +575,34 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
   }
 }
 
-// Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
-export async function doUpdateTaskDate(data: MessageDataObject, dateString: string = ''): Promise<TBridgeClickHandlerResult> {
+/**
+ * Reschedule (i.e. update the >date) an item in place
+ * The new date is indicated by the controlStr ('t' or date interval),
+ * or failing that the dateString (an NP date)
+ * @param {MessageDataObject} data for the item
+ * @param {string?} npDateStrIn optional NP date string
+ * @returns {TBridgeClickHandlerResult} how to handle this result
+ */
+export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: string = ''): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const dateInterval = controlStr || ''
   const config = await getCombinedSettings()
+  logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
+  logDebug('doUpdateTaskDate', `- config.headingToPlaceUnder = ${config.headingToPlaceUnder}`)
   logDebug('doUpdateTaskDate', `filename: ${filename}, content: "${content}", dateInterval: ${dateInterval}`)
-  // const startDateStr = ''
-  let newDateStr = dateString || ''
-  if (dateInterval !== 't' && !dateString && !dateInterval.match(RE_DATE_INTERVAL)) {
+  let startDateStr = ''
+  let newDateStr = ''
+  if (dateInterval !== 't' && !npDateStrIn && !dateInterval.match(RE_DATE_INTERVAL)) {
     logError('doUpdateTaskDate', `bad move date interval: ${dateInterval}`)
     return handlerResult(false)
   }
+
+  const thePara = findParaFromStringAndFilename(filename, content)
+  if (typeof thePara === 'boolean') {
+    logWarn('doUpdateTaskDate', `- note ${filename} doesn't seem to contain {${content}}`)
+    return handlerResult(false)
+  }
+
   if (dateInterval === 't') {
     // Special case to change to '>today' (or the actual date equivalent)
     newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
@@ -576,7 +610,7 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
   } else if (dateInterval.match(RE_DATE_INTERVAL)) {
     const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
     // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
-    const startDateStr = getTodaysDateHyphenated()
+    startDateStr = getTodaysDateHyphenated()
     // Get the new date, but output using the longer of the two types of dates given
     newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
 
@@ -590,31 +624,27 @@ export async function doUpdateTaskDate(data: MessageDataObject, dateString: stri
       logDebug('doUpdateTaskDate', `- used NPWeekData instead -> ${newDateStr}`)
     }
     logDebug('doUpdateTaskDate', `change due date on task from ${startDateStr} -> ${newDateStr}`)
+  } else {
+    // use given date
+    newDateStr = npDateStrIn
   }
-  // Make the actual change
-  const thePara = findParaFromStringAndFilename(filename, content)
-  if (typeof thePara !== 'boolean') {
-    const theLine = thePara.content
-    // FIXME: this is only resched not moving. doMoveBetweenCalendar. rescheduleNotMove setting.
-    const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
-    logDebug('doUpdateTaskDate', `Found line "${theLine}" -> changed line: "${changedLine}"`)
-    thePara.content = changedLine
-    const thisNote = thePara.note
-    if (thisNote) {
-      thisNote.updateParagraph(thePara)
-      logDebug('doUpdateTaskDate', `- appeared to update line OK -> {${changedLine}}`)
 
-      // Ask for cache refresh for this note
-      DataStore.updateCache(thisNote, false)
+  // Make the actual change to reschedule the item
+  const theLine = thePara.content
+  const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
+  logDebug('doUpdateTaskDate', `Found line "${theLine}" -> changed line: "${changedLine}"`)
+  thePara.content = changedLine
+  const thisNote = thePara.note
+  if (thisNote) {
+    thisNote.updateParagraph(thePara)
+    logDebug('doUpdateTaskDate', `- appeared to update line OK -> {${changedLine}}`)
 
-      // refresh whole display, as we don't know which if any section the moved task might need to be added to
-      logDebug('doUpdateTaskDate', `------------ refresh ------------`)
-      return handlerResult(true, ['REMOVE_LINE_FROM_JSON','REFRESH_ALL_SECTIONS'],{ updatedParagraph: thePara } )
-      // await showDashboardReact()
-    } else {
-      logWarn('doUpdateTaskDate', `- can't find note to update to {${changedLine}}`)
-      return handlerResult(false)
-    }
+    // Ask for cache refresh for this note
+    DataStore.updateCache(thisNote, false)
+
+    // refresh whole display, as we don't know which if any section the moved task might need to be added to
+    // logDebug('doUpdateTaskDate', `------------ refresh ------------`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doUpdateTaskDate', `- some other failure`)
     return handlerResult(false)
@@ -631,14 +661,7 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   return handlerResult(true, [])
 }
 
-export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { dateString, itemType, filename } = validateAndFlattenMessageObject(data)
-  if (itemType === "project") {
-    // FIXME: @jgclark - please implement 
-    throw(`doSetSpecificDate -> itemType: ${itemType} - not supported yet, data:${JSP(data)}`)
-    // @jgclark: leaing this here, because you will probably want a return like this:
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
-  } else {
-    return await doUpdateTaskDate(data, dateString)
-  }
-}
+// export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+//   // const { dateString, itemType, filename } = validateAndFlattenMessageObject(data)
+//   throw (`doSetSpecificDate -> shouldn't be called for data:${JSP(data)}`)
+// }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Last updated 30.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -84,12 +84,6 @@ export type TActionType =
   | 'cancelChecklist'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
-  | 'setNextReviewDate'
-  | 'reviewFinished'
-  | 'showNoteInEditorFromFilename'
-  | 'showNoteInEditorFromTitle'
-  | 'showLineInEditorFromFilename'
-  | 'showLineInEditorFromTitle'
   | 'moveAllTodayToTomorrow'
   | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'
@@ -98,9 +92,15 @@ export type TActionType =
   | 'reactSettingsChanged'
   | 'refresh'
   | 'refreshSomeSections'
+  | 'setNextReviewDate'
+  | 'reviewFinished'
+  | 'showNoteInEditorFromFilename'
+  | 'showNoteInEditorFromTitle'
+  | 'showLineInEditorFromFilename'
+  | 'showLineInEditorFromTitle'
   | 'scheduleAllOverdueToday'
   | 'sharedSettingsChanged'
-  | 'setSpecificDate'
+  // | 'setSpecificDate'
   | '(not yet set)'
   | 'toggleType'
   | 'unknown'
@@ -127,7 +127,7 @@ export type TControlString =
   | 'priup'
   | 'pridown'
   | 'tog'
-  | 'ct'
+  | 'ct' // TODO(@dbw): what's this? Please disambiguate with 'canceltask' above, which could shortened to 'ct'
   | 'unsched'
   | 'finish'
   | 'nr+1w'
@@ -148,12 +148,6 @@ export type MessageDataObject = {
   toFilename?: string,
   newDimensions?: { width: number, height: number },
   settings?: TAnyObject,
-  // filename: string, // now in item
-  // encodedFilename?: string, // now in item
-  // content: string, // now in item
-  // encodedContent?: string, // now in item
-  // itemType?: string, // now in item
-  // encodedUpdatedContent?: string,
 }
 
 /**
@@ -188,7 +182,7 @@ export type TReactSettings = {
   timeblockMustContainString?: string,
   ignoreChecklistItems?: boolean,
   hideDuplicates?: boolean,
-  rescheduleNotMove: boolean, // TODO: finish wiring me up
+  rescheduleNotMove: boolean,
   refreshing?: boolean,
   */
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,

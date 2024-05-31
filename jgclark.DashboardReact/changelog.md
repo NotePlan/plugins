@@ -15,7 +15,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - other bug fixes
 
-## [2.0.0.a29]
+## [2.0.0.a30] @jgc 2024-05-31
+- added 'move' (rather than 'reschedule') functionality back in
+- finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'reschedule' accordingly
+- stopped IP button from being shown for Projects section
+- updated display of referenced section names: now start with '>'
+
+## [2.0.0.a29] @dbw 2024-05-30
 - Fixed bug in doUpdateTaskDate (for +1d etc) that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
 - Realized this would cause another bug that Reviews would not be passing updatedParagraph either. So fixed this. Reviews are now removed when you click "Review Complete"
 - Added a Projects section refresh after handling a review - do you will always have 6 (unless you don't have)

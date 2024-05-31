@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-05-28 for v2.0.0 by @dwertheimer
+// Last updated 2024-05-30 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------

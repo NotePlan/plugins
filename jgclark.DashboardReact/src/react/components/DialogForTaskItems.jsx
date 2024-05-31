@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 29.5.2024 for v2.0.0 by @dbw
+// Last updated 30.5.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -14,6 +14,7 @@ import { useAppContext } from './AppContext.jsx'
 // import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import StatusIcon from './StatusIcon.jsx'
+import { hyphenatedDateString } from '@helpers/dateTime'
 import { logDebug, clo, JSP } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -40,8 +41,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
 
   const resched = sharedSettings?.rescheduleNotMove || pluginData?.settings.rescheduleNotMove || false
+  // logDebug('DialogForTaskItems', `- rescheduleNotMove: sharedSettings = ${String(sharedSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.settings.rescheduleNotMove)}`)
 
   const dateChangeFunctionToUse = resched ? 'updateTaskDate' : 'moveFromCalToCal'
+  // logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse}`)
 
   const { interactiveProcessing } = reactSettings??{}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
@@ -76,7 +79,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   useEffect(() => {
     logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
-    //$FlowIgnore
+    // $FlowIgnore
     positionDialog(dialogRef)
     logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
@@ -106,16 +109,23 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const handleDateSelect = (date: Date) => {
     if (!date) return
     // turn into 8601 format
-    const str = date.toISOString().split('T')[0]
-    const actionType = `setSpecificDate`
-    logDebug(`DialogForTaskItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', true)
+    // const isoDateStr = date.toISOString().split('T')[0]
+    const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
+
+    // Deduce the action to take
+    // - Item in calendar note & resched -> leave task where it is and reschedule to the picked date.  (Can use doUpdateTaskDate().)
+    // - Item in calendar note & move -> move to new calendar note for that picked date.  (Can use doMoveFromCalToCal().)
+    // - Item in project note & resched -> use doUpdateTaskDate()
+    // - Item in project note & move -> doMoveToNote().
+    const actionType = (noteType === 'Notes' && !resched) ? 'moveToNote' : dateChangeFunctionToUse
+    logDebug(`DialogForTaskItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
     closeDialog()
   }
 
   function handleIconClick() {
+    logDebug(`DialogForTaskItems`, `handleIconClick: something was clicked. what to do ❓❓`)
     closeDialog()
-    logDebug(`DialogForTaskItems`, `handleIconClick: something was clicked. what to do?`)
   }
 
   function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {

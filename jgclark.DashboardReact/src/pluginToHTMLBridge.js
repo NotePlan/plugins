@@ -105,7 +105,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`******************** bridgeClickDashboardItem: ${actionType} ********************`)
+    logDebug(`***************** bridgeClickDashboardItem: ${actionType} *****************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -116,7 +116,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       result = doContentUpdate(data)
       if (result.success) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
-        content = result.updatedParagraph.content
+        content = result.updatedParagraph?.content ?? ''
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         data.item.para.content = content
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
@@ -130,7 +130,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowReload': {
-        // logWarn('windowReload is currently turned off to avoid a circular dependency')
         showDashboardReact()
         return
       }
@@ -183,8 +182,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       // case 'windowResized': {
-      //   result = await doWindowResized()
-      //   break
+      // TODO(later: work on this
+      // result = await doWindowResized()
+      // break
       // }
       case 'showNoteInEditorFromFilename': {
         result = await doShowNoteInEditorFromFilename(data)
@@ -270,23 +270,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       logWarn('bCDI', `false result from call`)
     }
 
-    // logDebug(pluginJson, `pluginToHTML bridge: RUNNING TEMPORARY FULL REFRESH OF JSON AFTER ANY COMMANDS WITHOUT A RETURN STATEMENT`)
-    // await refreshData()
-
-    // Other info from DW:
-    // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
-    // if (para) {
-    //   // you can do whatever you want here. For example, you could change the status of the paragraph
-    //   // to done depending on whether it was an open task or a checklist item
-    //   para.type = statusWas === 'open' ? 'done' : 'checklistDone'
-    //   para.note?.updateParagraph(para)
-    //   const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-    //   sendToHTMLWindow(windowId,'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
-    //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
-    //   // to show how to update a single div in the HTML view
-    // } else {
-    //   logError('bridgeClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
-    // }
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }

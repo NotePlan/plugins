@@ -5,16 +5,13 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a29",
+  "plugin.version": "2.0.0-a30",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "dashboard.css",
     "react.c.WebView.bundle.min.js",
     "react.c.WebView.bundle.dev.js"
-  ],
-  "plugin.noLongerRequiredFiles": [
-    "dashboardDialog.css"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -71,92 +68,6 @@
       "name": "Dashboard: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "editSettings"
-    }
-  ],
-  "plugin.commands_unused": [
-    {
-      "name": "refreshDashboard",
-      "hidden": true,
-      "description": "Refresh Dashboard window if already open",
-      "jsFunction": "refreshDashboard"
-    },
-    {
-      "name": "addTask",
-      "description": "HTML window entry point to interactively add a new task",
-      "jsFunction": "addTask",
-      "hidden": true
-    },
-    {
-      "name": "addChecklist",
-      "description": "HTML window entry point to interactively add a new checklist",
-      "jsFunction": "addChecklist",
-      "hidden": true
-    },
-    {
-      "name": "schedule yesterday to today",
-      "description": "schedule all yesterday's open items to today",
-      "jsFunction": "scheduleAllYesterdayOpenToToday",
-      "hidden": true
-    },
-    {
-      "name": "schedule today to tomorrow",
-      "description": "schedule all open items from today to tomorrow",
-      "jsFunction": "scheduleAllTodayTomorrow",
-      "hidden": true
-    },
-    {
-      "name": "schedule overdue to today",
-      "description": "schedule all overdue items to today",
-      "jsFunction": "scheduleAllOverdueOpenToToday",
-      "hidden": true
-    },
-    {
-      "name": "toggleOverdueSection",
-      "description": "toggle whether Overdue section is shown",
-      "jsFunction": "toggleOverdueSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleMonthSection",
-      "description": "toggle whether Month section is shown",
-      "jsFunction": "toggleMonthSection",
-      "hidden": true
-    },
-    {
-      "name": "togglePriorityFilter",
-      "description": "toggle priority filter",
-      "jsFunction": "togglePriorityFilter",
-      "hidden": true
-    },
-    {
-      "name": "toggleQuarterSection",
-      "description": "toggle whether Quarter section is shown",
-      "jsFunction": "toggleQuarterSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleTomorrowSection",
-      "description": "toggle whether Tomorrow section is shown",
-      "jsFunction": "toggleTomorrowSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleWeekSection",
-      "description": "toggle whether Week section is shown",
-      "jsFunction": "toggleWeekSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleWeekSection",
-      "description": "toggle whether Week section is shown",
-      "jsFunction": "toggleWeekSection",
-      "hidden": true
-    },
-    {
-      "name": "turnOnAllSections",
-      "description": "turn on all sections",
-      "jsFunction": "turnOnAllSections",
-      "hidden": true
     }
   ],
   "plugin.settings": [

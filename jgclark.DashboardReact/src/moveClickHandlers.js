@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 21.5.2024 for v2.0.0 by @jgclark
+// Last updated 30.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -26,6 +26,7 @@ import {
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
+  RE_DATE,
   RE_DATE_INTERVAL,
   RE_NP_WEEK_SPEC,
   replaceArrowDatesInString
@@ -42,33 +43,35 @@ const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main`
 
 //-----------------------------------------------------------------
 
-// Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
+// Instruction from a 'moveButton' to move task 
+/**
+ * Move an item from one calendar note to a different one.
+ * The date to move to is indicated by controlStr, which is a relative date.
+ * @param {MessageDataObject} data for the item
+ * @returns {TBridgeClickHandlerResult} how to handle this result
+ */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const config = await getCombinedSettings()
-  const dateInterval = String(controlStr)
-  let startDateStr = ''
+  const dateOrInterval = String(controlStr)
+  logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
+  let startDateStr = getDateStringFromCalendarFilename(filename, true)
   let newDateStr = ''
-  if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
-    logError('moveFromCalToCal', `bad move date interval: ${dateInterval}`)
-    return handlerResult(false)
-  }
-  if (dateInterval === 't') {
+  if (dateOrInterval === 't') {
     // Special case to change to '>today'
 
     startDateStr = getDateStringFromCalendarFilename(filename, true)
     newDateStr = getTodaysDateHyphenated()
-    logDebug('moveFromCalToCal', `move task from ${startDateStr} -> 'today'`)
-  } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-    const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
+  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
+    const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
 
     // Get the (ISO) current date on the task
     startDateStr = getDateStringFromCalendarFilename(filename, true)
-    newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
+    newDateStr = calcOffsetDateStr(startDateStr, dateOrInterval, 'offset') // 'longer'
 
     // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
     if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
-      const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
+      const offsetNum = Number(dateOrInterval.substr(0, dateOrInterval.length - 1)) // return all but last character
       const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
       if (NPWeekData) {
         newDateStr = NPWeekData.weekString
@@ -77,8 +80,13 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
         throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
       }
     }
-    logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
+  } else if (dateOrInterval.match(RE_DATE)) {
+    newDateStr = controlStr
+  } else {
+    logError('moveFromCalToCal', `bad move date interval: ${dateOrInterval}`)
+    return handlerResult(false)
   }
+  logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
 
   // Do the actual move
   const res = await moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
@@ -92,6 +100,29 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     return handlerResult(false)
   }
 }
+
+
+// Note: other code by JGC that's probably a partial dupe of the above function
+// // move item
+// logDebug('doUpdateTaskDate', `- calling moveItemBetweenCalendarNotes() for ${startDateStr} to ${newDateStr} ..`)
+// const toNoteOrFalse = await moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.headingToPlaceUnder)
+// if (!toNoteOrFalse) {
+//   logWarn('doUpdateTaskDate', `- moveItemBetweenCalendarNotes failed for ${startDateStr} to ${newDateStr}`)
+//   return handlerResult(false)
+// }
+// const toNote: TNote = toNoteOrFalse
+// logDebug('doUpdateTaskDate', `- moved to note: ${toNote.filename}`)
+// // TODO: Get and update the para's filename
+// logDebug('doMoveToNote', `- now needing to find the TPara for ${itemType}:"${content}" ...`)
+// // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
+// const updatedParagraph = toNote.paragraphs.find((p) => p.content === content && p.type === itemType)
+// if (updatedParagraph) {
+//   logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
+//   return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
+// } else {
+//   logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections :-(`)
+//   return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
+// }
 
 /**
  * Function to schedule or move all open items from yesterday to today
@@ -150,7 +181,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
         for (const dashboardPara of combinedSortedParas) {
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
-          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling {${dashboardPara.content}} to ${newDateStr}`)
+          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling "${dashboardPara.content}" to ${newDateStr}`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
@@ -159,7 +190,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
             DataStore.updateCache(p.note, false)
             numberScheduled++
           } else {
-            logError('scheduleAllYesterdayOpenToToday', `Couldn't find para matching {${dashboardPara.content}}`)
+            logError('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
           }
         }
 
@@ -167,7 +198,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
       } else {
         // For each para move to today's note
         for (const para of combinedSortedParas) {
-          logDebug('scheduleAllYesterdayOpenToToday', `- moving {${para.content}} to today`)
+          logDebug('scheduleAllYesterdayOpenToToday', `- moving "${para.content}" to today`)
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalToMove)
           logDebug('scheduleAllYesterdayOpenToToday', `Moving item ${c} to today`)
@@ -200,17 +231,17 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
         // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
         const thisNote = DataStore.noteByFilename(dashboardPara.filename, dashboardPara.noteType)
         if (!thisNote) {
-          logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find the note for {${dashboardPara.content}}, so can't process this item`)
+          logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content,`>${newDateStr}`)
-            logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content {${p.content}} `)
+            logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content "${p.content}" `)
             thisNote.updateParagraph(p)
             numberScheduled++
           } else {
-            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching {${dashboardPara.content}}`)
+            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
           }
           // TEST: Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote)
@@ -287,7 +318,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
         for (const dashboardPara of combinedSortedParas) {
           c++
           // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
-          logDebug('scheduleAllTodayTomorrow', `- scheduling {${dashboardPara.content}} to tomorrow`)
+          logDebug('scheduleAllTodayTomorrow', `- scheduling "${dashboardPara.content}" to tomorrow`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
@@ -301,7 +332,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
       } else {
         // For each para move to tomorrow's note
         for (const para of combinedSortedParas) {
-          logDebug('scheduleAllTodayTomorrow', `- moving {${para.content}} to tomorrow`)
+          logDebug('scheduleAllTodayTomorrow', `- moving "${para.content}" to tomorrow`)
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to tomorrow`, c / totalToMove)
           const res = await moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '')
@@ -329,16 +360,16 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
         // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
         const thisNote = DataStore.noteByFilename(dashboardPara.filename, dashboardPara.noteType)
         if (!thisNote) {
-          logWarn('scheduleAllTodayTomorrow', `Oddly I can't find the note for {${dashboardPara.content}}, so can't process this item`)
+          logWarn('scheduleAllTodayTomorrow', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
         } else {
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
             p.content = replaceArrowDatesInString(p.content,`>${tomorrowISODateStr}`)
-            logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para {${p.content}} from note ${thisNote.filename}`)
+            logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para "${p.content}" from note ${thisNote.filename}`)
             thisNote.updateParagraph(p)
           } else {
-            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching {${dashboardPara.content}}`)
+            logWarn('scheduleAllYesterdayOpenToToday', `Couldn't find para matching "${dashboardPara.content}"`)
           }
 
           numberScheduled++
@@ -397,7 +428,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
       if (p) {
         yesterdaysCombinedSortedParas.push(p)
       } else {
-        logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching {${yCSDP.content}}`)
+        logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
       }
     }
 
@@ -437,12 +468,12 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
           c++
           const thisNote = para.note
           if (!thisNote) {
-            logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para {${para.content}}`)
+            logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para "${para.content}"`)
             continue
           }
           // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
           para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
-          logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
+          logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para "${para.content}" from note ${para.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
           // TEST:  Update cache to allow it to be re-read on refresh
@@ -456,12 +487,12 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
         // For each para move to today's note
         for (const para of overdueParas) {
-          logDebug('scheduleAllOverdueOpenToToday', `- moving {${para.content}} to ${newDateStr}`)
+          logDebug('scheduleAllOverdueOpenToToday', `- moving "${para.content}" to ${newDateStr}`)
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to ${newDateStr}`, c / totalOverdue)
           const thisNote = para.note
           if (!thisNote) {
-            logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para {${para.content}}`)
+            logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para "${para.content}"`)
             continue
           }
           const thisNoteType = para.noteType
@@ -478,7 +509,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
             // CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
 
             para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
-            logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+            logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para "${para.content}" from note ${para.note?.filename ?? '?'}`)
             numberChanged++
             thisNote.updateParagraph(para)
           }

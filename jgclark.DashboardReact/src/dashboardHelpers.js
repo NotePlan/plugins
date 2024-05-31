@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 28.5.2024 for v2.0.0 by @jgclark
+// Last updated 29.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -796,9 +796,9 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} paraContent content of the para to move.
  * @param {string?} headingToPlaceUnder which will be created if necessary
- * @returns {boolean} success?
+ * @returns {TNote | false} if succesful pass the new note, otherwise false
  */
-export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<boolean> {
+export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
   try {
     // Get calendar note to use
@@ -864,7 +864,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
     DataStore.updateCache(fromNote, false)
     DataStore.updateCache(toNote, false)
 
-    return true
+    return toNote
   } catch (err) {
     logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
     return false

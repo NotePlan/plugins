@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by ReviewItem component
-// Last updated 16.5.2024 for v2.0.0 by @jgclark
+// Last updated 30.5.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -10,6 +10,7 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
 import '../css/animation.css'
 
@@ -77,10 +78,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const handleDateSelect = (date: Date) => {
     if (!date) return
     // turn into 8601 format
-    const str = date.toISOString().split('T')[0]
-    const actionType = `setSpecificDate`
-    logDebug(`DialogForProjectItems`, `Specific Date selected: ${date.toLocaleDateString()} string:${str}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: str }, 'Date selected', true)
+    // const isoDateStr = date.toISOString().split('T')[0]
+    const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
+    const actionType = 'setNextReviewDate'
+
+    logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
+    // sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: isoDateStr }, 'Date selected', true)
+    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
     closeDialog()
   }
 
