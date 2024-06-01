@@ -80,16 +80,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   
   logDebug('Dashboard', `origSections length: ${origSections.length}`)
   logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
-  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
   
   logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
-  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   sections = sortSections(sections, sectionDisplayOrder)
   logDebug('Dashboard', `sections after sort length: ${sections.length}`)
-  clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
 
   const dashboardContainerStyle = {
@@ -181,12 +181,17 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (!(dialogData?.details?.item)) return
     if (dialogItemDetails?.item?.ID) {
       const { ID: openItemInDialogID } = dialogItemDetails.item
-      const sectionIndexes = findSectionItems(origSections, ['ID'], { ID: openItemInDialogID })
-      // logDebug('Dashboard', `JSON data changed; sectionIndexes: ${JSP(sectionIndexes, 2)}`)
+      logDebug('Dashboard', `in useEffect on dialog details change, openItemInDialogID: ${openItemInDialogID}`)
+      const sectionIndexes = findSectionItems(sections, ['ID'], { ID: openItemInDialogID })
+      logDebug('Dashboard', `JSON data changed; sectionIndexes: ${JSP(sectionIndexes, 2)}`)
       if (!sectionIndexes?.length) return
-      const firstMatch = sectionIndexes[0]
-      const newSectionItem = sections[firstMatch.sectionIndex].sectionItems[firstMatch.itemIndex]
-      clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}`)
+      const matchingIndex = sectionIndexes[0] // there can only be max one match b/c of the ID matching
+      clo(matchingIndex,`Dashboard: matchingIndex`)
+      const { sectionIndex, itemIndex } = matchingIndex
+      // clo(sections[sectionIndex].sectionItems, `Dashboard : sections[${sectionIndex}] length=${sections[sectionIndex].sectionItems.length}`)
+      const newSectionItem = sections[sectionIndex].sectionItems[itemIndex]
+      clo(newSectionItem, `Dashboard: newSectionItem`)
+      clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}\n...incoming data=${JSP(newSectionItem, 2)}`)
       // used to do the JSON.stringify to compare, but now that an .updated field is used, they will be different
       if (newSectionItem && newSectionItem.updated /* && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item) */) {
         logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)

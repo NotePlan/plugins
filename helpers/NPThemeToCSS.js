@@ -7,7 +7,6 @@
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 
-
 // ---------------------------------------------------------
 // Constants and Types
 
@@ -89,10 +88,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     //   - or default to 14
     const userFSPref = DataStore.preference('fontSize')
     const themeFSPref = themeJSON?.styles?.body?.size ?? NaN
-    baseFontSize =
-      (themeFSPref && !isNaN(Number(themeFSPref))) ? Number(themeFSPref)
-        : (userFSPref && !isNaN(Number(userFSPref))) ? Number(userFSPref)
-          : 14
+    baseFontSize = themeFSPref && !isNaN(Number(themeFSPref)) ? Number(themeFSPref) : userFSPref && !isNaN(Number(userFSPref)) ? Number(userFSPref) : 14
     // logDebug('generateCSSFromTheme', `baseFontSize -> ${String(baseFontSize)}`)
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
     tempSel.push(`background: var(--bg-main-color)`)
@@ -178,9 +174,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)
-    output.push(makeCSSSelector('button, input', [
-      `font-family: "${bodyFont}"`,
-    ]))
+    output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
 
     // Set a few styles here that require computed light and dark settings
     // Note: Now found a way to do this just in CSS so moved to plugins
@@ -584,7 +578,7 @@ export function textDecorationFromNP(selector: string, value: number): string {
  * @returns {string} size including 'rem' units
  */
 export function pxToRem(thisFontSize: number, baseFontSize: number): string {
-  let rem = (thisFontSize / baseFontSize)
+  let rem = thisFontSize / baseFontSize
   // Note: Need to apply fudge to get it closer to actual size seen in NP Editor
   rem *= 0.95
   const output = `${String(rem.toPrecision(2))}rem`
@@ -616,16 +610,38 @@ export function RGBColourConvert(RGBIn: string): string {
  * Note: in future it should be possible to do this in CSS with `color-mix(in srgb, <color-A>, <color-B>)`
  * From https://stackoverflow.com/a/66402402/3238281
  */
+/**
+ * Mixes two hex color strings by averaging their RGB components.
+ *
+ * @param {string} color1 - The first hex color string (e.g., '#ff0000').
+ * @param {string} color2 - The second hex color string (e.g., '#0000ff').
+ * @returns {string} The resulting hex color string after mixing (e.g., '#800080').
+ */
 export function mixHexColors(color1: string, color2: string): string {
-  const valuesColor1 = color1.replace('#', '').match(/.{2}/g).map((value) =>
-    parseInt(value, 16)
-  )
-  const valuesColor2 = color2.replace('#', '').match(/.{2}/g).map((value) =>
-    parseInt(value, 16)
-  )
+  // Remove the '#' and split the hex color into RGB components
+  const valuesColor1 =
+    color1
+      .replace('#', '')
+      .match(/.{2}/g)
+      ?.map((value) => parseInt(value, 16)) || []
+  const valuesColor2 =
+    color2
+      .replace('#', '')
+      .match(/.{2}/g)
+      ?.map((value) => parseInt(value, 16)) || []
+
+  // Ensure both colors have valid RGB components
+  if (valuesColor1.length !== 3 || valuesColor2.length !== 3) {
+    throw new Error('Invalid hex color format')
+  }
+
+  // Mix the RGB components by averaging
   const mixedValues = valuesColor1.map((value, index) =>
-    ((value + valuesColor2[index]) / 2).toString(16).padStart(2, '')
+    Math.round((value + valuesColor2[index]) / 2)
+      .toString(16)
+      .padStart(2, '0'),
   )
+
   return `#${mixedValues.join('')}`
 }
 
@@ -645,7 +661,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
 
   // Deal with special case of Apple's System font
   // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
-  if (fontNameNP.startsWith(".AppleSystemUIFont")) {
+  if (fontNameNP.startsWith('.AppleSystemUIFont')) {
     outputArr.push(`font-family: "-apple-system"`)
     outputArr.push(`line-height: 1.2rem`)
     // logDebug('fontPropertiesFromNP', `special: ${fontNameNP} ->  ${outputArr.toString()}`)

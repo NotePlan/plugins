@@ -103,7 +103,7 @@ const orderedSections = useFirstVisibleOnly.flatMap(st =>
   
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter(section => !useFirst.includes(section.sectionCode)))
-  clof(orderedSections, `getSectionsWithoutDuplicateLines orderedSections (length=${orderedSections.length})`,['sectionCode','name'],true)
+  // clof(orderedSections, `getSectionsWithoutDuplicateLines orderedSections (length=${orderedSections.length})`,['sectionCode','name'],true)
   // logDebug('Dashboard sectionHelpers', `orderedSections: ${orderedSections.toString()}`)
   
   // Map to track unique items

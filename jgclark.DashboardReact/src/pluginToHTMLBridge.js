@@ -313,7 +313,6 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
         logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
-        handlerResult.updatedParagraph.isUpdating = true
         await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) 
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
@@ -375,15 +374,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       itemType: /open|checklist/,
       'para.filename': oldFilename,
       'para.content': oldContent,
-      isUpdating: true
     })
 
     if (indexes.length) {
-      // const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
+      const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
       // clo(indexes, 'updateReactWindowFLC: indexes to update')
-      // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       if (shouldRemove) {
-        // TEST:
+        logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
         indexes.reverse().forEach((index) => {
           const { sectionIndex, itemIndex } = index
           sections[sectionIndex].sectionItems.splice(itemIndex, 1)
@@ -391,7 +389,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
         })
       } else {
         sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
-        // clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
+        clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       }
     } else {
       logError('updateReactWindowFLC', `unable to find item to update: ID ${ID} : ${errorMsg || ''}`)

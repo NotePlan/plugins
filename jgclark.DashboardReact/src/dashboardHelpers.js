@@ -296,14 +296,8 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
-      openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
-    }
-    // logDebug('getOpenItemPFCTP', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
-
-    // Filter out tasks with timeblocks, if wanted
-    // FIXME: though I thought I had sorted this out with new function below
-    if (config.excludeTasksWithTimeblocks) {
-      openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p, config.timeblockMustContainString)))
+      const phrases:Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      openParas = openParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     }
     // logDebug('getOpenItemPFCTP', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
@@ -331,6 +325,11 @@ export function getOpenItemParasForCurrentTimePeriod(
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         : // try make this a single filter
         getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
+    }
+
+    if (config.ignoreTasksWithPhrase) {
+      const phrases:Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     }
 
     // Remove items referenced from items in 'ignoreFolders'
