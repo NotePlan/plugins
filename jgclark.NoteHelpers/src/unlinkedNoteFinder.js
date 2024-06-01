@@ -9,6 +9,13 @@ const CODE_BLOCK_PLACEHOLDER = '8ce08058-d387-4d3a-8043-4f3b7ef63eb7'
 const MARKDOWN_LINK_PLACEHOLDER = '975b7115-5568-4bc6-b6c8-6603350572ea'
 
 /**
+ * Trigger the find unlinked notes command
+ */
+export async function triggerFindUnlinkedNotes() {
+    await findUnlinkedNotesInCurrentNote()
+}
+
+/**
  * Find all unlinked notes in the current note and create [[links]] to them
  */
 export async function findUnlinkedNotesInCurrentNote() {
@@ -23,9 +30,11 @@ export async function findUnlinkedNotesInCurrentNote() {
  */
 export async function findUnlinkedNotesInAllNotes() {
   const runTime = new Date()
+  CommandBar.showLoading(true, 'Finding unlinked notes')
   const allNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   const foundLinks = await findUnlinkedNotes(allNotes)
-  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${(new Date().getTime() - runTime.getTime()) / 60}s`)
+  CommandBar.showLoading(false)
+  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${(new Date().getTime() - runTime.getTime()) / 1000}s`)
 }
 
 /**
@@ -37,11 +46,10 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
   let foundLinks = 0
   try {
     await CommandBar.onAsyncThread()
-    CommandBar.showLoading(true, 'Finding unlinked notes')
 
-    foundLinks = notes.reduce((count, note) => count + findUnlinkedNotesInNote(note), 0)
+    const noteTitlesSortedByLength = getAllNoteTitlesSortedByLength()
+    foundLinks = notes.reduce((count, note) => count + findUnlinkedNotesInNote(note, noteTitlesSortedByLength), 0)
 
-    CommandBar.showLoading(false)
     CommandBar.onMainThread()
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -52,9 +60,10 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
 /**
  * Find all note titles in the current note and replace them with [[note title]]
  * @param {TNote} currentNote - the note to search for links in
+ * @param {Array<string>} noteTitlesSortedByLength - the note titles sorted by length
  * @returns {number} - the number of links found
  */
-function findUnlinkedNotesInNote(currentNote: TNote): number {
+function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: Array<string> = getAllNoteTitlesSortedByLength()): number {
   let foundLinks = 0
   const overallTime = new Date()
   let content = currentNote.content ?? ''
@@ -67,7 +76,7 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
   const [contentWithLinksRemoved, markdownLinkTracker] = extractMarkdownLinks(content)
   content = contentWithLinksRemoved
 
-  getAllNoteTitlesSortedByLength().forEach((note) => {
+  noteTitlesSortedByLength.forEach((note) => {
     if (currentNote.title !== note && content.includes(note)) {
       content = content.replaceAll(buildRegex(note), (_) => {
         logDebug(`Found link to: ${note}`)
@@ -81,7 +90,7 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
   content = replaceMarkdownLinks(content, markdownLinkTracker)
 
   if (foundLinks > 0) {
-    currentNote.content = content
+  // currentNote.content = content
   }
   logInfo(`Linked ${foundLinks} notes in ${currentNote.title ?? ''}, took: ${new Date().getTime() - overallTime.getTime()}ms`)
 
@@ -89,20 +98,23 @@ function findUnlinkedNotesInNote(currentNote: TNote): number {
 }
 
 /**
- * A regex pattern to search for note titles in a note.
- *
- * \\w*: Matches any word character (alphanumeric + underscore) zero or more times.
- * (?<!\\[{2}[^[\\]]*): A negative lookbehind that asserts what precedes is not two open square brackets followed by any characters except closing square brackets.
- * (?<!\\#): A negative lookbehind that asserts the character preceding is not a hash (#).
- * (?<=[\\s,.:;"']|^): A positive lookbehind that asserts what precedes is a whitespace character, comma, period, colon, semicolon, double quote, or single quote, or the start of the string.
- * (${sanitizeForRegex(noteTitle)}): The note title to search for.
- * (?![^[\\]]*\\]{2}): A negative lookahead that asserts what follows is not two closing square brackets preceded by any characters except opening square brackets.
- * (?=[\\s,.:;"']|$): A positive lookahead that asserts what follows is a whitespace character, comma, period, colon, semicolon, double quote, or single quote, or the end of the string.
- * @param {string} noteTitle - the note title to search for
- * @returns {RegExp} - the regex pattern to search for the note title
+ * Builds a regular expression to match a specific note title within a text.
+ * 
+ * @param {string} noteTitle - The title of the note to be matched.
+ * @returns {RegExp} - A regular expression object for matching the note title in a given text.
+ * 
+ * The regular expression is constructed dynamically to ensure that the note title:
+ * - Is surrounded by word boundaries or specific punctuation marks.
+ * - Does not appear within square brackets (like [[this]]).
+ * - Is case-insensitive and performs a global search (flags 'gi').
+ * 
+ * Breakdown of the regex pattern:
+ * `w*(?<=[\\s,.:;"'])|^)`: Matches any leading whitespace or specific punctuation characters before the note title.
+ * `(${sanitizeForRegex(noteTitle)})`: The sanitized note title to be matched.
+ * `(?![^[\\]]{2})1: Negative lookahead to ensure the note title is  followed by two closing square brackets (]]).
  */
 export function buildRegex(noteTitle: string): RegExp {
-  return new RegExp(`(\\w*(?<!\\[{2}[^[\\]]*)\\w*(?<!\\#)\\w*)(?<=[\\s,.:;"']|^)(${sanitizeForRegex(noteTitle)})(?![^[\\]]*\\]{2})(?=[\\s,.:;"']|$)`, 'gi')
+   return new RegExp(`(w*(?<=[\\s,.:;"'])|^)(${sanitizeForRegex(noteTitle)})(?![^[\]]{2})`, 'gi')
 }
 
 /**
@@ -171,7 +183,7 @@ function replaceMarkdownLinks(content: string, markdownLinkTracker: Array<string
  */
 function getAllNoteTitlesSortedByLength(): Array<string> {
   return DataStore.projectNotes
-    .filter((note) => note.title !== undefined && note.title !== '')
+    .filter((note) => note.title !== null && note.title !== '')
     .map((note) => note.title ?? '')
     .sort((a, b) => (b.length ?? 0) - (a.length ?? 0)) // sort by length to match longer titles first
 }

@@ -58,6 +58,14 @@
       "jsFunction": "findUnlinkedNotesInCurrentNote"
     },
     {
+      "name": "All - find & link all unlinked notes",
+      "alias": [
+        "all"
+      ],
+      "description": "Find and create links to all unlinked notes",
+      "jsFunction": "findUnlinkedNotesInAllNotes"
+    },
+    {
       "name": "jump to heading",
       "alias": [
         "jh",
@@ -184,6 +192,12 @@
       "name": "NoteHelpers: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
+    },
+    {
+      "name": "triggerFindUnlinkedNotes",
+      "description": "onEditorWillSave",
+      "jsFunction": "triggerFindUnlinkedNotes",
+      "hidden": true
     },
     {
       "name": "test: NoteHelpers onUpdateOrInstall",
