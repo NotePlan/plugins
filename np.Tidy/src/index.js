@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 1.1.2024 for v0.11.0, @jgclark
+// Last updated 1.6.2024 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -25,7 +25,7 @@ export {
   tidyUpAll,
   removeTodayTagsFromCompletedTodos,
 } from './tidyMain'
-export { resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion, listConflicts } from './conflicts'
+export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listDuplicates } from './duplicates'
 export { fileRootNotes } from './fileRoot'
 export { listStubs } from './stubs'

@@ -285,6 +285,11 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
   return false
 }
 
+/**
+ * Opens note in new window, if it's not already open in one
+ * @param {string} filename to open in split
+ * @returns {boolean} success?
+ */
 export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boolean> {
   const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, true) // create new floating (and the note if needed)
   if (res) {
@@ -295,6 +300,11 @@ export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boo
   return !!res
 }
 
+/**
+ * Opens note in new split, if it's not already open in one
+ * @param {string} filename to open in split
+ * @returns {boolean} success?
+ */
 export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
   const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, true) // create new split (and the note if needed) // TODO(@EduardMe): this doesn't create an empty note if needed for Calendar notes
   if (res) {

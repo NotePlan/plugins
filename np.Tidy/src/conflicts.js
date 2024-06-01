@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 10.4.2024 for v0.12.1 by @jgclark
+// Last updated 1.6.2024 for v0.13.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings, percentWithTerm } from './tidyHelpers'
 import {
   daysBetween,
+  getDateStringFromCalendarFilename,
   relativeDateFromDate,
 } from '@helpers/dateTime'
 import {
@@ -17,6 +18,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEnc
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
+  getFoldersMatching,
   getJustFilenameFromFullFilename,
 } from '@helpers/folders'
 import {
@@ -29,8 +31,9 @@ import {
 import {
   allNotesSortedByTitle,
   getProjectNotesInFolder,
+  notesInFolderSortedByTitle,
 } from '@helpers/note'
-import { noteOpenInEditor } from '@helpers/NPWindows'
+import { noteOpenInEditor, openNoteInNewSplitIfNeeded } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
 
@@ -130,27 +133,47 @@ export async function listConflicts(params: string = ''): Promise<void> {
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
+    // Now also try to move the copies made on any previous run of this command
+    // check DataStore.folders that it exists
+    // TODO: extend getFoldersMatching to optionally return sub-folders as well, and then iterate over all of them
+    const folders = getFoldersMatching([conflictedCopiesBaseFolder], false) // false required to pick up the folder which may have a leading '@'
+    if (folders.length > 0) {
+      const copies = notesInFolderSortedByTitle(conflictedCopiesBaseFolder, true) // also look in subfolders
+      if (copies.length > 0) {
+        logInfo('listConflicts', `Moving ${copies.length} notes in existing ${conflictedCopiesBaseFolder} folder to @Trash:`)
+        for (const copyNote of copies) {
+          const title = displayTitle(copyNote)
+          const res = DataStore.moveNote(copyNote.filename, '@Trash')
+          if (res) console.log(`- ${title}`)
+        }
+      } else {
+        logInfo('listConflicts', `${conflictedCopiesBaseFolder} folder exists, but is already empty. No deletions needed.`)
+      }
+    } else {
+      logInfo('listConflicts', `Didn't find an existing ${conflictedCopiesBaseFolder} folder to empty`)
+    }
+
     // Only continue if there are conflictedNotes found
     if (conflictedNotes.length === 0) {
       logDebug('listConflicts', `No notes with conflicts found (in ${timer(startTime)}).`)
-      if (!runSilently) {
-        await showMessage(`No notes with conflicts found! 🥳\nI will remove any previous Conflict List note.`)
-      }
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
         logDebug('listConflicts', `Moved existing conflicted note list '${outputFilename}' to @Trash.`)
       }
+      if (!runSilently) {
+        await showMessage(`No notes with conflicts found! 🥳\nI have removed any previous Conflict List note, and copies.`)
+      }      
       return
     } else {
-      logDebug('listConflicts', `Found ${conflictedNotes.length} conflictedNotes in ${timer(startTime)}:`)
+      logInfo('listConflicts', `Found ${conflictedNotes.length} conflictedNotes in ${timer(startTime)}:`)
     }
 
     // Form the contents of a note to display the details of conflictedNotes
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this to be refreshed easily
-    outputArray.push(`# ⚠️ Conflicted notes on ${machineName}`)
+    outputArray.push(`# ⚠️ ${machineName}'s Conflicted notes`)
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List conflicted notes', [])
     const summaryLine = `Found ${conflictedNotes.length} conflicts on ${machineName} at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
@@ -171,46 +194,46 @@ export async function listConflicts(params: string = ''): Promise<void> {
       }
       outputArray.push(`- Main note (${cn.filename}): ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
-      // Write out details for the conflicted version
-      // Note: there are far fewer details for the conflicted version
-      const cvContent = cn.note.conflictedVersion.content ?? ''
-      outputArray.push(`- Conflicted version note: ${String(cvContent.split('\n').length)} lines, ${String(cvContent.length ?? 0)} bytes`)
+      // Write out details for the previous version
+      // Note: there are far fewer details for the previous version
+      const pvContent = cn.note.conflictedVersion.content ?? ''
+      outputArray.push(`- Previous version note: ${String(pvContent.split('\n').length)} lines, ${String(pvContent.length ?? 0)} bytes`)
 
       // Calculate amount of difference between them
-      const greaterSize = Math.max(cn.note.content?.length ?? 0, cvContent?.length ?? 0)
-      const allDiffRanges = NotePlan.stringDiff(cvContent, mainContent)
+      const greaterSize = Math.max(cn.note.content?.length ?? 0, pvContent?.length ?? 0)
+      const allDiffRanges = NotePlan.stringDiff(pvContent, mainContent)
       const totalDiffBytes = allDiffRanges.reduce((a, b) => a + Math.abs(b.length), 0)
       if (totalDiffBytes > 0) {
         const percentDiffStr = percentWithTerm(totalDiffBytes, greaterSize, 'chars')
         outputArray.push(`- ${percentDiffStr} difference between them (from ${String(allDiffRanges.length)} areas)`)
         // Write allDiffRanges to debug log
-        logDebug('listConflicts', 'Here are the areas of difference:')
-        for (const thisDiffRange of allDiffRanges) {
-          logDebug('', contentRangeToString(cn.content, thisDiffRange))
-        }
+        // logDebug('listConflicts', 'Here are the areas of difference:')
+        // for (const thisDiffRange of allDiffRanges) {
+        //   logDebug('', contentRangeToString(cn.content, thisDiffRange))
+        // }
 
       } else {
-        outputArray.push(`- oddly, the conflicted version appears to be identical`)
+        outputArray.push(`- oddly, the previous version appears to be identical`)
       }
       const resolveCurrentButton = createPrettyRunPluginLink('Keep main note version', 'np.Tidy', 'resolveConflictWithCurrentVersion', [cn.filename])
       const resolveOtherButton = createPrettyRunPluginLink('Keep other note version', 'np.Tidy', 'resolveConflictWithOtherVersion', [cn.filename])
       outputArray.push(`- ${resolveCurrentButton} ${resolveOtherButton}`)
 
-      // If there is enough difference in Project Notes, then make a copy of the conflicted version in a special folder
-      // TODO: remove first check after TEST:
-      if (cn.type === 'Notes' && config.savePreviousVersion && (totalDiffBytes >= enoughDifference)) {
-        // Copy conflicted version to '@Conflicted Copies' folder
-        const conflictedCopiesFolderToUse = conflictedCopiesBaseFolder + '/' + getFolderFromFilename(cn.filename)
+      // Make a copy of the previous version in a special folder (if a regular note)
+      if (cn.type === 'Notes' && config.savePreviousVersion) {
+        // Copy previous version to '@Previous Copies' folder
+        const previousCopiesFolderToUse = conflictedCopiesBaseFolder + '/' + getFolderFromFilename(cn.filename)
         const filenamePartWithoutExtension = getJustFilenameFromFullFilename(cn.filename, true)
         const copyFilename = `${filenamePartWithoutExtension}.conflict-from-${machineName}.${DataStore.defaultFileExtension}`
-        const copyResultingFilename = DataStore.newNoteWithContent(cvContent, conflictedCopiesFolderToUse, copyFilename)
-        logDebug('listConflicts', `Saved conflicted version to ${copyResultingFilename}`)
-        outputArray.push(`- Saved conflicted version to '${copyResultingFilename}'`)
+        const copyResultingFilename = DataStore.newNoteWithContent(pvContent, previousCopiesFolderToUse, copyFilename)
+        const openSideBySideButton = createPrettyRunPluginLink('Open side by side', 'np.Tidy', 'openConflictSideBySide', [encodeURIComponent(cn.filename), encodeURIComponent(copyResultingFilename)])
+        logDebug('listConflicts', `Saved previous version to ${copyResultingFilename}`)
+        outputArray.push(`- Saved previous version to '${copyResultingFilename}'. ${openSideBySideButton}`)
         copiesMade++
       }
     }
 
-    // If list note is not open in an editor already, write to and open the note. Otherwise just update note.
+    // If conflict list note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
     } else {
@@ -229,7 +252,6 @@ export async function listConflicts(params: string = ''): Promise<void> {
         await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}'`)
       }
     }
-
   }
   catch (err) {
     logError('listConflicts', JSP(err))
@@ -243,21 +265,26 @@ export async function resolveConflictWithCurrentVersion(filename: string): Promi
   try {
     // Attempt to get spinner to appear, to show that something is happening.
     CommandBar.showLoading(true, 'Deleting other note version')
-    logDebug(pluginJson, `resolveConflictWithCurrentVersion() starting for file '${filename}'`)
+    logDebug('resolveConflictWithCurrentVersion', `starting for file '${filename}'`)
     if (NotePlan.environment.buildVersion < 1053) {
-      logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
+      logWarn('resolveConflictWithCurrentVersion', `can't be run until NP v3.9.3`)
       return
     }
-    const theNote = DataStore.projectNoteByFilename(filename) ?? null
+    // FIXME: doesn't work for Calendar note.
+    const calendarDateStr = getDateStringFromCalendarFilename(filename, true) ?? null
+    logDebug('resolveConflictWithCurrentVersion', `- calendarDateStr = ${calendarDateStr ?? 'n/a'}`)
+    const theNote = (calendarDateStr)
+      ? DataStore.calendarNoteByDateString(calendarDateStr)
+      : DataStore.projectNoteByFilename(filename)
     if (!theNote) {
-      logError('resolveConflictWithCurrentVersion', `cannot find note '${filename}'`)
+      logError('resolveConflictWithCurrentVersion', `- cannot find note '${filename}'`)
       return
     }
     theNote.resolveConflictWithCurrentVersion()
     CommandBar.showLoading(false)
   }
   catch (err) {
-    logError(pluginJson, JSP(err))
+    logError('resolveConflictWithCurrentVersion', JSP(err))
     CommandBar.showLoading(false)
   }
 }
@@ -268,21 +295,64 @@ export async function resolveConflictWithCurrentVersion(filename: string): Promi
 export async function resolveConflictWithOtherVersion(filename: string): Promise<void> {
   try {
     CommandBar.showLoading(true, 'Deleting main note version')
-    logDebug(pluginJson, `resolveConflictWithOtherVersion() starting for file '${filename}'`)
+    logDebug('resolveConflictWithOtherVersion', `starting for file '${filename}'`)
     if (NotePlan.environment.buildVersion < 1053) {
-      logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
+      logWarn('resolveConflictWithOtherVersion', `can't be run until NP v3.9.3`)
       return
     }
-    const theNote = DataStore.projectNoteByFilename(filename) ?? null
+    const calendarDateStr = getDateStringFromCalendarFilename(filename, true) ?? null
+    logDebug('resolveConflictWithOtherVersion', `- calendarDateStr = ${calendarDateStr ?? 'n/a'}`)
+    const theNote = (calendarDateStr)
+      ? DataStore.calendarNoteByDateString(calendarDateStr)
+      : DataStore.projectNoteByFilename(filename)
     if (!theNote) {
-      logError('resolveConflictWithOtherVersion', `cannot find note '${filename}'`)
+      logError('resolveConflictWithOtherVersion', `- cannot find note '${filename}'`)
       return
     }
     theNote.resolveConflictWithOtherVersion()
     CommandBar.showLoading(false)
   }
   catch (err) {
-    logError(pluginJson, JSP(err))
+    logError('resolveConflictWithOtherVersion', JSP(err))
+    CommandBar.showLoading(false)
+  }
+}
+
+/**
+ * Command to be called by x-callback to run the API function of the same name, on the given note filename
+ * @param {string} encodedNoteFilename
+ * @param {string} encodedCopyFilename
+ */
+export async function openConflictSideBySide(encodedNoteFilename: string, encodedCopyFilename: string): Promise<void> {
+  try {
+    if (NotePlan.environment.platform === 'iOS') {
+      logDebug('openConflictSideBySide', `cannot run on iPhone, sorry`)
+      return
+    }
+    const noteFilename = decodeURIComponent(encodedNoteFilename)
+    const copyFilename = decodeURIComponent(encodedCopyFilename)
+    CommandBar.showLoading(true, 'Opening notes to compare')
+    logDebug(pluginJson, `openConflictSideBySide() starting for file '${noteFilename}' / '${copyFilename}'`)
+    let res = null
+    // const mainNote = DataStore.projectNoteByFilename(noteFilename) ?? null
+    if (NotePlan.environment.platform === 'macOS') {
+      res = openNoteInNewSplitIfNeeded(noteFilename)
+    } else if (NotePlan.environment.platform === 'iPadOS') {
+      // Need to open this in the current window (as I think there can be at most 2 open editors)
+      res = Editor.openNoteByFilename(noteFilename)
+    }
+    if (!res) {
+      logError('openConflictSideBySide', `cannot open main note '${noteFilename}'`)
+    }
+    // Now open the other one as well in a split
+    res = openNoteInNewSplitIfNeeded(copyFilename)
+    if (!res) {
+      logError('openConflictSideBySide', `cannot open copy note '${copyFilename}'`)
+    }
+    CommandBar.showLoading(false)
+  }
+  catch (err) {
+    logError('openConflictSideBySide', JSP(err))
     CommandBar.showLoading(false)
   }
 }

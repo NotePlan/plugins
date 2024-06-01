@@ -3,10 +3,9 @@
 This plugin provides commands to help tidy up your notes:
 
 - **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to permanently ignore.)
-- **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions. 
-    ![](conflicted-notes@2x.png)
-  - Note: _conflicted notes can appear on each device you run NotePlan on, and the conflicted copies do not sync. Therefore you should consider running this on each of your devices._
-  - Note: if setting 'Save a copy of previous version as a separate note?' is turned on, it will now write copy of the prior conflicted version of notes to the special '@Conflicted Copies' folder. _This enables you to use an external editor to perform more detailed comparisons and merges that possible in NotePlan, particularly on iOS devices. You will need to clear up after yourself, though._
+- **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions, or to open them side-by-side for easier comparison.
+    ![](conflicted-notes-v0.13.0.png)
+    (See more details below.)
 - **/List duplicate notes** (alias "dupes"): creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates. It gives options to delete one or other of the conflicted versions:
     ![](duplicate-note-display@2x.png)
 - **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
@@ -27,6 +26,12 @@ Most can be used with parameters from a Template, or via an x-callback call.
 There's also the **/Tidy Up** (alias "tua"), which runs as many of the other commands in this plugin as you have configured in its Settings.
 
 (If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/) helpful too. It's rather arbitrary which commands live in which plugin.)
+
+### Details on /List conflicted notes
+Important notes:
+- Conflicted notes can appear on each device you run NotePlan on, and the conflicted copies do not sync. Therefore you should consider running this on each of your devices. Each device gets its own list of conflicted notes
+- If the setting 'Save a copy of previous version as a separate note?' is turned on, it will now write copy of the prior conflicted version of notes to the special '@Conflicted Copies' folder. _This enables you to use an external editor to perform more detailed comparisons and merges that possible in NotePlan, particularly on iOS devices. You will need to clear up after yourself, though._ Currently this only works for regular notes, not calendar notes.
+- When you run the command it will first try to clear up after itself, deleting any saved copies from an earlier run. However, it cannot currently remove subfolders, though I have asked for the API to be extended so this is possible.
 
 ## Automating Tidy Up
 If these commands are valuable to you, then you probably want to be running them regularly. NotePlan doesn't yet allow fully automatic running of commands, but you can get close by either including the commands in a frequently-used Template, or from a third-party utility that can invoke x-callback commands. Each are described below.

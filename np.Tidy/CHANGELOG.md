@@ -1,6 +1,10 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.13.0] - 2024-06-01 @jgclark
+- **/List conflicted notes** offers side-by-side viewing of conflicted note versions (for regular notes) on macOS and iPadOS
+- **/List conflicted notes** now clears out all copies of conflicted notes from earlier runs of the command
+
 ## [0.12.1] - 2024-04-09 @jgclark
 - **/List conflicted notes** now covers Calendar notes as well (thanks, @dwertheimer)
 
