@@ -109,10 +109,12 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSharedSettings): TAnyObject {
     const isDebugLogging = pluginSettings?._logLevel === 'DEV'
     // find all keys that start with Fflag
-    return (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
+    const featureFlags = (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
+        // $FlowIgnore
         acc[k] = sharedSettings[k]
         return acc
     }, {}) : {})
+    return featureFlags
 }
 
 /**

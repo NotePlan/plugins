@@ -14,8 +14,8 @@ export const dashboardFilters = [
 const dashboardSettings = [
   {
     key: "ignoreTasksWithPhrase",
-    label: "Ignore items in calendar sections with this phrase",
-    description: "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting.",
+    label: "Ignore items in calendar sections with this phrase(s)",
+    description: "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting. To include more than one phrase, separate them by commas.",
     type: 'input',
     default: "#waiting",
   },
@@ -156,9 +156,16 @@ const dashboardSettings = [
     default: false,
   },
   {
+    key: "autoUpdateEnabled",
+    label: "Automatically update window when it is idle?",
+    description: "If enabled, the Dashboard will update itself when the window is idle for a certain number of minutes, as set in the field below.",
+    type: 'switch',
+    default: false,
+  },
+  {
     key: "autoUpdateAfterIdleTime",
-    label: "After how many minutes that Dashboard window is idle should it update?",
-    description: "When the value in this field is a non-zero number, then the Dashboard will do a full refresh after the window is idle for that many minutes.",
+    label: "Automatic Update frequency",
+    description: "When Automatic Updates are enabled, then the Dashboard will do a full refresh after the window is idle for this many minutes.",
     type: 'input',
     default: "5",
   },

@@ -75,6 +75,12 @@ export function Root(/* props: Props */): Node {
   // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
 
+  // NP does not destroy windows on close. So if we have an autorefresh sending requests to NP, it will run forever
+  // So we do a check in sendToHTMLWindow to see if the window is still open
+  if (npData?.NPWindowID === false) {
+    throw new Error('Root: npData.NPWindowID is false; The window must have been closed. Stopping the React app. This is not a problem you need to worry about.')
+  }
+
   /****************************************************************************************************************************
    *                             VARIABLES
    ****************************************************************************************************************************/

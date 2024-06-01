@@ -45,7 +45,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
   const redactedSettings = getSettingsRedacted(pluginData.settings) // get all the settings except for sharedSettings & reactSettings
-  const { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(redactedSettings, sharedSettings)
+  let { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings)
 
   //----------------------------------------------------------------------
   // Hooks
@@ -111,6 +111,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (!sharedSettings) {
       // Fallback or initialization logic for sharedSettings
       logError('Dashboard', 'sharedSettings is undefined')
+    } else {
+      // update feature flags after the settings have been changed
+       ({ FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings))
+       logDebug('Dashboard', `shared Settings updated: FFlag_MetaTooltips=${FFlag_MetaTooltips}, FFlag_AutoRefresh=${FFlag_AutoRefresh}`)
     }
   }, [sharedSettings])
   
@@ -237,11 +241,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Render
   //----------------------------------------------------------------------
   if (sections.length === 0) {
-    return null
+    return <div className="dashboard">No Sections to display (this is an error)...</div>
   }
+  logDebug('Dashboard', `Should load IdleTimer? ${FFlag_AutoRefresh && sharedSettings.autoUpdateEnabled} FFlag_AutoRefresh=${FFlag_AutoRefresh}, sharedSettings.autoUpdateEnabled=${sharedSettings.autoUpdateEnabled}, sharedSettings.autoUpdateAfterIdleTime=${sharedSettings.autoUpdateAfterIdleTime}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef}>
-      {FFlag_AutoRefresh && (
+      {FFlag_AutoRefresh && sharedSettings.autoUpdateEnabled && (
         <IdleTimer
           idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "5") * 60 * 1000 /* 5 minutes default */}
           onIdleTimeout={autoRefresh}
