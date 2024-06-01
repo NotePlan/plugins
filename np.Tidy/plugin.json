@@ -183,6 +183,7 @@
       "description": "x-callback entry for resolveConflictWithCurrentVersion",
       "jsFunction": "resolveConflictWithCurrentVersion",
       "arguments": [
+        "noteType",
         "filename"
       ]
     },
@@ -192,6 +193,7 @@
       "description": "x-callback entry for resolveConflictWithOtherVersion",
       "jsFunction": "resolveConflictWithOtherVersion",
       "arguments": [
+        "noteType",
         "filename"
       ]
     },

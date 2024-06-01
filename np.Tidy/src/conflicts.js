@@ -215,8 +215,8 @@ export async function listConflicts(params: string = ''): Promise<void> {
       } else {
         outputArray.push(`- oddly, the previous version appears to be identical`)
       }
-      const resolveCurrentButton = createPrettyRunPluginLink('Keep main note version', 'np.Tidy', 'resolveConflictWithCurrentVersion', [cn.filename])
-      const resolveOtherButton = createPrettyRunPluginLink('Keep other note version', 'np.Tidy', 'resolveConflictWithOtherVersion', [cn.filename])
+      const resolveCurrentButton = createPrettyRunPluginLink('Keep main note version', 'np.Tidy', 'resolveConflictWithCurrentVersion', [cn.type, cn.filename])
+      const resolveOtherButton = createPrettyRunPluginLink('Keep other note version', 'np.Tidy', 'resolveConflictWithOtherVersion', [cn.type, cn.filename])
       outputArray.push(`- ${resolveCurrentButton} ${resolveOtherButton}`)
 
       // Make a copy of the previous version in a special folder (if a regular note)
@@ -261,7 +261,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
 /**
  * Command to be called by x-callback to run the API function of the same name, on the given note filename
  */
-export async function resolveConflictWithCurrentVersion(filename: string): Promise<void> {
+export async function resolveConflictWithCurrentVersion(noteType: NoteType, filename: string): Promise<void> {
   try {
     // Attempt to get spinner to appear, to show that something is happening.
     CommandBar.showLoading(true, 'Deleting other note version')
@@ -270,15 +270,14 @@ export async function resolveConflictWithCurrentVersion(filename: string): Promi
       logWarn('resolveConflictWithCurrentVersion', `can't be run until NP v3.9.3`)
       return
     }
-    // FIXME: doesn't work for Calendar note.
-    const calendarDateStr = getDateStringFromCalendarFilename(filename, true) ?? null
+    // Need to handle Calendar and project notes differently
+    const calendarDateStr = (noteType === 'Calendar') ? getDateStringFromCalendarFilename(filename, true) : ''
     logDebug('resolveConflictWithCurrentVersion', `- calendarDateStr = ${calendarDateStr ?? 'n/a'}`)
-    const theNote = (calendarDateStr)
+    const theNote = (noteType === 'Calendar')
       ? DataStore.calendarNoteByDateString(calendarDateStr)
       : DataStore.projectNoteByFilename(filename)
     if (!theNote) {
-      logError('resolveConflictWithCurrentVersion', `- cannot find note '${filename}'`)
-      return
+      throw new Error(`- cannot find note '${filename}. Stopping.'`)
     }
     theNote.resolveConflictWithCurrentVersion()
     CommandBar.showLoading(false)
@@ -292,7 +291,7 @@ export async function resolveConflictWithCurrentVersion(filename: string): Promi
 /**
  * Command to be called by x-callback to run the API function of the same name, on the given note filename
  */
-export async function resolveConflictWithOtherVersion(filename: string): Promise<void> {
+export async function resolveConflictWithOtherVersion(noteType: NoteType, filename: string): Promise<void> {
   try {
     CommandBar.showLoading(true, 'Deleting main note version')
     logDebug('resolveConflictWithOtherVersion', `starting for file '${filename}'`)
@@ -300,14 +299,14 @@ export async function resolveConflictWithOtherVersion(filename: string): Promise
       logWarn('resolveConflictWithOtherVersion', `can't be run until NP v3.9.3`)
       return
     }
-    const calendarDateStr = getDateStringFromCalendarFilename(filename, true) ?? null
+    // Need to handle Calendar and project notes differently
+    const calendarDateStr = (noteType === 'Calendar') ? getDateStringFromCalendarFilename(filename, true) : ''
     logDebug('resolveConflictWithOtherVersion', `- calendarDateStr = ${calendarDateStr ?? 'n/a'}`)
-    const theNote = (calendarDateStr)
+    const theNote = (noteType === 'Calendar')
       ? DataStore.calendarNoteByDateString(calendarDateStr)
       : DataStore.projectNoteByFilename(filename)
     if (!theNote) {
-      logError('resolveConflictWithOtherVersion', `- cannot find note '${filename}'`)
-      return
+      throw new Error(`- cannot find note '${filename}'. Stopping.`)
     }
     theNote.resolveConflictWithOtherVersion()
     CommandBar.showLoading(false)
