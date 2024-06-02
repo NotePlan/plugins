@@ -699,8 +699,8 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
   if (timeParts.length !== 3 || dateParts.length !== 3) {
     throw `dateTimeString "${dateTimeString}" is not in expected format`
   }
-  timeParts = timeParts.map((t) => Number(t))
-  dateParts = dateParts.map((d) => Number(d))
+  timeParts = timeParts.map((t) => parseInt(t))
+  dateParts = dateParts.map((d) => parseInt(d))
   dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
   const date = new Date(...dateParts, ...timeParts)
   if (date.toString() === 'Invalid Date') {
@@ -1287,6 +1287,66 @@ export function includesScheduledFutureDate(line: string, fromDateStr?: string):
     const yearDateFromMatch = m[0].slice(1) // need to remove leading '>'
     return yearDateFromMatch > getNPYearStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
+  return false
+}
+
+/**
+ * Checks if the given filename is in a future note.
+ *
+ * @param {string} filename - The filename to check.
+ * @param {string} [fromUnhyphenatedDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
+ * @returns {boolean} - Returns true if the filename is scheduled in a future note.
+ */
+export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: string = getTodaysDateUnhyphenated()): boolean {
+  const today = new Date(fromUnhyphenatedDate.slice(0, 4), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
+
+  // Test for daily notes
+  if (filename.match(RE_DAILY_NOTE_FILENAME)) {
+    const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
+    if (dateMatch) {
+      const dailyDate = dateMatch[0].match(/\d{8}/)?.[0]
+      return dailyDate > fromUnhyphenatedDate
+    }
+  }
+
+  // Test for weekly notes
+  if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+    const weekDateMatch = filename.match(RE_WEEKLY_NOTE_FILENAME)
+    if (weekDateMatch) {
+      const weeklyDate = weekDateMatch[0].match(/\d{4}-W\d{2}/)?.[0]
+      return weeklyDate > getNPWeekStr(today)
+    }
+  }
+
+  // Test for monthly notes
+  if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
+    const monthDateMatch = filename.match(RE_MONTHLY_NOTE_FILENAME)
+    if (monthDateMatch) {
+      const monthlyDate = monthDateMatch[0].match(/\d{4}-\d{2}/)?.[0]
+      return monthlyDate > getNPMonthStr(today)
+    }
+  }
+
+  // Test for quarterly notes
+  if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
+    const quarterDateMatch = filename.match(RE_QUARTERLY_NOTE_FILENAME)
+    if (quarterDateMatch) {
+      const quarterlyDate = quarterDateMatch[0].match(/\d{4}-Q\d/)
+      if (quarterlyDate) {
+        return quarterlyDate[0] > getNPQuarterStr(today)
+      }
+    }
+  }
+
+  // Test for yearly notes
+  if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
+    const yearDateMatch = filename.match(RE_YEARLY_NOTE_FILENAME)
+    if (yearDateMatch) {
+      const yearlyDate = yearDateMatch[0].match(/\d{4}/)?.[0]
+      return yearlyDate > getNPYearStr(today)
+    }
+  }
+
   return false
 }
 

@@ -39,6 +39,7 @@ import {
   getNPQuarterStr,
   getNPWeekStr,
   getTodaysDateUnhyphenated,
+  filenameIsInFuture
   // includesScheduledFutureDate,
   // toISOShortDateTimeString,
 } from '@helpers/dateTime'
@@ -1090,6 +1091,9 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         }
       }
       logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
+
+      const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
+      filteredTagParas = filteredTagParas.filter(p=>!filenameIsInFuture(p.filename||'',dateToUseUnhyphenated))
 
       if (filteredTagParas.length > 0) {
         // Remove possible dupes from these sync'd lines

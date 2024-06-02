@@ -114,9 +114,12 @@ const orderedSections = useFirstVisibleOnly.flatMap(st =>
   orderedSections.forEach(section => {
     if (section.sectionCode === 'PROJ') return
 
+    // If the item has a synced line, use the blockId for the key, not the constructed key
+    // because we want to delete duplicates that are in different sections of synced lines also
     section.sectionItems = section.sectionItems.filter(item => {
-      const key = paraMatcherFields.map(field => item?.para ? item.para[field] : '<no value>').join('|')
-      
+      const key = item?.para?.content?.match(/\^[a-z0-9]{6}/)?.[0] ||
+      paraMatcherFields.map(field => item?.para ? item.para[field] : '<no value>').join('|')
+          
       if (!itemMap.has(key)) {
         itemMap.set(key, true)
         return true

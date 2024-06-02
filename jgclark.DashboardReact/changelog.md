@@ -12,6 +12,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Extended the project dialog box, with a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
 - When the NotePlan Theme is changed (manually or automatically), the Dashboard window will pick this up on the next refresh.
 - fixed bug: A task in today's note "* a task >today" doesn't show up on today's dashboard
+- fixed bug: tasks in future notes showing up in #tag section
+- fixed bug: synced copies dated for today were duplicated
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - other bug fixes
 
@@ -23,6 +25,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - make it possible to call a refresh timer after a CommandButton press (though for the moment this is turned off because many of these buttons could take user input and therefore a long time to happen)
 - therefore created a way to call refresh timer [5s] from the plugin side after the command finishes (see Architecture notes)
 - added this action START_DELAYED_REFRESH_TIMER to all the moveClickHandlers functions (I'm sure there are others that need it that we will figure out over time)
+- removed duplicates of synced lines that may be in different notes so they were sneaking through
+- added new function to dateTime called filenameIsInFuture which functions like your includesScheduledFutureDate but to be used for tasks just sitting in future notes
+- used it to fix the bug where #tag sections were showing tasks in future notes
 
 ## [2.0.0.a30] @jgc 2024-05-31
 - added 'move' (rather than 'reschedule') functionality back in
