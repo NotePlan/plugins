@@ -27,6 +27,7 @@ import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPr
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { hasScheduledDate, isOpen } from '@helpers/utils'
+import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -1524,6 +1525,34 @@ export function cancelItem(filenameIn: string, content: string): boolean {
     return markCancelled(possiblePara)
   } catch (error) {
     logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * @author @jgclark
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export async function deleteItem(filenameIn: string, content: string): boolean {
+  try {
+    // logDebug('NPP/deleteItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
+      return false
+    }
+    // Check with user, as this is hard to recover from
+    const res = await showMessageYesNo(`Do you really wish to delete paragraph "${possiblePara.content}" from note "${displayTitle(possiblePara.note)}"`, ['Yes', 'No'], `Warning`)
+    if (res === 'Yes') {
+      possiblePara.note?.removeParagraph(possiblePara)
+      return true
+    }
+    return false
+  } catch (error) {
+    logError(pluginJson, `NPP/deleteItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }

@@ -2,20 +2,34 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## What has changed since v1.x
-- The different sections are now refreshed progressively, so the first sections appear more quickly.
-- When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
-- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for a given number of minutes (default: 5 mins).
+### New
+- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for a given number of minutes (default: 15 mins). This means that you probably no longer need to add a trigger to the notes with tasks you're completing/changing frequently.
 - Can now show multiple tags/mentions, by specifying them in the settings separated by commas
 - New 'filter' menu with a dropdown that allows you to toggle on or off all the main display settings -- moved from the Preferences Pane
 - New 'settings' menu ⚙️ which has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
-- Extended the task dialog box, with a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
-- Extended the project dialog box, with a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
-- When the NotePlan Theme is changed (manually or automatically), the Dashboard window will pick this up on the next refresh.
+- In the task dialog box, added a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
+- In the project dialog box, added a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
+- When the NotePlan Theme is changed (manually or automatically), the Dashboard window will automatically pick this up on the next refresh.
+- alt-click on an item's status icon now deletes the item entirely (after a check with the user).
+
+### Changed
+- The different sections are now generated or refreshed progressively, so the first sections appear more quickly.
+- When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
+- The 'Update Overdue section when triggered?' setting has been removed, as it is no longer needed with the smarter data generation
+
+### Fixed
 - fixed bug: A task in today's note "* a task >today" doesn't show up on today's dashboard
 - fixed bug: tasks in future notes showing up in #tag section
 - fixed bug: synced copies dated for today were duplicated
-- TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - other bug fixes
+- TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
+
+## [2.0.0.a32] @jgc 2024-06-02
+- fix reschedule date using dialog
+- removed 'updateOverdueOnTrigger' setting, as I think it is not needed now we have smarter data generation strategies
+- added ability to delete an item with ctrl-click on its status icon. Note: currently stolen by some other event handler.
+- alt-click on an item's status icon now deletes the item entirely (after a check with the user).
+- improved Plugin description
 
 ## [2.0.0.a31] @dbw 2024-06-01
 - fix sort on the Today sections so that the one with the buttons is on top

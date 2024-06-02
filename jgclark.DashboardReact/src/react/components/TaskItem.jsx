@@ -2,7 +2,7 @@
 // TaskItem.jsx
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end
-// Last updated 6.5.2024 for v2.0.0 by @dbw
+// Last updated 2.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
 // @flow
 import React, { useState } from 'react'
@@ -52,7 +52,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
         break
     }
-    clo(messageObject, `ItemRow: item clicked: ${item.ID}`)
+    // clo(messageObject, `TaskItem: icon clicked: ${item.ID}`)
   }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {

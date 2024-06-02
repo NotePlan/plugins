@@ -1,5 +1,8 @@
-// StatusIcon.jsx
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show the Icon before an item
+// Last updated 2.6.2024 for v2.0.0 by @dbw
+//--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
 import type { TActionType, TSectionItem, MessageDataObject } from '../../types'
@@ -42,6 +45,8 @@ const StatusIcon = ({
         return 'todo fa-regular fa-square-xmark'
       case 'congrats':
         return 'fa-regular fa-circle-check'
+      case 'deleted':
+        return 'fa-regular fa-trash-xmark'
       default:
         return '' // default case if none of the types match
     }
@@ -53,9 +58,9 @@ const StatusIcon = ({
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
 
-    logDebug('handleIconClick', `item.para.content = ${item.para.content}`)
-    const { metaKey } = extractModifierKeys(event)
-    const actionType = determineActionType(metaKey)
+    logDebug('handleIconClick', `item.para.content = ${item.para?.content ?? '-'}`)
+    const { metaKey, altKey } = extractModifierKeys(event)
+    const actionType = determineActionType(metaKey, altKey)
     const messageObject: MessageDataObject = {
       actionType,
       item,
@@ -74,15 +79,15 @@ const StatusIcon = ({
    * Determine the action type based on the metaKey and item type.
    * Also updates the icon shape based on what action was taken
    */
-  function determineActionType(metaKey: boolean): TActionType {
+  function determineActionType(metaKey: boolean, altKey: boolean): TActionType {
     switch (item.itemType) {
       case 'open': {
-        setIconClassName(getClassNameFromType(metaKey ? "open" : "done"))
-        return metaKey ? 'cancelTask' : 'completeTask'
+        setIconClassName(getClassNameFromType(metaKey ? "cancelled" : altKey ? "deleted" : "done"))
+        return metaKey ? 'cancelTask' : altKey ? 'deleteItem' : 'completeTask'
       }
       case 'checklist': {
-        setIconClassName(getClassNameFromType(metaKey ? "checklistCancelled" : "checklistDone"))
-        return metaKey ? 'cancelChecklist' : 'completeChecklist'
+        setIconClassName(getClassNameFromType(metaKey ? "checklistCancelled" : altKey ? "deleted" : "checklistDone"))
+        return metaKey ? 'cancelChecklist' : altKey ? "deleteItem" : 'completeChecklist'
       }
       case 'project': {
         return 'showNoteInEditorFromFilename'

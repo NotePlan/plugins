@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 30.5.2024 for v2.0.0 by @jgclark
+// Last updated 2.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -84,6 +84,7 @@ export type TActionType =
   | 'cancelChecklist'
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
+  | 'deleteItem'
   | 'moveAllTodayToTomorrow'
   | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'

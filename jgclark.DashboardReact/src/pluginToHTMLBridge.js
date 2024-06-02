@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 27.5.2024 for v2.0.0 by @dbw
+// Last updated 2.6.2024 for v2.0.0 by @dbw
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,6 +19,7 @@ import {
   doCompleteChecklist,
   doCyclePriorityStateDown,
   doCyclePriorityStateUp,
+  doDeleteItem,
   doMoveToNote,
   doReviewFinished,
   doSetNextReviewDate,
@@ -151,6 +152,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'cancelChecklist': {
         result = doCancelChecklist(data)
+        break
+      }
+      case 'deleteItem': {
+        result = await doDeleteItem(data)
         break
       }
       case 'unscheduleItem': {

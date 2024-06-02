@@ -104,14 +104,14 @@ const dashboardSettings = [
     options: ["priority", "earliest", "most recent"],
     default: "priority",
   },
-  {
-    key: "updateOverdueOnTrigger",
-    hidden: true,
-    label: "Update Overdue section when triggered?",
-    description: "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-    type: 'switch',
-    default: true,
-  },
+  // {
+  //   key: "updateOverdueOnTrigger",
+  //   hidden: true,
+  //   label: "Update Overdue section when triggered?",
+  //   description: "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
+  //   type: 'switch',
+  //   default: true,
+  // },
   {
     type: 'separator',
   },

@@ -77,7 +77,7 @@ export type dashboardConfigType = {
   showQuarterSection: boolean,
   showOverdueSection: boolean,
   showProjectSection: boolean,
-  updateOverdueOnTrigger: boolean,
+  // updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
   tagToShow: string,
@@ -242,51 +242,32 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Run following in background thread
     // NB: Has to wait until after Editor has been accessed to start this
-    // Note: Now commented out, as I found it more than doubled the time taken to run this section.
+    // Note: Commented out in v1.x, as I found it more than doubled the time taken to run this section.
     // await CommandBar.onAsyncThread()
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
-    // Note: this operation is 100ms
     const todayHyphenated = getTodaysDateHyphenated()
     const theNoteDateHyphenated = timePeriodNote.title || ''
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated >  theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
+    // Keep only non-empty open tasks (and checklists if wanted)
     let openParas = config.ignoreChecklistItems
-    ? parasToUse.filter((p) => {
-        const contentTrimmed = p.content.trim()
-        const dateRegex = new RegExp(`>${theNoteDateHyphenated}`)
-        const todayRegex = new RegExp('>today')
-    
-        const isMatch =
-          (isOpenTaskNotScheduled(p) && contentTrimmed !== '') ||
-          (isOpenTask(p) &&
-            (dateRegex.test(contentTrimmed) || (isToday && todayRegex.test(contentTrimmed))))
-  
-            // logDebug(`getOpenItemPFCTP theNoteDateHyphenated: "${contentTrimmed}" >${theNoteDateHyphenated} isMatch: ${String(isMatch)}`)
-            return isMatch
-      })
-    : parasToUse.filter((p) => {
-        const contentTrimmed = p.content.trim()
-        const dateRegex = new RegExp(`>${theNoteDateHyphenated}`)
-        const todayRegex = new RegExp('>today')
-  
-        // logDebug('getOpenItemPFCTP Checking paragraph:', contentTrimmed)
-  
-        const isMatch =
-          (isOpenNotScheduled(p) && contentTrimmed !== '') ||
-          (isOpen(p) &&
-            (dateRegex.test(contentTrimmed) || (isToday && todayRegex.test(contentTrimmed))))
-  
-        // logDebug(`getOpenItemPFCTP theNoteDateHyphenated: "${contentTrimmed}" >${theNoteDateHyphenated} isMatch: ${String(isMatch)}`)
-        return isMatch
-      })
-      // logDebug('getOpenItemPFCTP', `After '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+      ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
+      : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
+    // logDebug('getOpenItemPFCTP', `- after '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
-    // Filter out any future-scheduled tasks from this calendar note
+    // Keep only non-empty open tasks not scheduled (other than >today)
+    const thisNoteDateSched = `>${theNoteDateHyphenated}`
+    openParas = openParas.filter((p) =>
+      isOpenNotScheduled(p) ||
+      (p.content.includes(thisNoteDateSched) ||
+        (isToday && p.content.includes('>today'))))
+    // logDebug('getOpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
+    // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content,latestDate))
 
     if (openParas.length !== tempSize) {
@@ -315,18 +296,17 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
-    // (This is 2-3x quicker than part above)
-    // Note: the getReferencedParagraphs() operation take 70-140ms
     // A task in today dated for today doesn't show here b/c it's not in backlinks
+    // (In v1.x this was 2-3x quicker than part above)
     let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Allow to ignore checklist items.
       refOpenParas = config.ignoreChecklistItems
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
-        : // try make this a single filter
-        getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
+        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
 
+    // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       const phrases:Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
@@ -338,6 +318,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
     // logDebug('getOpenItemPFCTP', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
     // clo(refOpenDashboardParas)

@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Last updated 2.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,7 +29,7 @@ import {
 } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import {
-  calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE_INTERVAL,
+  calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL,
   replaceArrowDatesInString
 } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -40,6 +40,7 @@ import {
   cancelItem,
   completeItem,
   completeItemEarlier,
+  deleteItem,
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
   // toggleTaskChecklistParaType,
@@ -290,6 +291,17 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`) // ✅
   // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)// ✅
   return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+}
+
+// Complete the checklist in the actual Note
+export async function doDeleteItem(data: MessageDataObject): TBridgeClickHandlerResult {
+  const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
+  logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update sectionCodes ${String(sectionCodes)}`)
+  const res = await deleteItem(filename, content)
+  logDebug('doDeleteItem', `-> ${String(res)}`)
+  // Update display; ideally would just REMOVE_LINE_FROM_JSON, but we don't have a paragraph left at this point. So refresh whole section.
+  // return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'])
+  return handlerResult(res, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: [sectionCodes] })
 }
 
 // Cancel the checklist in the actual Note
@@ -585,17 +597,13 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  */
 export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: string = ''): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const dateInterval = controlStr || ''
   const config = await getCombinedSettings()
-  logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
-  logDebug('doUpdateTaskDate', `- config.headingToPlaceUnder = ${config.headingToPlaceUnder}`)
-  logDebug('doUpdateTaskDate', `filename: ${filename}, content: "${content}", dateInterval: ${dateInterval}`)
+  // logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
+  logDebug('doUpdateTaskDate', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
+  const dateOrInterval = String(controlStr)
+  // const dateInterval = controlStr || ''
   let startDateStr = ''
   let newDateStr = ''
-  if (dateInterval !== 't' && !npDateStrIn && !dateInterval.match(RE_DATE_INTERVAL)) {
-    logError('doUpdateTaskDate', `bad move date interval: ${dateInterval}`)
-    return handlerResult(false)
-  }
 
   const thePara = findParaFromStringAndFilename(filename, content)
   if (typeof thePara === 'boolean') {
@@ -603,11 +611,12 @@ export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: str
     return handlerResult(false)
   }
 
-  if (dateInterval === 't') {
+  if (dateOrInterval === 't') {
     // Special case to change to '>today' (or the actual date equivalent)
     newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-    logDebug('doUpdateTaskDate', `move task in ${filename} -> 'today'`)
-  } else if (dateInterval.match(RE_DATE_INTERVAL)) {
+    logDebug('doUpdateTaskDate', `- move task in ${filename} -> 'today'`)
+  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
+    const dateInterval = dateOrInterval
     const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
     // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
     startDateStr = getTodaysDateHyphenated()
@@ -623,11 +632,14 @@ export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: str
       newDateStr = NPWeekData.weekString
       logDebug('doUpdateTaskDate', `- used NPWeekData instead -> ${newDateStr}`)
     }
-    logDebug('doUpdateTaskDate', `change due date on task from ${startDateStr} -> ${newDateStr}`)
+  } else if (dateOrInterval.match(RE_DATE)) {
+    newDateStr = controlStr
+    logDebug('doUpdateTaskDate', `- newDateStr ${newDateStr} from controlStr`)
   } else {
-    // use given date
-    newDateStr = npDateStrIn
+    logError('doUpdateTaskDate', `bad move date/interval: ${dateOrInterval}`)
+    return handlerResult(false)
   }
+  logDebug('doUpdateTaskDate', `change due date on task from ${startDateStr} -> ${newDateStr}`)
 
   // Make the actual change to reschedule the item
   const theLine = thePara.content

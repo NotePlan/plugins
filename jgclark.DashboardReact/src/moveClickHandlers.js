@@ -83,7 +83,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
   } else if (dateOrInterval.match(RE_DATE)) {
     newDateStr = controlStr
   } else {
-    logError('moveFromCalToCal', `bad move date interval: ${dateOrInterval}`)
+    logError('moveFromCalToCal', `bad move date/interval: ${dateOrInterval}`)
     return handlerResult(false)
   }
   logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)

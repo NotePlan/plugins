@@ -5,7 +5,7 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next few notes to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-a31",
+  "plugin.version": "2.0.0-a32",
   "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
@@ -240,15 +240,6 @@
       "required": true
     },
     {
-      "key": "updateOverdueOnTrigger",
-      "hidden": true,
-      "title": "Update Overdue section when triggered?",
-      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "type": "separator"
     },
     {
@@ -360,6 +351,15 @@
       "key": "showProjectSection",
       "title": "Show section for Projects?",
       "description": "Whether to show the Projects section. This uses data from the Projects & Reviews Plugin.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "updateOverdueOnTrigger",
+      "hidden": true,
+      "title": "Update Overdue section when triggered?",
+      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
       "type": "bool",
       "default": true,
       "required": true
