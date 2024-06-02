@@ -15,7 +15,7 @@ import useSectionSortAndFilter from '../customHooks/useSectionSortAndFilter.jsx'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, logError, JSP } from '@helpers/react/reactDev'
+import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -113,7 +113,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
   }
-
+  clo(itemsToShow,`section ${section.name} itemsToShow`)
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
@@ -125,7 +125,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
-          {section.sectionItems.length && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
+          {itemsToShow.length && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

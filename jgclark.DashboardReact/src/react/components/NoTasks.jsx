@@ -13,11 +13,11 @@ const NoTasks = (): React.Node => {
         <i className="fa-regular fa-circle-check"></i>
       </div>
       <div className="sectionItemContent sectionItem">
-        <a className="content">
+        <div className="content">
           <i>
             Nothing to do: take a break <i className="fa-solid fa-mug pad-left"></i>
           </i>
-        </a>
+        </div>
       </div>
     </div>
   )
