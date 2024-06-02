@@ -53,7 +53,6 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   }, [])
 
   useEffect(() => {
-    // debug all this       if (Date.now() - lastActivity >= idleTime) {
     const interval = setInterval(() => {
       if (Date.now() - lastActivity >= idleTime) {
         logDebug('IdleTimer', `we are over the ${idleTime/1000/60}m limit now, calling onIdleTimeout`)

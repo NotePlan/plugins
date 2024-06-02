@@ -334,6 +334,12 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
         await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
       }
+      if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
+        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        reactWindowData.pluginData.startDelayedRefreshTimer = true
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
+      }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult`)
     }

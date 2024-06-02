@@ -12,8 +12,10 @@ import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
-import { getSettingsRedacted, getFeatureFlags } from '../../shared.js'
+import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
+import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
+// import { type TActionButton } from '../../types.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
@@ -42,15 +44,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
-  const redactedSettings = getSettingsRedacted(pluginData.settings) // get all the settings except for sharedSettings & reactSettings
-  let { FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings)
+  const { FFlag_MetaTooltips } = getFeatureFlags(pluginData.settings, sharedSettings)
 
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
   useWatchForResizes(sendActionToPlugin)
+    // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
+    const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: pluginData.settings._logLevel !== "DEV" })
 
   //----------------------------------------------------------------------
   // Refs
@@ -111,11 +114,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (!sharedSettings) {
       // Fallback or initialization logic for sharedSettings
       logError('Dashboard', 'sharedSettings is undefined')
-    } else {
-      // update feature flags after the settings have been changed
-       ({ FFlag_MetaTooltips, FFlag_AutoRefresh } = getFeatureFlags(pluginData.settings, sharedSettings))
-       logDebug('Dashboard', `shared Settings updated: FFlag_MetaTooltips=${FFlag_MetaTooltips}, FFlag_AutoRefresh=${FFlag_AutoRefresh}`)
-    }
+    } 
   }, [sharedSettings])
   
   // temporary code to output variable changes to Chrome DevTools console
@@ -135,7 +134,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // if we did a force reload (DEV only) of the full sections data, no need to load the rest
     // but if we are doing a normal load, then get the rest of the section data incrementally
     // this executes before globalSharedData is saved into state 
-    logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh} and FFlag_AutoRefresh: ${FFlag_AutoRefresh} and sections.length: ${sections.length}`)
+    logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh} and and sections.length: ${sections.length}`)
     if (sections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
       sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes }, 'Dashboard loaded', true)
@@ -223,12 +222,30 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
 
+  // 
+  useEffect(() => {
+    if (pluginData.startDelayedRefreshTimer) {
+      logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
+      updatePluginData({...pluginData, startRefreshTimer: false},'Got message from plugin; resetting refresh timer')
+      refreshTimer()
+    }
+  }, [pluginData.startDelayedRefreshTimer])
+
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
+    xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later
     const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : {}
     setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
+  }
+
+  // Deal with the delayed refresh when a button was clicked
+  // Because sections and buttons could be destroyed after a click, we need to
+  // refresh from here
+  const handleCommandButtonClick = (/*  button: TActionButton */) => {
+    // logDebug('Dashboard', `handleCommandButtonClick was called for button: ${button.display}; setting up delayed timer.`)
+    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective
   }
 
   const autoRefresh = () => {
@@ -243,10 +260,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   if (sections.length === 0) {
     return <div className="dashboard">No Sections to display (this is an error)...</div>
   }
-  logDebug('Dashboard', `Should load IdleTimer? ${FFlag_AutoRefresh && sharedSettings.autoUpdateEnabled} FFlag_AutoRefresh=${FFlag_AutoRefresh}, sharedSettings.autoUpdateEnabled=${sharedSettings.autoUpdateEnabled}, sharedSettings.autoUpdateAfterIdleTime=${sharedSettings.autoUpdateAfterIdleTime}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef}>
-      {FFlag_AutoRefresh && sharedSettings.autoUpdateEnabled && (
+      {sharedSettings.autoUpdateEnabled && (
         <IdleTimer
           idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "5") * 60 * 1000 /* 5 minutes default */}
           onIdleTimeout={autoRefresh}
@@ -255,7 +271,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
         {sections.map((section, index) => (
-          <Section key={index} section={section} />
+          <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
         ))}
         <Dialog
           onClose={handleDialogClose}

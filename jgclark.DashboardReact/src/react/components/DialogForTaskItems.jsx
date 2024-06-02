@@ -11,14 +11,12 @@ import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } 
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
-// import useRefreshTimer from './useRefreshTimer.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { logDebug, clo, JSP } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
-// TODO(dbw): can you explain this kind of import, which I have never seen before:
 import '../css/animation.css'
 
 type Props = {
@@ -34,9 +32,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
   const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
-
-  // TODO: disabling this for the moment so we can see logs without refreshes clouding them
-  // const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
 
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
 
@@ -153,11 +148,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
     sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
     if (controlStr === 'openNote' || controlStr.startsWith("pri") || controlStr === "update") return //don't close dialog yet
-
-    // Send 'refresh' action to plugin after n ms - this is a bit of a hack
-    // to get around the updateCache not being reliable.
-    // refreshTimer()
-    // logDebug(`DialogForTaskItems`, `handleButtonClick - !!! REFRESH TIMER TURNED OFF TEMPORARILY !!!`)
 
     // Start the zoom/flip-out animation
     setAnimationClass('zoom-out') //flip-out

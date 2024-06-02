@@ -15,6 +15,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 - other bug fixes
 
+## [2.0.0.a31] @dbw 2024-06-01
+- fix sort on the Today sections so that the one with the buttons is on top
+- remove FFlag on autoRefresh, and add setting for autoRefresh (but turned it off when you are in DEV mode)
+- refine/tighten up refreshTimer
+- call refresh timer [5s] after a dialog button was pressed - just to make sure there are no unrefreshed changes
+- make it possible to call a refresh timer after a CommandButton press (though for the moment this is turned off because many of these buttons could take user input and therefore a long time to happen)
+- therefore created a way to call refresh timer [5s] from the plugin side after the command finishes (see Architecture notes)
+- added this action START_DELAYED_REFRESH_TIMER to all the moveClickHandlers functions (I'm sure there are others that need it that we will figure out over time)
+
 ## [2.0.0.a30] @jgc 2024-05-31
 - added 'move' (rather than 'reschedule') functionality back in
 - finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'reschedule' accordingly

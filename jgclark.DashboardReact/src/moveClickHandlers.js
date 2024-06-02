@@ -94,7 +94,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
   if (res) {
     logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
     // Send a message to update all the calendar sections (as its too hard to work out which of the sections to update)
-    return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS'])
+    return handlerResult(true, ['REFRESH_ALL_CALENDAR_SECTIONS','START_DELAYED_REFRESH_TIMER'])
   } else {
     logWarn('moveFromCalToCal', `-> moveFromCalToCal to ${newDateStr} not successful`)
     return handlerResult(false)
@@ -256,7 +256,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllYesterdayOpenToToday finished `)
 
     // Update display of these 2 sections
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON'], sectionCodes: ['DY', 'DT'], }
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON','START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT'], }
   }
   catch (error) {
     logError('scheduleAllYesterdayOpenToToday', JSP(error))
@@ -386,7 +386,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 
     // Update display of these 2 sections
     logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO]}`)
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON'], sectionCodes: ['DT', 'DO'] }
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON','START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO'] }
   }
   catch (error) {
     logError('dashboard / scheduleAllTodayTomorrow', error.message)
@@ -525,7 +525,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllYesterdayOpenToToday finished `)
 
     // Update display of this section (and Today)
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON'], sectionCodes: ['TD', 'OVERDUE'] }
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON','START_DELAYED_REFRESH_TIMER'], sectionCodes: ['TD', 'OVERDUE'] }
 
   }
   catch (error) {

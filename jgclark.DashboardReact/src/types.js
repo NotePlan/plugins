@@ -154,7 +154,7 @@ export type MessageDataObject = {
  * Each called function should use this standard return object
  */
 
-export type TActionOnReturn = 'UPDATE_LINE_IN_JSON' | 'REMOVE_LINE_FROM_JSON' | 'REFRESH_SECTION_IN_JSON' | 'REFRESH_ALL_SECTIONS' | 'REFRESH_ALL_CALENDAR_SECTIONS'
+export type TActionOnReturn = 'UPDATE_LINE_IN_JSON' | 'REMOVE_LINE_FROM_JSON' | 'REFRESH_SECTION_IN_JSON' | 'REFRESH_ALL_SECTIONS' | 'REFRESH_ALL_CALENDAR_SECTIONS' | 'START_DELAYED_REFRESH_TIMER'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
@@ -199,6 +199,7 @@ export type TPluginData = {
   platform: string, /* the platform used when generating the dashboard */
   demoMode: boolean, /* generate fake content */
   doneCount?: number,
+  startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
 export type TSharedSettings = {

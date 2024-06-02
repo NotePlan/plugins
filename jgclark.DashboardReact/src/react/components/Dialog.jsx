@@ -32,6 +32,14 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   // isOpen ? logDebug(`Dialog`, `starting for ${isTask ? 'task' : 'project'} isOpen: ${isOpen ? 'true' : ''} details: ${JSP(details)}`) : null
   const { reactSettings, pluginData } = useAppContext()
 
+  // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)  
+  function onDialogClose() {
+    // Send 'refresh' action to plugin after [5000] ms - this is a bit of a hack
+    // to get around the updateCache not being reliable.
+    // only forces a refresh if not in logLevel === DEV
+    onClose() // send to parent
+  }
+  
   // the child dialogs (Task & Project) will call this function to position the dialog
   // after they render
   function positionDialog(dialogRef: RefType<any>): any {
@@ -50,9 +58,9 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 
   return isOpen ? (
       isTask ? (
-        <DialogForTaskItems onClose={onClose} details={details} positionDialog={positionDialog} />
+        <DialogForTaskItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
       ) : (
-        <DialogForProjectItems onClose={onClose} details={details} positionDialog={positionDialog} />
+        <DialogForProjectItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
       )
   ) : null
 }

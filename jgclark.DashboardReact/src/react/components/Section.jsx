@@ -9,7 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
-import type { TSection, TSectionItem } from '../../types.js'
+import type { TSection, TSectionItem, TActionButton } from '../../types.js'
 import useInteractiveProcessing from '../customHooks/useInteractiveProcessing.jsx'
 import useSectionSortAndFilter from '../customHooks/useSectionSortAndFilter.jsx'
 import CommandButton from './CommandButton.jsx'
@@ -22,12 +22,13 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev'
 //--------------------------------------------------------------------------
 type SectionProps = {
   section: TSection,
+  onButtonClick: (button: TActionButton) => void,
 };
 
 //--------------------------------------------------------------------------
 // Section Component Definition
 //--------------------------------------------------------------------------
-const Section = ({ section }: SectionProps): React$Node => {
+const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
@@ -89,6 +90,12 @@ const Section = ({ section }: SectionProps): React$Node => {
     }))
   }
 
+  const handleCommandButtonClick = (button:TActionButton): void => {
+    logDebug(`Section`, `handleCommandButtonClick was called for section ${section.name} section`)
+    // but this section could be empty and go away, so we need to propagate up
+    onButtonClick(button)
+  }
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -117,7 +124,7 @@ const Section = ({ section }: SectionProps): React$Node => {
         </div>{' '}
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
-          {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} />) ?? []}
+          {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
           {section.sectionItems.length && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">

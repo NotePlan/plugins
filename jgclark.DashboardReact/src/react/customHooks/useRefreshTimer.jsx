@@ -2,7 +2,8 @@
 // Sends a refresh after a delay, with a debounce so only the latest refresh call is sent
 // usage:
 // import useRefreshTimer from './useRefreshTimer.jsx'
-// const { refreshTimer } = useRefreshTimer({ maxDelay: 5000 })
+//   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: pluginData.settings._logLevel !== "DEV" })
+// ... then wherever you want to send a refresh:
 // refreshTimer()
 // @flow
 
@@ -17,6 +18,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
  */
 type RefreshTimerOptions = {
   maxDelay: number, // default 5000
+  enabled?: boolean, // designed to allow for loglevel === DEV to disable the timer
 }
 
 /**
@@ -30,12 +32,13 @@ type RefreshTimerReturn = {
 
 /**
  * Custom hook to handle refresh timer.
+ * Waits n seconds and then sends a "refresh" command to the plutin
  * @param {RefreshTimerOptions} options - Options for the refresh timer.
  * @returns {RefreshTimerReturn} Return object containing refresh function.
  */
 function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
-  const { maxDelay = 5000 } = options
-  const [timerId, setTimerId] = useState<?TimeoutID>(null)
+  const { maxDelay = 5000, enabled = false } = options
+  const [timerId, setTimerId] = useState <? TimeoutID > (null)
   const { sendActionToPlugin } = useAppContext()
 
   useEffect(() => {
@@ -59,8 +62,13 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
     // Set a new timer with the maximum delay
     const newTimerId = setTimeout(() => {
       // Trigger the refresh action
-      logDebug('useRefreshTimer', 'Timer triggered - Calling Plugin for JSON Refresh...')
-      sendActionToPlugin('refresh', { actionType: 'refresh' }, `5s full refresh timer triggered`, true)
+      if (!enabled) {
+        logDebug('useRefreshTimer', `${maxDelay / 1000}s refreshTimer triggered - but not enabled for DEV users, so not calling Plugin for JSON Refresh...`)
+        return
+      } else {
+        logDebug('useRefreshTimer', `${maxDelay / 1000}s refreshTimer triggered - Calling Plugin for JSON Refresh...`)
+        sendActionToPlugin('refresh', { actionType: 'refresh' }, `${maxDelay / 1000}s full refresh timer triggered`, true)
+      }
     }, maxDelay)
     setTimerId(newTimerId)
   }

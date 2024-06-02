@@ -204,6 +204,6 @@ export function sortSections(sections:Array<TSection>, order:Array<string>):Arra
       return orderA - orderB
     }
 
-    return a.name.localeCompare(b.name)
+    return -(a.name.localeCompare(b.name))
   })
 }

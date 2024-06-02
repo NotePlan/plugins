@@ -746,7 +746,7 @@ var RootBundle = (function (exports, React$1) {
       if (!action) throw new Error('sendToPlugin: command/action must be called with a string');
       // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object');
-      console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `);
+      // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
       const {
         command,
         id
