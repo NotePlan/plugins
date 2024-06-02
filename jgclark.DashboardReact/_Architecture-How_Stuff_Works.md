@@ -33,6 +33,13 @@ Since all of these use the same singleton customHook, by design any of them will
 
 ## CSS Notes
 
+### Platforms
+The wrapper class has the name of the platform in the class
+- iOS
+- macOS
+- (I don't know what iPad is)
+...so we should be able to style things differently (e.g. `.iOS .header`)
+
 ### Z-index
 - Header: 1000
 - Dialog: 50
@@ -41,3 +48,5 @@ Since all of these use the same singleton customHook, by design any of them will
 - combobox-dropdown: 5
 - Dropdown Menus (e.g. filter): 1
 - dropdown-content: 1
+
+## 

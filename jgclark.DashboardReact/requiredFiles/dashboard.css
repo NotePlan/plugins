@@ -586,3 +586,8 @@ input.apple-switch:checked:after {
 }
 
 /* MESSAGE_BANNER w3.css overrides */
+
+.iOS .header {
+    padding-right: 10px;
+    box-sizing: border-box; /* Ensure the padding is included in the element's total width */
+}

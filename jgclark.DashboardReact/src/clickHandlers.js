@@ -247,7 +247,7 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
   if (typeof updatedParagraph !== "boolean") {
     logDebug('doCompleteTask', `-> {${updatedParagraph.content
       }}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTask', `-> failed`)
     return handlerResult(false)
@@ -261,7 +261,7 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
   if (typeof updatedParagraph !== "boolean") {
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content
       }}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTaskThen', `-> failed`)
     return handlerResult(false)
@@ -280,7 +280,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelTask', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 // Complete the checklist in the actual Note
@@ -289,7 +289,7 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
   const updatedParagraph = completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`) // ✅
   // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)// ✅
-  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 // Cancel the checklist in the actual Note
@@ -304,7 +304,7 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelChecklist', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON'], { updatedParagraph })
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 /**
@@ -333,7 +333,7 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
     throw new Error(`updateItemContent: No para.note found for filename ${filename} and content ${content}`)
   }
 
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: para })
 }
 
 // Send a request to toggleType to plugin
@@ -364,7 +364,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     DataStore.updateCache(thisNote, false)
     // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
     // FIXME: this still isn't updating the window correctly?
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
 
   } catch (error) {
     logError('doToggleType', error.message)
@@ -381,7 +381,7 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
   // logDebug('doUnscheduleItem', `  -> result ${String(res)}`)
   // Update display in Dashboard too
   // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: updatedParagraph })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
 }
 
 // Send a request to cyclePriorityStateUp to plugin
@@ -658,7 +658,7 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   }
   DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
   logDebug('doSettingsChanged', `${settingName} updated`)
-  return handlerResult(true, [])
+  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
 // export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
