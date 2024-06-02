@@ -28,6 +28,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - removed duplicates of synced lines that may be in different notes so they were sneaking through
 - added new function to dateTime called filenameIsInFuture which functions like your includesScheduledFutureDate but to be used for tasks just sitting in future notes
 - used it to fix the bug where #tag sections were showing tasks in future notes
+- fix IP dialog close bug (IP not stopping)
 
 ## [2.0.0.a30] @jgc 2024-05-31
 - added 'move' (rather than 'reschedule') functionality back in

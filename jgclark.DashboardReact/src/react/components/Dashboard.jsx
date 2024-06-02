@@ -235,6 +235,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
+    logDebug('Dashboard', `handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
     xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later
     const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : {}
     setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
