@@ -60,6 +60,7 @@ describe(`${FILE}`, () => {
     })
   })
 
+  /** fontPropertiesFromNP() */
   describe('fontPropertiesFromNP()', () => {
     const defaultAnswer = [`font-family: "sans"`, `font-weight: "regular"`, `font-style: "normal"`]
     test('should return defaults from empty selector', () => {
@@ -94,6 +95,43 @@ describe(`${FILE}`, () => {
     test("input 'Charter-Book'", () => {
       const res = t.fontPropertiesFromNP('Charter-Book')
       expect(res).toEqual(['font-family: "Charter"', 'font-weight: 500', 'font-style: "normal"'])
+    })
+  })
+
+  /** mixHexColors() */
+  describe('mixHexColors()', () => {
+    test('should throw error on no inputs', () => {
+      expect(t.mixHexColors).toThrow('Invalid hex color format')
+    })
+    test('should throw error on bad inputs', () => {
+      expect(() => {
+        t.mixHexColors('#333', '#444')
+      }).toThrow('Invalid hex color format')
+    })
+    test('should throw error on bad inputs', () => {
+      expect(() => {
+        t.mixHexColors('#333444')
+      }).toThrow('Invalid hex color format')
+    })
+    test('should return #808080', () => {
+      const res = t.mixHexColors('#000000', '#FFFFFF')
+      expect(res).toEqual('#808080')
+    })
+    test('should return #f8f8f8', () => {
+      const res = t.mixHexColors('#F0F0F0', '#FFFFFF')
+      expect(res).toEqual('#f8f8f8')
+    })
+    test('should return #f8f8f8', () => {
+      const res = t.mixHexColors('#FFFFFF', '#F0F0F0')
+      expect(res).toEqual('#f8f8f8')
+    })
+    test('should return #f7f7f7', () => {
+      const res = t.mixHexColors('#F0F0F0', '#FEFEFE')
+      expect(res).toEqual('#f7f7f7')
+    })
+    test('should return #f7f7f7', () => {
+      const res = t.mixHexColors('#F0F0F0', '#FEFEFE')
+      expect(res).toEqual('#f7f7f7')
     })
   })
 })

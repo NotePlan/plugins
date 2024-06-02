@@ -618,6 +618,8 @@ export function RGBColourConvert(RGBIn: string): string {
  * @returns {string} The resulting hex color string after mixing (e.g., '#800080').
  */
 export function mixHexColors(color1: string, color2: string): string {
+  const RE_RGB6 = /^#[0-9a-fA-F]{6}$/
+  if (!RE_RGB6.test(color1) || !RE_RGB6.test(color2)) throw new Error('Invalid hex color format')
   // Remove the '#' and split the hex color into RGB components
   const valuesColor1 =
     color1

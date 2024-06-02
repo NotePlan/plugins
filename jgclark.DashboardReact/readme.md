@@ -9,8 +9,7 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - all open tasks and checklists that contain a particular @tag or #mention of your choosing. This can gives "deferred date" functionality (see below).
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
-
-Here's a [great video from user George Crump](https://youtu.be/dMULdFtTh2k) that shows it in action:
+Here's a [great video from user George Crump](https://youtu.be/dMULdFtTh2k) that shows v1.2 in action:
     [<img width="500px" alt="thumbnail" src="./georgec-Dashboard-walk-through-thumbnail.jpeg">](https://youtu.be/dMULdFtTh2k)
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
@@ -131,9 +130,11 @@ These settings change some of how it displays:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 4.5 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
+I'm not part of the NotePlan team, but I've spent at least 8 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+David Wertheimer has contributed much knowledge and code to v2.0, which is a complete port over to use React.
 
 Thanks!
 
