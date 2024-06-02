@@ -113,7 +113,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
   }
-  clo(itemsToShow,`section ${section.name} itemsToShow`)
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
