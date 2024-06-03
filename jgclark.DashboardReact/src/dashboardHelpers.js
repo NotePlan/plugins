@@ -8,12 +8,10 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 // import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
+import { allSectionDetails } from "./constants"
 import { parseSettings } from './shared'
 import type { TItemType, TParagraphForDashboard } from './types'
-import {
-  allSectionDetails,
-  // dashboardFilters
-} from "./constants"
+import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getTodaysDateHyphenated
   // getISODateStringFromYYYYMMDD
@@ -762,7 +760,6 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
  * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
  * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
  * @author @jgclark
- * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} paraContent content of the para to move.
@@ -772,6 +769,7 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
 export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
   try {
+    const config = getCombinedSettings()
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
@@ -786,7 +784,9 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
     if (typeof possiblePara === 'boolean') {
       throw new Error('moveItemBetweenCalendarNotes: no para found')
     }
-    const itemType = possiblePara?.type
+    const matchedPara = possiblePara
+    const itemType = matchedPara?.type
+    const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
 
     // Remove any scheduled date on the item
     const targetContent = removeDateTagsAndToday(paraContent, true)
@@ -816,7 +816,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
           true, // create heading if needed (possible if supplied via headingArg)
         )
       } else {
-        const headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+        const headingLevel = config.headingLevel ?? 2
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
         const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
@@ -829,7 +829,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
 
     // Assuming that's not thrown an error, now remove from fromNote
     logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
-    fromNote.removeParagraph(possiblePara)
+    fromNote.removeParagraph(matchedPara)
 
     // Ask for cache refresh for these notes
     DataStore.updateCache(fromNote, false)

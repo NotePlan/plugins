@@ -566,7 +566,7 @@ declare class DataStore {
    *
    * @param {Date}
    * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
@@ -577,8 +577,9 @@ declare class DataStore {
    * Monthly: "YYYY-MM", example: "2022-10"
    * Yearly: "YYYY", example: "2022"
    * Note: Some available from v3.7.2
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
    * @param {string}
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDateString(dateString: string): ?TNote;
   /**
@@ -607,6 +608,8 @@ declare class DataStore {
   static noteByFilename(filename: string, type: NoteType): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
+   * Note: Can also move *folders* by specifying its filename (without trailing slash).
+   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
    * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    */
