@@ -96,6 +96,7 @@ export type dashboardConfigType = {
  * @returns {any} the settings object or an empty object if there are none 
  */
 export function getSharedSettings(): any {
+  if (!DataStore.settings?.sharedSettings) clo(DataStore.settings, `DataStore.settings?.sharedSettings not found; here's the full settings`)
   return parseSettings(DataStore.settings?.sharedSettings||'') ?? {}
 }
 

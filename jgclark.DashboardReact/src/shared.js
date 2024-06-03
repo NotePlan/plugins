@@ -22,7 +22,7 @@ export function parseSettings(settings: string): any {
         }
         return JSON.parse(settings)
     } catch (error) {
-        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings: ${(settings)}`)
+        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings string: ${(JSP(settings))}`)
     }
 }
 

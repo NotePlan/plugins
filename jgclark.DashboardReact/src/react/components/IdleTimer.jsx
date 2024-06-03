@@ -73,7 +73,7 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
         }
         setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
-        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
+        // logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
     }, /* idleTime */ 15000)
 
