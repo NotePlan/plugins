@@ -127,7 +127,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        await refreshAllSections()
+        // await refreshAllSections()
+        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
         break
       }
       case 'windowReload': {

@@ -25,6 +25,7 @@ type IdleTimerProps = {|
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
+
   useEffect(() => {
     const handleUserActivity = () => {
       setLastActivity(Date.now())
@@ -55,10 +56,13 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   useEffect(() => {
     const interval = setInterval(() => {
       if (Date.now() - lastActivity >= idleTime) {
-        logDebug('IdleTimer', `we are over the ${idleTime/1000/60}m limit now, calling onIdleTimeout`)
+        logDebug('IdleTimer', `We are over the ${idleTime / 1000 / 60}m limit now, calling onIdleTimeout`)
         onIdleTimeout()
+        setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
+      } else {
+        logDebug('IdleTimer', `Still under the ${idleTime / 1000 / 60}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
-    }, idleTime)
+    }, /* idleTime */ 15000)
 
     return () => {
       clearInterval(interval)

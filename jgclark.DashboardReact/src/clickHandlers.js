@@ -142,9 +142,11 @@ export async function refreshAllSections(): Promise<void> {
  * Dashboard.jsx to load the rest.
  * @param {MessageDataObject} data 
  * @param {boolean} calledByTrigger? (default: false)
+ * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
  * @returns {TBridgeClickHandlerResult}
  */
-export async function incrementallyRefreshSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
+export async function incrementallyRefreshSections(data: MessageDataObject, 
+  calledByTrigger: boolean = false, setFullRefreshDate: boolean = false): Promise<TBridgeClickHandlerResult> {
   const { sectionCodes } = data
   if (!sectionCodes) {
     logError('incrementallyRefreshSections', 'No sectionCodes provided')
@@ -157,7 +159,9 @@ export async function incrementallyRefreshSections(data: MessageDataObject, call
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
     logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
   }
-  await setPluginData({ refreshing: false }, `Ending incremental refresh for sections ${String(sectionCodes)}`)
+  const updates:any = { refreshing: false }
+  if (setFullRefreshDate) updates.lastFullRefresh = new Date()
+  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)}`)
   return handlerResult(true)
 }
 

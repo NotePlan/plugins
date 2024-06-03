@@ -265,7 +265,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
       {sharedSettings.autoUpdateEnabled && (
         <IdleTimer
-          idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "5") * 60 * 1000 /* 5 minutes default */}
+          idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
           onIdleTimeout={autoRefresh}
         />
       )}

@@ -108,7 +108,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(itemsToShow.length)}</span>`)
     } else {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(itemsToShow.length)}</span>`)
-    }
+    } 
   }
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
@@ -126,7 +126,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
           {itemsToShow.length && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton" onClick={handleInteractiveProcessingClick} title="Interactively process tasks one at a time">
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${itemsToShow.length} ${section.name} tasks one at a time`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
                 <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{itemsToShow.length}</span>
               </button>
