@@ -261,9 +261,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   if (sections.length === 0) {
     return <div className="dashboard">No Sections to display (this is an error)...</div>
   }
+  const autoUpdateEnabled = parseInt(sharedSettings?.autoUpdateAfterIdleTime||"0") > 0 //autoRefresh
+  logDebug('Dashboard', `IdleTimer: autoUpdateEnabled=${autoUpdateEnabled}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
-      {sharedSettings.autoUpdateEnabled && (
+      {autoUpdateEnabled && (
         <IdleTimer
           idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
           onIdleTimeout={autoRefresh}

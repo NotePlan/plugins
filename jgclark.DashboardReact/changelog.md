@@ -30,6 +30,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added ability to delete an item with ctrl-click on its status icon. Note: currently stolen by some other event handler.
 - alt-click on an item's status icon now deletes the item entirely (after a check with the user).
 - improved Plugin description
+- dbw: fixed refresh button scroll issue
+- dbw: Changed autorefresh settings to a single field 
+- dbw: Created a trap for computer sleep and refresh intervals piling up
 
 ## [2.0.0.a31] @dbw 2024-06-01
 - fix sort on the Today sections so that the one with the buttons is on top

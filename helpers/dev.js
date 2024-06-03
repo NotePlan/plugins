@@ -7,7 +7,7 @@
 
 const PARAM_BLACKLIST = ['note', 'referencedBlocks', 'availableThemes', 'currentTheme', 'linkedNoteTitles', 'linkedItems'] // fields not to be traversed (e.g. circular references)
 
-const dt = (): string => {
+export const dt = (): string => {
   const d = new Date()
 
   const pad = (value: number): string => {

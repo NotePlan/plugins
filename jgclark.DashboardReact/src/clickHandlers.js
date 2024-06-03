@@ -147,6 +147,7 @@ export async function refreshAllSections(): Promise<void> {
  */
 export async function incrementallyRefreshSections(data: MessageDataObject, 
   calledByTrigger: boolean = false, setFullRefreshDate: boolean = false): Promise<TBridgeClickHandlerResult> {
+  const incrementalStart = new Date()
   const { sectionCodes } = data
   if (!sectionCodes) {
     logError('incrementallyRefreshSections', 'No sectionCodes provided')
@@ -162,6 +163,7 @@ export async function incrementallyRefreshSections(data: MessageDataObject,
   const updates:any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)}`)
+  logDebug('clickHandlers', `incrementallyRefreshSections took a total of ${timer(incrementalStart)} for ${sectionCodes.length} sections`)
   return handlerResult(true)
 }
 

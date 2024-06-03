@@ -5,6 +5,8 @@
 // @flow
 import { useEffect, useState } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
+import { getTimeAgoString } from '@helpers/dateTime.js'
+import { dt } from '@helpers/dev'
 
 /**
  * Props type for IdleTimer component.
@@ -18,6 +20,12 @@ type IdleTimerProps = {|
   onIdleTimeout: () => void,
 |};
 
+const msToMinutes = (ms: number): number => Math.round(ms / 1000 / 60)
+
+// When the computer goes to sleep and wakes up, it can fire multiple queued events at once.
+// We only want to execute the onIdleTimeout function once, so we try to ignore events that seem to have happened during sleep/wake
+const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
+
 /**
  * IdleTimer component to keep track of user idle time and perform an action when the user is idle.
  * @param {IdleTimerProps} props - Component props.
@@ -25,7 +33,7 @@ type IdleTimerProps = {|
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
   const [lastActivity, setLastActivity] = useState(Date.now())
-
+  
   useEffect(() => {
     const handleUserActivity = () => {
       setLastActivity(Date.now())
@@ -55,12 +63,17 @@ function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React$Node {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (Date.now() - lastActivity >= idleTime) {
-        logDebug('IdleTimer', `We are over the ${idleTime / 1000 / 60}m limit now, calling onIdleTimeout`)
-        onIdleTimeout()
+      const elapsedMs = Date.now() - lastActivity
+      if (elapsedMs >= idleTime) {
+        if ((elapsedMs - LEGAL_DRIFT_THRESHHOLD) < idleTime) {
+          onIdleTimeout()
+          logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), calling onIdleTimeout`)
+        } else {
+          logDebug('IdleTimer', `${dt().padEnd(19)} Over the ${msToMinutes(idleTime)}m limit (it's been ${getTimeAgoString(new Date(lastActivity))}), NOT calling onIdleTimeout (computer was probably asleep); Resetting timer...`)
+        }
         setLastActivity(Date.now()) // Reset the timer after calling onIdleTimeout
       } else {
-        logDebug('IdleTimer', `Still under the ${idleTime / 1000 / 60}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
+        logDebug('IdleTimer', `${dt().padEnd(19)} Still under the ${msToMinutes(idleTime)}m limit; It has been ${(Date.now() - lastActivity) / 1000}s since last activity`)
       }
     }, /* idleTime */ 15000)
 

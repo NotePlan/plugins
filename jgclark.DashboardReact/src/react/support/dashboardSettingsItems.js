@@ -156,18 +156,11 @@ const dashboardSettings = [
     default: false,
   },
   {
-    key: "autoUpdateEnabled", // aka "autoRefresh"
-    label: "Automatically update window when it is idle?",
-    description: "If enabled, the Dashboard will update itself when the window is idle for a certain number of minutes, as set in the field below.",
-    type: 'switch',
-    default: false,
-  },
-  {
-    key: "autoUpdateAfterIdleTime",
+    key: "autoUpdateAfterIdleTime", // // aka "autoRefresh"
     label: "Automatic Update frequency",
-    description: "When Automatic Updates are enabled, then the Dashboard will do a full refresh after the window is idle for this many minutes.",
+    description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
     type: 'input',
-    default: "15",
+    default: "0",
   },
   {
     type: 'separator',
