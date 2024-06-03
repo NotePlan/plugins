@@ -60,17 +60,17 @@ Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Wel
 ### Tracking checklist completion
 To track checklist completion you must create a referance checklist in the template folder:
 
-![alt text](checklist-1.png)
+![](checklist-reference.png)
 
 Add the title of this template to settings:
 
-![alt text](checklist.png)
+![](checklist-setting.png)
 
 Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks”) -%>`)
  
 Then completion is shown using the '/appendProgressUpdate' command, for example:
 
-![alt text](checklist-2.png)
+![](checklist-output.png)
 
 ## 'heatmap for complete tasks' command
 This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you set this to 0, the plugin will generate a sensible longish period between 6 and 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, and assumes the tasks were completed on the day or start of week in question.
