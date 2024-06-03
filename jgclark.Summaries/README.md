@@ -57,8 +57,7 @@ All notes in the special folders (@Archive, @Templates and @Trash) are **ignored
 
 Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run(...)` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside `@run(5.3)`.  However, you _can_ use a `#hashtag/value` if you don't mind this limitation.
 
-## Tracking checklist completetion
-
+### Tracking checklist completion
 To track checklist completion you must create a referance checklist in the template folder:
 
 ![alt text](checklist-1.png)
@@ -67,10 +66,9 @@ Add the title of this template to settings:
 
 ![alt text](checklist.png)
 
-If you want to use this template in another note it can be imported using
-`<%- import("Daily tasks”) -%>`
-
-Completion is tracked using the 'appendProgressUpdate' command
+Then in your daily note include the same checklist, and mark them as completed in the usual way. (If you want to use this template in another note it can be imported using `<%- import("Daily tasks”) -%>`)
+ 
+Then completion is shown using the '/appendProgressUpdate' command, for example:
 
 ![alt text](checklist-2.png)
 

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Summary commands for notes
@@ -219,7 +220,7 @@ export class TMOccurrences {
       // logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on ${isoDateStr}`)
 
       // isolate the value
-      let key = occurrenceStr
+      const _key = occurrenceStr
       let value = NaN
       // if this tag that finishes '/integer', then break into its two parts, ready to sum the numbers as well
       // Note: testing includes decimal part of a number, but the API .hashtags drops them
@@ -227,14 +228,14 @@ export class TMOccurrences {
         const tagParts = occurrenceStr.split('/')
         // key = tagParts[0]
         value = Number(tagParts[1])
-        // logDebug('TMOcc:addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found tagParts ${_key} / ${value.toString()}`)
       }
       // if this is a mention that finishes '(float)', then break into separate parts first
       else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
         const mentionParts = occurrenceStr.split('(')
         // key = mentionParts[0]
         value = Number.parseFloat(mentionParts[1].slice(0, -1)) // chop off final ')' character
-        // logDebug('TMOcc:addOccurrence', `- found mentionParts ${key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found mentionParts ${_key} / ${value.toString()}`)
       }
 
       // if this has a numeric value add to total, taking into account that the day may have several values.
@@ -647,11 +648,13 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     }
     logInfo('gatherOccurrences', `Gathered combinedMentions data in ${timer(startTime)}`)
 
-    startTime = new Date()
-
-    const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
-    tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
-    logInfo('gatherOccurrences', `Gathered CompletedChecklistItems data in ${timer(startTime)}`)
+    // Now compute Completed Checklist items, if Reference note is set
+    if (occToLookFor.GOChecklistRefNote !== '') {
+      startTime = new Date()
+      const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
+      tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
+      logInfo('gatherOccurrences', `Gathered CompletedChecklistItems data in ${timer(startTime)}`)
+    }
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr
@@ -677,52 +680,56 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
   * @param {string} calendarNotesInPeriod containing the daily notes for the period
   * @param {string} fromDateStr (YYYY-MM-DD)
   * @param {string} toDateStr (YYYY-MM-DD)
-  * @param {OccurrencesToLookFor} occToLookFor containing the various settings of which occurrences to gather
+  * @param {OccurrencesToLookFor} occToLookFor containing the various settings of which occurrences to gather. Needs to include .GOChecklistRefNote (from setting 'progressChecklistReferenceNote')
   * @returns {Array<TMOccurrences>}
   */
 function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, fromDateStr: string, toDateStr: string, occToLookFor: OccurrencesToLookFor): Array<TMOccurrences> {
+  try {
+    if (occToLookFor.GOChecklistRefNote === '') throw new Error("Reference note for checklists is not set -- please check setting 'Name of reference note for checklist items'. Stopping.")
 
-  const tmOccurrencesArr: Array<TMOccurrences> = []
-  const completedTypes = ['checklistDone', 'checklistScheduled']
+    const tmOccurrencesArr: Array<TMOccurrences> = []
+    const completedTypes = ['checklistDone', 'checklistScheduled']
 
-  let referenceNote
-  const foundNotes = DataStore.projectNoteByTitle(occToLookFor.GOChecklistRefNote, true, true)
-  if (typeof foundNotes !== 'undefined' && Array.isArray(foundNotes)) {
-    if (foundNotes.length === 1) {
+    let referenceNote: TNote
+    const foundNotes = DataStore.projectNoteByTitle(occToLookFor.GOChecklistRefNote, true, true)
+    if (foundNotes && foundNotes.length > 0) {
       referenceNote = foundNotes[0]
     } else {
-      logError('gatherCompletedChecklistItems', `Found ${foundNotes.length} notes with title ${occToLookFor.GOChecklistRefNote}`)
-      return tmOccurrencesArr
+      throw new Error(`Couldn't find note with title '${occToLookFor.GOChecklistRefNote}'. Stopping.`)
     }
-  }
 
-  // Get all the checklist items from the reference note
-  const refNoteParas = referenceNote?.paragraphs ?? []
-  for (const para of refNoteParas) {
-    if (para.type === 'checklist') {
-      logDebug('gatherCompletedChecklistItems', `Found checklist in reference note ${para.content}`)
-      // pad the term with a space to fix emojis being clobered by sparklines
-      const thisOcc = new TMOccurrences(` ${para.content}`, 'yesno', fromDateStr, toDateStr)
-      tmOccurrencesArr.push(thisOcc)
+    // Get all the checklist items from the reference note
+    const refNoteParas = referenceNote?.paragraphs ?? []
+    for (const para of refNoteParas) {
+      if (para.type === 'checklist') {
+        logDebug('gatherCompletedChecklistItems', `Found checklist in reference note ${para.content}`)
+        // pad the term with a space to fix emojis being clobered by sparklines
+        const thisOcc = new TMOccurrences(` ${para.content}`, 'yesno', fromDateStr, toDateStr)
+        tmOccurrencesArr.push(thisOcc)
+      }
     }
-  }
 
-  // For each daily note in the period check for occurrences of the checklist items
-  for (const currentNote of calendarNotesInPeriod) {
-    const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(currentNote.filename))
-    for (const para of currentNote.paragraphs) {
-      if (completedTypes.includes(para.type)) {
-        for (const checklistTMO of tmOccurrencesArr) {
-          // pad the term with a space to fix emojis being clobered
-          if (checklistTMO.term === ` ${para.content}`) {
-            logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} in note ${currentNote.filename}`)
-            checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
+    // For each daily note in the period check for occurrences of the checklist items
+    for (const currentNote of calendarNotesInPeriod) {
+      const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(currentNote.filename))
+      for (const para of currentNote.paragraphs) {
+        if (completedTypes.includes(para.type)) {
+          for (const checklistTMO of tmOccurrencesArr) {
+            // pad the term with a space to fix emojis being clobered
+            if (checklistTMO.term === ` ${para.content}`) {
+              logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} in note ${currentNote.filename}`)
+              checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
+            }
           }
         }
       }
     }
+    return tmOccurrencesArr
   }
-  return tmOccurrencesArr
+  catch (error) {
+    logError('gatherCompletedChecklistItems', error.message)
+    return []
+  }
 }
 
 /**
@@ -1045,8 +1052,7 @@ export function makeSparkline(data: Array<number>, options: Object = {}): string
       return ' '
     } else {
       let fraction = value / max
-      fraction = Math.max(Math.min(1, fraction), 0); // clamp 0..1
-
+      fraction = Math.max(Math.min(1, fraction), 0) // clamp 0..1
       const index = Math.round(fraction * spark_line_chars.length) - 1
       return spark_line_chars[index > 0 ? index : 0]
     }
