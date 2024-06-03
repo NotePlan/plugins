@@ -1376,6 +1376,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * TODO: Cope with non-daily scheduled dates.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
@@ -1427,6 +1428,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 
 /**
  * Change para type of the given paragraph to cancelled (for both tasks/checklists)
+ * TODO: extend to cancel sub-items as well if wanted.
  * @param {TParagraph} para
  * @returns {boolean} success?
  */
@@ -1459,6 +1461,7 @@ export function markCancelled(para: TParagraph): boolean {
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1488,6 +1491,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date' - but uses completion date of the day it was scheduled to be done.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1510,6 +1514,7 @@ export function completeItemEarlier(filenameIn: string, content: string): boolea
 /**
  * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * TODO: extend to cancel sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1530,14 +1535,15 @@ export function cancelItem(filenameIn: string, content: string): boolean {
 }
 
 /**
- * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Delete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * TODO: extend to delete sub-items as well if wanted.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
  */
-export async function deleteItem(filenameIn: string, content: string): boolean {
+export async function deleteItem(filenameIn: string, content: string): Promise<boolean> {
   try {
     // logDebug('NPP/deleteItem', `starting with filename: ${filenameIn}, content: ${content}`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)

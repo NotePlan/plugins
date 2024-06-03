@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 29.5.2024 for v2.0.0 by @jgclark
+// Last updated 3.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
+// import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
 import { parseSettings } from './shared'
 import type { TItemType, TParagraphForDashboard } from './types'
 import {
@@ -44,7 +44,11 @@ import {
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
 import { chooseHeading, displayTitleWithRelDate, showMessage, chooseNote } from '@helpers/userInput'
-import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled, removeDuplicates } from '@helpers/utils'
+import {
+  isOpen, isOpenTask, isOpenNotScheduled,
+  // isOpenTaskNotScheduled,
+  removeDuplicates
+} from '@helpers/utils'
 
 //-----------------------------------------------------------------
 
@@ -64,7 +68,6 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   newTaskSectionHeading: string,
-  headingLevel: number,
   rescheduleNotMove: boolean,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
@@ -89,6 +92,8 @@ export type dashboardConfigType = {
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
   FFlag_LimitOverdues: boolean,
+  moveSubItems: boolean,
+  headingLevel: number,
 }
 
 /**
@@ -142,24 +147,9 @@ export async function getSettings(): Promise<any> {
     }
     // clo(config, `settings`)
 
-    // // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
-    // DataStore.setPreference('Dashboard-triggerLogging', config.triggerLogging ?? false)
-
-    // // Set local pref Dashboard-filterPriorityItems to default false
-    // // if it doesn't exist already
-    // const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    // // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
-    // if (!savedValue) {
-    //   DataStore.setPreference('Dashboard-filterPriorityItems', false)
-    // }
-
-    // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
+    // Extend settings with a value we want to use when DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
-    // config.filterPriorityItems = Boolean(DataStore.preference('Dashboard-filterPriorityItems'))
 
-    // Get a setting from QuickCapture
-    // FIXME: should return 3 for me, but returns 2
-    config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
     // clo(config, 'getSettings() returning config')
     return config
   } catch (err) {

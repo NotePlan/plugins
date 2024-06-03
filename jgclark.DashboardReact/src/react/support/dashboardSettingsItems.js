@@ -1,5 +1,5 @@
 // @flow
-import type {TDropdownItem,TSharedSettings} from "../../types.js"
+import type { TDropdownItem, TSharedSettings } from "../../types.js"
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -69,11 +69,25 @@ const dashboardSettings = [
     default: "Tasks",
   },
   {
+    key: "newTaskSectionHeadingLevel",
+    label: "Heading level for new Headings",
+    description: "Heading level (1-5) to use when adding new headings in notes.",
+    type: 'input',
+    default: "2",
+  },
+  {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move them?",
     description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
     type: 'switch',
     default: false,
+  },
+  {
+    key: "moveSubItems",
+    label: "Move sub-items with the item?",
+    description: "If set, then indented sub-items of an item will be moved if the item is moved to a different note.",
+    type: 'switch',
+    default: true,
   },
   {
     key: "useTodayDate",

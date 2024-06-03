@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2.6.2024 for v2.0.0 by @jgclark
+// Last updated 3.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -199,7 +199,8 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 }
 
 /**
- * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for
+ * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for.
+ * Note: It only writes to Calendar, as that's only what Dashboard needs.
  * @param {MessageDataObject} {actionType: addTask|addChecklist etc., toFilename:xxxxx}
  */
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
@@ -221,23 +222,22 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     const content = await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
 
     // Add text to the new location in destination note
+    // FIXME: following not working yet -- add separate setting
     // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
     const newHeadingLevel = config.headingLevel
     const headingToUse = config.newTaskSectionHeading
     // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
 
-    // await prependTodoToCalendarNote('task', calNoteDateStr)
     if (actionType === 'addTask') {
       addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     } else {
       addChecklistToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     }
-    // TODO: updateCache?
+    // TEST: update cache
+    DataStore.updateCache(DataStore.noteByFilename(toFilename, 'Calendar'))
 
-    // trigger refresh
     // TODO: pass in just the section we've added to
-    const res = await refreshSomeSections({ actionType: actionType, sectionCodes: allCalendarSectionCodes })
-    return res
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: allCalendarSectionCodes })
   }
   catch (err) {
     logError('doAddItem', err.message)
@@ -245,7 +245,12 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
   }
 }
 
-// Complete the task in the actual Note
+/** 
+ * Complete the task in the actual Note.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */
 export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
@@ -261,21 +266,31 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
   }
 }
 
-// Complete the task in the actual Note, but with the date it was scheduled for
+/** 
+ * Complete the task in the actual Note, but with the date it was scheduled for.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */
 export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItemEarlier(filename, content)
   if (typeof updatedParagraph !== "boolean") {
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content
       }}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTaskThen', `-> failed`)
     return handlerResult(false)
   }
 }
 
-// Cancel the task in the actual Note
+/** 
+ * Cancel the task in the actual Note.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */
 export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -287,20 +302,30 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
     updatedParagraph = possiblePara || {}
   }
   logDebug('doCancelTask', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
-// Complete the checklist in the actual Note
+/** 
+ * Complete the checklist in the actual Note.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */
 export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`) // ✅
   // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)// ✅
-  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
-// Complete the checklist in the actual Note
-export async function doDeleteItem(data: MessageDataObject): TBridgeClickHandlerResult {
+/** 
+ * Complete the item in the actual Note.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */
+export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
   logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update sectionCodes ${String(sectionCodes)}`)
   const res = await deleteItem(filename, content)
@@ -310,7 +335,12 @@ export async function doDeleteItem(data: MessageDataObject): TBridgeClickHandler
   return handlerResult(res, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: [sectionCodes] })
 }
 
-// Cancel the checklist in the actual Note
+/** 
+ * Cancel the checklist in the actual Note.
+ * TODO: extend to complete sub-items as well if wanted.
+ * @param {MessageDataObject} data - The data object containing information for content update.
+ * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ */ 
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -321,8 +351,8 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
   } else {
     updatedParagraph = possiblePara || {}
   }
-  logDebug('doCancelChecklist', `-> ${String(res)}`)
-  return handlerResult(res, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  // logDebug('doCancelChecklist', `-> ${String(res)}`)
+  return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 /**
@@ -382,7 +412,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     DataStore.updateCache(thisNote, false)
     // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
     // FIXME: this still isn't updating the window correctly?
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
 
   } catch (error) {
     logError('doToggleType', error.message)
@@ -453,17 +483,19 @@ export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBri
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
     if (!data.controlStr) throw 'doSetNextReviewDate: No controlStr: stopping'
+    const thisControlStr = data.controlStr
 
     // Either we have a date interval prefixed with 'nr' ...
-    const period = data.controlStr.replace('nr', '')
+    const period = thisControlStr.replace('nr', '')
     if (period.match(RE_DATE_INTERVAL)) {
       logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
       skipReviewForNote(note, period)
-    } else if (data.controlStr.match()) {
-      logDebug('doSetNextReviewDate', `-> will skip review to date '${data.controlStr}' for filename ${filename}.`)
+      // Or have an ISO date
+    } else if (thisControlStr.match(RE_DATE)) {
+      logDebug('doSetNextReviewDate', `-> will skip review to date '${thisControlStr}' for filename ${filename}.`)
       skipReviewForNote(note, period)
     } else {
-      throw `doSetNextReviewDate: invalid controlStr ${data.controlStr}: stopping`
+      throw `doSetNextReviewDate: invalid controlStr ${thisControlStr}: stopping`
     }
 
     // Now remove the line from the display
