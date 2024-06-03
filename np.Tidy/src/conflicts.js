@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 1.6.2024 for v0.13.0 by @jgclark
+// Last updated 3.6.2024 for v0.13.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,6 +20,7 @@ import {
   getFolderFromFilename,
   getFoldersMatching,
   getJustFilenameFromFullFilename,
+  getSubFolders,
 } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
@@ -133,25 +134,9 @@ export async function listConflicts(params: string = ''): Promise<void> {
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
-    // Now also try to move the copies made on any previous run of this command
-    // check DataStore.folders that it exists
-    // TODO: extend getFoldersMatching to optionally return sub-folders as well, and then iterate over all of them
-    const folders = getFoldersMatching([conflictedCopiesBaseFolder], false) // false required to pick up the folder which may have a leading '@'
-    if (folders.length > 0) {
-      const copies = notesInFolderSortedByTitle(conflictedCopiesBaseFolder, true) // also look in subfolders
-      if (copies.length > 0) {
-        logInfo('listConflicts', `Moving ${copies.length} notes in existing ${conflictedCopiesBaseFolder} folder to @Trash:`)
-        for (const copyNote of copies) {
-          const title = displayTitle(copyNote)
-          const res = DataStore.moveNote(copyNote.filename, '@Trash')
-          if (res) console.log(`- ${title}`)
-        }
-      } else {
-        logInfo('listConflicts', `${conflictedCopiesBaseFolder} folder exists, but is already empty. No deletions needed.`)
-      }
-    } else {
-      logInfo('listConflicts', `Didn't find an existing ${conflictedCopiesBaseFolder} folder to empty`)
-    }
+    // Now also try to remove (Trash) the copies made on any previous run of this command
+    // Note: now try by removing the whole '@Conflicted Copies' folder
+    DataStore.moveNote(conflictedCopiesBaseFolder, '@Trash')
 
     // Only continue if there are conflictedNotes found
     if (conflictedNotes.length === 0) {
