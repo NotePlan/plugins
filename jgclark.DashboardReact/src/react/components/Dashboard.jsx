@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-05-28 for v2.0.0 by @dwertheimer
+// Last updated 2024-06-04 for v2.0.0 by @dwertheimer
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -12,7 +12,7 @@ import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
-import { getFeatureFlags } from '../../shared.js'
+// import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 // import { type TActionButton } from '../../types.js'
@@ -75,13 +75,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings)
   }
   
-  logDebug('Dashboard', `origSections length: ${origSections.length}`)
-  logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
+  // logDebug('Dashboard', `origSections length: ${origSections.length}`)
+  // logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
   
-  logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
+  // logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   sections = sortSections(sections, sectionDisplayOrder)

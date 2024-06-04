@@ -83,7 +83,6 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
   try {
     const config: any = await getCombinedSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
-    logInfo('getAllSectionDetails', `Starting ${useDemoData ? 'in DEMO MODE' : ''}`)
 
     let sections: Array<TSection> = []
     sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -96,7 +95,6 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     sections.push(await getProjectSectionData(config, useDemoData))
 
-    logInfo('getAllSectionDetails', `Finishing`)
     return sections
   } catch (error) {
     logError('getAllSectionDetails', error.message)
@@ -118,7 +116,6 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
-    logInfo('getSomeSectionsData', `Starting ${useDemoData ? 'in DEMO MODE' : ''}`)
     const config: dashboardConfigType = await getCombinedSettings()
 
     let sections: Array<TSection> = []
@@ -131,8 +128,6 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('TAG') && config.tagToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
-
-    logInfo('getSomeSectionsData', `Finishing`)
 
     return sections
   } catch (error) {
@@ -304,7 +299,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} daily items from ${filenameDateStr} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} daily items from ${filenameDateStr} in ${timer(startTime)}`)
 
     return sections
   } catch (error) {
@@ -445,7 +440,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} yesterday items from ${filenameDateStr} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} yesterday items from ${filenameDateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
     logError(`getYesterdaySectionData`, error.message)
@@ -574,7 +569,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
     return [section]
   } catch (error) {
     logError('getDataForDashboard/tomorrow', `ERROR: ${error.message}`)
@@ -720,7 +715,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
     logError('xxx', `ERROR: ${error.message}`)
@@ -865,7 +860,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} monthly items from ${thisFilename} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} monthly items from ${thisFilename} in ${timer(startTime)}`)
     return sections
   } catch (error) {
     logError('getDataForDashboard/month', `ERROR: ${error.message}`)
@@ -999,7 +994,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       sections.push(section)
     }
 
-    logInfo('getDataForDashboard', `- found ${itemCount} quarterly items from ${dateStr} in ${timer(startTime)}`)
+    logDebug('getDataForDashboard', `- found ${itemCount} quarterly items from ${dateStr} in ${timer(startTime)}`)
     return sections
   } catch (error) {
     logError('getDataForDashboard/quarter', `ERROR: ${error.message}`)
