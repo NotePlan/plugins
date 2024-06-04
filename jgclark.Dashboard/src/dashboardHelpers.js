@@ -266,6 +266,8 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
+    } else {
+      logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config=${JSON.stringify(config, null, 2)}`)  
     }
     // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 

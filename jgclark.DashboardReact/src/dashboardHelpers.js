@@ -102,7 +102,7 @@ export type dashboardConfigType = {
  */
 export function getSharedSettings(): any {
   if (!DataStore.settings?.sharedSettings) clo(DataStore.settings, `DataStore.settings?.sharedSettings not found; here's the full settings`)
-  return parseSettings(DataStore.settings?.sharedSettings||'') ?? {}
+  return parseSettings(DataStore.settings?.sharedSettings || '') ?? {}
 }
 
 /**
@@ -241,7 +241,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     const todayHyphenated = getTodaysDateHyphenated()
     const theNoteDateHyphenated = timePeriodNote.title || ''
     const isToday = theNoteDateHyphenated === todayHyphenated
-    const latestDate = todayHyphenated >  theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
+    const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
     // Keep only non-empty open tasks (and checklists if wanted)
     let openParas = config.ignoreChecklistItems
@@ -259,7 +259,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // logDebug('getOpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out any future-scheduled tasks from this calendar note
-    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content,latestDate))
+    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
 
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
@@ -268,10 +268,12 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
-      const phrases:Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       openParas = openParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+    } else {
+      logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    // logDebug('getOpenItemPFCTP', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
@@ -299,9 +301,12 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
-      const phrases:Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+    } else {
+      logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
+    logDebug('getOpenItemPFCTP', `- after 'ignore' phrases filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)
@@ -507,6 +512,14 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
+
+    // Filter out anything from 'ignoreTasksWithPhrase' setting
+    if (config.ignoreTasksWithPhrase) {
+      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+    } else {
+      logDebug('getRelevantOverdueTasks...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+    }
 
     // Limit overdues to last n days for testing purposes
     if (config.FFlag_LimitOverdues) {
@@ -849,7 +862,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
  * @param {TItemType} itemType of line
  * @returns {TNote} returns new note the line was moved to
  */
-export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<TNote|null> {
+export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<TNote | null> {
   try {
     // const { filename, content } = validateAndFlattenMessageObject(data)
     logDebug('moveItemToRegularNote', `Starting with {${content}} in ${filename}`)
@@ -868,7 +881,7 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
     // @jgclark, is there a reason you wanted to use this QuickCapture function instead of the chooseNote helper?
     // const destNote = await getNoteFromParamOrUser(typeToDisplayToUser, '', false, allRegularNotes)
-    const destNote = await chooseNote(true,false,[],`Choose Note to Move ${typeToDisplayToUser} to`,false,true)
+    const destNote = await chooseNote(true, false, [], `Choose Note to Move ${typeToDisplayToUser} to`, false, true)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
     if (!destNote) return null
 
@@ -892,7 +905,7 @@ export async function moveItemToRegularNote(filename: string, content: string, i
 
     // Trying to get the note again from DataStore in case that helps find the task (it doesn't)
     // $FlowIgnore
-    const noteAfterChanges:TNote = DataStore.noteByFilename(destNote.filename,destNote.type)
+    const noteAfterChanges: TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
     // Ask for cache refresh for this note
     const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
 
