@@ -221,8 +221,8 @@ const TooltipOnKeyPress = ({
       fontSize: '0.85rem',
       border: '1px solid var(--tint-color)',
       borderRadius: '6px',
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.bottom+10||0}px`, // Adjust bottom to align with the arrow
-      left: `${iconCenter-5}px`,
+      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top+8||0}px`, // Adjust bottom to align with the arrow
+      left: `${iconCenter-6}px`,
     },
     arrowBefore: {
       position: 'fixed',
@@ -232,7 +232,7 @@ const TooltipOnKeyPress = ({
       borderStyle: 'solid',
       borderColor: 'var(--tint-color) transparent transparent transparent',
       marginLeft: `0px`,
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.bottom||0}px`, // Align bottom of the arrow with the tooltip
+      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top-2||0}px`, // Align bottom of the arrow with the tooltip
       // transform: 'translateY(50%)',
     },
   }
