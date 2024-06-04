@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.6.3] - @dwertheimer
+
+- Reduce logging
+
 ## [0.6.2] - @dwertheimer
 
 - Add guard for NP window closed (kills React rendering at Root)

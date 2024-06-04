@@ -20,7 +20,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
 
 let BUNDLE_REACT_ALSO = false
 
-;(async function () {
+await(async function () {
   const rootPath = '../../../../'
 
   const hasReact = process.argv.includes('--react')
@@ -50,7 +50,7 @@ let BUNDLE_REACT_ALSO = false
   ]
   const config = { ...rollupConfigs[0], ...{ output: [rollupConfigs[0].output, rollupConfigs[1].output] } }
 
-  let rollupProms = []
+  const rollupProms = []
 
   rollupProms.push(rollupReactFiles(config, watch, 'np.Shared Root Component development && production'))
 
