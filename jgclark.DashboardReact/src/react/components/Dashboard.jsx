@@ -18,7 +18,6 @@ import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 // import { type TActionButton } from '../../types.js'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
-import ToolTipOnModifierPress from './ToolTipOnModifierPress.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -46,7 +45,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
-  const { FFlag_MetaTooltips } = getFeatureFlags(pluginData.settings, sharedSettings)
 
   //----------------------------------------------------------------------
   // Hooks
@@ -67,10 +65,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  const metaKeyConfig = { text: 'Meta Key Pressed', style: { color: 'red' } }
-  const shiftKeyConfig = { text: 'Shift Key Pressed', style: { color: 'blue' } }
-  const ctrlKeyConfig = { text: 'Ctrl Key Pressed', style: { color: 'green' } }
-  const altKeyConfig = { text: 'Alt Key Pressed', style: { color: 'yellow' } }
 
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
 
@@ -262,7 +256,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     return <div className="dashboard">No Sections to display (this is an error)...</div>
   }
   const autoUpdateEnabled = parseInt(sharedSettings?.autoUpdateAfterIdleTime||"0") > 0 //autoRefresh
-  logDebug('Dashboard', `IdleTimer: autoUpdateEnabled=${autoUpdateEnabled}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
       {autoUpdateEnabled && (
@@ -283,15 +276,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {FFlag_MetaTooltips && !(reactSettings?.dialogData?.isOpen) && (
-        <ToolTipOnModifierPress
-          metaKey={metaKeyConfig}
-          shiftKey={shiftKeyConfig}
-          ctrlKey={ctrlKeyConfig}
-          altKey={altKeyConfig}
-          disappearAfter={2000} /* milliseconds */
-        />
-      )}
+      <div id="tooltip-portal"></div>
     </div>
   )
 }

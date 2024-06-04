@@ -7,11 +7,12 @@ type SwitchProps = {
   checked: boolean,
   onChange: (e: any) => void,
   labelPosition?: 'left' | 'right',
+  description?: string,
 };
 
-const Switch = ({ label, checked, onChange, labelPosition = 'right' }: SwitchProps): React$Node => {
+const Switch = ({ label, checked, onChange, labelPosition = 'right', description = '' }: SwitchProps): React$Node => {
   return (
-    <div className={`switch-line ${labelPosition === 'right' ? 'label-right' : 'label-left'}`}>
+    <div className={`switch-line ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description||null}>
       {labelPosition === 'left' && <label className="switch-label">{label}</label>}
       <input
         type="checkbox"

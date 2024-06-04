@@ -6,14 +6,16 @@
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
 import type { TActionType, TSectionItem, MessageDataObject } from '../../types'
+import { getFeatureFlags } from '../../shared.js'
 import { useAppContext } from './AppContext.jsx'
+import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { logDebug, clo, JSP } from '@helpers/react/reactDev'
 
 type Props = {
-    item: TSectionItem,
-    respondToClicks: boolean,
-    onIconClick?: (item: TSectionItem, actionType: string) => void,
+  item: TSectionItem,
+  respondToClicks: boolean,
+  onIconClick?: (item: TSectionItem, actionType: string) => void,
 };
 
 const StatusIcon = ({
@@ -21,8 +23,10 @@ const StatusIcon = ({
   respondToClicks,
   onIconClick,
 }: Props): Node => {
+  
+  const { sendActionToPlugin, pluginData, sharedSettings } = useAppContext()
 
-  const { sendActionToPlugin } = useAppContext()
+  const { FFlag_MetaTooltips} = getFeatureFlags(pluginData.settings, sharedSettings)
 
   useEffect(() => {
     // This effect runs when `item.itemType` changes
@@ -98,11 +102,15 @@ const StatusIcon = ({
     }
   }
 
+  const renderedIcon = (<span className="sectionItemTodo itemIcon todo">
+    <i className={iconClassName} onClick={handleIconClick}></i>
+  </span>)
   return (
-    <span className="sectionItemTodo itemIcon todo">
-      <i className={iconClassName} onClick={handleIconClick}></i>
-    </span>
+    FFlag_MetaTooltips ? (
+      <TooltipOnKeyPress altKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
+        {renderedIcon}
+      </TooltipOnKeyPress>
+    ) : renderedIcon
   )
 }
-
-export default StatusIcon
+  export default StatusIcon

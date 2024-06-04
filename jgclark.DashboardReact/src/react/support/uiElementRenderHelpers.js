@@ -64,6 +64,7 @@ export function renderItem({
               }
             }}
             labelPosition={labelPosition}
+            description={item.description || ''}
           />
         )
       case 'input':
