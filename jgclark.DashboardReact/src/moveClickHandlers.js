@@ -65,9 +65,9 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
   } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
     const offsetUnit = dateOrInterval.charAt(dateOrInterval.length - 1) // get last character
 
-    // Get the (ISO) current date on the task
     startDateStr = getDateStringFromCalendarFilename(filename, true)
-    newDateStr = calcOffsetDateStr(startDateStr, dateOrInterval, 'offset') // 'longer'
+    // To calculate new date, use today's date (not the original date on the task) + offset
+    newDateStr = calcOffsetDateStr(getTodaysDateHyphenated(), dateOrInterval, 'offset') // 'longer'
 
     // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
     if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {

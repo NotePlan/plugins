@@ -332,7 +332,9 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
   logDebug('doDeleteItem', `-> ${String(res)}`)
   // Update display; ideally would just REMOVE_LINE_FROM_JSON, but we don't have a paragraph left at this point. So refresh whole section.
   // return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'])
-  return handlerResult(res, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: [sectionCodes] })
+  // return handlerResult(res, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: [sectionCodes] })
+  // TODO: dbw suggests: 
+  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'])
 }
 
 /** 

@@ -63,8 +63,8 @@ const StatusIcon = ({
     if (!respondToClicks) return
 
     logDebug('handleIconClick', `item.para.content = ${item.para?.content ?? '-'}`)
-    const { metaKey, altKey } = extractModifierKeys(event)
-    const actionType = determineActionType(metaKey, altKey)
+    const { metaKey, ctrlKey } = extractModifierKeys(event)
+    const actionType = determineActionType(metaKey, ctrlKey)
     const messageObject: MessageDataObject = {
       actionType,
       item,
@@ -83,15 +83,15 @@ const StatusIcon = ({
    * Determine the action type based on the metaKey and item type.
    * Also updates the icon shape based on what action was taken
    */
-  function determineActionType(metaKey: boolean, altKey: boolean): TActionType {
+  function determineActionType(metaKey: boolean, ctrlKey: boolean): TActionType {
     switch (item.itemType) {
       case 'open': {
-        setIconClassName(getClassNameFromType(metaKey ? "cancelled" : altKey ? "deleted" : "done"))
-        return metaKey ? 'cancelTask' : altKey ? 'deleteItem' : 'completeTask'
+        setIconClassName(getClassNameFromType(metaKey ? "cancelled" : ctrlKey ? "deleted" : "done"))
+        return metaKey ? 'cancelTask' : ctrlKey ? 'deleteItem' : 'completeTask'
       }
       case 'checklist': {
-        setIconClassName(getClassNameFromType(metaKey ? "checklistCancelled" : altKey ? "deleted" : "checklistDone"))
-        return metaKey ? 'cancelChecklist' : altKey ? "deleteItem" : 'completeChecklist'
+        setIconClassName(getClassNameFromType(metaKey ? "checklistCancelled" : ctrlKey ? "deleted" : "checklistDone"))
+        return metaKey ? 'cancelChecklist' : ctrlKey ? "deleteItem" : 'completeChecklist'
       }
       case 'project': {
         return 'showNoteInEditorFromFilename'

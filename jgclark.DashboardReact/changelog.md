@@ -10,7 +10,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - In the task dialog box, added a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
 - In the project dialog box, added a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
 - When the NotePlan Theme is changed (manually or automatically), the Dashboard window will automatically pick this up on the next refresh.
-- alt-click on an item's status icon now deletes the item entirely (after a check with the user).
+- ^-click (ctrl-click) on an item's status icon now deletes the item entirely (after a check with the user).
 
 ### Changed
 - The different sections are now generated or refreshed progressively, so the first sections appear more quickly.
@@ -24,10 +24,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
+## [2.0.0.a33] @jgc 2024-06-04
+- (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally
+- moved 4 true/false settings from dashboardSettings to dashboardFilters
+- fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
+
 ## [2.0.0.a32] @jgc 2024-06-02
 - fix reschedule date using dialog
 - removed 'updateOverdueOnTrigger' setting, as I think it is not needed now we have smarter data generation strategies
-- added ability to delete an item with ctrl-click on its status icon. Note: currently stolen by some other event handler.
 - alt-click on an item's status icon now deletes the item entirely (after a check with the user).
 - improved Plugin description
 - dbw: fixed refresh button scroll issue

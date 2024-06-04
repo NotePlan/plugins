@@ -9,6 +9,11 @@ export const dashboardFilters = [
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', default: false },
+  // TEST: moved from dashboardSettings on 4.6.2024
+  { label: 'Include context for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
+  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', default: false, description: "Whether to stop display of open tasks that contain a time block" },
+  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
+  { label: 'Include folder name?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
 ]
 
 const dashboardSettings = [
@@ -26,34 +31,34 @@ const dashboardSettings = [
     type: 'input',
     default: "@Archive, Saved Searches",
   },
-  {
-    key: "includeTaskContext",
-    label: "Include context for tasks?",
-    description: "Whether to show the note link for an open task or checklist",
-    type: 'switch',
-    default: true,
-  },
-  {
-    key: "excludeTasksWithTimeblocks",
-    label: "Exclude tasks that include time blocks?",
-    description: "Whether to stop display of open tasks that contain a time block",
-    type: 'switch',
-    default: false,
-  },
-  {
-    key: "excludeChecklistsWithTimeblocks",
-    label: "Exclude checklists that include time blocks?",
-    description: "Whether to stop display of open checklists that contain a time block",
-    type: 'switch',
-    default: false,
-  },
-  {
-    key: "includeFolderName",
-    label: "Include folder name?",
-    description: "Whether to include the folder name when showing a note link",
-    type: 'switch',
-    default: true,
-  },
+  // {
+  //   key: "includeTaskContext",
+  //   label: "Include context for tasks?",
+  //   description: "Whether to show the note link for an open task or checklist",
+  //   type: 'switch',
+  //   default: true,
+  // },
+  // {
+  //   key: "excludeTasksWithTimeblocks",
+  //   label: "Exclude tasks that include time blocks?",
+  //   description: "Whether to stop display of open tasks that contain a time block",
+  //   type: 'switch',
+  //   default: false,
+  // },
+  // {
+  //   key: "excludeChecklistsWithTimeblocks",
+  //   label: "Exclude checklists that include time blocks?",
+  //   description: "Whether to stop display of open checklists that contain a time block",
+  //   type: 'switch',
+  //   default: false,
+  // },
+  // {
+  //   key: "includeFolderName",
+  //   label: "Include folder name?",
+  //   description: "Whether to include the folder name when showing a note link",
+  //   type: 'switch',
+  //   default: true,
+  // },
   {
     key: "maxTasksToShowInSection",
     label: "Max number of items to show in a section?",

@@ -3,7 +3,7 @@
 // Helpers for working with blocks of paragraphs
 //-----------------------------------------------------------------------------
 
-import { addParasAsText, parasToText } from '../jgclark.Filer/src/filerHelpers.js'
+import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { getParagraphBlock } from '@helpers/NPParagraph'

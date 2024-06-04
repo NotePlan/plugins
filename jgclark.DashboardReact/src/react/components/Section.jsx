@@ -45,7 +45,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     if (!section) {
-      logError('Section', `❓Section doesn't exist. ${JSP(section)}`)
+      logError('Section', `❓No Section passed in.`)
       return
     }
 
