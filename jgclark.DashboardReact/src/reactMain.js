@@ -106,12 +106,9 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       specificCSS: '', // set in separate CSS file referenced in header
       preBodyScript: ``,
       postBodyScript: `
-      <!--
-      <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
-      <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
-      <script type="text/javascript" src="./dashboardShortcuts.js"></script>
-      <script type="text/javascript" src="./dashboardEvents.js"></script>
-      -->
+        <script type="text/javascript" >
+        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        </script>
       `,
     }
     logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)

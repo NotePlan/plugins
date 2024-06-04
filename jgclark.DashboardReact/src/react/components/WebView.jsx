@@ -32,7 +32,7 @@ import {createDashboardSettingsItems} from '../support/dashboardSettingsItems.js
 import {  createFilterDropdownItems } from '../support/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug, clo } from '@helpers/react/reactDev.js'
+import { logDebug, clo, logInfo } from '@helpers/react/reactDev.js'
 
 /**
  * Reduces an array of dashboard settings items into an object including default values.
@@ -201,6 +201,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
+
+  useEffect(() => {
+    logInfo('WebView', `React Dashboard Initialized and rendered.`)
+  }, [])
 
   /****************************************************************************************************************************
    *                        HELPER FUNCTIONS
