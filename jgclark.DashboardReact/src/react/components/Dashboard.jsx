@@ -10,7 +10,7 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
-import { findSectionItems } from '../../dataGeneration.js'
+import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
 import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
@@ -190,9 +190,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       clo(newSectionItem, `Dashboard: newSectionItem`)
       clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}\n...incoming data=${JSP(newSectionItem, 2)}`)
       // used to do the JSON.stringify to compare, but now that an .updated field is used, they will be different
-      if (newSectionItem && newSectionItem.updated /* && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item) */) {
+      if (newSectionItem && newSectionItem.updated && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
         logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
         // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
+        newSectionItem.updated = false
         setReactSettings(prev => {
           const newData = {
             ...prev,
@@ -208,10 +209,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, setting reactSettings to: ${JSP(newData, 2)}`)
           return newData
         })
-        logError('Dashboard', `TODO: need to reset the updated field in sections after using it here`)
-
+        const updatedSections = copyUpdatedSectionItemData(sectionIndexes, ['updated'], { "updated": false }, sections)
+        const newPluginData = { ...pluginData, sections: updatedSections }
+        updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem)}`)
+        logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change, newSectionItem did not change from previous: ${JSP(newSectionItem)}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
@@ -229,7 +231,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    logDebug('Dashboard', `handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
+    // logDebug('Dashboard', `handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
     xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later
     const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : {}
     setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
