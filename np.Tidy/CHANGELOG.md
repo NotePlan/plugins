@@ -4,6 +4,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 ## [0.13.0] - 2024-06-01 @jgclark
 - **/List conflicted notes** offers side-by-side viewing of conflicted note versions (for regular notes) on macOS and iPadOS
 - **/List conflicted notes** now clears out all copies of conflicted notes (and subfolders) from earlier runs of the command
+- bug fixes when 'How many days count as recent?' setting is left blank
 
 ## [0.12.1] - 2024-04-09 @jgclark
 - **/List conflicted notes** now covers Calendar notes as well (thanks, @dwertheimer)
