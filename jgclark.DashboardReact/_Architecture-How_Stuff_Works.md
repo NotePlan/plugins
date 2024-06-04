@@ -44,6 +44,7 @@ The wrapper class has the name of the platform in the class
 ...so we should be able to style things differently (e.g. `.iOS .header`)
 
 ### Z-index
+- StatusIcon rollover MetaTooltips: 1001
 - Header: 1000
 - Dialog: 50
 - Tooltips (buttons with tooltips): 20
