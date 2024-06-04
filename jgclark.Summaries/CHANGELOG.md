@@ -2,7 +2,7 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 ## [0.22.0] - 2024-06-04 by @aaronpoweruser
-- Add new "checklist progress" option to **appendProgressUpdate** command. See README for details.
+- Add new "checklist progress" option to **appendProgressUpdate** command (by @AaronG). See README for details.
 <!-- - some code tidy up as well -->
 
 ## [0.21.0] - 2024-03-03
