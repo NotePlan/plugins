@@ -221,7 +221,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
           <div className="buttonGrid taskButtonGrid" id="itemDialogButtons">
             {/* line1 ---------------- */}
             <div className="preText">For:</div>
-            <div id="taskControlLine1">
+            <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
               {detailsMessageObject?.item ? <StatusIcon
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
