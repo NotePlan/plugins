@@ -104,11 +104,23 @@ const TooltipOnKeyPress = ({
     }
   }, [])
 
+
+  const isInBounds = (bounds:any) => (
+    mousePositionRef.current.x >= bounds.left &&
+    mousePositionRef.current.x <= bounds.right &&
+    mousePositionRef.current.y >= bounds.top &&
+    mousePositionRef.current.y <= bounds.bottom
+  )
+
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
   const handleMouseMove = (event: MouseEvent) => {
     mousePositionRef.current = { x: event.clientX, y: event.clientY }
+    const bounds = elementRef.current && elementRef.current.getBoundingClientRect()
+    if (bounds && !isInBounds(bounds)) {
+      setTooltipState((prev) => ({ ...prev, visible: false }))
+    }
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -116,14 +128,8 @@ const TooltipOnKeyPress = ({
 
     if (hasModifier && elementRef.current) {
       const bounds = elementRef.current.getBoundingClientRect()
-      const isInBounds = (
-        mousePositionRef.current.x >= bounds.left &&
-        mousePositionRef.current.x <= bounds.right &&
-        mousePositionRef.current.y >= bounds.top &&
-        mousePositionRef.current.y <= bounds.bottom
-      )
 
-      if (isInBounds) {
+      if (isInBounds(bounds)) {
         // logDebug('handleKeyDown', `Label: ${label}, Element bounds: ${JSON.stringify(bounds)}, Mouse position: ${JSON.stringify(mousePositionRef.current)}, isInBounds: ${isInBounds}`)
         setModifierActive(true)
         let text = null
