@@ -10,7 +10,7 @@ This plugin provides commands to help tidy up your notes:
     ![](duplicate-note-display@2x.png)
 - **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
 - **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
-- **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See details below.
+- **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See section below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
@@ -57,7 +57,8 @@ For example, this will remove sections with the heading 'Habit Progress' from no
 
 #### Running **/Move top-level tasks in Editor to heading** in a template
 
-This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel. You will get duplicate headings. There is a way to include this in your daily note, however. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
+This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel. You will get duplicate headings. However, there _is_ a way to include this in your daily note. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
+
 ```markdown
 ## Tasks
 *
