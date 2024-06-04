@@ -1,8 +1,9 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 30.1.2024 for v0.20.3, @jgclark
+// Last updated 4.6.2024 for v0.20.3+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,21 +12,20 @@ import {
   generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
-  TMOccurrences,
   type SummariesConfig,
 } from './summaryHelpers'
-import { hyphenatedDate, toISODateString, toLocaleDateString, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { hyphenatedDate } from '@helpers/dateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn, timer,
   overrideSettingsWithEncodedTypedArgs
 } from '@helpers/dev'
-import { CaseInsensitiveMap, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, formatWithFields, getTagParamsFromString } from '@helpers/general'
+import {
+  createPrettyRunPluginLink,
+  formatWithFields, getTagParamsFromString
+} from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-import { getSelectedParaIndex } from '@helpers/NPParagraph'
-import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
-import { caseInsensitiveCompare } from '@helpers/sorting'
-import { showMessage } from "../../helpers/userInput";
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { showMessage } from "@helpers/userInput"
 
 //-------------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
     }
 
     // Get more detailed items for the chosen time period
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
+    const [fromDate, toDate, _periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate period start and end dates`)
     }
@@ -180,7 +180,6 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
-    const thisHeadingLine = `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}`
 
     // Send output to chosen required destination:
     // - if it's a template, then return the output text
