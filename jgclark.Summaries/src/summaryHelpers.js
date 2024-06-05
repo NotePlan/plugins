@@ -518,7 +518,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
           // First need to add a check for a bug: `@repeat(1/7)` is returned as `@repeat(1/7), @repeat(1`. Skip the incomplete one.
           // Also skip where there are mis-matched brackets in this single mention e.g. `@run(12 @distance(6.5)`
           if (mention.match(/\(([^\)]+$|[^\)]+\s@.*\(.*\))/)) {
-            logWarn('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
+            logDebug('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
             continue // skip this mention
           }
 
