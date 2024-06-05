@@ -28,6 +28,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally
 - moved 4 true/false settings from dashboardSettings to dashboardFilters
 - fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
+- dbw: improve modifier keys filtering functions
+- dbw: add kbd modifers to the open note links so they open in a new window or splitview
+- dbw: added normal tooltips to the filter settings that have a "description" set in the field definition
 
 ## [2.0.0.a32] @jgc 2024-06-02
 - fix reschedule date using dialog

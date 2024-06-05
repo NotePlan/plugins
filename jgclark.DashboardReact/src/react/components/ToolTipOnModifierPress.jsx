@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a tooltip on modifier key press when the mouse is within the bounds of the wrapped component.
 // Called by various components to display tooltips based on modifier key presses.
-// Last updated 2024-06-03 for v2.0.0 by @dwertheimer
+// Last updated 2024-06-05 for v2.0.1 by @dwertheimer
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -35,6 +35,7 @@ import { logDebug } from '@helpers/react/reactDev'
  * @property {number} [disappearAfter] - Time in milliseconds after which the tooltip disappears.
  * @property {React.Node} children - Components to wrap.
  * @property {boolean} [enabled] - Whether tooltips are enabled or not.
+ * @property {boolean} [showAtCursor] - Whether the tooltip should be shown at the cursor position.
  * @property {string} [label] - Label for debugging.
  */
 
@@ -58,6 +59,7 @@ type TooltipProps = {
   disappearAfter?: number, // ms
   children: React$Node,
   enabled?: boolean,
+  showAtCursor?: boolean,
   label?: string, // for debugging
 };
 
@@ -73,19 +75,20 @@ const TooltipOnKeyPress = ({
   disappearAfter = 0,
   children,
   enabled = true,
+  showAtCursor = false,
   /* label, */
 }: TooltipProps): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
 
-  const [tooltipState, setTooltipState] = useState < {
+  const [tooltipState, setTooltipState] = useState<{
     x: number,
     y: number,
     visible: boolean,
     text: React$Node | null,
     iconBounds?: ClientRect,
-  } > ({
+  }>({
     x: 0,
     y: 0,
     visible: false,
@@ -93,19 +96,18 @@ const TooltipOnKeyPress = ({
     iconBounds: undefined,
   })
 
-  const mousePositionRef = useRef < { x: number, y: number } > ({ x: 0, y: 0 })
-  const [ /* modifierActive */, setModifierActive] = useState < boolean > (false)
-  const elementRef = useRef <? ElementRef < 'div' >> (null)
-  const timeoutRef = useRef <? TimeoutID > (null)
+  const mousePositionRef = useRef<{ x: number, y: number }>({ x: 0, y: 0 })
+  const [ /* modifierActive */, setModifierActive] = useState<boolean>(false)
+  const elementRef = useRef<?ElementRef<'div'>>(null)
+  const timeoutRef = useRef<?TimeoutID>(null)
 
-  const measureElement = useCallback((node:any) => {
+  const measureElement = useCallback((node: any) => {
     if (node !== null) {
       elementRef.current = node
     }
   }, [])
 
-
-  const isInBounds = (bounds:any) => (
+  const isInBounds = (bounds: any) => (
     mousePositionRef.current.x >= bounds.left &&
     mousePositionRef.current.x <= bounds.right &&
     mousePositionRef.current.y >= bounds.top &&
@@ -115,6 +117,7 @@ const TooltipOnKeyPress = ({
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
   const handleMouseMove = (event: MouseEvent) => {
     mousePositionRef.current = { x: event.clientX, y: event.clientY }
     const bounds = elementRef.current && elementRef.current.getBoundingClientRect()
@@ -203,15 +206,17 @@ const TooltipOnKeyPress = ({
   // Styles
   //----------------------------------------------------------------------
 
-  // const mousePosition = tooltipState
+  const iconCenter = showAtCursor 
+    ? mousePositionRef.current.x 
+    : (tooltipState?.iconBounds?.left || 0) + (tooltipState?.iconBounds?.width || 0) / 2
 
-  const iconCenter = tooltipState?.iconBounds?.left || 0 + (tooltipState?.iconBounds?.width || 0) / 2
   const tooltipStyles = {
     wrapper: {
       position: 'fixed', // Use fixed position to ensure it stays in the same place relative to the viewport
       zIndex: 1001,
       whiteSpace: 'nowrap',
       pointerEvents: 'none', // Add this to prevent the tooltip from interfering with other elements
+      display: 'inline',
     },
     tooltipContent: { // text with a border and background
       position: 'fixed',
@@ -221,8 +226,8 @@ const TooltipOnKeyPress = ({
       fontSize: '0.85rem',
       border: '1px solid var(--tint-color)',
       borderRadius: '6px',
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top+8||0}px`, // Adjust bottom to align with the arrow
-      left: `${iconCenter-6}px`,
+      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top + 8 || 0}px`, // Adjust bottom to align with the arrow
+      left: `${iconCenter - 6}px`,
     },
     arrowBefore: {
       position: 'fixed',
@@ -232,11 +237,10 @@ const TooltipOnKeyPress = ({
       borderStyle: 'solid',
       borderColor: 'var(--tint-color) transparent transparent transparent',
       marginLeft: `0px`,
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top-2||0}px`, // Align bottom of the arrow with the tooltip
+      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top - 2 || 0}px`, // Align bottom of the arrow with the tooltip
       // transform: 'translateY(50%)',
     },
   }
-  
 
   //----------------------------------------------------------------------
   // Render
@@ -266,7 +270,7 @@ const TooltipOnKeyPress = ({
         </div>,
         portalElement
       )}
-      <div ref={measureElement}>
+      <div ref={measureElement} style={{ display: 'inline' }}>
         {children}
       </div>
     </>

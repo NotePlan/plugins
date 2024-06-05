@@ -12,6 +12,7 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { logDebug, clo, JSP } from '@helpers/react/reactDev'
@@ -25,8 +26,9 @@ type Props = {
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
 
-const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
+  // const [detailsMessageObject,setDetailsMessageObject] = useState(details) // was thinking this needed to change, but maybe not
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
@@ -73,14 +75,16 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   ]
 
   useEffect(() => {
-    logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
+    // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
     // $FlowIgnore
     positionDialog(dialogRef)
-    logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
+    // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
 
-  function handleTitleClick() {
+  function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
+    const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
     detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.modifierKey = modifierName 
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
@@ -187,12 +191,14 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         ref={dialogRef}
       >
         <div className="dialogTitle">
-          <div id="dialogFileParts" onClick={() => handleTitleClick()}>
+        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} showAtCursor={true}>
+          <div id="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
             <span className="preText">From:</span>
             <i className="pad-left pad-right fa-regular fa-file-lines"></i>
             <span className="dialogItemNote" /*id="dialogItemNote"*/>{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
+          </TooltipOnKeyPress>
           <div className="dialog-top-right">
             {interactiveProcessing && currentIPIndex !== undefined && (
               <>

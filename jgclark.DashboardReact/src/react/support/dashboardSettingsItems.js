@@ -8,7 +8,7 @@ export const dashboardFilters = [
   { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
-  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false },
+  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
   // TEST: moved from dashboardSettings on 4.6.2024
   { label: 'Include context for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
   { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', default: false, description: "Whether to stop display of open tasks that contain a time block" },

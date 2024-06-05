@@ -10,9 +10,11 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
 import '../css/animation.css'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 // type RefType<T> = {| current: null | T |}
 
@@ -58,8 +60,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
-  function handleTitleClick() {
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename' // FIXME: to note instead
+  function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
+    const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.modifierKey = modifierName 
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
@@ -138,13 +142,15 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         aria-describedby="Actions that can be taken on projects"
         ref={dialogRef}
       >
-        <div className="dialogTitle" onClick={() => handleTitleClick()}>
-          <div className="dialogFileParts">
+        <div className="dialogTitle">
+        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} showAtCursor={true}>
+          <div className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
             For <i className="pad-left pad-right fa-regular fa-file-lines"></i>
             <b>
               <span className="dialogItemNote" /*id="dialogProjectNote"*/>{title}</span>
             </b>
           </div>
+          </TooltipOnKeyPress>
           <div className="dialog-top-right">
             <button className="closeButton" onClick={() => closeDialog(true)}>
               <i className="fa-solid fa-square-xmark"></i>

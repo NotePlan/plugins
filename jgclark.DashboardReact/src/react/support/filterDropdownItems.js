@@ -25,6 +25,7 @@ export const createFilterDropdownItems = (
 
   const nonSectionItems = dashboardFilters.map(s => ({
     label: s.label,
+    description: s.description,
     key: s.key,
     type: 'switch',
     checked: (typeof sharedSettings !== undefined && sharedSettings[s.key]) ?? pluginSettings[s.key] ?? s.default,

@@ -144,7 +144,7 @@ export type MessageDataObject = {
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
   newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
-  metaModifier?: any, /* probably not used */
+  modifierKey?: any, /* used when modifier key is pressed with an action */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
   newDimensions?: { width: number, height: number },

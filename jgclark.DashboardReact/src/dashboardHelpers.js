@@ -518,6 +518,7 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     } else {
       logDebug('getRelevantOverdueTasks...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
+    logDebug('getRelevantOverdueTasks', `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredOverdueParas.length} paras (after ${timer(thisStartTime)})`)
 
     // Limit overdues to last n days for testing purposes
     if (config.FFlag_LimitOverdues) {

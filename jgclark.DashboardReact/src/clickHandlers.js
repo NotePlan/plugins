@@ -52,6 +52,7 @@ import {
 } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { logWindowsList } from '@helpers/NPWindows'
+import { showMessage } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -539,9 +540,10 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
 // Handle a show note call simply by opening the note in the main Editor.
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
+  const { filename, modifierKey } = validateAndFlattenMessageObject(data)
+  clo(data, `doShowNoteInEditorFromFilename: data`)
   // Note: use the showLine... variant of this (below) where possible
-  const note = await Editor.openNoteByFilename(filename)
+  const note = await Editor.openNoteByFilename(filename, modifierKey==='meta',0,0,modifierKey==='alt')
   if (note) {
     logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
     return handlerResult(true)
@@ -569,9 +571,9 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
 
 // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-  const note = await Editor.openNoteByFilename(filename)
+  const note = await Editor.openNoteByFilename(filename, modifierKey==='meta',0,0,modifierKey==='alt')
   if (note) {
     const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
     logDebug(
@@ -648,6 +650,8 @@ export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: str
   const thePara = findParaFromStringAndFilename(filename, content)
   if (typeof thePara === 'boolean') {
     logWarn('doUpdateTaskDate', `- note ${filename} doesn't seem to contain {${content}}`)
+    clo(data, `doUpdateTaskDate -> data`)
+    await showMessage(`Note ${filename} doesn't seem to contain "{${content}}"`)
     return handlerResult(false)
   }
 
