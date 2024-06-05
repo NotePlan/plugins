@@ -141,7 +141,7 @@ const dashboardSettings = [
   {
     key: "tagToShow",
     label: "#tag/@mention(s) to show",
-    description: "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. Note: This is limited to a single hashtag or mention for speed, and it can show tasks duplicated from other sections. May also be more than one, separated by a comma.",
+    description: "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
     type: 'input',
     default: "",
   },

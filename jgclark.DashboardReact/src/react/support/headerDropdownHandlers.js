@@ -49,6 +49,7 @@ export const handleSwitchChange = (
     }
 
     const isSection = key.startsWith('show')
+    const isTagSection = key.startsWith("showTagSection_")
     const isChecked = e?.target?.checked || false
 
     logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
@@ -64,11 +65,13 @@ export const handleSwitchChange = (
         if (sectionCode) {
           const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
           sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
+        } else {
+          logDebug('handleSwitchChange', `No sectionCode found for ${key} so not refreshing any sections`)
         }
       }
-      if (!isSection) {
+      if (!isSection || isTagSection) {
         const refreshAllOnChange = dashboardFilters.find(s => s.key === key)?.refreshAllOnChange
-        if (refreshAllOnChange) {
+        if (isTagSection || refreshAllOnChange) {
           sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
         }
       }
