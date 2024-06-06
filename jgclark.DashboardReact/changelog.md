@@ -31,6 +31,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: improve modifier keys filtering functions
 - dbw: add kbd modifers to the open note links so they open in a new window or splitview
 - dbw: added normal tooltips to the filter settings that have a "description" set in the field definition
+- dbw: fixed bug where rollover on file link could still be seen when dialog was up (mouse position bleeding through) -- there is yet another one to solve with the StatusIcon
+- dbw: fixed bug where #tagged items in a regular note that were scheduled for the future would show up. Now they don't
 
 ## [2.0.0.a32] @jgc 2024-06-02
 - fix reschedule date using dialog
