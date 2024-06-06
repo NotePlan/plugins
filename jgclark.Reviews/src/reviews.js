@@ -1551,7 +1551,6 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export function getNextNotesToReview(numToReturn: number): Array<TNote> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-\
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
