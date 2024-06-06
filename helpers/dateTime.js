@@ -1260,7 +1260,7 @@ export function includesScheduledFutureDate(line: string, fromDateStr?: string):
   let m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
-    logDebug(`includesScheduledFutureDate / ISODateFromMatch > todaysDateISOString : ${ISODateFromMatch} > ${todaysDateISOString}`)
+    // logDebug(`includesScheduledFutureDate / ISODateFromMatch > todaysDateISOString : ${ISODateFromMatch} > ${todaysDateISOString}`)
     return ISODateFromMatch > (fromDateStr ?? todaysDateISOString)
   }
   // Test for weeks

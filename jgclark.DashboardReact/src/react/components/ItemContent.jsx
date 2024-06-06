@@ -56,8 +56,6 @@ function ItemContent({ item, children }: Props): React$Node {
     // get rid of arrowDates if desired by user
     if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent,'')
 
-      logDebug('ItemContent', `mainContent = "${mainContent}"`)
-
     // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
     if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
 

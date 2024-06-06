@@ -1018,7 +1018,7 @@ export function getTaggedSections(config: dashboardConfigType, useDemoData: bool
   const tagSections = getTagSectionDetails(config, {})
   return tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
     const showSettingForTag = config[sectionDetail.showSettingName]
-    logDebug(`getTaggedSections sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
+    // logDebug(`getTaggedSections sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
     if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
     return acc  // Return the accumulator
   }, [])
@@ -1035,7 +1035,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
   const thisSectionCode = 'TAG'
   const maxInSection = config.maxTasksToShowInSection ?? 30
   logDebug('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)}: ${sectionDetail.sectionName} --------`)
-  if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
+  // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
   let itemCount = 0
   let totalCount = 0
   const items: Array<TSectionItem> = []
@@ -1059,49 +1059,49 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes)
       const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
-      logDebug('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
+      // logDebug('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
         if (config.ignoreFolders.includes(thisNoteFolder)) {
-          logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
+          // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
 
         // Get the relevant paras from this note
         const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras contatining ${sectionDetail.sectionName} in ${n.filename}`)
+        // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras contatining ${sectionDetail.sectionName} in ${n.filename}`)
         // clo(tagParasFromNote, `tagParasFromNote for ${sectionDetail.sectionName} in ${n.filename}`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
+        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
         for (const p of filteredTagParasFromNote) {
           if (!config.ignoreTagMentionsWithPhrase ||config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
             filteredTagParas.push(p)
           } else {
-            logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
           }
         }
-        logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras`)
+        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras`)
       }
-      logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
+      // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
       filteredTagParas = filteredTagParas.filter(p=>!filenameIsInFuture(p.filename||'',dateToUseUnhyphenated))
       const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYY-MM-DD") : new moment().format("YYYY-MM-DD")
       filteredTagParas = filteredTagParas.filter(p=>!includesScheduledFutureDate(p.content,dateToUseHyphenated))
-      logDebug('getTaggedSectionData', `- after filtering for future, ${filteredTagParas.length} paras (after ${dateToUseUnhyphenated})`)
+      // logDebug('getTaggedSectionData', `- after filtering for future, ${filteredTagParas.length} paras (after ${dateToUseUnhyphenated})`)
 
       if (filteredTagParas.length > 0) {
         // Remove possible dupes from these sync'd lines
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
-        logDebug('getTaggedSectionData', `- after sync dedupe -> ${filteredTagParas.length} (after ${timer(thisStartTime)})`)
+        // logDebug('getTaggedSectionData', `- after sync dedupe -> ${filteredTagParas.length} (after ${timer(thisStartTime)})`)
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
         // Note: this is a quick operation
         // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
@@ -1110,7 +1110,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a quick operation
         const dashboardParas = makeDashboardParas(filteredTagParas)
-        logDebug('getTaggedSectionData', `- after eliminating dupes -> ${dashboardParas.length} (after ${timer(thisStartTime)})`)
+        // logDebug('getTaggedSectionData', `- after eliminating dupes -> ${dashboardParas.length} (after ${timer(thisStartTime)})`)
 
         totalCount = dashboardParas.length
 
@@ -1122,12 +1122,12 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
-        logDebug('getTaggedSectionData', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} (after ${timer(thisStartTime)})`)
+        // logDebug('getTaggedSectionData', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} (after ${timer(thisStartTime)})`)
 
         // Apply limit to set of ordered results
         const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
-        logDebug('getTaggedSectionData', `- after limit, now ${sortedTagParasLimited.length} items to show`)
-        sortedTagParasLimited.length ? clo(sortedTagParasLimited, 'getTaggedSectionData sortedTagParasLimited') : null
+        logDebug('getTaggedSectionData', `- after applying [${maxInSection}] limit, now ${sortedTagParasLimited.length} items to show for ${sectionDetail.sectionName}`)
+        // sortedTagParasLimited.length ? clo(sortedTagParasLimited, 'getTaggedSectionData sortedTagParasLimited') : null
         for (const p of sortedTagParasLimited) {
           const thisID = `${sectionNum}.${itemCount}`
           // const thisFilename = p.filename ?? ''
@@ -1135,6 +1135,8 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
           items.push(getSectionItemObject(thisID,p))
           itemCount++
         }
+      } else {
+        logDebug('getTaggedSectionData', `- no items to show for ${sectionDetail.sectionName}`)
       }
     }
   }

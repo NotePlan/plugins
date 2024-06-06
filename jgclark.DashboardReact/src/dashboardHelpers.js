@@ -269,9 +269,9 @@ export function getOpenItemParasForCurrentTimePeriod(
       const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       openParas = openParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     } else {
-      logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+      // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    logDebug('getOpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
@@ -302,9 +302,9 @@ export function getOpenItemParasForCurrentTimePeriod(
       const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     } else {
-      logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+      // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    logDebug('getOpenItemPFCTP', `- after 'ignore' phrases filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemPFCTP', `- after 'ignore' phrases filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)

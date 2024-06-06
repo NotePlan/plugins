@@ -44,19 +44,20 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     let thisFilename = ''
     // TODO: Ideally move this to a function, for i18n. Can Moment or Chrono libraries help?
-    const noteIdentifier = (noteIdentifierIn === 'today')
-      ? '{0d}'
-      : (noteIdentifierIn === 'yesterday')
+    const noteIdentifier =
+      noteIdentifierIn === 'today'
+        ? '{0d}'
+        : noteIdentifierIn === 'yesterday'
         ? '{-1d}'
-        : (noteIdentifierIn === 'tomorrow')
-          ? '{+1d}'
-          : (noteIdentifierIn === 'this week')
-            ? '{0w}'
-            : (noteIdentifierIn === 'last week')
-              ? '{-1w}'
-              : (noteIdentifierIn === 'next week')
-                ? '{+1w}'
-                : noteIdentifierIn
+        : noteIdentifierIn === 'tomorrow'
+        ? '{+1d}'
+        : noteIdentifierIn === 'this week'
+        ? '{0w}'
+        : noteIdentifierIn === 'last week'
+        ? '{-1w}'
+        : noteIdentifierIn === 'next week'
+        ? '{+1w}'
+        : noteIdentifierIn
     const possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
     if (possibleProjectNotes.length > 0) {
       thisFilename = possibleProjectNotes[0].filename
@@ -449,15 +450,15 @@ export function findNotesMatchingHashtagOrMention(
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
 ): Array<TNote> {
-  logDebug(
-    `NPNote/findNotesMatchingHashtagOrMention`,
-    `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
-  )
+  // logDebug(
+  //   `NPNote/findNotesMatchingHashtagOrMention`,
+  //   `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
+  // )
   return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true, alsoSearchCalendarNotes)
 }
 
 /**
- * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on. 
+ * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
  * Originally only looked in Project Notes, but 'alsoSearchCalendarNotes' allows it to look further.
  * @author @jgclark
  * @param {string} tag - tag/mention name to look for
@@ -478,7 +479,7 @@ export function findNotesMatchingHashtag(
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
   alsoSearchMentions: boolean = false,
-  alsoSearchCalendarNotes: boolean = false
+  alsoSearchCalendarNotes: boolean = false,
 ): Array<TNote> {
   // Check for special conditions first
   if (tag === '') {
@@ -532,7 +533,7 @@ export function findNotesMatchingHashtag(
       }
     })
   }
-  logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  // logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
 
   // If we care about the excluded tag, then further filter out notes where it is found
   if (tagsToExclude.length > 0) {
@@ -559,11 +560,7 @@ export function findNotesMatchingHashtag(
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<Array<TNote>>} array of list of notes
  */
-export function findNotesMatchingHashtags(
-  tags: Array<string>,
-  folder: ?string,
-  includeSubfolders: ?boolean = false
-): Array<Array<TNote>> {
+export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
   if (tags.length === 0) {
     logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
     return []

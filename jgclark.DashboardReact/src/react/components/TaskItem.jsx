@@ -56,7 +56,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
-    logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
+    // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
     setReactSettings((prev) => ({
       ...prev,
