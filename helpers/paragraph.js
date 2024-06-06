@@ -485,9 +485,9 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
 
 /**
  * Get number of consecutive '!' in 'content' that aren't at the start/end of a word, or preceding a '['
- * From 3.9.4 there are also `>>` working-on markers at the start of 'content', which are treated as priority 5.
+ * From 3.9.4 there are also `>>` working-on markers at the start of 'content', which are treated as priority 4.
  * @param {string} content
- * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
+ * @returns {string} number of !, or 4 if line is flagged as 'working-on', or -1
  */
 export function getTaskPriority(content: string): number {
   let numExclamations = 0

@@ -3,7 +3,6 @@
 // Dashboard React component to show Note Links after main item content
 // Last updated 13.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
-
 import React from 'react'
 import type { TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
@@ -42,10 +41,6 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
   }
 
   if (filename !== thisSection.sectionFilename) {
-    const dataObjectToPassToFunction = {
-      actionType: 'showNoteInEditorFromFilename',
-      item,
-    }
     return (
       <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${item.itemType}_${item.ID}_Open Note Link`} showAtCursor={true} enabled={!reactSettings?.dialogData?.isOpen}>
       <a className="noteTitle sectionItem" onClick={handleLinkClick}>
@@ -54,6 +49,8 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
       </a>
       </TooltipOnKeyPress>
     )
+  } else {
+    return null
   }
 }
 

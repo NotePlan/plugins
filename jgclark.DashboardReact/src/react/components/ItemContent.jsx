@@ -34,6 +34,7 @@ import {
   // getTimeBlockString,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
+import { replaceArrowDatesInString } from '@helpers/dateTime'
 
 type Props = {
   item: TSectionItem,
@@ -44,13 +45,21 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemContent({ item, children }: Props): React$Node {
-  const { sendActionToPlugin } = useAppContext()
+  const { sendActionToPlugin, sharedSettings } = useAppContext()
   // const itemType = para.type
 
   // console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
-  const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
+
+    // get rid of arrowDates if desired by user
+    if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent,'')
+
+      logDebug('ItemContent', `mainContent = "${mainContent}"`)
+
+    // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
+    if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
 
   function handleTaskClick() {
     const dataObjectToPassToFunction = {
@@ -212,7 +221,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
       output = truncateHTML(output, truncateLength, true)
     }
 
-    // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
+    // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority4.
     // Note: this wrapping needs to go last.
     if (taskPriority > 0) {
       output = `<span class="priority${String(taskPriority)}">${output}</span>`

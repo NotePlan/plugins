@@ -9,11 +9,13 @@ export const dashboardFilters = [
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
+  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
   // TEST: moved from dashboardSettings on 4.6.2024
-  { label: 'Include context for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
+  { label: 'Include note link for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
+  { label: 'Include folder name in note link?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
+  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
   { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', default: false, description: "Whether to stop display of open tasks that contain a time block" },
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
-  { label: 'Include folder name?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
 ]
 
 const dashboardSettings = [
