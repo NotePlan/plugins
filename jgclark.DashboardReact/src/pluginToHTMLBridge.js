@@ -377,7 +377,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
   const isProject = data.item?.itemType === "project"
 
   if (updatedParagraph) {
-    logDebug(`updateReactWindowFromLineChange`, ` -> updatedParagraph.filename`)
+    logDebug(`updateReactWindowFromLineChange`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
     const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
     const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
     // get a reference so we can overwrite it later
@@ -391,7 +391,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     if (indexes.length) {
       const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
       // clo(indexes, 'updateReactWindowFLC: indexes to update')
-      clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
       if (shouldRemove) {
         logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
         indexes.reverse().forEach((index) => {

@@ -1551,8 +1551,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export function getNextNotesToReview(numToReturn: number): Array<TNote> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-
+\
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
@@ -1581,7 +1580,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
         // Get items with review due before today, or today etc.
         if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
+          // logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
           if (nextNotes.length > 0) {
             notesToReview.push(nextNotes[0]) // add first matching note
             if (notesToReview.length >= numToReturn) {

@@ -675,8 +675,8 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
       NPWindowID: windowExists ? windowId : false,
     }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
-    const start = new Date()
+    // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
+    // const start = new Date()
     const result = await HTMLView.runJavaScript(
       `window.postMessage(
         {
@@ -687,7 +687,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
       );`,
       windowId,
     )
-    logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
+    // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
@@ -707,7 +707,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  */
 export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
-    logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
+    // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue

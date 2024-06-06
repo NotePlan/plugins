@@ -588,7 +588,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       // Get overdue tasks (and dedupe)
       // Note: Cannot move the reduce move into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
-      logInfo('getDataForDashboard', `- after reducing paras -> ${overdueParas.length} in ${timer(thisStartTime)}`)
       if (overdueParas.length > 0) {
         // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
         // Note: this takes ~600ms for 1,000 items
@@ -614,7 +613,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
         // Apply limit to set of ordered results
         const overdueTaskParasLimited = sortedOverdueTaskParas.length > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
-        logDebug('getDataForDashboard', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
+        logDebug('getDataForDashboard', `- after limit, now overdues ${overdueTaskParasLimited.length} items to show`)
         let itemCount = 0
         overdueTaskParasLimited.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
@@ -710,7 +709,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
           // Apply limit to set of ordered results
           const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
-          logDebug('getDataForDashboard', `- after limit, now ${sortedTagParasLimited.length} items to show`)
+          // logDebug('getDataForDashboard', `- after limit, now ${sortedTagParasLimited.length} items to show`)
 
           for (const p of sortedTagParasLimited) {
             const thisID = `${sectionCount}-${itemCount}`
