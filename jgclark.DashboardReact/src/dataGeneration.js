@@ -1031,6 +1031,7 @@ export function getTaggedSections(config: dashboardConfigType, useDemoData: bool
  * @param {boolean} useDemoData?
  */
 export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false, sectionDetail:TSectionDetails, index: number): TSection {
+  const tagStart = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
   const maxInSection = config.maxTasksToShowInSection ?? 30
@@ -1157,6 +1158,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
     generatedDate: new Date(),
     actionButtons: [],
   }
+  logDebug('getTaggedSectionData', `- found ${itemCount} items for ${sectionDetail.sectionName} in ${timer(tagStart)}`)
   return section
 }
 

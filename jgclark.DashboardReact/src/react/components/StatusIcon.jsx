@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
 import type { TActionType, TSectionItem, MessageDataObject } from '../../types'
-import { getFeatureFlags } from '../../shared.js'
+// import { getFeatureFlags } from '../../shared.js'
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -23,10 +23,8 @@ const StatusIcon = ({
   respondToClicks,
   onIconClick,
 }: Props): Node => {
-  
-  const { sendActionToPlugin, pluginData, sharedSettings } = useAppContext()
 
-  const { FFlag_MetaTooltips} = getFeatureFlags(pluginData.settings, sharedSettings)
+  const { sendActionToPlugin } = useAppContext()
 
   useEffect(() => {
     // This effect runs when `item.itemType` changes
@@ -106,11 +104,9 @@ const StatusIcon = ({
     <i className={iconClassName} onClick={handleIconClick}></i>
   </span>)
   return (
-    FFlag_MetaTooltips ? (
-      <TooltipOnKeyPress altKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
-        {renderedIcon}
-      </TooltipOnKeyPress>
-    ) : renderedIcon
+    <TooltipOnKeyPress altKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
+      {renderedIcon}
+    </TooltipOnKeyPress>
   )
 }
-  export default StatusIcon
+export default StatusIcon
