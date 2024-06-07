@@ -131,6 +131,7 @@ export const refTodayItems: Array<TSectionItem> = [
       content: 'Update display board 12:30PM',
       rawContent: 'Update display board 12:30PM',
       prefix: '* ',
+      hasChild: true,
     },
   },
 ]
@@ -152,6 +153,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       content: '>> #editvideo from CFL visit',
       rawContent: '>> #editvideo from CFL visit',
       prefix: '* ',
+      hasChild: true,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -180,6 +182,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       content: 'update contract for [[Staff Induction (SW)]] following review comments',
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
       prefix: '* ',
+      hasChild: true,
     },
   },
 ]
@@ -212,6 +215,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       content: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       rawContent: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       blockId: '^wazhht',
+      hasChild: true,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -242,6 +246,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       prefix: '* ',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
       priority: 1,
+      hasChild: true,
     },
   },
 ]
@@ -328,6 +333,7 @@ export const openWeekParas: Array<TSectionItem> = [
       priority: 0,
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      hasChild: true,
     },
   },
 ]

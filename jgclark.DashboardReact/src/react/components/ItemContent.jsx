@@ -225,6 +225,18 @@ function makeParaContentToLookLikeNPDisplayInReact(
       output = `<span class="priority${String(taskPriority)}">${output}</span>`
     }
 
+    // Add a child marker if relevant
+    // Note: best done after truncation and adding priority style
+    if (para.hasChild) {
+      // Various options tried:
+      // output += '<i class="fa-solid fa-arrow-turn-down pad-left"></i>'
+      // output += '<i class="fa-solid fa-level-down pad-left"></i>'
+      // output += '<i class="fa-solid fa-sitemap pad-left"></i>'
+      // output += '<i class="fa-solid fa-arrow-down-wide-short fa-flip-horizontal pad-right"></i>'
+      // output += '<i style="color: var(--fg-main-color); font-size: small; opacity: 0.7;" class="fa-regular fa-list-tree pad-left"></i>'
+      output += '<i style="color: var(--fg-main-color); font-size: small; opacity: 0.5;" class="fa-solid fa-block-quote pad-left"></i>'
+    }
+
     // console.log(`makeParaContet...: \n-> ${output}`)
     return output
   } catch (error) {

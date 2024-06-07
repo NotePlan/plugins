@@ -329,13 +329,11 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
   logDebug('doDeleteItem', `Starting with "${String(content)}" and will ideally update sectionCodes ${String(sectionCodes)}`)
+  // Grab a copy of the paragraph before deleting it, so React can remove the right line. (It's not aware the paragraph has disappeared on the back end.)
+  const updatedParagraph = findParaFromStringAndFilename(filename, content)
   const res = await deleteItem(filename, content)
   logDebug('doDeleteItem', `-> ${String(res)}`)
-  // Update display; ideally would just REMOVE_LINE_FROM_JSON, but we don't have a paragraph left at this point. So refresh whole section.
-  // return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'])
-  // return handlerResult(res, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: [sectionCodes] })
-  // TODO: dbw suggests: 
-  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'])
+  return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 /** 

@@ -24,18 +24,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
-## [2.0.0.a33] @jgc 2024-06-04
-- (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally
-- moved 4 true/false settings from dashboardSettings to dashboardFilters
-- fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
+## [2.0.0.a34] 2024-06-06
+- jgc: added marker after an item to show if it has child/children items
+- dbw: added filter setting (includeScheduledDates) to hide >scheduled dates which were a lot of clutter when you use scheduling mode
+- dbw: added filter setting (hidePriorityMarkers) to hide priority markers (assumes you can see priorities in color)
+- dbw: fixed bug/discrepancy where >> was sometimes priority 5 and sometimes priority 4 (always 4 now)
+
+## [2.0.0.a33] 2024-06-04
+- jgc: (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally
+- jgc: moved 5 true/false settings from dashboardSettings to dashboardFilters
+- jgc: fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
 - dbw: improve modifier keys filtering functions
 - dbw: add kbd modifers to the open note links so they open in a new window or splitview
 - dbw: added normal tooltips to the filter settings that have a "description" set in the field definition
 - dbw: fixed bug where rollover on file link could still be seen when dialog was up (mouse position bleeding through) -- there is yet another one to solve with the StatusIcon
 - dbw: fixed bug where #tagged items in a regular note that were scheduled for the future would show up. Now they don't
-- dbw: added filter setting (includeScheduledDates) to hide >scheduled dates which were a lot of clutter when you use scheduling mode
-- dbw: added filter setting (hidePriorityMarkers) to hide priority markers (assumes you can see priorities in color)
-- dbw: fixed bug/discrepancy where >> was sometimes priority 5 and sometimes priority 4 (always 4 now)
 
 ## [2.0.0.a32] @jgc 2024-06-02
 - fix reschedule date using dialog

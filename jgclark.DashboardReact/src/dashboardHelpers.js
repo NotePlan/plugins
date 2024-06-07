@@ -181,6 +181,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
+        hasChild: p.children().length > 0,
       }
     })
     return dashboardParas

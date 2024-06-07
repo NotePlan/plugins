@@ -107,7 +107,7 @@ const StatusIcon = ({
   </span>)
   return (
     FFlag_MetaTooltips ? (
-      <TooltipOnKeyPress altKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
+      <TooltipOnKeyPress metaKey={{ text: 'Cancel Item' }} ctrlKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
         {renderedIcon}
       </TooltipOnKeyPress>
     ) : renderedIcon

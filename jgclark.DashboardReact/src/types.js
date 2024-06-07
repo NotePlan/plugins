@@ -54,6 +54,7 @@ export type TParagraphForDashboard = {
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
+  hasChild?: boolean, // whether it has child item(s)
 }
 
 // a project item within a section
