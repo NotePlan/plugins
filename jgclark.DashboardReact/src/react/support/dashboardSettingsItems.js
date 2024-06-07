@@ -11,6 +11,7 @@ export const dashboardFilters = [
   { label: 'Hide duplicates?', key: 'hideDuplicates', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
   { label: 'Hide priority markers?', key: 'hidePriorityMarkers', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
   // TEST: moved from dashboardSettings on 4.6.2024
+  { label: "Reschedule items in place, rather than move?", key: "rescheduleNotMove", default: false, description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it." },
   { label: 'Include note link for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
   { label: 'Include folder name in note link?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
   { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
@@ -82,13 +83,13 @@ const dashboardSettings = [
     type: 'input',
     default: "2",
   },
-  {
-    key: "rescheduleNotMove",
-    label: "Reschedule items in place, rather than move them?",
-    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
-    type: 'switch',
-    default: false,
-  },
+  // {
+  //   key: "rescheduleNotMove",
+  //   label: "Reschedule items in place, rather than move them?",
+  //   description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
+  //   type: 'switch',
+  //   default: false,
+  // },
   {
     key: "moveSubItems",
     label: "Move sub-items with the item?",

@@ -30,6 +30,7 @@ type DropdownMenuProps = {
   isOpen: boolean,
   toggleMenu: () => void,
   style?: Object, // Add style prop
+  displayInColumnsIfPossible?: boolean,
 };
 
 //--------------------------------------------------------------------------
@@ -49,6 +50,7 @@ const DropdownMenu = ({
   isOpen,
   toggleMenu,
   style, // Destructure style prop
+  displayInColumnsIfPossible = false
 }: DropdownMenuProps): React$Node => {
   //----------------------------------------------------------------------
   // Refs
@@ -113,7 +115,7 @@ const DropdownMenu = ({
   return (
     <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
       <i className={iconClass} onClick={toggleMenu}></i>
-      <div className={`dropdown-content ${isOpen ? 'show' : ''}`} style={style}>
+      <div className={`dropdown-content ${isOpen ? (displayInColumnsIfPossible ? 'show-in-columns' : 'show') : ''}`} style={style}>
         {items.map((item,index) => renderItem({
           index,
           item,

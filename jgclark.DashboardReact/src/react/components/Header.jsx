@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+// Last updated 2024-06-04 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -155,6 +155,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           isOpen={openDropdownMenu === 'filter'}
           toggleMenu={() => handleToggleDropdownMenu('filter')}
           labelPosition="left"
+          displayInColumnsIfPossible="true"
         />
                 {/* Cog Icon for opening the settings dialog */}
                 <div>

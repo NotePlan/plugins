@@ -209,7 +209,7 @@ body {
 	/* no bottom padding */
 	padding: 3px 4px 0px 2px;
 	border: 0px none;
-	column-gap: 6px;
+	column-gap: 4px;
 	/* vertical in containing block */
 	align-self: start;
 	/* horizontal in containing block */
@@ -232,6 +232,7 @@ body {
 	font-size: 1.2rem;
 	font-weight: 400;
 	text-align: center;
+	cursor: pointer;
 }
 
 /* Specific item icon details */
