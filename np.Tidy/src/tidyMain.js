@@ -59,7 +59,7 @@ export async function tidyUpAll(): Promise<void> {
       await removeDoneMarkers(param)
     }
     if (config.runRemoveDoneTimePartsCommand) {
-      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.6)
+      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
@@ -76,19 +76,19 @@ export async function tidyUpAll(): Promise<void> {
     // }
 
     if (config.runDuplicateFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.7)
+      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
     if (config.runConflictFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.8)
+      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
     }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
-      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
+      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
@@ -96,6 +96,12 @@ export async function tidyUpAll(): Promise<void> {
     if (config.moveTopLevelTasksInEditor) {
       const heading = config.moveTopLevelTasksHeading.length ? config.moveTopLevelTasksHeading : null
       await moveTopLevelTasksInNote(Editor, heading, config.runSilently)
+    }
+
+    if (config.runGenerateRepeatsCommand) {
+      CommandBar.showLoading(true, `Generating any needed new @repeats ...`, 0.9)
+      logDebug('tidyUpAll', `Starting generateRepeatsFromRecentNotes...`)
+      await generateRepeatsFromRecentNotes(param)
     }
 
     // stop spinner

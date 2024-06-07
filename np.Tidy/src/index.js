@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 1.6.2024 for v0.13.0, @jgclark
+// Last updated 7.6.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -28,6 +28,7 @@ export {
 export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listDuplicates } from './duplicates'
 export { fileRootNotes } from './fileRoot'
+export { generateRepeatsFromRecentNotes } from './repeats'
 export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 export { listPotentialDoubles, openCalendarNoteInSplit } from './doubledNotes'
