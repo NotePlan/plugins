@@ -104,7 +104,7 @@ const StatusIcon = ({
     <i className={iconClassName} onClick={handleIconClick}></i>
   </span>)
   return (
-    <TooltipOnKeyPress altKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
+    <TooltipOnKeyPress ctrlKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
       {renderedIcon}
     </TooltipOnKeyPress>
   )
