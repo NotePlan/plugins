@@ -25,7 +25,8 @@ export function rectToString(rect: Rect): string {
 export function logWindowsList(): void {
   const outputLines = []
   const numWindows = NotePlan.htmlWindows.length + NotePlan.editors.length
-  if (NotePlan.environment.buildVersion >= 1100) { // v3.9.8a
+  if (NotePlan.environment.buildVersion >= 1100) {
+    // v3.9.8a
     outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment.machineName}:`)
   } else {
     outputLines.push(`${String(numWindows)} Windows:`)
@@ -64,26 +65,30 @@ export function logWindowsList(): void {
 export async function setEditorSplitWidth(editorWinIn: number, widthIn: number): Promise<void> {
   try {
     if (NotePlan.environment.buildVersion <= 1119) {
-      logWarn("setEditorSplitWidth", "Cannot set editor split window width.")
+      logWarn('setEditorSplitWidth', 'Cannot set editor split window width.')
       return
     }
-    const editorWinIndex = editorWinIn ? editorWinIn : await inputIntegerBounded("Set Width", "Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})", NotePlan.editors.length - 1, 0)
+    const editorWinIndex = editorWinIn
+      ? editorWinIn
+      : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)
     const editorWin = NotePlan.editors[editorWinIndex]
-    logDebug("setEditorSplitWidth", "- Rect: ".concat(rectToString(editorWin.windowRect)))
-    const width = widthIn ? widthIn : await inputIntegerBounded("Set Width", "Width? (300-".concat(String(NotePlan.environment.screenWidth), ")"), NotePlan.environment.screenWidth, 300)
+    logDebug('setEditorSplitWidth', '- Rect: '.concat(rectToString(editorWin.windowRect)))
+    const width = widthIn
+      ? widthIn
+      : await inputIntegerBounded('Set Width', 'Width? (300-'.concat(String(NotePlan.environment.screenWidth), ')'), NotePlan.environment.screenWidth, 300)
     const thisWindowRect = getLiveWindowRectFromWin(editorWin)
     if (!thisWindowRect) {
-      logError("setEditorSplitWidth", "Can't get window rect for editor ".concat(String(editorWinIn)))
+      logError('setEditorSplitWidth', "Can't get window rect for editor ".concat(String(editorWinIn)))
       return
     }
     const existingWidth = thisWindowRect.width
-    logDebug("setEditorSplitWidth", "Attempting to set width for editor #".concat(String(editorWinIndex), " from ").concat(existingWidth, " to ").concat(String(width)))
+    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(existingWidth, ' to ').concat(String(width)))
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
-    logDebug("setEditorSplitWidth", "- now width = ".concat(String(newWidth)))
+    logDebug('setEditorSplitWidth', '- now width = '.concat(String(newWidth)))
   } catch (error) {
-    logError("setEditorSplitWidth", error.message)
+    logError('setEditorSplitWidth', error.message)
     return
   }
 }
@@ -144,12 +149,13 @@ export async function setHTMLWindowId(customId: string): Promise<void> {
  * @returns {string} the matching open HTML window's ID or false if not found
  */
 export function getWindowIdFromCustomId(customId: string): string | false {
-  if (NotePlan.environment.buildVersion < 973) {
-    logDebug('isHTMLWindowOpen', `Could not run: needs NP v3.8.1+`)
+  if (NotePlan.environment.platform !== 'macOS') {
+    logError('isHTMLWindowOpen', `Cannot get window by customId on ${NotePlan.environment.platform}`)
     return false
   }
 
   const allHTMLWindows = NotePlan.htmlWindows
+  // clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
   for (const thisWin of allHTMLWindows) {
     // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
@@ -517,7 +523,9 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
       logWarn('setEditorWindowWidth', `Cannot set editor split window width.`)
       return
     }
-    const editorWinIndex = editorWinIn ? editorWinIn : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)
+    const editorWinIndex = editorWinIn
+      ? editorWinIn
+      : await inputIntegerBounded('Set Width', 'Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})', NotePlan.editors.length - 1, 0)
     const editorWin = NotePlan.editors[editorWinIndex]
     logDebug('setEditorWindowWidth', `- Rect: ${rectToString(editorWin.windowRect)}`)
 
@@ -541,7 +549,6 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
   }
 }
 
-
 /**
  * Constrain the Window Size and Position to what will fit on the current screen.
  * The debug log explains what is being done if it doesn't all fit in the current screen area. It will first move up/down/l/r, and only then reduce in w/h.
@@ -551,7 +558,7 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
  */
 // $FlowFixMe[incompatible-return]
 // export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
-export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }> (winDetails: T): T {
+export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }>(winDetails: T): T {
   try {
     const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
     const screenWidth = NotePlan.environment.screenWidth
@@ -604,7 +611,6 @@ export function constrainWindowSizeAndPosition<T: { x: number, y: number, width:
     return winDetails
   }
 }
-
 
 /**
  * Constrain main window, so it actually all shows on the screen

@@ -290,6 +290,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     // check to see if the theme has changed and if so, update it
+    await checkForMobile()
     await checkForThemeChange()
     if (!handlerResult) return
 
@@ -434,6 +435,17 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
 }
 
 /**
+ * Unfortunately, at the moment, there is no way to incrementally update data on iPad/iPhone
+ * See See thread on [Discord](https://discord.com/channels/763107030223290449/1248860667956428822/1248860670179540993)
+ * So after updates we have no choice but to do a full refresh of the window for now
+ */
+export async function checkForMobile(): Promise<void> {
+  if (NotePlan.environment.platform !== 'macOS') {
+    await showDashboardReact('full')
+  }
+}
+
+/**
  * Check to see if the theme has changed since we initially drew the winodw
  * This can happen when your computer goes from light to dark mode or you change the theme
  * We want the dashboard to always match
@@ -446,9 +458,13 @@ export async function checkForThemeChange(): Promise<void> {
   // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
   // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
   
-  const currentTheme = NotePlan.editors[0].currentTheme?.name || '<could not get theme>'
+  const currentTheme = Editor.currentTheme?.name || null
+  if (!currentTheme) {
+    logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
+    return
+  }
   // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
-  if (currentTheme !== themeInWindow) {
+  if (currentTheme && currentTheme !== themeInWindow) {
     logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
     // Update the CSS in the window
     // The following doesn't work in practice ...
@@ -458,7 +474,7 @@ export async function checkForThemeChange(): Promise<void> {
     // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
 
     // ... so for now, force a reload instead
-    showDashboardReact('full')
+    await showDashboardReact('full')
 
     // TODO: look further at this:
 
@@ -481,5 +497,5 @@ export async function checkForThemeChange(): Promise<void> {
     //     replaceCSS('new-styles.css');
     // </script >
     //       In this example, calling replaceCSS('new-styles.css') will change the CSS file from old - styles.css to new- styles.css without reloading the page.Make sure the id of the < link > element matches the one used in the JavaScript(theme - stylesheet in this case).
-  }
+  } 
 }

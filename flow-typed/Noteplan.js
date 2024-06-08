@@ -1993,7 +1993,7 @@ declare class HTMLView {
   // Impossible constructor.
   constructor(_: empty): empty;
   /**
-   * Show HTML in a NotePlan sheet.
+   * Show HTML in a sheet (e.g. mobile/iPad modal).
    * Note: Available from v3.6.2
    * @param {string} HTML to show
    * @param {number?} width (optional integer)
