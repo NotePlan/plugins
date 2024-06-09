@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 1.9.2023 for v0.7.0+
+// last updated 9.6.2024 for v0.7.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,7 +10,7 @@ import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
-import { getSelectedParaIndex } from '@helpers/NPParagraph'
+// import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import { parasToText } from '@helpers/paragraph'
 import { chooseHeading } from '@helpers/userInput'
 
