@@ -29,6 +29,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: added filter setting (includeScheduledDates) to hide >scheduled dates which were a lot of clutter when you use scheduling mode
 - dbw: added filter setting (hidePriorityMarkers) to hide priority markers (assumes you can see priorities in color)
 - dbw: fixed bug/discrepancy where >> was sometimes priority 5 and sometimes priority 4 (always 4 now)
+- dbw: add first-time settings migration saving
+- dbw: fix bug where StatusIcon tooltips were visible when dialog was open
 
 ## [2.0.0.a33] 2024-06-04
 - jgc: (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally

@@ -99,7 +99,8 @@ export type dashboardConfigType = {
  * @returns {any} the settings object or an empty object if there are none 
  */
 export function getSharedSettings(): any {
-  if (!DataStore.settings?.sharedSettings) clo(DataStore.settings, `DataStore.settings?.sharedSettings not found; here's the full settings`)
+  const settings = DataStore.settings
+  if (!settings.sharedSettings) clo(settings, `getSharedSettings: DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings`)
   return parseSettings(DataStore.settings?.sharedSettings || '') ?? {}
 }
 
@@ -109,6 +110,7 @@ export function getSharedSettings(): any {
  */
 export async function getCombinedSettings(): Promise<any> {
   const sharedSettings = getSharedSettings()
+  if (Object.keys(sharedSettings).length === 0) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20

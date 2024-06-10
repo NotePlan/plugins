@@ -158,10 +158,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // when sharedSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
+  // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to sharedSettings
   useEffect(() => {
-    if (sharedSettings?.lastChange && typeof sharedSettings.lastChange === 'string' && sharedSettings.lastChange.length > 0 && sharedSettings.lastChange[0] !== '_') {
+    const settingsNeedFirstTimeMigration = sharedSettings?.settingsMigrated === undefined
+    if (settingsNeedFirstTimeMigration || sharedSettings?.lastChange && typeof sharedSettings.lastChange === 'string' && sharedSettings.lastChange.length > 0 && sharedSettings.lastChange[0] !== '_') {
+      settingsNeedFirstTimeMigration && logDebug('Dashboard', `Settings need first time migration sending to plugin to be saved`, sharedSettings)
       logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
-      const strSharedSetings = JSON.stringify(sharedSettings)
+      const sharedSets = { ...sharedSettings }
+      if (settingsNeedFirstTimeMigration) { 
+        sharedSets.settingsMigrated = true 
+        sharedSets.lastChange = '_Saving first time migration'
+      }
+      const strSharedSetings = JSON.stringify(sharedSets)
       sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', true)
     } else if (sharedSettings && Object.keys(sharedSettings).length > 0) {
       // logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)

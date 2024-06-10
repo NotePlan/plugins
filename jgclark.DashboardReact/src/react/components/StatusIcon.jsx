@@ -16,15 +16,20 @@ type Props = {
   item: TSectionItem,
   respondToClicks: boolean,
   onIconClick?: (item: TSectionItem, actionType: string) => void,
+  location?: string, /* where being called from so we can make decisions (e.g. "dialog" to show/not show things) */
 };
 
 const StatusIcon = ({
   item,
   respondToClicks,
   onIconClick,
+  location,
 }: Props): Node => {
 
-  const { sendActionToPlugin } = useAppContext()
+  const { sendActionToPlugin, reactSettings } = useAppContext()
+
+  const dialogIsOpen = reactSettings?.dialogData?.isOpen
+  const shouldShowTooltips = !dialogIsOpen || location === 'dialog'
 
   useEffect(() => {
     // This effect runs when `item.itemType` changes
@@ -103,10 +108,10 @@ const StatusIcon = ({
   const renderedIcon = (<span className="sectionItemTodo itemIcon todo">
     <i className={iconClassName} onClick={handleIconClick}></i>
   </span>)
-  return (
+  return shouldShowTooltips ? (
     <TooltipOnKeyPress ctrlKey={{ text: 'Cancel Item' }} metaKey={{ text: 'Delete Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
       {renderedIcon}
     </TooltipOnKeyPress>
-  )
+  ) : renderedIcon
 }
 export default StatusIcon

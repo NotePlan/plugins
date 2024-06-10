@@ -229,6 +229,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
               {detailsMessageObject?.item ? <StatusIcon
+                location={"dialog"}
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
                 onIconClick={handleIconClick}
