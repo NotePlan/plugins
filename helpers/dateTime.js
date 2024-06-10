@@ -1160,13 +1160,13 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       case 'day': {
         const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('d')
         newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        logDebug('dateTime / cODS', `- 'day' output: changed format to ${offsetMomentFormat}`)
         break
       }
       case 'week': {
         const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('w')
         newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        logDebug('dateTime / cODS', `- 'week' output: changed format to ${offsetMomentFormat}`)
         break
       }
       case 'month': {
@@ -1178,13 +1178,13 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       case 'quarter': {
         const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('q')
         newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        logDebug('dateTime / cODS', `- 'quarter' output: changed format to ${offsetMomentFormat}`)
         break
       }
       case 'year': {
         const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('y')
         newDateStr = moment(offsetDate).format(offsetMomentFormat)
-        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        logDebug('dateTime / cODS', `- 'year' output: changed format to ${offsetMomentFormat}`)
         break
       }
       default: {

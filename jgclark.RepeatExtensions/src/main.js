@@ -2,30 +2,23 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 7.6.2024 for v0.7.1
+// last updated 9.6.2024 for v0.8.0
 //-----------------------------------------------------------------------
 
 // import moment from 'moment'
 import pluginJson from "../plugin.json"
 import {
-  // calcOffsetDate,
-  calcOffsetDateStr,
-  isWeeklyNote,
-  isMonthlyNote,
-  isQuarterlyNote,
-  isYearlyNote,
+  generateUpdatedLineContent,
+  getRepeatSettings,
+  type RepeatConfig,
+} from './repeatHelpers'
+import {
   RE_ANY_DUE_DATE_TYPE,
   RE_DATE_INTERVAL,
   RE_DONE_DATE_TIME,
   RE_DONE_DATE_TIME_CAPTURES,
   RE_ISO_DATE, // find dates of form YYYY-MM-DD
-  RE_SCHEDULED_DAILY_NOTE_LINK,
-  RE_SCHEDULED_WEEK_NOTE_LINK,
-  RE_SCHEDULED_MONTH_NOTE_LINK,
-  RE_SCHEDULED_QUARTERLY_NOTE_LINK,
-  RE_SCHEDULED_YEARLY_NOTE_LINK,
   unhyphenateString,
-  hyphenatedDateString,
 } from '@helpers/dateTime'
 import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { logAllEnvironmentSettings } from "@helpers/NPdev"
@@ -38,7 +31,7 @@ import { showMessage } from '@helpers/userInput'
 // Regexes
 
 const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
-const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
+// const RE_EXTENDED_REPEAT_CAPTURE = `@repeat\\((.*?)\\)` // find @repeat() and return part inside brackets
 
 //------------------------------------------------------------------
 /**
@@ -126,10 +119,11 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
     let noteIsOpenInEditor = false // means we can use a faster-to-user function when true
     if (noteArg) {
       noteToUse = noteArg
-      // logDebug(pluginJson, `noteArg -> ${displayTitle(noteToUse)}`)
+      logDebug(pluginJson, `noteArg -> ${noteToUse.filename}`)
     } else if (Editor && Editor.note) {
       noteToUse = Editor.note
       noteIsOpenInEditor = true
+      logDebug(pluginJson, `Editor -> ${noteToUse.filename}`)
     } else {
       throw new Error(`Couldn't get either passed Note argument or Editor.note: stopping`)
     }
@@ -155,9 +149,9 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
       logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${endOfActive} active lines`)
     }
 
+    const config: RepeatConfig = await getRepeatSettings()
     let repeatCount = 0
     let line = ''
-    // let updatedLine = ''
     let completedDate = ''
     let completedTime = ''
     let reReturnArray: Array<string> = []
@@ -169,8 +163,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
       let lineWithoutDoneTime = ''
       completedDate = ''
 
-      // find lines with datetime to shorten, and capture date part of it
-      // i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
+      // find lines with datetime to shorten, and capture date part of it. i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
       if (line.match(RE_DONE_DATE_TIME)) {
         // get completed date and time
         reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
@@ -181,7 +174,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
         // remove time string from completed date-time
         lineWithoutDoneTime = line.replace(completedTime, '') // couldn't get a regex to work here
         p.content = lineWithoutDoneTime
-        // Send the update to the Editor
+        // Send the update to the note
         noteToUse.updateParagraph(p)
         // logDebug('generateRepeats', `- updated para ${p.lineIndex} -> <${lineWithoutDoneTime}>`)
 
@@ -191,7 +184,9 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
 
           // Create and add the new repeat line
           let newRepeatDateStr = generateUpdatedLineContent(noteToUse, p.content, completedDate)
-          let outputLine = p.content.replace(/@done\(.*\)/, '').trim()
+          // Remove any >date and @done()
+          let outputLine = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
+          logDebug('generateRepeats', `- outputLine: ${outputLine}`)
 
           if (type === 'Notes') {
             // Add in same project note, including new scheduled date
@@ -202,7 +197,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
             } else {
               await noteToUse.insertParagraphBeforeParagraph(outputLine, p, 'open')
             }
-            logInfo('generateRepeats', `- inserted new para after line ${p.lineIndex}`)
+            logInfo('generateRepeats', `- inserted new repeat in note ${noteToUse.filename} at line ${p.lineIndex}`)
           }
           else {
             // Add in the future Calendar note
@@ -229,7 +224,6 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
               logDebug('generateRepeats', `- changed newRepeatDateStr to ${newRepeatDateStr}`)
             }
             const futureNote = await DataStore.calendarNoteByDateString(newRepeatDateStr)
-            // let futureNote = await DataStore.calendarNoteByDate(newRepeatDate, outputTimeframe)
             if (futureNote != null) {
               // Add todo to future note
               await futureNote.appendTodo(outputLine)
@@ -247,6 +241,19 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
               logInfo('generateRepeats', `- couldn't get futureNote, so instead inserted new para after line ${p.lineIndex} in original note`)
             }
           }
+
+          // delete the completed line entirely if 'deleteCompletedRepeat' true
+          if (config.deleteCompletedRepeat) {
+            logDebug('generateRepeats', `- removing para ${String(p.lineIndex)}`)
+            // Remove para from the mote
+            // noteToUse.removeParagraph(p)
+            if (noteIsOpenInEditor) {
+              Editor.removeParagraphAtIndex(n + 1)
+            } else {
+              noteToUse.removeParagraphAtIndex(n + 1)
+            }
+            logDebug('generateRepeats', `- after removal, ${String(noteToUse.paragraphs.length)} lines`)
+          }
         }
       }
     }
@@ -263,70 +270,3 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
   }
 }
 
-function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentContent: string, completedDate: string): string {
-  // get repeat to apply
-  const reReturnArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
-  let dateIntervalString: string = (reReturnArray.length > 0) ? reReturnArray[1] : ''
-  logDebug('generateRepeats', `- Found extended @repeat syntax: '${dateIntervalString}'`)
-
-  // decide style of new date: daily / weekly / monthly / etc.link
-  let outputTimeframe = 'day'
-  if (currentContent.match(RE_SCHEDULED_WEEK_NOTE_LINK) || isWeeklyNote(noteToUse)) {
-    outputTimeframe = 'week'
-  } else if (currentContent.match(RE_SCHEDULED_MONTH_NOTE_LINK) || isMonthlyNote(noteToUse)) {
-    outputTimeframe = 'month'
-  } else if (currentContent.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) || isQuarterlyNote(noteToUse)) {
-    outputTimeframe = 'quarter'
-  } else if (currentContent.match(RE_SCHEDULED_YEARLY_NOTE_LINK) || isYearlyNote(noteToUse)) {
-    outputTimeframe = 'year'
-  }
-  logDebug('generateRepeats', `- outputTimeframe: ${outputTimeframe}`)
-
-  let newRepeatDateStr = ''
-  // let newRepeatDate: Date
-  let output = currentContent
-
-  if (dateIntervalString[0].startsWith('+')) {
-    // New repeat date = completed date (of form YYYY-MM-DD) + interval
-    dateIntervalString = dateIntervalString.substring(
-      1,
-      dateIntervalString.length,
-    )
-    // newRepeatDate = calcOffsetDate(completedDate, dateIntervalString) ?? new moment().startOf('day').toDate()
-    newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString)
-    logDebug('generateRepeats', `- adding from completed date ${newRepeatDateStr}`)
-    // Remove any >date
-    output = output.replace(RE_ANY_DUE_DATE_TYPE, '')
-    logDebug('generateRepeats', `- output: ${output}`)
-
-  } else {
-    // New repeat date = due date + interval
-    // look for the due date (>YYYY-MM-DD) or other calendar types
-    let dueDate = ''
-    const dueDateArray = RE_SCHEDULED_DAILY_NOTE_LINK.test(output)
-      ? output.match(RE_SCHEDULED_DAILY_NOTE_LINK)
-      : RE_SCHEDULED_WEEK_NOTE_LINK.test(output)
-        ? output.match(RE_SCHEDULED_WEEK_NOTE_LINK)
-        : RE_SCHEDULED_MONTH_NOTE_LINK.test(output)
-          ? output.match(RE_SCHEDULED_MONTH_NOTE_LINK)
-          : RE_SCHEDULED_QUARTERLY_NOTE_LINK.test(output)
-            ? output.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK)
-            : RE_SCHEDULED_YEARLY_NOTE_LINK.test(output)
-              ? output.match(RE_SCHEDULED_YEARLY_NOTE_LINK)
-              : []
-    logDebug('generateRepeats', `- dueDateArray: ${String(dueDateArray)}`)
-    if (dueDateArray && dueDateArray[0] != null) {
-      dueDate = dueDateArray[0].split('>')[1]
-      logDebug('generateRepeats', `  due date match = ${dueDate}`)
-      // need to remove the old due date
-      output = output.replace(` >${dueDate}`, '')
-    } else {
-      // there is no due date, so try the note date, otherwise use completed date
-      dueDate = noteToUse.date ? hyphenatedDateString(noteToUse.date) : completedDate
-      logDebug('generateRepeats', `- no match => use note/completed date ${dueDate}`)
-    }
-    newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString, outputTimeframe)
-    logDebug('generateRepeats', `- adding from due date -> ${newRepeatDateStr}`)
-  }
-  return newRepeatDateStr
-}

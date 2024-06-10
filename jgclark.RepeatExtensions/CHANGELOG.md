@@ -1,6 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [0.8.0] - 2024-06-09
+- added setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
+<!-- - fix detailed logging error in dateTime::cODS -->
+
 ## [0.7.1] - 2024-06-07
 - can now be run from an x-callback or function, passing in the note to process. This was needed for the new Tidy plugin command, which generate any needed repeats in all recently-changed notes.
 
