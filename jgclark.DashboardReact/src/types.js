@@ -150,6 +150,7 @@ export type MessageDataObject = {
   toFilename?: string,
   newDimensions?: { width: number, height: number },
   settings?: TAnyObject,
+  filename?: string, /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */
 }
 
 /**

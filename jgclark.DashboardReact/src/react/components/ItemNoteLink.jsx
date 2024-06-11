@@ -33,11 +33,11 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
     const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
 
     const dataObjectToPassToFunction = {
-      actionType: 'showNoteInEditorFromFilename',
+      actionType: 'showLineInEditorFromFilename',
       modifierKey: modifierName,
       item,
     }
-    sendActionToPlugin('showNoteInEditorFromFilename', dataObjectToPassToFunction, `${noteTitle} clicked`, true)
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, `${noteTitle} clicked`, true)
   }
 
   if (filename !== thisSection.sectionFilename) {

@@ -41,7 +41,7 @@ export function parseSettings(settings: string): any {
  * @example const { filename, content, item, para, someOtherProp } = validateAndFlattenMessageObject(data)
  */
 export function validateAndFlattenMessageObject(data: MessageDataObject): ValidatedData {
-    const { item } = data
+    const { item, filename } = data
     let { para, project } = item||{}
     const isProject = project !== undefined
     const isTask = !isProject
@@ -51,7 +51,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 
     // Check for required fields in para
     const activeObject = isProject ? project : para
-    if (!activeObject?.filename) {
+    if (!filename && !activeObject?.filename) {
         throw new Error("Error validating data: 'filename' is null or undefined.")
     }
     if (isTask) {

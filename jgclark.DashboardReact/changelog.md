@@ -31,6 +31,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fixed bug/discrepancy where >> was sometimes priority 5 and sometimes priority 4 (always 4 now)
 - dbw: add first-time settings migration saving
 - dbw: fix bug where StatusIcon tooltips were visible when dialog was open
+- dbw: add ability to open note (e.g. tomorrow or week) by clicking the section header
 
 ## [2.0.0.a33] 2024-06-04
 - jgc: (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally

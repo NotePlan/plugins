@@ -538,16 +538,23 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 
 // Handle a show note call simply by opening the note in the main Editor.
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, modifierKey } = validateAndFlattenMessageObject(data)
-  clo(data, `doShowNoteInEditorFromFilename: data`)
+  const { filename, modifierKey } = data
+  if (!filename) throw 'doShowNoteInEditorFromFilename: No filename: stopping'
   // Note: use the showLine... variant of this (below) where possible
   const note = await Editor.openNoteByFilename(filename, modifierKey==='meta',0,0,modifierKey==='alt')
   if (note) {
     logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
-    return handlerResult(false)
+    // note may not exist yet, so try to create it (if it's a calendar note)
+    const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor. {isCalendarNote ? 'Maybe doesn't exist yet. will try to create it': ''}`)
+    const note = isCalendarNote ? await DataStore.noteByFilename(filename,"Calendar") : null
+    if (note) {
+      note.content = ''
+      Editor.openNoteByFilename(filename, modifierKey==='meta',0,0,modifierKey==='alt')
+    }
+    return handlerResult(note ? true : false)
   }
 }
 

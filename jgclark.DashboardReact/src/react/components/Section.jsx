@@ -14,8 +14,10 @@ import useInteractiveProcessing from '../customHooks/useInteractiveProcessing.js
 import useSectionSortAndFilter from '../customHooks/useSectionSortAndFilter.jsx'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
+import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -37,8 +39,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const [items, setItems] = useState<Array<TSectionItem>>([])
-  const [itemsCopy, setItemsCopy] = useState<Array<TSectionItem>>([])
+  const [items, setItems] = useState < Array < TSectionItem >> ([])
+  const [itemsCopy, setItemsCopy] = useState < Array < TSectionItem >> ([])
+
+  //----------------------------------------------------------------------
+  // Constants
+  // ---------------------------------------------------------------------
+  const { sectionFilename } = section
+  const titleStyle = sectionFilename ? { cursor: 'pointer' } : {}
 
   //----------------------------------------------------------------------
   // Effects
@@ -73,7 +81,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Hooks
   //----------------------------------------------------------------------
   const { filteredItems, itemsToShow, filteredOut, limitApplied } = useSectionSortAndFilter(section, items, sharedSettings)
-  
+
   useInteractiveProcessing(filteredItems, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, sharedSettings)
 
   //----------------------------------------------------------------------
@@ -90,10 +98,17 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }))
   }
 
-  const handleCommandButtonClick = (button:TActionButton): void => {
+  const handleCommandButtonClick = (button: TActionButton): void => {
     logDebug(`Section`, `handleCommandButtonClick was called for section ${section.name} section`)
     // but this section could be empty and go away, so we need to propagate up
     onButtonClick(button)
+  }
+
+  const handleSectionClick = (e: MouseEvent): void => {
+    if (!sectionFilename) return
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    const detailsMessageObject = { actionType: 'showNoteInEditorFromFilename', modifierKey: modifierName, filename: sectionFilename }
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Section', true)
   }
 
   //----------------------------------------------------------------------
@@ -108,7 +123,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(itemsToShow.length)}</span>`)
     } else {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(itemsToShow.length)}</span>`)
-    } 
+    }
   }
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
@@ -116,11 +131,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
-        <div className={`${section.sectionTitleClass} sectionName`}>
+      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${section.name}_Open Note Link`} showAtCursor={true} enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}>
+        <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
           <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
           {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
           {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
         </div>{' '}
+        </TooltipOnKeyPress>
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
