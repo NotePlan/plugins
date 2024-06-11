@@ -3,7 +3,7 @@
  * @author @aaronpoweruser
  */
 import pluginJson from '../plugin.json'
-import { log, logDebug, logError, logInfo, clo, JSP } from '@helpers/dev'
+import { log, logDebug, logError, logInfo, clo, JSP, timer } from '@helpers/dev'
 
 const CODE_BLOCK_PLACEHOLDER = '8ce08058-d387-4d3a-8043-4f3b7ef63eb7'
 const MARKDOWN_LINK_PLACEHOLDER = '975b7115-5568-4bc6-b6c8-6603350572ea'
@@ -12,7 +12,7 @@ const MARKDOWN_LINK_PLACEHOLDER = '975b7115-5568-4bc6-b6c8-6603350572ea'
  * Trigger the find unlinked notes command
  */
 export async function triggerFindUnlinkedNotes() {
-    await findUnlinkedNotesInCurrentNote()
+  await findUnlinkedNotesInCurrentNote()
 }
 
 /**
@@ -34,7 +34,7 @@ export async function findUnlinkedNotesInAllNotes() {
   const allNotes = [...DataStore.projectNotes, ...DataStore.calendarNotes]
   const foundLinks = await findUnlinkedNotes(allNotes)
   CommandBar.showLoading(false)
-  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${(new Date().getTime() - runTime.getTime()) / 1000}s`)
+  logInfo(`Found ${foundLinks} unlinked notes in all notes, took: ${timer(runTime)}`)
 }
 
 /**
@@ -50,7 +50,7 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
     const noteTitlesSortedByLength = getAllNoteTitlesSortedByLength()
     foundLinks = notes.reduce((count, note) => count + findUnlinkedNotesInNote(note, noteTitlesSortedByLength), 0)
 
-    CommandBar.onMainThread()
+    await CommandBar.onMainThread()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -90,31 +90,33 @@ function findUnlinkedNotesInNote(currentNote: TNote, noteTitlesSortedByLength: A
   content = replaceMarkdownLinks(content, markdownLinkTracker)
 
   if (foundLinks > 0) {
-  // currentNote.content = content
+    const startTime = new Date()
+    currentNote.content = content
+    logDebug(`Updated note took: ${timer(startTime)}`)
   }
-  logInfo(`Linked ${foundLinks} notes in ${currentNote.title ?? ''}, took: ${new Date().getTime() - overallTime.getTime()}ms`)
+  logInfo(`Linked ${foundLinks} notes in ${currentNote.title ?? ''}, took: ${timer(overallTime)}`)
 
   return foundLinks
 }
 
 /**
  * Builds a regular expression to match a specific note title within a text.
- * 
+ *
  * @param {string} noteTitle - The title of the note to be matched.
  * @returns {RegExp} - A regular expression object for matching the note title in a given text.
- * 
+ *
  * The regular expression is constructed dynamically to ensure that the note title:
  * - Is surrounded by word boundaries or specific punctuation marks.
  * - Does not appear within square brackets (like [[this]]).
  * - Is case-insensitive and performs a global search (flags 'gi').
- * 
+ *
  * Breakdown of the regex pattern:
  * `w*(?<=[\\s,.:;"'])|^)`: Matches any leading whitespace or specific punctuation characters before the note title.
  * `(${sanitizeForRegex(noteTitle)})`: The sanitized note title to be matched.
  * `(?![^[\\]]{2})1: Negative lookahead to ensure the note title is  followed by two closing square brackets (]]).
  */
 export function buildRegex(noteTitle: string): RegExp {
-   return new RegExp(`(w*(?<=[\\s,.:;"'])|^)(${sanitizeForRegex(noteTitle)})(?![^[\]]{2})`, 'gi')
+  return new RegExp(`(w*(?<=[\\s,.:;"'])|^)(${sanitizeForRegex(noteTitle)})(?![^[\]]{2})`, 'gi')
 }
 
 /**
@@ -129,7 +131,7 @@ function extractMarkdownLinks(content: string): [string, Array<string>] {
     markdownLinkTracker.push(match)
     return MARKDOWN_LINK_PLACEHOLDER
   })
-  logDebug(`Replaced ${markdownLinkTracker.length} markdown links, took: ${new Date().getTime() - startTime.getTime()}ms`)
+  logDebug(`Replaced ${markdownLinkTracker.length} markdown links, took: ${timer(startTime)}`)
   return [filteredContent, markdownLinkTracker]
 }
 
@@ -145,7 +147,7 @@ function extractCodeBlocks(content: string): [string, Array<string>] {
     codeBlockTracker.push(match)
     return CODE_BLOCK_PLACEHOLDER
   })
-  logDebug(`Replaced ${codeBlockTracker.length} code blocks, took: ${new Date().getTime() - startTime.getTime()}ms`)
+  logDebug(`Replaced ${codeBlockTracker.length} code blocks, took: ${timer(startTime)}`)
   return [filteredContent, codeBlockTracker]
 }
 
