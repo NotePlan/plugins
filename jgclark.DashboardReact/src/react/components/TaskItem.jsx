@@ -20,8 +20,7 @@ type Props = {
 };
 
 function TaskItem({ item, thisSection }: Props): Node {
-  const { setReactSettings, pluginData } = useAppContext()
-  const { settings } = pluginData
+  const { setReactSettings, sharedSettings } = useAppContext()
 
   const [visible, setVisible] = useState(true)
 
@@ -41,7 +40,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         if (fadeElement) fadeElement.classList.add('fadeOutAndHide')
         // Set visible to false after 500ms
         setTimeout(() => {
-          // setVisible(false) // Do not hide, because the array is rewritten and it may hide the wrong item
+          setVisible(false) // Do not hide, because the array is rewritten and it may hide the wrong item
         }, 500)
         break
       }
@@ -74,7 +73,7 @@ function TaskItem({ item, thisSection }: Props): Node {
           onIconClick={handleIconClick}
         />
         <ItemContent item={item} >
-        {settings?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
+        {sharedSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
         <a className="dialogTrigger">
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
         </a>

@@ -75,13 +75,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
 
-  const { settings } = pluginData
+  const { settings: pluginDataSettings } = pluginData
 
-  const dropdownItems = createFilterDropdownItems(sharedSettings, pluginData.settings)
-  const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginData.settings)
-  const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginData.settings)
+  const dropdownItems = createFilterDropdownItems(sharedSettings, pluginDataSettings)
+  const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginDataSettings)
+  const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginDataSettings)
 
-  const showHardRefreshButton = pluginData.settings._logLevel === 'DEV' && sharedSettings?.FFlag_HardRefreshButton
+  const isDevMode = pluginDataSettings._logLevel === 'DEV'
+  const showHardRefreshButton = isDevMode && sharedSettings?.FFlag_HardRefreshButton
 
   //----------------------------------------------------------------------
   // Render
@@ -113,7 +114,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
-        {settings?._logLevel === 'DEV' && (
+        {isDevMode && (
           <DropdownMenu
             items={featureFlagItems}
             handleSwitchChange={(key, e) => {
@@ -155,16 +156,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           isOpen={openDropdownMenu === 'filter'}
           toggleMenu={() => handleToggleDropdownMenu('filter')}
           labelPosition="left"
-          displayInColumnsIfPossible="true"
+          displayInColumnsIfPossible={true}
         />
-                {/* Cog Icon for opening the settings dialog */}
-                <div>
-            <i
-              className="fa-solid fa-gear"
-              onClick={handleToggleDialog}
-              style={{ cursor: 'pointer' }}
-            ></i>
-          </div>
+        {/* Cog Icon for opening the settings dialog */}
+        <div>
+          <i
+            className="fa-solid fa-gear"
+            onClick={handleToggleDialog}
+            style={{ cursor: 'pointer' }}
+          ></i>
+        </div>
       </div>
     </div>
   )

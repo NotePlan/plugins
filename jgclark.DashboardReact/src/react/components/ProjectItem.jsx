@@ -16,12 +16,11 @@ type Props = {
 }
 
 function ReviewItem({ item }: Props): React.Node {
-  const { pluginData, setReactSettings /*, sharedSettings, setSharedSettings */ } = useAppContext()
-  const { settings } = pluginData
+  const { pluginData, setReactSettings, sharedSettings /*, setSharedSettings */ } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
-  const folderNamePart = settings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+  const folderNamePart = sharedSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
   // logDebug(`ReviewItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
 
   const noteTitleWithOpenAction = (
