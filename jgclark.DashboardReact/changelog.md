@@ -24,6 +24,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
+
+## [2.0.0.b2] 2024-06-11
+- jgc: following @aaronpoweruser suggestion that an item with ">today" should have that removed when completing it, to align with how NP reference section works.
+- jgc: fix bug that today items with ">today" would be shown truncated
+- jgc: added tests to more scheduled date handling functions
+
+## [2.0.0.b1] 2024-06-11
+- dbw: add first-time settings migration saving
+- dbw: fix bug where StatusIcon tooltips were visible when dialog was open
+
 ## [2.0.0.a34] 2024-06-06
 - jgc: added marker after an item to show if it has child/children items
 - dbw: added filter setting (includeScheduledDates) to hide >scheduled dates which were a lot of clutter when you use scheduling mode
@@ -43,7 +53,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fixed bug where rollover on file link could still be seen when dialog was up (mouse position bleeding through) -- there is yet another one to solve with the StatusIcon
 - dbw: fixed bug where #tagged items in a regular note that were scheduled for the future would show up. Now they don't
 
-## [2.0.0.a32] @jgc 2024-06-02
+## [2.0.0.a32] 2024-06-02
 - fix reschedule date using dialog
 - removed 'updateOverdueOnTrigger' setting, as I think it is not needed now we have smarter data generation strategies
 - alt-click on an item's status icon now deletes the item entirely (after a check with the user).
@@ -65,7 +75,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - used it to fix the bug where #tag sections were showing tasks in future notes
 - fix IP dialog close bug (IP not stopping)
 
-## [2.0.0.a30] @jgc 2024-05-31
+## [2.0.0.a30] 2024-05-31
 - added 'move' (rather than 'reschedule') functionality back in
 - finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'reschedule' accordingly
 - stopped IP button from being shown for Projects section
@@ -102,7 +112,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: improved sharedSettings initialization (made it happen earlier)
 - dbw: fixed errant reloads at launch
 
-## [2.0.0.a27] @jgc 2024-05-27
+## [2.0.0.a27] 2024-05-27
 - restored the 'show referenced data in separate section' again when generating data
 - window dimensions are saved again between refreshes
 - note to DBW: I have moved some of the 'force' logic to getAllSectionsData, which is I think where it needs to be as that's used on initialLoad. I have left it in getSomeSectionsData as well, though I think it could be removed.
@@ -114,7 +124,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fix a couple of type paste errors in demo data
 - dbw: added fflag limit overdues to last 2w for @jgclark
 
-## [2.0.0.a26] @jgc 2024-05-24
+## [2.0.0.a26] 2024-05-24
 - fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor
 - fixing dark mode CSS for new Settings dropdown
 - set more natural widths for the various dropdown menus

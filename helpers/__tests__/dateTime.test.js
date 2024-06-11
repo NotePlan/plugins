@@ -138,6 +138,10 @@ describe(`${PLUGIN_NAME}`, () => {
    */
   describe('replaceArrowDatesInString()' /* function */, () => {
     test('should replace today with todays date', () => {
+      const result = dt.replaceArrowDatesInString('test today >today', '')
+      expect(result).toEqual(`test today`)
+    })
+    test('should replace today with todays date', () => {
       const result = dt.replaceArrowDatesInString('foo >today bar')
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
     })

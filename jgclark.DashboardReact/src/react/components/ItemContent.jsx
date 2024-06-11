@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 20.5.2024 for v2.0.0 by @jgclark
+// Last updated 11.6.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -48,16 +48,16 @@ function ItemContent({ item, children }: Props): React$Node {
   const { sendActionToPlugin, sharedSettings } = useAppContext()
   // const itemType = para.type
 
-  // console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
+  logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
 
   // compute the things we need later
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
-    // get rid of arrowDates if desired by user
-    if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent,'')
+  // get rid of arrowDates if desired by user
+  if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
 
-    // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
-    if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
+  // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
+  if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
 
   function handleTaskClick() {
     const dataObjectToPassToFunction = {
@@ -143,7 +143,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     output = convertPreformattedToHTML(output)
 
     // Display time blocks with .timeBlock style
-    if (thisItem.para?.startTime) {
+    if (thisItem.para?.startTime && thisItem.para?.startTime !== 'none') {
       // logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
       output = convertTimeBlockToHTML(output)
     }
