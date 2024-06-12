@@ -1,5 +1,19 @@
 # Architecture / How Things Work
 
+## Components
+
+Generally speaking the React components are in the components directory. However, when components get large, they are split as follows:
+- a folder is created for the component (e.g. "Header")
+- the component file is put inside the folder (e.g. Header.jsx)
+- the hooks file used by this component are put inside the folder
+- the handlers file used by this component are put inside the folder
+- an index.js is create that exports the component:
+```js
+import Header from './Header.jsx'
+export default Header 
+```
+- importing the component then looks like: `import Header from './Header'`
+
 ## Settings
 
 As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings. This is necessary during the time of transition because we want users' 1.0 preferences to not be lost. Starting in 2.1, there will be no *user visible* plugin settings in DataStore.settings (or plugin.json), other than LOG_LEVEL. 
@@ -7,7 +21,7 @@ As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings.
 - Under the hood, "sharedSettings" is actually saved in `DataStore.settings.sharedSettings` in stringified JSON, and parsed when needed on the front-end or back end.
 - Any time any change is made to a setting, a useEffect listener, watching for changes to sharedSettings will fire off a command to update the back-end (DataStore.settings.sharedSetttings) with the latest value.
 - For the front-end, settings are defined in the file: 
-    `src/react/support.dashboardSettingsItems.js`
+    `src/dashboardSettings.js`
 
 
 ## Custom Hooks (src/react/customHooks)

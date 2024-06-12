@@ -9,13 +9,13 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
-import type { TSection, TSectionItem, TActionButton } from '../../types.js'
-import useInteractiveProcessing from '../customHooks/useInteractiveProcessing.jsx'
-import useSectionSortAndFilter from '../customHooks/useSectionSortAndFilter.jsx'
-import CommandButton from './CommandButton.jsx'
-import ItemGrid from './ItemGrid.jsx'
-import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
-import { useAppContext } from './AppContext.jsx'
+import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
+import CommandButton from '../CommandButton.jsx'
+import ItemGrid from '../ItemGrid.jsx'
+import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
+import { useAppContext } from '../AppContext.jsx'
+import useInteractiveProcessing from './useInteractiveProcessing.jsx'
+import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
 import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 

@@ -1,7 +1,7 @@
 // useSectionSortAndFilter.jsx
 // @flow
 import { useState, useEffect } from 'react'
-import type { TSection, TSectionItem } from '../../types.js'
+import type { TSection, TSectionItem } from '../../../types.js'
 
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,

@@ -1,7 +1,7 @@
 // @flow
-import { allSectionDetails, allSectionCodes } from "../../constants.js"
-import type { TSharedSettings } from "../../types.js"
-import { dashboardFilters } from "./dashboardSettingsItems.js"
+import { allSectionDetails, allSectionCodes } from "../../../constants.js"
+import type { TSharedSettings } from "../../../types.js"
+import { dashboardFilters } from "../../../dashboardSettings"
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 
 

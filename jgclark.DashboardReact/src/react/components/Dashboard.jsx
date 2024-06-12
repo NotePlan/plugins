@@ -9,15 +9,15 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from '../support/sectionHelpers.js'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
 // import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
+import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
 // import { type TActionButton } from '../../types.js'
-import Header from './Header.jsx'
-import Section from './Section.jsx'
+import Header from './Header'
+import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'

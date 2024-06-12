@@ -1,5 +1,5 @@
 // @flow
-import type { TDropdownItem, TSharedSettings } from "../../types.js"
+import type { TDropdownItem, TSharedSettings } from "../../../types.js"
 
 
 const featureFlagSettings = [

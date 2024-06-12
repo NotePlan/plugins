@@ -10,23 +10,23 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 // import { getFeatureFlags } from '../../shared.js'
-import { createFilterDropdownItems } from '../support/filterDropdownItems'
-import { createFeatureFlagItems } from '../support/featureFlagItems'
-import { createDashboardSettingsItems } from '../support/dashboardSettingsItems.js'
+import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
+import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
+import DropdownMenu from '../DropdownMenu.jsx'
+import SettingsDialog from '../SettingsDialog.jsx'
+import RefreshControl from '../RefreshControl.jsx'
+import { useAppContext } from '../AppContext.jsx'
+import { createFeatureFlagItems } from './featureFlagItems.js'
+import { createFilterDropdownItems } from './filterDropdownItems.js'
+import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
+import useLastFullRefresh from './useLastFullRefresh.js'
 import {
   handleSwitchChange,
   handleRefreshClick,
   handleSaveInput,
   handleDropdownFieldChange,
   onDropdownMenuChangesMade
-} from '../support/headerDropdownHandlers.js'
-import useLastFullRefresh from '../customHooks/useLastFullRefresh.js'
-import { useSettingsDialogHandler } from '../customHooks/useSettingsDialogHandler.jsx'
-import { useDropdownMenuHandler } from '../customHooks/useDropdownMenuHandler.jsx'
-import DropdownMenu from './DropdownMenu.jsx'
-import SettingsDialog from './SettingsDialog.jsx'
-import RefreshControl from './RefreshControl.jsx'
-import { useAppContext } from './AppContext.jsx'
+} from './headerDropdownHandlers.js'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------

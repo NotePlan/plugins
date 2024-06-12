@@ -1,6 +1,6 @@
 // @flow
-import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../types.js'
-import { allSectionDetails } from "../../constants.js"
+import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../../types.js'
+import { allSectionDetails } from "../../../constants.js"
 import { logDebug, clof } from '@helpers/react/reactDev.js'
 
 const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]

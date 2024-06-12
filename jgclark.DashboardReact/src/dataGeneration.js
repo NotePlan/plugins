@@ -11,7 +11,7 @@ import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails
 } from './types'
 import { allSectionCodes } from "./constants.js"
-import { getTagSectionDetails } from './react/support/sectionHelpers.js'
+import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import {
   // extendParasToAddStartTimes,
   getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,

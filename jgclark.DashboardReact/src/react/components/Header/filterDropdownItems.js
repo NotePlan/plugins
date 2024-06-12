@@ -1,8 +1,8 @@
 // @flow
-import { allSectionDetails } from "../../constants.js"
-import type { TDropdownItem, TSharedSettings } from "../../types.js"
-import { dashboardFilters} from "../../dashboardSettings"
-import { getTagSectionDetails } from "../components/Section/sectionHelpers.js"
+import { allSectionDetails } from "../../../constants.js"
+import type { TDropdownItem, TSharedSettings } from "../../../types.js"
+import { dashboardFilters} from "../../../dashboardSettings.js"
+import { getTagSectionDetails } from "../Section/sectionHelpers.js"
 /**
  * Create array of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters
  * @param {TSharedSettings} sharedSettings 
