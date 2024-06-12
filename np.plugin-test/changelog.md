@@ -2,6 +2,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.plugin-test/README.md) for details on commands and how to use it
 
+## [1.4.1] @dwertheimer
+
+- bump for re-release
+
 ## [1.4.0-beta] @dwertheimer
 
 - The beginning of a searchable plugin repository]

@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.7.4] 2024-06-12 @dwertheimer
+
+- bump for re-release
+
 ## [1.7.2] 2023-08-24 @dwertheimer
 
 - Fix presets bug where presets were empty - found by @clayrussell
