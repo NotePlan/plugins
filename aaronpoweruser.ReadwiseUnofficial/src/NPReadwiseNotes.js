@@ -2,8 +2,8 @@
 import pluginJson from '../plugin.json'
 import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
-import { buildReadwiseFrontMatter, buildReadwiseMetadataHeading, buildReadwiseNoteTitle, removeEmptyLines } from './NPReadwiseHelpers'
-import { writeReadwiseSyncLogLine } from './NPReadwiseSync'
+import { buildReadwiseFrontMatter, buildReadwiseMetadataHeading, buildReadwiseNoteTitle, removeNewlines } from './NPReadwiseHelpers'
+import { writeReadwiseSyncLogLine } from './NPReadwiseSyncLog'
 import { logDebug, logError } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
@@ -18,7 +18,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   let baseFolder = rootFolder
   let outputNote: ?TNote
   if (DataStore.settings.groupByType === true) {
-    // Note: supplmentals are not guaranteed to have user generated highlights
+    // Note: supplementals are not guaranteed to have user generated highlights
     if (DataStore.settings.ignoreSupplementals === true && category === 'supplementals') {
       baseFolder = `${rootFolder}/books`
     } else {
@@ -37,27 +37,28 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
  * Parses the readwise data and writes it to a note
  * @param {*} source - the readwise data as a JSON object
  */
-export async function parseHighlightsAndWriteToNote(highightSource: any): Promise<any> {
+export async function parseHighlightsAndWriteToNote(highlightSource: any): Promise<any> {
   try {
-    const noteTtile: string = buildReadwiseNoteTitle(highightSource)
-    const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTtile, highightSource.category)
+    const noteTitle: string = buildReadwiseNoteTitle(highlightSource)
+    const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTitle, highlightSource.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
     if (outputNote) {
       if (!useFrontMatter) {
         //TODO: Support updating metadata (tags)
         if (!outputNote?.content?.includes('## Metadata')) {
-          outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(highightSource), 'text', 'Metadata', true, true)
+          outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(highlightSource), 'text', 'Metadata', true, true)
         }
       } else {
-        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(highightSource))
+        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(highlightSource))
       }
       if (!outputNote?.content?.includes('# Highlights')) {
         outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
       }
     }
-    await writeReadwiseSyncLogLine(noteTtile, highightSource.highlights.length)
-    await highightSource.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, highightSource.source, highightSource.asin))
-    removeEmptyLines(outputNote)
+    if (outputNote) {
+      await writeReadwiseSyncLogLine(noteTitle, highlightSource.highlights.length)
+      await highlightSource.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, highlightSource.source, highlightSource.asin))
+    }
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -71,15 +72,16 @@ export async function parseHighlightsAndWriteToNote(highightSource: any): Promis
  * @param {string} asin - the asin of the book
  */
 function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
-  const filteredContent = highlight.text.replace(/\n/g, ' ')
   let linkToHighlightOnWeb = ''
   let userNote = ''
 
   if (highlight.tags !== null && highlight.tags !== '') {
     for (const tag of highlight.tags) {
-      if (tag.name !== null && tag.name !== '' && tag.name.startsWith('h') && tag.name.length === 2) {
+      if (tag.name !== null && tag.name !== '' && tag.name.toLowerCase().startsWith('h') && tag.name.length === 2) {
         const headingLevel = parseInt(tag.name.substring(1)) + 1
-        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
+        if (headingLevel <= 8) {
+          outputNote.insertHeading(removeNewlines(highlight.text), findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
+        }
       }
     }
   }
@@ -92,10 +94,11 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
     if (category === 'supplemental') {
       linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
     } else if (asin !== null && highlight.location !== null) {
-      linkToHighlightOnWeb = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+      linkToHighlightOnWeb = ` [Location ${highlight.location}](https://read.amazon.com/?asin=${asin})`
     } else if (highlight.url !== null) {
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
+  const paragraphType = DataStore.settings.paragraphType ?? 'quote'
+  outputNote.appendParagraph(removeNewlines(highlight.text) + userNote + linkToHighlightOnWeb, paragraphType)
 }

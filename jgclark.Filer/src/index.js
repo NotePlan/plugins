@@ -3,13 +3,12 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 22.3.2023, for v1.1.0+
+// Last updated 9.6.2024, for v1.1.0+
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logInfo, logError, logWarn, timer } from "@helpers/dev"
-import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
@@ -50,7 +49,7 @@ export async function onSettingsUpdated(): Promise<void> {
   // empty, but avoids NotePlan error
 }
 
-export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
+export async function onUpdateOrInstall(_testUpdate: boolean = false): Promise<void> {
   try {
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {

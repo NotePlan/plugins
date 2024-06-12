@@ -59,7 +59,7 @@ export async function tidyUpAll(): Promise<void> {
       await removeDoneMarkers(param)
     }
     if (config.runRemoveDoneTimePartsCommand) {
-      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.6)
+      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
@@ -76,19 +76,19 @@ export async function tidyUpAll(): Promise<void> {
     // }
 
     if (config.runDuplicateFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.7)
+      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
     if (config.runConflictFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.8)
+      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
     }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
-      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
+      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
@@ -96,6 +96,12 @@ export async function tidyUpAll(): Promise<void> {
     if (config.moveTopLevelTasksInEditor) {
       const heading = config.moveTopLevelTasksHeading.length ? config.moveTopLevelTasksHeading : null
       await moveTopLevelTasksInNote(Editor, heading, config.runSilently)
+    }
+
+    if (config.runGenerateRepeatsCommand) {
+      CommandBar.showLoading(true, `Generating any needed new @repeats ...`, 0.9)
+      logDebug('tidyUpAll', `Starting generateRepeatsFromRecentNotes...`)
+      await generateRepeatsFromRecentNotes(param)
     }
 
     // stop spinner
@@ -128,7 +134,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeDoneMarkers', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -232,7 +238,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeDoneTimeParts', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -314,8 +320,8 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 }
 
 /**
- * Remove a given section from recently-changed Notes
- * Can be passed parameters to override default time interval through an x-callback call
+ * Remove a given section (by matching on their section heading) from recently-changed Notes. Note: does not match on note title.
+ * Can be passed parameters to override default time interval through an x-callback call.
  * @author @jgclark
  * @param {?string} params optional JSON string
  */
@@ -334,7 +340,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeSectionFromRecentNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -345,10 +351,11 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     // Decide what matching type to use
     const matchType: string = await getTagParamsFromString(params ?? '', 'matchType', config.matchType)
     logDebug('removeSectionFromRecentNotes', `matchType = ${matchType}`)
+
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from some notes?", 'OK', 'Remove Section from Notes')
+      const res: string | boolean = await getInputTrimmed(`What's the heading of the section you'd like to remove from ${numDays > 0 ? 'some' : 'all'} notes?`, 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
@@ -363,13 +370,13 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     // This returns all the potential matches, but some may not be headings, so now check for those
     switch (matchType) {
       case 'Exact':
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content === sectionHeading)
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content === sectionHeading && n.headingLevel !== 1)
         break
       case 'Starts with':
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.startsWith(sectionHeading))
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.startsWith(sectionHeading) && n.headingLevel !== 1)
         break
       case 'Contains':
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading))
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading) && n.headingLevel !== 1)
     }
     let numToRemove = allMatchedParas.length
     const allMatchedNotes = allMatchedParas.map((p) => p.note)
@@ -402,7 +409,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
       if (!runSilently) {
         const res = await showMessage(`No sections with heading '${sectionHeading}' were found to remove`)
       }
-      logWarn('removeSectionFromRecentNotes', `No sections with heading '${sectionHeading}' were found to remove`)
+      logInfo('removeSectionFromRecentNotes', `No sections with heading '${sectionHeading}' were found to remove`)
     }
 
     return
@@ -444,14 +451,14 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from all notes?", 'OK', 'Remove Section from Notes')
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from ALL notes?", 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
         sectionHeading = String(res) // to help flow
       }
     }
-    logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
+    logDebug('removeSectionFromAllNotes', `sectionHeading = ${sectionHeading}`)
 
     // Ideally work out how many this will remove, and then use this code:
     // const numToRemove = 1
@@ -459,7 +466,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     //   if (!runSilently) {
     //     const res = await showMessageYesNo(`Are you sure you want to remove ${numToRemove} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
     //     if (res === 'No') {
-    //       logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
+    //       logInfo('removeSectionFromAllNotes', `User cancelled operation`)
     //       return
     //     }
     //   }
@@ -504,7 +511,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeTriggersFromRecentCalendarNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -565,7 +572,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
       logDebug(pluginJson, `logNotesChangedInInterval: Starting with no params`)
     }
 
-    const numDays = config.numDays
+    const numDays = config.numDays ?? 0
     const notesList = getNotesChangedInInterval(numDays)
     const titlesList = notesList.map((m) => displayTitle(m))
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)
@@ -594,7 +601,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
       // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
-      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays)
+      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays ?? 0)
       const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
       // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
       parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))
@@ -673,7 +680,8 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 }
 
 /**
- * Remove blank (or nearly blank) notes
+ * Remove blank notes
+ * Note: blank means 2 bytes or fewer (which therefore includes ones with only "# ")
  * @author @jgclark
  * @param {boolean} runSilently?
  */

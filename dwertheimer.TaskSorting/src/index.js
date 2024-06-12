@@ -29,7 +29,7 @@ export {
   sortTasksDefault,
   sortTasksUnderHeading,
 } from './sortTasks'
-export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
+export { addNoteTagsToAllTask, addNoteTagsTriggerToFm, copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export { default as markTasks } from './markTasks'
 
 /**
@@ -37,5 +37,5 @@ export { default as markTasks } from './markTasks'
  */
 // eslint-disable-next-line import/order
 export { editSettings } from '@helpers/NPSettings'
-export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPTriggers-Hooks'
+export { onUpdateOrInstall, init, onSettingsUpdated, triggerCopyNoteTags, versionCheck } from './NPTriggers-Hooks'
 export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'

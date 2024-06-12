@@ -1,8 +1,9 @@
+/* eslint-disable prefer-template */
 // @flow
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 28.11.2022, for v1.1.5
+// last updated 9.6.2024, for v1.1.5+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,15 +11,9 @@ import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-import {
-  displayTitle,
-  // rangeToString
-} from '@helpers/general'
+import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
-import {
-  // findStartOfActivePartOfNote,
-  parasToText,
-} from '@helpers/paragraph'
+import { parasToText } from '@helpers/paragraph'
 import {
   getParagraphBlock,
   selectedLinesIndex,
@@ -145,7 +140,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // delete from existing location
     logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     note.removeParagraphs(parasInBlock)
-    // FIXME: this call above is not always working, confirmed by getting to see the warning below. Trying first changing to use Editor.note above.
+    // FIXME: this call above is not always working, confirmed by getting to see the warning below. Nov 2023: Trying first changing to use Editor.note above.
     if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
       logWarn(pluginJson, `  - WARNING: After delete there are ${Number(note.paragraphs.length)} paragraphs`)
     }

@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 30.3.2024 for v0.19.4+, by @jgclark
+// Last updated 4.6.2024 for v0.21.3 by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ import {
   toLocaleTime,
   unhyphenateString,
 } from '@helpers/dateTime'
-import { clo, logDebug, logError } from '@helpers/dev'
+import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { showMessage } from '@helpers/userInput'
@@ -27,17 +27,24 @@ import { showMessage } from '@helpers/userInput'
  * @author @jgclark
  *
  * @param {string} paramString - checked for options
- * @return {string} Markdown-formatted list of today's events
+ * @returns {string} Markdown-formatted list of today's events
  */
-export async function listDaysEvents(paramString: string = ''): Promise<string> {
+export async function listDaysEvents(paramStringIn: string = ''): Promise<string> {
   try {
     if (Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar') {
       await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
       return ''
     }
+    // handle getting no parameters passed at all
+    let paramString = ''
+    if (paramStringIn == null) {
+      logWarn('listDaysEvents', `No parameters passed (from template), so will use defaults.`)
+    } else {
+      paramString = paramStringIn
+    }
+
     const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
     logDebug(pluginJson, `listDaysEvents: starting for date ${baseDateStr} with paramString='${paramString}'`)
-
     // Get config settings
     const config = await getEventsSettings()
 
@@ -45,7 +52,6 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     // Work out format for output line (from params, or if blank, a default)
     // NB: be aware that this call doesn't do type checking
     // NB: allow previous parameter names 'template' and 'allday_template' still.
-    // TODO: Test for no parameters -> null problem
     const format = paramString.includes('"format":')
       ? String(await getTagParamsFromString(paramString, 'format', '- *|CAL|*: *|TITLE|* (*|START|*)*| with ATTENDEENAMES|**|\nLOCATION|**|\nNOTES|**|\nURL|*'))
       : paramString.includes('"template":')

@@ -230,19 +230,25 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
 
 /**
  * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
+ * Optionally look in sub-folders as well.
  * @author @jgclark
  *
  * @param {string} folder - folder to scan
+ * @param {string} alsoSubFolders? - also look in subfolders under the folder name
  * @return {Array<TNote>} - list of notes
  */
-export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
+export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boolean = false): Array<TNote> {
   try {
     // logDebug('note/notesInFolderSortedByTitle', `Starting for folder '${folder}'`)
     const allNotesInFolder = DataStore.projectNotes.slice()
     let notesInFolder: Array<TNote>
     // If folder given (not empty) then filter using it
     if (folder !== '') {
-      notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      if (alsoSubFolders) {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename).startsWith(folder))
+      } else {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      }
     } else {
       // return all project notes
       notesInFolder = allNotesInFolder

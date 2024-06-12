@@ -1,4 +1,6 @@
 // @flow
+// Written before 2023-08-27 by @dwertheimer
+// Note: @jgclark sees that this is currently not used by any commands or functions.
 
 type MatchResult = {
   fullMatch: string, // The full matched string.
@@ -8,7 +10,7 @@ type MatchResult = {
 }
 
 /**
- * Finds and returns all matches of a specific format in a multiline string.
+ * Finds and returns all matches of a specific x-callback formats in a multiline string.
  * @author @chatGPT and @dwertheimer
  * @param {string} inputString - The multiline string to be searched.
  * @returns {Array<MatchResult>} An array of objects, each representing a match.

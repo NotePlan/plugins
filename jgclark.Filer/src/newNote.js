@@ -90,10 +90,8 @@ export async function newNoteFromSelection(): Promise<void> {
         const filename = (await DataStore.newNote(title, currentFolder)) ?? ''
         logDebug(pluginJson, `- newNote() -> filename: ${filename}`)
 
-        // This question needs to be here after newNote and before noteOpener
-        // to force a cache refresh after newNote.
+        // This question needs to be here after newNote and before noteOpener to force a cache refresh after newNote.
         // Note: This API bug has probably now been fixed.
-        // TODO: I think there are better API calls to use now
         const res = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
 
         const newNote = await noteOpener(filename, 'using filename')

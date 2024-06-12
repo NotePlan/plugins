@@ -3,54 +3,57 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 16.2.2024 for v0.21.0, @jgclark
+// Last updated 16.2.2024 for v0.21.0+, @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import {
-  calcHashtagStatsPeriod,
-  calcMentionStatsPeriod,
+  // calcHashtagStatsPeriod,
+  // calcMentionStatsPeriod,
   gatherOccurrences,
-  generateProgressUpdate,
+  // generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
   TMOccurrences,
-  type SummariesConfig
+  // type SummariesConfig
 } from './summaryHelpers'
 import {
-  calcWeekOffset,
-  getDateObjFromDateString,
-  getDateStringFromCalendarFilename,
-  getJSDateStartOfToday,
+  // calcWeekOffset,
+  // getDateObjFromDateString,
+  // getDateStringFromCalendarFilename,
+  // getJSDateStartOfToday,
   getTodaysDateHyphenated,
-  getWeek,
-  hyphenatedDate,
+  // getWeek,
+  // hyphenatedDate,
   hyphenatedDateString,
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
   todaysDateISOString, // const
   toISODateString,
-  unhyphenatedDate,
-  isoWeekStartEndDates,
+  // unhyphenatedDate,
+  // isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
   getNPWeekData,
   getUsersFirstDayOfWeekUTC,
   pad,
-  type NotePlanWeekInfo,
+  // type NotePlanWeekInfo,
 } from '@helpers/NPdateTime'
 import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+// import { displayTitle } from '@helpers/general'
 // import { showHTMLV2 } from '@helpers/HTMLView'
-import { clearNote, getOrMakeNote, projectNotesFromFilteredFolders } from '@helpers/note'
+import {
+  // clearNote, getOrMakeNote,
+  projectNotesFromFilteredFolders
+} from '@helpers/note'
 // import { getLocale } from '@helpers/NPConfiguration'
-import { chooseOption, getInput, showMessage } from '@helpers/userInput'
+// import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
-const pluginID = 'jgclark.Summaries'
+// const pluginID = 'jgclark.Summaries'
 
 /**
  * Print to log the output of a generateTaskCompletionStats() call, covering year to date.
@@ -61,12 +64,12 @@ export async function testTaskGenStats(): Promise<void> {
   const config = await getSummariesSettings()
   const fromDate = moment().startOf('year')
   const fromDateStr = fromDate.format('YYYY-MM-DD')
-  const todayDate = moment().startOf('day')
-  const todayDateStr = todayDate.format('YYYY-MM-DD')
+  // const todayDate = moment().startOf('day')
+  // const todayDateStr = todayDate.format('YYYY-MM-DD')
 
   const statsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', fromDateStr) // year to date
   logDebug('testTaskGenStats()', "Output:")
-  for (let entry of statsMap) {
+  for (const entry of statsMap) {
     console.log(entry)
   }
 }
@@ -81,8 +84,8 @@ export async function testTaskGenStats(): Promise<void> {
  */
 export function getFirstDateForWeeklyStats(numWeeksToGoBack: number, includeCurrentWeek: boolean): [string, number] {
   try {
-    let numWeeks = numWeeksToGoBack
-    let mom = moment().subtract(numWeeks - (includeCurrentWeek ? 1 : 0), 'week')
+    const numWeeks = numWeeksToGoBack
+    const mom = moment().subtract(numWeeks - (includeCurrentWeek ? 1 : 0), 'week')
 
     // Now get the start of that previous week, using NP week information
     const weekInfo = getNPWeekData(mom.toDate())
@@ -106,9 +109,9 @@ export function getFirstDateForWeeklyStats(numWeeksToGoBack: number, includeCurr
  * @param {string?} toDateStr - ISO date to end; if missing then today
  * @returns {Map<string, mixed>} Map of [isoDateString, number]
  */
+/* eslint-disable-next-line */
 export async function generateTaskCompletionStats(foldersToExclude: Array<string>, intervalType: string, fromDateStr: string, toDateStr: string = getTodaysDateHyphenated()): Promise<Map<string, number>> {
   try {
-
     // Initialise a Map to hold count of completed dates
     // v1.  Start with a simple empty Map
     const dateCounterMap = new Map < string, number> ()
@@ -119,7 +122,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // }
 
     // v2. Initialise a Map for all dates of interest, with NaN values (to distinguish from zero).
-    const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
+    // const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
     const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
     const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
     // logDebug('generateTaskCompletionStats', `- daysInInterval = ${daysInInterval}`)
@@ -145,9 +148,9 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // do completed task (not checklist) counts from all Project Notes
     const projNotes = projectNotesFromFilteredFolders(foldersToExclude, true)
     logDebug('generateTaskCompletionStats', `Summarising for ${projNotes.length} project notes`)
-    for (let n of projNotes) {
+    for (const n of projNotes) {
       const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-      for (let dp of doneParas) {
+      for (const dp of doneParas) {
         let doneDate = null
         if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
           // get completed date from @done(date [time])
@@ -162,7 +165,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     }
     // let projectDataArray = Object.entries(dateCounterObj)
     let totalProjectDone = 0
-    for (let item of dateCounterMap) {
+    for (const item of dateCounterMap) {
       if (!isNaN(item[1]) && item[1] !== '') {
         totalProjectDone += Number(item[1])
       }
@@ -173,9 +176,9 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // $FlowIgnore[incompatible-call]
     const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), fromDateStr, toDateStr))
     if (periodCalendarNotes.length > 0) {
-      for (let n of periodCalendarNotes) {
+      for (const n of periodCalendarNotes) {
         const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-        for (let dp of doneParas) {
+        for (const dp of doneParas) {
           let doneDate = null
           if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
             // get completed date (and ignore time)
@@ -202,9 +205,9 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
       const beforePeriodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), earlierFromDateStr, earlierToDateStr))
       logDebug('generateTaskCompletionStats', `Summarising for ${beforePeriodCalendarNotes.length} calendar notes (looking 6 months before given fromDate)`)
 
-      for (let n of beforePeriodCalendarNotes) {
+      for (const n of beforePeriodCalendarNotes) {
         const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
-        for (let dp of doneParas) {
+        for (const dp of doneParas) {
           let doneDate = null
           if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
             // get completed date (and ignore time)
@@ -228,7 +231,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // Object manipulation details for this version from https://javascript.info/keys-values-entries
     let totalCalendarDone = 0
     let interimTotal = 0
-    for (let item of dateCounterMap) {
+    for (const item of dateCounterMap) {
       if (!isNaN(item[1]) && item[1] !== '') {
         interimTotal += Number(item[1])
       }
@@ -254,7 +257,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     }
 
     // Copying the existing object, which is the easiest way to re-order by date
-    let outputMap = new Map([...dateCounterMap].sort())
+    const outputMap = new Map([...dateCounterMap].sort())
     // let total = 0
     // for (let item of outputMap) {
     //   const isoDate = item[0]
@@ -367,20 +370,20 @@ function formatForSimpleCSV(inArray: Array<string>): Array<string> {
  */
 export async function weeklyStatsCSV(): Promise<void> {
   try {
-    const daysInterval = 7 // in days
-    let config = await getSummariesSettings()
+    // const daysInterval = 7 // in days
+    const config = await getSummariesSettings()
 
     // Calculate week range, asking for date offset _before_ current week.
     // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs.
     // Note: toISODateString() isn't helpful as doesn't use local time. Instead use hyphenatedDateString().
-    const todaysDate = new Date()
-    let thisYear = todaysDate.getFullYear() // JS uses local time
-    const todayStartMom = moment().startOf('day')
+    // const todaysDate = new Date()
+    // let thisYear = todaysDate.getFullYear() // JS uses local time
+    // const todayStartMom = moment().startOf('day')
 
     // V2: use Moment for all calcs. Problem: different week defintions.
     // V3: use NP's API for week calculations
     // V4: use DW helper function 'getNPWeekData()'
-    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    const [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
     const startWeekInfo = getNPWeekData(fromDateStr)
     logDebug('weeklyStatsCSV', `starting for ${String(numWeeks)} weeks, with startWeekInfo = ${JSON.stringify(startWeekInfo)} / fromDateStr = ${fromDateStr} / includeCurrentWeek = ${String(config.weeklyStatsIncludeCurrentWeek)}`)
     if (!startWeekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
@@ -393,7 +396,7 @@ export async function weeklyStatsCSV(): Promise<void> {
     // Prepare config for gatherOccurrences() call
     const hashtagItems = config.weeklyStatsItems.filter((a) => a.startsWith('#'))
     const mentionItems = config.weeklyStatsItems.filter((a) => a.startsWith('@'))
-    const occConfig = {
+    const occConfig: OccurrencesToLookFor = {
       GOYesNo: [],
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
@@ -403,6 +406,7 @@ export async function weeklyStatsCSV(): Promise<void> {
       GOMentionsAverage: [],
       GOMentionsTotal: mentionItems,
       GOMentionsExclude: [], // no exclusions used here
+      GOChecklistRefNote: "",
     }
 
     // Pop up UI wait dialog as this can be a long-running process
@@ -411,16 +415,16 @@ export async function weeklyStatsCSV(): Promise<void> {
 
     // Gather all the appropriate occurrences of the wanted terms
     CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    let occs: Array<TMOccurrences> = await gatherOccurrences(
+    const occs: Array<TMOccurrences> = await gatherOccurrences(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
       occConfig)
 
     // For every week of interest calculate stats and add to the output array
-    let outputArray = []
+    const outputArray = []
     let i = 0
     if (occs.length > 0) {
-      for (let occ of occs) {
+      for (const occ of occs) {
         i++
         // Update UI wait dialog
         CommandBar.showLoading(true, `Calculating stats for ${occs.length} terms of interest`, i / occs.length)
@@ -429,10 +433,10 @@ export async function weeklyStatsCSV(): Promise<void> {
           // Get the date info for the week of interest (counting up)
           const weekInfo = getNPWeekData(todaysDateISOString, counter - numWeeks, 'week')
           if (!weekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
-          let weekStartDate = weekInfo.startDate
-          let weekEndDate = weekInfo.endDate
-          let weekStartDateStr = hyphenatedDateString(weekStartDate)
-          let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          const weekStartDate = weekInfo.startDate
+          const weekEndDate = weekInfo.endDate
+          const weekStartDateStr = hyphenatedDateString(weekStartDate)
+          const weekEndDateStr = hyphenatedDateString(weekEndDate)
           logDebug('weeklyStatsCSV', `-> -> ${String(counter)}: ${weekStartDateStr} -  ${weekEndDateStr}`)
           const weekSummaryCSV = occ.summaryTextForInterval(weekStartDateStr, weekEndDateStr, 'week', 'CSV')
           outputArray.push(weekSummaryCSV)
@@ -451,7 +455,7 @@ export async function weeklyStatsCSV(): Promise<void> {
     logInfo(pluginJson, `  written results to data file '${filename}'`)
   }
   catch (err) {
-    logError(pluginJson, 'weeklyStatsCSV' + err.message)
+    logError(pluginJson, `weeklyStatsCSV: ${err.message}`)
   }
 }
 
@@ -470,15 +474,15 @@ export async function weeklyStatsCSV(): Promise<void> {
 export async function weeklyStatsMermaid(): Promise<void> {
   try {
     const filename = 'weekly_stats_for_mermaid.txt'
-    let config = await getSummariesSettings()
+    const config = await getSummariesSettings()
 
     // Calculate week range, asking for date offset _before_ current week.
     // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs. 
     // See longer notes in weeklyStatsCSV function definition above.
-    const todaysDate = new Date()
-    let thisYear = todaysDate.getFullYear() // JS uses local time
-    const todayStartMom = moment().startOf('day')
-    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    // const todaysDate = new Date()
+    // let thisYear = todaysDate.getFullYear() // JS uses local time
+    // const todayStartMom = moment().startOf('day')
+    const [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
     const startWeekInfo = getNPWeekData(fromDateStr)
     logDebug('weeklyStatsMermaid', `starting for ${String(numWeeks)} weeks, with startWeekInfo = ${JSON.stringify(startWeekInfo)} / fromDateStr = ${fromDateStr} / includeCurrentWeek = ${String(config.weeklyStatsIncludeCurrentWeek)}`)
     if (!startWeekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
@@ -501,6 +505,7 @@ export async function weeklyStatsMermaid(): Promise<void> {
       GOMentionsAverage: [],
       GOMentionsTotal: mentionItems,
       GOMentionsExclude: [], // no exclusions used here
+      GOChecklistRefNote: "",
     }
 
     // Pop up UI wait dialog as this can be a long-running process
@@ -509,28 +514,28 @@ export async function weeklyStatsMermaid(): Promise<void> {
 
     // Gather all the appropriate occurrences of the wanted terms
     CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    let occs: Array<TMOccurrences> = await gatherOccurrences(
+    const occs: Array<TMOccurrences> = await gatherOccurrences(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
       occConfig)
 
     // For every week of interest calculate stats and add to the output array
-    let outputArray = []
+    const outputArray = []
     outputArray.push("xychart-beta")
     outputArray.push(`\ttitle "${chartTitle}"`)
-    let intervalLabelArr = []
+    const intervalLabelArr = []
     for (let i = 0; i < numWeeks; i++) {
       const weekInfo = getNPWeekData(fromDateStr, i, 'week')
       if (!weekInfo?.weekNumber) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
-      let weekNum = weekInfo.weekNumber
-      let weekLabel = (weekNum !== 1) ? 'W' + pad(weekNum) : String(startWeekInfo.weekYear)
+      const weekNum = weekInfo.weekNumber
+      const weekLabel = (weekNum !== 1) ? `W${pad(weekNum)}` : String(startWeekInfo.weekYear)
       intervalLabelArr.push(weekLabel)
     }
     outputArray.push(`\tx-axis "for ${hashtagItems.join(', ')} and ${mentionItems.join(', ')}" [${intervalLabelArr.join(', ')}]`)
 
     let i = 0
     if (occs.length > 0) {
-      for (let occ of occs) {
+      for (const occ of occs) {
         i++
         const thisOccValueArr = []
         // Update UI wait dialog
@@ -540,10 +545,10 @@ export async function weeklyStatsMermaid(): Promise<void> {
           // Get the date info for the week of interest (counting up)
           const thisWeekInfo = getNPWeekData(fromDateStr, counter, 'week') ?? {}
           if (!thisWeekInfo.startDate || !thisWeekInfo.endDate) throw new Error(`Invalid start/endDate based on ${todaysDateISOString} + ${counter} - ${numWeeks}, so can't continue`)
-          let weekStartDate = thisWeekInfo.startDate
-          let weekEndDate = thisWeekInfo.endDate
-          let weekStartDateStr = hyphenatedDateString(weekStartDate)
-          let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          const weekStartDate = thisWeekInfo.startDate
+          const weekEndDate = thisWeekInfo.endDate
+          const weekStartDateStr = hyphenatedDateString(weekStartDate)
+          const weekEndDateStr = hyphenatedDateString(weekEndDate)
           logDebug('weeklyStatsMermaid', `-> ${String(counter)}: ${weekStartDateStr} -  ${weekEndDateStr}`)
           const thisWeekValue = occ.summaryTextForInterval(weekStartDateStr, weekEndDateStr, 'week', 'single')
           thisOccValueArr.push(thisWeekValue)
@@ -563,6 +568,6 @@ export async function weeklyStatsMermaid(): Promise<void> {
 
   }
   catch (err) {
-    logError(pluginJson, 'weeklyStatsMermaid' + err.message)
+    logError(pluginJson, `weeklyStatsMermaid: ${err.message}`)
   }
 }

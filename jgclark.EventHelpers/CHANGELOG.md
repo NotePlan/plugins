@@ -2,8 +2,9 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.21.3] - 2024-03-04 @jgclark (Not yet released ???)
-bug fix adding time blocks to calendar
+## [0.21.3] - 2024-06-04 @jgclark
+- fix bug when adding time blocks to calendar
+- better handle template `<%- events() %>`, which has no formatter string
 
 ## [0.21.2] - 2024-02-13 @jgclark
 - /shiftDates now shifts dates in brackets and multiples dates on a single line (to suit Project metadata).

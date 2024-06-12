@@ -1,34 +1,40 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 30.12.2023 for v0.20.2
+// Last updated 4.6.2024 for v0.22.0
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
-import moment from 'moment/min/moment-with-locales'
+// import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  TMOccurrences
+  type OccurrencesToLookFor,
 } from './summaryHelpers'
 import {
-  getJSDateStartOfToday,
-  getWeek, hyphenatedDate, unhyphenatedDate,
-  RE_DATE
+  // getJSDateStartOfToday,
+  // getWeek,
+  hyphenatedDate,
+  RE_DATE,
+  // unhyphenatedDate,
 } from '@helpers/dateTime'
-import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPDateTime'
+import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { logDebug, logError, logInfo, timer } from '@helpers/dev'
-import { CaseInsensitiveMap, displayTitle, createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
-import { caseInsensitiveCompare } from '@helpers/sorting'
+import {
+  // CaseInsensitiveMap, displayTitle,
+  createPrettyRunPluginLink,
+  // createRunPluginCallbackUrl
+} from '@helpers/general'
+import { getOrMakeNote, replaceSection } from '@helpers/note'
+// import { caseInsensitiveCompare } from '@helpers/sorting'
 import { chooseOption, showMessage } from '@helpers/userInput'
-import type { OccurrencesToLookFor } from "./summaryHelpers";
 
 //-------------------------------------------------------------------------------
 
@@ -42,7 +48,7 @@ import type { OccurrencesToLookFor } from "./summaryHelpers";
 export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: number = NaN, yearArg: number = NaN): Promise<void> {
   try {
     // Get config from settings
-    let config = await getSummariesSettings()
+    const config = await getSummariesSettings()
     let fromDate, toDate, periodString, periodShortCode, periodAndPartStr = ''
     let periodNumber = periodNumberArg
     let year = yearArg
@@ -109,20 +115,22 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
       settingsForGO)
     logInfo('statsPeriod', `Gathered all occurrences in ${timer(startTime)}`)
 
-    // CommandBar.showLoading(true, `Creating Period Stats`)
-    CommandBar.showLoading(false)
-    await CommandBar.onMainThread()
+    CommandBar.showLoading(true, `Creating Period Stats`)
     startTime = new Date()
     const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true)).join('\n')
+    CommandBar.showLoading(false)
+    await CommandBar.onMainThread()
     logInfo('statsPeriod', `Created period stats in ${timer(startTime)}`)
 
     // Work out a refresh callback string if possible
     // (namely: if periodNumber known, or a year code, or 'today' or a specific date)
     let xCallbackMD = ''
     if (!isNaN(periodNumber) || periodShortCode === 'today' || new RegExp(`^${RE_DATE}$`).test(periodShortCode) || periodShortCode === 'year') {
-      logDebug('periodStats', `Forming refresh callback with params ${periodShortCode}, ${periodNumber}, ${year}`)
+      const yearStr = String(year)
+      const periodNumberStr = String(periodNumber)
+      logDebug('periodStats', `Forming refresh callback with params ${periodShortCode}, ${periodNumberStr}, ${yearStr}`)
       xCallbackMD =
-        ' ' + createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'periodStats', [periodShortCode, periodNumber, year])
+        ' ' + createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'periodStats', [periodShortCode, periodNumberStr, yearStr])
     } else {
       logDebug('periodStats', `NOT Forming refresh callback from params ${periodShortCode}, ${periodNumber}, ${year}`)
     }
@@ -155,15 +163,9 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
         if (currentNote == null) {
           logError('statsPeriod', `No note is open in the Editor, so I can't write to it.`)
         } else {
-          // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
-          // add a refresh button if it can work with just a single extra parameter
-          // if (periodShortCode.endsWith('td')) {
-          // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodShortCode)
-          // output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
-          // }
           // Replace or add output section
           replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}${xCallbackMD}`, config.headingLevel, output)
-          logDebug('statsPeriod', `Written results to note '${periodString}'`)
+          logDebug('statsPeriod', `Updated results in note note '${periodString}' section '${config.statsHeading}' for ${periodAndPartStr}`)
         }
         break
       }
@@ -197,16 +199,16 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
       }
 
       case 'calendar': {
-        // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
-        const todaysDate = getJSDateStartOfToday()
-        // TODO(later): when API makes this possible, make it only open a new window if not already open.
+        // Weekly note (from v3.6) and Monthly / Quarterly / Yearly (from v3.7.2)
+        // const todaysDate = getJSDateStartOfToday()
+        // TODO: when API makes this possible, make it only open a new window if not already open.
         const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, periodShortCode)
         if (!calNoteAtFromDate) {
           throw new Error(`Couldn't get calendar note for ${periodString}`)
         }
         let note: TNote = calNoteAtFromDate
-        let filenameForCalDate = calNoteAtFromDate?.filename
-        if (!filenameForCalDate || !noteOpenInEditor(filenameForCalDate)) {
+        let filenameForCalDate = note.filename
+        if (!noteOpenInEditor(filenameForCalDate)) {
           logDebug('statsPeriod', `- opening ${calendarTimeframe} note ${filenameForCalDate ?? '<error>'}`)
           const res = await Editor.openNoteByDate(fromDate, false, 0, 0, true, calendarTimeframe)
           if (res) {
@@ -215,18 +217,10 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
           }
         } else {
           logDebug('statsPeriod', `- ${calendarTimeframe} note ${filenameForCalDate} already open`)
-          note = calNoteAtFromDate
         }
         if (note == null) {
-          logError('statsPeriod', `cannot get Calendar note for ${filenameForCalDate}`)
-          await showMessage(`There was an error getting the Calendar note ${filenameForCalDate} ready to write`)
+          throw new Error(`cannot get Calendar note for ${filenameForCalDate} ready to write. Stopping.`)
         } else {
-          // add a refresh button if it can work with just a single extra parameter
-          // if (periodShortCode.endsWith('td')) {
-          //   const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodShortCode)
-          //   output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
-          // }
-
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}${xCallbackMD}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}' (filename=${note.filename})`)
@@ -244,6 +238,7 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
       case 'cancel': {
         break
       }
+
       default: {
         throw new Error(`Invalid save destination '${destination}'`)
       }
@@ -251,5 +246,6 @@ export async function statsPeriod(periodCodeArg: string = '', periodNumberArg: n
   }
   catch (error) {
     logError('statsPeriod', error.message)
+    await showMessage(error.message)
   }
 }
