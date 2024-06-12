@@ -3,6 +3,12 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 <!-- - improve logging for **add trigger to note** command to try to work out why it is failing from templates. -->
+
+## [0.20.0] - 2024-05-28 (@aaronpoweruser)
+
+- Add a new **/find unlinked notes** command. Finds and creates links to existing notes in the current note.
+![Unlinked notes demo](docs/unlinked_note_demo.gif)
+
 ## [0.19.2] - 2024-04-???
 - **add trigger to note** command is now more resilient to unusual frontmatter
 
