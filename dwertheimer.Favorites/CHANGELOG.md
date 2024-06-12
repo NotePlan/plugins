@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.2.4] - 2024-06-12 @dwertheimer
+
+- bump version for rerelease (plugin was missing from github)
+
 ## [1.2.3] - 2023-09-29 @dwertheimer
 
 - change the default to not add a space in front of the default tag
