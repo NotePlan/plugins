@@ -13,8 +13,9 @@ type SwitchProps = {
 const Switch = ({ label, checked, onChange, labelPosition = 'right', description = '' }: SwitchProps): React$Node => {
   return (
     <div className={`switch-line ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description||null}>
-      {labelPosition === 'left' && <label className="switch-label">{label}</label>}
+      {labelPosition === 'left' && <label className="switch-label" htmlFor={label}>{label}</label>}
       <input
+        id={label}
         type="checkbox"
         className="apple-switch switch-input"
         onChange={(e) => {
@@ -23,7 +24,7 @@ const Switch = ({ label, checked, onChange, labelPosition = 'right', description
         }}
         checked={checked}
       />
-      {labelPosition === 'right' && <label className="switch-label">{label}</label>}
+      {labelPosition === 'right' && <label className="switch-label" htmlFor={label}>{label}</label>}
     </div>
   )
 }
