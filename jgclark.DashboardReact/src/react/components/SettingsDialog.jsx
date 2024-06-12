@@ -52,8 +52,9 @@ const SettingsDialog = ({
     //----------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------
-    const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  const [changesMade, setChangesMade] = useState(false)
+    const dialogRef = useRef<?ElementRef<'dialog'>>(null)
+    const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
+    const [changesMade, setChangesMade] = useState(false)
     const [updatedSettings, setUpdatedSettings] = useState(() => {
         const initialSettings: Settings = {}
         items.forEach(item => {
@@ -84,12 +85,21 @@ const SettingsDialog = ({
             onSaveChanges(updatedSettings)
         }
         // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
-        setSharedSettings({...sharedSettings,...updatedSettings, lastChange: 'Dashboard Settings Modal saved'})
-        logDebug('Dashboard', `Dashboard Settings Panel updates`,updatedSettings)
+        setSharedSettings({ ...sharedSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
+        logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
         // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
         sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
         toggleDialog()
     }
+
+    const handleDropdownOpen = () => {
+        setTimeout(() => {
+            if (dropdownRef.current instanceof HTMLInputElement) {
+                dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            }
+        }, 100) // Delay to account for rendering/animation
+    }
+
     //----------------------------------------------------------------------
     // Effects
     //----------------------------------------------------------------------
@@ -106,6 +116,18 @@ const SettingsDialog = ({
             document.removeEventListener('keydown', handleEscapeKey)
         }
     }, [isOpen])
+
+    useEffect(() => {
+        const dropdown = dropdownRef.current
+        if (dropdown instanceof HTMLInputElement) {
+            dropdown.addEventListener('click', handleDropdownOpen)
+        }
+        return () => {
+            if (dropdown instanceof HTMLInputElement) {
+                dropdown.removeEventListener('click', handleDropdownOpen)
+            }
+        }
+    }, [])
 
     //----------------------------------------------------------------------
     // Render
@@ -129,7 +151,7 @@ const SettingsDialog = ({
                 )}
             </div>
             <div className="settings-dialog-content">
-                {items.map((item,index) => (
+                {items.map((item, index) => (
                     <div key={`sdc${index}`}>
                         {renderItem({
                             index,
@@ -147,6 +169,7 @@ const SettingsDialog = ({
                             handleFieldChange,
                             labelPosition,
                             showSaveButton: false, // Do not show save button
+                            inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
                         })}
                         {item.description && (
                             <div className="item-description">{item.description}</div>

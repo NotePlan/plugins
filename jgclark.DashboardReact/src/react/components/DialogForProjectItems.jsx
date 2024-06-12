@@ -19,7 +19,7 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 // type RefType<T> = {| current: null | T |}
 
 type Props = {
-  onClose: (xWasClicked?: boolean) => void,
+  onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
@@ -116,7 +116,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     // Dismiss dialog
     // Wait for zoom animation animation to finish before actually closing
     setTimeout(() => {
-      onClose()
+      onClose(false)
     }, 500) // Match the duration of the animation
   }
 

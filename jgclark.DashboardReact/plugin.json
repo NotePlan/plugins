@@ -74,7 +74,11 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Dashboard main settings"
+      "title": "Do Not Change These Settings"
+    },
+    {
+      "type": "heading",
+      "title": "Settings have been migrated to the Dashboard Window, so you can make your changes there. They are only here temporarily for migration purposes."
     },
     {
       "type": "hidden",

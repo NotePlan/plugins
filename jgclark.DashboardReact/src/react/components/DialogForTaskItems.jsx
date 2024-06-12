@@ -21,7 +21,7 @@ import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
 
 type Props = {
-  onClose: (xWasClicked?: boolean) => void,
+  onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
@@ -160,11 +160,11 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     if (!metaKey) {
       // Wait for zoom animation animation to finish before actually closing
       setTimeout(() => {
-        onClose()
+        onClose(false)
       }, 300) // Match the duration of the animation
     } else {
       console.log(`Option key pressed. Closing without animation.`)
-      onClose()
+      onClose(false)
     }
   }
 

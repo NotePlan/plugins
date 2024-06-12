@@ -15,7 +15,7 @@
  */
 
 import { useEffect } from 'react'
-import type { TSectionItem, TSection, TSharedSettings } from '../../types.js'
+import type { TSectionItem, TSection, TSharedSettings } from '../../../types.js'
 import { logDebug, JSP } from '@helpers/react/reactDev.js'
 
 function useInteractiveProcessing(

@@ -17,7 +17,7 @@ type RefType<T> = {| current: null | T |}
 type Props = {
   isOpen: boolean,
   isTask: boolean,
-  onClose: () => void,
+  onClose: (xWasClicked:boolean) => void,
   children?: React$Node,
   details: any,
 }

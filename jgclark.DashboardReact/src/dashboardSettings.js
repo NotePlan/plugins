@@ -1,5 +1,7 @@
+// Settings for the dashboard - loaded/set in React Window
+
 // @flow
-import type { TDropdownItem, TSharedSettings } from "../../types.js"
+import type { TDropdownItem, TSharedSettings } from "./types.js"
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -212,9 +214,32 @@ const dashboardSettings = [
     type: 'switch',
     default: true,
   },
-] 
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "Logging"
+  },
+  {
+    key: "_logLevel",
+    type: "combo",
+    label: "Log Level",
+    options: [
+      "DEV",
+      "DEBUG",
+      "INFO",
+      "WARN",
+      "ERROR",
+      "none"
+    ],
+    description: "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+    default: "INFO",
+    required: true
+  },
+]
 
-export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject  ): Array<TDropdownItem> => {
+export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
   return dashboardSettings.map(setting => {
     switch (setting.type) {
       case 'separator':
@@ -240,7 +265,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: sharedSettings[setting.key] ??  pluginSettings[setting.key] ?? setting.default,
+          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -248,7 +273,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: sharedSettings[setting.key] ??  pluginSettings[setting.key] ?? setting.default,
+          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -257,7 +282,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: sharedSettings[setting.key] ??  pluginSettings[setting.key] ?? setting.default,
+          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           description: setting.description,
         }
     }

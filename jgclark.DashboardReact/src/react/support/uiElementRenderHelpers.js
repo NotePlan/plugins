@@ -29,6 +29,7 @@ type RenderItemProps = {
   handleComboChange?: (key: string, e: any) => void,
   handleSaveInput?: (key: string, newValue: string) => void,
   showSaveButton?: boolean,
+  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
 }
 
 /**
@@ -47,6 +48,7 @@ export function renderItem({
   handleComboChange = (key, e) => {},
   handleSaveInput = (key, newValue) => {},
   showSaveButton = true,
+  inputRef, // Destructure inputRef
 }: RenderItemProps): React$Node {
   const element = () => {
     switch (item.type) {
@@ -95,6 +97,7 @@ export function renderItem({
               item.key && handleFieldChange(item.key, option)
               item.key && handleComboChange(item.key, { target: { value: option } })
             }}
+            inputRef={inputRef} // Pass inputRef
           />
         )
       case 'text':

@@ -6,9 +6,10 @@ type ComboBoxProps = {
   options: Array<string>,
   value: string,
   onChange: (value: string) => void,
+  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
 };
 
-const ComboBox = ({ label, options, value, onChange }: ComboBoxProps): React$Node => {
+const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
@@ -36,16 +37,17 @@ const ComboBox = ({ label, options, value, onChange }: ComboBoxProps): React$Nod
   return (
     <div className="combobox-container">
       <label className="combobox-label">{label}</label>
-      <div className="combobox-wrapper" ref={dropdownRef} onClick={toggleDropdown}>
+      <div className="combobox-wrapper" onClick={toggleDropdown}>
         <input
           type="text"
           className="combobox-input"
           value={selectedValue}
           readOnly
+          ref={inputRef} // Pass the inputRef to the input element
         />
         <span className="combobox-arrow">&#9662;</span>
         {isOpen && (
-          <div className="combobox-dropdown">
+          <div className="combobox-dropdown" ref={dropdownRef} >
             {options.map((option: string) => (
               <div
                 key={option}
