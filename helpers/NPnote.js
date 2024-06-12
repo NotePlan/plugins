@@ -266,7 +266,7 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
   return getReferencedParagraphs(note)
 }
 
-export type OpenNoteOptions = $Shape<{
+export type OpenNoteOptions = Partial<{
   newWindow?: boolean,
   splitView?: boolean,
   highlightStart?: number,
@@ -277,21 +277,51 @@ export type OpenNoteOptions = $Shape<{
 
 /**
  * Convenience Method for Editor.openNoteByFilename, include only the options you care about (requires NP v3.7.2+)
+ * Tries to work around NP bug where opening a note that doesn't exist doesn't work
+ * If you send the options.content field to force content setting,   it should have a value or undefined (not null)
  * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`
  * @param {OpenNoteOptions} options - options for opening the note (all optional -- see fields in type)
  * @returns {Promise<TNote|void>} - the note that was opened
+ * @author @dwertheimer
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
-  // $FlowFixMe[incompatible-call]
-  return await Editor.openNoteByFilename(
+  const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+  let note = await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
     options.highlightStart || 0,
     options.highlightEnd || 0,
     options.splitView || false,
     options.createIfNeeded || false,
-    options.content || null,
+    options.content || undefined /* important for this to be undefined or NP creates a note with "null" */,
   )
+  if (!note) {
+    logDebug(pluginJson, `openNoteByFilename could not open note with filename: "${filename}" (probably didn't exist)`)
+    // note may not exist yet, so try to create it (if it's a calendar note)
+    const dataStoreNote = isCalendarNote ? await DataStore.noteByFilename(filename, 'Calendar') : null
+    if (dataStoreNote) {
+      dataStoreNote.content = ''
+      // $FlowIgnore[incompatible-call]
+      note = await Editor.openNoteByFilename(
+        filename,
+        options.newWindow || false,
+        options.highlightStart || 0,
+        options.highlightEnd || 0,
+        options.splitView || false,
+        options.createIfNeeded || false,
+        options.content || undefined,
+      )
+    }
+  }
+  if (!note) {
+    logError(
+      pluginJson,
+      `openNoteByFilename could not open ${isCalendarNote ? 'Calendar ' : 'Project'} note with filename: "${filename}" ${
+        isCalendarNote ? '' : '. You may need to set "createIfNeeded" to true for this to work'
+      }`,
+    )
+  }
+  return note
 }
 
 /**

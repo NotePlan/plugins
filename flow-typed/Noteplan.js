@@ -96,7 +96,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   replaceSelectionWithText(text: string): void;
   /**
-   * Opens a note using the given filename.
+   * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
    * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
@@ -122,7 +122,7 @@ declare interface TEditor extends CoreNoteFields {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,
-    createIfNeeded: true,
+    createIfNeeded: boolean,
     content?: string,
   ): Promise<TNote>;
   /**
