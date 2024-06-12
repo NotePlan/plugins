@@ -191,6 +191,7 @@ export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDU
  * @param {?string | null} replaceWith - the string to add to the end (if nothing sent, will use >todaysDate)
  * @returns {string} string with the replacements made, and trimmed
  * @author @dwertheimer
+ * @tests in jest file
  */
 export function replaceArrowDatesInString(inString: string, replaceWith: string | null = null): string {
   let str = inString
@@ -199,8 +200,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
-  // $FlowIgnore[incompatible-type]
-  // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
+  // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
   // TODO: could this be done by .replace(RE_SCHEDULED_DATES_G) instead?
   while (str && isScheduled(str)) {
     str = str
@@ -214,7 +214,6 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .replace(/ {2,}/g, ' ')
       .trim()
   }
-  // $FlowIgnore[incompatible-type]
   // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }

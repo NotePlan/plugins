@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2.6.2024 for v2.0.0 by @dbw
+// Last updated 11.6.2024 for v2.0.0 by @dbw
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -59,7 +59,7 @@ import {
 } from '@helpers/note'
 // import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
 import {formatReactError} from '@helpers/react/reactDev'
-import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+// import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 //-----------------------------------------------------------------
 // Data types + constants

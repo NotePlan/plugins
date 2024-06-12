@@ -26,8 +26,9 @@ import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
+import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen } from '@helpers/utils'
-import { showMessageYesNoCancel } from '@helpers/userInput'
+// import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -1404,6 +1405,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
       dateString = nowShortDateTimeISOString
     }
     const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
+
+    // Remove >today if present
+    para.content = stripTodaysDateRefsFromString(para.content)
 
     if (para.type === 'open') {
       para.type = 'done'
