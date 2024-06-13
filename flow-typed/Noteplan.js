@@ -99,6 +99,7 @@ declare interface TEditor extends CoreNoteFields {
    * Opens a note using the given filename.
    * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * Note: if the note doesn't exist, then returns null
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
