@@ -24,6 +24,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
+### Unreleased
+- dbw: add check for Dashboard Theme setting change
+
 ## [2.0.0.b7] 2024-06-13
 - jgc: fix to clicking edit/dialog button for Project items (thx @GeorgeC)
 - jgc: added missing click handler for Project item titles (thx @GeorgeC)

@@ -42,7 +42,7 @@ import {
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
-import { makeDashboardParas } from './dashboardHelpers'
+import { makeDashboardParas , getCombinedSettings } from './dashboardHelpers'
 import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
 import {
   copyUpdatedSectionItemData, findSectionItems,
@@ -454,11 +454,13 @@ export async function checkForThemeChange(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
+  const config = await getCombinedSettings()
 
   // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
   // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
   
-  const currentTheme = Editor.currentTheme?.name || null
+  const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
+
   if (!currentTheme) {
     logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
     return
