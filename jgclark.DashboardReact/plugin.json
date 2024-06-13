@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next few notes to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0-b2",
+  "plugin.version": "2.0.0-b6",
   "plugin.hidden": true,
-  "plugin.lastUpdateInfo": "",
+  "plugin.lastUpdateInfo": "2.0.0-b6: Added settings automigration from original Dashboard",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "dashboard.css",
@@ -88,17 +88,22 @@
     },
     {
       "type": "hidden",
+      "key": "migratedSettingsFromOriginalDashboard",
+      "default": ""
+    },
+    {
+      "type": "hidden",
       "key": "reactSettings",
       "description": "Saves last state of react UI choices as JSON string.",
       "required": true,
-      "default": ""
+      "default": "{}"
     },
     {
       "type": "hidden",
       "key": "sharedSettings",
       "description": "Saves last state of shared settings as JSON string.",
       "required": true,
-      "default": ""
+      "default": "{}"
     },
     {
       "key": "separateSectionForReferencedNotes",

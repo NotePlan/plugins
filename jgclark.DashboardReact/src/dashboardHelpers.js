@@ -110,7 +110,7 @@ export function getSharedSettings(): any {
  */
 export async function getCombinedSettings(): Promise<any> {
   const sharedSettings = getSharedSettings()
-  if (Object.keys(sharedSettings).length === 0) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
+  if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
@@ -139,8 +139,9 @@ export async function getSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getSettings()`)
   try {
     // Get plugin settings
-    // Question: Why not just use DataStore.settings?
-    const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    // TODO: Question for @jgclark: Why not just use DataStore.settings? I'm going to try swapping it out because we need the defaults if they don't exist
+    // const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const config: dashboardConfigType = DataStore.settings
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)

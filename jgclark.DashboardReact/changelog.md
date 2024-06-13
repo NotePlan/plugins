@@ -24,6 +24,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - other bug fixes
 - TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
+## [2.0.0-b6] (and other dot releases prior...lots of iterative testing required) 
+
+- Added settings automigration from original Dashboard
+
 ## [2.0.0.b2] 2024-06-11
 - jgc: following @aaronpoweruser suggestion that an item with ">today" should have that removed when completing it, to align with how NP reference section works.
 - jgc: fix bug that today items with ">today" would be shown truncated

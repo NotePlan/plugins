@@ -4,7 +4,7 @@
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 import { setPluginData } from './clickHandlers'
 import { getCombinedSettings } from './dashboardHelpers'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
@@ -25,6 +25,19 @@ import { showMessage } from '@helpers/userInput'
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall started`)
+    // we will use this as a way to migrate settings from previous Dashboard
+    const config = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
+
+    if (config == null || Object.keys(config).length === 0 || !config.migratedSettingsFromOriginalDashboard) {
+      const oldDashboardSettings = await DataStore.loadJSON('../jgclark.Dashboard/settings.json')
+      if (!oldDashboardSettings) {
+        logError(`Cannot find settings for the '${pluginJson['plugin.id']}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+        return
+      }
+      const settings = oldDashboardSettings ? { ...DataStore.settings, ...oldDashboardSettings } : DataStore.settings
+      DataStore.settings = {...settings, migratedSettingsFromOriginalDashboard: oldDashboardSettings ? "yes" : "no"}
+      logInfo(pluginJson, oldDashboardSettings ? `Migrated settings from jgclark.Dashboard to jgclark.DashboardReact` : 'Created default settings')
+    }
     // Tell user the plugin has been updated
     await updateSettingData(pluginJson)
     await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
