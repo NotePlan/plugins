@@ -538,18 +538,18 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
 // }
 
 // Handle a show note call simply by opening the note in the main Editor.
+// Note: use the showLine... variant of this (below) where possible
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, modifierKey } = data
   if (!filename) throw 'doShowNoteInEditorFromFilename: No filename: stopping'
-  // Note: use the showLine... variant of this (below) where possible
   const note = await openNoteByFilename(filename, { newWindow: modifierKey==='meta', splitView: modifierKey==='alt' } )
   return handlerResult(note ? true : false)
 }
 
 // Handle a show note call simply by opening the note in the main Editor
+// Note: use the showLine... variant of this (below) where possible
 export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = validateAndFlattenMessageObject(data)
-  // Note: use the showLine... variant of this (below) where possible
   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
   const wantedTitle = filename
   const note = await Editor.openNoteByTitle(wantedTitle)

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-06-04 for v2.0.0 by @dwertheimer
+// Last updated 2024-06-13 for v2.0.0-b7 by @dwertheimer
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -221,7 +221,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         const newPluginData = { ...pluginData, sections: updatedSections }
         updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para.content}`)
+        // FIXME(@dwertheimer): I worked around the crash this generates in the Projects section. But I'm not sure what this achieves?
+        // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
+        logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])

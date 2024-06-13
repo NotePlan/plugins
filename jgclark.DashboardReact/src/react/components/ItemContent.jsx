@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 11.6.2024 for v2.0.0 by @jgclark
+// Last updated 13.6.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -35,6 +35,7 @@ import {
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
   item: TSectionItem,
@@ -59,9 +60,11 @@ function ItemContent({ item, children }: Props): React$Node {
   // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
   if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
 
-  function handleTaskClick() {
+  function handleTaskClick(e: MouseEvent) {
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
     const dataObjectToPassToFunction = {
       actionType: 'showLineInEditorFromFilename',
+      modifierKey: modifierName,
       item,
     }
     sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Item clicked', true)
@@ -71,7 +74,7 @@ function ItemContent({ item, children }: Props): React$Node {
 
   // TODO(later): try not to live dangerously!
   // $FlowIgnore[incompatible-type] -- eventually we will remove the dangerousness
-  return <div className="sectionItemContent sectionItem"><a className="content" onClick={() => handleTaskClick()} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
+  return <div className="sectionItemContent sectionItem"><a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
 }
 
 /**

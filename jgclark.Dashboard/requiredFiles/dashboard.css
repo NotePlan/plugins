@@ -175,7 +175,7 @@ body {
 }
 .dialogTrigger {
   color: var(--fg-main-color);
-  opacity: 0.8;
+  opacity: 0.5;
 	cursor: pointer;
 }
 /* The actual item's details (was col4) */

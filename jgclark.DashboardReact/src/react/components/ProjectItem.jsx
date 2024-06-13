@@ -2,21 +2,22 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by  component
-// Last updated 16.5.2024 for v2.0.0 by @jgclark
+// Last updated 13.6.2024 for v2.0.0-b7 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
-import type { MessageDataObject, TSectionItem } from '../../types.js'
+import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
 import { logDebug, clo } from '@helpers/react/reactDev.js'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
   item: TSectionItem,
 }
 
 function ReviewItem({ item }: Props): React.Node {
-  const { pluginData, setReactSettings, sharedSettings /*, setSharedSettings */ } = useAppContext()
+  const { sendActionToPlugin, setReactSettings, sharedSettings /*, setSharedSettings */ } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
@@ -24,8 +25,8 @@ function ReviewItem({ item }: Props): React.Node {
   // logDebug(`ReviewItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
 
   const noteTitleWithOpenAction = (
-    <a className="noteTitle sectionItem">
-      <i className="fa-regular fa-file-lines pad-right"></i> {noteTitle}
+    <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
+      <i className="fa-regular fa-file-lines pad-right"></i>{noteTitle}
     </a>
   )
 
@@ -36,19 +37,20 @@ function ReviewItem({ item }: Props): React.Node {
     </>
   )
 
-  // const messageObject: MessageDataObject = {
-  //   item: item,
-  //   actionType: '(not yet set)',
-  // }
-
-  // const handleEditClick = (): void => {
-  //   setReactSettings((prev) => ({ ...prev, lastChange: `_Dashboard-ProjectDialogOpen`, dialogData: { isOpen: true, isTask: false, details: dataObjectToPassToControlDialog } }))
-  // }
-
   const dataObjectToPassToControlDialog = {
     item: item,
     actionType: '' 
    }
+
+  function handleTitleClick(e: MouseEvent) {
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    const dataObjectToPassToFunction = {
+      actionType: 'showNoteInEditorFromFilename', // we only have note-level data for Project items
+      modifierKey: modifierName,
+      filename: item.project?.filename ?? '<no filename>',
+    }
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
+  }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
     // clo(dataObjectToPassToControlDialog, 'ReviewItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
@@ -70,7 +72,6 @@ function ReviewItem({ item }: Props): React.Node {
         {projectContent}
 
         <a className="dialogTrigger">
-          {/* <i className="fa-light fa-edit pad-left" onClick={handleEditClick}></i> */}
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
         </a>
       </div>

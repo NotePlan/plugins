@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by ReviewItem component
-// Last updated 30.5.2024 for v2.0.0 by @jgclark
+// Last updated 13.6.2024 for v2.0.0-b7 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -13,8 +13,8 @@ import CalendarPicker from './CalendarPicker.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
-import '../css/animation.css'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import '../css/animation.css'
 
 // type RefType<T> = {| current: null | T |}
 
@@ -26,7 +26,7 @@ type Props = {
 
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
-  const inputRef = useRef <? ElementRef < 'dialog' >> (null)
+  // const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
   // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
@@ -40,7 +40,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // const { filename } = thisProject
   const { ID, itemType, filename, title } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
+  const { sendActionToPlugin, /* reactSettings, sharedSettings, pluginData */ } = useAppContext()
 
   /**
    * Array of buttons to render.
@@ -55,16 +55,19 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   useEffect(() => {
     // logDebug(`DialogForProjectItems`, `BEFORE POSITION detailsMessageObject`, detailsMessageObject)
-    //$FlowIgnore
-    positionDialog(dialogRef)
+    // $FlowIgnore[incompatible-call]
+    if (dialogRef) positionDialog(dialogRef)
     // logDebug(`DialogForProjectItems`, `AFTER POSITION detailsMessageObject`, detailsMessageObject)
   }, [])
 
   function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
-    const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
-    detailsMessageObject.modifierKey = modifierName 
-    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    const dataObjectToPassToFunction = {
+      actionType: 'showLineInEditorFromFilename',
+      modifierKey: modifierName,
+    }
+    logDebug('DFPI', `handleTitleClick`)
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
   }
 
   // Handle the shared closing functionality
@@ -92,7 +95,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     closeDialog()
   }
 
-  function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
+  function handleButtonClick(_event: MouseEvent, controlStr: string, type: string) {
     clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     // const currentContent = para.content
     // $FlowIgnore

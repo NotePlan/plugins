@@ -64,6 +64,7 @@ function TaskItem({ item, thisSection }: Props): Node {
     }))
   }
 
+  // FIXME(@dwertheimer): flow error in line 77, which I don't know enough to fix.
   return (
     visible ? (
       <div className={`sectionItemRow`} id={item.ID}>
