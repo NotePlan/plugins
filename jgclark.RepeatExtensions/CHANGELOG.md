@@ -1,6 +1,9 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [0.8.1] - 2024-06-14
+- fixed bug and improved logging
+
 ## [0.8.0] - 2024-06-09
 - added setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
 <!-- - fix detailed logging error in dateTime::cODS -->

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 9.6.2024 for v0.8.0
+// last updated 14.6.2024 for v0.8.0
 //-----------------------------------------------------------------------
 
 // import moment from 'moment'
@@ -35,7 +35,8 @@ const RE_EXTENDED_REPEAT = `@repeat\\(${RE_DATE_INTERVAL}\\)` // find @repeat()
 
 //------------------------------------------------------------------
 /**
- * Respond to onEditorWillSave trigger for the currently open note
+ * Respond to onEditorWillSave trigger for the currently open note. 
+ * Will fire generateRepeats() if the a changed text region includes '@done(...) and @repeat(...)'
  */
 export async function onEditorWillSave(): Promise<void> {
   try {
@@ -45,20 +46,20 @@ export async function onEditorWillSave(): Promise<void> {
       const previousContent = noteReadOnly.versions[0].content
       const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
 
-      logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
+      // logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
       // logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
       // logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
 
       // first check to see if this has been called in the last 2000ms: if so don't proceed, as this could be a double call.
       if (timeSinceLastEdit <= 2000) {
-        logDebug(pluginJson, `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+        // logDebug(pluginJson, `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
         return
       }
 
       // Get changed ranges
       const ranges = NotePlan.stringDiff(previousContent, latestContent)
       if (!ranges || ranges.length === 0) {
-        logDebug('repeatExtensions/onEditorWillSave', `No ranges returned, so stopping.`)
+        // logDebug('repeatExtensions/onEditorWillSave', `No ranges returned, so stopping.`)
         return
       }
       const earliestStart = ranges[0].start
@@ -74,17 +75,18 @@ export async function onEditorWillSave(): Promise<void> {
       // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
       let changedExtent = ''
       const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
-      logDebug('repeatExtensions/onEditorWillSave', `- changed lines ${startParaIndex}-${endParaIndex}`)
+      // logDebug('repeatExtensions/onEditorWillSave', `- changed lines ${startParaIndex}-${endParaIndex}`)
       for (let i = startParaIndex; i <= endParaIndex; i++) {
         changedExtent += Editor.paragraphs[i].content
       }
-      // logDebug('repeatExtensions/onEditorWillSave', `Changed content extent: <${changedExtent}>`)
+      // logDebug('repeatExtensions/onEditorWillSave', `Changed content extent:\n<${changedExtent}>`)
 
       // If the changed text includes @done(...) then we may have something to update, so run repeats()
       if (changedExtent.match(RE_DONE_DATE_TIME) && changedExtent.match(RE_EXTENDED_REPEAT)) {
+        logDebug('repeatExtensions/onEditorWillSave', `Found @done(...) so will call generatedRepeats ...`)
         // Call main generateRepeats() function, but don't show if there are no repeats found
         // $FlowIgnore[incompatible-call]
-        const res = await generateRepeats(Editor.note, false) // i.e. run silently
+        const res = await generateRepeats(true) // i.e. run loudly on the Editor
       }
     } else {
       throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
@@ -104,26 +106,29 @@ export async function onEditorWillSave(): Promise<void> {
  * To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been shortened to @done(YYYY-MM-DD).
  * It includes cancelled tasks as well; to remove a repeat entirely, remove the @repeat tag from the task in NotePlan.
  * Note: The new repeat date is by default scheduled to a day (>YYYY-MM-DD). But if the scheduled date is a week date (YYYY-Wnn), or the repeat is in a weekly note, then the new repeat date will be a scheduled week link (>YYYY-Wnn).
- * Note: Runs on the currently open note (using Editor.* funcs)
- * Note: Could add a 'Newer' mode of operation according to # 351.
+ * Note: Runs on the currently open note (using Editor.* funcs) if possible, or now on noteArg too (not using Editor.* funcs)
+ * Note: Could add a 'Newer' mode of operation according to GH # 351.
  * TEST: fails to appendTodo to note with same stem?
  * @author @jgclark
+ * @param {boolean} runSilently? [default: false]
  * @param {TNote?} noteArg optional note to process
- * @param {boolean} runSilently?
  * @returns {number} number of generated repeats
  */
-export async function generateRepeats(noteArg?: TNote, runSilently: boolean = false): Promise<number> {
+export async function generateRepeats(
+  runSilently: boolean = false,
+  noteArg?: TNote
+): Promise<number> {
   try {
-    // Get passed note details, or fall back to Editor. (Note: v0.5.2 changed this to run from 'Editor.note' only)
+    // Get passed note details, or fall back to Editor
     let noteToUse: TNote
-    let noteIsOpenInEditor = false // means we can use a faster-to-user function when true
+    let noteIsOpenInEditor = false // when true we can use a faster-to-user function
     if (noteArg) {
       noteToUse = noteArg
-      logDebug(pluginJson, `noteArg -> ${noteToUse.filename}`)
+      logDebug(pluginJson, `generateRepeats() starting with noteArg -> ${noteToUse.filename}`)
     } else if (Editor && Editor.note) {
-      noteToUse = Editor.note
+      noteToUse = Editor
       noteIsOpenInEditor = true
-      logDebug(pluginJson, `Editor -> ${noteToUse.filename}`)
+      logDebug(pluginJson, `generateRepeats() starting with EDITOR -> ${noteToUse.filename}`)
     } else {
       throw new Error(`Couldn't get either passed Note argument or Editor.note: stopping`)
     }
@@ -169,7 +174,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
         reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
         completedDate = reReturnArray[1]
         completedTime = reReturnArray[2]
-        // logDebug('generateRepeats', `- found completed task with date-time ${completedDate} ${completedTime} in line ${n}`)
+        logDebug('generateRepeats', `- found newly completed task in line ${n}: "${line}"`)
 
         // remove time string from completed date-time
         lineWithoutDoneTime = line.replace(completedTime, '') // couldn't get a regex to work here
@@ -186,7 +191,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
           let newRepeatDateStr = generateUpdatedLineContent(noteToUse, p.content, completedDate)
           // Remove any >date and @done()
           let outputLine = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
-          logDebug('generateRepeats', `- outputLine: ${outputLine}`)
+          // logDebug('generateRepeats', `- outputLine: ${outputLine}`)
 
           if (type === 'Notes') {
             // Add in same project note, including new scheduled date
@@ -194,10 +199,11 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
             logDebug('generateRepeats', `- outputLine: "${outputLine}"`)
             if (noteIsOpenInEditor) {
               await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
+              logInfo('generateRepeats', `- inserted new repeat at line ${p.lineIndex} in Editor`)
             } else {
               await noteToUse.insertParagraphBeforeParagraph(outputLine, p, 'open')
+              logInfo('generateRepeats', `- inserted new repeat at line ${p.lineIndex} in '${noteToUse.filename}'`)
             }
-            logInfo('generateRepeats', `- inserted new repeat in note ${noteToUse.filename} at line ${p.lineIndex}`)
           }
           else {
             // Add in the future Calendar note
@@ -244,7 +250,7 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
 
           // delete the completed line entirely if 'deleteCompletedRepeat' true
           if (config.deleteCompletedRepeat) {
-            logDebug('generateRepeats', `- removing para ${String(p.lineIndex)}`)
+            logInfo('generateRepeats', `- removing para ${String(n + 1)}`)
             // Remove para from the mote
             // noteToUse.removeParagraph(p)
             if (noteIsOpenInEditor) {
@@ -253,6 +259,15 @@ export async function generateRepeats(noteArg?: TNote, runSilently: boolean = fa
               noteToUse.removeParagraphAtIndex(n + 1)
             }
             logDebug('generateRepeats', `- after removal, ${String(noteToUse.paragraphs.length)} lines`)
+          } else {
+            // update the line in place
+            p.content = lineWithoutDoneTime
+            if (noteIsOpenInEditor) {
+              Editor.updateParagraph(p)
+            } else {
+              noteToUse.updateParagraph(p)
+            }
+            logDebug('generateRepeats', `- updated line ${p.lineIndex}`)
           }
         }
       }
