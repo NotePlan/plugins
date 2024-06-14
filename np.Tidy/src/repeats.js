@@ -69,7 +69,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
     // Now run generateRepeats() on each and count how many were changed
     let numGenerated = 0
     for (const thisNote of recentNotes) {
-      const num = await generateRepeats(thisNote, true)
+      const num = await generateRepeats(runSilently, thisNote)
       numGenerated += num
     }
     await CommandBar.onMainThread()
