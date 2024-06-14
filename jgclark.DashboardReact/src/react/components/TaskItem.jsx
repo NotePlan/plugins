@@ -27,6 +27,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   const messageObject: MessageDataObject = {
     item: item,
     actionType: '(not yet set)',
+    sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
   }
 
   function handleIconClick() {
@@ -51,6 +52,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${itemType}`)
         break
     }
+    logDebug('TaskItem/handleIconClick', `-> actionType:${messageObject.actionType} for itemType:${itemType} and i.p.content = ${item.para?.content ?? '-'}`)
     // clo(messageObject, `TaskItem: icon clicked: ${item.ID}`)
   }
 
@@ -65,6 +67,7 @@ function TaskItem({ item, thisSection }: Props): Node {
   }
 
   // FIXME(@dwertheimer): flow error in line 77, which I don't know enough to fix.
+  // TODO(@dwertheimer): I'm confused why StatusIcon here has a defined handleIconClick, and its own component defintion includes a handleIconClick. Why do we need both?
   return (
     visible ? (
       <div className={`sectionItemRow`} id={item.ID}>

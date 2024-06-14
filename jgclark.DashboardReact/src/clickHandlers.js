@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 3.6.2024 for v2.0.0 by @jgclark
+// Last updated 14.6.2024 for v2.0.0-b8 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -208,8 +208,10 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     const config = await getCombinedSettings()
-    const { actionType, toFilename } = data
-    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''}`)
+    // clo(data, 'data for doAddItem', 2)
+    const { actionType, toFilename, sectionCodes } = data
+
+    logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCodes)}`)
     if (!toFilename) {
       throw new Error('doAddItem: No toFilename provided')
     }
@@ -238,8 +240,10 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     // TEST: update cache
     DataStore.updateCache(DataStore.noteByFilename(toFilename, 'Calendar'))
 
-    // TODO: pass in just the section we've added to
-    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: allCalendarSectionCodes })
+    // update just the section we've added to
+    // Note: earlier work is smart enough to realise that pressing the nextPeriod button in DT -> DO
+    // FIXME: this doesn't seem to work for DO, but does for DT
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
   }
   catch (err) {
     logError('doAddItem', err.message)
@@ -249,7 +253,6 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 
 /** 
  * Complete the task in the actual Note.
- * TODO: extend to complete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
@@ -270,7 +273,6 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
 
 /** 
  * Complete the task in the actual Note, but with the date it was scheduled for.
- * TODO: extend to complete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
@@ -289,7 +291,6 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
 
 /** 
  * Cancel the task in the actual Note.
- * TODO: extend to complete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
@@ -309,7 +310,6 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
 
 /** 
  * Complete the checklist in the actual Note.
- * TODO: extend to complete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
@@ -322,8 +322,8 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
 }
 
 /** 
- * Complete the item in the actual Note.
- * TODO: extend to complete sub-items as well if wanted.
+ * Delete the item in the actual Note.
+ * TODO: extend to delete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
@@ -339,7 +339,6 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
 
 /** 
  * Cancel the checklist in the actual Note.
- * TODO: extend to complete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */ 
@@ -389,7 +388,8 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
 // Send a request to toggleType to plugin
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
   try {
-    const { filename, content } = validateAndFlattenMessageObject(data)
+    const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
+    logDebug('toggleTaskChecklistParaType', `starting for "${content}" in filename: ${filename} with sectionCodes ${String(sectionCodes)}`)
 
     // V1: original from v0.x
     // const updatedType = toggleTaskChecklistParaType(filename, content)
@@ -400,7 +400,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     if (typeof possiblePara === 'boolean') {
       throw new Error('toggleTaskChecklistParaType: no para found')
     }
-    // logDebug('toggleTaskChecklistParaType', `toggling type for {${content}} in filename: ${filename}`)
+    // logDebug('toggleTaskChecklistParaType', `toggling type for "${content}" in filename: ${filename}`)
     // Get the paragraph to change
     const updatedParagraph = possiblePara
     const thisNote = updatedParagraph.note
@@ -412,9 +412,9 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     logDebug('doToggleType', `-> ${updatedType}`)
     thisNote.updateParagraph(updatedParagraph)
     DataStore.updateCache(thisNote, false)
-    // TODO(later): better to refresh the whole section, as we might want to filter out the new type from the display
-    // FIXME: this still isn't updating the window correctly?
-    return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
+    // Refresh the whole section, as we might want to filter out the new item type from the display
+    // return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
+    return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
 
   } catch (error) {
     logError('doToggleType', error.message)
@@ -519,7 +519,8 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
     logDebug('doReviewFinished', `-> after finishReview`)
 
     // Now ask to update this line in the display
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+    // TODO: ideally do 'REFRESH_SECTION_IN_JSON' as well, but this looks to have a race condition.
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
   } else {
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
     return handlerResult(false)

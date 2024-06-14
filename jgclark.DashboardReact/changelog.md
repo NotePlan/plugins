@@ -22,17 +22,22 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fixed bug: tasks in future notes showing up in #tag section
 - fixed bug: synced copies dated for today were duplicated
 - other bug fixes
-- TODO: fixed bug: Dialog+Move To Note and selecting "top of note" places the item above the content of the note - this may be a bug in the helper also?
 
 ### Unreleased
 - dbw: add check for Dashboard Theme setting change
+
+## [2.0.0.b8] 2024-06-14
+- jgc: improved some section refreshes after adding items, toggling items
+- jgc: add log warnings in Theme generation code if missing ["flagged-1", "flagged-2", "flagged-3", "working-on"] keys (thx @dbw)
+- jgc: fix to changing dates on tasks in project notes (thx @GeorgeC)
+- jgc: fix for 'getRelativeDate' errors in logs
+- jgc: fixed regression on Refreshing spinner
 
 ## [2.0.0.b7] 2024-06-13
 - jgc: fix to clicking edit/dialog button for Project items (thx @GeorgeC)
 - jgc: added missing click handler for Project item titles (thx @GeorgeC)
 
 ## [2.0.0.b6] (and other dot releases prior...lots of iterative testing required) 
-
 - Added settings automigration from original Dashboard
 
 ## [2.0.0.b2] 2024-06-11

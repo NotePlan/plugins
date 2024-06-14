@@ -136,7 +136,6 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
-      {/* TODO(later): can remove most of the ids, I think */}
       {/*----------- Dialog that can be shown for any project item -----------*/}
       <dialog
         id="projectControlDialog"
@@ -165,7 +164,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
           <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
             <div>Project Reviews:</div>
-            <div id="projectControlDialogMoveControls">
+            <div /*id="projectControlDialogMoveControls"*/>
               {buttons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (

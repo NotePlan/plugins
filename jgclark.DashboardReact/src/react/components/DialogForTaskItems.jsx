@@ -2,12 +2,13 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 30.5.2024 for v2.0.0 by @dbw
+// Last updated 14.6.2024 for v2.0.0-b8 by @jgc
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
+// import { allSectionDetails } from "../../constants"
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
@@ -15,7 +16,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { logDebug, clo, JSP } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -32,16 +33,20 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
-  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`)
-  const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
+  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
+  const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
 
   const resched = sharedSettings?.rescheduleNotMove || pluginData?.settings.rescheduleNotMove || false
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: sharedSettings = ${String(sharedSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.settings.rescheduleNotMove)}`)
 
-  const dateChangeFunctionToUse = resched ? 'updateTaskDate' : 'moveFromCalToCal'
-  // logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse}`)
+  // Deduce the action to take when this is a date-changed button
+  // - Item in calendar note & move -> move to new calendar note for that picked date: use doMoveFromCalToCal()
+  // - All 3 other cases: use doUpdateTaskDate()
+  const dateChangeFunctionToUse = (noteType === 'Calendar' && !resched)
+    ? 'moveFromCalToCal' : 'updateTaskDate'
+  logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
   const { interactiveProcessing } = reactSettings??{}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
@@ -82,7 +87,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   }, [])
 
   function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
-    const { modifierName  } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
     detailsMessageObject.actionType = 'showLineInEditorFromFilename'
     detailsMessageObject.modifierKey = modifierName 
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
@@ -110,47 +115,42 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     // turn into 8601 format
     // const isoDateStr = date.toISOString().split('T')[0]
     const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
-
-    // Deduce the action to take
-    // - Item in calendar note & resched -> leave task where it is and reschedule to the picked date.  (Can use doUpdateTaskDate().)
-    // - Item in calendar note & move -> move to new calendar note for that picked date.  (Can use doMoveFromCalToCal().)
-    // - Item in project note & resched -> use doUpdateTaskDate()
-    // - Item in project note & move -> doMoveToNote().
-    const actionType = (noteType === 'Notes' && !resched) ? 'moveToNote' : dateChangeFunctionToUse
-    logDebug(`DialogForTaskItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
-    sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
+    sendActionToPlugin(dateChangeFunctionToUse, { ...detailsMessageObject, actionType: dateChangeFunctionToUse, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
     closeDialog()
   }
 
   function handleIconClick() {
-    logDebug(`DialogForTaskItems`, `handleIconClick: something was clicked. what to do ❓❓`)
+    logDebug(`DialogForTaskItems/handleIconClick`, `handleIconClick: something was clicked. what to do ❓❓`)
+    // TODO(@dwertheimer): I'm confused. This fires, but also goes on to Complete or Cancel an item, but I can't see how that's wired up.
     closeDialog()
   }
 
-  function handleButtonClick(event: MouseEvent, controlStr: string, type: string) {
+  function handleButtonClick(event: MouseEvent, controlStr: string, handlingFunction: string) {
     const { metaKey, altKey, ctrlKey, shiftKey } = extractModifierKeys(event) // Indicates whether a modifier key was pressed
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
-    // $FlowIgnore
-    const updatedContent = inputRef?.current?.getValue() || ''
-    logDebug(`DialogForTaskItems handleButtonClick`, `Clicked ${controlStr}`)
-    console.log(
-      `Button clicked on ID: ${ID} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
+    logDebug(`DialogForTaskItems handleButtonClick`, `Button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
         altKey,
       )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
     )
+    // $FlowIgnore
+    const updatedContent = inputRef?.current?.getValue() || ''
     if (controlStr === 'update') {
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
+    // let handlingFunctionToUse = handlingFunction
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'updateTaskDate'
+    // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
+
     const dataToSend = {
       ...detailsMessageObject,
-      actionType: type,
+      actionType: handlingFunction,
       controlStr: controlStr,
-      updatedContent: '',
+      updatedContent: (currentContent !== updatedContent) ? updatedContent : '',
+      sectionCodes: sectionCodes,
     }
-    if (currentContent !== updatedContent) dataToSend.updatedContent = updatedContent
 
-    sendActionToPlugin(dataToSend.actionType, dataToSend, `Sending ${type} to plugin`, true)
+    sendActionToPlugin(handlingFunction, dataToSend, `Dialog requesting call to ${handlingFunction}`, true)
     if (controlStr === 'openNote' || controlStr.startsWith("pri") || controlStr === "update") return //don't close dialog yet
 
     // Start the zoom/flip-out animation
@@ -181,10 +181,10 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
-      {/* TODO(later): can remove most of the ids, I think */}
+      {/* TEST: removing most of the ids */}
       {/*----------- Dialog that can be shown for any task-based item -----------*/}
       <dialog
-        id="itemControlDialog"
+        /*id="itemControlDialog"*/
         className={`itemControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on items"
@@ -192,10 +192,10 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
       >
         <div className="dialogTitle">
         <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} showAtCursor={true}>
-          <div id="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
+            <div /*id="dialogFileParts"*/ onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
             <span className="preText">From:</span>
             <i className="pad-left pad-right fa-regular fa-file-lines"></i>
-            <span className="dialogItemNote" /*id="dialogItemNote"*/>{title}</span>
+              <span className="dialogItemNote">{title}</span>
             {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
           </div>
           </TooltipOnKeyPress>
@@ -224,7 +224,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
         </div>
 
         <div className="dialogBody">
-          <div className="buttonGrid taskButtonGrid" id="itemDialogButtons">
+          <div className="buttonGrid taskButtonGrid" /*id="itemDialogButtons"*/>
             {/* line1 ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -255,7 +255,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
             {/* line3 ---------------- */}
             <div className="preText">Other controls:</div>
-            <div id="itemControlDialogOtherControls">
+            <div /*id="itemControlDialogOtherControls"*/>
               {otherControlButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
@@ -268,7 +268,6 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                 </button>
               ))}
             </div>
-            {/* </div> */}
           </div>
         </div>
       </dialog>

@@ -49,7 +49,7 @@ function ItemContent({ item, children }: Props): React$Node {
   const { sendActionToPlugin, sharedSettings } = useAppContext()
   // const itemType = para.type
 
-  logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
+  // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
 
   // compute the things we need later
   let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)

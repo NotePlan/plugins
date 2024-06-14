@@ -65,9 +65,9 @@ const StatusIcon = ({
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
 
-    logDebug('handleIconClick', `item.para.content = ${item.para?.content ?? '-'}`)
     const { metaKey, ctrlKey } = extractModifierKeys(event)
     const actionType = determineActionType(metaKey, ctrlKey)
+    logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for i.p.content = ${item.para?.content ?? '-'}`)
     const messageObject: MessageDataObject = {
       actionType,
       item,

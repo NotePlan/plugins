@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 22.12.2023 by @jgclark
+// Last updated 14.6.2024 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -397,6 +397,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
     output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
+
+    // Finally, just a note requested by @dwertheimer, and others who might have non-standard names in their themes
+    const themeKeysToCheck: Array<string> = ["flagged-1", "flagged-2", "flagged-3", "working-on"]
+    themeKeysToCheck.forEach(key => !themeJSON.styles[key] && logWarn(generateCSSFromTheme, `Your theme does not have the key "${key}" which Dashboard uses. This may be ok if you don't want that style, but if you do, you need to rename your theme style for this type of line`))
 
     // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')

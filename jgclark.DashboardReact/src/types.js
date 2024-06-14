@@ -29,6 +29,7 @@ export type TItemType = 'open' | 'checklist' | 'congrats' | 'project' | 'filterI
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
   ID: string,
+  // sectionCode: TSectionCode, // might want this in future
   itemType: TItemType,
   para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'project') */,
   project?: TProjectForDashboard,
