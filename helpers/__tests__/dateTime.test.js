@@ -671,7 +671,7 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('filenameIsInFuture()', () => {
-    const today = getTodaysDateUnhyphenated()
+    // const today = getTodaysDateUnhyphenated()
 
     // Daily notes
     test('should return false for a daily note filename in the past', () => {

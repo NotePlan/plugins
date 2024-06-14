@@ -2,6 +2,7 @@
 //-------------------------------------------------------------------------------
 // Date functions that rely on NotePlan functions/types
 // @jgclark except where shown
+//-------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
@@ -28,7 +29,7 @@ import {
   todaysDateISOString,
   toISOShortDateTimeString,
 } from './dateTime'
-import { logDebug, logError, logWarn, clo, JSP } from './dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 
 //--------------------------------------------------------------------------------
 // Local copies of other helpers to avoid circular dependencies
@@ -680,7 +681,8 @@ export function pad(n: number): string {
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string, a week string (YYYY-Wnn) or a Date object
  * Week info is offset depending on the NotePlan setting for the first day of the week
- * Note: requires API calls introduced in v3.7.0
+ * Note: requires NP API calls introduced in v3.7.0.
+ * Note: gracefully falls back to using moment calls if NP API calls not available
  * @param {string} dateIn - date string in format YYYY-MM-DD, YYYYMMDD, YYYY-Wnn OR a Date object (default = today).
  * Note: Make sure that if you send in a date object that it's a date in the correct time/timezone you want.
  * If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
@@ -701,34 +703,51 @@ export function pad(n: number): string {
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
-    if (NotePlan?.environment?.buildVersion < 876 ?? true) {
-      // to allow NPDateTime.test.js to run
-      throw new Error('Sorry; week API calls requires NotePlan v3.7 or newer.')
-    }
+    // if (NotePlan?.environment?.buildVersion < 876 ?? true) {
+    //   // to allow NPDateTime.test.js to run
+    //   throw new Error('Sorry; week API calls requires NotePlan v3.7 or newer.')
+    // }
 
     let dateStrFormat = 'YYYY-MM-DD',
       newMom
     if (typeof dateIn === 'string') {
       if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
       if (new RegExp(RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
-      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)        
+      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
     } else {
       newMom = moment(dateIn).add(offsetIncrement, offsetType)
     }
-    if (newMom) {
-      const date = newMom.toDate()
-      if (date) {
-        const weekNumber = Calendar.weekNumber(date)
-        const startDate = Calendar.startOfWeek(date)
-        const endDate = Calendar.endOfWeek(date)
-        const weekStartYear = startDate.getFullYear()
-        const weekEndYear = endDate.getFullYear()
-        const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-        const weekString = `${weekYear}-W${pad(weekNumber)}`
-        return { weekNumber, startDate, endDate, weekYear, date, weekString }
-      }
+    if (!newMom) {
+      throw new Error(`Cannot get newMom from dateIn '${String(dateIn)}'`)
     }
-    return null
+    const date = newMom.toDate()
+    if (!date) {
+      throw new Error(`Cannot get date from dateIn '${String(dateIn)}'`)
+    }
+
+    // This might be run from React side, where Calendar.* is not available.
+    // If this happens, then instead offer the ISO week number.
+    if (typeof Calendar !== 'function') {
+      logInfo('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
+      const weekNumber = newMom.week() // uses moment locale
+      const startDate = newMom.startOf('week').toDate()
+      const endDate = newMom.endOf('week').toDate()
+      const weekStartYear = startDate.getFullYear()
+      const weekEndYear = endDate.getFullYear()
+      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+      const weekString = `${weekYear}-W${pad(weekNumber)}`
+      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+    }
+    else {
+      const weekNumber = Calendar.weekNumber(date)
+      const startDate = Calendar.startOfWeek(date)
+      const endDate = Calendar.endOfWeek(date)
+      const weekStartYear = startDate.getFullYear()
+      const weekEndYear = endDate.getFullYear()
+      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+      const weekString = `${weekYear}-W${pad(weekNumber)}`
+      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+    }
   } catch (err) {
     logError('NPdateTime::getNPWeekData', err.message)
     return null
@@ -917,6 +936,7 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
 
 /**
  * Get array of dates relative to today for day, week and month.
+ * Note: now tests to see if NP API calls are available, and if not returns an empty array
  * @author @jgclark
  * @returns {Array<Object>} relative date name, relative date string, TNote for that relative date
  */
@@ -925,19 +945,24 @@ export function getRelativeDates(): Array<Object> {
     const relativeDates = []
     const todayMom = moment()
 
+    if (typeof DataStore !== 'function') {
+      logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
+      return [{}]
+    }
+
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
     const thisDateStrDisplay = moment(todayMom).format(MOMENT_FORMAT_NP_ISO)
-    let thisDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'today', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
-    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    const todayDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'today', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(todayDateStr) })
+    const yesterdayDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(yesterdayDateStr) })
+    const tomorrowDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(tomorrowDateStr) })
 
     // can't start with moment as NP weeks count differently
     // $FlowIgnore[incompatible-type]
     let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    thisDateStr = thisNPWeekInfo.weekString
+    let thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
     // $FlowIgnore[incompatible-type]
     thisNPWeekInfo = getNPWeekData(new Date(), -1)

@@ -807,7 +807,7 @@ export function getWeek(inDate: Date): number {
 /**
  * WARNING: Only for use where Monday is the user's first day of the week. See NPdateTime::getNPWeekData() for use with other days of the week.
  * @param {Date} inDate
- * @returns string
+ * @returns {string}
  */
 export function getNPWeekStr(inDate: Date): string {
   // Using 'moment' library, with Monday first day of week
@@ -815,20 +815,32 @@ export function getNPWeekStr(inDate: Date): string {
   return dateMoment.format(MOMENT_FORMAT_NP_WEEK)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPMonthStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_MONTH)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPQuarterStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_QUARTER)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPYearStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_YEAR)
 }
@@ -1297,13 +1309,13 @@ export function includesScheduledFutureDate(line: string, fromDateStr?: string):
  * @returns {boolean} - Returns true if the filename is scheduled in a future note.
  */
 export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: string = getTodaysDateUnhyphenated()): boolean {
-  const today = new Date(fromUnhyphenatedDate.slice(0, 4), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
+  const today = new Date(parseInt(fromUnhyphenatedDate.slice(0, 4)), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
 
   // Test for daily notes
   if (filename.match(RE_DAILY_NOTE_FILENAME)) {
     const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
     if (dateMatch) {
-      const dailyDate = dateMatch[0].match(/\d{8}/)?.[0]
+      const dailyDate = dateMatch[0].match(/\d{8}/)?.[0] ?? ''
       return dailyDate > fromUnhyphenatedDate
     }
   }
@@ -1312,7 +1324,7 @@ export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: strin
   if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
     const weekDateMatch = filename.match(RE_WEEKLY_NOTE_FILENAME)
     if (weekDateMatch) {
-      const weeklyDate = weekDateMatch[0].match(/\d{4}-W\d{2}/)?.[0]
+      const weeklyDate = weekDateMatch[0].match(/\d{4}-W\d{2}/)?.[0] ?? ''
       return weeklyDate > getNPWeekStr(today)
     }
   }
@@ -1321,7 +1333,7 @@ export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: strin
   if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
     const monthDateMatch = filename.match(RE_MONTHLY_NOTE_FILENAME)
     if (monthDateMatch) {
-      const monthlyDate = monthDateMatch[0].match(/\d{4}-\d{2}/)?.[0]
+      const monthlyDate = monthDateMatch[0].match(/\d{4}-\d{2}/)?.[0] ?? ''
       return monthlyDate > getNPMonthStr(today)
     }
   }
@@ -1330,10 +1342,8 @@ export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: strin
   if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
     const quarterDateMatch = filename.match(RE_QUARTERLY_NOTE_FILENAME)
     if (quarterDateMatch) {
-      const quarterlyDate = quarterDateMatch[0].match(/\d{4}-Q\d/)
-      if (quarterlyDate) {
-        return quarterlyDate[0] > getNPQuarterStr(today)
-      }
+      const quarterlyDate = quarterDateMatch[0].match(/\d{4}-Q\d/)?.[0] ?? ''
+      return quarterlyDate > getNPQuarterStr(today)
     }
   }
 
