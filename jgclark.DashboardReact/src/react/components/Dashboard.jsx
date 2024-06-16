@@ -100,6 +100,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Force the window to be focused on load so that we can capture clicks on hover
   useEffect(() => {
     if (containerRef.current) {
+      containerRef.current.style.cssText = `${containerRef.current.style.cssText} outline: none;`
       containerRef.current.focus()
     }
   }, [])
