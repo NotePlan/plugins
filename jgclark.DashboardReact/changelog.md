@@ -26,6 +26,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Unreleased
 - dbw: add check for Dashboard Theme setting change
 - dbw: remove blue outline on focus
+- dbw: move logLevel to settings (you don't need to set it in NP plugin pane settings)
 
 ## [2.0.0.b8] 2024-06-14
 - jgc: improved some section refreshes after adding items, toggling items
