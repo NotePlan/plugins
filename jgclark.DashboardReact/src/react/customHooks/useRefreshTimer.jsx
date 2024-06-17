@@ -2,7 +2,7 @@
 // Sends a refresh after a delay, with a debounce so only the latest refresh call is sent
 // usage:
 // import useRefreshTimer from './useRefreshTimer.jsx'
-//   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: pluginData.settings._logLevel !== "DEV" })
+//   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: sharedSettings._logLevel !== "DEV" })
 // ... then wherever you want to send a refresh:
 // refreshTimer()
 // @flow

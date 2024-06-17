@@ -100,7 +100,7 @@ export type dashboardConfigType = {
  */
 export function getSharedSettings(): any {
   const settings = DataStore.settings
-  if (!settings.sharedSettings) clo(settings, `getSharedSettings: DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings`)
+  if (!settings.sharedSettings) clo(settings, `getSharedSettings: DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
   return parseSettings(DataStore.settings?.sharedSettings || '') ?? {}
 }
 
@@ -113,6 +113,8 @@ export async function getCombinedSettings(): Promise<any> {
   if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
+  clo(pluginSettings, 'getCombinedSettings: pluginSettings')
+  clo(sharedSettings, 'getCombinedSettings: sharedSettings')
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
   // Now add all the show*Section settings (or default to true)
@@ -140,8 +142,8 @@ export async function getSettings(): Promise<any> {
   try {
     // Get plugin settings
     // TODO: Question for @jgclark: Why not just use DataStore.settings? I'm going to try swapping it out because we need the defaults if they don't exist
-    // const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    const config: dashboardConfigType = DataStore.settings
+    const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    // const config: dashboardConfigType = DataStore.settings
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)

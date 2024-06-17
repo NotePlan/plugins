@@ -107,7 +107,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, sharedSettings)
 //  */
 export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSharedSettings): TAnyObject {
-    const isDebugLogging = pluginSettings?._logLevel === 'DEV'
+    const isDebugLogging = sharedSettings?._logLevel === 'DEV'
     // find all keys that start with Fflag
     const featureFlags = (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
         // $FlowIgnore
@@ -124,7 +124,7 @@ export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSha
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
-    const keysToEliminate = ['sharedSettings', 'reactSettings', "_logLevel","timeblockMustContainString"]
+    const keysToEliminate = ['sharedSettings', 'reactSettings',"timeblockMustContainString"]
     const settingsRedacted = JSON.parse(JSON.stringify(settings))
     const keys = Object.keys(settingsRedacted)
     for (const key of keys) {

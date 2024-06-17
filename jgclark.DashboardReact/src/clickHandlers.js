@@ -700,14 +700,27 @@ export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: str
     return handlerResult(false)
   }
 }
-
+/**
+ * Update a single key in DataStore.settings
+ * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
+ * @param {string} settingName - the single key to set to the value of data.settings
+ * @returns {TBridgeClickHandlerResult}
+ */
 export function doSettingsChanged(data: MessageDataObject, settingName: string): TBridgeClickHandlerResult {
+  // clo(data, `doSettingsChanged -> data`)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  DataStore.settings = { ...DataStore.settings, [settingName]: newSettings }
-  logDebug('doSettingsChanged', `${settingName} updated`)
+  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: newSettings }
+  // logLevel is a special case that we need to specifically update in DataStore
+  // so that plugin-side functions that log can pick it up even before React is ready
+  if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
+    combinedUpdatedSettings._logLevel =  newSettings._logLevel
+    logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
+  }
+  logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings`)
+  DataStore.settings = combinedUpdatedSettings
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 

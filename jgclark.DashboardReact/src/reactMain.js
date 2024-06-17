@@ -107,6 +107,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       preBodyScript: ``,
       postBodyScript: `
         <script type="text/javascript" >
+        // Set DataStore.settings so default clo etc. logging works in React
         let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
         </script>
       `,

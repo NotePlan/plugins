@@ -51,7 +51,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   useWatchForResizes(sendActionToPlugin)
     // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
-    const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: pluginData.settings._logLevel !== "DEV" })
+    const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: sharedSettings._logLevel !== "DEV" })
 
   //----------------------------------------------------------------------
   // Refs

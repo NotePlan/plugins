@@ -65,7 +65,9 @@ export function init(): void {
  */
 export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
-  await setPluginData({ settings: await getCombinedSettings() }, '_settings were updated')
+  const combinedSettings = await getCombinedSettings()
+  clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.settings to combinedSettings')
+  await setPluginData({ settings: combinedSettings }, '_settings were updated')
   return
   // probably get rid of all of this because it's not used
   // try {

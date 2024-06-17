@@ -81,7 +81,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginDataSettings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginDataSettings)
 
-  const isDevMode = pluginDataSettings._logLevel === 'DEV'
+  const isDevMode = sharedSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && sharedSettings?.FFlag_HardRefreshButton
 
   //----------------------------------------------------------------------

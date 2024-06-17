@@ -87,8 +87,9 @@ const SettingsDialog = ({
         // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
         setSharedSettings({ ...sharedSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
         logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
+        // we are going to let the watcher pick up the changes and communicate them to the plugin
         // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
-        sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
+        // sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
         toggleDialog()
     }
 
