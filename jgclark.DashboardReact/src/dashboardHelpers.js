@@ -1,16 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 3.6.2024 for v2.0.0 by @jgclark
+// Last updated 18.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-// import { getNoteFromParamOrUser } from '../../jgclark.QuickCapture/src/quickCaptureHelpers'
 import { allSectionDetails } from "./constants"
 import { parseSettings } from './shared'
-import type { TItemType, TParagraphForDashboard } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TItemType, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   removeDateTagsAndToday, getAPIDateStrFromDisplayDateStr, includesScheduledFutureDate, getTodaysDateHyphenated
@@ -18,9 +17,12 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import {
+  sendToHTMLWindow,
+  getGlobalSharedData,
+} from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, getNoteByFilename, projectNotesSortedByChanged } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
-// import { getTimeRangeFromTimeBlockString } from '@helpers/NPdateTime'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
   findEndOfActivePartOfNote,
@@ -32,13 +34,11 @@ import {
   smartPrependPara,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
-// import { RE_ARROW_DATES_G, RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   getTimeBlockString,
   isTypeThatCanHaveATimeBlock,
-  // isTimeBlockPara,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
 import { chooseHeading, displayTitleWithRelDate, showMessage, chooseNote } from '@helpers/userInput'
@@ -56,6 +56,8 @@ import {
 // Settings
 
 const pluginID = 'jgclark.DashboardReact'
+const windowCustomId = `${pluginJson['plugin.id']}.main`
+const WEBVIEW_WINDOW_ID = windowCustomId
 
 export type dashboardConfigType = {
   dashboardTheme: string,
@@ -92,6 +94,7 @@ export type dashboardConfigType = {
   FFlag_LimitOverdues: boolean,
   moveSubItems: boolean,
   headingLevel: number,
+  defaultFileExtension: string,
 }
 
 /**
@@ -113,8 +116,8 @@ export async function getCombinedSettings(): Promise<any> {
   if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
-  clo(pluginSettings, 'getCombinedSettings: pluginSettings')
-  clo(sharedSettings, 'getCombinedSettings: sharedSettings')
+  // clo(pluginSettings, 'getCombinedSettings: pluginSettings')
+  // clo(sharedSettings, 'getCombinedSettings: sharedSettings')
   returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
   // Now add all the show*Section settings (or default to true)
@@ -150,8 +153,13 @@ export async function getSettings(): Promise<any> {
     }
     // clo(config, `settings`)
 
-    // Extend settings with a value we want to use when DataStore isn't available etc.
+    // Extend settings with value we might want to use when DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
+    config.defaultFileExtension = DataStore.defaultFileExtension
+
+    // Extend settings with a value from QuickCapture plugin
+    config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+    logDebug('getSettings', `${String(config.headingLevel)}`)
 
     // clo(config, 'getSettings() returning config')
     return config
@@ -564,78 +572,6 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
 }
 
 /**
- * Note: now replaced
- * Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
- * @param {SectionItem} item's details, with raw
- * @param {string} displayStr
- * @returns {string} transformed output
- */
-// export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string): string {
-//   try {
-//     // Method 2: pass request back to plugin
-//     // TODO: is it right that this basically does nothing?
-//     // const filenameEncoded = encodeURIComponent(item.filename)
-
-//     if (item.para.content) {
-//       // call showLineinEditor... with the filename and rawConetnt
-//       // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
-//       // return `<a>${displayStr}</a>`
-//       return `${displayStr}`
-//     } else {
-//       // call showNoteinEditor... with the filename
-//       // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
-//       // return `<a>${displayStr}</a>`
-//       return `${displayStr}`
-//     }
-//   } catch (error) {
-//     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
-//     return '(error)'
-//   }
-// }
-
-/**
- * Note: now replaced
- * Wrap string with href onClick event to show note in editor,
- * using item.filename param.
- * @param {SectionItem} item's details
- * @param {string} noteTitle
- * @returns {string} output
- */
-// export function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: string): string {
-//   try {
-//     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
-//     // Pass request back to plugin, as a single object
-//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
-//       item.para.filename,
-//     )}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-//   } catch (error) {
-//     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
-//     return '(error)'
-//   }
-// }
-
-/**
- * Wrap string with href onClick event to show note in editor,
- * using noteTitle param.
- * Note: based only on 'noteTitle', not a filename
- * @param {string} noteTitle
- * @returns {string} output
- */
-// export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
-//   try {
-//     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
-//     // Pass request back to plugin
-//     // Note: not passing rawContent (param 4) as its not needed
-//     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
-//       noteTitle,
-//     )}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-//   } catch (error) {
-//     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
-//     return '(error)'
-//   }
-// }
-
-/**
  * Wrap string with href onClick event to show note in editor,
  * using item.filename param.
  * @param {string} NPDateStr
@@ -701,7 +637,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
 }
 
 /**
- * FIXME: write some tests for AM/PM
+ * TODO: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
@@ -836,7 +772,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
           true, // create heading if needed (possible if supplied via headingArg)
         )
       } else {
-        const headingLevel = config.headingLevel ?? 2
+        const headingLevel = config.headingLevel
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
         const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
@@ -934,4 +870,54 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     logError('', error.message)
     return null
   }
+}
+
+/**************************************************************
+ *  SUPPORT FUNCTIONS previously in clickHandlers.js
+ ************************************************************/
+
+/**
+ * Convenience function to create the standardized handler result object
+ * @param {boolean} success - whether the action was successful
+ * @param {Array<TActionOnReturn>} actionsOnSuccess - actions to be taken if success was true
+ * @param {any} otherSettings - an object with any other settings, e.g. updatedParagraph
+ * @returns {TBridgeClickHandlerResult}
+ */
+export function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnReturn> = [], otherSettings?: any = {}): TBridgeClickHandlerResult {
+  return {
+    ...otherSettings,
+    success,
+    actionsOnSuccess,
+  }
+}
+/**
+ * Convenience function to update the global shared data in the webview window, telling React to update it
+ * @param {TAnyObject} changeObject - the fields inside pluginData to update
+ * @param {string} changeMessage 
+ * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
+ */
+export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ""): Promise<void> {
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
+  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
+}
+
+/**
+ * Merge existing sections data with replacement data
+ * If the section existed before, it will be replaced with the new data
+ * If the section did not exist before, it will be added to the end of sections
+ * @param {Array<TSection>} existingSections 
+ * @param {Array<TSection>} newSections 
+ * @returns {Array<TSection>} - merged sections
+ */
+export function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {
+  newSections.forEach((newSection) => {
+    const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
+    if (existingIndex > -1) {
+      existingSections[existingIndex] = newSection
+    } else {
+      existingSections.push(newSection)
+    }
+  })
+  return existingSections
 }

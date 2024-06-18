@@ -3,16 +3,18 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 14.6.2024 for v2.0.0-b8 by @jgclark
+// Last updated 14.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
   getCombinedSettings,
-  moveItemBetweenCalendarNotes,
-  moveItemToRegularNote
+  handlerResult,
+  mergeSections,
+  // moveItemBetweenCalendarNotes,
+  moveItemToRegularNote,
+  setPluginData,
 } from './dashboardHelpers'
 import {
   allCalendarSectionCodes,
@@ -22,9 +24,11 @@ import {
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
 import {
-  type TBridgeClickHandlerResult, type TActionOnReturn, type MessageDataObject,
+  type MessageDataObject,
+  // type TActionOnReturn,
+  type TBridgeClickHandlerResult,
   type TPluginData,
-  type TSection,
+  // type TSection,
   // type TSectionItem,
 } from './types'
 import { validateAndFlattenMessageObject } from './shared'
@@ -34,7 +38,8 @@ import {
 } from '@helpers/dateTime'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
-  sendToHTMLWindow, getGlobalSharedData,
+  // sendToHTMLWindow,
+  getGlobalSharedData,
 } from '@helpers/HTMLView'
 import {
   cancelItem,
@@ -51,9 +56,9 @@ import {
   // getTaskPriority
 } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import { openNoteByFilename } from '@helpers/NPnote'
 import { logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
-import {openNoteByFilename} from '@helpers/NPnote'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -69,56 +74,6 @@ import {openNoteByFilename} from '@helpers/NPnote'
 
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 const WEBVIEW_WINDOW_ID = windowCustomId
-
-/****************************************************************************************************************************
- *                             SUPPORT FUNCTIONS
- ****************************************************************************************************************************/
-
-/**
- * Convenience function to create the standardized handler result object
- * @param {boolean} success - whether the action was successful
- * @param {Array<TActionOnReturn>} actionsOnSuccess - actions to be taken if success was true
- * @param {any} otherSettings - an object with any other settings, e.g. updatedParagraph
- * @returns {TBridgeClickHandlerResult}
- */
-export function handlerResult(success: boolean, actionsOnSuccess?: Array<TActionOnReturn> = [], otherSettings?: any = {}): TBridgeClickHandlerResult {
-  return {
-    ...otherSettings,
-    success,
-    actionsOnSuccess,
-  }
-}
-/**
- * Convenience function to update the global shared data in the webview window, telling React to update it
- * @param {TAnyObject} changeObject - the fields inside pluginData to update
- * @param {string} changeMessage 
- * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
- */
-export async function setPluginData(changeObject: TAnyObject, changeMessage:string = ""): Promise<void> {
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
-}
-
-/**
- * Merge existing sections data with replacement data
- * If the section existed before, it will be replaced with the new data
- * If the section did not exist before, it will be added to the end of sections
- * @param {Array<TSection>} existingSections 
- * @param {Array<TSection>} newSections 
- * @returns {Array<TSection>} - merged sections
- */
-function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {
-  newSections.forEach((newSection) => {
-    const existingIndex = existingSections.findIndex((existingSection) => existingSection.ID === newSection.ID)
-    if (existingIndex > -1) {
-      existingSections[existingIndex] = newSection
-    } else {
-      existingSections.push(newSection)
-    }
-  })
-  return existingSections
-}
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -475,54 +430,6 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
-    return handlerResult(false)
-  }
-}
-
-// Mimic the /skip review command.
-export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
-  const note = await DataStore.projectNoteByFilename(filename)
-  if (note) {
-    if (!data.controlStr) throw 'doSetNextReviewDate: No controlStr: stopping'
-    const thisControlStr = data.controlStr
-
-    // Either we have a date interval prefixed with 'nr' ...
-    const period = thisControlStr.replace('nr', '')
-    if (period.match(RE_DATE_INTERVAL)) {
-      logDebug('doSetNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
-      skipReviewForNote(note, period)
-      // Or have an ISO date
-    } else if (thisControlStr.match(RE_DATE)) {
-      logDebug('doSetNextReviewDate', `-> will skip review to date '${thisControlStr}' for filename ${filename}.`)
-      skipReviewForNote(note, period)
-    } else {
-      throw `doSetNextReviewDate: invalid controlStr ${thisControlStr}: stopping`
-    }
-
-    // Now remove the line from the display
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
-  } else {
-    logWarn('doSetNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
-    return handlerResult(false)
-  }
-}
-
-// Mimic the /finish review command.
-export async function doReviewFinished(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename } = validateAndFlattenMessageObject(data)
-  const note = await DataStore.projectNoteByFilename(filename)
-  if (note) {
-    logDebug('doReviewFinished', `-> reviewFinished on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
-    // update this to actually take a note to work on
-    finishReviewForNote(note)
-    logDebug('doReviewFinished', `-> after finishReview`)
-
-    // Now ask to update this line in the display
-    // TODO: ideally do 'REFRESH_SECTION_IN_JSON' as well, but this looks to have a race condition.
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], { sectionCodes: ['PROJ'] })
-  } else {
-    logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
     return handlerResult(false)
   }
 }

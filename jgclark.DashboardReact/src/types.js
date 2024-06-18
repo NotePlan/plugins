@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2.6.2024 for v2.0.0 by @jgclark
+// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -60,10 +60,11 @@ export type TParagraphForDashboard = {
 
 // a project item within a section
 export type TProjectForDashboard = {
-  // ID: string,
-  // itemType: string /* open | checklist | congrats | review -- not paragraphType */,
   filename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   title: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
+  reviewInterval: string, /* from the Project instance */
+  percentComplete: number, /* from the Project instance */
+  lastProgressComment: string, /* from the Project instance */
 }
 
 // details for a UI button
@@ -79,9 +80,11 @@ export type TActionButton = {
 export type TActionType =
   | 'addChecklist'
   | 'addTask'
+  | 'cancelProject'
+  | 'cancelTask'
+  | 'completeProject'
   | 'completeTask'
   | 'completeTaskThen'
-  | 'cancelTask'
   | 'completeChecklist'
   | 'cancelChecklist'
   | 'cyclePriorityStateUp'
@@ -102,10 +105,12 @@ export type TActionType =
   | 'showLineInEditorFromFilename'
   | 'showLineInEditorFromTitle'
   | 'scheduleAllOverdueToday'
+  | 'setNewReviewInterval'
   | 'sharedSettingsChanged'
   // | 'setSpecificDate'
   | '(not yet set)'
   | 'toggleType'
+  | 'togglePauseProject'
   | 'unknown'
   | 'unscheduleItem'
   | 'updateItemContent'

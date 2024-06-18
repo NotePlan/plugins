@@ -76,10 +76,10 @@ dialog {
   justify-self: end;
 }
 
-.buttonGrid div:nth-last-child(1) {
-  /* Put very last div (Close button) on RHS */
+/* Put very last div (Close button) on RHS -- no longer used */
+/* .buttonGrid div:nth-last-child(1) {
   justify-self: end;
-}
+} */
 
 .buttonGrid div:nth-child(1) {
   /* Put very first div down a bit to try to align with input field */

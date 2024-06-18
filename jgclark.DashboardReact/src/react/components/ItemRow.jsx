@@ -7,7 +7,7 @@
 import * as React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 // import { useAppContext } from './AppContext.jsx'
-import ReviewItem from './ProjectItem.jsx'
+import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import NoTasks from './NoTasks.jsx'
@@ -28,7 +28,7 @@ function ItemRow({ item, thisSection }: Props): React.Node {
   return (
     <>
       {itemType === 'project' ? (
-        <ReviewItem item={item} />
+        <ProjectItem item={item} />
       ) : itemType === 'filterIndicator' ? (
         <TasksFiltered item={item} />
       ) : itemType === 'congrats' ? (

@@ -2,8 +2,7 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { setPluginData } from './clickHandlers'
-import { getCombinedSettings } from './dashboardHelpers'
+import { getCombinedSettings, setPluginData } from './dashboardHelpers'
 import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'

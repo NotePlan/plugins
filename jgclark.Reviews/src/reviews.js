@@ -1390,6 +1390,64 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
 
 //-------------------------------------------------------------------------------
 /**
+ * Set a new review interval the note open in the Editor, by asking user.
+ * Note: see below for a non-interactive version that takes parameters
+ * @author @jgclark
+ * @param {TNote?} noteArg 
+ */
+export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
+  try {
+    logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
+    const currentNote: TNote = noteArg ? noteArg : Editor
+    if (!currentNote || currentNote.type !== 'Notes') {
+      throw new Error(`Not in a Project note (at least 2 lines long)`)
+    }
+
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    logDebug(pluginJson, `setNewReviewInterval: Starting for ${displayTitle(currentNote)}`)
+    const thisNoteAsProject = new Project(currentNote)
+
+    // Ask for new date interval
+    const reply = await getInputTrimmed("Next review interval (e.g. '2w' or '3m') to set", 'OK', 'Set new review interval')
+    if (!reply || typeof reply === 'boolean') {
+      logDebug('setNewReviewInterval', `User cancelled command.`)
+      return
+    }
+    // Get new date interval
+    const newIntervalStr: string = reply.match(RE_DATE_INTERVAL) ? reply : ''
+    if (newIntervalStr === '') {
+      logError('setNewReviewInterval', `No valid interval entered, so will stop.`)
+      return
+    }
+    logDebug('setNewReviewInterval', `- intervals: existing = ${thisNoteAsProject.reviewInterval ?? '-'} / new = ${newIntervalStr}`)
+
+    // Update metadata in the current open note
+    const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+
+    // Save Editor, so the latest changes can be picked up elsewhere
+    // Putting the Editor.save() here, rather than in the above functions, seems to work
+    await saveEditorToCache(null)
+
+    // Update the full-review-list too
+    thisNoteAsProject.reviewInterval = newIntervalStr
+    thisNoteAsProject.calcDurations()
+    thisNoteAsProject.calcNextReviewDate()
+    logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+    const newMSL = thisNoteAsProject.machineSummaryLine()
+    logDebug('setNewReviewInterval', `- updatedMachineSummaryLine => '${newMSL}'`)
+    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+
+    // Update list for user (if open)
+    await renderProjectLists(config, false)
+  } catch (error) {
+    logError('setNewReviewInterval', error.message)
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
  * Update the full-review-list after completing a review or completing/cancelling a whole project.
  * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject.
  * @author @jgclark
@@ -1609,7 +1667,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    logDebug('toggleDisplayFinished', `starting with pref='${DataStore.preference('Reviews-DisplayFinished') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-DisplayFinished') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayFinished'))
     const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
     const newValue = !savedValue
@@ -1628,7 +1686,7 @@ export async function toggleDisplayFinished(): Promise<void> {
 
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyDue', `starting with pref='${DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayOnlyDue'))
     const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     const newValue = !savedValue

@@ -1,17 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 3.6.2024 for v2.0.0 by @jgclark
+// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { handlerResult } from './clickHandlers'
 import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
   getCombinedSettings,
   moveItemBetweenCalendarNotes,
+  handlerResult,
 } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain'
 import { validateAndFlattenMessageObject } from './shared'

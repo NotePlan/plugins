@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 11.6.2024 for v2.0.0 by @dbw
+// Last updated 16.6.2024 for v2.0.0-b9 by @dbw
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,21 +21,27 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doMoveToNote,
-  doReviewFinished,
-  doSetNextReviewDate,
+  doSettingsChanged,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
   doShowLineInEditorFromTitle,
-  doSettingsChanged,
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
   doUpdateTaskDate,
-  refreshAllSections,
+  // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
 } from './clickHandlers'
+import {
+  doCancelProject,
+  doCompleteProject,
+  doTogglePauseProject,
+  doReviewFinished,
+  doSetNewReviewInterval,
+  doSetNextReviewDate,
+} from './projectClickHandlers'
 import {
   doMoveFromCalToCal,
   scheduleAllOverdueOpenToToday,
@@ -57,9 +63,7 @@ import {
   // projectNotesSortedByChanged,
   getNoteByFilename
 } from '@helpers/note'
-// import { getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, storeWindowRect } from '@helpers/NPWindows'
-import {formatReactError} from '@helpers/react/reactDev'
-// import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { formatReactError } from '@helpers/react/reactDev'
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -185,6 +189,22 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'reviewFinished': {
         result = await doReviewFinished(data)
+        break
+      }
+      case 'cancelProject': {
+        result = await doCancelProject(data)
+        break
+      }
+      case 'completeProject': {
+        result = await doCompleteProject(data)
+        break
+      }
+      case 'togglePauseProject': {
+        result = await doTogglePauseProject(data)
+        break
+      }
+      case 'setNewReviewInterval': {
+        result = await doSetNewReviewInterval(data)
         break
       }
       // case 'windowResized': {
