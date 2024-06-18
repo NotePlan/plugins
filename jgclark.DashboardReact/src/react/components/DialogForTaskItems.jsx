@@ -191,7 +191,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
         ref={dialogRef}
       >
         <div className="dialogTitle">
-        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} showAtCursor={true}>
+        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} >
             <div /*id="dialogFileParts"*/ onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
             <span className="preText">From:</span>
             <i className="pad-left pad-right fa-regular fa-file-lines"></i>

@@ -1,43 +1,8 @@
 // @flow
-//--------------------------------------------------------------------------
-// Dashboard React component to show a tooltip on modifier key press when the mouse is within the bounds of the wrapped component.
-// Called by various components to display tooltips based on modifier key presses.
-// Last updated 2024-06-05 for v2.0.1 by @dwertheimer
-//--------------------------------------------------------------------------
-
-//--------------------------------------------------------------------------
-// Imports
-//--------------------------------------------------------------------------
-import React, { useState, useEffect, useRef, type ElementRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'
+import Tooltip from './Tooltip.jsx' // Import the Tooltip component
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard'
-import { logDebug } from '@helpers/react/reactDev'
-
-//--------------------------------------------------------------------------
-// Type Definitions
-//--------------------------------------------------------------------------
-
-/**
- * Props for TooltipOnKeyPress component.
- * @typedef {Object} TooltipProps
- * @property {Object} [metaKey] - Configuration for the meta key.
- * @property {React.Node} metaKey.text - Text to display for meta key.
- * @property {React.CSSProperties} [metaKey.style] - Style for meta key.
- * @property {Object} [shiftKey] - Configuration for the shift key.
- * @property {React.Node} shiftKey.text - Text to display for shift key.
- * @property {React.CSSProperties} [shiftKey.style] - Style for shift key.
- * @property {Object} [ctrlKey] - Configuration for the ctrl key.
- * @property {React.Node} ctrlKey.text - Text to display for ctrl key.
- * @property {React.CSSProperties} [ctrlKey.style] - Style for ctrl key.
- * @property {Object} [altKey] - Configuration for the alt key.
- * @property {React.Node} altKey.text - Text to display for alt key.
- * @property {React.CSSProperties} [altKey.style] - Style for alt key.
- * @property {number} [disappearAfter] - Time in milliseconds after which the tooltip disappears.
- * @property {React.Node} children - Components to wrap.
- * @property {boolean} [enabled] - Whether tooltips are enabled or not.
- * @property {boolean} [showAtCursor] - Whether the tooltip should be shown at the cursor position.
- * @property {string} [label] - Label for debugging.
- */
 
 type TooltipProps = {
   metaKey?: {
@@ -63,10 +28,6 @@ type TooltipProps = {
   label?: string, // for debugging
 };
 
-//--------------------------------------------------------------------------
-// TooltipOnKeyPress Component Definition
-//--------------------------------------------------------------------------
-
 const TooltipOnKeyPress = ({
   metaKey,
   shiftKey,
@@ -76,28 +37,26 @@ const TooltipOnKeyPress = ({
   children,
   enabled = true,
   showAtCursor = false,
-  /* label, */
 }: TooltipProps): React$Node => {
-  //----------------------------------------------------------------------
-  // State
-  //----------------------------------------------------------------------
-
   const [tooltipState, setTooltipState] = useState<{
     x: number,
     y: number,
     visible: boolean,
     text: React$Node | null,
     iconBounds?: ClientRect,
+    width: number,
+    height: number,
   }>({
     x: 0,
     y: 0,
     visible: false,
     text: null,
     iconBounds: undefined,
+    width: 0,
+    height: 0,
   })
 
   const mousePositionRef = useRef<{ x: number, y: number }>({ x: 0, y: 0 })
-  const [ /* modifierActive */, setModifierActive] = useState<boolean>(false)
   const elementRef = useRef<?ElementRef<'div'>>(null)
   const timeoutRef = useRef<?TimeoutID>(null)
 
@@ -114,10 +73,6 @@ const TooltipOnKeyPress = ({
     mousePositionRef.current.y <= bounds.bottom
   )
 
-  //----------------------------------------------------------------------
-  // Handlers
-  //----------------------------------------------------------------------
-
   const handleMouseMove = (event: MouseEvent) => {
     mousePositionRef.current = { x: event.clientX, y: event.clientY }
     const bounds = elementRef.current && elementRef.current.getBoundingClientRect()
@@ -133,8 +88,6 @@ const TooltipOnKeyPress = ({
       const bounds = elementRef.current.getBoundingClientRect()
 
       if (isInBounds(bounds)) {
-        // logDebug('handleKeyDown', `Label: ${label}, Element bounds: ${JSON.stringify(bounds)}, Mouse position: ${JSON.stringify(mousePositionRef.current)}, isInBounds: ${isInBounds}`)
-        setModifierActive(true)
         let text = null
 
         if (isMetaKey && metaKey) {
@@ -146,17 +99,17 @@ const TooltipOnKeyPress = ({
         } else if (isAltKey && altKey) {
           text = altKey.text
         }
-        
+
         if (!text) return
 
-        setTooltipState({
-          x: mousePositionRef.current.x,
-          y: mousePositionRef.current.y,
+        setTooltipState((prev) => ({
+          ...prev,
+          x: mousePositionRef.current.x, // Center the tooltip horizontally at the cursor
+          y: bounds.top, // Anchor the tooltip vertically to the bounds
           visible: true,
           iconBounds: bounds,
           text,
-        })
-        // logDebug('handleKeyDown', `Tooltip set to visible with text: ${text}`)
+        }))
 
         if (disappearAfter > 0) {
           if (timeoutRef.current) {
@@ -165,7 +118,6 @@ const TooltipOnKeyPress = ({
           timeoutRef.current = setTimeout(() => {
             setTooltipState((prevState) => ({ ...prevState, visible: false }))
             timeoutRef.current = null
-            // logDebug('handleKeyDown', 'Tooltip set to invisible after timeout')
           }, disappearAfter)
         }
       }
@@ -173,7 +125,6 @@ const TooltipOnKeyPress = ({
   }
 
   const handleKeyUp = () => {
-    setModifierActive(false)
     setTooltipState((prevState) => ({ ...prevState, visible: false }))
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -181,9 +132,21 @@ const TooltipOnKeyPress = ({
     }
   }
 
-  //----------------------------------------------------------------------
-  // Effects
-  //----------------------------------------------------------------------
+  const handleTooltipDimensionsChange = (width: number, height: number) => {
+    setTooltipState((prev) => {
+      let x = prev.x - 10 // Default position with arrow under the cursor
+      const y = prev.y - height - 5 // Adjust y to include arrow height
+
+      // Adjust if the tooltip goes off the screen
+      if (x < 0) {
+        x = 0
+      } else if (x + width > window.innerWidth) {
+        x = window.innerWidth - width
+      }
+
+      return { ...prev, x, y, width, height }
+    })
+  }
 
   useEffect(() => {
     if (!enabled) return
@@ -200,72 +163,22 @@ const TooltipOnKeyPress = ({
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [enabled]) // Only run once when enabled changes
-
-  //----------------------------------------------------------------------
-  // Styles
-  //----------------------------------------------------------------------
-
-  const iconCenter = showAtCursor 
-    ? mousePositionRef.current.x 
-    : (tooltipState?.iconBounds?.left || 0) + (tooltipState?.iconBounds?.width || 0) / 2
-
-  const tooltipStyles = {
-    wrapper: {
-      position: 'fixed', // Use fixed position to ensure it stays in the same place relative to the viewport
-      zIndex: 1001,
-      whiteSpace: 'nowrap',
-      pointerEvents: 'none', // Add this to prevent the tooltip from interfering with other elements
-      display: 'inline',
-    },
-    tooltipContent: { // text with a border and background
-      position: 'fixed',
-      backgroundColor: 'var(--bg-main-color)',
-      color: 'var(--fg-main-color)',
-      padding: '0.3rem',
-      fontSize: '0.85rem',
-      border: '1px solid var(--tint-color)',
-      borderRadius: '6px',
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top + 8 || 0}px`, // Adjust bottom to align with the arrow
-      left: `${iconCenter - 6}px`,
-    },
-    arrowBefore: {
-      position: 'fixed',
-      left: `${iconCenter}px`,
-      content: '""',
-      borderWidth: '10px 8px 0 8px',
-      borderStyle: 'solid',
-      borderColor: 'var(--tint-color) transparent transparent transparent',
-      marginLeft: `0px`,
-      bottom: `${window.innerHeight - tooltipState?.iconBounds?.top - 2 || 0}px`, // Align bottom of the arrow with the tooltip
-      // transform: 'translateY(50%)',
-    },
-  }
-
-  //----------------------------------------------------------------------
-  // Render
-  //----------------------------------------------------------------------
+  }, [enabled])
 
   const portalElement = document.getElementById('tooltip-portal')
-
-  // if (tooltipState.visible) {
-  //   logDebug('render', `TooltipState for ${label}: ${JSON.stringify(tooltipState)}`)
-  //   logDebug('render', `PortalElement for ${label}:`, portalElement)
-  // }
 
   return (
     <>
       {portalElement && ReactDOM.createPortal(
-        <div className="modifier-tooltip wrapper"
-          style={tooltipStyles.wrapper} // Ensure correct positioning
-        >
+        <div>
           {tooltipState.visible && (
-            <div className="modifier-tooltip-inner">
-              <div className="modifier-tooltip-text" style={tooltipStyles.tooltipContent}>
-                {tooltipState.text}
-              </div>
-              <div className="modifier-tooltip-arrow" style={tooltipStyles.arrowBefore}></div>
-            </div>
+            <Tooltip
+              text={tooltipState.text}
+              x={tooltipState.x}
+              y={tooltipState.y}
+              visible={tooltipState.visible}
+              onDimensionsChange={handleTooltipDimensionsChange}
+            />
           )}
         </div>,
         portalElement

@@ -42,7 +42,7 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
 
   if (filename !== thisSection.sectionFilename) {
     return (
-      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${item.itemType}_${item.ID}_Open Note Link`} showAtCursor={true} enabled={!reactSettings?.dialogData?.isOpen}>
+      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${item.itemType}_${item.ID}_Open Note Link`}  enabled={!reactSettings?.dialogData?.isOpen}>
       <a className="noteTitle sectionItem" onClick={handleLinkClick}>
         <i className="fa-regular fa-file-lines pad-left pad-right"></i>
         {noteTitle}

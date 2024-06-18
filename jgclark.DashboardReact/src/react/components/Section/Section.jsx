@@ -131,7 +131,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
-      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${section.name}_Open Note Link`} showAtCursor={true} enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}>
+      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${section.name}_Open Note Link`}  enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}>
         <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
           <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
           {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
