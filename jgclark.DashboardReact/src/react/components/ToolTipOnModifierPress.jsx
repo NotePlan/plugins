@@ -1,7 +1,7 @@
 // @flow
 import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'
-import Tooltip from './Tooltip.jsx' // Import the Tooltip component
+import Tooltip from './Tooltip' // Import the Tooltip component
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard'
 
 type TooltipProps = {
@@ -24,7 +24,6 @@ type TooltipProps = {
   disappearAfter?: number, // ms
   children: React$Node,
   enabled?: boolean,
-  showAtCursor?: boolean,
   label?: string, // for debugging
 };
 
@@ -36,7 +35,6 @@ const TooltipOnKeyPress = ({
   disappearAfter = 0,
   children,
   enabled = true,
-  showAtCursor = false,
 }: TooltipProps): React$Node => {
   const [tooltipState, setTooltipState] = useState<{
     x: number,

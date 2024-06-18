@@ -70,6 +70,7 @@ const SettingsDialog = ({
     //----------------------------------------------------------------------
 
     const handleEscapeKey = (event: KeyboardEvent) => {
+        logDebug('SettingsDialog', `Event.key: ${event.key}`)
         if (event.key === 'Escape') {
             toggleDialog()
         }
