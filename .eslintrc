@@ -123,7 +123,8 @@
           ["@templating", "./np.Templating/lib"],
           ["@templatingModules", "./np.Templating/lib/support/modules"],
           ["NPGlobals", "./np.Globals/lib/NPGlobals"]
-        ]
+        ],
+        "extensions": [".js", ".jsx", ".json"]
       }
     }
   }
