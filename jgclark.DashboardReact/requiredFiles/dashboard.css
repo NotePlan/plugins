@@ -323,8 +323,8 @@ body {
 	font-weight: 500;
 	border-style: none;
 	border-radius: 4px;
-	padding: 2px 3px 0px 4px;
-	margin: 2px 2px;
+	padding: 2px 3px 0px 0px;
+	margin: 2px 6px 0px 0px;
 	/* a little all round */
 	white-space: nowrap;
 	cursor: pointer;
@@ -353,9 +353,8 @@ button,
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
-	z-index: 20;
 	/* float above everything, including the header */
-	/* cursor: help; */
+	z-index: 20;
 }
 
 .tooltip::before,
@@ -378,10 +377,11 @@ button,
 	top: -12px;
 }
 
+/* Set main tooltip display area */
 .tooltip::after {
 	content: attr(data-tooltip);
 	margin-left: -10px;
-	padding: 0.3rem;
+	padding: 0.15rem 0.25rem;
 	top: -12px;
 	font-size: 0.85rem;
 	color: var(--fg-main-color);
@@ -389,6 +389,7 @@ button,
 	border: 1px solid var(--tint-color);
 	border-radius: 6px;
 	transform: translateY(-100%);
+	cursor: help;
 }
 
 .tooltip:hover::before,

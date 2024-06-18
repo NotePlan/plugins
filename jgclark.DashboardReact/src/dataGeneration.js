@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 31.5.2024 for v2.0.0 by @jgclark
+// Last updated 17.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import type {
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails
@@ -152,7 +153,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     const items: Array<TSectionItem> = []
     let itemCount = 0
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
-    const thisFilename = `${getTodaysDateUnhyphenated()}.md`
+    const thisFilename = `${getTodaysDateUnhyphenated()}.${config.defaultFileExtension}`
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ not reliable
     const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ reliable
@@ -324,7 +325,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     const thisSectionCode = 'DY'
     const yesterday = new moment().subtract(1, 'days').toDate()
     const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
-    const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.md`
+    const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.${config.defaultFileExtension}`
     const items: Array<TSectionItem> = []
     // const yesterday = new moment().subtract(1, 'days').toDate()
     const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
@@ -467,7 +468,7 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
     const filenameDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowsNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
+    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.${config.defaultFileExtension}`
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
@@ -594,7 +595,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPWeekStr(today)
-    const thisFilename = `${dateStr}.md`
+    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -739,7 +740,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPMonthStr(today)
-    const thisFilename = `${dateStr}.md`
+    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -884,7 +885,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPQuarterStr(today)
-    const thisFilename = `${dateStr}.md`
+    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Quarter's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -1185,7 +1186,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.md` : `fake_note_${String(c % 7)}.md`
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${config.defaultFileExtension}` : `fake_note_${String(c % 7)}.${config.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
         const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
         overdueParas.push({
@@ -1316,12 +1317,17 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
     nextNotesToReview.map((n) => {
       const thisID = `${sectionNum}-${itemCount}`
       const thisFilename = n.filename ?? '<filename not found>'
+      const projectInstance = new Project(n)
+      // clo(projectInstance, `PI for ${thisFilename}`, 2)
       items.push({
         ID: thisID,
         itemType: 'project',
         project: {
           title: n.title ?? '(error)',
           filename: thisFilename,
+          reviewInterval: projectInstance.reviewInterval,
+          percentComplete: projectInstance.percentComplete,
+          lastProgressComment: projectInstance.lastProgressComment,
         },
       })
       itemCount++

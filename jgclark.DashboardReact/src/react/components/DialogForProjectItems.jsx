@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by ReviewItem component
-// Last updated 13.6.2024 for v2.0.0-b7 by @jgclark
+// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -42,15 +42,27 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   const { sendActionToPlugin, /* reactSettings, sharedSettings, pluginData */ } = useAppContext()
 
+  // TODO
+  const reviewDetails = ' (review: 2w)'
+
   /**
-   * Array of buttons to render.
+   * Arrays of buttons to render.
    */
-  const buttons = [
-    { label: 'Finish Review', controlStr: 'finish', handlingFunction: 'reviewFinished', icons: [{ className: '<i className="fa-regular fa-calendar-check"></i>', position: 'left' }] },
-    { label: 'Skip 1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate', icons: [{ className: '<i className="fa-solid fa-forward"></i>', position: 'left' }] },
-    { label: 'Skip 2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate', icons: [{ className: '<i className="fa-solid fa-forward"></i>', position: 'left' }] },
-    { label: 'Skip 1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate', icons: [{ className: '<i className="fa-solid fa-forward"></i>', position: 'left' }] },
-    { label: 'Skip 1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate', icons: [{ className: '<i className="fa-solid fa-forward"></i>', position: 'left' }] },
+  const reviewButtons = [
+    { label: 'Finish Review', controlStr: 'finish', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
+    { label: 'Skip 1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+  ]
+
+  const projectButtons = [
+    { label: 'Complete', controlStr: 'complete', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
+    { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
+    { label: 'Pause', controlStr: 'cancel', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
+    // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build.
+    // Will it become available if we switch to SVG delivery ?
+    { label: 'New Review Interval', controlStr: 'newint', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
   ]
 
   useEffect(() => {
@@ -150,7 +162,8 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             For <i className="pad-left pad-right fa-regular fa-file-lines"></i>
             <b>
               <span className="dialogItemNote" /*id="dialogProjectNote"*/>{title}</span>
-            </b>
+              </b>
+              {reviewDetails}
           </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
@@ -163,9 +176,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         <div className="dialogBody">
           <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
-            <div>Project Reviews:</div>
+            <div>Review:</div>
             <div /*id="projectControlDialogMoveControls"*/>
-              {buttons.map((button, index) => (
+              {reviewButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
@@ -178,6 +191,23 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
               ))}
               <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} />
             </div>
+
+            {/* line2 ---------------- */}
+            <div>Project:</div>
+            <div>
+              {projectButtons.map((button, index) => (
+                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                  {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                  ))}
+                  {button.label}
+                  {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
+                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                  ))}
+                </button>
+              ))}
+            </div>
+
           </div>
         </div>
       </dialog>

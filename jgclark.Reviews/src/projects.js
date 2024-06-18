@@ -137,6 +137,16 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
 }
 
 /**
+ * Bridge function, may be useful for Dashboard
+ * @param {string} filename 
+ */
+export async function completeProjectByFilename(filename: string): Promise<void> {
+  logDebug('completeProjectByFilename', `Starting for filename '${filename}`)
+  const note = DataStore.projectNoteByFilename(filename)
+  if (note) await completeProject(note)
+}
+
+/**
  * Cancel the Project/Area note in the Editor, by:
  * - adding @cancelled(<today's date>) to the current note in the Editor
  * - add '#archive' flag to metadata line
@@ -221,6 +231,16 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 }
 
 /**
+ * Bridge function, may be useful for Dashboard
+ * @param {string} filename 
+ */
+export async function cancelProjectByFilename(filename: string): Promise<void> {
+  logDebug('cancelProjectByFilename', `Starting for filename '${filename}`)
+  const note = DataStore.projectNoteByFilename(filename)
+  if (note) await cancelProject(note)
+}
+
+/**
  * Toggle Un/Pause of a Project/Area note:
  * - call the instance's togglePauseProject()
  * - update the full-review-list
@@ -266,4 +286,14 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
   catch (error) {
     logError('pauseProject', error.message)
   }
+}
+
+/**
+ * Bridge function, may be useful for Dashboard
+ * @param {string} filename 
+ */
+export async function togglePauseProjectByFilename(filename: string): Promise<void> {
+  logDebug('togglePauseProjectByFilename', `Starting for filename '${filename}`)
+  const note = DataStore.projectNoteByFilename(filename)
+  if (note) await togglePauseProject(note)
 }

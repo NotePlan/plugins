@@ -26,7 +26,7 @@ const Tooltip = ({ text, x, y, onDimensionsChange, visible }: TooltipProps) => {
     top: `${y}px`,
     backgroundColor: 'var(--bg-main-color)',
     color: 'var(--fg-main-color)',
-    padding: '0.3rem',
+    padding: '0.15rem 0.25rem',
     fontSize: '0.85rem',
     border: '1px solid var(--tint-color)',
     borderRadius: '6px',

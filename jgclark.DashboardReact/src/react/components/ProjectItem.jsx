@@ -1,11 +1,13 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
-// Called by  component
-// Last updated 13.6.2024 for v2.0.0-b7 by @jgclark
+// Called by ItemRow component
+// Last updated 18.6.2024 for v2.0.0-b9 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
+import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
+import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -16,24 +18,66 @@ type Props = {
   item: TSectionItem,
 }
 
-function ReviewItem({ item }: Props): React.Node {
+function ProjectItem({ item }: Props): React.Node {
   const { sendActionToPlugin, setReactSettings, sharedSettings /*, setSharedSettings */ } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
   const folderNamePart = sharedSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
-  // logDebug(`ReviewItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
+  // logDebug(`ProjectItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
+  const percentComplete = item.project?.percentComplete ?? 0
+  // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
+  const progressText = item.project?.lastProgressComment ?? ''
 
   const noteTitleWithOpenAction = (
     <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
-      <i className="fa-regular fa-file-lines pad-right"></i>{noteTitle}
+      <i className="fa-regular fa-file-lines pad-right"></i>
+      {noteTitle}
     </a>
   )
 
-  const projectContent: React.Node = (
+  // const projectIcon = (percentComplete > 0) && (
+  //   <>
+  //     <div className="progress-bar">
+  //       <progress value={String(percentComplete)} min="0" max="100">
+  //         {percentCompleteStr}
+  //       </progress>
+  //     </div>
+  //   </>
+  // )
+  // using https://www.npmjs.com/package/react-circular-progressbar
+  const projectIcon = (
+    <CircularProgressbarWithChildren
+      // background path
+      /*text={`${percentage}%`}*/
+      value={percentComplete}
+      strokeWidth={50}
+      styles={buildStyles({
+        strokeLinecap: "butt",
+        backgroundColor: "var(--bg-main-color)",
+        pathColor: "var(--tint-color)",
+      })}
+    >
+      {/* foreground path */}
+      <CircularProgressbar
+        value={100}
+        strokeWidth={5}
+        styles={buildStyles({
+          strokeLinecap: "butt",
+          backgroundColor: "var(--bg-main-color)",
+          pathColor: "var(--tint-color)",
+        })}
+      ></CircularProgressbar>
+    </CircularProgressbarWithChildren>
+  )
+
+  const progressContent = progressText && (
     <>
-      {folderNamePart}
-      {noteTitleWithOpenAction}
+      <br></br>
+      <span className="projectProgress">
+        <i className="fa-regular fa-circle-info"></i>
+        {progressText}
+      </span>
     </>
   )
 
@@ -53,7 +97,7 @@ function ReviewItem({ item }: Props): React.Node {
   }
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
-    // clo(dataObjectToPassToControlDialog, 'ReviewItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
+    // clo(dataObjectToPassToControlDialog, 'ProjectItem: handleClickToOpenDialog - setting dataObjectToPassToControlDialog to: ')
     const clickPosition = { clientY: e.clientY, clientX: e.clientX }
     setReactSettings((prev) => ({
       ...prev,
@@ -64,19 +108,21 @@ function ReviewItem({ item }: Props): React.Node {
 
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div className="reviewProject todo TaskItem">
-        <i id={`${item.ID}I`} className="fa-regular fa-circle-play"></i>
+      <div className="reviewProject itemIcon">
+        {/* <i id={`${item.ID}I`} className="fa-regular fa-file-lines"></i> */}
+        {projectIcon}
       </div>
 
       <div className="sectionItemContent sectionItem">
-        {projectContent}
-
+        {folderNamePart}
+        {noteTitleWithOpenAction}
         <a className="dialogTrigger">
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
         </a>
+        {progressContent}
       </div>
     </div>
   )
 }
 
-export default ReviewItem
+export default ProjectItem
