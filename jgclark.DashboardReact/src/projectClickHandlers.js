@@ -6,7 +6,7 @@
 // Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
+// import pluginJson from '../plugin.json'
 import {
   cancelProject, cancelProjectByFilename,
   completeProject, completeProjectByFilename,

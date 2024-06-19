@@ -16,24 +16,25 @@ dialog:modal {
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
   display:block;
-  margin: 0rem;
-  color: var(--fg-main-color);
-  background: var(--bg-main-color);
+  margin: 0rem 0.5rem;
+  color: var(--fg-sidebar-color);
+  background: var(--bg-sidebar-color);
   padding: 0rem;
-  border: solid 1px var(--tint-color);
+  border: solid 1px var(--divider-color);
   border-radius: 0.5em;
   box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
   z-index: 50;
+  max-width: 98%;
 }
 
 .dialogTitle {
   display: grid;
-  background: var(--bg-alt-color);
+  background: var(--bg-sidebar-color);
   padding-block-start: 0.6rem;
   padding-inline-start: 0.5rem;
   padding-inline-end: 0.5rem;
   padding-block-end: 0.2rem;
-  border-block-end: 1px solid gray;
+  border-block-end: 1px solid var(--divider-color);
   /* margin-block-end: 4px; */
   grid-template-columns: auto auto;
   /* vertically align content items in center */
@@ -91,7 +92,7 @@ dialog {
 	background-color: var(--bg-alt-color);
 	font-size: 0.9rem;
 	font-weight: 600;
-	border: 1px solid var(--tint-color);
+	border: 1px solid var(--divider-color);
 	padding: 2px 5px 2px 5px;
 	margin: 2px 4px;
 }
@@ -100,7 +101,8 @@ dialog {
   font-size: 0.85rem;
   font-weight: 400;
   /* add a clearer border to buttons */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+  /* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7); */
+  border: 1px solid var(--divider-color);
   border-radius: 4px;
   padding: 1px 4px 1px 4px;
   margin: 3px 2px;

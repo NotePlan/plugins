@@ -23,7 +23,12 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fixed bug: synced copies dated for today were duplicated
 - other bug fixes
 
-### Unreleased
+## [2.0.0.b9] 2024-06-19
+- jgc: added Project Complete, Cancel and Pause buttons to the edit dialog
+- jgc: added 'New Review Interval' button to the edit dialog
+- jgc: added little project completion indicator at the start of a Project line item
+- jgc: added current Project progress line (if available) to the Project line item
+- jgc: updated theming to use NP's sidebar colouring for the 'sidebar' elements of the Dashboard window
 - dbw: add check for Dashboard Theme setting change
 - dbw: remove blue outline on focus
 - dbw: move logLevel to settings (you don't need to set it in NP plugin pane settings)

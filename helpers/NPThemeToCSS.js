@@ -26,6 +26,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let themeJSON: Object
     const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
     let matchingThemeObjs: Array<any> = [] // Eduard hasn't typed the Theme objects
+    let currentThemeMode = 'light' // default; overridden later
 
     // If we havee a supplied themeName, then attempt to use it
     if (themeNameIn !== '') {
@@ -36,6 +37,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         themeName = themeNameIn
         logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
         themeJSON = matchingThemeObjs[0].values
+        currentThemeMode = Editor.currentTheme.mode
       } else {
         logWarn('generateCSSFromTheme', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
       }
@@ -48,7 +50,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
       if (themeName !== '') {
         themeJSON = Editor.currentTheme.values
-        // let currentThemeMode = Editor.currentTheme.mode ?? 'dark'
+        currentThemeMode = Editor.currentTheme.mode
       } else {
         logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
       }
@@ -62,6 +64,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       if (matchingThemeObjs.length > 0) {
         logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
         themeJSON = matchingThemeObjs[0].values
+        currentThemeMode = 'dark'
       } else {
         logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
       }
@@ -115,6 +118,17 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
         rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
       }
+    }
+
+    // Set sidebar from NP fixed colours
+    if (currentThemeMode === 'light') {
+      rootSel.push(`--fg-sidebar-color: #242E32`)
+      rootSel.push(`--bg-sidebar-color: #F6F6F6`)
+      rootSel.push(`--divider-color: #D6D6D6`)
+    } else {
+      rootSel.push(`--fg-sidebar-color: #EBEBEB`)
+      rootSel.push(`--bg-sidebar-color: #383838`)
+      rootSel.push(`--divider-color: #52535B`)
     }
 
     // Set H1 from styles.title1

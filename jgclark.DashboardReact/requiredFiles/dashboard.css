@@ -40,13 +40,13 @@ body {
 	gap: 0.5rem;
 	/* Padding around the header content */
 	padding: 0.4rem;
-	background-color: var(--bg-alt-color);
+	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width */
 	width: 100%;
 	position: sticky;
 	top: 0px;
 	z-index: 1000;
-	border-bottom: solid 1px var(--tint-color);
+	border-bottom: solid 1px var(--divider-color);
 }
 
 .lastFullRefresh {
@@ -127,7 +127,9 @@ body {
 	padding-block-end: 0.2rem;
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
-	background-color: var(--bg-alt-color);
+	color: var(--fg-sidebar-color);
+	background-color: var(--bg-sidebar-color);
+	border-right: 1px solid var(--divider-color);
 }
 
 .sectionIcon {
@@ -226,23 +228,28 @@ body {
 }
 
 /* General item icon details */
+/* Need to override some CSS that comes in the theme */
 .itemIcon {
 	margin-bottom: unset !important;
 	line-height: unset !important;
-	font-size: 1.2rem;
+	font-size: 1.05rem !important;
+	/* font-size: unset !important; */
 	font-weight: 400;
 	text-align: center;
 	cursor: pointer;
 }
 
 /* Specific item icon details */
-.review {
-	color: var(--tint-color);
+/* Need to override some CSS that comes in the theme */
+.projectIcon {
+	margin-bottom: unset !important;
+	line-height: unset !important;
+	font-size: 0.9rem !important;
 }
 
 .dialogTrigger {
 	color: var(--fg-main-color);
-	opacity: 0.8;
+	opacity: 0.6;
 	cursor: pointer;
 }
 
@@ -311,9 +318,10 @@ body {
 	/* all buttons, but at lower priority */
 	button,
 	input {
-		background-color: var(--bg-main-color);
-		color: var(--fg-main-color);
-		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+		color: var(--fg-sidebar-color);
+		background-color: var(--bg-sidebar-color);
+		/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7); */
+		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
 	}
 }
@@ -323,9 +331,10 @@ body {
 	font-weight: 500;
 	border-style: none;
 	border-radius: 4px;
-	padding: 2px 3px 0px 0px;
+	/* a little external padding to right */
+	padding: 0px 3px 0px 0px;
+	/* a little internal margin */
 	margin: 2px 6px 0px 0px;
-	/* a little all round */
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
@@ -333,13 +342,12 @@ body {
 	/* Center the button vertically if it's not aligning properly */
 }
 
-/* Set link text to plain (again) TODO: if internal calls used this can be removed */
-.PCButton a {
+/* Set link text to plain (again).  Note: now internal calls used this is removed */
+/* .PCButton a {
 	font-size: 0.85rem;
 	text-decoration: none;
 	color: var(--fg-main-color);
-}
-
+} */
 
 /* Show click pointer over buttons and equivalent */
 button,

@@ -54,7 +54,8 @@ function ProjectItem({ item }: Props): React.Node {
       strokeWidth={50}
       styles={buildStyles({
         strokeLinecap: "butt",
-        backgroundColor: "var(--bg-main-color)",
+        backgroundColor: "var(--bg-sidebar-color)",
+        // backgroundColor: "transparent",
         pathColor: "var(--tint-color)",
       })}
     >
@@ -64,7 +65,8 @@ function ProjectItem({ item }: Props): React.Node {
         strokeWidth={5}
         styles={buildStyles({
           strokeLinecap: "butt",
-          backgroundColor: "var(--bg-main-color)",
+          backgroundColor: "var(--bg-sidebar-color)",
+          // backgroundColor: "transparent",
           pathColor: "var(--tint-color)",
         })}
       ></CircularProgressbar>
@@ -108,7 +110,7 @@ function ProjectItem({ item }: Props): React.Node {
 
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div className="reviewProject itemIcon">
+      <div className="projectIcon">
         {/* <i id={`${item.ID}I`} className="fa-regular fa-file-lines"></i> */}
         {projectIcon}
       </div>
