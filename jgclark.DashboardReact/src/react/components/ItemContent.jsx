@@ -58,8 +58,18 @@ function ItemContent({ item, children }: Props): React$Node {
   if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
 
   // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
-  if (mainContent && !sharedSettings.hidePriorityMarkers) mainContent = mainContent.replace(/<\/span>(?:!+|>>)\s*/gm, '</span>')
-
+  const shouldRemove = sharedSettings && sharedSettings.hidePriorityMarkers === true
+  logDebug('ItemContent', `mainContent: ${mainContent} sharedSettings.hidePriorityMarkers=${shouldRemove} (type: ${typeof sharedSettings.hidePriorityMarkers})`)
+// Check if we need to remove exclamations or ">>" from mainContent
+if (shouldRemove) {
+  // Regex to match the entire <span>...</span> block and capture its content
+  mainContent = mainContent.replace(/(<span[^>]*>)(.*?)(<\/span>)/g, (_match, startTag, content, endTag) => {
+    // Replace exclamations or ">>" within the captured content
+    content = content.replace(/(?:!+|>>)\s*/g, '')
+    // Reconstruct the <span> block with the cleaned content
+    return `${startTag}${content}${endTag}`
+  })
+}
   function handleTaskClick(e: MouseEvent) {
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
     const dataObjectToPassToFunction = {

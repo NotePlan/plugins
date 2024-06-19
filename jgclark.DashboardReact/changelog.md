@@ -26,6 +26,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## Not released yet
 - dbw: hide IP button if there is only one item
 - dbw: fix bug in hideDuplicates and overdues
+- dbw: fix priority marker hiding
 
 ## [2.0.0.b9] 2024-06-19
 - jgc: added Project Complete, Cancel and Pause buttons to the edit dialog

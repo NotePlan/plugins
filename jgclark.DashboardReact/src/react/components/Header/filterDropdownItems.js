@@ -28,7 +28,7 @@ export const createFilterDropdownItems = (
     description: s.description,
     key: s.key,
     type: 'switch',
-    checked: (typeof sharedSettings !== undefined && sharedSettings[s.key]) ?? pluginSettings[s.key] ?? s.default,
+    checked: Boolean((typeof sharedSettings !== undefined && sharedSettings[s.key]) ?? pluginSettings[s.key] ?? s.default),
   }))
 
   return [...nonSectionItems, ...dropdownSectionNames]
