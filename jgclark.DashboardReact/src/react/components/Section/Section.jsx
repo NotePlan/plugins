@@ -141,7 +141,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
-          {itemsToShow.length && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
+          {itemsToShow.length>1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${itemsToShow.length} ${section.name} tasks one at a time`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

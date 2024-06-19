@@ -1,7 +1,7 @@
 // @flow
 import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../../types.js'
 import { allSectionDetails } from "../../../constants.js"
-import { logDebug, clof } from '@helpers/react/reactDev.js'
+import { logDebug, clof, clo, logError } from '@helpers/react/reactDev.js'
 
 const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]
 
@@ -24,12 +24,14 @@ export function getShowTagSettingName(tag: string): string {
  */
 const sectionIsVisible = (section:TSection, sharedSettings: TSharedSettings): boolean => {
   const sectionCode: TSectionCode = section.sectionCode
-  if (!sharedSettings) return false
+  if (!sectionCode) logDebug(`sectionHelpers`, `section has no sectionCode`, section)
+    if (!sharedSettings) return false
   // const thisSection = getSectionDetailsFromSectionCode(sectionCode) // get sectionCode, sectionName, showSettingName
   const settingName = section.showSettingName
+  if (!settingName) logDebug(`sectionHelpers`, `sectionCode ${sectionCode} has no showSettingName`, section)
   if (!settingName) return true
-  // TODO(later): alter this first part of the ternary to do something like startsWitth
   const showSetting = sectionCode === 'TAG' ? sharedSettings[settingName] : sharedSettings[settingName]
+  // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
 }
 
@@ -62,9 +64,17 @@ function getUseFirstButVisible(
   sharedSettings: TSharedSettings,
   sections: Array<TSection>
 ): Array<TSectionCode> {
-  return sharedSettings ? 
-    useFirst.filter((sectionCode) => sections.find((section) => section.sectionCode === sectionCode) && sectionIsVisible(sectionCode, sharedSettings)) 
+  const useFirstButVisible = sharedSettings ? 
+    useFirst.filter((sectionCode) => {
+      const section = sections.find((section) => section.sectionCode === sectionCode) 
+      const isVisible = sectionIsVisible(section, sharedSettings)
+      // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+      return section && isVisible
+}) 
   : useFirst
+  logDebug('sectionHelpers', `Visible section codes: ${useFirstButVisible}`)
+  // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
+  return useFirstButVisible
 }
 
 /**
@@ -104,8 +114,8 @@ const orderedSections = useFirstVisibleOnly.flatMap(st =>
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter(section => !useFirst.includes(section.sectionCode)))
   // clof(orderedSections, `getSectionsWithoutDuplicateLines orderedSections (length=${orderedSections.length})`,['sectionCode','name'],true)
-  // logDebug('Dashboard sectionHelpers', `orderedSections: ${orderedSections.toString()}`)
-  
+  // clo(orderedSections, `getSectionsWithoutDuplicateLines orderedSections (length=${orderedSections.length})`,['sectionCode','name'],true) 
+  // logDebug('getSectionsWithoutDuplicateLines', `orderedSections length: ${orderedSections.length} orderedSections`,orderedSections)
   // Map to track unique items
   const itemMap:any = new Map()
   
@@ -123,12 +133,15 @@ const orderedSections = useFirstVisibleOnly.flatMap(st =>
       if (!itemMap.has(key)) {
         itemMap.set(key, true)
         return true
+      } else {
+        // logDebug('getSectionsWithoutDuplicateLines', `Duplicate item found: ${key}`)
       }
       
       return false
     })
   })
-  
+  logDebug('sectionHelpers', `orderedSections (${orderedSections.length}) ${orderedSections.map(s => s.name)}`, orderedSections)
+
   // Return the orderedSections instead of the original sections
   return orderedSections
 }
