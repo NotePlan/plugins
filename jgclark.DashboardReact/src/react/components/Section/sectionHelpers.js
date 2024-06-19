@@ -67,9 +67,14 @@ function getUseFirstButVisible(
   const useFirstButVisible = sharedSettings ? 
     useFirst.filter((sectionCode) => {
       const section = sections.find((section) => section.sectionCode === sectionCode) 
-      const isVisible = sectionIsVisible(section, sharedSettings)
-      // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
-      return section && isVisible
+      if (section ){
+        const isVisible = sectionIsVisible(section, sharedSettings)
+        // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+        return section && isVisible  
+      } else {
+        logDebug('sectionHelpers', `getUseFirstButVisible sectionCode=${sectionCode} not found in sections data (if switched off, this is not an error)`, sections)
+        return false
+      }
 }) 
   : useFirst
   logDebug('sectionHelpers', `Visible section codes: ${useFirstButVisible}`)
