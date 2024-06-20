@@ -215,7 +215,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         {
           actionName: 'addTask',
           actionParam: thisFilename,
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
@@ -223,7 +223,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         {
           actionName: 'addChecklist',
           actionParam: thisFilename,
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to today's note",
           postActionRefresh: ['DT'],
@@ -231,7 +231,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         {
           actionName: 'addTask',
           actionParam: nextPeriodFilename,
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a new task to tomorrow's note",
           postActionRefresh: ['DO'],
@@ -239,14 +239,14 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         {
           actionName: 'addChecklist',
           actionParam: nextPeriodFilename,
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
         },
         {
           actionName: 'moveAllTodayToTomorrow',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           display: 'All Today <i class="fa-solid fa-right-long"></i> Tomorrow',
           tooltip: 'Move or schedule all remaining open items to tomorrow',
           actionParam: 'true' /* refresh afterwards */,
@@ -387,7 +387,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       actionButtons: [
         {
           actionName: 'moveAllYesterdayToToday',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: 'Move or schedule all open items from yesteday to today',
           display: 'All <i class="fa-solid fa-right-long"></i> Today',
           actionParam: 'true' /* refresh afterwards */,
@@ -647,7 +647,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       actionButtons: [
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to this week's note",
           display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
@@ -655,7 +655,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to this week's note",
           display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
@@ -663,14 +663,14 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
         },
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to next week's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to next week's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
@@ -792,7 +792,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       actionButtons: [
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to this month's note",
           display: '<i class= "fa-regular fa-circle-plus sidebarMonthly" ></i> ',
           actionParam: thisFilename,
@@ -800,7 +800,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to this month's note",
           display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ',
           actionParam: thisFilename,
@@ -808,14 +808,14 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
         },
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to next month's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarMonthly" ></i> ',
           actionParam: nextPeriodFilename,
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to next month's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ',
           actionParam: nextPeriodFilename,
@@ -931,7 +931,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       actionButtons: [
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to this quarter's note",
           display: '<i class= "fa-regular fa-circle-plus sidebarQuarterly" ></i> ',
           actionParam: thisFilename,
@@ -939,7 +939,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to this quarter's note",
           display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ',
           actionParam: thisFilename,
@@ -947,14 +947,14 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
         },
         {
           actionName: 'addTask',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a new task to next quarter's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarQuarterly" ></i> ',
           actionParam: nextPeriodFilename,
         },
         {
           actionName: 'addChecklist',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: "Add a checklist item to next quarter's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarQuarterly" ></i> ',
           actionParam: nextPeriodFilename,
@@ -1265,7 +1265,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       actionButtons: [
         {
           actionName: 'scheduleAllOverdueToday',
-          actionPluginID: 'jgclark.DashboardReact',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
           tooltip: 'Schedule all Overdue tasks to Today',
           display: 'All Overdue <i class="fa-solid fa-right-long"></i> Today',
           actionParam: '',

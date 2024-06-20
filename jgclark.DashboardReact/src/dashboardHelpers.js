@@ -55,7 +55,7 @@ import {
 //-----------------------------------------------------------------
 // Settings
 
-const pluginID = 'jgclark.DashboardReact'
+const pluginID = pluginJson['plugin.id']
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 const WEBVIEW_WINDOW_ID = windowCustomId
 
@@ -144,9 +144,7 @@ export async function getSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getSettings()`)
   try {
     // Get plugin settings
-    // TODO: Question for @jgclark: Why not just use DataStore.settings? I'm going to try swapping it out because we need the defaults if they don't exist
     const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    // const config: dashboardConfigType = DataStore.settings
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)

@@ -84,8 +84,8 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
-      <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css"> --Ю
+      <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/dashboard.css">
+      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/dashboardDialog.css"> --Ю
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
@@ -141,7 +141,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       debug: false, // ENV_MODE === 'development' ? true : false,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
-      componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+      componentPath: `../${pluginJson["plugin.id"]}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }
