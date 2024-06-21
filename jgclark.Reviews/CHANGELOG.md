@@ -3,6 +3,9 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
+## Unreleased
+- jgc: fix to edge case with in getNextNoteToReview() for Dashboard plugin
+
 ## [0.14.0] - 2024-04-???
 ### Added
 - edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window

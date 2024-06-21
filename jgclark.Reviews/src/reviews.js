@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 3.4.2024 for v0.14.0, @jgclark
+// Last updated 21.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,7 +42,7 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeNote } from '@helpers/note'
+import { filterOutProjectNotesFromExcludedFolders, getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import {
@@ -1606,9 +1606,11 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * @param { number } numToReturn first n notes to return
  * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
  */
-export function getNextNotesToReview(numToReturn: number): Array<TNote> {
+export async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
+    // $FlowFixMe[incompatible-type] reason for suppression
+    const config: ReviewConfig = await getReviewSettings()
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
@@ -1637,9 +1639,10 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
         // Get items with review due before today, or today etc.
         if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          // logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
           if (nextNotes.length > 0) {
-            notesToReview.push(nextNotes[0]) // add first matching note
+            const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
+            logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
+            notesToReview.push(noteToUse) // add first matching note
             if (notesToReview.length >= numToReturn) {
               break // stop processing the loop
             }
