@@ -28,7 +28,6 @@ function ProjectItem({ item }: Props): React.Node {
   const percentComplete = item.project?.percentComplete ?? 0
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
   const progressText = item.project?.lastProgressComment ?? ''
-
   const noteTitleWithOpenAction = (
     <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
       <i className="fa-regular fa-file-lines pad-right"></i>

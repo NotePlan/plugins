@@ -45,7 +45,7 @@
       "alias": [
         "srd"
       ],
-      "arguments": []
+      "arguments": ["Sections to load (sectionCodes, comma-separated -- see README for list)"]
     },
     {
       "name": "decideWhetherToUpdateDashboard",
