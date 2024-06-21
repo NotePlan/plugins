@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 30.3.2024 for v0.14.0, @jgclark
+// Last updated 20.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -367,7 +367,7 @@ export class Project {
   dueDate: ?Date
   dueDays: number = NaN
   reviewedDate: ?Date
-  reviewInterval: ?string
+  reviewInterval: string // later will default to '1w' if needed
   nextReviewDate: ?Date
   nextReviewDateStr: ?string // can be set by user (temporarily) but not otherwise populated
   nextReviewDays: number = NaN
@@ -389,7 +389,7 @@ export class Project {
   mostRecentProgressLineIndex: number = NaN
   ID: string // required when making HTML views
 
-  constructor(note: TNote, noteTypeTag?: string) {
+  constructor(note: TNote, noteTypeTag: string = '', checkEditor: boolean = true) {
     try {
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
@@ -397,15 +397,16 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '?'}:`)
+      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
 
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
+      // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
       let paras: $ReadOnlyArray<TParagraph>
-      if (Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
+      if (checkEditor && Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
         const noteReadOnly: CoreNoteFields = Editor.note
         paras = noteReadOnly.paragraphs
         const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
@@ -413,7 +414,7 @@ export class Project {
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
-        // logDebug('Project constructor', `- read note from datastore `)
+        logDebug('Project constructor', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLine(note)
@@ -464,7 +465,8 @@ export class Project {
       this.cancelledDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
       // read in review interval (if found)
       const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
-      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
+      // $FlowIgnore[incompatible-type]
+      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
       // read in nextReview date (if found)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
@@ -720,7 +722,7 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  async completeProject(): Promise<string> {
+  completeProject(): string {
     try {
       // update the metadata fields
       // this.isActive = false
@@ -739,8 +741,6 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // await saveEditorToCache(null)
-      // TEST:
       DataStore.updateCache(this.note)
 
       const newMSL = this.machineSummaryLine()
@@ -759,7 +759,7 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  async cancelProject(): Promise<string> {
+  cancelProject(): string {
     try {
       // update the metadata fields
       // this.isActive = false
@@ -778,8 +778,6 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // await saveEditorToCache(null)
-      // TEST:
       DataStore.updateCache(this.note)
 
       const newMSL = this.machineSummaryLine()
