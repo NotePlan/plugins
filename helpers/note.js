@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
@@ -434,6 +435,41 @@ export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], 
     return notesSorted
   } catch (err) {
     logError('note/projectNotesSortedByTitle', err.message)
+    return []
+  }
+}
+
+/**
+ * Filter out from the supplied list of notes any that are in specific excluded folders, or optionally in all special @folders.
+ * @author @jgclark
+ * @param {$ReadOnlyArray<TNote>} projectNotesIn
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
+ */
+export function filterOutProjectNotesFromExcludedFolders(projectNotesIn: $ReadOnlyArray<TNote>, foldersToExclude: Array<string>, excludeSpecialFolders: boolean = true): Array<TNote> {
+  try {
+    const excludedFolders = foldersToExclude
+    if (excludeSpecialFolders) {
+      excludedFolders.push('@Templates')
+    }
+    const outputList: Array<TNote> = []
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `Starting with ${String(projectNotesIn.length)} notes and excluding ${String(excludedFolders)}`)
+    for (const n of projectNotesIn) {
+      let include = true
+      const thisFolder = getFolderFromFilename(n.filename)
+      for (const ef of excludedFolders) {
+        if (thisFolder.startsWith(ef)) {
+          include = false
+          logDebug('note/filterOutProjectNotesFromExcludedFolders', `- exclued note filename ${n.filename} as starts with an excludedFolder ${ef}`)
+        }
+      }
+      if (include) outputList.push(n)
+    }
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `-> ${String(outputList)}`)
+    return outputList
+  } catch (err) {
+    logError('note/filterOutProjectNotesFromExcludedFolders', err.message)
     return []
   }
 }
