@@ -64,7 +64,6 @@ export function isTermInNotelinkOrURI(input: string, term: string): boolean {
   const matches = input.matchAll(RE_NOTELINK_G)
   if (matches) {
     for (const match of matches) {
-      clo(match)
       const rangeStart = match.index
       const rangeEnd = match.index + match[0].length
       // logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
