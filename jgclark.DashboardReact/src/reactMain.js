@@ -9,7 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { type TPluginData } from './types'
 import { allSectionDetails } from "./constants"
-import { type dashboardConfigType, getCombinedSettings } from './dashboardHelpers'
+import { type dashboardConfigType, getCombinedSettings, getSharedSettings } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
   // bridgeChangeCheckbox, runPluginCommand
@@ -63,6 +63,33 @@ export async function showDemoDashboard(): Promise<void> {
   await showDashboardReact('full', true)
 }
 
+async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
+  if (!limitToSections) return
+  const sharedSettings = (await getSharedSettings()) || {}
+  // set everything to off to begin with
+  const keys = Object.keys(sharedSettings).filter((key) => key.startsWith('show'))
+  allSectionDetails.forEach((section) => {
+    const key = section.showSettingName
+    if (key) sharedSettings[key] = false
+  })
+  // also turn off the specific tag sections (e.g. "showTagSection_@home")
+  keys.forEach((key) => sharedSettings[key] = false)
+  const sectionsToShow = limitToSections.split(',')
+  sectionsToShow.forEach((sectionCode) => {
+    const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+    if (showSectionKey) {
+      sharedSettings[showSectionKey] = true
+    } else {
+      if (sectionCode.startsWith("@") || sectionCode.startsWith("#")) {
+        sharedSettings[`showTagSection_${sectionCode}`] = true
+      } else {
+        logError(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails`)
+      }
+    }
+  })
+  DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+}
+
 /**
  * Plugin Entry Point for "Test React Window"
  * @author @dwertheimer
@@ -71,6 +98,9 @@ export async function showDemoDashboard(): Promise<void> {
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
   try {
+    const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
+    if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
+
     logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
@@ -177,6 +207,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+
   const sections = config.FFlag_ForceInitialLoadForBrowserDebugging === true
     ? await getAllSectionsData(useDemoData, true, true)
     : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
@@ -185,7 +216,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
-    demoMode: useDemoData, 
+    demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: Editor.currentTheme?.name || '<could not get theme>',
   }

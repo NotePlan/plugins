@@ -28,6 +28,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fix bug in hideDuplicates and overdues
 - dbw: fix priority marker hiding
 - dbw: fix incorrectly labeled modifier tooltips on statusicon
+- dbw: add xcallback support
 
 ## [2.0.0.b9] 2024-06-19
 - jgc: added Project Complete, Cancel and Pause buttons to the edit dialog
