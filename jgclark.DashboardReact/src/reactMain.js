@@ -68,6 +68,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   const sharedSettings = (await getSharedSettings()) || {}
   // set everything to off to begin with
   const keys = Object.keys(sharedSettings).filter((key) => key.startsWith('show'))
+  console.log(allSectionDetails.map(s=>`${s.sectionName}: ${s.sectionCode}\n`))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
     if (key) sharedSettings[key] = false

@@ -459,9 +459,10 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
  * See See thread on [Discord](https://discord.com/channels/763107030223290449/1248860667956428822/1248860670179540993)
  * So after updates we have no choice but to do a full refresh of the window for now
  */
-export async function checkForMobile(): Promise<void> {
+export function checkForMobile(): void {
   if (NotePlan.environment.platform !== 'macOS') {
-    await showDashboardReact('full')
+    // await showDashboardReact('full')
+    logDebug('checkForMobile', `Non-Desktop platform detected; continuing as normal...`)
   }
 }
 

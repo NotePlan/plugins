@@ -568,7 +568,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
 
       // Double-check: read back from the window itself
-      logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+      logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}"`)
       return win
     }
   } catch (error) {
@@ -668,11 +668,12 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
 export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): any {
   try {
     const windowExists = isHTMLWindowOpen(windowId)
-    if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = false`)
+    if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
+    const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
     const dataWithUpdated = {
       ...data,
       ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } },
-      NPWindowID: windowExists ? windowId : false,
+      NPWindowID: windowExists ? windowId : undefined,
     }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
@@ -685,7 +686,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
         },
         '*'
       );`,
-      windowId,
+      windowIdToSend,
     )
     // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)

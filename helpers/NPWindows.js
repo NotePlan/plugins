@@ -150,22 +150,23 @@ export async function setHTMLWindowId(customId: string): Promise<void> {
  */
 export function getWindowIdFromCustomId(customId: string): string | false {
   if (NotePlan.environment.platform !== 'macOS') {
-    logError('isHTMLWindowOpen', `Cannot get window by customId on ${NotePlan.environment.platform}`)
-    return false
+    logDebug('isHTMLWindowOpen', `Platform is ${NotePlan.environment.platform}`)
+    // return false
   }
 
   const allHTMLWindows = NotePlan.htmlWindows
-  // clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
+  clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
   for (const thisWin of allHTMLWindows) {
-    // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
+    clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       thisWin.customId = customId
-      // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
+      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
       return thisWin.id
     } else {
-      logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
+      // logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
     }
   }
+  logError('isHTMLWindowOpen', `Could not get window by ID:"${customId}" on platform:"${NotePlan.environment.platform}"`)
   return false
 }
 

@@ -2066,10 +2066,10 @@ declare class HTMLView {
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
    * Note: Available in v3.8. Second parameter added in build 1089.
    * @param { string } code JS to execute
-   * @param { string } windowId ID of the HTML window to execute it in.
+   * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string, windowId: string): Promise | void;
+  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.

@@ -72,7 +72,8 @@ function getUseFirstButVisible(
         // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
         return section && isVisible  
       } else {
-        logDebug('sectionHelpers', `getUseFirstButVisible sectionCode=${sectionCode} not found in sections data (if switched off, this is not an error)`, sections)
+        // TAG sections are a special case, so don't log an error if not found
+        sectionCode!=="TAG" ? logDebug('sectionHelpers', `getUseFirstButVisible sectionCode=${sectionCode} not found in sections data (if switched off, this is not an error)`, sections) : null
         return false
       }
 }) 
