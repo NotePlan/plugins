@@ -68,7 +68,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
 
-  let sections = origSections
+  let sections = [...origSections]
   let unduplicatedSections = sections
   
   if (sections.length > 1 && sharedSettings) {
@@ -130,7 +130,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // but if we are doing a normal load, then get the rest of the section data incrementally
     // this executes before globalSharedData is saved into state 
     logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
-    if (sections.length <= 2) {
+    if (origSections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
       sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes }, 'Dashboard loaded', true)
     }

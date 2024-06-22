@@ -116,6 +116,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
+  const isDesktop = pluginData.platform === 'macOS'
 
   let descriptionToUse = section.description
   if (descriptionToUse.includes('{count}')) {
@@ -140,7 +141,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         </TooltipOnKeyPress>
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
-          {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
+          {isDesktop && (section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
           {itemsToShow.length>1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${itemsToShow.length} ${section.name} tasks one at a time`}>
