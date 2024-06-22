@@ -24,6 +24,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
+## [2.0.0.b12] 2024-06-22
+- dbw: hide the "move to" button in the Task Dialog on mobile
+
+## [2.0.0.b11] 2024-06-22
+- dbw: work-around iPad/iPhone limitations in plugin-React communications on mobile
+- dbw: hide CommandBar buttons which won't work on mobile
+- dbw: allow the overdue->today and other -> today buttons
+- dbw: add CSS to move settings buttons away from NP sheet X close button
+- dbw: rewrite timeAgo text & hard refresh text to make it more efficient space-wise for mobile
+
 ## [2.0.0.b10] 2024-06-22
 - dbw: add x-callback support
 - jgc: polish look and positioning of buttons

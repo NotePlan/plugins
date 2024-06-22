@@ -37,6 +37,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
+  const isDesktop = pluginData.platform === 'macOS'
 
   const resched = sharedSettings?.rescheduleNotMove || pluginData?.settings.rescheduleNotMove || false
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: sharedSettings = ${String(sharedSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.settings.rescheduleNotMove)}`)
@@ -69,6 +70,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // Note: Extra setup is required for certain buttons:
   // - Cancel button icon circle or square, and function
   // - Toggle Type icon circle or square
+  const buttonsToHideOnMobile = ['Move to']
   const otherControlButtons = [
     { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
     { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'left' }] },
@@ -77,7 +79,8 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
     { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
     { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
-  ]
+  ].filter((button) => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)) // don't show these buttons on mobile
+
 
   useEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)

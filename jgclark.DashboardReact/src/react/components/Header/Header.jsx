@@ -87,10 +87,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
+  const isDesktop = pluginData.platform === "macOS"
+  const updatedText = isDesktop ? "Last updated" : "Updated"
+  const timeAgoText = isDesktop ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m")
+
   return (
     <div className="header">
       <div className="lastFullRefresh">
-        Last updated: <span id="timer">{timeAgo}</span>
+        {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 
       <div className="refresh">
@@ -104,7 +108,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             className="PCButton hardRefreshButton"
           >
             <i className={"fa-solid fa-arrows-retweet"}></i>
-            <span className="pad-left">Hard Refresh</span>
+            <span className="pad-left">{isDesktop ? "Hard Refresh" : " HR "}</span>
           </button>
         )}
       </div>

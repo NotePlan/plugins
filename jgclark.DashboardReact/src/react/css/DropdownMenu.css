@@ -66,6 +66,12 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  padding-right: 0px; /* by default for macOS */
+}
+
+/* make room for NP sheet "X" button */
+.iPadOS #dropdowns, .iOS #dropdowns {
+  padding-right: 20px; 
 }
 
 .dropdown {
