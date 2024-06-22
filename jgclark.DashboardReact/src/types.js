@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -71,7 +71,7 @@ export type TProjectForDashboard = {
 export type TActionButton = {
   display: string,
   actionPluginID: string,
-  actionName: string,
+  actionName: TActionType,
   actionParam: string /* NB: all have to be passed as a string for simplicity */,
   postActionRefresh?: Array<TSectionCode>,
   tooltip: string,
@@ -106,8 +106,9 @@ export type TActionType =
   | 'showLineInEditorFromTitle'
   | 'scheduleAllOverdueToday'
   | 'setNewReviewInterval'
-  | 'sharedSettingsChanged'
   // | 'setSpecificDate'
+  | 'sharedSettingsChanged'
+  | 'startReviews'
   | '(not yet set)'
   | 'toggleType'
   | 'togglePauseProject'
@@ -118,7 +119,7 @@ export type TActionType =
   | 'windowWasResized'
   | 'incrementallyRefreshSections'
   | 'windowReload'
-// 'windowResized'
+  | 'windowResized'
 
 export type TControlString =
   | 't'

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 20.6.2024 for v0.14.0+, @jgclark
+// Last updated 22.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -1233,7 +1233,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
       const mentionName = item.split('(', 1)[0]
       // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
       // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
       updatedLine += ` ${item}`
@@ -1255,8 +1255,9 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
 }
 
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the given note.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * Note: additional complexity as '@review' starts the same as '@reviewed'
  * @author @jgclark
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
@@ -1285,7 +1286,7 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
       const mentionName = item.split('(', 1)[0]
       logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
       // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
       updatedLine += ` ${item}`

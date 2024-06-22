@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 21.6.2024 for v0.14.0+, @jgclark
+// Last updated 22.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1397,17 +1397,15 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  */
 export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
   try {
-    logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
+    logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
     const currentNote: TNote = noteArg ? noteArg : Editor
     if (!currentNote || currentNote.type !== 'Notes') {
       throw new Error(`Not in a Project note (at least 2 lines long)`)
     }
+    const thisNoteAsProject = new Project(currentNote)
 
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-
-    logDebug(pluginJson, `setNewReviewInterval: Starting for ${displayTitle(currentNote)}`)
-    const thisNoteAsProject = new Project(currentNote)
 
     // Ask for new date interval
     const reply = await getInputTrimmed("Next review interval (e.g. '2w' or '3m') to set", 'OK', 'Set new review interval')
@@ -1423,12 +1421,17 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     }
     logDebug('setNewReviewInterval', `- intervals: existing = ${thisNoteAsProject.reviewInterval ?? '-'} / new = ${newIntervalStr}`)
 
-    // Update metadata in the current open note
-    const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
-
-    // Save Editor, so the latest changes can be picked up elsewhere
-    // Putting the Editor.save() here, rather than in the above functions, seems to work
-    await saveEditorToCache(null)
+    // Update metadata in the current open note in Editor, or the given note
+    if (!noteArg) {
+      logDebug('setNewReviewInterval', `- updating metadata in Editor`)
+      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      // Save Editor, so the latest changes can be picked up elsewhere
+      // Putting the Editor.save() here, rather than in the above functions, seems to work
+      await saveEditorToCache(null)
+    } else {
+      logDebug('setNewReviewInterval', `- updating metadata in note`)
+      const res = await updateMetadataInNote(currentNote, [`@review(${newIntervalStr})`])
+    }
 
     // Update the full-review-list too
     thisNoteAsProject.reviewInterval = newIntervalStr

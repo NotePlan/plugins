@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import pluginJson from '../plugin.json'
@@ -15,7 +15,8 @@ import {
 import {
   finishReviewForNote,
   setNewReviewInterval,
-  skipReviewForNote
+  skipReviewForNote,
+  startReviews,
 } from '../../jgclark.Reviews/src/reviews'
 import {
   handlerResult,
@@ -109,7 +110,7 @@ export async function doTogglePauseProject(data: MessageDataObject): Promise<TBr
   }
 }
 
-// Mimic the /skip review command.
+// Mimic the /skip review command
 export async function doSetNextReviewDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
@@ -170,4 +171,13 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
     logWarn('doReviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
     return handlerResult(false)
   }
+}
+
+// Mimic the /start reviews command.
+export async function doStartReviews(): Promise<TBridgeClickHandlerResult> {
+  // update this to actually take a note to work on
+  await startReviews()
+  logDebug('doStartReviews', `-> after startReviews`)
+  // Now update this section in the display, hoping we don't hit race condition with the updated full review list
+  return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
 }

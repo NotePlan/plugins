@@ -35,7 +35,7 @@ body {
 	grid-template-areas: "lastUpdated counts refresh empty dropdowns";
 	grid-template-columns: max-content max-content max-content 1fr min-content;
 	/* Vertical alignment */
-	align-items: center;
+	align-items: baseline;
 	/* Space between grid items */
 	gap: 0.5rem;
 	/* Padding around the header content */
@@ -322,24 +322,26 @@ body {
 		background-color: var(--bg-sidebar-color);
 		/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7); */
 		border: 1px solid var(--divider-color);
-		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
 }
 
 /* For buttons that trigger callbacks */
 .PCButton {
 	font-weight: 500;
-	border-style: none;
+	border-style: solid;
+	border-width: 1px;
 	border-radius: 4px;
 	/* a little external padding to right */
-	padding: 0px 3px 0px 0px;
+	padding: 1px 2px 0px 2px; /* 0px 3px 0px 0px; */
 	/* a little internal margin */
-	margin: 2px 6px 0px 0px;
+	margin: 2px 4px 0px 0px; /* 2px 6px 0px 0px;*/
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
-	align-self: center;
 	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+	max-height: 1.3rem;
 }
 
 /* Set link text to plain (again).  Note: now internal calls used this is removed */
@@ -421,12 +423,12 @@ button,
 
 .pad-left {
 	/* add space before something (normally an icon) */
-	padding-left: 0.3rem;
+	padding-left: 0.3rem !important;
 }
 
 .pad-right {
 	/* add space after something (normally an icon) */
-	padding-right: 0.3em;
+	padding-right: 0.3em !important;
 }
 
 .space-under {
@@ -588,15 +590,28 @@ input.apple-switch:checked:after {
 	/* 0.05;*/
 }
 
-/* Header waiting spinner */
+/* Circular progress bar for Project items */
+.CircularProgressbar-path {
+  stroke: var(--tint-color) !important;
+	stroke-linecap: butt !important;
+}
+.CircularProgressbar-trail {
+  fill: var(--bg-sidebar-color) !important;
+}
+/* .CircularProgressbar-text {
+  fill: yellow;
+} */
+.CircularProgressbar-background {
+  fill: var(--bg-sidebar-color) !important;
+}
 
+/* Header waiting spinner */
 .fa-spin {
 	color: var(--tint-color);
 	animation: spin 1s infinite linear;
 }
 
 /* MESSAGE_BANNER w3.css overrides */
-
 .iOS .header {
     padding-right: 10px;
     box-sizing: border-box; /* Ensure the padding is included in the element's total width */

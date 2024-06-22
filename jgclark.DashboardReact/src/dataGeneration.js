@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 17.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1207,9 +1207,9 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       // TODO: find better way to dedupe again
       // const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
-      
       overdueParas = await getRelevantOverdueTasks(config, [])
-      logDebug('getDataForDashboard', `- after reducing paras -> ${overdueParas.length} in ${timer(thisStartTime)}`)
+
+      logDebug('getDataForDashboard', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
 
     const items: Array<TSectionItem> = []
@@ -1309,7 +1309,7 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
         await makeFullReviewList()
       }
 
-      nextNotesToReview = getNextNotesToReview(maxProjectsToShow)
+      nextNotesToReview = await getNextNotesToReview(maxProjectsToShow)
     }
   }
 
@@ -1317,8 +1317,9 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
     nextNotesToReview.map((n) => {
       const thisID = `${sectionNum}-${itemCount}`
       const thisFilename = n.filename ?? '<filename not found>'
-      const projectInstance = new Project(n)
-      // clo(projectInstance, `PI for ${thisFilename}`, 2)
+      // Make a project instance for this note, as a quick way of getting its metadata
+      // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
+      const projectInstance = new Project(n, '', false)
       items.push({
         ID: thisID,
         itemType: 'project',
@@ -1347,7 +1348,7 @@ export async function getProjectSectionData(_config: dashboardConfigType, useDem
         {
           display: '<i class="fa-regular fa-play"></i> Start Reviews',
           actionPluginID: 'jgclark.Reviews',
-          actionName: 'start reviews',
+          actionName: 'startReviews',
           actionParam: '',
           tooltip: 'Start reviewing your Project notes',
         },
