@@ -74,12 +74,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
-    const dataObjectToPassToFunction = {
-      actionType: 'showLineInEditorFromFilename',
-      modifierKey: modifierName,
-    }
+    detailsMessageObject.actionType = 'showLineInEditorFromFilename'
+    detailsMessageObject.modifierKey = modifierName
     logDebug('DFPI', `handleTitleClick`)
-    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Project Title clicked in Dialog', true)
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Project Title clicked in Dialog', true)
   }
 
   // Handle the shared closing functionality

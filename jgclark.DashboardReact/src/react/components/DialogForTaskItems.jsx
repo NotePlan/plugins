@@ -213,7 +213,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                   </span>
                 </span>
                 <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
-                  <i className="fa-regular fa-forward"></i>
+                  <i className="fa-solid fa-forward"></i>
                 </button>
               </>
             )}

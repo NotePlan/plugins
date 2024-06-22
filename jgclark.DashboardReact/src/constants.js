@@ -1,14 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 20.5.2024 for v2.0.0 by @jgclark
+// Last updated 21.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // NOTE: Dashboard Settings are in the src/dashboardSettingsItems.js file
 
 import type { TSectionDetails, TSectionCode } from "./types"
-
-//TODO: @jgclark, the things in this file that are not sections should be moved out of the "types" file
 
 export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section
@@ -23,7 +21,6 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   // overdue last becasue it takes the longest to load
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
-  // { sectionCode: 'COUNT', sectionName: 'count', showSettingName: '' },
 ]
 
 export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG', 'PROJ']

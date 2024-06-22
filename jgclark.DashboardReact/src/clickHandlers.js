@@ -183,7 +183,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     // Add text to the new location in destination note
     // FIXME: following not working yet -- add separate setting
     // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
-    const newHeadingLevel = config.headingLevel
+    const newHeadingLevel = config.newTaskSectionHeadingLevel
     const headingToUse = config.newTaskSectionHeading
     // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
 

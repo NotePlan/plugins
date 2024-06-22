@@ -11,24 +11,35 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - In the project dialog box, added a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
 - When the NotePlan Theme is changed (manually or automatically), the Dashboard window will automatically pick this up on the next refresh.
 - ^-click (ctrl-click) on an item's status icon now deletes the item entirely (after a check with the user).
+- Added an x-callback to allow specifying which sections you want to see. For details see [Discord](https://discord.com/channels/763107030223290449/1250112152916987974/1253986724028092447). <!--README. -->
 
 ### Changed
 - The different sections are now generated or refreshed progressively, so the first sections appear more quickly.
 - When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
 - The 'Update Overdue section when triggered?' setting has been removed, as it is no longer needed with the smarter data generation
-
 ### Fixed
-- fixed bug: A task in today's note "* a task >today" doesn't show up on today's dashboard
-- fixed bug: tasks in future notes showing up in #tag section
-- fixed bug: synced copies dated for today were duplicated
+- a task in today's note "* a task >today" doesn't show up on today's dashboard
+- tasks in future notes showing up in #tag section
+- synced copies dated for today were duplicated
+- "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
-## Not released yet
+## [2.0.0.b10] 2024-06-22
+- dbw: add x-callback support
+- jgc: polish look and positioning of buttons
+- jgc: fix to 'new review interval' date handling
+- jgc: avoid 'You are running this on an async thread' warnings.
+- jgc: fix wrong background colour on project completion rings
+- jgc: fix "Dashboard: update plugin settings" command not working
+- jgc: fix clicking project dialog title not opening note
+- jgc: fix to annoying logging problem
+- jgc: fix to setting newTaskSectionHeadingLevel not being used
+- jgc: fix to edge case with Review plugin's getNextNoteToReview()
+- jgc: fix "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - dbw: hide IP button if there is only one item
 - dbw: fix bug in hideDuplicates and overdues
 - dbw: fix priority marker hiding
-- dbw: fix incorrectly labeled modifier tooltips on statusicon
-- dbw: add xcallback support
+- dbw: fix incorrectly labeled modifier tooltips on statusIcon
 
 ## [2.0.0.b9] 2024-06-19
 - jgc: added Project Complete, Cancel and Pause buttons to the edit dialog

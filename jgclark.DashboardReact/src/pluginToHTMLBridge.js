@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 16.6.2024 for v2.0.0-b9 by @dbw
+// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -41,6 +41,7 @@ import {
   doReviewFinished,
   doSetNewReviewInterval,
   doSetNextReviewDate,
+  doStartReviews,
 } from './projectClickHandlers'
 import {
   doMoveFromCalToCal,
@@ -189,6 +190,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'reviewFinished': {
         result = await doReviewFinished(data)
+        break
+      }
+      case 'startReviews': {
+        result = await doStartReviews()
         break
       }
       case 'cancelProject': {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 18.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 21.6.2024 for v2.0.0-b10 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -67,8 +67,9 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  newTaskSectionHeading: string,
   rescheduleNotMove: boolean,
+  newTaskSectionHeading: string,
+  newTaskSectionHeadingLevel: number,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
@@ -93,18 +94,25 @@ export type dashboardConfigType = {
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
   FFlag_LimitOverdues: boolean,
   moveSubItems: boolean,
-  headingLevel: number,
   defaultFileExtension: string,
+  sharedSettings: any,
 }
 
 /**
  * Get the sharedSettings values as an object
  * @returns {any} the settings object or an empty object if there are none 
  */
-export function getSharedSettings(): any {
-  const settings = DataStore.settings
-  if (!settings.sharedSettings) clo(settings, `getSharedSettings: DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
-  return parseSettings(DataStore.settings?.sharedSettings || '') ?? {}
+export async function getSharedSettings(): Promise<any> {
+  // Note: We think following (newer API call) is unreliable.
+  // let settings: dashboardConfigType = DataStore.settings
+  // if (!settings.sharedSettings) clo(settings, `getSharedSettings (newer API): DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
+
+  // So instead back to the older way:
+  const settings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+  // Check again
+  if (!settings.sharedSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
+
+  return parseSettings(settings.sharedSettings || '') ?? {}
 }
 
 /**
@@ -112,7 +120,7 @@ export function getSharedSettings(): any {
  * Calls DataStore.settings so can't be used on front-end
  */
 export async function getCombinedSettings(): Promise<any> {
-  const sharedSettings = getSharedSettings()
+  const sharedSettings = await getSharedSettings()
   if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
   const pluginSettings = await getSettings()
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
@@ -154,10 +162,6 @@ export async function getSettings(): Promise<any> {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
     config.defaultFileExtension = DataStore.defaultFileExtension
-
-    // Extend settings with a value from QuickCapture plugin
-    config.headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
-    logDebug('getSettings', `${String(config.headingLevel)}`)
 
     // clo(config, 'getSettings() returning config')
     return config
@@ -770,7 +774,7 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
           true, // create heading if needed (possible if supplied via headingArg)
         )
       } else {
-        const headingLevel = config.headingLevel
+        const headingLevel = config.newTaskSectionHeadingLevel
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
         const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)

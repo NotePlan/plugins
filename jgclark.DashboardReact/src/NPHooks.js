@@ -5,6 +5,7 @@ import pluginJson from '../plugin.json' // gives you access to the contents of p
 import { getCombinedSettings, setPluginData } from './dashboardHelpers'
 import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -68,18 +69,20 @@ export async function onSettingsUpdated(): Promise<void> {
   clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.settings to combinedSettings')
   await setPluginData({ settings: combinedSettings }, '_settings were updated')
   return
-  // probably get rid of all of this because it's not used
-  // try {
-  //   // If v3.11+, can now refresh Dashboard
-  //   if (NotePlan.environment.buildVersion >= 1181) {
-  //     if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-  //       logDebug(pluginJson, `will refresh Dashboard as it is open`)
-  //       await showDashboardReact('refresh', false) // probably don't need await
-  //     }
-  //   }
-  // } catch (error) {
-  //   logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
-  // }
+}
+
+/**
+ * Update Settings/Preferences (for iOS/iPadOS)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings(): Promise<void> {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
 
 /**

@@ -136,12 +136,19 @@ i.fa-solid, i.fa-regular {
   color: var(--tint-color);
 }
 
-.closeButton, .skip-button {
-  color: var(--fg-main-color); /* FIXME: not being applied */
-  margin-right: 5px;
-	font-size: 0.9rem;
-  /* background-color: none; */
+.closeButton {
+	font-size: unset;
+  background-color: none;
   border: none;
+  box-shadow: none;
+  margin-right: 5px;
+}
+.skip-button {
+	font-size: unset;
+  background-color: none;
+  border: none;
+  box-shadow: none;
+  margin-right: 0px;
 }
 
 .interactive-processing-status {
