@@ -124,7 +124,7 @@
 .settings-dialog .switch-label {
     font-weight: 500;
     color: var(--fg-alt-color);
-    flex-shrink: 0;
+    /* flex-shrink: 0; */
 }
 
 /* Style for input-box-container */
@@ -296,6 +296,11 @@
     background: none;
     line-height: 40px;
     /* Match the height of the buttons container */
+}
+
+.iOS .settings-dialog .settings-dialog-header {
+    font-size: 1rem;
+    line-height: 1rem;
 }
 
 /* Style for item description */
