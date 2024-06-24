@@ -68,7 +68,6 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   const sharedSettings = (await getSharedSettings()) || {}
   // set everything to off to begin with
   const keys = Object.keys(sharedSettings).filter((key) => key.startsWith('show'))
-  console.log(allSectionDetails.map(s=>`${s.sectionName}: ${s.sectionCode}\n`))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
     if (key) sharedSettings[key] = false
@@ -103,7 +102,6 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
     if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
 
-    logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
