@@ -132,7 +132,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
     if (origSections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
-      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes }, 'Dashboard loaded', true)
+      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage:'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
     }
   }, [])
 

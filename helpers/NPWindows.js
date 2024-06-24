@@ -155,9 +155,9 @@ export function getWindowIdFromCustomId(customId: string): string | false {
   }
 
   const allHTMLWindows = NotePlan.htmlWindows
-  clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
+  // clo(allHTMLWindows, 'getWindowIdFromCustomId: allHTMLWindows')
   for (const thisWin of allHTMLWindows) {
-    clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
+    // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
     if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
       thisWin.customId = customId
       logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)

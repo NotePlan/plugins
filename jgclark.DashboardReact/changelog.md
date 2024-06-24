@@ -27,6 +27,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## Not released yet
 - dbw: Override recent changes to .PCButton which affect the Settings Dialog
 - dbw: fixes to Settings Dialog CSS on iOS
+- dbw: remove the automatic refresh on all filter dropdown settings
 
 ## [2.0.0.b13] 2024-06-23
 - dbw: fix the infinite loop when dashboard theme is set

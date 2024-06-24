@@ -174,6 +174,6 @@ export const onDropdownMenuChangesMade = (
 ): Function => (): void => {
   setDropdownMenuChangesMade(false) // Reset changes made
   logDebug('Header headerDropdownHandlers', `onDropdownMenuChangesMade called -- refreshing sections after dropdown changes`)
-  const payload = { actionType: 'incrementallyRefreshSections', sectionCodes: allSectionCodes }
-  sendActionToPlugin('incrementallyRefreshSections', payload, `Refreshing b/c settings were changed`, true)
+  // const payload = { actionType: 'incrementallyRefreshSections', sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` }
+  // sendActionToPlugin('incrementallyRefreshSections', payload, `Refreshing b/c settings were changed`, true)
 }
