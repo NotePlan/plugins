@@ -166,7 +166,10 @@ export function getWindowIdFromCustomId(customId: string): string | false {
       // logWarn('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
     }
   }
-  logError('isHTMLWindowOpen', `Could not get window by ID:"${customId}" on platform:"${NotePlan.environment.platform}"`)
+  logDebug(
+    'isHTMLWindowOpen',
+    `Did not find open window with ID:"${customId}" on platform:"${NotePlan.environment.platform}". This is ok if the window is not open or the platform is not macOS.`,
+  )
   return false
 }
 

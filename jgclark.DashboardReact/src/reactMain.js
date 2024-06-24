@@ -98,6 +98,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
+  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)  
   try {
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
     if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
@@ -125,6 +126,8 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
     const config = await getCombinedSettings()
+    clo(config, 'showDashboardReact: config=')
+    logDebug('showDashboardReact',`config.dashboardTheme="${config.dashboardTheme}"`)
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -219,7 +222,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     settings: config,
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
-    themeName: Editor.currentTheme?.name || '<could not get theme>',
+    themeName: config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
   }
 }
 

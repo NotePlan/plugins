@@ -106,12 +106,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     // const ID = data.item?.ID ?? '<no ID found>'
     const actionType: TActionType = data.actionType
+    const logMessage = data.logMessage ?? ''
     const filename = data.item?.para?.filename ?? '<no filename found>'
     let content = data.item?.para?.content ?? '<no content found>'
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`***************** bridgeClickDashboardItem: ${actionType} *****************`)
+    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -124,7 +125,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
         content = result.updatedParagraph?.content ?? ''
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
-        data.item.para.content = content
+        data.item?.para?.content ? data.item.para.content = content : null
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
         // await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
@@ -482,16 +483,16 @@ export async function checkForThemeChange(): Promise<void> {
   const { themeName: themeInWindow } = pluginData
   const config = await getCombinedSettings()
 
-  // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'}`)
+  logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
   // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
   
   const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
 
+  logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (!currentTheme) {
     logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
     return
   }
-  // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (currentTheme && currentTheme !== themeInWindow) {
     logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
     // Update the CSS in the window

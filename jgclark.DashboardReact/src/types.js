@@ -158,6 +158,7 @@ export type MessageDataObject = {
   newDimensions?: { width: number, height: number },
   settings?: TAnyObject,
   filename?: string, /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */
+  logMessage?: string,
 }
 
 /**

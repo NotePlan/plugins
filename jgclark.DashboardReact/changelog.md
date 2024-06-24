@@ -24,6 +24,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
+## [2.0.0.b13] 2024-06-23
+- dbw: fix the infinite loop when dashboard theme is set
+
 ## [2.0.0.b12] 2024-06-22
 - dbw: hide the "move to" button in the Task Dialog on mobile
 

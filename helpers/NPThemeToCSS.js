@@ -29,7 +29,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let currentThemeMode = 'light' // default; overridden later
 
     // If we havee a supplied themeName, then attempt to use it
-    if (themeNameIn !== '') {
+    if (themeNameIn) {
       // get list of available themes
       logDebug('generateCSSFromTheme', String(availableThemeNames))
       matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
@@ -44,7 +44,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     }
 
     // If that hasn't worked, then currentTheme
-    if (themeName === '') {
+    if (!themeName) {
       themeName = Editor.currentTheme.name ?? ''
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
       logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
@@ -57,7 +57,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     }
 
     // If that hasn't worked, try dark theme
-    if (themeName === '') {
+    if (!themeName) {
       themeName = String(DataStore.preference('themeDark'))
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
       matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
@@ -413,8 +413,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
 
     // Finally, just a note requested by @dwertheimer, and others who might have non-standard names in their themes
-    const themeKeysToCheck: Array<string> = ["flagged-1", "flagged-2", "flagged-3", "working-on"]
-    themeKeysToCheck.forEach(key => !themeJSON.styles[key] && logWarn(generateCSSFromTheme, `Your theme does not have the key "${key}" which Dashboard uses. This may be ok if you don't want that style, but if you do, you need to rename your theme style for this type of line`))
+    const themeKeysToCheck: Array<string> = ['flagged-1', 'flagged-2', 'flagged-3', 'working-on']
+    themeKeysToCheck.forEach(
+      (key) =>
+        !themeJSON.styles[key] &&
+        logWarn(
+          generateCSSFromTheme,
+          `Your theme does not have the key "${key}" which Dashboard uses. This may be ok if you don't want that style, but if you do, you need to rename your theme style for this type of line`,
+        ),
+    )
 
     // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')

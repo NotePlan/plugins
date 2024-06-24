@@ -56,7 +56,7 @@ export const handleSwitchChange = (
 
     // This saves the change in local context, and then it will be picked up and sent to plugin
     if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
-      logDebug('handleSwitchChange', `Updating sharedSettings["${key}"]. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`,sharedSettings)
+      logDebug('handleSwitchChange', `Updating sharedSettings["${key}"]. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`, sharedSettings)
       setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
       if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
         // call for new data for a section just turned on
@@ -72,13 +72,14 @@ export const handleSwitchChange = (
       if (!isSection || isTagSection) {
         const refreshAllOnChange = dashboardFilters.find(s => s.key === key)?.refreshAllOnChange
         if (isTagSection || refreshAllOnChange) {
-          sendActionToPlugin('refresh', { actionType: 'refresh' }, `Refreshing all sections`, true)
+          const logMessage = isTagSection ? `Tag section ${key} turned on, so refreshing all sections` : `Refresh all sections because of setting ${key} refreshAllOnChange set to true`
+          sendActionToPlugin('refresh', { actionType: 'refresh', logMessage }, `Refreshing all sections`, true)
         }
       }
-    } else {
-      logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${sharedSettings[key]}, new value: ${isChecked}`)
-    }
+  } else {
+    logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${sharedSettings[key]}, new value: ${isChecked}`)
   }
+}
 }
 
 

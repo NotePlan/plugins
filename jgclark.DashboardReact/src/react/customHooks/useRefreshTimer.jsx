@@ -67,7 +67,7 @@ function useRefreshTimer(options: RefreshTimerOptions): RefreshTimerReturn {
         return
       } else {
         logDebug('useRefreshTimer', `${maxDelay / 1000}s refreshTimer triggered - Calling Plugin for JSON Refresh...`)
-        sendActionToPlugin('refresh', { actionType: 'refresh' }, `${maxDelay / 1000}s full refresh timer triggered`, true)
+        sendActionToPlugin('refresh', { actionType: 'refresh', logMessage:`Idle timer expired` }, `${maxDelay / 1000}s full refresh timer triggered`, true)
       }
     }, maxDelay)
     setTimerId(newTimerId)
