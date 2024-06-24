@@ -81,6 +81,8 @@
     background-color: var(--bg-main-color);
     color: var(--fg-main-color);
     border: 1px solid #ddd;
+    outline: none;
+    max-height: unset;
 }
 
 /* Hover style for the Cancel button */
@@ -94,6 +96,7 @@
 .settings-dialog .save-button {
     background-color: var(--tint-color);
     color: var(--bg-main-color);
+    max-height: unset;
 }
 
 /* Hover style for the Save & Close button */
