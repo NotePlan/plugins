@@ -68,7 +68,7 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
 export async function completeProject(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
-    logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
+    logDebug('project/completeProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
     const note: TNote = noteArg ? noteArg : Editor
     if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
       throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
@@ -87,7 +87,7 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
       if (config) {
         // we need to re-load the note according to @Eduard
         await Editor.openNoteByFilename(note.filename)
-      // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+        // logDebug('project/completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
         // Ask whether to move it to the @Archive
         const willArchive = await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes'
@@ -104,10 +104,11 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('Markdown', true)
+        const lineToAdd = thisProject.detailedSummaryLine('list', true)
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
-          logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+          logInfo('project/completeProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+          logInfo('project/completeProject', `- before addParagraphBelowHeadingTitle() ${yearlyNote.paragraphs.length} lines`)
           yearlyNote.addParagraphBelowHeadingTitle(
             lineToAdd,
             'text', // bullet character gets included in the passed in string
@@ -115,6 +116,7 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
             true, // append
             true // do create heading if not found already
           )
+          logInfo('project/completeProject', `- after addParagraphBelowHeadingTitle() ${yearlyNote.paragraphs.length} lines`)
         }
 
         // ... and finally ask whether to move it to the @Archive
@@ -122,17 +124,17 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
           const newFilename = (config.archiveUsingFolderStructure)
             ? archiveNoteUsingFolder(note)
             : DataStore.moveNote(note.filename, '@Archive')
-          logInfo('cancelProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
+          logInfo('project/completeProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
         } else {
-          logInfo('cancelProject', 'Project completed, review list updated, and window updated.')
+          logInfo('project/completeProject', 'Project completed, review list updated, and window updated.')
         }
       }
     } else {
-      logError('completeProject', 'Error completing project.')
+      logError('project/completeProject', 'Error completing project.')
     }
   }
   catch (error) {
-    logError('completeProject', error.message)
+    logError('project/completeProject', error.message)
   }
 }
 
@@ -141,7 +143,7 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
  * @param {string} filename 
  */
 export async function completeProjectByFilename(filename: string): Promise<void> {
-  logDebug('completeProjectByFilename', `Starting for filename '${filename}`)
+  logDebug('project/completeProjectByFilename', `Starting for filename '${filename}`)
   const note = DataStore.projectNoteByFilename(filename)
   if (note) await completeProject(note)
 }
@@ -159,7 +161,7 @@ export async function completeProjectByFilename(filename: string): Promise<void>
 export async function cancelProject(noteArg?: TNote): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines) or we're passed a valid Note
-    logDebug('addProgressUpdate', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
+    logDebug('project/cancelProject', `Starting for ${noteArg ? 'passed note' : 'Editor'}`)
     const note: TNote = noteArg ? noteArg : Editor
     if (!note || note.type === 'Calendar' || note.paragraphs.length < 2) {
       throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
@@ -169,9 +171,9 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
     const thisProject = new Project(note)
 
     // Then call the class' method to update its metadata
-    // logDebug('cancelProject', `before cancelProject`)
+    // logDebug('project/cancelProject', `before cancelProject`)
     const newMSL = await thisProject.cancelProject()
-    // logDebug('cancelProject', `after cancelProject, newMSL=${newMSL}`)
+    // logDebug('project/cancelProject', `after cancelProject, newMSL=${newMSL}`)
 
     // If this has worked, then ...
     if (newMSL) {
@@ -181,7 +183,7 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 
         // we need to re-load the note according to EM
         await Editor.openNoteByFilename(note.filename)
-      // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+        // logDebug('project/cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
         // Ask whether to move it to the @Archive
         const willArchive = await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No']) === 'Yes'
@@ -198,10 +200,10 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('Markdown', true)
+        const lineToAdd = thisProject.detailedSummaryLine('list', true)
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
-          logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+          logInfo('project/cancelProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
           yearlyNote.addParagraphBelowHeadingTitle(
             lineToAdd,
             'text', // bullet character gets included in the passed in string

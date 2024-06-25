@@ -21,7 +21,7 @@ import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, logError, clo, clof, JSP } from '@helpers/react/reactDev.js'
+import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -222,7 +222,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         const newPluginData = { ...pluginData, sections: updatedSections }
         updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        // FIXME(@dwertheimer): I worked around the crash this generates in the Projects section. But I'm not sure what this achieves?
+        // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
         // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
         logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
@@ -266,9 +266,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Render
   //----------------------------------------------------------------------
   if (sections.length === 0) {
-    return <div className="dashboard">No Sections to display (this is an error)...</div>
+    return <div className="dashboard">Error: No Sections to display ...</div>
   }
-  const autoUpdateEnabled = parseInt(sharedSettings?.autoUpdateAfterIdleTime||"0") > 0 //autoRefresh
+  const autoUpdateEnabled = parseInt(sharedSettings?.autoUpdateAfterIdleTime || "0") > 0
+  //autoRefresh
+  // logDebug('Dashboard', `setting typeof ${typeof sharedSettings?.autoUpdateAfterIdleTime} ${sharedSettings?.autoUpdateAfterIdleTime ?? '-'} / ${parseInt(sharedSettings?.autoUpdateAfterIdleTime || "0")} / ${String(autoUpdateEnabled)}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
       {autoUpdateEnabled && (

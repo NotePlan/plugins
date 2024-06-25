@@ -82,7 +82,7 @@ export type dashboardConfigType = {
   showOverdueSection: boolean,
   showProjectSection: boolean,
   // updateOverdueOnTrigger: boolean,
-  maxTasksToShowInSection: number,
+  maxItemsToShowInSection: number,
   overdueSortOrder: string,
   tagToShow: string,
   ignoreTagMentionsWithPhrase: string,
@@ -126,7 +126,7 @@ export async function getCombinedSettings(): Promise<any> {
   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
   // clo(pluginSettings, 'getCombinedSettings: pluginSettings')
   // clo(sharedSettings, 'getCombinedSettings: sharedSettings')
-  returnObj.maxTasksToShowInSection = pluginSettings.maxTasksToShowInSection ?? 20
+  returnObj.maxItemsToShowInSection = pluginSettings.maxItemsToShowInSection ?? 20
   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
   // Now add all the show*Section settings (or default to true)
   for (const sd of allSectionDetails) {
@@ -361,36 +361,6 @@ export function getOpenItemParasForCurrentTimePeriod(
 }
 
 // ---------------------------------------------------
-// TODO: write something to test if a note has been updated yet
-/**
- * Note: suggested by ChatGPT
- * Compares two objects' properties returned by `getFilteredProps`, logs the differences in properties and their values.
- * Handles deep comparison if the property values are objects.
- * 
- * @param {Object} obj1 The first object to compare.
- * @param {Object} obj2 The second object to compare.
- */
-function compareObjects(obj1: Object, obj2: Object): void {
-  const props1 = getFilteredProps(obj1)
-  const props2 = getFilteredProps(obj2)
-
-  // Log property names that are not the same
-  const allProps = new Set([...Object.keys(props1), ...Object.keys(props2)])
-  allProps.forEach(prop => {
-    if (!(prop in props1)) {
-      logDebug(`Property ${prop} is missing in the first object`)
-    } else if (!(prop in props2)) {
-      logDebug(`Property ${prop} is missing in the second object`)
-    }
-  })
-
-  // Deep compare properties that are in both objects
-  Object.keys(props1).forEach(prop => {
-    if (prop in props2) {
-      deepCompare(props1[prop], props2[prop], prop)
-    }
-  })
-}
 
 /**
  * Note: suggested by ChatGPT
@@ -491,27 +461,25 @@ function convertTimeBlockToHTML(input: string): string {
   return output
 }
 
-/**
- * TODO: use me above?
- * Parses and sorts dates from items based on the content field.
- * @author @jgclark, @dwertheimer, ChatGPT
- * @param {Array<TParagraph>} items - Array of Paragraphs with a content field.
- * @returns {Array<TParagraph>} - Array of Paragraphs sorted by the computed start time represented in the text, ignoring ones that do not contain times.
- * // FIXME: why is this not used?
- */
-function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
-  const withDates = items
-    .map((item) => ({
-      item,
-      date: Calendar.parseDateText(item.content)[0]?.start ?? null,
-    })) // Map each item to an object including both the item and the parsed start date.
-    .filter(({ date }) => date != null) // Filter out items without a valid start date.
+// /**
+//  * Parses and sorts dates from items based on the content field.
+//  * @author @jgclark, @dwertheimer, ChatGPT
+//  * @param {Array<TParagraph>} items - Array of Paragraphs with a content field.
+//  * @returns {Array<TParagraph>} - Array of Paragraphs sorted by the computed start time represented in the text, ignoring ones that do not contain times.
+//  */
+// function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
+//   const withDates = items
+//     .map((item) => ({
+//       item,
+//       date: Calendar.parseDateText(item.content)[0]?.start ?? null,
+//     })) // Map each item to an object including both the item and the parsed start date.
+//     .filter(({ date }) => date != null) // Filter out items without a valid start date.
 
-  // Sort the intermediate structure by the start date and map back to the original items.
-  const sortedItems = withDates.sort((a, b) => a.date - b.date).map(({ item }) => item)
+//   // Sort the intermediate structure by the start date and map back to the original items.
+//   const sortedItems = withDates.sort((a, b) => a.date - b.date).map(({ item }) => item)
 
-  return sortedItems
-}
+//   return sortedItems
+// }
 
 /**
  * @params {dashboardConfigType} config Settings
@@ -596,9 +564,8 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 
 /**
  * FIXME: write some tests
- * FIXME: extend to allow AM/PM times as well
- * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
- * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times).
+ * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
  * @param {Array<TParagraph | TParagraphForDashboard>} paras to extend
  * @returns {Array<TParagraph | TParagraphForDashboard>} paras extended by .timeStr
@@ -642,7 +609,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
  * TODO: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
- * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
  * @param {TParagraph| TParagraphForDashboard} para to process
  * @returns {string} time string found
@@ -727,7 +694,7 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
 export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
   try {
-    const config = getCombinedSettings()
+    const config = await getCombinedSettings()
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
@@ -822,10 +789,7 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     logDebug('moveItemToRegularNote', `- itemType: ${itemType}`)
 
     // Ask user for destination project note
-    const allRegularNotes = projectNotesSortedByChanged()
     const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
-    // @jgclark, is there a reason you wanted to use this QuickCapture function instead of the chooseNote helper?
-    // const destNote = await getNoteFromParamOrUser(typeToDisplayToUser, '', false, allRegularNotes)
     const destNote = await chooseNote(true, false, [], `Choose Note to Move ${typeToDisplayToUser} to`, false, true)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
     if (!destNote) return null

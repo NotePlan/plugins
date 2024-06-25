@@ -79,6 +79,7 @@ export type TActionButton = {
 
 export type TActionType =
   | 'addChecklist'
+  | 'addProgress'
   | 'addTask'
   | 'cancelProject'
   | 'cancelTask'

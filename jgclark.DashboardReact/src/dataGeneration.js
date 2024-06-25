@@ -1035,7 +1035,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
   const tagStart = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
-  const maxInSection = config.maxTasksToShowInSection ?? 30
+  const maxInSection = config.maxItemsToShowInSection ?? 30
   logDebug('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)}: ${sectionDetail.sectionName} --------`)
   // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
   let itemCount = 0
@@ -1173,7 +1173,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     let itemCount = 0
     let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
     let dashboardParas: Array<TParagraphForDashboard> = []
-    const maxInSection = config.maxTasksToShowInSection
+    const maxInSection = config.maxItemsToShowInSection
     const thisStartTime = new Date()
 
     logDebug('getDataForDashboard', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
@@ -1283,11 +1283,11 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
   }
 }
 
-export async function getProjectSectionData(_config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
-  const maxProjectsToShow = 6
+  const maxProjectsToShow = config.maxItemsToShowInSection
   let nextNotesToReview: Array<TNote> = []
   const items: Array<TSectionItem> = []
   logDebug('getDataForDashboard', `------- Gathering Project items for section #${String(sectionNum)} --------`)

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 14.6.2024 for v2.0.0-b8 by @jgc
+// Last updated 22.6.2024 for v2.0.0-b11 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -70,6 +70,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // Note: Extra setup is required for certain buttons:
   // - Cancel button icon circle or square, and function
   // - Toggle Type icon circle or square
+  // Note: Some also cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open
   const buttonsToHideOnMobile = ['Move to']
   const otherControlButtons = [
     { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },

@@ -45,7 +45,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
   return (
     <>
       <button className="PCButton" onClick={toggleDatePicker}>
-        <i className="fa-solid fa-calendar-alt" style={{ color: 'var(--fg-main-color)', paddingLeft: '5px', paddingRight: '5px' }}></i>
+        <i className="fa-solid fa-calendar-alt pad-left pad-right" /*style={{ color: 'var(--fg-main-color)', paddingLeft: '5px', paddingRight: '5px' }}*/></i>
       </button>
       {isOpen && (
         <div className="dayPicker-container">

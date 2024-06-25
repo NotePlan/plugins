@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by ReviewItem component
-// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -10,6 +10,7 @@ import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
+import ProjectIcon from './ProjectIcon'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
@@ -32,18 +33,19 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
   // const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
   // const { ID, itemType, filename, title, content, noteType } = detailsMessageObject
-  // const thisItem = detailsMessageObject.item
-  // if (!thisItem) { throw `Cannot find item` }
+  const thisItem = detailsMessageObject?.item
+  if (!thisItem) { throw `Cannot find item` }
+  const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
   // const { ID, itemType } = thisItem
   // const thisProject = thisItem.project
   // if (!thisProject) { throw `Cannot find project` }
   // const { filename } = thisProject
   const { ID, itemType, filename, title } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, /* reactSettings, sharedSettings, pluginData */ } = useAppContext()
+  const { sendActionToPlugin, /* reactSettings, sharedSettings, */ pluginData } = useAppContext()
+  const isDesktop = pluginData.platform === 'macOS'
 
-  // TODO
-  const reviewDetails = ' (review: 2w)'
+  const reviewDetails = (thisItem.project?.reviewInterval) ? ` (review: ${thisItem.project.reviewInterval})` : ''
 
   /**
    * Arrays of buttons to render.
@@ -56,13 +58,19 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
     { label: 'Skip 1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
   ]
 
+  // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
   const projectButtons = [
     { label: 'Complete', controlStr: 'complete', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
     { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
     { label: 'Pause', controlStr: 'cancel', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
-    // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build.
+    // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build of icons.
     // Will it become available if we switch to SVG delivery ?
-    { label: 'New Review Interval', controlStr: 'newint', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
+    { label: 'New Interval', controlStr: 'newint', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
+  ]
+
+  // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
+  const progressButtons = [
+    { label: 'Add', controlStr: 'progress', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'left' }] },
   ]
 
   useEffect(() => {
@@ -154,12 +162,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         aria-describedby="Actions that can be taken on projects"
         ref={dialogRef}
       >
+        {/* Title area ---------------- */}
         <div className="dialogTitle">
         <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
           <div className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-            For <i className="pad-left pad-right fa-regular fa-file-lines"></i>
-            <b>
-              <span className="dialogItemNote" /*id="dialogProjectNote"*/>{title}</span>
+              For <ProjectIcon item={thisItem} />
+              <b>
+                <span className="dialogItemNote" >{title}</span>
               </b>
               {reviewDetails}
           </div>
@@ -175,7 +184,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
           <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
             <div>Review:</div>
-            <div /*id="projectControlDialogMoveControls"*/>
+            <div>
               {reviewButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
@@ -190,10 +199,30 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
               <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} />
             </div>
 
-            {/* line2 ---------------- */}
-            <div>Project:</div>
+            {/* line2 (macOS only) ---------------- */}
+            {isDesktop && (
+              <>
+                <div>Project:</div>
+                <div>
+                  {projectButtons.map((button, index) => (
+                    <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                      {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
+                        <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                      ))}
+                      {button.label}
+                      {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
+                        <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                      ))}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* line3 ---------------- */}
+            <div>Progress:</div>
             <div>
-              {projectButtons.map((button, index) => (
+              {progressButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
@@ -204,8 +233,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   ))}
                 </button>
               ))}
+              <span className="pad-left projectProgress">
+                {lastProgressText}
+              </span>
             </div>
-
           </div>
         </div>
       </dialog>

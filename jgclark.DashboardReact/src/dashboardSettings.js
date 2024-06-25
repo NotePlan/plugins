@@ -23,11 +23,6 @@ export const dashboardFilters = [
 ]
 
 const dashboardSettings = [
-  // {
-  //   type: 'heading',
-  //   label: "General settings",
-  // },
-  // TEST: moved from dashboardFilters on 21.6.2024
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -49,36 +44,8 @@ const dashboardSettings = [
     type: 'input',
     default: "@Archive, Saved Searches",
   },
-  // {
-  //   key: "includeTaskContext",
-  //   label: "Include context for tasks?",
-  //   description: "Whether to show the note link for an open task or checklist",
-  //   type: 'switch',
-  //   default: true,
-  // },
-  // {
-  //   key: "excludeTasksWithTimeblocks",
-  //   label: "Exclude tasks that include time blocks?",
-  //   description: "Whether to stop display of open tasks that contain a time block",
-  //   type: 'switch',
-  //   default: false,
-  // },
-  // {
-  //   key: "excludeChecklistsWithTimeblocks",
-  //   label: "Exclude checklists that include time blocks?",
-  //   description: "Whether to stop display of open checklists that contain a time block",
-  //   type: 'switch',
-  //   default: false,
-  // },
-  // {
-  //   key: "includeFolderName",
-  //   label: "Include folder name?",
-  //   description: "Whether to include the folder name when showing a note link",
-  //   type: 'switch',
-  //   default: true,
-  // },
   {
-    key: "maxTasksToShowInSection",
+    key: "maxItemsToShowInSection",
     label: "Max number of items to show in a section?",
     description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
     type: 'input',
@@ -186,7 +153,7 @@ const dashboardSettings = [
     default: false,
   },
   {
-    key: "autoUpdateAfterIdleTime", // // aka "autoRefresh"
+    key: "autoUpdateAfterIdleTime", // aka "autoRefresh"
     label: "Automatic Update frequency",
     description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
     type: 'input',

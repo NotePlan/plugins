@@ -1,4 +1,9 @@
 // @flow
+//--------------------------------------------------------------------------
+// Helpers for the Section component.
+// Last updated 2024-06-23 for v2.0.0-b13 by @jgclark
+//--------------------------------------------------------------------------
+
 import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../../types.js'
 import { allSectionDetails } from "../../../constants.js"
 import { logDebug, clof, clo, logError } from '@helpers/react/reactDev.js'
@@ -73,12 +78,12 @@ function getUseFirstButVisible(
         return section && isVisible  
       } else {
         // TAG sections are a special case, so don't log an error if not found
-        sectionCode!=="TAG" ? logDebug('sectionHelpers', `getUseFirstButVisible sectionCode=${sectionCode} not found in sections data (if switched off, this is not an error)`, sections) : null
+        sectionCode !== "TAG" ? logDebug('sectionHelpers', `getUseFirstButVisible sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
         return false
       }
 }) 
   : useFirst
-  logDebug('sectionHelpers', `Visible section codes: ${useFirstButVisible}`)
+  logDebug('sectionHelpers', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
   return useFirstButVisible
 }

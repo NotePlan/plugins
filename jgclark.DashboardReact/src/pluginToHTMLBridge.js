@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
+// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -35,6 +35,7 @@ import {
   incrementallyRefreshSections,
 } from './clickHandlers'
 import {
+  doAddProgressUpdate,
   doCancelProject,
   doCompleteProject,
   doTogglePauseProject,
@@ -213,6 +214,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doSetNewReviewInterval(data)
         break
       }
+      case 'addProgress': {
+        result = await doAddProgressUpdate(data)
+        break
+      }
       // case 'windowResized': {
       // TODO(later: work on this
       // result = await doWindowResized()
@@ -345,8 +350,13 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
-        logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON to {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
-        await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para']) 
+        if (isProject) {
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFLC()`)
+          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
+        } else {
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
+          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
+        }
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
@@ -442,7 +452,8 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       itemType: "project",
       'project.filename': projFilename,
     })
-    // clo(indexes, 'updateReactWindowFLC: indexes to update')
+    logDebug('', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
+    clo(indexes, 'updateReactWindowFLC: indexes to update')
     if (shouldRemove) {
       indexes.reverse().forEach((index) => {
         const { sectionIndex, itemIndex } = index
@@ -450,7 +461,9 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
         // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
       })
     } else {
-      logError('updateReactWindowFLC', `Project type sent but not a remove action, but don't know how to do anything else yet. So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
+      logDebug('', `- doing something other than REMOVE_LINE. Assuming UPDATE_LINE_IN_JSON:`)
+      sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
+      // logError('updateReactWindowFLC', `Project type sent but not a remove action, but don't know how to do anything else yet. So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
       // sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
     }
   } else {

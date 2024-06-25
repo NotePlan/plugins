@@ -245,6 +245,8 @@ body {
 	margin-bottom: unset !important;
 	line-height: unset !important;
 	font-size: 0.9rem !important;
+	height: 1.0rem;
+	width: 1.0rem;
 }
 
 .dialogTrigger {

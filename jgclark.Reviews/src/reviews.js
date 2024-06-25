@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 22.6.2024 for v0.14.0+, @jgclark
+// Last updated 24.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1606,7 +1606,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
  * Note: This is a variant of the original singular version above
  * @author @jgclark
- * @param { number } numToReturn first n notes to return
+ * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
  * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
  */
 export async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
@@ -1646,7 +1646,7 @@ export async function getNextNotesToReview(numToReturn: number): Promise<Array<T
             const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
             logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
             notesToReview.push(noteToUse) // add first matching note
-            if (notesToReview.length >= numToReturn) {
+            if ((numToReturn > 0) && (notesToReview.length >= numToReturn)) {
               break // stop processing the loop
             }
           } else {

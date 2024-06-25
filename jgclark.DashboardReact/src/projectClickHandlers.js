@@ -11,6 +11,7 @@ import {
   cancelProject, cancelProjectByFilename,
   completeProject, completeProjectByFilename,
   togglePauseProject, togglePauseProjectByFilename,
+  addProgressUpdate
 } from '../../jgclark.Reviews/src/projects'
 import {
   finishReviewForNote,
@@ -159,7 +160,7 @@ export async function doReviewFinished(data: MessageDataObject): Promise<TBridge
   const { filename } = validateAndFlattenMessageObject(data)
   const note = await DataStore.projectNoteByFilename(filename)
   if (note) {
-    logDebug('doReviewFinished', `-> reviewFinished on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
+    logDebug('doReviewFinished', `-> starting on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
     // update this to actually take a note to work on
     finishReviewForNote(note)
     logDebug('doReviewFinished', `-> after finishReview`)
@@ -180,4 +181,22 @@ export async function doStartReviews(): Promise<TBridgeClickHandlerResult> {
   logDebug('doStartReviews', `-> after startReviews`)
   // Now update this section in the display, hoping we don't hit race condition with the updated full review list
   return handlerResult(true, ['REFRESH_SECTION_IN_JSON'], { sectionCodes: ['PROJ'] })
+}
+
+// Mimic the /add progress update command.
+export async function doAddProgressUpdate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { filename } = validateAndFlattenMessageObject(data)
+  const note = await DataStore.projectNoteByFilename(filename)
+  if (note) {
+    logDebug('doAddProgressUpdate', `-> doAddProgressUpdate on item ID ${data.item?.ID ?? '<no ID found>'} in filename ${filename}`)
+    // ask user and add
+    await addProgressUpdate(note)
+    logDebug('doAddProgressUpdate', `-> added`)
+
+    // Now ask to update this line in the display
+    return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { sectionCodes: ['PROJ'] })
+  } else {
+    logWarn('doAddProgressUpdate', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
+    return handlerResult(false)
+  }
 }

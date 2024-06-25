@@ -1,7 +1,12 @@
-// useSectionSortAndFilter.jsx
 // @flow
+//-----------------------------------------------------------------------------
+// useSectionSortAndFilter.jsx
+// Last updated 23.6.2024 for v2.0.0-b13 by @jgclark
+//-----------------------------------------------------------------------------
+
 import { useState, useEffect } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
+import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
@@ -22,6 +27,7 @@ const useSectionSortAndFilter = (
 
   useEffect(() => {
     const filterPriorityItems = sharedSettings?.filterPriorityItems ?? false
+    const limitToApply = sharedSettings?.maxItemsToShowInSection ?? 20
     let maxPrioritySeen = 0
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
@@ -62,8 +68,7 @@ const useSectionSortAndFilter = (
       return titleA.localeCompare(titleB)
     })
 
-    const limit = 20
-    const itemsToShow = filteredItems.slice(0, limit)
+    const itemsToShow = (limitToApply > 0) ? filteredItems.slice(0, limitToApply) : filteredItems.slice()
 
     const filteredOut = items.length ? items.length - itemsToShow.length : items.length - itemsToShow.length
     const limitApplied = (items.length ?? 0) > itemsToShow.length

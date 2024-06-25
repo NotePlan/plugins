@@ -65,8 +65,8 @@ body {
 
 	/* a little spacing at top and bottom of section */
 	/* padding: 2px 2px; */
-	/* turn on top border (from theme CSS) */
-	border-bottom: solid 1px var(--tint-color);
+	/* turn on bottom border (from theme CSS) */
+	border-bottom: solid 1px var(--divider-color);
 }
 
 .sectionInfo {
@@ -125,7 +125,7 @@ body {
 
 /* turn on bottom border of last item (from theme CSS) */
 /* .section:last-child {
-	border-bottom: solid 1px var(--tint-color);
+	border-bottom: solid 1px var(--divider-color);
 } */
 
 /* Inner grid for details of a section */
@@ -297,7 +297,7 @@ button, .fake-button, .clickTarget {
 .externalLink {
 	text-decoration: underline;
 	cursor: pointer;
-	color: var(--tint-color);
+	/* color: var(--tint-color); */
 }
 .event-link {
 	font-weight: 400;
