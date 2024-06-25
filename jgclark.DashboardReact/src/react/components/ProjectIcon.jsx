@@ -28,8 +28,8 @@ function ProjectIcon({ item }: Props): React.Node {
       strokeWidth={50}
       styles={buildStyles({
         strokeLinecap: "butt",
-        backgroundColor: "var(--bg-sidebar-color)",
-        // backgroundColor: "transparent",
+        // backgroundColor: "var(--bg-sidebar-color)",
+        backgroundColor: "transparent",
         pathColor: "var(--tint-color)",
       })}
     >
@@ -39,8 +39,8 @@ function ProjectIcon({ item }: Props): React.Node {
         strokeWidth={5}
         styles={buildStyles({
           strokeLinecap: "butt",
-          backgroundColor: "var(--bg-sidebar-color)",
-          // backgroundColor: "transparent",
+          // backgroundColor: "var(--bg-sidebar-color)",
+          backgroundColor: "transparent",
           pathColor: "var(--tint-color)",
         })}
       ></CircularProgressbar>

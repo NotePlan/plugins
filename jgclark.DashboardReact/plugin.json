@@ -7,10 +7,9 @@
   "plugin.author": "@jgclark",
   "plugin.version": "2.0.0.b14",
   "plugin.hidden": true,
-  "plugin.lastUpdateInfo": "2.0.0.b14: small fixes.\n2.0.0.b13: Fix infinite custom theme loop.\n2.0.0.b12/2.0.0.b11: Make basic Dashboard functions work on iOS/iPad & hide things that don't work.\n2.0.0-b10: added x-callback, plus lots of small bug fixes",
+  "plugin.lastUpdateInfo": "2.0.0.b14: more on Project dialog + small fixes.\n2.0.0.b13: Fix infinite custom theme loop.\n2.0.0.b12/2.0.0.b11: Make basic Dashboard functions work on iOS/iPad & hide things that don't work.\n2.0.0-b10: added x-callback, plus lots of small bug fixes",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "dashboard.css",
     "react.c.WebView.bundle.min.js",
     "react.c.WebView.bundle.dev.js"
   ],

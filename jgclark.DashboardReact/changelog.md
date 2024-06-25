@@ -3,10 +3,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## What's improved in v2.0?
 ### New
-- Autorefreshing automatically picks up new/changed tasks in NotePlan when Dashboard is idle for a given number of minutes (default: 15 mins). This means that you probably no longer need to add a trigger to the notes with tasks you're completing/changing frequently.
-- Can now show multiple tags/mentions, by specifying them in the settings separated by commas
-- New 'filter' menu with a dropdown that allows you to toggle on or off all the main display settings -- moved from the Preferences Pane
-- New 'settings' menu ⚙️ which has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
+- The different sections are now generated or refreshed progressively, so the first sections appear more quickly. When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
+- Auto-refresh: by default the Dashboard will now automatically pick up new/changed tasks in NotePlan after it has been idle for 15 minutes (configurable). This means that you probably no longer need to add a trigger to the notes with tasks you're completing/changing frequently.
+- Can now show multiple tags/mentions, by specifying them in the setting separated by commas
+- New Filter dropdown that allows you to quickly toggle on or off all the main display settings, including which sections to show -- moved from the Preferences Pane
+- New Settings button which opens a window that has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
 - In the task dialog box, added a couple of new controls, including the 🗓️ control which opens up a date picker to allow picking any date to move a task to
 - In the project dialog box, added:
   - a new 🗓️ control which opens up a date picker to allow picking any date to schedule the next project to
@@ -18,8 +19,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Note: some of the buttons are hidden when running on iOS or iPadOS because of limitations in the environment the Dashboard runs in. We are hopeful these will be removed in time.
 
 ### Changed
-- The different sections are now generated or refreshed progressively, so the first sections appear more quickly.
-- When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
 - The 'Update Overdue section when triggered?' setting has been removed, as it is no longer needed with the smarter data generation
 - Removed the separate limit on number of Project items shown; it will now use the main limit setting (if set).
 - Removed the keyboard shortcuts to toggle sections, as there is the new Filter quick menu.
@@ -31,13 +30,14 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
-## [2.0.0.b14] 2024-06-24???
+## [2.0.0.b14] 2024-06-25
 - jgc: added latest progress text to the Project dialog box, plus a new button to add new progress text
 - jgc: removed separate limit on number of project items to be shown: it will now use the main limit setting (if set)
 - jgc: also hide the "Project" row buttons in the Project Dialog on mobile
+- jgc: improve 'narrow' layout of section info
 - jgc: fix to useSectionSortAndFilter not using maxTasksToShowInSection setting
 - jgc: change to project handling: when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
-- jgc: fix colour of CalendarPicker icon
+- jgc: fix colour of CalendarPicker and Filter applied icons
 - dbw: Override recent changes to .PCButton which affect the Settings Dialog
 - dbw: fixes to Settings Dialog CSS on iOS
 - dbw: remove the automatic refresh on all filter dropdown settings

@@ -22,6 +22,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
+import '../css/dashboard.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions

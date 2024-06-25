@@ -26,12 +26,15 @@ dialog {
 }
 
 .dialogTitle {
+  display: grid;
+  grid-template-columns: auto max-content;
+  align-items: center;
   background: var(--bg-alt-color);
   padding-block-start: 0.6rem;
-  padding-inline-start: 0.5rem;
-  padding-inline-end: 0.5rem;
   padding-block-end: 0.2rem;
-  border-block-end: 1px solid gray;
+  padding-inline-start: 0.8rem;
+  padding-inline-end: 0.5rem;
+  border-block-end: 1px solid var(--divider-color);
   /* margin-block-end: 4px; */
 }
 

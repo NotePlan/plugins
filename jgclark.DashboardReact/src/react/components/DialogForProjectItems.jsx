@@ -164,14 +164,14 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       >
         {/* Title area ---------------- */}
         <div className="dialogTitle">
-        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
-          <div className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-              For <ProjectIcon item={thisItem} />
-              <b>
+          <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
+            {/* <div> */}
+            {/* FIXME: layout bad with: <ProjectIcon item={thisItem} /> */}
+            <span className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
                 <span className="dialogItemNote" >{title}</span>
-              </b>
+            </span>
               {reviewDetails}
-          </div>
+            {/* </div> */}
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
             <button className="closeButton" onClick={() => closeDialog(true)}>

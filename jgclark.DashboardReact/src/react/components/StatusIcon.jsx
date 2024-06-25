@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
-import type { TActionType, TSectionItem, MessageDataObject } from '../../types'
+import type { TActionType, TSectionItem, MessageDataObject } from '../../types.js'
 // import { getFeatureFlags } from '../../shared.js'
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'

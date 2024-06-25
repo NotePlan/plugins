@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-06-04 for v2.0.0 by @jgclark
+// Last updated 2024-06-25 for v2.0.0-b14 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -105,7 +105,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {showHardRefreshButton && (
           <button
             onClick={handleRefreshClick(sendActionToPlugin, true)}
-            className="PCButton hardRefreshButton"
+            className="HAButton hardRefreshButton"
           >
             <i className={"fa-solid fa-arrows-retweet"}></i>
             <span className="pad-left">{isDesktop ? "Hard Refresh" : " HR "}</span>

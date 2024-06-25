@@ -192,18 +192,14 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export async function getInitialDataForReactWindow(config: dashboardConfigType, useDemoData: boolean = false): Promise<TPluginData> {
-  // Get count of tasks/checklists done today
-  const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-  const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
-  const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
+  // TODO(later): Get count of tasks/checklists done today
+  // const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+  // const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
+  // const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
 
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoadForBrowserDebugging=${String(config.FFlag_ForceInitialLoadForBrowserDebugging)}`)
-  // const sections = config.FFlag_ForceInitialLoadForBrowserDebugging === true
-  //   ? await getAllSectionsData(useDemoData, true, true)
-  //   // : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
-  //   : await getAllSectionsData(useDemoData, false, true)
 
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:

@@ -1,7 +1,9 @@
+// @flow
+
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
+// Last updated 2024-06-25 for v2.0.0-b14 by @jgclark
 
-// @flow
 import React from 'react'
 import Button from './Button.jsx'
 
@@ -29,7 +31,7 @@ const RefreshControl = (props: Props): React$Node => {
           </>
         }
         clickHandler={handleRefreshClick}
-        className="PCButton refreshButton"
+      className="HAButton refreshButton"
       />
   )
 }

@@ -118,7 +118,7 @@ body {
 	/* a little spacing at top and bottom of section */
 	/* padding: 2px 2px; */
 	/* turn on top border (from theme CSS) */
-	border-bottom: 0.75px solid var(--tint-color);
+	border-bottom: 1px solid var(--divider-color);
 }
 
 .sectionInfo {
@@ -133,8 +133,8 @@ body {
 }
 
 .sectionIcon {
-	font-size: 1.2rem;
-	font-weight: 400;
+	font-size: 1.1rem;
+	/* font-weight: 400; */
 	text-align: center;
 	padding-right: 0.3rem;
 	padding-top: 1px;
@@ -165,11 +165,15 @@ body {
 	}
 
 	.sectionInfo {
-		border-bottom: solid 0.5px var(--tint-color);
+		border-top: solid 0.5px var(--tint-color);
+		border-bottom: solid 1px var(--divider-color);
 		display: grid;
 		/* now make this area grid column-based not row-based */
-		grid-template-columns: max-content auto;
-		padding-top: 0.4rem;
+		grid-template-columns: max-content max-content auto;
+		grid-column-gap: 1rem;
+		padding-top: 0.3rem;
+		padding-bottom: 0.3rem;
+		align-items: end;
 	}
 
 	.sectionName {
@@ -211,7 +215,7 @@ body {
 	/* no bottom padding */
 	padding: 3px 4px 0px 2px;
 	border: 0px none;
-	column-gap: 4px;
+	column-gap: 2px;
 	/* vertical in containing block */
 	align-self: start;
 	/* horizontal in containing block */
@@ -235,7 +239,7 @@ body {
 	font-size: 1.05rem !important;
 	/* font-size: unset !important; */
 	font-weight: 400;
-	text-align: center;
+	align-self: center;
 	cursor: pointer;
 }
 
@@ -245,8 +249,8 @@ body {
 	margin-bottom: unset !important;
 	line-height: unset !important;
 	font-size: 0.9rem !important;
-	height: 1.0rem;
-	width: 1.0rem;
+	height: 0.9rem;
+	width: 0.9rem;
 }
 
 .dialogTrigger {
@@ -328,15 +332,33 @@ body {
 	}
 }
 
-/* For buttons that trigger callbacks */
+/* For buttons in header area */
+.HAButton {
+	font-weight: 500;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+	/* a little internal padding to right */
+	padding: 2px 3px 0px 3px;
+	/* a little external margin */
+	margin: 2px 4px 0px 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 1rem;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+	/* max-height: 1.3rem; */
+}
+
+/* For buttons in section info areas */
 .PCButton {
 	font-weight: 500;
 	border-style: solid;
 	border-width: 1px;
 	border-radius: 4px;
-	/* a little external padding to right */
+	/* a little internal padding to right */
 	padding: 1px 2px 0px 2px; /* 0px 3px 0px 0px; */
-	/* a little internal margin */
+	/* a little external margin */
 	margin: 2px 4px 0px 0px; /* 2px 6px 0px 0px;*/
 	white-space: nowrap;
 	cursor: pointer;
