@@ -121,13 +121,24 @@ dialog {
   margin-left: 0.3rem;
   margin-right: 0.3rem;
 }
+
+/* for iphone, allow the text to wrap */
+.iOS .fullTextArea {
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  width: 100%; /* Adjust the width as needed */
+  min-height: 50px; /* Minimum height */
+  max-height: 500px; /* Maximum height */
+  overflow-y: hidden; /* Hide vertical scrollbar */
+  resize: none; /* Prevent manual resizing */
+}
+
 /* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
  * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
  * PS Apple says user-scalable, min-scale and max-scale settings are ignored: https://webkit.org/blog/7367/new-interaction-behaviors-in-ios-10/ 
 */ 
 @media screen and (width <= 420px) {
   .fullTextInput {
-    font-size: 16pt;
+    font-size: 11pt;
   }
 }
 

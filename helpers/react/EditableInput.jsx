@@ -8,6 +8,7 @@ type Props = {
   className?: string,
   /** Optional onChange handler that provides the current value to the parent component whenever it changes. */
   onChange?: (value: string) => void,
+  useTextArea?: boolean,
 }
 
 type RefType = {
@@ -29,6 +30,7 @@ type RefType = {
  */
 const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardRef<Props, RefType>((props, ref): React.Element<'input'> => {
   const [inputValue, setInputValue] = React.useState(props.initialValue || '')
+  const useTextArea = props.useTextArea || false
 
   // Effect to update state if initialValue prop changes
   React.useEffect(() => {
@@ -48,7 +50,11 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
     getValue: () => inputValue,
   }))
 
-  return <input type="text" className={props.className || ''} value={inputValue} onChange={handleChange} />
+  return useTextArea ? (
+    <textarea type="text" className={`${props.className || ''} fullTextArea`} value={inputValue} onChange={handleChange} />
+  ) : (
+    <input type="text" className={props.className || ''} value={inputValue} onChange={handleChange} />
+  )
 })
 
 EditableInputBox.displayName = 'EditableInputBox' // Setting display name for the component
