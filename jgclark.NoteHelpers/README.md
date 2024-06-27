@@ -33,7 +33,7 @@ This plugin provides commands to do things with notes that aren't yet provided i
 (If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
 
 ## Using from x-callback-url calls
-You can trigger these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a template or shortcut, or any other place a URL can be accessed. Every call takes the same form:
+You can trigger these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a **template** or **shortcut**, or any other place a URL can be accessed. Every call takes the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encoded command name>
 ```
@@ -50,13 +50,6 @@ The arguments are:
 | add trigger to note | `...add%20trigger%20to%20note&` | "triggers: ..." line to add to frontmatter | - |
 | index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
 | jump to heading | `...jump%20to%20heading&` | heading to jump to | - |
-
-<!-- Notes:
-- the number and order of arguments you pass is important
-- where an argument isn't valid (empty in the table below), *you still need to include it*
-- as with all x-callback-urls, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.  **Tip**: use @dwertheimer's Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you.
-- it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
- -->
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

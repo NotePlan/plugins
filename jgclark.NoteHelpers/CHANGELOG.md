@@ -1,10 +1,8 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
-<!-- ### Added
-<!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
-<!-- - improve logging for **add trigger to note** command to try to work out why it is failing from templates. -->
-## [0.19.2] - 2024-04-???
-- **add trigger to note** command is now more resilient to unusual frontmatter
+
+## [0.19.2] - 2024-04-27
+- **add trigger to note** command is now more resilient to unusual frontmatter, and shouldn't duplicate an existing trigger when run from template
 
 ## [0.19.1] - 2024-02-23
 - **add trigger to note** command can now be run from x-callback with parameter of the trigger string to add. This means it can be run from Templates with a command tag.

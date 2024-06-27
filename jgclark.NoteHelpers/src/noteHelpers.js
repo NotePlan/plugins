@@ -2,21 +2,22 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 15.3.2024 for v0.19.2+ by @jgclark
+// Last updated 26.6.2024 for v0.19.2+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { allNotesSortedByChanged } from '@helpers/note'
-import { convertNoteToFrontmatter } from '@helpers/NPnote'
-import { addTrigger, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { convertNoteToFrontmatter } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
+import { addTrigger, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 // import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseFolder,
   // chooseHeading,
   chooseOption, getInput, showMessage
 } from '@helpers/userInput'
+import { noteHasFrontMatter } from '../../helpers/NPFrontMatter'
 
 //-----------------------------------------------------------------
 // Settings
@@ -95,14 +96,14 @@ export async function moveNote(): Promise<void> {
  * - if plugin command description is on TRIGGER_LIST
  * - if either contains string 'trigger'
  * @author @jgclark
- * @param {string?} triggerName optional
+ * @param {string?} triggerStringArg optional full trigger string, e.g. onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard
  */
-export async function addTriggerToNote(triggerNameArg: string = ''): Promise<void> {
+export async function addTriggerToNote(triggerStringArg: string = ''): Promise<void> {
   try {
     if (!Editor || !Editor.note) {
       throw new Error("No Editor open, so can't continue")
     }
-    logDebug(pluginJson, `addTriggerToNote('${triggerNameArg}') starting ...`)
+    logDebug(pluginJson, `addTriggerToNote('${triggerStringArg}') starting ...`)
 
     // Get list of available triggers from looking at installed plugins
     const allVisibleCommands = []
@@ -131,15 +132,27 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
     let triggerPluginID = ''
     let funcName = ''
 
-    if (triggerNameArg !== '') {
+    if (triggerStringArg !== '') {
       // if (!TRIGGER_LIST.includes(triggerName)) {
-      if (!triggerRelatedStrings.includes(triggerNameArg)) {
-        logInfo('addTriggerToNote', `Trigger '${triggerNameArg}' not found in the list of triggers I can identify, but will still add it.`)
+      if (!triggerRelatedStrings.includes(triggerStringArg)) {
+        logInfo('addTriggerToNote', `Trigger '${triggerStringArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
 
       // Add to note
       // Note: using Editor, not Editor.note, in case this is used in a Template
-      await convertNoteToFrontmatter(Editor, `triggers: ${triggerName}`)
+      // V1 Note: this can make duplicate frontmatter, as it calls ensureFrontmatter()
+      // await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
+
+      // V2 trying to be smarter. Note: setFrontMatterVars also calls ensureFrontmatter() :-(
+      const hasFMalready = noteHasFrontMatter(Editor)
+      if (hasFMalready) {
+        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" already has frontmatter`)
+        const res = setFrontMatterVars(Editor, { "triggers": triggerStringArg })
+        logDebug('addTriggerToNote', `- result of setFrontMatterVars = ${String(res)}`)
+      } else {
+        logDebug('addTriggerToNote', `- Editor "${displayTitle(Editor)}" doesn't already have frontmatter`)
+        await convertNoteToFrontmatter(Editor, `triggers: ${triggerStringArg}`)
+      }
       return
 
     } else {

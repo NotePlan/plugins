@@ -8,7 +8,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
   "plugin.version": "0.19.2",
-  "plugin.lastUpdateInfo": "0.19.2: \"add trigger to note\" more resilient to unusual frontmatter.\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.\n0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.",
+  "plugin.lastUpdateInfo": "0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.\n0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -29,7 +29,10 @@
         "add"
       ],
       "description": "Select from a list of available triggers to add to the current note",
-      "jsFunction": "addTriggerToNote"
+      "jsFunction": "addTriggerToNote",
+      "parameters": [
+        "trigger string (e.g. 'onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard')"
+      ]
     },
     {
       "name": "convert to frontmatter",
