@@ -265,7 +265,7 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
   return getReferencedParagraphs(note)
 }
 
-export type OpenNoteOptions = $Shape<{
+export type OpenNoteOptions = Partial<{
   newWindow?: boolean,
   splitView?: boolean,
   highlightStart?: number,

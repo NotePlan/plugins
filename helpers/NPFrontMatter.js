@@ -50,9 +50,12 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
-export const noteHasFrontMatter = (note: CoreNoteFields): boolean =>
-  note && hasFrontMatter(note.content || '') && note.paragraphs?.length >= 2 && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
-
+export function noteHasFrontMatter(note: CoreNoteFields): boolean {
+  logDebug('noteHasFrontMatter', `has ${String(note.paragraphs?.length)} lines`)
+  if (note.paragraphs.length > 0) logDebug('noteHasFrontMatter', `- para 0 = ${note.paragraphs?.[0].type} "${note.paragraphs?.[0].content}"`)
+  if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false
+  return note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+}
 /**
  * get the front matter attributes from a note
  * @param {TNote} note
@@ -253,9 +256,11 @@ export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes(
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
   try {
     const title = varObj.title || null
-    logDebug(`setFrontMatterVars`, `Note "${title || ''}" BEFORE: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
+    clo(varObj, `Starting for note ${note.filename} with varObj:`)
+    logDebug(`setFrontMatterVars`, `- BEFORE ensureFM: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
     const hasFM = ensureFrontmatter(note, true, title)
-    // clo(note.paragraphs, `setFrontMatterVars: after ensureFrontMatter with ${note.paragraphs.length} lines`)
+    logDebug('note.paragraphs', `- AFTER ensureFM has ${note.paragraphs.length} lines, that starts:`)
+    // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
     if (!hasFM) {
       throw new Error(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
     }
@@ -271,7 +276,8 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
       })
       removeFrontMatter(note)
       writeFrontMatter(note, changedAttributes)
-      logDebug('setFrontMatterVars', `- ending with ${note.paragraphs.length} lines`)
+      logDebug('setFrontMatterVars', `- ENDING with ${note.paragraphs.length} lines, that starts:`)
+      // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
     } else {
       logError('setFrontMatterVars', `- could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
     }
