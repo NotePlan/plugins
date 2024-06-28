@@ -239,7 +239,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                 onIconClick={handleIconClick}
               /> : null}
               {/* $FlowIgnore - Flow doesn't like the ref */}
-              <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" />
+              <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" useTextArea={pluginData.platform === 'iOS'} />
               <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
                 Update
               </button>

@@ -13,6 +13,7 @@ import React from 'react'
 import { useAppContext } from '../AppContext.jsx'
 // import { createFeatureFlagItems } from './featureFlagItems.js'
 // import useLastFullRefresh from './useLastFullRefresh.js'
+import type { TDoneCounts } from '../../../types.js'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------

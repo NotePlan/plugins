@@ -196,6 +196,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
+      if (p.children().length > 0) clo(p.children(), `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (${p.indents} indents) in ${note.filename} paras[p.lineIndex+1]= {${origParas[p.lineIndex + 1]?.type}} (${origParas[p.lineIndex + 1]?.indents||''} indents) "${origParas[p.lineIndex + 1]?.content}"`)
       return {
         filename: note.filename,
         noteType: note.type,
