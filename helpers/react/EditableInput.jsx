@@ -9,6 +9,7 @@ type Props = {
   /** Optional onChange handler that provides the current value to the parent component whenever it changes. */
   onChange?: (value: string) => void,
   useTextArea?: boolean,
+  placeholder?: string,
 }
 
 type RefType = {
@@ -28,9 +29,10 @@ type RefType = {
  * Ref Methods:
  * - `getValue`: Returns the current text value of the input.
  */
-const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardRef<Props, RefType>((props, ref): React.Element<'input'> => {
+const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardRef<Props, RefType>((props, ref) => {
   const [inputValue, setInputValue] = React.useState(props.initialValue || '')
   const useTextArea = props.useTextArea || false
+  const divRef = React.useRef<HTMLDivElement | null>(null)
 
   // Effect to update state if initialValue prop changes
   React.useEffect(() => {
@@ -45,13 +47,42 @@ const EditableInputBox: React$AbstractComponent<Props, RefType> = React.forwardR
     }
   }
 
-  // Ensuring useImperativeHandle uses the correct type
+  const handleDivInput = () => {
+    const newValue = divRef.current ? divRef.current.textContent || '' : ''
+    setInputValue(newValue)
+    if (props.onChange) {
+      props.onChange(newValue)
+    }
+  }
+
+  const handleBlur = () => {
+    if (divRef.current && !divRef.current.textContent) {
+      divRef.current.innerHTML = `<span class="placeholder">${props.placeholder || ''}</span>`
+    }
+  }
+
+  const handleFocus = () => {
+    if (divRef.current && divRef.current.querySelector('.placeholder')) {
+      divRef.current.innerHTML = ''
+    }
+  }
+
   React.useImperativeHandle(ref, () => ({
     getValue: () => inputValue,
   }))
 
+  React.useEffect(() => {
+    if (useTextArea && divRef.current) {
+      if (!inputValue) {
+        divRef.current.innerHTML = `<span class="placeholder">${props.placeholder || ''}</span>`
+      } else if (divRef.current.textContent !== inputValue) {
+        divRef.current.textContent = inputValue
+      }
+    }
+  }, [inputValue, useTextArea, props.placeholder])
+
   return useTextArea ? (
-    <textarea type="text" className={`${props.className || ''} fullTextArea`} value={inputValue} onChange={handleChange} />
+    <div ref={divRef} contentEditable className={`${props.className || ''} fullTextArea`} onInput={handleDivInput} onBlur={handleBlur} onFocus={handleFocus} />
   ) : (
     <input type="text" className={props.className || ''} value={inputValue} onChange={handleChange} />
   )

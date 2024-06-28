@@ -123,14 +123,28 @@ dialog {
 }
 
 /* for iphone, allow the text to wrap */
-.iOS .fullTextArea {
+.fullTextArea {
   box-sizing: border-box; /* Include padding and border in the element's total width and height */
   width: 100%; /* Adjust the width as needed */
   min-height: 50px; /* Minimum height */
   max-height: 500px; /* Maximum height */
   overflow-y: hidden; /* Hide vertical scrollbar */
   resize: none; /* Prevent manual resizing */
+  padding: 10px; /* Adjust padding as needed */
+  border: 1px solid #ccc; /* Border styling */
+  border-radius: 4px; /* Rounded corners */
+  white-space: pre-wrap; /* Preserve white spaces */
+  word-wrap: break-word; /* Break long words */
+  outline: none; /* Remove default outline */
 }
+
+.fullTextArea .placeholder {
+  color: #aaa;
+  pointer-events: none; /* Prevent placeholder text from being selectable */
+}
+
+
+
 
 /* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
  * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
