@@ -156,10 +156,9 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   // force the section refresh for the wanted sections
   const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
   const mergedSections = mergeSections(existingSections, newSections)
+  const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
-  pluginData.totalDoneCounts = getTotalDoneCounts(mergedSections)
-
-  const updates:TAnyObject = { sections: mergedSections }
+  updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
   logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)

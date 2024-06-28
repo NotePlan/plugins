@@ -24,7 +24,10 @@ import {
   sendToHTMLWindow,
   getGlobalSharedData,
 } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, getNoteByFilename, projectNotesSortedByChanged } from '@helpers/note'
+import {
+  filterOutParasInExcludeFolders, getNoteByFilename,
+  // projectNotesSortedByChanged
+} from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
@@ -32,9 +35,12 @@ import {
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
   // getTaskPriority,
+  insertParas,
   isTermInURL,
+  parasToText,
   // removeTaskPriorityIndicators,
   smartPrependPara,
+  // smartPrependParas,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
@@ -98,6 +104,7 @@ export type dashboardConfigType = {
   FFlag_LimitOverdues: boolean,
   moveSubItems: boolean,
   defaultFileExtension: string,
+  doneDatesAvailable: boolean,
   sharedSettings: any,
 }
 
@@ -165,6 +172,8 @@ export async function getSettings(): Promise<any> {
     // Extend settings with value we might want to use when DataStore isn't available etc.
     config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
     config.defaultFileExtension = DataStore.defaultFileExtension
+    // logDebug('isAppendCompletionLinks', String(DataStore.preference('isAppendCompletionLinks')))
+    config.doneDatesAvailable = !!DataStore.preference('isAppendCompletionLinks')
 
     // clo(config, 'getSettings() returning config')
     return config
@@ -642,7 +651,7 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
       if (startTimeStr.endsWith('PM')) {
         startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
       }
-      logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
+      // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
   } catch (error) {
@@ -673,6 +682,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 /**
  * Move a task or checklist from one calendar note to another.
  * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * It also moves indented child paragraphs of any type.
  * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
  * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
  * @author @jgclark
@@ -696,21 +706,23 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
     }
 
     // find para in the fromNote
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
-    if (typeof possiblePara === 'boolean') {
+    const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
+    if (typeof matchedPara === 'boolean') {
       throw new Error('moveItemBetweenCalendarNotes: no para found')
     }
-    const matchedPara = possiblePara
-    const itemType = matchedPara?.type
-    const matchedParaAndChildren = getParaAndAllChildren(matchedPara) // FIXME: should this be used?
+    // Remove any scheduled date on the parent para
+    const updatedMatchedPara = removeDateTagsAndToday(paraContent, true)
+    matchedPara.content = updatedMatchedPara
+    fromNote.updateParagraph(matchedPara)
 
-    // Remove any scheduled date on the item
-    const targetContent = removeDateTagsAndToday(paraContent, true)
+    // const itemType = matchedPara?.type
+    const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
+    const targetContent = parasToText(matchedParaAndChildren)
 
     // add to toNote
     if (headingToPlaceUnder === '') {
-      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${targetContent}' to '${displayTitle(toNote)}'`)
-      smartPrependPara(toNote, targetContent, itemType)
+      logDebug('moveItemBetweenCalendarNotes', `- Calling smartPrependPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, targetContent, 'text')
     } else {
       logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
       // Note: this doesn't allow setting heading level ...
@@ -718,15 +730,14 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       // so replace with one half of /qath:
       const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
       const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug(
-        'addTextToNoteHeading',
+      logDebug('addTextToNoteHeading',
         `Adding line '${targetContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
       )
       if (matchedHeading !== '') {
         // Heading does exist in note already
         toNote.addParagraphBelowHeadingTitle(
           targetContent,
-          itemType,
+          'text',
           matchedHeading !== '' ? matchedHeading : headingToPlaceUnder,
           shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
           true, // create heading if needed (possible if supplied via headingArg)
@@ -736,16 +747,17 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
         const headingMarkers = '#'.repeat(headingLevel)
         const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
         const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
+
         logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
         toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('moveItemBetweenCalendarNotes', `- then adding text '${targetContent}' after `)
-        toNote.insertParagraph(targetContent, insertionIndex + 1, itemType)
+        logDebug('moveItemBetweenCalendarNotes', `- then adding text after it`)
+        toNote.insertParagraph(targetContent, insertionIndex + 1, 'text')
       }
     }
 
     // Assuming that's not thrown an error, now remove from fromNote
-    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
-    fromNote.removeParagraph(matchedPara)
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line(s) from '${displayTitle(fromNote)}'`)
+    fromNote.removeParagraphs(matchedParaAndChildren)
 
     // Ask for cache refresh for these notes
     DataStore.updateCache(fromNote, false)

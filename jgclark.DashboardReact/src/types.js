@@ -36,9 +36,6 @@ export type TSectionItem = {
   project?: TProjectForDashboard,
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
-  // itemFilename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
-  // itemNoteTitle?: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
-  // noteType: NoteType /* Notes | Calendar */,
 }
 
 // reduced paragraph definition
@@ -196,14 +193,6 @@ export type TDialogData = {
 }
 
 export type TReactSettings = {
-  /*
-  filterPriorityItems?: boolean,
-  timeblockMustContainString?: string,
-  ignoreChecklistItems?: boolean,
-  hideDuplicates?: boolean,
-  rescheduleNotMove: boolean,
-  refreshing?: boolean,
-  */
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
   dialogData?: TDialogData,
   interactiveProcessing?: TInteractiveProcessing,

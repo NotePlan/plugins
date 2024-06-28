@@ -48,8 +48,9 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
 
   // const { settings: pluginDataSettings } = pluginData
 
-  const isDesktop = pluginData.platform === "macOS"
-  const showCounts = true && isDesktop // TODO: come from sharedSettings
+  // Don't show counts on mobile, or if we don't have @done() dates available
+  const isMobile = pluginData.platform === "iOS"
+  const showCounts = pluginData.settings.doneDatesAvailable && !isMobile
 
   const itemsDoneCount = totalDoneCounts.completedTasks // + totalDoneCounts.completedChecklists
 
