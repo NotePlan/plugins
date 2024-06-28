@@ -30,6 +30,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
+## [2.0.0.b15] 2024-06-28 WIP
+- jgc: remove '(React)' from window title before doing documentation + video
+- jgc: basic doneCounts re-introduced, covering just tasks in calendar notes. TODO: not yet re-rendering DoneCounts component when required.
+
 ## [2.0.0.b14] 2024-06-25
 - jgc: added latest progress text to the Project dialog box, plus a new button to add new progress text
 - jgc: removed separate limit on number of project items to be shown: it will now use the main limit setting (if set)
