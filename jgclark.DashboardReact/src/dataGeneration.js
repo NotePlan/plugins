@@ -16,6 +16,7 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers.
 import {
   // extendParasToAddStartTimes,
   getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  getNumCompletedTasksTodayFromNote,
   getStartTimeFromPara,
   // getSharedSettings,
   makeDashboardParas, type dashboardConfigType
@@ -200,6 +201,8 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     }
 
     const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
     const section: TSection = {
       ID: sectionNum,
       name: 'Today',
@@ -211,6 +214,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
+      doneCounts: doneCountData,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -372,6 +376,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
         logDebug('getDataForDashboard', `No yesterday note found using filename '${thisFilename}'`)
       }
     }
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
 
     const section: TSection = {
       ID: sectionNum,
@@ -384,6 +389,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      doneCounts: doneCountData,
       actionButtons: [
         {
           actionName: 'moveAllYesterdayToToday',
@@ -633,6 +639,8 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
     }
     const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')?.filename ?? '(error)'
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
     const section: TSection = {
       ID: sectionNum,
       name: 'This Week',
@@ -644,6 +652,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      doneCounts: doneCountData,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -778,6 +787,8 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       }
     }
     const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')?.filename ?? '(error)'
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
     const section: TSection = {
       ID: sectionNum,
       name: 'This Month',
@@ -789,6 +800,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      doneCounts: doneCountData,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -917,6 +929,8 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
     }
     const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')?.filename ?? ''
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
     const section: TSection = {
       ID: sectionNum,
       name: 'This Quarter',
@@ -928,6 +942,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
+      doneCounts: doneCountData,
       actionButtons: [
         {
           actionName: 'addTask',
@@ -1043,6 +1058,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
   const items: Array<TSectionItem> = []
   let isHashtag = false
   let isMention = false
+  // const thisStartTime = new Date()
 
   if (useDemoData) {
     isHashtag = true
@@ -1052,7 +1068,6 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       itemCount++
     })
   } else {
-    const thisStartTime = new Date()
     isHashtag = sectionDetail.sectionName.startsWith('#')
     isMention = sectionDetail.sectionName.startsWith('@')
     if (isHashtag || isMention) {

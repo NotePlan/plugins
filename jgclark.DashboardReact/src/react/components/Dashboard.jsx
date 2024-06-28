@@ -141,7 +141,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // TODO: this doesn't work and I'm not sure it ever can
   useEffect(() => {
     const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, sharedSettings)
-    const windowTitle = `Dashboard (React) - ${totalUnduplicatedSectionItems} items`
+    const windowTitle = `Dashboard - ${totalUnduplicatedSectionItems} items`
     if (document.title !== windowTitle) {
       // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle

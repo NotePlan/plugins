@@ -1,15 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 31.5.2024 for v2.0.0 by @jgclark
+// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
-import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { type TPluginData } from './types'
+import type { TDoneCounts, TPluginData, TSection } from './types'
 import { allSectionDetails } from "./constants"
-import { type dashboardConfigType, getCombinedSettings, getSharedSettings } from './dashboardHelpers'
+import { type dashboardConfigType, getCombinedSettings, getSharedSettings, getTotalDoneCounts } from './dashboardHelpers'
 import {
   bridgeClickDashboardItem,
   // bridgeChangeCheckbox, runPluginCommand
@@ -21,7 +20,6 @@ import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpe
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { isDone } from '@helpers/utils'
 import { getWindowFromId } from '@helpers/NPWindows'
 
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
@@ -192,11 +190,6 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export async function getInitialDataForReactWindow(config: dashboardConfigType, useDemoData: boolean = false): Promise<TPluginData> {
-  // TODO(later): Get count of tasks/checklists done today
-  // const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-  // const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
-  // const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
-
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoadForBrowserDebugging=${String(config.FFlag_ForceInitialLoadForBrowserDebugging)}`)
@@ -217,6 +210,7 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    totalDoneCounts: getTotalDoneCounts(sections),
   }
 }
 
@@ -281,7 +275,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
 async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
-  const sections = await getAllSectionsData(demoMode, false)
+  const sections = await getAllSectionsData(demoMode, false, true)
   logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
   reactWindowData.pluginData.sections = sections
   logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)

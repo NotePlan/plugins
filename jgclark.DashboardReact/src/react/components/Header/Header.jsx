@@ -16,6 +16,7 @@ import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
 import { useAppContext } from '../AppContext.jsx'
+import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
@@ -94,7 +95,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   return (
     <div className="header">
       <div className="lastFullRefresh">
-        {updatedText}: <span id="timer">{timeAgoText}</span>
+        {updatedText}: <span id="timer">{timeAgoText}</span>.
       </div>
 
       <div className="refresh">
@@ -113,9 +114,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
       </div>
 
-      <div className="totalCounts">
-        {/* <span id="totalDoneCount">0</span> items closed */}
-      </div>
+      <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
+
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
         {isDevMode && (
