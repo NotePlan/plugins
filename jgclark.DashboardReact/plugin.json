@@ -89,11 +89,6 @@
     },
     {
       "type": "hidden",
-      "key": "migratedSettingsFromOriginalDashboard",
-      "default": ""
-    },
-    {
-      "type": "hidden",
       "key": "reactSettings",
       "description": "Saves last state of react UI choices as JSON string.",
       "required": true,
