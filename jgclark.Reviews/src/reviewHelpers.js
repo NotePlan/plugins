@@ -397,7 +397,7 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
+      // logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -410,11 +410,11 @@ export class Project {
         const noteReadOnly: CoreNoteFields = Editor.note
         paras = noteReadOnly.paragraphs
         const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-        logDebug('Project constructor', `- using EDITOR (${Editor.filename}) for this note, last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('Project constructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
-        logDebug('Project constructor', `- read note from datastore `)
+        // logDebug('Project constructor', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLine(note)

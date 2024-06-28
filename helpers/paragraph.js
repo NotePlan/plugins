@@ -148,7 +148,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
 }
 
 /**
- * Convert paragraph(s) to single raw text string
+ * Convert paragraph(s) to single raw text string that can be used to add multiple lines in a single API call,
+ * without losing indents.
  * @author @jgclark
  *
  * @param {[TParagraph]} paras - array of paragraphs
@@ -216,6 +217,7 @@ export function smartAppendPara(note: TNote, paraText: string, paragraphType: Pa
  * Prepends text to a chosen note, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter
  * or a metadata line (= starts with a hashtag), then add after that.
+ * Note: see smartPrependParas that works on multiple lines
  * @author @jgclark
  *
  * @param {TNote} note - the note to prepend to
@@ -225,6 +227,48 @@ export function smartAppendPara(note: TNote, paraText: string, paragraphType: Pa
 export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter point
   note.insertParagraph(paraText, findStartOfActivePartOfNote(note), paragraphType)
+}
+
+/**
+ * TEST:
+ * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
+ * I.e. if the note starts with YAML frontmatter
+ * or a metadata line (= starts with a hashtag), then add after that.
+ * Note: does work on a single line too
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to prepend to
+ * @param {Array<string>} paraTextArr - an array of text to prepend
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
+ */
+export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  // Get the smarter insertion point
+  const firstInsertionLine = findStartOfActivePartOfNote(note)
+  logDebug('paragraph/smartPrependParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/smartPrependParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], firstInsertionLine + i, paraTypeArr[i])
+  }
+}
+
+/**
+ * TEST: 
+ * Insert multiple lines of text to a chosen note, as separate paragraphs
+ * Note: does work on a single line too
+ * @author @jgclark
+ * @param {TNote} note - the note to prepend to
+ * @param {number} insertionIndex - the line to insert the text at
+ * @param {Array<string>} paraTextArr - an array of text to prepend
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
+ */
+export function insertParas(note: TNote, insertionIndex: number, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  logDebug('paragraph/insertParas', `inserting ${String(paraTextArr.length)} paras; starting at line = ${insertionIndex}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/insertParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], insertionIndex + i, paraTypeArr[i])
+  }
 }
 
 /**

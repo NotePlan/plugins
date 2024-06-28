@@ -255,8 +255,14 @@ body {
 
 .dialogTrigger {
 	color: var(--fg-main-color);
-	opacity: 0.6;
+	opacity: 0.5;
 	cursor: pointer;
+}
+
+.childMarker {
+	font-size: small;
+	color: var(--fg-main-color);
+	opacity: 0.5;
 }
 
 /* The actual item's details (was col4) */

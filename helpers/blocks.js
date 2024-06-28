@@ -76,33 +76,39 @@ export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowest
  * Move a given paragraph (and any following indented paragraphs) to a different note.
  * Note: simplified version of 'moveParas()' in NPParagraph.
  * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragaphs have to be indented (false) or can take all following lines at same level until next empty line as well.
+ * Note: not yet used, it seems.
  * @param {TParagraph} para
  * @param {string} toFilename
  * @param {NoteType} toNoteType
  * @param {string} toHeading to move under
  * @author @jgclark
  */
-export async function moveGivenPara(para: TParagraph, toFilename: string, toNoteType: NoteType, toHeading: string): Promise<void> {
+export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNoteType: NoteType, toHeading: string): void {
   try {
-    if (!para || !toFilename) {
-      // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-      throw new Error('Invalid paragraph or destination filename given.')
+    if (!toFilename) {
+      throw new Error('Invalid destination filename given.')
+    }
+    if (!para) {
+      throw new Error('Invalid paragraph filename given.')
     }
 
     // Get config settings
     // const config = await getFilerSettings()
 
-    // Get paragraph index
-    const firstSelLineIndex = para.index
-    const lastSelLineIndex = para.index
     const fromNote = para.note
+    if (!fromNote) {
+      throw new Error(`From note can't be found. Stopping.`)
+    }
 
+    // Get paragraph index
+    const firstSelLineIndex = para.lineIndex
+    const lastSelLineIndex = para.lineIndex
     // Get paragraphs for the selection or block
     let firstStartIndex = 0
 
     // get children paras (as well as the original)
     const parasInBlock = getParaAndAllChildren(para)
-    logDebug('blocks/moveGivenPara', `moveParas: move block of ${parasInBlock.length} paras`)
+    logDebug('blocks/moveGivenParaAndBlock', `moveParas: move block of ${parasInBlock.length} paras`)
 
     // Note: There's still no API function to add multiple
     // paragraphs in one go, but we can insert a raw text string.
@@ -110,15 +116,18 @@ export async function moveGivenPara(para: TParagraph, toFilename: string, toNote
 
     // Add text to the new location in destination note
     const destNote = DataStore.noteByFilename(toFilename, toNoteType)
-    logDebug('blocks/moveGivenPara', `- Moving to note '${displayTitle(destNote)}' under heading: '${toHeading}'`)
+    if (!destNote) {
+      throw new Error(`Destination note can't be found from filename '${toFilename}'`)
+    }
+    logDebug('blocks/moveGivenParaAndBlock', `- Moving to note '${displayTitle(destNote)}' under heading: '${toHeading}'`)
     addParasAsText(destNote, selectedParasAsText, toHeading, 'start', true)
 
     // delete from existing location
-    logDebug('blocks/moveGivenPara', `- Removing ${parasInBlock.length} paras from original note`)
+    logDebug('blocks/moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)
     fromNote.removeParagraphs(parasInBlock)
   }
   catch (error) {
-    logError('blocks/moveGivenPara', `moveParas(): ${error.message}`)
+    logError('blocks/moveGivenParaAndBlock', `moveParas(): ${error.message}`)
   }
 }
 
@@ -140,10 +149,11 @@ export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph>
   }
 
   const resultingParas = allChildrenNoDupes.slice()
-  resultingParas.push(parentPara)
-  logDebug('blocks/getParaAndAllChildren', `Returns ${resultingParas} paras:`)
-  resultingParas.forEach(c => {
-    console.log(`- ${c.index}: "${c.content}"`)
+  resultingParas.unshift(parentPara)
+  // Show what we have ...
+  logDebug('blocks/getParaAndAllChildren', `Returns ${resultingParas.length} paras:`)
+  resultingParas.forEach((item, index, _array) => {
+    console.log(`- ${index}: "${item.content}" with ${item.indents} indents`)
   })
 
   return resultingParas

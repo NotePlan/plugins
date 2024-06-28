@@ -247,7 +247,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
       // output += '<i class="fa-solid fa-sitemap pad-left"></i>'
       // output += '<i class="fa-solid fa-arrow-down-wide-short fa-flip-horizontal pad-right"></i>'
       // output += '<i style="color: var(--fg-main-color); font-size: small; opacity: 0.7;" class="fa-regular fa-list-tree pad-left"></i>'
-      output += '<i style="color: var(--fg-main-color); font-size: small; opacity: 0.5;" class="fa-solid fa-block-quote pad-left"></i>'
+      output += '<i class="childMarker fa-solid fa-block-quote pad-left"></i>'
     }
 
     // console.log(`makeParaContet...: \n-> ${output}`)
