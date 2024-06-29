@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 9.6.2024, for v1.1.0+
+// last updated 29.6.2024, for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,7 +13,7 @@ import {
   overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
 import { getParagraphBlock } from '@helpers/NPParagraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'
@@ -126,7 +126,9 @@ export async function moveRecentNoteLinks(params: string = ''): Promise<number> 
 async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolean = false): Promise<number> {
   try {
     // Get array of recent calendar notes
-    const recentCalendarNotes = getNotesChangedInInterval(config.recentDays, ['Calendar'])
+    const recentCalendarNotes = (config.recentDays > 0)
+      ? getNotesChangedInInterval(config.recentDays, ['Calendar'])
+      : getAllNotesOfType(['Calendar'])
     logDebug(pluginJson, `fileRecentNoteLinks() starting with ${recentCalendarNotes.length} recent calendar notes from ${String(config.recentDays)} days`)
 
     // Run the filer on each in turn

@@ -555,7 +555,8 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
 }
 
 /**
- * Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
+ * Write a list of notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
+ * TODO: Extend to make a full command, responding to GH request.
  * @author @jgclark
  * @param {string} params as JSON
  */
@@ -572,7 +573,8 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
       logDebug(pluginJson, `logNotesChangedInInterval: Starting with no params`)
     }
 
-    const numDays = config.numDays ?? 0
+    const numDays = config.numDays
+    if (numDays === 0) { throw new Error('numDays is 0, so stopping, as it is nonsensical to ask for a list of all notes.') }
     const notesList = getNotesChangedInInterval(numDays)
     const titlesList = notesList.map((m) => displayTitle(m))
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)

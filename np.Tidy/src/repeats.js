@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Generate @repeat()s for recent notes
 // Jonathan Clark
-// Last updated 7.6.2024 for v0.14.0, @jgclark
+// Last updated 29.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,7 +11,7 @@ import pluginJson from '../plugin.json'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -63,7 +63,10 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     // Find past calendar notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
-    const recentNotes = getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar'])
+    const recentNotes = (config.numDays > 0)
+      ? getNotesChangedInInterval(config.numDays, ['Notes', 'Calendar'])
+      : getAllNotesOfType(['Notes', 'Calendar'])
+
     logDebug('generateRepeatsFromRecentNotes', `- found  ${String(recentNotes.length)} 'recent' notes to process`)
 
     // Now run generateRepeats() on each and count how many were changed
