@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 22.6.2024 for v0.14.0+, @jgclark
+// Last updated 28.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -108,7 +108,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayOnlyDue', false)
     // }
-    logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
+    // logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
 
     // TODO(later): remove this when checkboxes do work
     DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
@@ -119,7 +119,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayFinished', true)
     // }
-    logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    // logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
   } catch (err) {

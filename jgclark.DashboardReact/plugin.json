@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next few notes to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0.b15",
+  "plugin.version": "2.0.0.b16",
   "plugin.hidden": true,
-  "plugin.lastUpdateInfo": "2.0.0.b15: change title bar ready for release. Add basic done task counts.",
+  "plugin.lastUpdateInfo": "2.0.0.b16: bug fixes",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.min.js",
@@ -65,6 +65,13 @@
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall",
       "hidden": true
+    },
+    {
+      "TODO:": "remove me soon",
+      "name": "buildListOfDoneTasksToday",
+      "description": "test: buildListOfDoneTasksToday",
+      "jsFunction": "buildListOfDoneTasksToday",
+      "hidden": false
     },
     {
       "name": "Dashboard: update plugin settings",

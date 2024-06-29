@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-06-13 for v2.0.0-b7 by @dwertheimer
+// Last updated 2024-06-28 for v2.0.0-b16 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -280,6 +280,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           onIdleTimeout={autoRefresh}
         />
       )}
+      {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
         {sections.map((section, index) => (

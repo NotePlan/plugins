@@ -22,7 +22,7 @@ export type TSection = {
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
   totalCount?: number, // for when not all possible items are passed in pluginData
-  doneCounts?: TDoneCounts, // number of tasks and checklists completed today etc.
+  doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
 }
 
 export type TItemType = 'open' | 'checklist' | 'congrats' | 'project' | 'filterIndicator'
@@ -63,12 +63,6 @@ export type TProjectForDashboard = {
   reviewInterval: string, /* from the Project instance */
   percentComplete: number, /* from the Project instance */
   lastProgressComment: string, /* from the Project instance */
-}
-
-export type TDoneCounts = {
-  completedTasks: number,
-  // completedChecklists: number,
-  lastUpdated: Date
 }
 
 // details for a UI button
@@ -206,7 +200,7 @@ export type TPluginData = {
   themeName: string, /* the theme name used when generating the dashboard */
   platform: string, /* the platform used when generating the dashboard */
   demoMode: boolean, /* use fake content for demo purposes */
-  totalDoneCounts?: TDoneCounts,
+  totalDoneCounts?: TDoneCount,
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
@@ -242,3 +236,14 @@ export type TInteractiveProcessing = {
   clickPosition: TClickPosition,
   startingUp?: boolean,
 } | false
+
+export type TDoneCount = {
+  completedTasks: number,
+  // completedChecklists: number,
+  lastUpdated: Date
+}
+
+export type TDoneTodayNotes = {
+  filename: string,
+  counts: TDoneCount,
+}

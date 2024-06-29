@@ -35,3 +35,6 @@ export {
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers.js'
 
 export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPHooks'
+
+// TODO(later): Remove 
+export { buildListOfDoneTasksToday } from './countDoneTasks.js'

@@ -1,14 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
+// Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDoneCounts, TPluginData, TSection } from './types'
+import type { TPluginData } from './types'
 import { allSectionDetails } from "./constants"
-import { type dashboardConfigType, getCombinedSettings, getSharedSettings, getTotalDoneCounts } from './dashboardHelpers'
+import { type dashboardConfigType, getCombinedSettings, getSharedSettings } from './dashboardHelpers'
+import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
 import {
   bridgeClickDashboardItem,
   // bridgeChangeCheckbox, runPluginCommand
@@ -203,15 +204,23 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     ? await getAllSectionsData(useDemoData, true, true)
     : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
-  return {
+  const pluginData: TPluginData =
+  {
     sections: sections,
     lastFullRefresh: new Date(),
     settings: config,
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
-    totalDoneCounts: getTotalDoneCounts(sections),
   }
+
+  // Calculate all done task counts (if the appropriate setting is on)
+  if (config.doneDatesAvailable) {
+    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
+    pluginData.totalDoneCounts = totalDoneCounts
+  }
+
+  return pluginData
 }
 
 /**

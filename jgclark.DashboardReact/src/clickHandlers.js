@@ -3,24 +3,28 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
+// Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import {
-  getCombinedSettings,
+  allCalendarSectionCodes,
+  // allSectionCodes
+} from "./constants"
+import {
+  buildListOfDoneTasksToday,
   getTotalDoneCounts,
+  rollUpDoneCounts,
+} from "./countDoneTasks"
+import {
+  getCombinedSettings,
   handlerResult,
   mergeSections,
   // moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
   setPluginData,
 } from './dashboardHelpers'
-import {
-  allCalendarSectionCodes,
-  // allSectionCodes
-} from "./constants"
 import {
   getAllSectionsData, getSomeSectionsData
 } from './dataGeneration'
@@ -88,7 +92,7 @@ export async function refreshAllSections(): Promise<void> {
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
 
-  // refresh all sections, and the total done counts
+  // refresh all sections' data
   const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
   const changedData = {
     refreshing: false,
@@ -97,6 +101,16 @@ export async function refreshAllSections(): Promise<void> {
     totalDoneCounts: getTotalDoneCounts(newSections)
   }
   await setPluginData(changedData, 'Finished Refreshing all sections')
+
+  // re-calculate all done task counts (if the appropriate setting is on)
+  const settings = reactWindowData.pluginData.settings
+  if (settings.doneDatesAvailable) {
+    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    const changedData = {
+      totalDoneCounts: totalDoneCounts
+    }
+    await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
+  }
 }
 
 /**
@@ -130,6 +144,18 @@ export async function incrementallyRefreshSections(data: MessageDataObject,
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)}`)
   logDebug('clickHandlers', `incrementallyRefreshSections took a total of ${timer(incrementalStart)} for ${sectionCodes.length} sections`)
+
+  // re-calculate done task counts (if the appropriate setting is on)
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  const settings = reactWindowData.pluginData.settings
+  if (settings.doneDatesAvailable) {
+    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    const changedData = {
+      totalDoneCounts: totalDoneCounts
+    }
+    await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSections')
+  }
+
   return handlerResult(true)
 }
 
@@ -283,8 +309,8 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
 export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
-  // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`) // ✅
-  // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)// ✅
+  // clo(updatedParagraph, `doCompleteChecklist -> updatedParagraph`)
+  // clo(updatedParagraph.note.filename, `doCompleteChecklist -> updatedParagraph.note.filename`)
   return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 

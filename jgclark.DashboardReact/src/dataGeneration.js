@@ -13,10 +13,10 @@ import type {
 } from './types'
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
+import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   // extendParasToAddStartTimes,
   getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
-  getNumCompletedTasksTodayFromNote,
   getStartTimeFromPara,
   // getSharedSettings,
   makeDashboardParas, type dashboardConfigType

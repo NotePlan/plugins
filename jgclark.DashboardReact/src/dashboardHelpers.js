@@ -9,11 +9,11 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allSectionDetails } from "./constants"
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TItemType, TDoneCounts, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TItemType, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
-  getDateStringFromCalendarFilename,
+  // getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
   removeDateTagsAndToday,
@@ -35,7 +35,7 @@ import {
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
   // getTaskPriority,
-  insertParas,
+  // insertParas,
   isTermInURL,
   parasToText,
   // removeTaskPriorityIndicators,
@@ -220,55 +220,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
 }
 
 //-----------------------------------------------------------------
-
-/**
- * Return number of completed tasks in the note
- * @param {string} filename
- * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
- * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
- */
-export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWherePossible?: boolean): TDoneCounts {
-  try {
-    let parasToUse: $ReadOnlyArray<TParagraph>
-
-    //------------------------------------------------
-    // Get paras from the note
-    if (useEditorWherePossible && Editor && Editor?.note?.filename === filename) {
-      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
-      parasToUse = Editor.paragraphs
-      logDebug('getNumCompletedTasksTodayFromNote', `Using EDITOR (${Editor.filename}) for note '${filename}`)
-    } else {
-      // read note from DataStore in the usual way
-      let note = DataStore.projectNoteByFilename(filename)
-      if (!note) {
-        note = DataStore.calendarNoteByDateString(getDateStringFromCalendarFilename(filename))
-      }
-      if (!note) throw new Error(`Note not found: ${filename}`)
-      parasToUse = note.paragraphs
-      logDebug('getNumCompletedTasksTodayFromNote', `Processing ${note.filename}`)
-    }
-
-    // Calculate the number of closed items
-    const todayHyphenated = getTodaysDateHyphenated()
-    const RE_DONE_TODAY = new RegExp(`@done\\(${todayHyphenated}.*\\)`)
-    const numCompletedTasks = parasToUse.filter((p) => (p.type === 'done') && RE_DONE_TODAY.test(p.content)).length
-
-    const outputObject: TDoneCounts = {
-      completedTasks: numCompletedTasks,
-      // completedChecklists: numCompletedChecklists,
-      lastUpdated: new Date(),
-    }
-    logDebug('getNumCompletedTasksTodayFromNote', `-> ${String(numCompletedTasks)}`)
-    return outputObject
-  } catch (error) {
-    logError('getNumCompletedTasksTodayFromNote', error.message)
-    return {
-      completedTasks: 0,
-      // completedChecklists: 0,
-      lastUpdated: new Date(),
-    }
-  }
-}
 
 /**
  * Return list(s) of open task/checklist paragraphs in calendar note of type 'timePeriodName', or scheduled to that same date.
@@ -725,14 +676,14 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       logDebug('moveItemBetweenCalendarNotes', `- Calling smartPrependPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(toNote)}'`)
       smartPrependPara(toNote, targetContent, 'text')
     } else {
-      logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      logDebug('moveItemBetweenCalendarNotes', `- Adding ${matchedParaAndChildren.length} lines under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
       // Note: this doesn't allow setting heading level ...
       // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
       // so replace with one half of /qath:
       const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
       const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug('addTextToNoteHeading',
-        `Adding line '${targetContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
+      logDebug('moveItemBetweenCalendarNotes',
+        `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
       )
       if (matchedHeading !== '') {
         // Heading does exist in note already
@@ -890,29 +841,4 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
     }
   })
   return existingSections
-}
-
-/**
- * Updates the total count of completed tasks and checklists by adding the counts from all available sections.
- * TODO: Extend to cover other notes updated today
- * @param {Array<TSection>} sections
- */
-export function getTotalDoneCounts(sections: Array<TSection>): TDoneCounts {
-  let numDoneTasks = 0
-  // let numDoneChecklists = 0
-  let latestDate: Date = new Date(0)
-  for (const thisSection of sections) {
-    const thisDC = thisSection.doneCounts
-    if (thisDC) {
-      numDoneTasks += thisDC.completedTasks
-      // numDoneChecklists += thisDC.completedChecklists
-      if (thisDC.lastUpdated > latestDate) latestDate = thisDC.lastUpdated
-    }
-  }
-  logDebug('getTotalDoneCounts', `-> numDoneTasks = ${numDoneTasks} / latestDate = ${latestDate.toLocaleTimeString()}`)
-  return {
-    completedTasks: numDoneTasks,
-    // completedChecklists: numDoneChecklists,
-    lastUpdated: latestDate
-  }
 }

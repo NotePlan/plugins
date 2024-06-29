@@ -145,7 +145,7 @@ export function getParaAndAllChildren(parentPara: TParagraph): Array<TParagraph>
 
   if (!allChildrenNoDupes.length) {
     logDebug('blocks/getParaAndAllChildren', `No child paragraphs found`)
-    return []
+    return [parentPara]
   }
 
   const resultingParas = allChildrenNoDupes.slice()

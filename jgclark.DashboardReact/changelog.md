@@ -30,9 +30,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
 
+## [2.0.0.b16] 2024-06-29
+- jgc: fix to moving tasks with no children between dates (oops)
+- jgc: extended @done tasks counts to cover all project notes as well.
+
 ## [2.0.0.b15] 2024-06-28
 - jgc: fix to child tasks not getting moved with their parent
-- jgc: basic doneCounts re-introduced, covering just tasks in calendar notes. Note: requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, its not possible to count completed checklists.) To save space, this is not shown on iOS devices.
+- jgc: basic counts of @done tasks re-introduced, covering just tasks in calendar notes. Note: requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, its not possible to count completed checklists.) To save space, this is not shown on iOS devices.
 - jgc: remove '(React)' from window title before doing documentation + video
 
 ## [2.0.0.b14] 2024-06-25

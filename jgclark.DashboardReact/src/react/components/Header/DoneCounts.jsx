@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the done items counts at the top of the Dashboard window.
 // Called by Heaer component.
-// Last updated 2024-06-28 for v2.0.0-b15 by @jgclark
+// Last updated 2024-06-29 for v2.0.0-b16 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,7 +13,7 @@ import React from 'react'
 import { useAppContext } from '../AppContext.jsx'
 // import { createFeatureFlagItems } from './featureFlagItems.js'
 // import useLastFullRefresh from './useLastFullRefresh.js'
-import type { TDoneCounts } from '../../../types.js'
+import type { TDoneCount } from '../../../types.js'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 //--------------------------------------------------------------------------
 
 type Props = {
-  totalDoneCounts: TDoneCounts,
+  totalDoneCounts: TDoneCount,
 };
 
 //--------------------------------------------------------------------------
@@ -61,7 +61,7 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   if (showCounts) {
     return (
       <div className="totalCounts">
-        <span id="totalDoneCount">{itemsDoneCount}</span> tasks closed
+        <span id="totalDoneCount">{itemsDoneCount}</span> {itemsDoneCount > 1 ? "tasks" : "task"} closed.
       </div>
     )
   }
