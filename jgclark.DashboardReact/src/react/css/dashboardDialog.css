@@ -167,6 +167,7 @@ i.fa-solid, i.fa-regular {
   border: none;
   box-shadow: none;
   margin-right: 5px;
+  outline: none;
 }
 .skip-button {
 	font-size: unset;

@@ -37,6 +37,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   // the child dialogs (Task & Project) will call this function to position the dialog after they render
   function positionDialog(dialogRef: RefType<any>): any {
     if (isOpen && dialogRef.current) {
+      dialogRef.current.showModal()
       const clickPosition = reactSettings?.dialogData?.clickPosition
       const dialog = dialogRef.current
       const thisOS = pluginData.platform
@@ -46,6 +47,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
         const dialogHeight = dialog.offsetHeight
         setPositionForDialog(thisOS, dialogWidth, dialogHeight, dialog, clickPosition)
       }
+
     }
   }
 
