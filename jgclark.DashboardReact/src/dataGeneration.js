@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 20.6.2024 for v2.0.0-b10 by @jgclark
+// Last updated 30.6.2024 for v2.0.0-b17 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -251,7 +251,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
         {
           actionName: 'moveAllTodayToTomorrow',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          display: 'All Today <i class="fa-solid fa-right-long"></i> Tomorrow',
+          display: 'All <i class="fa-solid fa-right-long"></i> Tomorrow',
           tooltip: 'Move or schedule all remaining open items to tomorrow',
           actionParam: 'true' /* refresh afterwards */,
           postActionRefresh: ['DT', 'DO'] // refresh 2 sections afterwards
@@ -1160,7 +1160,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
 
   // Return section details, even if no items found
   const tagSectionDescription =
-    totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} items ordered by ${config.overdueSortOrder}`
+    totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} item{s} ordered by ${config.overdueSortOrder}`
   const section: TSection = {
     ID: sectionNum,
     name: sectionDetail.sectionName,
@@ -1263,7 +1263,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     logDebug('getDataForDashboard', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `{count} of {totalCount} tasks ordered by ${config.overdueSortOrder}` : `{count} tasks ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `{count} of {totalCount} tasks ordered by ${config.overdueSortOrder}` : `{count} task{s} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNum,
@@ -1309,6 +1309,22 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
 
   if (useDemoData) {
     nextNotesToReview = nextProjectNoteItems
+    nextNotesToReview.map((n) => {
+      const thisID = `${sectionNum}-${itemCount}`
+      const thisFilename = n.filename ?? '<filename not found>'
+      items.push({
+        ID: thisID,
+        itemType: 'project',
+        project: {
+          title: n.title ?? '(error)',
+          filename: thisFilename,
+          reviewInterval: n.reviewInterval ?? '',
+          percentComplete: n.percentComplete ?? NaN,
+          lastProgressComment: n.lastProgressComment ?? '',
+        },
+      })
+      itemCount++
+    })
   } else {
     if (DataStore.fileExists(fullReviewListFilename)) {
       // But first check to see if it is more than a day old
@@ -1326,56 +1342,57 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
 
       nextNotesToReview = await getNextNotesToReview(maxProjectsToShow)
     }
-  }
 
-  if (nextNotesToReview) {
-    nextNotesToReview.map((n) => {
-      const thisID = `${sectionNum}-${itemCount}`
-      const thisFilename = n.filename ?? '<filename not found>'
-      // Make a project instance for this note, as a quick way of getting its metadata
-      // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
-      const projectInstance = new Project(n, '', false)
-      items.push({
-        ID: thisID,
-        itemType: 'project',
-        project: {
-          title: n.title ?? '(error)',
-          filename: thisFilename,
-          reviewInterval: projectInstance.reviewInterval,
-          percentComplete: projectInstance.percentComplete,
-          lastProgressComment: projectInstance.lastProgressComment,
-        },
+    if (nextNotesToReview) {
+      nextNotesToReview.map((n) => {
+        const thisID = `${sectionNum}-${itemCount}`
+        const thisFilename = n.filename ?? '<filename not found>'
+        // Make a project instance for this note, as a quick way of getting its metadata
+        // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
+        const projectInstance = new Project(n, '', false)
+        items.push({
+          ID: thisID,
+          itemType: 'project',
+          project: {
+            title: n.title ?? '(error)',
+            filename: thisFilename,
+            reviewInterval: projectInstance.reviewInterval,
+            percentComplete: projectInstance.percentComplete,
+            lastProgressComment: projectInstance.lastProgressComment,
+          },
+        })
+        itemCount++
       })
-      itemCount++
-    })
-    // clo(nextNotesToReview, "nextNotesToReview")
-    const section = {
-      name: 'Projects',
-      showSettingName: 'showProjectSection',
-      ID: sectionNum,
-      sectionCode: thisSectionCode,
-      description: `{count} next projects to review`,
-      sectionItems: items,
-      FAIconClass: 'fa-light fa-calendar-check',
-      sectionTitleClass: 'sidebarYearly',
-      generatedDate: new Date(),
-      actionButtons: [
-        {
-          display: '<i class="fa-regular fa-play"></i> Start Reviews',
-          actionPluginID: 'jgclark.Reviews',
-          actionName: 'startReviews',
-          actionParam: '',
-          tooltip: 'Start reviewing your Project notes',
-        },
-      ],
+    } else {
+      logDebug('getDataForDashboard', `looked but found no notes to review`)
+      // $FlowFixMe[incompatible-return]
+      return null
     }
-    // console.log(JSON.stringify(section))
-    return section
-  } else {
-    logDebug('getDataForDashboard', `looked but found no notes to review`)
-    // $FlowFixMe[incompatible-return]
-    return null
   }
+  // clo(nextNotesToReview, "nextNotesToReview")
+
+  const section = {
+    name: 'Projects',
+    showSettingName: 'showProjectSection',
+    ID: sectionNum,
+    sectionCode: thisSectionCode,
+    description: `{count} project{s} ready to review`,
+    sectionItems: items,
+    FAIconClass: 'fa-light fa-calendar-check',
+    sectionTitleClass: 'sidebarYearly',
+    generatedDate: new Date(),
+    actionButtons: [
+      {
+        display: '<i class="fa-regular fa-play"></i> Start Reviews',
+        actionPluginID: 'jgclark.Reviews',
+        actionName: 'startReviews',
+        actionParam: '',
+        tooltip: 'Start reviewing your Project notes',
+      },
+    ],
+  }
+  // console.log(JSON.stringify(section))
+  return section
 }
 
 // type SectionItemIndex = { sectionIndex: number, itemIndex: number }

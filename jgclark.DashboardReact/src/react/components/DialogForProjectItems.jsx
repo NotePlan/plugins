@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
-// Called by ReviewItem component
-// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
+// Called by Dialog component
+// Last updated 2.7.2024 for v2.0.0-b17 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -27,22 +27,15 @@ type Props = {
 
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
-  // const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
   // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
-  // const { ID, itemType, para, filename, title, content, noteType } = validateAndFlattenMessageObject(detailsMessageObject)
-  // const { ID, itemType, filename, title, content, noteType } = detailsMessageObject
   const thisItem = detailsMessageObject?.item
   if (!thisItem) { throw `Cannot find item` }
   const lastProgressText = (thisItem.project?.lastProgressComment) ? `last: ${thisItem.project?.lastProgressComment}` : ''
-  // const { ID, itemType } = thisItem
-  // const thisProject = thisItem.project
-  // if (!thisProject) { throw `Cannot find project` }
-  // const { filename } = thisProject
   const { ID, itemType, filename, title } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, /* reactSettings, sharedSettings, */ pluginData } = useAppContext()
+  const { sendActionToPlugin, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
   const reviewDetails = (thisItem.project?.reviewInterval) ? ` (review: ${thisItem.project.reviewInterval})` : ''
@@ -70,7 +63,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
   const progressButtons = [
-    { label: 'Add', controlStr: 'progress', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'left' }] },
+    { label: 'Add', controlStr: 'progress', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
   ]
 
   useEffect(() => {
@@ -102,22 +95,16 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   // Handle the date selected from CalendarPicker
   const handleDateSelect = (date: Date) => {
     if (!date) return
-    // turn into 8601 format
-    // const isoDateStr = date.toISOString().split('T')[0]
     const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
     const actionType = 'setNextReviewDate'
 
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
-    // sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, dateString: isoDateStr }, 'Date selected', true)
     sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
     closeDialog()
   }
 
   function handleButtonClick(_event: MouseEvent, controlStr: string, type: string) {
     clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
-    // const currentContent = para.content
-    // $FlowIgnore
-    // const updatedContent = inputRef?.current?.getValue() || ''
     logDebug(`DialogForProjectItems handleButtonClick`, `Clicked ${controlStr}`)
     console.log(
       `Button clicked on ID: ${ID} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, Filename: ${filename}`,
@@ -164,13 +151,17 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       >
         {/* Title area ---------------- */}
         <div className="dialogTitle">
-          <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`}>
+          <TooltipOnKeyPress
+            altKey={{ text: 'Open in Split View' }}
+            metaKey={{ text: 'Open in Floating Window' }}
+            label={`Task Item Dialog for ${title}`}
+          >
             {/* <div> */}
-            {/* FIXME: layout bad with: <ProjectIcon item={thisItem} /> */}
+            {/* FIXME: this Tooltip is breaking layout for its children */}
             <span className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
                 <span className="dialogItemNote" >{title}</span>
             </span>
-              {reviewDetails}
+            {reviewDetails}
             {/* </div> */}
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
@@ -183,7 +174,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
         <div className="dialogBody">
           <div className="buttonGrid projectButtonGrid" id="projectDialogButtons">
             {/* line1 ---------------- */}
-            <div>Review:</div>
+            <div className="preText">Review:</div>
             <div>
               {reviewButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
@@ -202,7 +193,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             {/* line2 (macOS only) ---------------- */}
             {isDesktop && (
               <>
-                <div>Project:</div>
+                <div className="preText">Project:</div>
                 <div>
                   {projectButtons.map((button, index) => (
                     <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
@@ -220,7 +211,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             )}
 
             {/* line3 ---------------- */}
-            <div>Progress:</div>
+            <div className="preText">Progress:</div>
             <div>
               {progressButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>

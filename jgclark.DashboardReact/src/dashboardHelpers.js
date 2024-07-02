@@ -155,6 +155,17 @@ export async function getCombinedSettings(): Promise<any> {
 }
 
 /**
+ * Set a config setting, used from x-callback.
+ * @param {string} key 
+ * @param {string} value 
+ */
+// eslint-disable-next-line require-await
+export async function setSetting(key: string, value: string): Promise<void> {
+  logDebug('setSetting', `'${key}'' -> '${value}'`)
+  // TODO:
+}
+
+/**
  * WARNING: You should probably now be using getCombinedSettings() instead of this function
  * Get config settings
  */

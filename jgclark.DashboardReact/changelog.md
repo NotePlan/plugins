@@ -5,6 +5,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### New
 - The different sections are now generated or refreshed progressively, so the first sections appear more quickly. When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
 - Auto-refresh: by default the Dashboard will now automatically pick up new/changed tasks in NotePlan after it has been idle for 15 minutes (configurable). This means that you probably no longer need to add a trigger to the notes with tasks you're completing/changing frequently.
+- New Processing button that opens up the Task Edit dialog showing the first item in the section. When you click on an action button it then updates to show you the next item, and so on. In this mode there's an extra 'forward' button that lets you leave that item where it is.
 - Can now show multiple tags/mentions, by specifying them in the setting separated by commas
 - New Filter dropdown that allows you to quickly toggle on or off all the main display settings, including which sections to show -- moved from the Preferences Pane
 - New Settings button which opens a window that has the rest of the more detailed settings for the plugin -- moved from the Preferences Pane
@@ -15,13 +16,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
   - now shows the latest 'Progress' comment for a project, and a button to add a new comment.
 - When the NotePlan Theme is changed (manually or automatically), the Dashboard window will automatically pick this up on the next refresh.
 - ^-click (ctrl-click) on an item's status icon now deletes the item entirely (after a check with the user).
-- Added an x-callback to allow specifying which sections you want to see. For details see [Discord](https://discord.com/channels/763107030223290449/1250112152916987974/1253986724028092447). <!--README. -->
+- Added an x-callback to allow specifying which sections you want to see. For details see README.
 - Note: some of the buttons are hidden when running on iOS or iPadOS because of limitations in the environment the Dashboard runs in. We are hopeful these will be removed in time.
 
 ### Changed
-- The 'Update Overdue section when triggered?' setting has been removed, as it is no longer needed with the smarter data generation
+- Should now work better on iPhones and iPads
 - Removed the separate limit on number of Project items shown; it will now use the main limit setting (if set).
+- The 'Update Overdue section when triggered?' setting has been removed, as it is no longer needed with the smarter data generation
 - Removed the keyboard shortcuts to toggle sections, as there is the new Filter quick menu.
+- The count of tasks done today now includes those completed in project notes, not just from the calendar sections shown. Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) To save space, this is not shown on iOS devices.
 
 ### Fixed
 - a task in today's note "* a task >today" doesn't show up on today's dashboard
@@ -29,6 +32,16 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - synced copies dated for today were duplicated
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
+
+## [2.0.0.b17] 2024-07-02
+- dbw: fix to have window darkened under dialog boxes
+- jgc/dbw: fix to main status icon positioning
+- jgc: polishing the button sizing and layout in dialogs
+- jgc: fix to positioning of project dialog now that it's grown
+- jgc: fixed edge case in Thingies theme that rendered buttons with the wrong font
+- jgc: tweaked icon layout slightly (but needs @dbw help to deal with tooltip component)
+- jgc: made UI text singular not plural when needed
+- jgc: updates to demo data before taking screenshots
 
 ## [2.0.0.b16] 2024-06-29
 - jgc: fix to moving tasks with no children between dates (oops)

@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 9.3.2024 for v1.0.0 by @jgclark */
+/* Last updated 2.7.2024 for v2.0.0-b17 by @jgclark */
 
 :root {
 	--minBreakPoint: 500px; /* FIXME: not working */
@@ -23,6 +23,13 @@ body {
 body {
 	margin: 0px;
 	width: 90vw;
+}
+
+/* 
+ * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)
+ */
+dialog::backdrop {
+  background: rgba(0,0,0,0.4);
 }
 
 /* ------------------------------------------------------------------ */
@@ -152,7 +159,8 @@ body {
 .sectionDescription {
 	/* a bit smaller */
 	font-size: 0.9rem;
-	margin: unset;
+	/* give breathing room on right only */
+	margin: 0 0.5rem 0 0;
 	padding-top: 0px;
 	align-self: self-end;
 }
@@ -170,9 +178,10 @@ body {
 		display: grid;
 		/* now make this area grid column-based not row-based */
 		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 1rem;
+		grid-column-gap: 0.1rem;
 		padding-top: 0.3rem;
 		padding-bottom: 0.3rem;
+		/* put all items essentially on a baseline */
 		align-items: end;
 	}
 
@@ -239,7 +248,11 @@ body {
 	font-size: 1.05rem !important;
 	/* font-size: unset !important; */
 	font-weight: 400;
+	/* position this horizontally centred; vertically at start */
 	align-self: center;
+	justify-self: center;
+	/* and give a little nudge down to make things line up in practice */
+	padding-block-start: 1px;
 	cursor: pointer;
 }
 
@@ -251,6 +264,8 @@ body {
 	font-size: 0.9rem !important;
 	height: 0.9rem;
 	width: 0.9rem;
+	align-self: center;
+	justify-self: center;
 }
 
 .dialogTrigger {
@@ -371,7 +386,8 @@ body {
 	font-size: 0.85rem;
 	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
-	max-height: 1.3rem;
+	/* max-height: 1.3rem; */
+	line-height: 1.2rem;
 }
 
 /* Set link text to plain (again).  Note: now internal calls used this is removed */

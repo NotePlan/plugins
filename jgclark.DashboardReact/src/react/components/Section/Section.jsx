@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-05-31 for v2.0.0 by @jgclark
+// Last updated 2024-06-29 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -131,6 +131,15 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
   }
+  // Pluralise item in description if neccesary
+  if (descriptionToUse.includes('{s}')) {
+    if (itemsToShow.length >= 2) {
+      descriptionToUse = descriptionToUse.replace('{s}', `s`)
+    } else {
+      descriptionToUse = descriptionToUse.replace('{s}', ``)
+    }
+  }
+
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">

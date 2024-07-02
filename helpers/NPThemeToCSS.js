@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 14.6.2024 by @jgclark
+// Last updated 30.6.2024 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -100,7 +100,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    const bodyFont = themeJSON.styles.body.font ?? ''
+    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
+    const bodyFont = (tempBodyFont === '.AppleSystemUIFont') ? '-apple-system' : tempBodyFont
     logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
@@ -691,6 +692,11 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
   if (fontNameNP.startsWith('.AppleSystemUIFont')) {
     outputArr.push(`font-family: "-apple-system"`)
     outputArr.push(`line-height: 1.2rem`)
+    if (fontNameNP.includes('Bold')) {
+      outputArr.push(`font-weight: 700`)
+    } else {
+      outputArr.push(`font-weight: 400`)
+    }
     // logDebug('fontPropertiesFromNP', `special: ${fontNameNP} ->  ${outputArr.toString()}`)
     return outputArr
   }

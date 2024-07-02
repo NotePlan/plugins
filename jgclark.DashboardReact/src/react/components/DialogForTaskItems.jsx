@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 22.6.2024 for v2.0.0-b11 by @dbw
+// Last updated 30.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -33,7 +33,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
-  clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
+  // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
 
   const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
@@ -74,7 +74,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   const buttonsToHideOnMobile = ['Move to']
   const otherControlButtons = [
     { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
-    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'left' }] },
+    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
     { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
@@ -123,9 +123,9 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     closeDialog()
   }
 
+  // Following handleIconClick() at the lower StatusIcon component, all we need to do now is close the dialog.
   function handleIconClick() {
-    logDebug(`DialogForTaskItems/handleIconClick`, `handleIconClick: something was clicked. what to do ❓❓`)
-    // TODO(@dwertheimer): I'm confused. This fires, but also goes on to Complete or Cancel an item, but I can't see how that's wired up.
+    // logDebug(`DialogForTaskItems/handleIconClick`, `handleIconClick -- closing dialog.`)
     closeDialog()
   }
 
@@ -185,23 +185,25 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   return (
     <>
       {/* CSS for this part is in dashboardDialog.css */}
-      {/* TEST: removing most of the ids */}
       {/*----------- Dialog that can be shown for any task-based item -----------*/}
       <dialog
-        /*id="itemControlDialog"*/
         className={`itemControlDialog ${animationClass}`}
         aria-labelledby="Actions Dialog"
         aria-describedby="Actions that can be taken on items"
         ref={dialogRef}
       >
         <div className="dialogTitle">
-        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`Task Item Dialog for ${title}`} >
-            <div /*id="dialogFileParts"*/ onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
-            <span className="preText">From:</span>
-            <i className="pad-left pad-right fa-regular fa-file-lines"></i>
+          <TooltipOnKeyPress
+            altKey={{ text: 'Open in Split View' }}
+            metaKey={{ text: 'Open in Floating Window' }}
+            label={`Task Item Dialog for ${title}`}
+          >
+            <div onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
+              <span className="preText">From:</span>
+              <i className="pad-left pad-right fa-regular fa-file-lines"></i>
               <span className="dialogItemNote">{title}</span>
-            {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
-          </div>
+              {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
+            </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
             {interactiveProcessing && currentIPIndex !== undefined && (
@@ -228,7 +230,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
         </div>
 
         <div className="dialogBody">
-          <div className="buttonGrid taskButtonGrid" /*id="itemDialogButtons"*/>
+          <div className="buttonGrid taskButtonGrid">
             {/* line1 ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -259,7 +261,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
             {/* line3 ---------------- */}
             <div className="preText">Other controls:</div>
-            <div /*id="itemControlDialogOtherControls"*/>
+            <div>
               {otherControlButtons.map((button, index) => (
                 <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (

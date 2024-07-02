@@ -1,6 +1,9 @@
-// NoTasks.jsx
-
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show there are no tasks for today. Called by ItemRow or ItemContent.
+// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
+//--------------------------------------------------------------------------
+
 import * as React from 'react'
 
 /**
@@ -15,7 +18,7 @@ const NoTasks = (): React.Node => {
       <div className="sectionItemContent sectionItem">
         <div className="content">
           <i>
-            Nothing to do: take a break <i className="fa-solid fa-mug pad-left"></i>
+            Nothing left on your list for today: take a break <i className="fa-solid fa-mug pad-left"></i>
           </i>
         </div>
       </div>

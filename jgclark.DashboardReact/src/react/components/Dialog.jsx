@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Item Control and Project dialogs.
-// Last updated 18.5.2024 for v2.0.0 by @jgclark
+// Last updated 30.6.2024 for v2.0.0-b17 by @dbw
 //--------------------------------------------------------------------------
 
 import React, { useEffect } from 'react'
@@ -91,6 +91,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 
 /**
  * @jgclark's original function but fixed to take into account where you are in the scroll
+ * Note: to which @jgclark has taken out the scroll position as it was breaking the positioning.
  * Set place in the HTML window for dialog to appear
  * @param {string} thisOS - The operating system
  * @param {number} dialogWidth - The width of the dialog
@@ -99,9 +100,10 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
  * @param {TClickPosition} event - The event containing click position
  */
 function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight: number, dialog: HTMLElement, event: TClickPosition) {
-  logDebug(`ENTERING setPositionForDialog() thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
+  logDebug('setPositionForDialog', `starting: thisOS=${thisOS} dialogWidth=${dialogWidth} dialogHeight=${dialogHeight} event=${JSON.stringify(event)}`)
   const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc. round Left, Right, Bottom sides
-  const fudgeFactorTop = 40 // small border (in pixels) to take account of header bar which floats over the top
+  const fudgeFactorTop = 40 // border (in pixels) to take account of header bar which floats over the top
+
   const mousex = event.clientX // Horizontal
   const mousey = event.clientY // Vertical
   const scrollX = window.scrollX
@@ -109,41 +111,60 @@ function setPositionForDialog(thisOS: string, dialogWidth: number, dialogHeight:
   let x = 0
   let y = 0
 
-  const winHeight = window.visualViewport.height
   const winWidth = window.visualViewport.width
+  const winHeight = window.visualViewport.height
+  logDebug('setPositionForDialog', `- winWidth=${String(winWidth)} winHeight=${String(winHeight)} / scrollX=${String(scrollX)} scrollY=${String(scrollY)}`)
 
   if (winWidth < dialogWidth) {
     dialog.style.left = `2%`
     dialog.style.width = `96%`
   } else if (winWidth - dialogWidth < 100) {
-    x = Math.round((winWidth - dialogWidth) / 2) + scrollX
+    // x = Math.round((winWidth - dialogWidth) / 2) + scrollX
+    x = Math.round((winWidth - dialogWidth) / 2)
     dialog.style.left = `${x}px`
   } else {
-    x = mousex - Math.round(dialogWidth / 3) + scrollX
-    if (x + dialogWidth > winWidth + scrollX) {
-      x = winWidth - fudgeFactor - dialogWidth + scrollX
+    // x = mousex - Math.round(dialogWidth / 3) + scrollX
+    x = mousex - Math.round(dialogWidth / 3)
+    // if (x + dialogWidth > winWidth + scrollX) {
+    if (x + dialogWidth > (winWidth + fudgeFactor)) {
+      // x = winWidth - fudgeFactor - dialogWidth + scrollX
+      x = winWidth - fudgeFactor - dialogWidth
     }
-    if (x < fudgeFactor + scrollX) {
-      x = fudgeFactor + scrollX
+    // if (x < fudgeFactor + scrollX) {
+    if (x < fudgeFactor) {
+      // x = fudgeFactor + scrollX
+      x = fudgeFactor
     }
     dialog.style.left = `${x}px`
   }
 
   if (winHeight < dialogHeight) {
     dialog.style.top = `0`
+    logDebug('setPositionForDialog', `- move y to top of silly shallow window`)
   } else if (winHeight - dialogHeight < 100) {
-    y = Math.round((winHeight - dialogHeight) / 2) + scrollY
+    // y = Math.round((winHeight - dialogHeight) / 2) + scrollY
+    y = Math.round((winHeight - dialogHeight) / 2)
     dialog.style.top = `${y}px`
+    logDebug('setPositionForDialog', `- setting y to be in middle of window as quite shallow -> y=${String(y)}`)
   } else {
-    y = mousey - Math.round(dialogHeight / 2) + scrollY
-    if (y + dialogHeight > winHeight + scrollY) {
-      y = winHeight - fudgeFactor - dialogHeight + scrollY
+    // y = mousey - Math.round(dialogHeight / 2) + scrollY
+    y = mousey - Math.round(dialogHeight / 2)
+    logDebug('setPositionForDialog', `- setting y to be around mouse -> y=${String(y)}`)
+    // if (y + dialogHeight > winHeight + scrollY) {
+    if (y + dialogHeight > winHeight) {
+      // y = winHeight - fudgeFactor - dialogHeight + scrollY
+      y = winHeight - fudgeFactor - dialogHeight
+      logDebug('setPositionForDialog', `- moved y up to be in viewport -> y=${String(y)}`)
     }
-    if (y < fudgeFactorTop + scrollY) {
-      y = fudgeFactorTop + scrollY
+    // if (y < fudgeFactorTop + scrollY) {
+    if (y < fudgeFactorTop) {
+      // y = fudgeFactorTop + scrollY
+      y = fudgeFactorTop
+      logDebug('setPositionForDialog', `- moved y down to be at top of viewport -> y=${String(y)}`)
     }
     dialog.style.top = `${y}px`
   }
+  logDebug('setPositionForDialog', `-> left=${dialog.style.left} top=${dialog.style.top}`)
 }
 
 export default Dialog

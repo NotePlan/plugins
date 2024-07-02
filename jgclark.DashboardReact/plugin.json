@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard (React)",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next few notes to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0.b16",
+  "plugin.version": "2.0.0.b17",
   "plugin.hidden": true,
-  "plugin.lastUpdateInfo": "2.0.0.b16: bug fixes",
+  "plugin.lastUpdateInfo": "2.0.0.b17: layout bug fixes",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.min.js",
@@ -49,6 +49,16 @@
       ]
     },
     {
+      "name": "setSetting",
+      "description": "Set a key:value setting",
+      "jsFunction": "setSetting",
+      "hidden": true,
+      "arguments": [
+        "key to set",
+        "value"
+      ]
+    },
+    {
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
@@ -67,16 +77,17 @@
       "hidden": true
     },
     {
-      "TODO:": "remove me soon",
+      "name": "Dashboard: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.commands.unused": [
+    {
       "name": "buildListOfDoneTasksToday",
       "description": "test: buildListOfDoneTasksToday",
       "jsFunction": "buildListOfDoneTasksToday",
       "hidden": false
-    },
-    {
-      "name": "Dashboard: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "editSettings"
     }
   ],
   "plugin.settings": [

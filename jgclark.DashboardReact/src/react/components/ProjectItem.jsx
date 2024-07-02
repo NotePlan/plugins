@@ -40,7 +40,7 @@ function ProjectItem({ item }: Props): React.Node {
     <>
       <br></br>
       <span className="projectProgress">
-        <i className="fa-regular fa-circle-info"></i>
+        <i className="fa-regular fa-circle-info pad-right"></i>
         {progressText}
       </span>
     </>

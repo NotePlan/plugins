@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
-// Last updated 2.6.2024 for v2.0.0 by @dbw
+// Called by TaskItem component.
+// Last updated 30.6.2024 for v2.0.0-b17 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
@@ -60,7 +61,7 @@ const StatusIcon = ({
   }
 
   /**
-   * Handle internal click events, determine the action, and notify the parent component.
+   * Handle internal click events, determine the action, and notify the parent component (which does visual changes).
    */
   function handleIconClick(event: MouseEvent) {
     if (!respondToClicks) return
@@ -105,13 +106,16 @@ const StatusIcon = ({
     }
   }
 
-  const renderedIcon = (<span className="sectionItemTodo itemIcon todo">
+  const renderedIcon = (<div className="sectionItemTodo itemIcon todo">
     <i className={iconClassName} onClick={handleIconClick}></i>
-  </span>)
+  </div>)
+
+  // Note: trying TooltipOnKeyPress as a span item, and an equivalent empty one if there's no tooltip
   return shouldShowTooltips ? (
     <TooltipOnKeyPress ctrlKey={{ text: 'Delete Item' }} metaKey={{ text: 'Cancel Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
       {renderedIcon}
     </TooltipOnKeyPress>
-  ) : renderedIcon
+  ) : <span>{renderedIcon}</span>
 }
+
 export default StatusIcon

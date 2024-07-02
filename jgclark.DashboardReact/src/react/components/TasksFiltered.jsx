@@ -3,8 +3,9 @@
 // Dashboard React component to show an Indicator that a Filter has been applied and so some item(s) have been hidden.
 // Called by ItemRow component
 // Last updated 25.6.2024 for v2.0.0-b14 by @jgclark
+// TODO: be smarter about what to do if this line is clicked on. Or stop it being a link.
 //--------------------------------------------------------------------------
-// TasksFiltered.jsx
+
 import * as React from 'react'
 import type { TSectionItem } from '../../types.js'
 

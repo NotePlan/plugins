@@ -1,4 +1,11 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show a tooltip when a modifier key is pressed
+// Used by many other components.
+// Last updated 4.6.2024 for v2.0.0 by @dbw
+//--------------------------------------------------------------------------
+// FIXME(@dwertheimer): please talk to JGC about this, because the (more-or-less) empty <div>...</div> introduced below is breaking layout in StatusIcon
+
 import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'
 import Tooltip from './Tooltip' // Import the Tooltip component
@@ -163,6 +170,8 @@ const TooltipOnKeyPress = ({
     }
   }, [enabled])
 
+  // Portal elements are allowed to float higher in the z-order
+  // Is defined with specific X-Y coords for when its needed
   const portalElement = document.getElementById('tooltip-portal')
 
   return (
@@ -181,9 +190,9 @@ const TooltipOnKeyPress = ({
         </div>,
         portalElement
       )}
-      <div ref={measureElement} style={{ display: 'inline' }}>
+      <span ref={measureElement} style={{ display: 'inline' }}>
         {children}
-      </div>
+      </span>
     </>
   )
 }

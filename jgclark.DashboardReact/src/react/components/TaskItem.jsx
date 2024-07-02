@@ -1,7 +1,8 @@
 //--------------------------------------------------------------------------
 // TaskItem.jsx
 // Dashboard React component to create a full content line for a Task item: 
-// icon, content, noteLink and the fa-edit icon at the end
+// icon, content, noteLink and the fa-edit icon at the end.
+// 
 // Last updated 2.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
 // @flow
@@ -30,6 +31,7 @@ function TaskItem({ item, thisSection }: Props): Node {
     sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
   }
 
+  // Handle icon click, following action in the lower-level StatusIcon component (e.g. cancel/complete)
   function handleIconClick() {
     const { itemType } = item
 
@@ -66,16 +68,16 @@ function TaskItem({ item, thisSection }: Props): Node {
     }))
   }
 
-  // FIXME(@dwertheimer): flow error in line 77, which I don't know enough to fix.
-  // TODO(@dwertheimer): I'm confused why StatusIcon here has a defined handleIconClick, and its own component defintion includes a handleIconClick. Why do we need both?
   return (
     visible ? (
-      <div className={`sectionItemRow`} id={item.ID}>
+      <div className="sectionItemRow" id={item.ID}>
+        {/* before StatusIcon */}
         <StatusIcon
           item={item}
           respondToClicks={true}
           onIconClick={handleIconClick}
         />
+        {/* after StatusIcon */}
         <ItemContent item={item} >
         {sharedSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
         <a className="dialogTrigger">

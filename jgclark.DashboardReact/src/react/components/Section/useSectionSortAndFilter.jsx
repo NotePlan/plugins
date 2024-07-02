@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Last updated 23.6.2024 for v2.0.0-b13 by @jgclark
+// Last updated 29.6.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -78,7 +78,7 @@ const useSectionSortAndFilter = (
         ID: `${section.ID}-Filter`,
         itemType: 'filterIndicator',
         para: {
-          content: `There are also ${filteredOut} ${priorityFilteringHappening ? 'lower-priority' : ''} items currently hidden`,
+          content: `There are also ${String(filteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${filteredOut >= 2 ? "items" : "item"} currently hidden`,
           filename: '',
           type: 'text',
           noteType: 'Notes',

@@ -43,24 +43,9 @@ export const openTodayItems: Array<TSectionItem> = [
       noteType: "Calendar",
       type: "open",
       filename: thisFilename,
-      title: thisDateStr,
-      priority: 0,
-      content: "evening routine 10:00-10:30PM",
-      rawContent: "evening routine 10:00-10:30PM",
-      prefix: "* ",
-    }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: "open",
-    para: {
-      noteType: "Calendar",
-      type: "open",
-      filename: thisFilename,
-
-      priority: 0,
-      content: "task with evening 18:00-19:00 job",
-      rawContent: "task with evening 18:00-19:00 job",
+      priority: 1,
+      content: "reconcile bank statement @repeat(1m)",
+      rawContent: "reconcile bank statement @repeat(1m)",
       prefix: "* ",
     }
   },
@@ -68,12 +53,27 @@ export const openTodayItems: Array<TSectionItem> = [
   {
     itemType: 'open',
     para: {
-      noteType: 'Calendar',
+      noteType: 'Notes',
       type: 'open',
+      filename: 'CCC Areas/Mission Partners.md',
+      title: 'Mission Partners',
+      priority: 0,
+      content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
+      rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
+      blockId: '^wazhht',
+      prefix: '* ',
+    },
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'checklist',
+    para: {
+      noteType: 'Calendar',
+      type: 'checklist',
       filename: thisFilename,
       priority: 0,
-      content: 'task with afternoon 14:00-15:00 task',
-      rawContent: 'task with afternoon 14:00-15:00 task',
+      content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
+      rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       prefix: '* ',
     },
   },
@@ -85,26 +85,28 @@ export const openTodayItems: Array<TSectionItem> = [
       type: "checklist",
       filename: thisFilename,
       priority: 0,
-      content: "morning checklist 8:00AM",
-      rawContent: "morning checklist 8:00AM",
-      prefix: "+ ",
-    }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: "checklist",
-    para: {
-      noteType: "Calendar",
-      type: "checklist",
-      filename: thisFilename,
-      priority: 0,
-      content: "earliest task with timeblock 08:00-09:00",
-      rawContent: "earliest task with timeblock 08:00-09:00",
+      content: "morning checklist 7:30AM",
+      rawContent: "morning checklist 7:30AM",
       prefix: "+ ",
     }
   },
 ]
 export const refTodayItems: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Notes',
+      filename: 'CCC Areas/Mission Partners.md',
+      title: 'Mission Partners',
+      priority: 0,
+      content: 'Update display board 08:00-09:00',
+      rawContent: 'Update display board 08:00-09:00',
+      prefix: '* ',
+      hasChild: true,
+    },
+  },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: "open",
@@ -118,21 +120,6 @@ export const refTodayItems: Array<TSectionItem> = [
       content: "Pay in cash from cafe 2:30PM",
       rawContent: "Pay in cash from cafe 2:30PM",
     }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      title: 'Mission Partners',
-      filename: 'CCC Areas/Mission Partners.md',
-      priority: 0,
-      content: 'Update display board 12:30PM',
-      rawContent: 'Update display board 12:30PM',
-      prefix: '* ',
-      hasChild: true,
-    },
   },
 ]
 
@@ -163,21 +150,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'checklist',
       filename: thisFilename,
-
-      priority: 0,
-      content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
-      rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
-      prefix: '+ ',
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'checklist',
-    para: {
-      noteType: 'Calendar',
-      type: 'checklist',
-      filename: thisFilename,
-
       priority: 0,
       content: 'update contract for [[Staff Induction (SW)]] following review comments',
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
@@ -216,21 +188,6 @@ export const refYesterdayParas: Array<TSectionItem> = [
       rawContent: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       blockId: '^wazhht',
       hasChild: true,
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Mission Partners.md',
-      title: 'Mission Partners',
-      priority: 0,
-      content: 'Edit video from CFL visit https://bcfd.org.uk',
-      rawContent: 'Edit video from CFL visit https://bcfd.org.uk',
-      blockId: '^wazhht',
-      prefix: '* ',
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -472,21 +429,21 @@ export const nextProjectNoteItems: Array<TNote> = [
   {
     filename: 'CCC Projects/Facilities/Hearing Support.md',
     title: 'Hearing Support at CCC',
-    // type: 'Notes',
-    // "changedDate": new Date("2023-02-28T13:11:30.000Z"),
+    reviewInterval: "1m",
+    percentComplete: 23,
+    lastProgressComment: "Checked our equipment and its OK; looking for acoustician"
   },
   // $FlowIgnore[prop-missing]
   {
     filename: 'Home 🏠 Projects/Streamdeck setup.md',
     title: 'Streaming Platform',
-    // type: 'Notes',
-    // "changedDate": new Date("2023-02-27T10:56:35.000Z"),
+    reviewInterval: "1w",
+    percentComplete: 82,
   },
   // $FlowIgnore[prop-missing]
   {
     filename: 'CCC Projects/Pastoral Cards.md',
     title: 'Pastoral Cards',
-    // type: 'Notes',
-    // "changedDate": new Date("2022-09-05T11:13:21.963Z"),
+    reviewInterval: "2m",
   },
 ]
