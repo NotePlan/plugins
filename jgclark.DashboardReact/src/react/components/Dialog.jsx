@@ -9,6 +9,7 @@ import { type TClickPosition } from '../../types'
 import DialogForProjectItems from './DialogForProjectItems.jsx'
 import DialogForTaskItems from './DialogForTaskItems.jsx'
 import { useAppContext } from './AppContext.jsx'
+import Modal from './Modal'
 import { clo, JSP, logDebug } from '@helpers/react/reactDev.js'
 import '../css/dashboardDialog.css'
 
@@ -37,7 +38,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   // the child dialogs (Task & Project) will call this function to position the dialog after they render
   function positionDialog(dialogRef: RefType<any>): any {
     if (isOpen && dialogRef.current) {
-      dialogRef.current.showModal()
+      // dialogRef.current.showModal() // tooltips won't work because of portaling if we use showModal, so we will use Modal to fake it
       const clickPosition = reactSettings?.dialogData?.clickPosition
       const dialog = dialogRef.current
       const thisOS = pluginData.platform
@@ -69,13 +70,24 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   }, [isOpen])
 
   return isOpen ? (
-    isTask ? (
-      <DialogForTaskItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
-    ) : (
-      <DialogForProjectItems onClose={onDialogClose} details={details} positionDialog={positionDialog} />
-    )
+    <Modal onClose={() => onDialogClose(true)}>
+      {isTask ? (
+        <DialogForTaskItems 
+          onClose={onDialogClose} 
+          details={details} 
+          positionDialog={positionDialog} 
+        />
+      ) : (
+        <DialogForProjectItems 
+          onClose={onDialogClose} 
+          details={details} 
+          positionDialog={positionDialog} 
+        />
+      )}
+    </Modal>
   ) : null
 }
+
 
 /**
  * @jgclark's original function but fixed to take into account where you are in the scroll
