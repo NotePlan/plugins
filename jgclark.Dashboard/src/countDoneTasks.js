@@ -121,7 +121,7 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
       }
     }
     logDebug('buildListOfDoneTasks', `Found ${total} done tasks today in project notes in ${timer(startTime)}`)
-    clo(outputArr, 'buildListOfDoneTasks output', 2)
+    // clo(outputArr, 'buildListOfDoneTasks output', 2)
     return outputArr
   }
   catch (err) {

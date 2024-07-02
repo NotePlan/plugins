@@ -156,13 +156,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             metaKey={{ text: 'Open in Floating Window' }}
             label={`Task Item Dialog for ${title}`}
           >
-            {/* <div> */}
-            {/* FIXME: this Tooltip is breaking layout for its children */}
             <span className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
-                <span className="dialogItemNote" >{title}</span>
+              <span className="dialogItemNote" >{title}</span>
             </span>
             {reviewDetails}
-            {/* </div> */}
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
             <button className="closeButton" onClick={() => closeDialog(true)}>

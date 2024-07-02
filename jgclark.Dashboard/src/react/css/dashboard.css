@@ -380,7 +380,7 @@ dialog::backdrop {
 	/* a little internal padding to right */
 	padding: 1px 2px 0px 2px; /* 0px 3px 0px 0px; */
 	/* a little external margin */
-	margin: 2px 4px 0px 0px; /* 2px 6px 0px 0px;*/
+	margin: 2px 4px 2px 0px; /* 2px 6px 0px 0px;*/
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;

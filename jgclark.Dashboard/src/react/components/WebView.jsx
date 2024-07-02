@@ -7,7 +7,7 @@
 /**
  * IMPORTANT
  * YOU MUST ROLL UP THESE FILES INTO A SINGLE FILE IN ORDER TO USE IT IN THE PLUGIN
- * RUN FROM THE SHELL: node 'jgclark.DashboardReact/src/react/support/performRollup.node.js' --watch
+ * RUN FROM THE SHELL: node 'jgclark.Dashboard/src/react/support/performRollup.node.js' --watch
  */
 
 /****************************************************************************************************************************
@@ -28,8 +28,8 @@ import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { type TReactSettings, type TDropdownItem } from '../../types'
 import { parseSettings, getSettingsRedacted } from '../../shared.js'
-import {createDashboardSettingsItems} from '../../dashboardSettings'
-import {  createFilterDropdownItems } from './Header/filterDropdownItems.js'
+import { createDashboardSettingsItems } from '../../dashboardSettings'
+import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
 import { logDebug, clo, logInfo } from '@helpers/react/reactDev.js'
@@ -78,11 +78,11 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // sending this dispatch will re-render the Webview component with the new data
 
   const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
-  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings||"{}") || {}
+  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings || "{}") || {}
   const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings))
   const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.settings))
 
-  const combinedSettings = {...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings,...savedSharedSettings, lastChange: `_WebView_DefaultSettings`}
+  const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
   const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************

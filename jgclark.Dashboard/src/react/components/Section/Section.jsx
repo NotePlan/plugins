@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-06-29 for v2.0.0 by @jgclark
+// Last updated 2024-07-02 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -53,7 +53,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     if (!section) {
-      logError('Section', `❓No Section passed in.`)
+      logError('Section', `❓ No Section passed in.`)
       return
     }
 
@@ -120,20 +120,26 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
   section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
 
+  // Decrement the number of items to show if the last one is the filterIndicator
+  let numItemsToShow = itemsToShow.length
+  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
+
+  // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
   if (descriptionToUse.includes('{count}')) {
     if (limitApplied) {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(itemsToShow.length)}</span>`)
+      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(numItemsToShow)}</span>`)
     } else {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(itemsToShow.length)}</span>`)
+      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)}</span>`)
     }
   }
   if (descriptionToUse.includes('{totalCount}')) {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
   }
+
   // Pluralise item in description if neccesary
   if (descriptionToUse.includes('{s}')) {
-    if (itemsToShow.length >= 2) {
+    if (numItemsToShow >= 2) {
       descriptionToUse = descriptionToUse.replace('{s}', `s`)
     } else {
       descriptionToUse = descriptionToUse.replace('{s}', ``)
@@ -143,21 +149,21 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
-      <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${section.name}_Open Note Link`}  enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}>
-        <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
-          <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
-          {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
-          {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
-        </div>{' '}
+        <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${section.name}_Open Note Link`} enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}>
+          <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
+            <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
+            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
+            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
+          </div>{' '}
         </TooltipOnKeyPress>
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
-          {itemsToShow.length>1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${itemsToShow.length} ${section.name} tasks one at a time`}>
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks one at a time`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{itemsToShow.length}</span>
+                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
               </button>
             </>
           )}

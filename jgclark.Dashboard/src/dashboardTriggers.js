@@ -2,19 +2,23 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 29.2.2024 for v0.9.0 by @jgclark
+// Last updated 24.5.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { showDashboard } from './HTMLGeneratorGrid' // was './HTMLGenerator'
+import { incrementallyRefreshSections } from './clickHandlers'
+import { allSectionCodes } from './constants'
+import { type MessageDataObject, type TSectionCode } from './types'
 import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn, timer } from '@helpers/dev'
-// import { rangeToString } from '@helpers/general'
 import {
-  makeBasicParasFromContent,
-  // selectedLinesIndex
-} from '@helpers/NPParagraph'
+  getNPMonthStr,
+  getNPQuarterStr,
+  getNPWeekStr,
+  getTodaysDateUnhyphenated,
+} from '@helpers/dateTime'
+import { makeBasicParasFromContent } from '@helpers/NPParagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
-// import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { isOpen } from '@helpers/utils'
 
 /**
@@ -79,6 +83,38 @@ function haveOpenItemsChanged(note: TNote): boolean {
 // }
 
 /**
+ * Make array of calendar section codes and their current filename
+ * @returns {Array<{string, string}>}
+ */
+function makeFilenameToSectionCodeList(): Array<{ filename: string, sectionCode: TSectionCode }> {
+  const todayFilename = `${getTodaysDateUnhyphenated()}.md`
+  const FTSCList: Array<Object> = [{ sectionCode: 'DT', filename: todayFilename }]
+
+  const yesterday = new moment().subtract(1, 'days').toDate()
+  const yesterdayFilename = `${moment(yesterday).format('YYYYMMDD')}.md`
+  FTSCList.push({ sectionCode: 'DY', filename: yesterdayFilename })
+
+  const tomorrow = new moment().add(1, 'days').toDate()
+  const tomorrowFilename = `${moment(tomorrow).format('YYYYMMDD')}.md`
+  FTSCList.push({ sectionCode: 'DO', filename: tomorrowFilename })
+
+  const today = new moment().toDate()
+  const WDateStr = getNPWeekStr(today)
+  const weekFilename = `${WDateStr}.md`
+  FTSCList.push({ sectionCode: 'W', filename: weekFilename })
+
+  const MDateStr = getNPMonthStr(today)
+  const monthFilename = `${MDateStr}.md`
+  FTSCList.push({ sectionCode: 'M', filename: monthFilename })
+
+  const QDateStr = getNPQuarterStr(today)
+  const quarterFilename = `${QDateStr}.md`
+  FTSCList.push({ sectionCode: 'Q', filename: quarterFilename })
+
+  return FTSCList
+}
+
+/**
  * Decide whether to update Dashboard, to be called by an onSave or onChange trigger.
  * Decides whether the number of open items has changed, or if open item contents have changed.
  * But ignore if open items have just moved around.
@@ -109,6 +145,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     if (Editor.content && Editor.note) {
       // const latestContent = Editor.content ?? ''
       const noteReadOnly: CoreNoteFields = Editor.note
+
       // const previousContent = noteReadOnly.versions[0].content
       const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
       logDebug(
@@ -131,7 +168,20 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 
         // Update the dashboard
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
-        showDashboard('trigger') // indicate this comes from a trigger, so won't take focus
+        // Note: v1 following redraws whole window incrementally, which leaves flash or empty screen for a while
+        // showDashboardReact('trigger') // indicate this comes from a trigger, so won't take focus
+        // Note: v2 avoids flashing, because
+        // const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: allSectionCodes }
+        // const res = await incrementallyRefreshSections(data)
+        // v3 only update the section for this note (or if not found then all sections still)
+        const FTSCList = makeFilenameToSectionCodeList()
+        const filename = Editor.filename
+        // find element in FTSCList matching filename and return the sectionCode
+        const thisObject = FTSCList.find((obj) => obj.filename === filename)
+        const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
+        const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
+        // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
+        const res = await incrementallyRefreshSections(data, true)
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }
@@ -140,32 +190,5 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     }
   } catch (error) {
     logError(pluginJson, `decideWhetherToUpdateDashboard: ${error.name}: ${error.message}`)
-  }
-}
-
-/**
- * onOpen -- called when a note is opened and that note has an 'onOpen' trigger in its frontmatter
- * Note: doesn't currently do anything -- here for completeness
- * @param {TNote} note - current note in Editor
- */
-export async function onOpen(note: TNote): Promise<void> {
-  try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onOpen running for note:"${String(note.filename)}"`)
-    // Try to guard against infinite loops of opens/refreshing
-    // You can delete this code if you are sure that your onOpen trigger will not cause an infinite loop
-    // But the safest thing to do is put your code inside the if loop below to ensure it runs no more than once every 15s
-    const now = new Date()
-    if (Editor?.note?.changedDate) {
-      const lastEdit = new Date(Editor?.note?.changedDate)
-      if (now - lastEdit > 15000) {
-        logDebug(pluginJson, `onOpen ${timer(lastEdit)} since last edit`)
-        // Put your code here or call a function that does the work
-        // Note: doesn't currently do anything -- here for completeness
-      } else {
-        logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, `onOpen: ${JSP(error)}`)
   }
 }

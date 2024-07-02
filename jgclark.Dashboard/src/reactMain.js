@@ -42,7 +42,7 @@ export type PassedData = {
 // <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
 // <script>
 // /* you must set this before you import the CommsBridge file */
-// const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
+// const receivingPluginID = jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
 // // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
 // // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
@@ -96,7 +96,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)  
+  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
   try {
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
     if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
@@ -124,7 +124,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
     const config = await getCombinedSettings()
     clo(config, 'showDashboardReact: config=')
-    logDebug('showDashboardReact',`config.dashboardTheme="${config.dashboardTheme}"`)
+    logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -165,7 +165,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
-    const ENV_MODE = 'development' // 'development' /* helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'production' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
