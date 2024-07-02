@@ -32,7 +32,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - synced copies dated for today were duplicated
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
-
+<!--
 ## [2.0.0.b17] 2024-07-02
 - dbw: fix to have window darkened under dialog boxes
 - jgc/dbw: fix to main status icon positioning
@@ -453,6 +453,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.0.0-a1] @jgclark 2024-04-07
 - Brought across demoDashboard.js to experiment with forming JSON to sent to React
+-->
 
 ## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today
