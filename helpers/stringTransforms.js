@@ -129,8 +129,8 @@ export function stripDateRefsFromString(original: string): string {
 
 /**
  * Strip `>today` and scheduled dates of form `>YYYY-MM-DD` that point to today from the input string
- * TODO: write tests
  * @author @jgclark
+ * @tests in jest file
  * @param {string} original
  * @returns {string} altered string
  */
@@ -152,8 +152,8 @@ export function stripTodaysDateRefsFromString(original: string): string {
 
 /**
  * Strip refs to this week (of form `>YYYY-Www`) from the input string
- * TODO: tests
  * @author @jgclark
+ * @tests in jest file
  * @param {string} original
  * @returns {string} altered string
  */
@@ -244,7 +244,6 @@ export function stripHashtagsFromString(original: string): string {
 
 /**
  * Strip all @mentions from string,
- * TODO: deal with @mention(...) cases as well
  * TODO: write tests
  * @author @jgclark
  * @param {string} original

@@ -2,6 +2,22 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.6.3] - @dwertheimer
+
+- Reduce logging
+
+## [0.6.2] - @dwertheimer
+
+- Add guard for NP window closed (kills React rendering at Root)
+
+## [0.6.1] - @dwertheimer 
+
+- more logging to setTheme
+
+## [0.6.0] - @dwertheimer
+
+- add theme change route UPDATE_THEME
+
 ## [0.5.11] - @dwertheimer
 
 - Fix banners

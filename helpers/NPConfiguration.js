@@ -512,18 +512,17 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
 /**
  * Get a setting value from another plugin, or use a default
  * @author @jgclark
- * @param {string} pluginID 
- * @param {string} settingName 
- * @param {any} defaultValue 
+ * @param {string} pluginID
+ * @param {string} settingName
+ * @param {any} defaultValue
  * @returns {any}
  */
 // eslint-disable-next-line no-unused-vars
 export async function getSettingFromAnotherPlugin(pluginID: string, settingName: string, defaultValue: any): Promise<any> {
   try {
     const otherConfig: any = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    const thisSetting = (otherConfig?.settingName)
-      ? otherConfig.settingName : defaultValue
-    logDebug('getSettingFromAnotherPlugin', `-> ${typeof thisSetting}: ${thisSetting}`)
+    const thisSetting = otherConfig.settingName ?? defaultValue
+    logDebug('getSettingFromAnotherPlugin', `${pluginID}.${settingName} -> type:${typeof thisSetting}: ${thisSetting}`)
     return thisSetting
   } catch (error) {
     logError('getSettingFromAnotherPlugin', `getSettingFromAnotherPlugin: caught error: ${JSP(error)}`)

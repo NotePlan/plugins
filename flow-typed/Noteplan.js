@@ -96,7 +96,7 @@ declare interface TEditor extends CoreNoteFields {
    */
   replaceSelectionWithText(text: string): void;
   /**
-   * Opens a note using the given filename.
+   * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
    * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
    * Note: if the note doesn't exist, then returns null
@@ -123,7 +123,7 @@ declare interface TEditor extends CoreNoteFields {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,
-    createIfNeeded: true,
+    createIfNeeded: boolean,
     content?: string,
   ): Promise<TNote>;
   /**
@@ -567,7 +567,7 @@ declare class DataStore {
    *
    * @param {Date}
    * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
@@ -578,8 +578,9 @@ declare class DataStore {
    * Monthly: "YYYY-MM", example: "2022-10"
    * Yearly: "YYYY", example: "2022"
    * Note: Some available from v3.7.2
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
    * @param {string}
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDateString(dateString: string): ?TNote;
   /**
@@ -608,6 +609,8 @@ declare class DataStore {
   static noteByFilename(filename: string, type: NoteType): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
+   * Note: Can also move *folders* by specifying its filename (without trailing slash).
+   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
    * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    */
@@ -1991,7 +1994,7 @@ declare class HTMLView {
   // Impossible constructor.
   constructor(_: empty): empty;
   /**
-   * Show HTML in a NotePlan sheet.
+   * Show HTML in a sheet (e.g. mobile/iPad modal).
    * Note: Available from v3.6.2
    * @param {string} HTML to show
    * @param {number?} width (optional integer)
@@ -2064,10 +2067,10 @@ declare class HTMLView {
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
    * Note: Available in v3.8. Second parameter added in build 1089.
    * @param { string } code JS to execute
-   * @param { string } windowId ID of the HTML window to execute it in.
+   * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string, windowId: string): Promise | void;
+  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
@@ -2084,6 +2087,17 @@ declare class HTMLView {
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
 type Window = HTMLView | Editor
+
+// dbw commenting this out because it doesn't work and causes Flow errors
+// type document = {
+//   /**
+//    * Set the title of the HTML window.
+//    * Note: Available From 3.12 b1201.
+//    */
+//   title?: string,
+//   addEventListener?: any,
+//   removeEventListener?: any,
+// }
 
 type FetchOptions = {
   /* all optional */

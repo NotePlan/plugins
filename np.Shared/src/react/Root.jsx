@@ -20,12 +20,12 @@ declare var WebView: any // No props specified, use an empty object or specific 
 declare function runPluginCommand(command: string, id: string, args: Array<any>): void
 declare function sendMessageToPlugin(Array<string | any>): void
 
-type TWarning = {
-  warn: boolean,
-  msg?: string,
-  color?: string,
-  border?: string,
-}
+// type TWarning = {
+//   warn: boolean,
+//   msg?: string,
+//   color?: string,
+//   border?: string,
+// }
 /****************************************************************************************************************************
  *                             TYPES
  ****************************************************************************************************************************/
@@ -40,7 +40,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { logDebug, formatReactError, JSP } from '@helpers/react/reactDev'
+import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
 
@@ -74,6 +74,12 @@ export function Root(/* props: Props */): Node {
   const [history, setHistory] = useState([lastUpdated])
   // $FlowFixMe
   const tempSavedClicksRef = useRef<Array<TAnyObject>>([]) // temporarily store the clicks in the webview
+
+  // NP does not destroy windows on close. So if we have an autorefresh sending requests to NP, it will run forever
+  // So we do a check in sendToHTMLWindow to see if the window is still open
+  if (npData?.NPWindowID === false) {
+    throw new Error('Root: npData.NPWindowID is false; The window must have been closed. Stopping the React app. This is not a problem you need to worry about.')
+  }
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -139,6 +145,73 @@ export function Root(/* props: Props */): Node {
   }
 
   /**
+   * Replaces a stylesheet's content with a new stylesheet string.
+   * @param {string} oldName - The name or href of the stylesheet to be replaced.
+   * @param {string} newStyles - The new stylesheet string.
+   */
+  function replaceStylesheetContent(oldName: string, newStyles: string) {
+    // Convert the styleSheets collection to an array
+    const styleSheetsArray = Array.from(document.styleSheets)
+
+    // TODO: trying to replace a stylesheet that was loaded as part of the HTML page
+    // yields error: "This CSSStyleSheet object was not constructed by JavaScript"
+    // So unless we change the way this works to install the initial stylesheet in the HTML page,
+    // this approach won't work, so for now, we are going to add it as another stylesheet
+    // Find the stylesheet with the specified name or href
+    const oldSheet = styleSheetsArray.find((sheet) => sheet && sheet.title === oldName)
+    let wasSaved = false
+    // $FlowIgnore
+    if (oldSheet && typeof oldSheet.replaceSync === 'function') {
+      // Use replaceSync to replace the stylesheet's content
+      logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`)
+      try {
+        // $FlowIgnore
+        oldSheet.replaceSync(newStyles)
+        wasSaved = true
+      } catch (error) {
+        logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`)
+      }
+    }
+    if (!wasSaved) {
+      // If the old stylesheet is not found, create a new one
+      const newStyle = document.createElement('style')
+      newStyle.title = oldName
+      newStyle.textContent = newStyles
+      document?.head?.appendChild(newStyle)
+      // Check to make sure it's there
+      testOutputStylesheets()
+      const styleElement = document.querySelector(`style[title="${oldName}"]`)
+      if (styleElement) {
+        logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document')
+      } else {
+        logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document")
+      }
+    }
+  }
+
+  // Function to get the first 55 characters of each stylesheet's content
+  function testOutputStylesheets() {
+    const styleSheets = document.styleSheets
+    for (let i = 0; i < styleSheets.length; i++) {
+      const styleSheet = styleSheets[i]
+      try {
+        // $FlowIgnore
+        const rules = styleSheet.cssRules || styleSheet.rules
+        let cssText = ''
+        // $FlowIgnore
+        for (let j = 0; j < rules.length; j++) {
+          // $FlowIgnore
+          cssText += rules[j].cssText
+          if (cssText.length >= 55) break
+        }
+        logDebug(`CHANGE_THEME StyleSheet ${i}: "${styleSheet.title ?? ''}": ${cssText.substring(0, 55).replace(/\n/g, '')}`)
+      } catch (e) {
+        console.warn(`Unable to access stylesheet: ${styleSheet.href}`, e)
+      }
+    }
+  }
+
+  /**
    * This is effectively a reducer we will use to process messages from the plugin
    * And also from components down the tree, using the dispatch command
    */
@@ -180,6 +253,12 @@ export function Root(/* props: Props */): Node {
               setNPData((prevData) => ({ ...prevData, ...payload }))
               globalSharedData = { ...globalSharedData, ...payload }
               break
+            case 'CHANGE_THEME': {
+              const { themeCSS } = payload
+              logDebug(`Root`, `CHANGE_THEME changing theme to "${themeCSS.substring(0, 55)}"...`)
+              replaceStylesheetContent('Updated Theme Styles', themeCSS)
+              break
+            }
             case 'SHOW_BANNER':
               if (npData.passThroughVars.lastWindowScrollTop) {
                 logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
@@ -232,7 +311,7 @@ export function Root(/* props: Props */): Node {
       if (!action) throw new Error('sendToPlugin: command/action must be called with a string')
       // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object')
-      console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
+      // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
       const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
       runPluginCommand(command, id, [action, data, additionalDetails])
     },

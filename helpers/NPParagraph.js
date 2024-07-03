@@ -26,7 +26,9 @@ import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
+import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen } from '@helpers/utils'
+// import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -1356,7 +1358,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
           }
           c++
         }
-        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} to complete`)
+        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} in note '${filename}'`)
         return false
       } else {
         logInfo('NPP/findParaFromStringAndFilename', `Note '${filename}' appears to be empty?`)
@@ -1375,6 +1377,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * TODO: Cope with non-daily scheduled dates.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
@@ -1403,6 +1406,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     }
     const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
 
+    // Remove >today if present
+    para.content = stripTodaysDateRefsFromString(para.content)
+
     if (para.type === 'open') {
       para.type = 'done'
       para.content += doneString
@@ -1426,6 +1432,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 
 /**
  * Change para type of the given paragraph to cancelled (for both tasks/checklists)
+ * TODO: extend to cancel sub-items as well if wanted.
  * @param {TParagraph} para
  * @returns {boolean} success?
  */
@@ -1458,6 +1465,7 @@ export function markCancelled(para: TParagraph): boolean {
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1487,6 +1495,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date' - but uses completion date of the day it was scheduled to be done.
+ * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1509,6 +1518,7 @@ export function completeItemEarlier(filenameIn: string, content: string): boolea
 /**
  * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * TODO: extend to cancel sub-items as well if wanted.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1524,6 +1534,35 @@ export function cancelItem(filenameIn: string, content: string): boolean {
     return markCancelled(possiblePara)
   } catch (error) {
     logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Delete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * TODO: extend to delete sub-items as well if wanted.
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * @author @jgclark
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export async function deleteItem(filenameIn: string, content: string): Promise<boolean> {
+  try {
+    // logDebug('NPP/deleteItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
+      return false
+    }
+    // Check with user, as this is hard to recover from
+    const res = await showMessageYesNo(`Do you really wish to delete paragraph "${possiblePara.content}" from note "${displayTitle(possiblePara.note)}"`, ['Yes', 'No'], `Warning`)
+    if (res === 'Yes') {
+      possiblePara.note?.removeParagraph(possiblePara)
+      return true
+    }
+    return false
+  } catch (error) {
+    logError(pluginJson, `NPP/deleteItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
@@ -1832,3 +1871,23 @@ export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: A
 
   return indentedParas
 }
+
+/**
+ * Returns an array of all "open" paragraphs and their children without duplicates.
+ * Children will adhere to the NotePlan API definition of children()
+ * Only tasks can have children, but any paragraph indented underneath a task
+ * can be a child of the task. This includes bullets, tasks, quotes, text.
+ * Children are counted until a blank line, HR, title, or another item at the
+ * same level as the parent task. So for items to be counted as children, they
+ * need to be contiguous vertically.
+ * @param {Array<TParagraph>} paragraphs - The initial array of paragraphs.
+ * @return {Array<TParagraph>} - The new array containing all unique "open" paragraphs and their children in lineIndex order.
+ */
+export const getOpenTasksAndChildren = (paragraphs: Array<TParagraph>): Array<TParagraph> => [
+  ...new Map(
+    paragraphs
+      .filter((p) => p.type === 'open') // Filter paragraphs with type "open"
+      .flatMap((p) => [p, ...p.children()]) // Flatten the array of paragraphs and their children
+      .map((p) => [p.lineIndex, p]), // Map each paragraph to a [lineIndex, paragraph] pair
+  ).values(),
+] // Extract the values (unique paragraphs) from the Map and spread into an array

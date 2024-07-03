@@ -7,7 +7,7 @@
 
 const PARAM_BLACKLIST = ['note', 'referencedBlocks', 'availableThemes', 'currentTheme', 'linkedNoteTitles', 'linkedItems'] // fields not to be traversed (e.g. circular references)
 
-const dt = (): string => {
+export const dt = (): string => {
   const d = new Date()
 
   const pad = (value: number): string => {
@@ -328,6 +328,20 @@ const _message = (message: any): string => {
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
 const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
 
+export const shouldOutputForLogLevel = (logType: string): boolean => {
+  let userLogLevel = 1
+  const thisMessageLevel = LOG_LEVELS.indexOf(logType)
+  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
+  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+  if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+    // eslint-disable-next-line
+    userLogLevel = pluginSettings['_logLevel']
+  }
+  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
+  return thisMessageLevel >= userLogLevelIndex
+}
+
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
  * @author @codedungeon
@@ -358,20 +372,10 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
       msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
     }
   }
-  let userLogLevel = 1
-
-  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
-  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
-  if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
-    // eslint-disable-next-line
-    userLogLevel = pluginSettings['_logLevel']
-  }
-
-  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
-  if (thisMessageLevel >= userLogLevelIndex) {
+  if (shouldOutputForLogLevel(type)) {
     console.log(msg)
   }
+
   return msg
 }
 

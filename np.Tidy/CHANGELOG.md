@@ -1,8 +1,8 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.14.1] - 2024-06-10 ??? @jgclark
-- Rebuild as a result of a new RepeatExtensions release.
+## [0.14.1] - 2024-06-14 @jgclark
+- Re-build following updates to Repeat Extensions, which this uses.
 
 ## [0.14.0] - 2024-06-07 @jgclark
 - New **/Generate @repeats in recent notes** command generates any needed new @repeat() lines in all recently-changed notes. This is great for people using the extended @repeat() syntax of the separate [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md), who don't need to use triggers on notes, if they can run this instead every day or two.

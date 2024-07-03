@@ -3,6 +3,11 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
+## Unreleased
+- fix to edge case with in getNextNoteToReview() for Dashboard plugin
+- when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
+- under the hood changes to suit Dashboard 2.0
+
 ## [0.14.0] - 2024-04-???
 ### Added
 - edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window

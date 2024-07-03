@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 3.4.2024 for v0.14.0, @jgclark
+// Last updated 24.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,7 +42,7 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeNote } from '@helpers/note'
+import { filterOutProjectNotesFromExcludedFolders, getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import {
@@ -1335,7 +1335,7 @@ export async function skipReview(): Promise<void> {
   }
 }
 
-export async function skipReviewForNote(note: TNote, skipPeriod: string): Promise<void> {
+export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1344,17 +1344,22 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
 
-    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)}`)
+    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)} with ${skipIntervalOrDate}`)
+
     const thisNoteAsProject = new Project(note)
 
-    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
-      ? calcOffsetDateStr(todaysDateISOString, skipPeriod)
-      : ''
+    // Get new date from parameter as date interval or iso date 
+    const newDateStr: string = skipIntervalOrDate.match(RE_DATE_INTERVAL)
+      ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
+      : skipIntervalOrDate.match(RE_DATE)
+        ? skipIntervalOrDate
+        : ''
     if (newDateStr === '') {
-      logWarn('skipReviewForNote', `${skipPeriod} is not a valid interval, so will stop.`)
+      logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
       return
     }
+
+    // create new metadata`@nextReview(date)`. Note: different from `@reviewed(date)` below.
     const nextReviewDate = getDateObjFromDateString(newDateStr)
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReviewForNote', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
@@ -1380,6 +1385,67 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
     await renderProjectLists(config, false)
   } catch (error) {
     logError('skipReviewForNote', error.message)
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
+ * Set a new review interval the note open in the Editor, by asking user.
+ * Note: see below for a non-interactive version that takes parameters
+ * @author @jgclark
+ * @param {TNote?} noteArg 
+ */
+export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
+  try {
+    logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
+    const currentNote: TNote = noteArg ? noteArg : Editor
+    if (!currentNote || currentNote.type !== 'Notes') {
+      throw new Error(`Not in a Project note (at least 2 lines long)`)
+    }
+    const thisNoteAsProject = new Project(currentNote)
+
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    // Ask for new date interval
+    const reply = await getInputTrimmed("Next review interval (e.g. '2w' or '3m') to set", 'OK', 'Set new review interval')
+    if (!reply || typeof reply === 'boolean') {
+      logDebug('setNewReviewInterval', `User cancelled command.`)
+      return
+    }
+    // Get new date interval
+    const newIntervalStr: string = reply.match(RE_DATE_INTERVAL) ? reply : ''
+    if (newIntervalStr === '') {
+      logError('setNewReviewInterval', `No valid interval entered, so will stop.`)
+      return
+    }
+    logDebug('setNewReviewInterval', `- intervals: existing = ${thisNoteAsProject.reviewInterval ?? '-'} / new = ${newIntervalStr}`)
+
+    // Update metadata in the current open note in Editor, or the given note
+    if (!noteArg) {
+      logDebug('setNewReviewInterval', `- updating metadata in Editor`)
+      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      // Save Editor, so the latest changes can be picked up elsewhere
+      // Putting the Editor.save() here, rather than in the above functions, seems to work
+      await saveEditorToCache(null)
+    } else {
+      logDebug('setNewReviewInterval', `- updating metadata in note`)
+      const res = await updateMetadataInNote(currentNote, [`@review(${newIntervalStr})`])
+    }
+
+    // Update the full-review-list too
+    thisNoteAsProject.reviewInterval = newIntervalStr
+    thisNoteAsProject.calcDurations()
+    thisNoteAsProject.calcNextReviewDate()
+    logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+    const newMSL = thisNoteAsProject.machineSummaryLine()
+    logDebug('setNewReviewInterval', `- updatedMachineSummaryLine => '${newMSL}'`)
+    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+
+    // Update list for user (if open)
+    await renderProjectLists(config, false)
+  } catch (error) {
+    logError('setNewReviewInterval', error.message)
   }
 }
 
@@ -1540,14 +1606,14 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
  * Note: This is a variant of the original singular version above
  * @author @jgclark
- * @param { number } numToReturn first n notes to return
+ * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
  * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
  */
-export function getNextNotesToReview(numToReturn: number): Array<TNote> {
+export async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-
+    // $FlowFixMe[incompatible-type] reason for suppression
+    const config: ReviewConfig = await getReviewSettings()
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
@@ -1576,10 +1642,11 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
         // Get items with review due before today, or today etc.
         if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
           if (nextNotes.length > 0) {
-            notesToReview.push(nextNotes[0]) // add first matching note
-            if (notesToReview.length >= numToReturn) {
+            const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
+            logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
+            notesToReview.push(noteToUse) // add first matching note
+            if ((numToReturn > 0) && (notesToReview.length >= numToReturn)) {
               break // stop processing the loop
             }
           } else {
@@ -1606,7 +1673,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    logDebug('toggleDisplayFinished', `starting with pref='${DataStore.preference('Reviews-DisplayFinished') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-DisplayFinished') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayFinished'))
     const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
     const newValue = !savedValue
@@ -1625,7 +1692,7 @@ export async function toggleDisplayFinished(): Promise<void> {
 
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyDue', `starting with pref='${DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayOnlyDue'))
     const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     const newValue = !savedValue

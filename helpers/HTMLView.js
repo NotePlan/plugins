@@ -5,7 +5,7 @@
 // Last updated 1.4.2024 by @jgclark
 // ---------------------------------------------------------
 
-import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
@@ -41,7 +41,8 @@ export type HtmlWindowOptions = {
 // - to make windows always responsive
 const fixedMetaTags = `
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">
+
 `
 
 // ---------------------------------------------------------
@@ -296,7 +297,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
       fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
     }
     fullHTML.push(winOpts.headerTags ?? '')
-    fullHTML.push('<style type="text/css">')
+    fullHTML.push('<style type="text/css" title="Original Theme Styles">')
     // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
@@ -568,7 +569,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       }
 
       // Double-check: read back from the window itself
-      logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+      logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}"`)
       return win
     }
   } catch (error) {
@@ -667,9 +668,17 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  */
 export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): any {
   try {
-    const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
+    const windowExists = isHTMLWindowOpen(windowId)
+    if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
+    const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
+    const dataWithUpdated = {
+      ...data,
+      ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } },
+      NPWindowID: windowExists ? windowId : undefined,
+    }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to window: "${windowId}"`)
+    // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
+    // const start = new Date()
     const result = await HTMLView.runJavaScript(
       `window.postMessage(
         {
@@ -678,8 +687,9 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
         },
         '*'
       );`,
-      windowId,
+      windowIdToSend,
     )
+    // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
@@ -699,7 +709,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  */
 export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
-    logDebug(pluginJson, `getGlobalSharedData getting var:${varName} from window:${windowId}`)
+    // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue

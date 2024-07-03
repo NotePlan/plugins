@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 30.3.2024 for v0.14.0, @jgclark
+// Last updated 28.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -108,7 +108,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayOnlyDue', false)
     // }
-    logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
+    // logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
 
     // TODO(later): remove this when checkboxes do work
     DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
@@ -119,7 +119,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayFinished', true)
     // }
-    logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    // logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
   } catch (err) {
@@ -367,7 +367,7 @@ export class Project {
   dueDate: ?Date
   dueDays: number = NaN
   reviewedDate: ?Date
-  reviewInterval: ?string
+  reviewInterval: string // later will default to '1w' if needed
   nextReviewDate: ?Date
   nextReviewDateStr: ?string // can be set by user (temporarily) but not otherwise populated
   nextReviewDays: number = NaN
@@ -389,7 +389,7 @@ export class Project {
   mostRecentProgressLineIndex: number = NaN
   ID: string // required when making HTML views
 
-  constructor(note: TNote, noteTypeTag?: string) {
+  constructor(note: TNote, noteTypeTag: string = '', checkEditor: boolean = true) {
     try {
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
@@ -397,19 +397,20 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '?'}:`)
+      // logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
 
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
+      // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
       let paras: $ReadOnlyArray<TParagraph>
-      if (Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
+      if (checkEditor && Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
         const noteReadOnly: CoreNoteFields = Editor.note
         paras = noteReadOnly.paragraphs
         const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-        logDebug('Project constructor', `- using EDITOR (${Editor.filename}) for this note, last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('Project constructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
@@ -464,7 +465,8 @@ export class Project {
       this.cancelledDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
       // read in review interval (if found)
       const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
-      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
+      // $FlowIgnore[incompatible-type]
+      this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : '1w'
       // read in nextReview date (if found)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
@@ -720,7 +722,7 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  async completeProject(): Promise<string> {
+  completeProject(): string {
     try {
       // update the metadata fields
       // this.isActive = false
@@ -739,8 +741,6 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // await saveEditorToCache(null)
-      // TEST:
       DataStore.updateCache(this.note)
 
       const newMSL = this.machineSummaryLine()
@@ -759,7 +759,7 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  async cancelProject(): Promise<string> {
+  cancelProject(): string {
     try {
       // update the metadata fields
       // this.isActive = false
@@ -778,8 +778,6 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // await saveEditorToCache(null)
-      // TEST:
       DataStore.updateCache(this.note)
 
       const newMSL = this.machineSummaryLine()
@@ -888,13 +886,13 @@ export class Project {
 
   /**
    * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
-   * Supports 'Markdown' or 'HTML' styling.
-   * @param {string} style 'Markdown' or 'HTML'
+   * Supports 'Markdown' or 'HTML' styling or simpler 'list' styling
+   * @param {string} style 'Markdown' or 'HTML' or 'list'
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
    */
   decoratedProjectTitle(style: string, includeFolderName: boolean): string {
-    const folderNamePart = includeFolderName ? `${this.folder} ` : ''
+    const folderNamePart = includeFolderName ? `${this.folder} / ` : ''
     const titlePart = this.title ?? '(error, not available)'
     // const titlePartEncoded = encodeURIComponent(this.title) ?? '(error, not available)'
     switch (style) {
@@ -932,6 +930,18 @@ export class Project {
         }
       }
 
+      case 'list': {
+        if (this.isCompleted) {
+          return `${folderNamePart}[[${titlePart}]]`
+        } else if (this.isCancelled) {
+          return `~~${folderNamePart}[[${titlePart}]]~~`
+        } else if (this.isPaused) {
+          return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
+        } else {
+          return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
+        }
+      }
+
       default:
         logWarn('Project::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
         return ''
@@ -939,7 +949,7 @@ export class Project {
   }
 
   /**
-   * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats.
+   * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
    * Now uses fontawesome icons for some indicators.
    * @param {string} style
    * @param {boolean} includeFolderName
@@ -1036,8 +1046,7 @@ export class Project {
       }
       output += '\n\t</tr>'
     }
-
-    else if (style === 'Markdown') {
+    else if (style === 'Markdown' || style === 'list') {
       output = '- '
       output += `${this.decoratedProjectTitle(style, includeFolderName)}`
       // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
@@ -1057,7 +1066,6 @@ export class Project {
         }
       }
       if (displayProgress && !this.isCompleted && !this.isCancelled) {
-        // const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
         // Show progress comment if available ...
         if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
           output += `\t${thisPercent} done: ${this.lastProgressComment}`
@@ -1065,8 +1073,6 @@ export class Project {
         // ... else show stats
         else {
           output += `\t${statsProgress}`
-          // Older more detailed stats:
-          // output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
         }
       }
       if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
@@ -1079,8 +1085,8 @@ export class Project {
             : output
       }
     } else {
-        logWarn('Project::detailedSummaryLine', `Unknown style '${style}'; nothing returned.`)
-        output = ''
+      logWarn('Project::detailedSummaryLine', `Unknown style '${style}'; nothing returned.`)
+      output = ''
     }
     return output
   }
@@ -1235,7 +1241,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
       const mentionName = item.split('(', 1)[0]
       // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
       // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
       updatedLine += ` ${item}`
@@ -1257,8 +1263,9 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
 }
 
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the given note.
  * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * Note: additional complexity as '@review' starts the same as '@reviewed'
  * @author @jgclark
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
@@ -1287,7 +1294,7 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
       const mentionName = item.split('(', 1)[0]
       logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
       // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}\\([\\w\\-\\.]+\\)`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
       updatedLine += ` ${item}`

@@ -1,8 +1,9 @@
 /* globals describe, expect, test */
 
-// Last updated: 2.2.2023 by @jgclark
+// Last updated: 11.6.2024 by @jgclark
 
 import colors from 'chalk'
+import { getNPWeekStr, getTodaysDateHyphenated } from '../dateTime'
 import * as st from '../stringTransforms'
 
 // TODO: Get following working if its important:
@@ -233,6 +234,74 @@ describe(`${PLUGIN_NAME}`, () => {
         const before = 'baz >2022-01 >2022-Q1 test >2022-Q2 foo >2022 >2022-01-01'
         const expected = `baz test foo`
         const result = st.stripDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /* 
+     * stripTodaysDateRefsFromString() 
+     */
+    describe('stripTodaysDateRefsFromString()' /* function */, () => {
+      test('should not strip anything', () => {
+        const before = 'this has no date refs'
+        const expected = before
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip >today', () => {
+        const before = 'test >today stuff'
+        const expected = `test stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip todays date as scheduled ISO', () => {
+        const today_ISO = getTodaysDateHyphenated()
+        const before = `test >${today_ISO} stuff`
+        const expected = `test stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip a different ISO date', () => {
+        const before = `test >2020-01-01 stuff`
+        const expected = `test >2020-01-01 stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /* 
+     * stripThisWeeksDateRefsFromString() 
+     */
+    describe('stripThisWeeksDateRefsFromString()' /* function */, () => {
+      test('should not strip anything', () => {
+        const before = 'this has no date refs'
+        const expected = before
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip >today', () => {
+        const before = 'test >today stuff'
+        const expected = 'test >today stuff'
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip an ISO date', () => {
+        const before = `test >2020-01-01 stuff`
+        const expected = `test >2020-01-01 stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip todays date as scheduled ISO', () => {
+        const thisWeekStr = getNPWeekStr(new Date())
+        const before = `test >${thisWeekStr} stuff`
+        const expected = `test stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip a different week ref', () => {
+        const before = `test >2020-13 stuff`
+        const expected = `test >2020-13 stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
         expect(result).toEqual(expected)
       })
     })

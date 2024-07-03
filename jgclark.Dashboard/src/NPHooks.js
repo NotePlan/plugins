@@ -2,11 +2,10 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { showDashboard } from './HTMLGeneratorGrid'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getCombinedSettings, setPluginData } from './dashboardHelpers'
+import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -17,19 +16,6 @@ import { showMessage } from '@helpers/userInput'
  *
  */
 
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings started`)
-    const res = await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -40,7 +26,7 @@ export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall started`)
     // Tell user the plugin has been updated
-      await updateSettingData(pluginJson)
+    await updateSettingData(pluginJson)
     await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
@@ -65,17 +51,24 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
+  const combinedSettings = await getCombinedSettings()
+  clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.settings to combinedSettings')
+  await setPluginData({ settings: combinedSettings }, '_settings were updated')
+  return
+}
+
+/**
+ * Update Settings/Preferences (for iOS/iPadOS)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings(): Promise<void> {
   try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated started`)
-    // If v3.11+, can now refresh Dashboard
-    if (NotePlan.environment.buildVersion >= 1181) {
-      if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-        logDebug(pluginJson, `will refresh Dashboard as it is open`)
-        await showDashboard('refresh', false) // probably don't need await
-      }
-    }
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
   } catch (error) {
-    logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+    logError(pluginJson, JSP(error))
   }
 }
 

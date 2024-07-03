@@ -159,11 +159,7 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
 export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 'month' | 'quarter' | 'year' {
   if (note.type === 'Calendar') {
     return (
-      (isDailyNote(note) && 'day') ||
-      (isWeeklyNote(note) && 'week') ||
-      (isMonthlyNote(note) && 'month') ||
-      (isQuarterlyNote(note) && 'quarter') ||
-      (isYearlyNote(note) && 'year')
+      (isDailyNote(note) && 'day') || (isWeeklyNote(note) && 'week') || (isMonthlyNote(note) && 'month') || (isQuarterlyNote(note) && 'quarter') || (isYearlyNote(note) && 'year')
     )
   }
   return false // all other cases
@@ -195,6 +191,7 @@ export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDU
  * @param {?string | null} replaceWith - the string to add to the end (if nothing sent, will use >todaysDate)
  * @returns {string} string with the replacements made, and trimmed
  * @author @dwertheimer
+ * @tests in jest file
  */
 export function replaceArrowDatesInString(inString: string, replaceWith: string | null = null): string {
   let str = inString
@@ -203,8 +200,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
-  // $FlowIgnore[incompatible-type]
-  // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
+  // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith ? replaceWith : 'null'}, repl=${repl ? repl : 'null'}`)
   // TODO: could this be done by .replace(RE_SCHEDULED_DATES_G) instead?
   while (str && isScheduled(str)) {
     str = str
@@ -218,7 +214,6 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .replace(/ {2,}/g, ' ')
       .trim()
   }
-  // $FlowIgnore[incompatible-type]
   // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
@@ -703,8 +698,8 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
   if (timeParts.length !== 3 || dateParts.length !== 3) {
     throw `dateTimeString "${dateTimeString}" is not in expected format`
   }
-  timeParts = timeParts.map((t) => Number(t))
-  dateParts = dateParts.map((d) => Number(d))
+  timeParts = timeParts.map((t) => parseInt(t))
+  dateParts = dateParts.map((d) => parseInt(d))
   dateParts[1] = dateParts[1] - 1 // Months is an index from 0-11
   const date = new Date(...dateParts, ...timeParts)
   if (date.toString() === 'Invalid Date') {
@@ -812,7 +807,7 @@ export function getWeek(inDate: Date): number {
 /**
  * WARNING: Only for use where Monday is the user's first day of the week. See NPdateTime::getNPWeekData() for use with other days of the week.
  * @param {Date} inDate
- * @returns string
+ * @returns {string}
  */
 export function getNPWeekStr(inDate: Date): string {
   // Using 'moment' library, with Monday first day of week
@@ -820,20 +815,32 @@ export function getNPWeekStr(inDate: Date): string {
   return dateMoment.format(MOMENT_FORMAT_NP_WEEK)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPMonthStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_MONTH)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPQuarterStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_QUARTER)
 }
 
+/**
+ * @param {Date} inDate
+ * @returns {string}
+ */
 export function getNPYearStr(inDate: Date): string {
-  // Using 'moment' library
+  // Using 'moment' library instead of NP calls
   const dateMoment = moment(inDate)
   return dateMoment.format(MOMENT_FORMAT_NP_YEAR)
 }
@@ -1042,13 +1049,9 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 export function splitIntervalToParts(intervalStr: string): { number: number, type: string } {
   const interval = intervalStr.replace(/[{}]/g, '')
   const intervalNumber = Number(interval.slice(0, interval.length - 1))
-  const intervalChar = interval.charAt(interval.length - 1);
-  const intervalType = (intervalChar === 'd') ? 'day'
-    : (intervalChar === 'w') ? 'week'
-      : (intervalChar === 'm') ? 'month'
-        : (intervalChar === 'q') ? 'quarter'
-          : (intervalChar === 'y') ? 'year'
-            : 'error'
+  const intervalChar = interval.charAt(interval.length - 1)
+  const intervalType =
+    intervalChar === 'd' ? 'day' : intervalChar === 'w' ? 'week' : intervalChar === 'm' ? 'month' : intervalChar === 'q' ? 'quarter' : intervalChar === 'y' ? 'year' : 'error'
   const intervalParts = { number: intervalNumber, type: intervalType }
   return intervalParts
 }
@@ -1127,7 +1130,10 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
-      logInfo('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`)
+      logInfo(
+        'dateTime / cODS',
+        `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`,
+      )
       logDebug(
         'dateTime / cODS',
         `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,
@@ -1256,40 +1262,100 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
  * @author @jgclark
  *
  * @param {string} line to search in
+ * @param {string?} fromDateStr - optional date to compare against (defaults to today's date) -- format 8601 (YYYY-MM-DD)
  * @return {boolean}
  * @test - available in jest file
  */
-export function includesScheduledFutureDate(line: string): boolean {
+export function includesScheduledFutureDate(line: string, fromDateStr?: string): boolean {
   // Test for days
   let m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return ISODateFromMatch > todaysDateISOString
+    // logDebug(`includesScheduledFutureDate / ISODateFromMatch > todaysDateISOString : ${ISODateFromMatch} > ${todaysDateISOString}`)
+    return ISODateFromMatch > (fromDateStr ?? todaysDateISOString)
   }
   // Test for weeks
   m = line.match(RE_SCHEDULED_WEEK_NOTE_LINK) ?? []
   if (m.length > 0) {
     const weekDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return weekDateFromMatch > getNPWeekStr(new Date())
+    return weekDateFromMatch > getNPWeekStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for months
   m = line.match(RE_SCHEDULED_MONTH_NOTE_LINK) ?? []
   if (m.length > 0) {
     const monthDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return monthDateFromMatch > getNPMonthStr(new Date())
+    return monthDateFromMatch > getNPMonthStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for quarters
   m = line.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) ?? []
   if (m.length > 0) {
     const quarterDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return quarterDateFromMatch > getNPQuarterStr(new Date())
+    return quarterDateFromMatch > getNPQuarterStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
   // Test for years
   m = line.match(RE_SCHEDULED_YEARLY_NOTE_LINK) ?? []
   if (m.length > 0) {
     const yearDateFromMatch = m[0].slice(1) // need to remove leading '>'
-    return yearDateFromMatch > getNPYearStr(new Date())
+    return yearDateFromMatch > getNPYearStr(fromDateStr ? new Date(fromDateStr) : new Date())
   }
+  return false
+}
+
+/**
+ * Checks if the given filename is in a future note.
+ *
+ * @param {string} filename - The filename to check.
+ * @param {string} [fromUnhyphenatedDate=getTodaysDateUnhyphenated()] - The date to compare against, in unhyphenated format (YYYYMMDD).
+ * @returns {boolean} - Returns true if the filename is scheduled in a future note.
+ */
+export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: string = getTodaysDateUnhyphenated()): boolean {
+  const today = new Date(parseInt(fromUnhyphenatedDate.slice(0, 4)), parseInt(fromUnhyphenatedDate.slice(4, 6), 10) - 1, parseInt(fromUnhyphenatedDate.slice(6, 8), 10))
+
+  // Test for daily notes
+  if (filename.match(RE_DAILY_NOTE_FILENAME)) {
+    const dateMatch = filename.match(RE_DAILY_NOTE_FILENAME)
+    if (dateMatch) {
+      const dailyDate = dateMatch[0].match(/\d{8}/)?.[0] ?? ''
+      return dailyDate > fromUnhyphenatedDate
+    }
+  }
+
+  // Test for weekly notes
+  if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+    const weekDateMatch = filename.match(RE_WEEKLY_NOTE_FILENAME)
+    if (weekDateMatch) {
+      const weeklyDate = weekDateMatch[0].match(/\d{4}-W\d{2}/)?.[0] ?? ''
+      return weeklyDate > getNPWeekStr(today)
+    }
+  }
+
+  // Test for monthly notes
+  if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
+    const monthDateMatch = filename.match(RE_MONTHLY_NOTE_FILENAME)
+    if (monthDateMatch) {
+      const monthlyDate = monthDateMatch[0].match(/\d{4}-\d{2}/)?.[0] ?? ''
+      return monthlyDate > getNPMonthStr(today)
+    }
+  }
+
+  // Test for quarterly notes
+  if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
+    const quarterDateMatch = filename.match(RE_QUARTERLY_NOTE_FILENAME)
+    if (quarterDateMatch) {
+      const quarterlyDate = quarterDateMatch[0].match(/\d{4}-Q\d/)?.[0] ?? ''
+      return quarterlyDate > getNPQuarterStr(today)
+    }
+  }
+
+  // Test for yearly notes
+  if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
+    const yearDateMatch = filename.match(RE_YEARLY_NOTE_FILENAME)
+    if (yearDateMatch) {
+      const yearlyDate = yearDateMatch[0].match(/\d{4}/)?.[0]
+      return yearlyDate > getNPYearStr(today)
+    }
+  }
+
   return false
 }
 
@@ -1462,4 +1528,41 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
     value: format(i['d'], formats[i['vf']]),
   }))
   return options
+}
+// @flow
+// Show relative time
+// TODO: use MOMENT moment.duration(-1, "minutes").humanize(true);
+// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
+// or https://theprogrammingexpert.com/javascript-count-up-timer/
+// import { logDebug } from '@helpers/react/reactDev.js'
+/**
+ * Calculates how long ago a given timestamp occurred.
+ * @param {Date} pastDate - date of the past time to evaluate.
+ * @returns {string} - A human-readable string indicating time elapsed.
+ */
+export function getTimeAgoString(pastDate: Date): string {
+  const pastDateTimestamp: number = new Date(pastDate).getTime()
+  const nowTimestamp: number = Date.now()
+  const diff: number = Math.round((nowTimestamp - pastDateTimestamp) / 1000) / 60 // Convert to minutes
+
+  let output = ''
+  if (diff <= 0.1) {
+    output = 'just now'
+  } else if (diff <= 1) {
+    output = '<1 min ago'
+  } else if (diff < 1.5) {
+    output = '1 min ago'
+  } else if (diff <= 90) {
+    output = `${Math.round(diff)} mins ago`
+  } else if (diff <= 1440) {
+    output = `${Math.round(diff / 60)} hours ago`
+  } else if (diff <= 43776) {
+    output = `${Math.round(diff / 1440)} days ago`
+  } else if (diff <= 525312) {
+    output = `${Math.round(diff / 43800)} mon ago`
+  } else {
+    output = `${Math.round(diff / 525600)} yrs ago`
+  }
+
+  return output
 }

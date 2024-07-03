@@ -1,41 +1,39 @@
-/* eslint-disable require-await */
 // @flow
 
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 4.4.2024 for v1.1.2, @jgclark
+// last updated 2.7.2024 for v2.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
-export { getDemoDataForDashboard } from './demoDashboard'
-export {
-  addTask, addChecklist,
-  refreshDashboard,
-  showDashboard,
-  showDemoDashboard,
-  // resetDashboardWinSize,
-} from './HTMLGeneratorGrid' // previously: './HTMLGenerator'
-export {
-  togglePriorityFilter,
-  toggleMonthSection,
-  toggleOverdueSection,
-  toggleQuarterSection,
-  toggleTomorrowSection,
-  toggleWeekSection,
-  turnOnAllSections,
-} from './settingControllers'
-export {
-  scheduleAllOverdueOpenToToday,
-  scheduleAllTodayTomorrow,
-  scheduleAllYesterdayOpenToToday
-} from './dashboardHelpersWithRefresh'
-export { onMessageFromHTMLView } from './pluginToHTMLBridge'
-export { getDataForDashboard } from './dataGeneration'
+/**
+ * Imports
+ */
+// allow changes in plugin.json to trigger recompilation
+// import pluginJson from '../plugin.json'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+// // import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+// import { isHTMLWindowOpen, logWindowsList } from '@helpers/NPWindows'
+// import { showMessage } from '@helpers/userInput'
+
+/**
+ * Command Exports
+ */
+export { editSettings } from '@helpers/NPSettings'
 
 /**
  * Other imports/exports
  */
 // eslint-disable-next-line import/order
-export { onOpen, decideWhetherToUpdateDashboard } from './dashboardTriggers'
-export { editSettings } from '@helpers/NPSettings'
+export { setSetting } from './dashboardHelpers.js'
+
+export { decideWhetherToUpdateDashboard } from './dashboardTriggers.js'
+
+export {
+  showDashboardReact,
+  onMessageFromHTMLView,
+  showDemoDashboard,
+} from './reactMain.js'
+
+
 export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPHooks'

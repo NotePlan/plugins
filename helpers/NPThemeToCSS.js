@@ -2,11 +2,10 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 22.12.2023 by @jgclark
+// Last updated 30.6.2024 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -27,9 +26,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let themeJSON: Object
     const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
     let matchingThemeObjs: Array<any> = [] // Eduard hasn't typed the Theme objects
+    let currentThemeMode = 'light' // default; overridden later
 
     // If we havee a supplied themeName, then attempt to use it
-    if (themeNameIn !== '') {
+    if (themeNameIn) {
       // get list of available themes
       logDebug('generateCSSFromTheme', String(availableThemeNames))
       matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
@@ -37,32 +37,34 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         themeName = themeNameIn
         logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
         themeJSON = matchingThemeObjs[0].values
+        currentThemeMode = Editor.currentTheme.mode
       } else {
         logWarn('generateCSSFromTheme', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
       }
     }
 
     // If that hasn't worked, then currentTheme
-    if (themeName === '') {
+    if (!themeName) {
       themeName = Editor.currentTheme.name ?? ''
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
       logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
       if (themeName !== '') {
         themeJSON = Editor.currentTheme.values
-        // let currentThemeMode = Editor.currentTheme.mode ?? 'dark'
+        currentThemeMode = Editor.currentTheme.mode
       } else {
         logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
       }
     }
 
     // If that hasn't worked, try dark theme
-    if (themeName === '') {
+    if (!themeName) {
       themeName = String(DataStore.preference('themeDark'))
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
       matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
       if (matchingThemeObjs.length > 0) {
         logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
         themeJSON = matchingThemeObjs[0].values
+        currentThemeMode = 'dark'
       } else {
         logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
       }
@@ -89,10 +91,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     //   - or default to 14
     const userFSPref = DataStore.preference('fontSize')
     const themeFSPref = themeJSON?.styles?.body?.size ?? NaN
-    baseFontSize =
-      (themeFSPref && !isNaN(Number(themeFSPref))) ? Number(themeFSPref)
-        : (userFSPref && !isNaN(Number(userFSPref))) ? Number(userFSPref)
-          : 14
+    baseFontSize = themeFSPref && !isNaN(Number(themeFSPref)) ? Number(themeFSPref) : userFSPref && !isNaN(Number(userFSPref)) ? Number(userFSPref) : 14
     // logDebug('generateCSSFromTheme', `baseFontSize -> ${String(baseFontSize)}`)
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
     tempSel.push(`background: var(--bg-main-color)`)
@@ -101,7 +100,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    const bodyFont = themeJSON.styles.body.font ?? ''
+    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
+    const bodyFont = (tempBodyFont === '.AppleSystemUIFont') ? '-apple-system' : tempBodyFont
     logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
@@ -119,6 +119,17 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
         rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
       }
+    }
+
+    // Set sidebar from NP fixed colours
+    if (currentThemeMode === 'light') {
+      rootSel.push(`--fg-sidebar-color: #242E32`)
+      rootSel.push(`--bg-sidebar-color: #F6F6F6`)
+      rootSel.push(`--divider-color: #D6D6D6`)
+    } else {
+      rootSel.push(`--fg-sidebar-color: #EBEBEB`)
+      rootSel.push(`--bg-sidebar-color: #383838`)
+      rootSel.push(`--divider-color: #52535B`)
     }
 
     // Set H1 from styles.title1
@@ -174,11 +185,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
+    // Following added to mimic what the NP settings screen main background is
+    rootSel.push(`--bg-mid-color: ${mixHexColors(bgMainColor, altColor)}`)
 
     // Set font for native controls (otherwise will go to Apple default)
-    output.push(makeCSSSelector('button, input', [
-      `font-family: "${bodyFont}"`,
-    ]))
+    output.push(makeCSSSelector('button, input', [`font-family: "${bodyFont}"`]))
 
     // Set a few styles here that require computed light and dark settings
     // Note: Now found a way to do this just in CSS so moved to plugins
@@ -402,6 +413,17 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.unshift(makeCSSSelector(':root', rootSel))
     output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
 
+    // Finally, just a note requested by @dwertheimer, and others who might have non-standard names in their themes
+    const themeKeysToCheck: Array<string> = ['flagged-1', 'flagged-2', 'flagged-3', 'working-on']
+    themeKeysToCheck.forEach(
+      (key) =>
+        !themeJSON.styles[key] &&
+        logWarn(
+          generateCSSFromTheme,
+          `Your theme does not have the key "${key}" which Dashboard uses. This may be ok if you don't want that style, but if you do, you need to rename your theme style for this type of line`,
+        ),
+    )
+
     // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')
   } catch (error) {
@@ -582,7 +604,7 @@ export function textDecorationFromNP(selector: string, value: number): string {
  * @returns {string} size including 'rem' units
  */
 export function pxToRem(thisFontSize: number, baseFontSize: number): string {
-  let rem = (thisFontSize / baseFontSize)
+  let rem = thisFontSize / baseFontSize
   // Note: Need to apply fudge to get it closer to actual size seen in NP Editor
   rem *= 0.95
   const output = `${String(rem.toPrecision(2))}rem`
@@ -611,6 +633,47 @@ export function RGBColourConvert(RGBIn: string): string {
 }
 
 /**
+ * Note: in future it should be possible to do this in CSS with `color-mix(in srgb, <color-A>, <color-B>)`
+ * From https://stackoverflow.com/a/66402402/3238281
+ */
+/**
+ * Mixes two hex color strings by averaging their RGB components.
+ *
+ * @param {string} color1 - The first hex color string (e.g., '#ff0000').
+ * @param {string} color2 - The second hex color string (e.g., '#0000ff').
+ * @returns {string} The resulting hex color string after mixing (e.g., '#800080').
+ */
+export function mixHexColors(color1: string, color2: string): string {
+  const RE_RGB6 = /^#[0-9a-fA-F]{6}$/
+  if (!RE_RGB6.test(color1) || !RE_RGB6.test(color2)) throw new Error('Invalid hex color format')
+  // Remove the '#' and split the hex color into RGB components
+  const valuesColor1 =
+    color1
+      .replace('#', '')
+      .match(/.{2}/g)
+      ?.map((value) => parseInt(value, 16)) || []
+  const valuesColor2 =
+    color2
+      .replace('#', '')
+      .match(/.{2}/g)
+      ?.map((value) => parseInt(value, 16)) || []
+
+  // Ensure both colors have valid RGB components
+  if (valuesColor1.length !== 3 || valuesColor2.length !== 3) {
+    throw new Error('Invalid hex color format')
+  }
+
+  // Mix the RGB components by averaging
+  const mixedValues = valuesColor1.map((value, index) =>
+    Math.round((value + valuesColor2[index]) / 2)
+      .toString(16)
+      .padStart(2, '0'),
+  )
+
+  return `#${mixedValues.join('')}`
+}
+
+/**
  * Translate from the font name, as used in the NP Theme file,
  * to the form CSS is expecting.
  * If no translation is defined, try to use the user's own default font.
@@ -626,9 +689,14 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
 
   // Deal with special case of Apple's System font
   // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
-  if (fontNameNP.startsWith(".AppleSystemUIFont")) {
+  if (fontNameNP.startsWith('.AppleSystemUIFont')) {
     outputArr.push(`font-family: "-apple-system"`)
     outputArr.push(`line-height: 1.2rem`)
+    if (fontNameNP.includes('Bold')) {
+      outputArr.push(`font-weight: 700`)
+    } else {
+      outputArr.push(`font-weight: 400`)
+    }
     // logDebug('fontPropertiesFromNP', `special: ${fontNameNP} ->  ${outputArr.toString()}`)
     return outputArr
   }

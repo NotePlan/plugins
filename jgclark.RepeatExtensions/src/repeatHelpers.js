@@ -2,12 +2,11 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 9.6.2024, for v0.8.0
+// last updated 14.6.2024, for v0.8.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import {
-  // calcOffsetDate,
   calcOffsetDateStr,
   isDailyNote,
   isWeeklyNote,
@@ -61,10 +60,9 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
   // get repeat to apply
   const reReturnArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
   let dateIntervalString: string = (reReturnArray.length > 0) ? reReturnArray[1] : ''
-  logDebug('generateUpdatedLineContent', `- Found extended @repeat syntax: '${dateIntervalString}' with completedDate ${completedDate} in "${currentContent}" in ${noteToUse.filename}`)
 
-  // decide style of new date: daily / weekly / monthly / etc.link
-  let outputTimeframe = ''
+  // decide style of new date: daily / weekly / monthly / etc.
+  let outputTimeframe = 'day'
   if (currentContent.match(RE_SCHEDULED_DAILY_NOTE_LINK) || isDailyNote(noteToUse)) {
     outputTimeframe = 'day'
   } else if (currentContent.match(RE_SCHEDULED_WEEK_NOTE_LINK) || isWeeklyNote(noteToUse)) {
@@ -76,10 +74,9 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
   } else if (currentContent.match(RE_SCHEDULED_YEARLY_NOTE_LINK) || isYearlyNote(noteToUse)) {
     outputTimeframe = 'year'
   }
-  logDebug('generateUpdatedLineContent', `- outputTimeframe: ${outputTimeframe}`)
+  logDebug('generateUpdatedLineContent', `- date interval: '${dateIntervalString}', completedDate: ${completedDate}, timeframe: ${outputTimeframe}`)
 
   let newRepeatDateStr = ''
-  // let newRepeatDate: Date
   const output = currentContent
 
   if (dateIntervalString[0].startsWith('+')) {
@@ -88,8 +85,7 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
       1,
       dateIntervalString.length,
     )
-    // newRepeatDate = calcOffsetDate(completedDate, dateIntervalString) ?? new moment().startOf('day').toDate()
-    newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString)
+    newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString, outputTimeframe)
     logDebug('generateUpdatedLineContent', `- adding from completed date -> ${newRepeatDateStr}`)
   } else {
     // New repeat date = due date + interval
