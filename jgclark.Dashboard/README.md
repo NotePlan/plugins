@@ -82,11 +82,16 @@ The 'action buttons' available in this section are:
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
 
 ### Controlling from Shortcuts, Streamdeck etc.
-In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a single call that sets which sets all sections you want to see.
+In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a single call that opens (or refreshes) the Dashboard. 
 
-For example, to show the today, tomorrow + @home mentions, run this x-callback:
+At simplest:
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20React%20Dashboard&arg0=DT,DO,@home
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
+```
+
+Or add `arg0` to set a list of sections you want to see. For example, to show the today, tomorrow + @home mentions, run this x-callback:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard&arg0=DT,DO,@home
 ```
 Use `arg0=` followed by a comma-separated list of one or more of the following section codes:
 
