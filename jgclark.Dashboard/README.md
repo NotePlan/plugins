@@ -11,8 +11,9 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 
 ... and then gives you many controls, mostly in two edit dialogs, that let you quickly complete, cancel or move items to different time periods.
 
-Here's a [great video from user George Crump](https://youtu.be/???) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
-    [<img width="500px" alt="thumbnail" src="./georgec-Dashboard-walk-through-thumbnail.jpeg">](https://youtu.be/???)
+Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
+
+[<img width="500px" alt="thumbnail" src="./dashboard-v2-GC-video-title.jpeg">](https://youtu.be/_lj8osSOvQc)
 
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
@@ -85,7 +86,7 @@ In v1.x there was a way to toggle individual sections on and off. In v2.0 this h
 
 For example, to show the today, tomorrow + @home mentions, run this x-callback:
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.DashboardReact&command=Show%20React%20Dashboard&arg0=DT,DO,@home
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20React%20Dashboard&arg0=DT,DO,@home
 ```
 Use `arg0=` followed by a comma-separated list of one or more of the following section codes:
 
