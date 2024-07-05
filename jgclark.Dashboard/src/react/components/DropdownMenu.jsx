@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dropdown menu with display toggles.
 // Called by Header component.
-// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+// Last updated 2024-07-05 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -18,7 +18,8 @@ import { logDebug } from '@helpers/react/reactDev.js'
 // Type Definitions
 //--------------------------------------------------------------------------
 type DropdownMenuProps = {
-  items: Array<TDropdownItem>,
+  sectionItems?: Array<TDropdownItem>,
+  otherItems: Array<TDropdownItem>,
   handleSwitchChange?: (key: string, e: any) => void,
   handleInputChange?: (key: string, e: any) => void,
   handleComboChange?: (key: string, e: any) => void,
@@ -29,8 +30,6 @@ type DropdownMenuProps = {
   labelPosition?: 'left' | 'right',
   isOpen: boolean,
   toggleMenu: () => void,
-  style?: Object, // Add style prop
-  displayInColumnsIfPossible?: boolean,
 };
 
 //--------------------------------------------------------------------------
@@ -38,24 +37,24 @@ type DropdownMenuProps = {
 //--------------------------------------------------------------------------
 
 const DropdownMenu = ({
-  items,
-  handleSwitchChange = (key, e) => {},
-  handleInputChange = (key, e) => {},
-  handleComboChange = (key, e) => {},
-  handleSaveInput = (key, newValue) => {},
+  sectionItems = [],
+  otherItems,
+  handleSwitchChange = (key, e) => { },
+  handleInputChange = (key, e) => { },
+  handleComboChange = (key, e) => { },
+  handleSaveInput = (key, newValue) => { },
   onSaveChanges,
   iconClass = 'fa-solid fa-filter',
   className,
   labelPosition = 'right',
   isOpen,
   toggleMenu,
-  style, // Destructure style prop
-  displayInColumnsIfPossible = false
 }: DropdownMenuProps): React$Node => {
+  logDebug('DropdownMenu', `Starting with ${otherItems.length} otherItems and ${sectionItems ? sectionItems.length : 0} sectionItems`)
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
-  const dropdownRef = useRef<?HTMLDivElement>(null)
+  const dropdownRef = useRef <? HTMLDivElement > (null)
 
   //----------------------------------------------------------------------
   // State
@@ -70,53 +69,54 @@ const DropdownMenu = ({
       dropdownRef.current &&
       !(event.target instanceof Node) || (dropdownRef.current && !dropdownRef.current.contains((event.target: any)))
     ) {
-      if (changesMade && onSaveChanges) {
-        onSaveChanges()
-      }
-      toggleMenu()
-    }
+  if (changesMade && onSaveChanges) {
+    onSaveChanges()
+  }
+  toggleMenu()
+}
   }
 
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleEscapeKey)
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscapeKey)
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscapeKey)
-    }
-  }, [isOpen])
-
-  //----------------------------------------------------------------------
-  // Handlers
-  //----------------------------------------------------------------------
-  const handleFieldChange = () => {
-    logDebug('DropdownMenu', 'Field change detected')
-    setChangesMade(true)
+useEffect(() => {
+  if (isOpen) {
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscapeKey)
+  } else {
+    document.removeEventListener('mousedown', handleClickOutside)
+    document.removeEventListener('keydown', handleEscapeKey)
   }
-
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      logDebug('DropdownMenu', 'Escape key detected')
-      if (changesMade && onSaveChanges) {
-        onSaveChanges()
-      }
-      toggleMenu()
-    }
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside)
+    document.removeEventListener('keydown', handleEscapeKey)
   }
+}, [isOpen])
 
-  //----------------------------------------------------------------------
-  // Render
-  //----------------------------------------------------------------------
-  return (
-    <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
-      <i className={iconClass} onClick={toggleMenu}></i>
-      <div className={`dropdown-content ${isOpen ? (displayInColumnsIfPossible ? 'show-in-columns' : 'show') : ''}`} style={style}>
-        {items.map((item,index) => renderItem({
+//----------------------------------------------------------------------
+// Handlers
+//----------------------------------------------------------------------
+const handleFieldChange = () => {
+  logDebug('DropdownMenu', 'Field change detected')
+  setChangesMade(true)
+}
+
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    logDebug('DropdownMenu', 'Escape key detected')
+    if (changesMade && onSaveChanges) {
+      onSaveChanges()
+    }
+    toggleMenu()
+  }
+}
+
+//----------------------------------------------------------------------
+// Render
+//----------------------------------------------------------------------
+return (
+  <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
+    <i className={iconClass} onClick={toggleMenu}></i>
+    <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
+      <div className="column" >
+        {otherItems.map((item, index) => renderItem({
           index,
           item,
           labelPosition,
@@ -127,8 +127,23 @@ const DropdownMenu = ({
           handleSaveInput,
         }))}
       </div>
+      {sectionItems.length > 0 &&
+        <div className="column" >
+          {sectionItems.map((item, index) => renderItem({
+            index,
+            item,
+            labelPosition,
+            handleFieldChange,
+            handleSwitchChange,
+            handleInputChange,
+            handleComboChange,
+            handleSaveInput,
+          }))}
+        </div>
+      }
     </div>
-  )
+  </div>
+)
 }
 
 export default DropdownMenu

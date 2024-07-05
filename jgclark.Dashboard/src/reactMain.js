@@ -16,7 +16,7 @@ import {
 } from './pluginToHTMLBridge'
 // import type { TSection } from './types'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { log, logError, logDebug, timer, clo, JSP, clof } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -98,6 +98,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
   logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
   try {
+    const startTime = new Date()
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
     if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
 
@@ -143,7 +144,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
         </script>
       `,
     }
-    logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)
+    logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered

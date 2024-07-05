@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+// Last updated 2024-07-05 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -44,17 +44,18 @@ const SettingsDialog = ({
     toggleDialog,
     style, // Destructure style prop
 }: SettingsDialogProps): React$Node => {
+
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { sendActionToPlugin, sharedSettings, setSharedSettings } = useAppContext()
+    const { /* sendActionToPlugin, */ sharedSettings, setSharedSettings } = useAppContext()
 
     //----------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------
-    const dialogRef = useRef<?ElementRef<'dialog'>>(null)
-    const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
-    const [changesMade, setChangesMade] = useState(false)
+    const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
+  const dropdownRef = useRef <? { current: null | HTMLInputElement } > (null)
+  const [changesMade, setChangesMade] = useState(false)
     const [updatedSettings, setUpdatedSettings] = useState(() => {
         const initialSettings: Settings = {}
         items.forEach(item => {

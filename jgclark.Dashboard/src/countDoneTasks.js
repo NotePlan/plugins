@@ -3,17 +3,14 @@
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
 // Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
 //-----------------------------------------------------------------------------
+import type { TDoneCount, TDoneTodayNotes, TSection } from "./types";
 
-import type {
-  TDoneCount, TDoneTodayNotes, TSection
-} from './types'
+import { getNotesChangedInInterval } from "@helpers/NPnote";
 import {
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
-} from '@helpers/dateTime'
-
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
+} from "@helpers/dateTime";
+import { clo, logDebug, logError, logInfo, logTimer, timer } from "@helpers/dev";
 
 //-----------------------------------------------------------------
 // functions
@@ -24,9 +21,11 @@ import { getNotesChangedInInterval } from '@helpers/NPnote'
  */
 export function getTotalDoneCounts(sections: Array<TSection>): TDoneCount {
   let numDoneTasks = 0
-  // let numDoneChecklists = 0
+  const startTime = new Date()
   let latestDate: Date = new Date(0)
+  let codeStr = ''
   for (const thisSection of sections) {
+    codeStr += `${thisSection.sectionCode}-`
     const thisDC = thisSection.doneCounts
     if (thisDC) {
       numDoneTasks += thisDC.completedTasks
@@ -34,7 +33,7 @@ export function getTotalDoneCounts(sections: Array<TSection>): TDoneCount {
       if (thisDC.lastUpdated > latestDate) latestDate = thisDC.lastUpdated
     }
   }
-  logDebug('getTotalDoneCounts', `-> numDoneTasks = ${numDoneTasks} / latestDate = ${latestDate.toLocaleTimeString()}`)
+  logTimer('getTotalDoneCounts', startTime, `to total ${numDoneTasks} done tasks from ${codeStr} / latestDate = ${latestDate.toLocaleTimeString()}`)
   return {
     completedTasks: numDoneTasks,
     // completedChecklists: numDoneChecklists,
@@ -51,6 +50,7 @@ export function getTotalDoneCounts(sections: Array<TSection>): TDoneCount {
 export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWherePossible?: boolean): TDoneCount {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
+    const startTime = new Date()
 
     //------------------------------------------------
     // Get paras from the note
@@ -79,7 +79,7 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
       // completedChecklists: numCompletedChecklists,
       lastUpdated: new Date(),
     }
-    // logDebug('getNumCompletedTasksTodayFromNote', `-> ${String(numCompletedTasks)}`)
+    logTimer('getNumCompletedTasksTodayFromNote', startTime, `for ${String(numCompletedTasks)} completed tasks in '${filename}'`)
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksTodayFromNote', error.message)
@@ -93,22 +93,24 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
 
 /**
  * Build a list of notes that have tasks completed today
+ * FIXME: this is taking 33,000ms for JGC for project notes
  * @returns {Array<TDoneTodayNotes>}
  */
 export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
   try {
-    const outputArr: Array<TDoneTodayNotes> = []
     const startTime = new Date()
-    logDebug('buildListOfDoneTasks', `Starting at ${String(startTime)}`)
+    const outputArr: Array<TDoneTodayNotes> = []
+    logDebug('buildListOfDoneTasksToday', `Starting at ${String(startTime)}`)
 
     // Get list of non-calendar notes _updated today_ to check
     const notesChangedToday: Array<TNote> = getNotesChangedInInterval(0, ['Notes'])
+    // logDebug('buildListOfDoneTasksToday', `- after getNotesChangedInInterval(0) ${notesChangedToday.length} notes in ${timer(startTime)}`)
 
     let total = 0
     for (const note of notesChangedToday) {
       const doneCounts = getNumCompletedTasksTodayFromNote(note.filename, false)
       const numDoneToday = doneCounts.completedTasks
-      // logDebug('buildListOfDoneTasks', `- found ${String(numDoneToday)} done in '${note.filename}' changed ${String(note.changedDate)}:`)
+      logDebug('buildListOfDoneTasksToday', `- found ${String(numDoneToday)} done in '${note.filename}' changed ${String(note.changedDate)} (${timer(startTime)})`)
       if (numDoneToday > 0) {
         total += numDoneToday
         outputArr.push({
@@ -120,12 +122,12 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
         })
       }
     }
-    logDebug('buildListOfDoneTasks', `Found ${total} done tasks today in project notes in ${timer(startTime)}`)
-    // clo(outputArr, 'buildListOfDoneTasks output', 2)
+    logTimer('buildListOfDoneTasksToday', startTime, `to find ${total} done tasks today in ordinary notes`)
+    // clo(outputArr, 'buildListOfDoneTasksToday output', 2)
     return outputArr
   }
   catch (err) {
-    logError('buildListOfDoneTasks', err.message)
+    logError('buildListOfDoneTasksToday', err.message)
     return []
   }
 }

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-06-25 for v2.0.0-b14 by @jgclark
+// Last updated 2024-07-05 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -78,7 +78,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const { settings: pluginDataSettings } = pluginData
 
-  const dropdownItems = createFilterDropdownItems(sharedSettings, pluginDataSettings)
+  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(sharedSettings, pluginDataSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginDataSettings)
   const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginDataSettings)
 
@@ -95,7 +95,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   return (
     <div className="header">
       <div className="lastFullRefresh">
-        {updatedText}: <span id="timer">{timeAgoText}</span>.
+        {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 
       <div className="refresh">
@@ -114,13 +114,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
       </div>
 
-      { pluginData?.totalDoneCounts && <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> }
+      {pluginData?.totalDoneCounts && <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />}
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
         {isDevMode && (
           <DropdownMenu
-            items={featureFlagItems}
+            otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
               handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
@@ -144,7 +144,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
         {/* Display toggles dropdown menu */}
         <DropdownMenu
-          items={dropdownItems}
+          sectionItems={dropdownSectionItems}
+          otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
             handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
@@ -160,7 +161,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           isOpen={openDropdownMenu === 'filter'}
           toggleMenu={() => handleToggleDropdownMenu('filter')}
           labelPosition="left"
-          displayInColumnsIfPossible={true}
         />
         {/* Cog Icon for opening the settings dialog */}
         <div>

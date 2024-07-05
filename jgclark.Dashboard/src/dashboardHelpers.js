@@ -98,7 +98,8 @@ export type dashboardConfigType = {
   updateTagMentionsOnTrigger: boolean,
   useTodayDate: boolean,
   _logLevel: string,
-  triggerLogging: boolean,
+  _logTimer: boolean,
+  // triggerLogging: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
   FFlag_LimitOverdues: boolean,
@@ -162,7 +163,11 @@ export async function getCombinedSettings(): Promise<any> {
 // eslint-disable-next-line require-await
 export async function setSetting(key: string, value: string): Promise<void> {
   logDebug('setSetting', `'${key}'' -> '${value}'`)
-  // TODO: for George to set maxItemsToShowInSection from x-callback. But let's let anything be set.
+  const newSettings = {}
+  newSettings[key] = value
+  await setPluginData({ settings: newSettings }, `updating setting '${key}'`)
+  const pluginSettings = await getSettings()
+  clo(pluginSettings, `after updating setting '${key}'`)
 }
 
 /**

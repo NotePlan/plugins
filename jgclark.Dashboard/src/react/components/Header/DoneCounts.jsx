@@ -61,7 +61,7 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   if (showCounts) {
     return (
       <div className="totalCounts">
-        <span id="totalDoneCount">{itemsDoneCount}</span> {itemsDoneCount > 1 ? "tasks" : "task"} closed.
+        <span id="totalDoneCount">{itemsDoneCount}</span> {itemsDoneCount !== 1 ? "tasks" : "task"} closed
       </div>
     )
   }

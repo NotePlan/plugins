@@ -6,7 +6,7 @@
 
 import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../../types.js'
 import { allSectionDetails } from "../../../constants.js"
-import { logDebug, clof, clo, logError } from '@helpers/react/reactDev.js'
+import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev.js'
 
 const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]
 
@@ -204,7 +204,7 @@ export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSect
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}
  */
 export function getTagSectionDetails(sharedSettings: TSharedSettings, pluginSettings:TAnyObject): Array<TSectionDetails> {
-  //   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }
+  const startTime = new Date()
   const tags = (sharedSettings.tagToShow ?? pluginSettings.tagToShow ?? '').split(',').map(t => t.trim()).filter(t => t !== '')
   return tags.map(t => ({ sectionCode: "TAG", sectionName: t, showSettingName:getShowTagSettingName(t) }))
 }

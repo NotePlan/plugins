@@ -39,7 +39,7 @@ dialog::backdrop {
 	/* Define grid-template-areas for better control */
 	display: grid;
 	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated counts refresh empty dropdowns";
+	grid-template-areas: "lastUpdated refresh counts empty dropdowns";
 	grid-template-columns: max-content max-content max-content 1fr min-content;
 	/* Vertical alignment */
 	align-items: baseline;
@@ -61,6 +61,15 @@ dialog::backdrop {
 	grid-area: lastUpdated;
 	/* This ensures that the content of these divs is also centered */
 	align-items: center;
+	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
+	width: 9rem;
+
+}
+/* Turn fixed width off on narrow screens */
+@media screen and (max-width: 450px) {
+	.lastFullRefresh {
+		width: unset;
+	}
 }
 
 .refresh {
@@ -72,20 +81,29 @@ dialog::backdrop {
 .totalCounts {
 	/* Assign the area */
 	grid-area: counts;
-	/* Note: turned off given reduction in what needs to be shown in 2.0.0.a9 */
+	align-self: unset; /* TEST: shouldn't be needed but otherwise lands up with 'end' */
+	
 	/* Make sure totalCounts only shows when necessary */
-	/* @media screen and (max-width: 500px) { */
-	/* Unless the screen size is 500px wide or less, hide the element */
-	/* display: none; Hide on small screens */
-	/* } */
+	@media screen and (max-width: 500px) {
+		display: none;
+	}
 }
 
 .dropdownButtons {
 	/* Assign the area */
 	grid-area: dropdowns;
+	gap: 0.7rem;
 	justify-self: end;
 	/* Align to the right edge */
 	margin-right: 20px;
+
+}
+
+/* Widen button gaps for narrow screens (iOS) */
+@media screen and (width <= 450px) {
+	.dropdownButtons {
+		gap: 1.2rem !important;
+	}
 }
 
 /* unused */
@@ -289,53 +307,6 @@ dialog::backdrop {
 	border-bottom: 0px;
 	break-inside: avoid;
 	line-height: 1.2rem;
-}
-
-/* -------------------------------------------------------------- */
-
-.dropdown-content {
-	position: absolute;
-	right: 30px;
-	padding-right: 5px;
-	padding-top: 5px;
-	padding-bottom: 10px;
-	background-color: var(--bg-alt-color);
-	min-width: 160px;
-	/* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
-	box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
-	z-index: 1;
-	display: none;
-}
-
-.dropdown .dropdown-content {
-	display: block;
-}
-
-.dropdown-content.show {
-	display: block;
-}
-
-.switch-line {
-	display: flex;
-	/* Aligns content to the right */
-	justify-content: flex-end;
-	/* Center alignment of the checkbox and label */
-	align-items: center;
-	/* Ensures the flex container takes full width */
-	width: 100%;
-	padding-top: 0.3rem;
-}
-
-.switch-label {
-	/* Space between label and switch */
-	padding-left: 10px;
-	/* Additional spacing if needed */
-	padding-right: 5px;
-}
-
-.apple-switch {
-	/* Ensures spacing between the label and the switch */
-	margin-left: 10px;
 }
 
 /* --------------------------------------------------------------- */

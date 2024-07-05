@@ -1,6 +1,15 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.1] WIP @jgclark
+### Changes
+- made the Filters dropdown a two-column display (except on narrow screens)
+- (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
+- removed most settings from old setting system
+- removed editSettings() command
+- improved spacing and ordering of heading, and made tapping heading elements easier on iOS
+- other UI tweaks
+
 ## What's improved in v2.0?
 ### New
 - The different sections are now generated or refreshed progressively, so the first sections appear more quickly. When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.

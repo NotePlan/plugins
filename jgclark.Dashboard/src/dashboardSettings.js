@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 21.6.2024 for v2.0.0-b10 by @jgclark
+// Last updated 2024-07-05 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TDropdownItem, TSharedSettings } from "./types.js"
@@ -208,6 +208,14 @@ const dashboardSettings = [
     ],
     description: "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
     default: "INFO",
+    required: true
+  },
+  {
+    key: "_logTimer",
+    type: "switch",
+    label: "Enable Timer logging?",
+    description: "Whether to show Timing where available",
+    default: false,
     required: true
   },
 ]
