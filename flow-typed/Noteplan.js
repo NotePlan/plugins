@@ -1259,10 +1259,12 @@ declare interface Paragraph {
   +prefix: string;
   /**
    * Get the range of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +contentRange: TRange | void;
   /**
    * Get the line index of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +lineIndex: number;
   /**
@@ -1299,26 +1301,22 @@ declare interface Paragraph {
    */
   +noteType: ?NoteType;
   /**
-   * Get the linked note titles this paragraph contains,
-   * such as '[[Note Name]]' (will return names without the brackets).
+   * Get the linked note titles this paragraph contains, such as '[[Note Name]]' (will return names without the brackets).
    */
   +linkedNoteTitles: $ReadOnlyArray<string>;
   /**
-   * Creates a duplicate object, so you can change values without affecting the
-   * original object
+   * Creates a duplicate object, so you can change values without affecting the original object
    */
   duplicate(): Paragraph;
   /**
    * Returns indented paragraphs (children) underneath a task
-   * Only tasks can have children, but any paragraph indented underneath a task
-   * can be a child of the task. This includes bullets, tasks, quotes, text.
-   * Children are counted until a blank line, HR, title, or another item at the
-   * same level as the parent task. So for items to be counted as children, they
-   * need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child,
-   * grandchild, greatgrandchild, etc. So a task that has a child task that has
-   * a child task will have 2 children (and the first child will have one)
+   * Only tasks can have children, but any paragraph indented underneath a task can be a child of the task.
+   * This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc. 
+   * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * @return {[TParagraph]}
    */
   children(): $ReadOnlyArray<TParagraph>;
