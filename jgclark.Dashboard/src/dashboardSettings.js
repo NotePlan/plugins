@@ -22,7 +22,7 @@ export const dashboardFilters = [
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
-const dashboardSettings = [
+export const dashboardSettings = [
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",

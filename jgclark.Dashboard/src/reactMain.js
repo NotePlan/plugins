@@ -8,6 +8,7 @@
 import pluginJson from '../plugin.json'
 import type { TPluginData } from './types'
 import { allSectionDetails } from "./constants"
+import { dashboardFilters, dashboardSettings } from "./dashboardSettings"
 import { type dashboardConfigType, getCombinedSettings, getSharedSettings } from './dashboardHelpers'
 import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
 import {
@@ -62,6 +63,33 @@ export async function showDemoDashboard(): Promise<void> {
   await showDashboardReact('full', true)
 }
 
+/**
+ * @param {string} key 
+ * @param {string} value 
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
+ * @returns {Promise<void>}
+ * 
+ */
+// eslint-disable-next-line require-await
+export async function setSetting(key: string, value: string): Promise<void> {
+  logDebug('setSetting', `Request to set: '${key}'' -> '${value}' (incoming value is a ${typeof value})`)
+  const sharedSettings = (await getSharedSettings()) || {}
+  const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
+  const allKeys = allSettings.map(s => s.key)
+  if (key !== "sharedSettings" && allKeys.includes(key)) {
+    const thisSettingDetail = allSettings.find(s => s.key === key) || {}
+    const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
+    sharedSettings[key] = setTo
+    logDebug('setSetting', `Set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
+    DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+    await showDashboardReact('full', false)
+  } else {
+    logError('setSetting', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
+    throw (`ERROR`)
+  }
+}
+
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
   const sharedSettings = (await getSharedSettings()) || {}
@@ -92,7 +120,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 /**
  * Plugin Entry Point for "Test React Window"
  * @author @dwertheimer
- * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus)
+ * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) |  CSV of specific sections to load (e.g. from xcallback)
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {

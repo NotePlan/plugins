@@ -24,8 +24,7 @@ export { editSettings } from '@helpers/NPSettings'
 /**
  * Other imports/exports
  */
-// eslint-disable-next-line import/order
-export { setSetting } from './dashboardHelpers.js'
+
 
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers.js'
 
@@ -33,6 +32,7 @@ export {
   showDashboardReact,
   onMessageFromHTMLView,
   showDemoDashboard,
+  setSetting,
 } from './reactMain.js'
 
 

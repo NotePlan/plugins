@@ -156,21 +156,6 @@ export async function getCombinedSettings(): Promise<any> {
 }
 
 /**
- * TODO: Set a config setting, used from x-callback.
- * @param {string} key 
- * @param {string} value 
- */
-// eslint-disable-next-line require-await
-export async function setSetting(key: string, value: string): Promise<void> {
-  logDebug('setSetting', `'${key}'' -> '${value}'`)
-  const newSettings = {}
-  newSettings[key] = value
-  await setPluginData({ settings: newSettings }, `updating setting '${key}'`)
-  const pluginSettings = await getSettings()
-  clo(pluginSettings, `after updating setting '${key}'`)
-}
-
-/**
  * WARNING: You should probably now be using getCombinedSettings() instead of this function
  * Get config settings
  */
@@ -212,7 +197,16 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
-      // if (p.children().length > 0) clo(p.children(), `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (${p.indents} indents) in ${note.filename} paras[p.lineIndex+1]= {${origParas[p.lineIndex + 1]?.type}} (${origParas[p.lineIndex + 1]?.indents||''} indents) "${origParas[p.lineIndex + 1]?.content}"`)
+      const hasChild = p.children().length > 0
+      if (hasChild) { // debugging why sometimes hasChild is wrong
+        // $FlowIgnore 
+        const pp = p.note?.paragraphs || []
+        const nextLineIndex = p.lineIndex + 1
+        clo(p, `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+        clo(p.contentRange, `contentRange for paragraph`)
+        clo(p.children(), `Children of paragraph`)
+        clo(p.children()[0].contentRange, `contentRange for child[0]`)
+      }
       return {
         filename: note.filename,
         noteType: note.type,
@@ -225,7 +219,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
-        hasChild: p.children().length > 0,
+        hasChild
       }
     })
     return dashboardParas
@@ -265,7 +259,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Note: this takes 100-110ms for me
     const startTime = new Date() // for timing only
     if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
-    // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
+      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
       logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
@@ -619,7 +613,7 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
       if (startTimeStr.endsWith('PM')) {
         startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
       }
-// logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
+      // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
   } catch (error) {
