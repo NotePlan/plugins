@@ -47,13 +47,28 @@
     },
     {
       "name": "setSetting",
-      "description": "Set a key:value setting",
+      "description": "Set a single key:value setting",
       "jsFunction": "setSetting",
       "hidden": true,
       "arguments": [
-        "key to set",
+        "key",
         "value"
       ]
+    },
+    {
+      "name": "setSettings",
+      "description": "Set multiple key:value settings",
+      "jsFunction": "setSettings",
+      "hidden": true,
+      "arguments": [
+        "params as concatentaed list of key=value;"
+      ]
+    },
+    {
+      "name": "Make Callback from Current Settings",
+      "description": "Make a callback url or link for the current settings, and copy to the clipboard.",
+      "jsFunction": "makeSettingsAsCallback",
+      "hidden": "false"
     },
     {
       "name": "decideWhetherToUpdateDashboard",

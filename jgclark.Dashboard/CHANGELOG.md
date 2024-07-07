@@ -2,13 +2,21 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.0.1] WIP @jgclark
+### Added
+- FIXME: new x-callback 'setSetting' to change a single Dashboard setting. TODO: See README for details.
+- FIXME: new x-callback 'setSettings' to change multiple Dashboard settings in one call. TODO: See README for details.
+- new **/Make Callback from Current Settings** command that logs the current setting as a URL or a markdown link. FIXME: not copying to clipboard. FIXME: the output doesn't match what appears to be set in my UI.
+
 ### Changes
-- made the Filters dropdown a two-column display (except on narrow screens)
+- made the Filters dropdown menu a two-column display (except on narrow screens)
 - (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
 - removed most settings from old setting system
-- removed editSettings() command
+- removed "edit settings (for iOS)" command, as not needed
 - improved spacing and ordering of heading, and made tapping heading elements easier on iOS
 - other UI tweaks
+
+### Fixed
+- TODO: fix task completion timestamps using GMT not local time (thanks, @mjd9ball). FIXME: odd issue with NPParagraph::markComplete() calling new NPdateTime::nowDoneDateTimeString constant.
 
 ## What's improved in v2.0?
 ### New

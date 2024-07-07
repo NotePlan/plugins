@@ -124,6 +124,8 @@ export async function getSharedSettings(): Promise<any> {
   if (!settings.sharedSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
 
   return parseSettings(settings.sharedSettings || '') ?? {}
+
+  // return settings.sharedSettings ? parseSettings(settings.sharedSettings) : {}
 }
 
 /**

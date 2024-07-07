@@ -124,6 +124,7 @@ export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSha
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
+    // FIXME(@dwertheimer): why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
     const keysToEliminate = ['sharedSettings', 'reactSettings',"timeblockMustContainString"]
     const settingsRedacted = JSON.parse(JSON.stringify(settings))
     const keys = Object.keys(settingsRedacted)

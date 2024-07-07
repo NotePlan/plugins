@@ -18,11 +18,17 @@ import {
 // import type { TSection } from './types'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
-import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
+import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
+import {
+  getGlobalSharedData, sendToHTMLWindow,
+  sendBannerMessage
+} from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
+import { chooseOption, showMessage } from '@helpers/userInput'
+
 
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
@@ -64,29 +70,98 @@ export async function showDemoDashboard(): Promise<void> {
 }
 
 /**
+ * x-callback entry point to change a single setting.
+ * (Note: see also setSettings to do many at the same time.)
  * @param {string} key 
  * @param {string} value 
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
- * @returns {Promise<void>}
- * 
  */
-// eslint-disable-next-line require-await
 export async function setSetting(key: string, value: string): Promise<void> {
-  logDebug('setSetting', `Request to set: '${key}'' -> '${value}' (incoming value is a ${typeof value})`)
-  const sharedSettings = (await getSharedSettings()) || {}
-  const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
-  const allKeys = allSettings.map(s => s.key)
-  if (key !== "sharedSettings" && allKeys.includes(key)) {
-    const thisSettingDetail = allSettings.find(s => s.key === key) || {}
-    const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-    sharedSettings[key] = setTo
-    logDebug('setSetting', `Set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
+  try {
+    logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
+    const sharedSettings = (await getCombinedSettings()) || {}
+    const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
+    const allKeys = allSettings.map(s => s.key)
+    if (key !== "sharedSettings" && allKeys.includes(key)) {
+      const thisSettingDetail = allSettings.find(s => s.key === key) || {}
+      const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
+      sharedSettings[key] = setTo
+      logDebug('setSetting', `Set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
+      DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+      await showDashboardReact('full', false)
+    } else {
+      logError('setSetting', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
+      throw (`ERROR`)
+    }
+  } catch (error) {
+    logError('setSetting', error.message)
+  }
+}
+
+/**
+ * x-callback entry point to change multiple settings in one go.
+ * @param {string} `key=value` pairs separated by ;
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
+ */
+export async function setSettings(paramsIn: string): Promise<void> {
+  try {
+    const sharedSettings = (await getCombinedSettings()) || {}
+    const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
+    const allKeys = allSettings.map(s => s.key)
+    const params = paramsIn.split(';')
+    logDebug('setSettings', `Given ${params.length} key=value pairs to set:`)
+    let i = 0
+    for (const param of params) {
+      const [key, value] = param.split('=')
+      logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
+      if (key !== "sharedSettings" && allKeys.includes(key)) {
+        const thisSettingDetail = allSettings.find(s => s.key === key) || {}
+        const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
+        sharedSettings[key] = setTo
+        logDebug('setSettings', `  - set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
+      } else {
+        logError('setSettings', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
+        throw new Error(`Key '${key}' not found in sharedSettings`)
+      }
+    }
+    logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
     await showDashboardReact('full', false)
-  } else {
-    logError('setSetting', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
-    throw (`ERROR`)
+  } catch (error) {
+    logError('setSettings', error.message)
+  }
+}
+
+export async function makeSettingsAsCallback(): Promise<void> {
+  try {
+    const sharedSettings = (await getCombinedSettings()) || {}
+    const params = Object.keys(sharedSettings).map(k => `${k}=${String(sharedSettings[k])}`).join(';')
+    // then give user the choice of whether they want a raw URL or a pretty link.
+    const options = [{ label: 'raw URL', value: 'raw' }, { label: 'pretty link', value: 'link' }]
+    const result = await chooseOption('Settings as URL or Link?', options, 'raw URL')
+    let output = ''
+    // then make the URL, using helpers to deal with encodings.
+    switch (result) {
+      case 'raw':
+        output = createRunPluginCallbackUrl('jgclark.Dashboard', 'setSettings', params)
+        break
+      case 'link':
+        output = createPrettyRunPluginLink('Open Dashboard with current Settings', 'jgclark.Dashboard', 'setSettings', params)
+        break
+      default:
+        return
+    }
+    logDebug('makeSettingsAsCallback', `${result} output: '${output}'`)
+
+    // now copy to Clipboard and tell the user
+    const types = Clipboard.types
+    logDebug('makeSettingsAsCallback', `Clipboard.types = ${String(types)}`)
+    await Clipboard.setStringForType(output, 'public.url')
+    await showMessage('Settings as URL or Link copied to Clipboard', 'OK', 'Dashboard', false)
+  } catch (error) {
+    logError('makeSettingsAsCallback', error.message)
   }
 }
 
@@ -194,7 +269,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
-    const ENV_MODE = 'production' /* 'development' helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
