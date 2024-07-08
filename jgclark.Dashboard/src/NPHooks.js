@@ -1,8 +1,9 @@
 /* eslint-disable require-await */
 // @flow
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { getCombinedSettings, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, setPluginData } from './dashboardHelpers'
 import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
@@ -52,9 +53,9 @@ export function init(): void {
  */
 export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
-  const combinedSettings = await getCombinedSettings()
-  clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.settings to combinedSettings')
-  await setPluginData({ settings: combinedSettings }, '_settings were updated')
+  const combinedSettings = getDashboardSettings()
+  clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to combinedSettings')
+  await setPluginData({ dashboardSettings: combinedSettings }, '_settings were updated')
   return
 }
 

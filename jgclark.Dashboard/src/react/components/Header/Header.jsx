@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-05 for v2.0.1 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -53,7 +53,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { sharedSettings, setSharedSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -74,16 +74,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
+  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.dashboardSettings, dashboardSettings)
 
-  const { settings: pluginDataSettings } = pluginData
+  const { dashboardSettings: pluginDataSettings, notePlanSettings: notePlanSettings } = pluginData
 
-  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(sharedSettings, pluginDataSettings)
-  const dashboardSettingsItems = createDashboardSettingsItems(sharedSettings, pluginDataSettings)
-  const featureFlagItems = createFeatureFlagItems(sharedSettings, pluginDataSettings)
+  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings, pluginDataSettings)
+  const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings, pluginDataSettings)
+  const featureFlagItems = createFeatureFlagItems(dashboardSettings, pluginDataSettings)
 
-  const isDevMode = sharedSettings._logLevel === 'DEV'
-  const showHardRefreshButton = isDevMode && sharedSettings?.FFlag_HardRefreshButton
+  const isDevMode = notePlanSettings._logLevel === 'DEV'
+  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
 
   //----------------------------------------------------------------------
   // Render
@@ -123,7 +123,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
-              handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
               onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
             }}
             className={'feature-flags'}
@@ -148,12 +148,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(sharedSettings, setSharedSettings, sendActionToPlugin)(key)(e)
+            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           handleSaveInput={(key, newValue) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSaveInput(setSharedSettings)(key)(newValue)
+            handleSaveInput(setDashboardSettings)(key)(newValue)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           className={'filter'}

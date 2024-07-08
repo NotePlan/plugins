@@ -17,7 +17,7 @@ import {
   rollUpDoneCounts,
 } from "./countDoneTasks"
 import {
-  getCombinedSettings,
+  getDashboardSettings,
   handlerResult,
   mergeSections,
   // moveItemBetweenCalendarNotes,
@@ -101,7 +101,7 @@ export async function refreshAllSections(): Promise<void> {
   logTimer('refreshAllSections', startTime, `at end for all sections`)
 
   // re-calculate all done task counts (if the appropriate setting is on)
-  const settings = reactWindowData.pluginData.settings
+  const settings = reactWindowData.pluginData.dashboardSettings
   if (settings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
@@ -145,7 +145,7 @@ export async function incrementallyRefreshSections(data: MessageDataObject,
 
   // re-calculate done task counts (if the appropriate setting is on)
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const settings = reactWindowData.pluginData.settings
+  const settings = reactWindowData.pluginData.dashboardSettings
   if (settings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
@@ -202,7 +202,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
  */
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const config = await getCombinedSettings()
+    const config = getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
     const { actionType, toFilename, sectionCodes } = data
 
@@ -580,7 +580,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  */
 export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: string = ''): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = await getCombinedSettings()
+  const config = getDashboardSettings()
   // logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
   logDebug('doUpdateTaskDate', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
   const dateOrInterval = String(controlStr)

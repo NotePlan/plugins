@@ -1,6 +1,6 @@
 // @flow
 import { allSectionDetails, allSectionCodes } from "../../../constants.js"
-import type { TSharedSettings } from "../../../types.js"
+import type { TDashboardSettings } from "../../../types.js"
 import { dashboardFilters } from "../../../dashboardSettings"
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 
@@ -24,14 +24,14 @@ export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean 
  * This function uses function composition to separate the initialization logic from the event handling logic. 
  * The outer function takes the necessary parameters and returns an inner function that handles the specific change event.
  * 
- * @param {TSharedSettings} sharedSettings - The current shared settings.
- * @param {Function} setSharedSettings - Function to update the shared settings.
+ * @param {TDashboardSettings} dashboardSettings - The current shared settings.
+ * @param {Function} setDashboardSettings - Function to update the shared settings.
  * @param {Function} sendActionToPlugin - Function to send actions to the plugin.
  * @returns {Function} - A function that takes a key and returns a function to handle the change event.
  */
 export const handleSwitchChange = (
-  sharedSettings: TSharedSettings,
-  setSharedSettings: Function,
+  dashboardSettings: TDashboardSettings,
+  setDashboardSettings: Function,
   sendActionToPlugin: Function
 ): Function => {
   // Return the event handler function
@@ -39,11 +39,11 @@ export const handleSwitchChange = (
 
     logDebug('handleSwitchChange', `Invoked with key: ${key} and event:`, e)
 
-    if (!sharedSettings || Object.keys(sharedSettings).length === 0) {
+    if (!dashboardSettings || Object.keys(dashboardSettings).length === 0) {
       logError(
         'Header',
-        `handleSwitchChange: Checkbox clicked but sharedSettings is empty or undefined`,
-        sharedSettings
+        `handleSwitchChange: Checkbox clicked but dashboardSettings is empty or undefined`,
+        dashboardSettings
       )
       return
     }
@@ -55,9 +55,9 @@ export const handleSwitchChange = (
     logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
 
     // This saves the change in local context, and then it will be picked up and sent to plugin
-    if (setSharedSettings && sharedSettings && sharedSettings[key] !== isChecked) {
-      logDebug('handleSwitchChange', `Updating sharedSettings["${key}"]. Previous value: ${sharedSettings[key]}. New value: ${isChecked}`, sharedSettings)
-      setSharedSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
+    if (setDashboardSettings && dashboardSettings && dashboardSettings[key] !== isChecked) {
+      logDebug('handleSwitchChange', `Updating dashboardSettings["${key}"]. Previous value: ${dashboardSettings[key]}. New value: ${isChecked}`, dashboardSettings)
+      setDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
       if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
         // call for new data for a section just turned on
         const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
@@ -77,7 +77,7 @@ export const handleSwitchChange = (
         }
       }
   } else {
-    logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${sharedSettings[key]}, new value: ${isChecked}`)
+      logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${dashboardSettings[key]}, new value: ${isChecked}`)
   }
 }
 }
@@ -89,15 +89,15 @@ export const handleSwitchChange = (
  * This function uses function composition to separate the initialization logic from the event handling logic. 
  * The outer function takes the necessary parameters and returns an inner function that handles the specific save input event.
  * 
- * @param {Function} setSharedSettings - Function to update the shared settings.
+ * @param {Function} setDashboardSettings - Function to update the shared settings.
  * @returns {Function} - A function that takes a key and returns a function to handle the save input event.
  */
-export const handleSaveInput = (setSharedSettings: Function): Function => (key: string) => (newValue: string) => {
+export const handleSaveInput = (setDashboardSettings: Function): Function => (key: string) => (newValue: string) => {
   logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue}`)
-  setSharedSettings((prev) => {
-    logDebug('Header', `Previous sharedSettings:`, prev)
+  setDashboardSettings((prev) => {
+    logDebug('Header', `Previous dashboardSettings:`, prev)
     const newSettings = { ...prev, [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
-    logDebug('Header', `New sharedSettings: ${JSP(newSettings, 2)}`)
+    logDebug('Header', `New dashboardSettings: ${JSP(newSettings, 2)}`)
     return newSettings
   })
 }

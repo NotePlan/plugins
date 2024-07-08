@@ -1,10 +1,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-05 for v2.0.1 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
-import type { TDropdownItem, TSharedSettings } from "./types.js"
+import type { TDropdownItem, TDashboardSettings } from "./types.js"
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -220,7 +220,7 @@ export const dashboardSettings = [
   },
 ]
 
-export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
+export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
   return dashboardSettings.map(setting => {
     switch (setting.type) {
       case 'separator':
@@ -238,7 +238,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          checked: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           description: setting.description,
         }
       case 'input':
@@ -246,7 +246,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -254,7 +254,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -263,7 +263,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
           description: setting.description,
         }
     }

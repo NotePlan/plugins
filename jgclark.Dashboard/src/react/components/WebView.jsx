@@ -77,13 +77,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // this will save the data at the Root React Component level, which will give the plugin access to this data also
   // sending this dispatch will re-render the Webview component with the new data
 
-  const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
-  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings || "{}") || {}
-  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings))
-  const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.settings))
+  const redactedSettings = getSettingsRedacted(data.pluginData.dashboardSettings) || {}
+  const savedSharedSettings = parseSettings(data.pluginData.dashboardSettings || "{}") || {}
+  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.dashboardSettings))
+  const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.dashboardSettings))
 
   const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
-  const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
+  const [dashboardSettings, setDashboardSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -129,7 +129,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @property {string} effectName - Name of the effect for debugging purposes.
    */
   /**
-   * Helper function to initialize settings (used for reactSettings and sharedSettings)
+   * Helper function to initialize settings (used for reactSettings and dashboardSettings)
    * @param {Settings} settings
    */
   function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
@@ -150,10 +150,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     let parsedSettings = defaultSettings
     if (pluginSettingsValue) {
       try {
-        logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.settings.${settingsKey}`)
-        parsedSettings = parseSettings(pluginData.settings[settingsKey])
+        logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.dashboardSettings.${settingsKey}`)
+        parsedSettings = parseSettings(pluginData.dashboardSettings[settingsKey])
       } catch (error) {
-        logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
+        logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.dashboardSettings.${settingsKey}: ${pluginData.dashboardSettings[settingsKey]}`)
       }
     }
 
@@ -179,13 +179,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   // useEffect(() => {
   //   initializeSettings({
-  //     setter: setSharedSettings,
-  //     currentSettings: sharedSettings,
-  //     settingsKey: 'sharedSettings',
+  //     setter: setDashboardSettings,
+  //     currentSettings: dashboardSettings,
+  //     settingsKey: 'dashboardSettings',
   //     defaultSettings: combinedSettings,
-  //     effectName: 'setSharedSettings'
+  //     effectName: 'setDashboardSettings'
   //   })
-  // }, [setSharedSettings])
+  // }, [setDashboardSettings])
 
 
   /**
@@ -286,8 +286,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}
-      sharedSettings={sharedSettings}
-      setSharedSettings={setSharedSettings}
+      dashboardSettings={dashboardSettings}
+      setDashboardSettings={setDashboardSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>

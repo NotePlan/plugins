@@ -126,6 +126,7 @@
     {
       "key": "_logTimer",
       "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
       "type": "bool",
       "default": false,
       "required": true
@@ -159,8 +160,8 @@
     },
     {
       "type": "hidden",
-      "key": "sharedSettings",
-      "description": "Saves last state of shared settings as JSON string.",
+      "key": "dashboardSettings",
+      "description": "Saves last state of dashboardSettings as JSON string.",
       "required": true,
       "default": "{}"
     },

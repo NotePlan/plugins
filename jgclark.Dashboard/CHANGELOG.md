@@ -370,7 +370,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fixed the bug on the data generation side that was keeping a lot of the data from generating
 - added sharedData to plugin.json and to context, added reading/initializing/setting functions
 - refactored all the reactSettings calls to be sharedData calls instead
-- the specific settings should be added to TSharedSettings in types
+- the specific settings should be added to TDashboardSettings in types
 - ran around in circles trying to figure out why it was refreshing in an endless loop. then figured out that there was some old refresh dashboard code on a settings change, so every time i flipped one switch, it looped forever reloading reloading. i commented out the onSettingsUpdated refresh code.
 - As of now, reactSettings is used only for things that are react-only (like dialogData which is used to open the dialog with certain info)
 - sharedData holds all the values that you created/saved

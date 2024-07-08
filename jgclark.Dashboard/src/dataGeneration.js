@@ -16,10 +16,12 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers.
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   // extendParasToAddStartTimes,
-  getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  getDashboardSettings,
+  getNotePlanSettings,
+  getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
   // getSharedSettings,
-  makeDashboardParas, type dashboardConfigType
+  makeDashboardParas, type TDashboardConfig
 } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -84,7 +86,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
-    const config: any = await getCombinedSettings()
+    const config: any = getDashboardSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
 
     let sections: Array<TSection> = []
@@ -119,7 +121,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
-    const config: dashboardConfigType = await getCombinedSettings()
+    const config: TDashboardConfig = getDashboardSettings()
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -141,12 +143,12 @@ export async function getSomeSectionsData(
 
 /**
  * Get open items from Today's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTodaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '0'
     const thisSectionCode = 'DT'
@@ -154,7 +156,8 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     const items: Array<TSectionItem> = []
     let itemCount = 0
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
-    const thisFilename = `${getTodaysDateUnhyphenated()}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ not reliable
     const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ reliable
@@ -316,12 +319,12 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
 /**
  * Get open items from Yesterday's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getYesterdaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getYesterdaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '2'
     let itemCount = 0
@@ -329,7 +332,9 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     const thisSectionCode = 'DY'
     const yesterday = new moment().subtract(1, 'days').toDate()
     const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
-    const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename =
+      `${moment(yesterday).format('YYYYMMDD')}.${NPSettings.defaultFileExtension}`
     const items: Array<TSectionItem> = []
     // const yesterday = new moment().subtract(1, 'days').toDate()
     const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
@@ -458,12 +463,12 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
 
 /**
  * Get open items from Tomorrow's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getTomorrowSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTomorrowSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '4'
     const thisSectionCode = 'DO'
@@ -474,7 +479,8 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
     const filenameDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowsNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.${NPSettings.defaultFileExtension}`
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
@@ -587,12 +593,12 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
 
 /**
  * Get open items from this Week's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisWeekSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '6'
     const thisSectionCode = 'W'
@@ -601,7 +607,8 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPWeekStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -735,12 +742,12 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
 }
 /**
  * Get open items from this Month's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisMonthSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '8'
     const thisSectionCode = 'M'
@@ -749,7 +756,8 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPMonthStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -883,12 +891,12 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
 }
 /**
  * Get open items from this Quarter's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisQuarterSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '10'
     const thisSectionCode = 'Q'
@@ -897,7 +905,8 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPQuarterStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Quarter's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -1026,11 +1035,11 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
 /**
  * Get the tagged sections for each tag - they will all be sectionCode=TAG
  * sectionName will be the tag name, and showSettingName will be unique for this tag
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export function getTaggedSections(config: dashboardConfigType, useDemoData: boolean = false): Array<TSection> {
+export function getTaggedSections(config: TDashboardConfig, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
   const tagSections = getTagSectionDetails(config, {})
   // clo(tagSections)
@@ -1049,10 +1058,10 @@ export function getTaggedSections(config: dashboardConfigType, useDemoData: bool
 /**
  * Add a section for tagToShow, if wanted, and if not running because triggered by a change in the daily note.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  */
-export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false, sectionDetail:TSectionDetails, index: number): TSection {
+export function getTaggedSectionData(config: TDashboardConfig, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
   const thisStartTime = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
@@ -1186,7 +1195,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
 
 // ----------------------------------------------------------
 // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
-export async function getOverdueSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+export async function getOverdueSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = '13'
     const thisSectionCode = 'OVERDUE'
@@ -1195,6 +1204,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
     let dashboardParas: Array<TParagraphForDashboard> = []
     const maxInSection = config.maxItemsToShowInSection
+    const NPSettings = getNotePlanSettings()
     const thisStartTime = new Date()
 
     logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
@@ -1207,7 +1217,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${config.defaultFileExtension}` : `fake_note_${String(c % 7)}.${config.defaultFileExtension}`
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
         const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
         overdueParas.push({
@@ -1308,11 +1318,11 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
 /**
  * Make a Section for all projects ready for review
  * FIXME: this is taking 1815ms for JGC
- * @param {dashboardConfigType} config 
+ * @param {TDashboardConfig} config 
  * @param {boolean} useDemoData?
  * @returns 
  */
-export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0

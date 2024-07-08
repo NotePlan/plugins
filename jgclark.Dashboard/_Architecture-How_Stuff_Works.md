@@ -15,13 +15,22 @@ export default Header
 - importing the component then looks like: `import Header from './Header'`
 
 ## Settings
+As of 2.0.1, there are 4 types of settings:
+1. a-few-NP-settings-we-need-to-have-available-when-Noteplan-object-isn't.
+1. logLevel used by other helpers + as a fallback
+1. things that are only about what sections to display and how they should look.
+1. things that control other bits of logic.
 
-As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings. This is necessary during the time of transition because we want users' 1.0 preferences to not be lost. Starting in 2.1, there will be no *user visible* plugin settings in DataStore.settings (or plugin.json), other than LOG_LEVEL. 
-- For the time being, the back-end (plugin) gets its config from `getCombinedSettings()` which uses the sharedSettings set in react first, and falls back to the DataStore settings if the react settings have not been set yet. This way, if somone has made a change to a React switch, it's used. Otherwise, their 1.0 setting is used.
-- Under the hood, "sharedSettings" is actually saved in `DataStore.settings.sharedSettings` in stringified JSON, and parsed when needed on the front-end or back end.
-- Any time any change is made to a setting, a useEffect listener, watching for changes to sharedSettings will fire off a command to update the back-end (DataStore.settings.sharedSetttings) with the latest value.
+These are available through the following functions:
+- getDashboardSettings  = 3 + 4, and these can be changed by setSetting(s)
+- getNotePlanSettings = 1, and these can't be changed by setSetting(s)
+- getLogSettings = 2, and these can only by changed manually in app.
+
+As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings. This is necessary during the time of transition because we want users' 1.0 preferences to not be lost.
+- Under the hood, "dashboardSettings" is actually saved in `DataStore.settings.dashboardSettings` in stringified JSON, and parsed when needed on the front-end or back end.
+- Any time any change is made to a setting, a useEffect listener, watching for changes to dashboardSettings will fire off a command to update the back-end (DataStore.settings.dashboardSettings) with the latest value.
 - For the front-end, settings are defined in the file: 
-    `src/dashboardSettings.js`
+    `src/settings.js`
 
 
 ## Custom Hooks (src/react/customHooks)

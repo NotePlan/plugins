@@ -15,7 +15,7 @@
  */
 
 import { useEffect } from 'react'
-import type { TSectionItem, TSection, TSharedSettings } from '../../../types.js'
+import type { TSectionItem, TSection, TDashboardSettings } from '../../../types.js'
 import { logDebug, JSP } from '@helpers/react/reactDev.js'
 
 function useInteractiveProcessing(
@@ -26,7 +26,7 @@ function useInteractiveProcessing(
   reactSettings: any,
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void,
-  sharedSettings: TSharedSettings,
+  dashboardSettings: TDashboardSettings,
 ): void {
 
   // Check if this section should process interactively
@@ -88,7 +88,7 @@ function useInteractiveProcessing(
         },
         interactiveProcessing: { ...prev.interactiveProcessing, currentIPIndex: currentIPIndex + 1, startingUp: false }
       }))
-      if (sharedSettings.interactiveProcessingHighlightTask) {
+      if (dashboardSettings.interactiveProcessingHighlightTask) {
         const actionType = 'showLineInEditorFromFilename'
         sendActionToPlugin(actionType, { actionType, item: itemsCopy[0] }, 'Title clicked in Dialog', true)
       }
@@ -104,7 +104,7 @@ function useInteractiveProcessing(
         setItemsCopy([])
       }
     }
-  }, [thisSection, reactSettings, itemsCopy, setItemsCopy, setReactSettings, sendActionToPlugin, sharedSettings, shouldProcess])
+  }, [thisSection, reactSettings, itemsCopy, setItemsCopy, setReactSettings, sendActionToPlugin, dashboardSettings, shouldProcess])
 }
 
 export default useInteractiveProcessing

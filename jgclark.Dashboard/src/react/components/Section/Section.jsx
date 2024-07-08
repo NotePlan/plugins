@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-02 for v2.0.0 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -34,7 +34,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { sharedSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, reactSettings, setReactSettings, pluginData, sendActionToPlugin } = useAppContext()
 
   //----------------------------------------------------------------------
   // State
@@ -57,7 +57,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       return
     }
 
-    if (sharedSettings && section.showSettingName && sharedSettings[section.showSettingName] === false) {
+    if (dashboardSettings && section.showSettingName && dashboardSettings[section.showSettingName] === false) {
       return
     }
 
@@ -75,14 +75,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     }
 
     setItems(sectionItems)
-  }, [section, sharedSettings])
+  }, [section, dashboardSettings])
 
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  const { filteredItems, itemsToShow, filteredOut, limitApplied } = useSectionSortAndFilter(section, items, sharedSettings)
+  const { filteredItems, itemsToShow, filteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
 
-  useInteractiveProcessing(filteredItems, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, sharedSettings)
+  useInteractiveProcessing(filteredItems, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -114,7 +114,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  const hideSection = !items.length || (sharedSettings && sharedSettings[`${section.showSettingName}`] === false)
+  const hideSection = !items.length || (dashboardSettings && dashboardSettings[`${section.showSettingName}`] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
@@ -159,7 +159,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
-          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && sharedSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks one at a time`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

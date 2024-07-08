@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the done items counts at the top of the Dashboard window.
 // Called by Heaer component.
-// Last updated 2024-06-29 for v2.0.0-b16 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -32,7 +32,7 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { /*sharedSettings,*/ pluginData } = useAppContext()
+  const { /*dashboardSettings,*/ pluginData } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -45,13 +45,11 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.settings, sharedSettings)
-
-  // const { settings: pluginDataSettings } = pluginData
+  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.dashboardSettings, dashboardSettings)
 
   // Don't show counts on mobile, or if we don't have @done() dates available
   const isMobile = pluginData.platform === "iOS"
-  const showCounts = pluginData.settings.doneDatesAvailable && !isMobile
+  const showCounts = pluginData.dashboardSettings.doneDatesAvailable && !isMobile
 
   const itemsDoneCount = totalDoneCounts.completedTasks // + totalDoneCounts.completedChecklists
 

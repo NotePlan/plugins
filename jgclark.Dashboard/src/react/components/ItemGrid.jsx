@@ -16,9 +16,9 @@ type Props = {
 };
 
 function ItemGrid({ items, thisSection }: Props): React$Node {
-  const { sharedSettings /*, reactSettings, setReactSettings, sendActionToPlugin */ } = useAppContext()
+  const { dashboardSettings /*, reactSettings, setReactSettings, sendActionToPlugin */ } = useAppContext()
 
-  const tasksToShow = (sharedSettings && sharedSettings.ignoreChecklistItems && items.length) 
+  const tasksToShow = (dashboardSettings && dashboardSettings.ignoreChecklistItems && items.length) 
   ? items.filter(si => !(si.para?.type === "checklist")) 
   : items
 

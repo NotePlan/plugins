@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -50,7 +50,7 @@ import {
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
-import { makeDashboardParas , getCombinedSettings } from './dashboardHelpers'
+import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
 import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
 import {
   copyUpdatedSectionItemData, findSectionItems,
@@ -257,10 +257,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doSettingsChanged(data, 'reactSettings')
         break
       }
-      case 'sharedSettingsChanged': {
+      case 'dashboardSettingsChanged': {
         // $FlowIgnore
         if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
-        result = await doSettingsChanged(data, 'sharedSettings')
+        result = await doSettingsChanged(data, 'dashboardSettings')
         break
       }
       // case 'setSpecificDate': {
@@ -464,7 +464,6 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       logDebug('', `- doing something other than REMOVE_LINE. Assuming UPDATE_LINE_IN_JSON:`)
       sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
       // logError('updateReactWindowFLC', `Project type sent but not a remove action, but don't know how to do anything else yet. So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
-      // sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
     }
   } else {
     logError('updateReactWindowFLC', `no updatedParagraph param was supplied to updateReactWindowFromLineChange(). So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
@@ -494,7 +493,7 @@ export async function checkForThemeChange(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
-  const config = await getCombinedSettings()
+  const config = getDashboardSettings()
 
   logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
   // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
@@ -517,27 +516,5 @@ export async function checkForThemeChange(): Promise<void> {
 
     // ... so for now, force a reload instead
     await showDashboardReact('full')
-
-    // TODO: look further at this:
-
-    //     Identify the < link > element: Make sure your HTML page has a < link > element for the CSS file, such as:
-
-    //       < link id = "theme-stylesheet" rel = "stylesheet" href = "old-styles.css" >
-    //         JavaScript to replace CSS: Use the following JavaScript code to change the href attribute of the < link > element to the new CSS file:
-
-    //       < script >
-    //       function replaceCSS(newCSS) {
-    //         var link = document.getElementById('theme-stylesheet');
-    //         if (link) {
-    //           link.href = newCSS;
-    //         } else {
-    //           console.error('The link element with the specified ID was not found.');
-    //         }
-    //       }
-
-    //     // Example usage:
-    //     replaceCSS('new-styles.css');
-    // </script >
-    //       In this example, calling replaceCSS('new-styles.css') will change the CSS file from old - styles.css to new- styles.css without reloading the page.Make sure the id of the < link > element matches the one used in the JavaScript(theme - stylesheet in this case).
   } 
 }

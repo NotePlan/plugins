@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 13.6.2024 for v2.0.0 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -46,7 +46,7 @@ type Props = {
  * Represents the main content for a single item within a section
  */
 function ItemContent({ item, children }: Props): React$Node {
-  const { sendActionToPlugin, sharedSettings } = useAppContext()
+  const { sendActionToPlugin, dashboardSettings } = useAppContext()
   // const itemType = para.type
 
   // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
@@ -55,11 +55,11 @@ function ItemContent({ item, children }: Props): React$Node {
   let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
   // get rid of arrowDates if desired by user
-  if (mainContent && !sharedSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
+  if (mainContent && !dashboardSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
 
   // get rid of priority markers if desired by user (maincontent starts with <span> etc.)
-  const shouldRemove = sharedSettings && sharedSettings.hidePriorityMarkers === true
-  // logDebug('ItemContent', `mainContent: ${mainContent} sharedSettings.hidePriorityMarkers=${shouldRemove} (type: ${typeof sharedSettings.hidePriorityMarkers})`)
+  const shouldRemove = dashboardSettings && dashboardSettings.hidePriorityMarkers === true
+  // logDebug('ItemContent', `mainContent: ${mainContent} dashboardSettings.hidePriorityMarkers=${shouldRemove} (type: ${typeof dashboardSettings.hidePriorityMarkers})`)
   // Check if we need to remove exclamations or ">>" from mainContent
   if (shouldRemove) {
     // Regex to match the entire <span>...</span> block and capture its content

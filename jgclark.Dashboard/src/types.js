@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
+// Last updated 8.7.2024 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
@@ -106,7 +106,7 @@ export type TActionType =
   | 'scheduleAllOverdueToday'
   | 'setNewReviewInterval'
   // | 'setSpecificDate'
-  | 'sharedSettingsChanged'
+  | 'dashboardSettingsChanged'
   | 'startReviews'
   | '(not yet set)'
   | 'toggleType'
@@ -150,7 +150,7 @@ export type MessageDataObject = {
   actionType: TActionType, // main verb (was .type)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
-  newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
+  newSettings?: string, /* either reactSettings or dashboardSettingsdepending on actionType */
   modifierKey?: any, /* used when modifier key is pressed with an action */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
@@ -193,7 +193,9 @@ export type TReactSettings = {
 }
 
 export type TPluginData = {
-  settings: any, /* plugin settings, includes stringified sharedSettings */
+  dashboardSettings: any, /* plugin settings */
+  logSettings: any, /* logging settings from plugin preferences */
+  notePlanSettings: any, /* for copies of some app settings */
   refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
   sections: Array<TSection>,
   lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
@@ -204,10 +206,10 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSharedSettings = {
-  //TODO: jgclark: add the specific shared settings
-  [key: string]: any,
-}
+// export type TDashboardSettings = {
+//   //TODO: jgclark: add the specific shared settings
+//   [key: string]: any,
+// }
 
 export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
 

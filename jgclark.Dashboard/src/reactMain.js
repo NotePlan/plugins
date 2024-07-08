@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import type { TPluginData } from './types'
 import { allSectionDetails } from "./constants"
 import { dashboardFilters, dashboardSettings } from "./dashboardSettings"
-import { type dashboardConfigType, getCombinedSettings, getSharedSettings } from './dashboardHelpers'
+import { type TDashboardConfig, getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
 import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
 import {
   bridgeClickDashboardItem,
@@ -80,18 +80,18 @@ export async function showDemoDashboard(): Promise<void> {
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
-    const sharedSettings = (await getCombinedSettings()) || {}
+    const dashboardSettings = (getDashboardSettings()) || {}
     const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
-    if (key !== "sharedSettings" && allKeys.includes(key)) {
+    if (key !== "dashboardSettings" && allKeys.includes(key)) {
       const thisSettingDetail = allSettings.find(s => s.key === key) || {}
       const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-      sharedSettings[key] = setTo
-      logDebug('setSetting', `Set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
-      DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+      dashboardSettings[key] = setTo
+      logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
+      DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
       await showDashboardReact('full', false)
     } else {
-      logError('setSetting', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
+      logError('setSetting', `Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
       throw (`ERROR`)
     }
   } catch (error) {
@@ -107,7 +107,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
-    const sharedSettings = (await getCombinedSettings()) || {}
+    const dashboardSettings = (getDashboardSettings()) || {}
     const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     const params = paramsIn.split(';')
@@ -116,18 +116,18 @@ export async function setSettings(paramsIn: string): Promise<void> {
     for (const param of params) {
       const [key, value] = param.split('=')
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
-      if (key !== "sharedSettings" && allKeys.includes(key)) {
+      if (key !== "dashboardSettings" && allKeys.includes(key)) {
         const thisSettingDetail = allSettings.find(s => s.key === key) || {}
         const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-        sharedSettings[key] = setTo
-        logDebug('setSettings', `  - set ${key} to ${String(setTo)} in sharedSettings (type: ${typeof setTo})`)
+        dashboardSettings[key] = setTo
+        logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       } else {
-        logError('setSettings', `Key '${key}' not found in sharedSettings. Available keys: [${allKeys.join(', ')}]`)
-        throw new Error(`Key '${key}' not found in sharedSettings`)
+        logError('setSettings', `Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
+        throw new Error(`Key '${key}' not found in dashboardSettings`)
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
-    DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+    DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
     await showDashboardReact('full', false)
   } catch (error) {
     logError('setSettings', error.message)
@@ -136,8 +136,8 @@ export async function setSettings(paramsIn: string): Promise<void> {
 
 export async function makeSettingsAsCallback(): Promise<void> {
   try {
-    const sharedSettings = (await getCombinedSettings()) || {}
-    const params = Object.keys(sharedSettings).map(k => `${k}=${String(sharedSettings[k])}`).join(';')
+    const dashboardSettings = (getDashboardSettings()) || {}
+    const params = Object.keys(dashboardSettings).map(k => `${k}=${String(dashboardSettings[k])}`).join(';')
     // then give user the choice of whether they want a raw URL or a pretty link.
     const options = [{ label: 'raw URL', value: 'raw' }, { label: 'pretty link', value: 'link' }]
     const result = await chooseOption('Settings as URL or Link?', options, 'raw URL')
@@ -167,29 +167,29 @@ export async function makeSettingsAsCallback(): Promise<void> {
 
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
-  const sharedSettings = (await getSharedSettings()) || {}
+  const dashboardSettings = (getDashboardSettings()) || {}
   // set everything to off to begin with
-  const keys = Object.keys(sharedSettings).filter((key) => key.startsWith('show'))
+  const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
-    if (key) sharedSettings[key] = false
+    if (key) dashboardSettings[key] = false
   })
   // also turn off the specific tag sections (e.g. "showTagSection_@home")
-  keys.forEach((key) => sharedSettings[key] = false)
+  keys.forEach((key) => dashboardSettings[key] = false)
   const sectionsToShow = limitToSections.split(',')
   sectionsToShow.forEach((sectionCode) => {
     const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
     if (showSectionKey) {
-      sharedSettings[showSectionKey] = true
+      dashboardSettings[showSectionKey] = true
     } else {
       if (sectionCode.startsWith("@") || sectionCode.startsWith("#")) {
-        sharedSettings[`showTagSection_${sectionCode}`] = true
+        dashboardSettings[`showTagSection_${sectionCode}`] = true
       } else {
         logError(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails`)
       }
     }
   })
-  DataStore.settings = { ...DataStore.settings, sharedSettings: JSON.stringify(sharedSettings) }
+  DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
 }
 
 /**
@@ -226,7 +226,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = await getCombinedSettings()
+    const config = getDashboardSettings()
     clo(config, 'showDashboardReact: config=')
     logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
     const windowOptions = {
@@ -243,7 +243,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       postBodyScript: `
         <script type="text/javascript" >
         // Set DataStore.settings so default clo etc. logging works in React
-        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        let DataStore = { dashboardSettings: {_logLevel: "${DataStore.settings._logLevel}" } };
         </script>
       `,
     }
@@ -264,7 +264,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: dashboardConfigType = await getCombinedSettings()
+    const config: TDashboardConfig = getDashboardSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -283,6 +283,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     return dataToPass
   } catch (error) {
     logError(pluginJson, error.message)
+    // $FlowFixMe[prop-missing]
     return {}
   }
 }
@@ -294,7 +295,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(config: dashboardConfigType, useDemoData: boolean = false): Promise<TPluginData> {
+export async function getInitialDataForReactWindow(config: TDashboardConfig, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoadForBrowserDebugging=${String(config.FFlag_ForceInitialLoadForBrowserDebugging)}`)
@@ -308,18 +309,22 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
     ? await getAllSectionsData(useDemoData, true, true)
     : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
+  const NPSettings = getNotePlanSettings()
+
   const pluginData: TPluginData =
   {
     sections: sections,
     lastFullRefresh: new Date(),
-    settings: config,
+    dashboardSettings: config,
+    notePlanSettings: NPSettings,
+    logSettings: getLogSettings(),
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
   }
 
   // Calculate all done task counts (if the appropriate setting is on)
-  if (config.doneDatesAvailable) {
+  if (NPSettings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
     pluginData.totalDoneCounts = totalDoneCounts
   }

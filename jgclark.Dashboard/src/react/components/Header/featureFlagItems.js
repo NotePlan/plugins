@@ -1,5 +1,5 @@
 // @flow
-import type { TDropdownItem, TSharedSettings } from "../../../types.js"
+import type { TDropdownItem, TDashboardSettings } from "../../../types.js"
 
 
 const featureFlagSettings = [
@@ -8,12 +8,12 @@ const featureFlagSettings = [
     { key: 'FFlag_HardRefreshButton', label: 'Show Hard Refresh Button', tooltip: 'Show button that does a full window reload with changed React components and data' },
 ]
 
-export const createFeatureFlagItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
+export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
     return featureFlagSettings.map(setting => ({
         label: setting.label,
         key: setting.key,
         type: 'switch',
-        checked: (typeof sharedSettings !== undefined && sharedSettings[setting.key]) ?? pluginSettings[setting.key] ?? false,
+        checked: (typeof dashboardSettings !== undefined && dashboardSettings[setting.key]) ?? pluginSettings[setting.key] ?? false,
         tooltip: setting.tooltip,
     }))
 }

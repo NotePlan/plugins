@@ -1,16 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
-// Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
-import type { TDoneCount, TDoneTodayNotes, TSection } from "./types";
-
-import { getNotesChangedInInterval } from "@helpers/NPnote";
-import {
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-} from "@helpers/dateTime";
-import { clo, logDebug, logError, logInfo, logTimer, timer } from "@helpers/dev";
+import type { TDoneCount, TDoneTodayNotes, TSection } from "./types"
+import { getNotesChangedInInterval } from "@helpers/NPnote"
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from "@helpers/dateTime"
+import { clo, logDebug, logError, logInfo, logTimer, timer } from "@helpers/dev"
 
 //-----------------------------------------------------------------
 // functions
@@ -93,7 +89,6 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
 
 /**
  * Build a list of notes that have tasks completed today
- * FIXME: this is taking 33,000ms for JGC for project notes
  * @returns {Array<TDoneTodayNotes>}
  */
 export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {

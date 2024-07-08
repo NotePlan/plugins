@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-07-05 for v2.0.1 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -48,7 +48,7 @@ const SettingsDialog = ({
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { /* sendActionToPlugin, */ sharedSettings, setSharedSettings } = useAppContext()
+    const { /* sendActionToPlugin, */ dashboardSettings, setDashboardSettings } = useAppContext()
 
     //----------------------------------------------------------------------
     // State
@@ -86,11 +86,11 @@ const SettingsDialog = ({
         if (onSaveChanges) {
             onSaveChanges(updatedSettings)
         }
-        // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
-        setSharedSettings({ ...sharedSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
+        // setDashboardSettings({ ...dashboardSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
+        setDashboardSettings({ ...dashboardSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
         logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
         // we are going to let the watcher pick up the changes and communicate them to the plugin
-        // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
+        // sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
         // sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
         toggleDialog()
     }
