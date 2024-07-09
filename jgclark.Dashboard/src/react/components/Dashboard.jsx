@@ -175,7 +175,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         sharedSets.lastChange = '_Saving first time migration'
       }
       const strSharedSetings = JSON.stringify(sharedSets)
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', dashboardSettings: strSharedSetings }, 'Dashboard dashboardSettings updated', true)
+      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: strSharedSetings, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
       // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
     }

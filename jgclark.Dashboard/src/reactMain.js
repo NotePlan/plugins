@@ -227,9 +227,9 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = await getDashboardSettings()
-    clo(config, 'showDashboardReact: config=')
-    logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
+    const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
+    // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
+    // logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
     const logSettings = await getLogSettings()
     const windowOptions = {
       windowTitle: data.title,
@@ -250,7 +250,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       `,
     }
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
-    clo(data, `showDashboardReact data object passed`)
+    // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
