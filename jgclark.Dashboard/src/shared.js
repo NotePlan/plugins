@@ -125,7 +125,9 @@ export function getFeatureFlags(NPSettings: TAnyObject, dashboardSettings: TDash
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
-    // FIXME(@dwertheimer): why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
+    // FIXME(@jgclark): you asked why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
+    // it probably doesn't matter anymore but the reason was that i didn't want it to get recursive. 
+    // the np settings had a shared settings object and i didn't want that sharedSettings to be saved inside sharedSettings when all other fields were migrated
     const keysToEliminate = ['sharedSettings', 'reactSettings', "timeblockMustContainString"]
     const settingsRedacted = JSON.parse(JSON.stringify(settings))
     const keys = Object.keys(settingsRedacted)

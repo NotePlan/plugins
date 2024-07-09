@@ -80,7 +80,7 @@ export async function showDemoDashboard(): Promise<void> {
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
-    const dashboardSettings = (getDashboardSettings()) || {}
+    const dashboardSettings = (await getDashboardSettings()) || {}
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     if (key !== "dashboardSettings" && allKeys.includes(key)) {
@@ -107,12 +107,12 @@ export async function setSetting(key: string, value: string): Promise<void> {
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
-    const dashboardSettings = (getDashboardSettings()) || {}
+    const dashboardSettings = (await getDashboardSettings()) || {}
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     const params = paramsIn.split(';')
     logDebug('setSettings', `Given ${params.length} key=value pairs to set:`)
-    let i = 0
+    const i = 0
     for (const param of params) {
       const [key, value] = param.split('=')
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
@@ -136,7 +136,7 @@ export async function setSettings(paramsIn: string): Promise<void> {
 
 export async function makeSettingsAsCallback(): Promise<void> {
   try {
-    const dashboardSettings = (getDashboardSettings()) || {}
+    const dashboardSettings = (await getDashboardSettings()) || {}
     const params = Object.keys(dashboardSettings).map(k => `${k}=${String(dashboardSettings[k])}`).join(';')
     // then give user the choice of whether they want a raw URL or a pretty link.
     const options = [{ label: 'raw URL', value: 'raw' }, { label: 'pretty link', value: 'link' }]
@@ -167,7 +167,7 @@ export async function makeSettingsAsCallback(): Promise<void> {
 
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
-  const dashboardSettings = (getDashboardSettings()) || {}
+  const dashboardSettings = (await getDashboardSettings()) || {}
   // set everything to off to begin with
   const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
@@ -193,13 +193,13 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 }
 
 /**
- * Plugin Entry Point for "Test React Window"
+ * Plugin Entry Point for "Show Dashboard"
  * @author @dwertheimer
  * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) |  CSV of specific sections to load (e.g. from xcallback)
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
+  logDebug(pluginJson, `showDashboardReact 2 starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
   try {
     const startTime = new Date()
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
@@ -207,10 +207,11 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
     // log warnings if we don't have required files
     await checkForRequiredSharedFiles(pluginJson)
+    logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
@@ -226,7 +227,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = getDashboardSettings()
+    const config = await getDashboardSettings()
     clo(config, 'showDashboardReact: config=')
     logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
     const logSettings = await getLogSettings()
@@ -244,12 +245,12 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       postBodyScript: `
         <script type="text/javascript" >
         // Set DataStore.settings so default clo etc. logging works in React
-        let DataStore = { dashboardSettings: {_logLevel: "${logSettings._logLevel}" } };
+        let DataStore = { settings: {_logLevel: "${logSettings._logLevel}" } };
         </script>
       `,
     }
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
-    // clo(data, `showDashboardReact data object passed`)
+    clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
@@ -265,7 +266,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: TDashboardConfig = getDashboardSettings()
+    const config: TDashboardConfig = await getDashboardSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -316,7 +317,7 @@ export async function getInitialDataForReactWindow(config: TDashboardConfig, use
   {
     sections: sections,
     lastFullRefresh: new Date(),
-    dashboardSettings: config,
+    dashboardSettings: JSON.stringify(config),
     notePlanSettings: NPSettings,
     logSettings: getLogSettings(),
     demoMode: useDemoData,

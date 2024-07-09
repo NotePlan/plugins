@@ -493,7 +493,7 @@ export async function checkForThemeChange(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const { pluginData } = reactWindowData
   const { themeName: themeInWindow } = pluginData
-  const config = getDashboardSettings()
+  const config = await getDashboardSettings()
 
   logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
   // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')

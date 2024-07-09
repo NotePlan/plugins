@@ -4,7 +4,8 @@
 // Used by many other components.
 // Last updated 4.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
-// FIXME(@dwertheimer): please talk to JGC about this, because the (more-or-less) empty <div>...</div> introduced below is breaking layout in StatusIcon
+// @jgclark wrote: (@dwertheimer): please talk to JGC about this, because the (more-or-less) empty <div>...</div> introduced below is breaking layout in StatusIcon
+// FIXME(@jgclark): Is this solved now? I think it is.
 
 import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'

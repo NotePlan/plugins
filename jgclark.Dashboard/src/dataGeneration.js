@@ -86,7 +86,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
-    const config: any = getDashboardSettings()
+    const config: any = await getDashboardSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
 
     let sections: Array<TSection> = []
@@ -121,7 +121,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
-    const config: TDashboardConfig = getDashboardSettings()
+    const config: TDashboardConfig = await getDashboardSettings()
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))

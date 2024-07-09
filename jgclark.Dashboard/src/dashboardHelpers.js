@@ -72,23 +72,30 @@ const WEBVIEW_WINDOW_ID = windowCustomId
  * Note: this does not include logSettings or copies of NP app-level settings.
  * These can potentially be changed by setSetting(s) calls.
  */
-export function getDashboardSettings(): TDashboardConfig {
+export async function getDashboardSettings(): Promise<TDashboardConfig> {
   // Note: We think following (newer API call) is unreliable.
-  const dashboardSettings: TDashboardConfig = DataStore.settings
-  if (!dashboardSettings) clo(dashboardSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
+  let pluginSettings = DataStore.settings
+  if (!pluginSettings || !pluginSettings.dashboardSettings) {
+    clo(pluginSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
 
-  // So instead back to the older way:
-  // const settings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-  // Check again
-  // if (!settings.dashboardSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
-
-  // return parseSettings(dashboardSettings || '') ?? {}
-  if (dashboardSettings) {
-    // return parseSettings(dashboardSettings)
-    return dashboardSettings
-  } else {
-    throw new Error('Failed to get DataStore.settings.dashboardSettings')
+    // So instead back to the older way:
+    pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    // Check again
   }
+  if (!pluginSettings.dashboardSettings) {
+    if (pluginSettings.sharedSettings) {
+      logDebug(`getDashboardSettings: no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
+      pluginSettings.dashboardSettings = pluginSettings.sharedSettings
+      delete pluginSettings.sharedSettings
+      DataStore.settings = pluginSettings
+      return parseSettings(pluginSettings.dashboardSettings)
+    } else {
+      throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
+    }
+  }
+
+  return parseSettings(pluginSettings.dashboardSettings)
 }
 
 /**
@@ -636,7 +643,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
   try {
-    const config = getDashboardSettings()
+    const config = await getDashboardSettings()
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))

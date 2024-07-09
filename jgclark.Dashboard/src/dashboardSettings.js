@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import type { TDropdownItem } from "./types.js"
+import { clo } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -192,31 +193,7 @@ export const dashboardSettingDefs = [
   },
   {
     type: 'heading',
-    label: "Logging"
-  },
-  {
-    key: "_logLevel",
-    type: "combo",
-    label: "Log Level",
-    options: [
-      "DEV",
-      "DEBUG",
-      "INFO",
-      "WARN",
-      "ERROR",
-      "none"
-    ],
-    description: "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
-    default: "INFO",
-    required: true
-  },
-  {
-    key: "_logTimer",
-    type: "switch",
-    label: "Enable Timer logging?",
-    description: "Whether to show Timing where available",
-    default: false,
-    required: true
+    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
   },
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {

@@ -46,7 +46,7 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
 
   // Don't show counts on mobile, or if we don't have @done() dates available
   const isMobile = pluginData.platform === "iOS"
-  const showCounts = pluginData.dashboardSettings.doneDatesAvailable && !isMobile
+  const showCounts = pluginData.notePlanSettings.doneDatesAvailable && !isMobile
 
   const itemsDoneCount = totalDoneCounts.completedTasks // + totalDoneCounts.completedChecklists
 

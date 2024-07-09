@@ -228,7 +228,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       } else {
         // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
         // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
-        logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
+        // logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])

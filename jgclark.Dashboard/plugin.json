@@ -104,6 +104,12 @@
   ],
   "plugin.settings": [
     {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "jgclark.Dashboard",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
       "type": "heading",
       "title": "Debugging"
     },
@@ -134,6 +140,13 @@
     {
       "type": "heading",
       "title": "All the rest of the Settings have been migrated to the Dashboard Window, so please make your changes there."
+    },
+    {
+      "type": "hidden",
+      "key": "dashboardSettings",
+      "description": "Saves last state of dashboardSettings as JSON string.",
+      "required": true,
+      "default": "{}"
     }
   ],
   "plugin.unused_settings": [
@@ -147,21 +160,8 @@
     },
     {
       "type": "hidden",
-      "key": "pluginID",
-      "default": "jgclark.Dashboard",
-      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
-    },
-    {
-      "type": "hidden",
       "key": "reactSettings",
       "description": "Saves last state of react UI choices as JSON string.",
-      "required": true,
-      "default": "{}"
-    },
-    {
-      "type": "hidden",
-      "key": "dashboardSettings",
-      "description": "Saves last state of dashboardSettings as JSON string.",
       "required": true,
       "default": "{}"
     },
