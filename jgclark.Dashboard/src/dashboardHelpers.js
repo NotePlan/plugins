@@ -72,20 +72,20 @@ const WEBVIEW_WINDOW_ID = windowCustomId
  * Note: this does not include logSettings or copies of NP app-level settings.
  * These can potentially be changed by setSetting(s) calls.
  */
-export function getDashboardSettings(): TDashboardConfig {
+export async function getDashboardSettings(): Promise<TDashboardConfig> {
   // Note: We think following (newer API call) is unreliable.
-  const dashboardSettings: TDashboardConfig = DataStore.settings
-  if (!dashboardSettings) clo(dashboardSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
+  let pluginSettings = DataStore.settings
+  if (!pluginSettings || !pluginSettings.dashboardSettings) {
+    clo(pluginSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
 
   // So instead back to the older way:
-  // const settings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+   pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
   // Check again
-  // if (!settings.dashboardSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
+  }
+  if (!pluginSettings.dashboardSettings) throw(pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID||''} plugin: `)
 
-  // return parseSettings(dashboardSettings || '') ?? {}
-  if (dashboardSettings) {
-    // return parseSettings(dashboardSettings)
-    return dashboardSettings
+  if (pluginSettings.dashboardSettings) {
+    return parseSettings(pluginSettings.dashboardSettings)
   } else {
     throw new Error('Failed to get DataStore.settings.dashboardSettings')
   }
