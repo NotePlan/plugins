@@ -10,8 +10,7 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, type Node } from 'react'
-import { type TDashboardConfig } from '../../dashboardHelpers'
-import { type TReactSettings, type TPluginData } from '../../types'
+import type { TDashboardConfig, TReactSettings, TPluginData } from '../../types'
 import { logDebug } from '@helpers/react/reactDev'
 
 
@@ -36,6 +35,7 @@ type Props = {
 } & AppContextType;
 
 // Default context value with initial reactSettings and functions.
+// FIXME(@dwertheimer): should we have 2 uses of dashboardSettings here?
 const defaultContextValue: AppContextType = {
   sendActionToPlugin: () => {},
   sendToPlugin: () => {},

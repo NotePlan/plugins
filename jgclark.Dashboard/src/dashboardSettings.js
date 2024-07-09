@@ -238,7 +238,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          checked: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'input':
@@ -246,7 +246,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -254,7 +254,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -263,7 +263,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
     }
