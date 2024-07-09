@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import type { TDropdownItem } from "./types.js"
+import { clo } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -192,35 +193,11 @@ export const dashboardSettingDefs = [
   },
   {
     type: 'heading',
-    label: "Logging"
-  },
-  {
-    key: "_logLevel",
-    type: "combo",
-    label: "Log Level",
-    options: [
-      "DEV",
-      "DEBUG",
-      "INFO",
-      "WARN",
-      "ERROR",
-      "none"
-    ],
-    description: "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
-    default: "INFO",
-    required: true
-  },
-  {
-    key: "_logTimer",
-    type: "switch",
-    label: "Enable Timer logging?",
-    description: "Whether to show Timing where available",
-    default: false,
-    required: true
+    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard plugin"
   },
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
-  // FIXME(@dwertheimer): next line is failing "allSettings.map is not a function"; I've clearly made a mistake somewhere in updating this
+  if (!allSettings || !allSettings.map) clo(allSettings,`createDashboardSettingsItems: allSettings is not an array; typeof allSettings=${typeof allSettings}`  )
   return allSettings.map(setting => {
     switch (setting.type) {
       case 'separator':
@@ -238,7 +215,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          checked: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'input':
@@ -246,7 +223,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -254,7 +231,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -263,7 +240,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
     }

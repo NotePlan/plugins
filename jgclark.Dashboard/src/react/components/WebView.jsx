@@ -76,19 +76,25 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // this will save the data at the Root React Component level, which will give the plugin access to this data also
   // sending this dispatch will re-render the Webview component with the new data
 
-  // FIXME(@dwertheimer): I've tried to understand this, and adapt it accordingly, but I've failed. I figured redactedSettings wasn't needed, as we have separated settings into two different objects.
+  // @jgclark wrote: @dwertheimer: I've tried to understand this, and adapt it accordingly, but I've failed. I figured redactedSettings wasn't needed, as we have separated settings into two different objects.
+  // FIXME(@jgclark): We need to go through this and clean things up to make sure it does what we need to do
+  // The goal of this whole block is to build the [dashboardSettings] object for the React app to use for all the config/settings
+  // The issue is that the first time the React app is loaded, most all of the settings will not be set, so we need to make sure 
+  // to set them to the defaults specified for each item, which is what this block was doing
+  // and I don't think is (fully) doing anymore. I made some changes but we need to verify that it's working as expected
+  // and then clean out all the commented out code and other cruft
   const dSettings = data.pluginData.dashboardSettings || {}
-  // const redactedSettings = getSettingsRedacted(dSettings)
   // const savedSharedSettings = parseSettings(dSettings || "{}") || {}
   // const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, dSettings))
   const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(dSettings))
   // const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, dSettings))
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
   const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
+  const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
 
   // const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
-  const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, lastChange: `_WebView_DefaultSettings` }
-  const [dashboardSettings, setDashboardSettings] = React.useState(combinedSettings)
+  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
+  const [dashboardSettings, setDashboardSettings] = React.useState(dashboardSettingsOrDefaults)
 
   /****************************************************************************************************************************
    *                             VARIABLES

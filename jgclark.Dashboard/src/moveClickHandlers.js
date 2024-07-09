@@ -52,7 +52,7 @@ const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main`
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = getDashboardSettings()
+  const config = await getDashboardSettings()
   const dateOrInterval = String(controlStr)
   logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
   let startDateStr = getDateStringFromCalendarFilename(filename, true)
@@ -110,7 +110,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
-    const config: any = getDashboardSettings()
+    const config: any = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -251,7 +251,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
   try {
 
     let numberScheduled = 0
-    const config = getDashboardSettings()
+    const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -382,7 +382,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberChanged = 0
-    const config = getDashboardSettings()
+    const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()

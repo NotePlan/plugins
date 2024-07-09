@@ -53,7 +53,7 @@ export function init(): void {
  */
 export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
-  const combinedSettings = getDashboardSettings()
+  const combinedSettings = await getDashboardSettings()
   clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to combinedSettings')
   await setPluginData({ dashboardSettings: combinedSettings }, '_settings were updated')
   return
