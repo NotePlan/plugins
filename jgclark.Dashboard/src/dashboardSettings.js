@@ -197,7 +197,6 @@ export const dashboardSettingDefs = [
   },
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
-  if (!allSettings || !allSettings.map) clo(allSettings,`createDashboardSettingsItems: allSettings is not an array; typeof allSettings=${typeof allSettings}`  )
   return dashboardSettingDefs.map(setting => {
     switch (setting.type) {
       case 'separator':
