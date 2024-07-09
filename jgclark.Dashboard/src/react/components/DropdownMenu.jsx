@@ -50,7 +50,7 @@ const DropdownMenu = ({
   isOpen,
   toggleMenu,
 }: DropdownMenuProps): React$Node => {
-  logDebug('DropdownMenu', `Starting with ${otherItems.length} otherItems and ${sectionItems ? sectionItems.length : 0} sectionItems`)
+  // logDebug('DropdownMenu', `Starting with ${otherItems.length} otherItems and ${sectionItems ? sectionItems.length : 0} sectionItems`)
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------

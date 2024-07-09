@@ -88,18 +88,19 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // const savedSharedSettings = parseSettings(dSettings || "{}") || {}
   // const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, dSettings))
   const dSettingsItems = createDashboardSettingsItems(dSettings)
-  clo(dSettingsItems, `Webview: dSettingsItems`)
+  // clo(dSettingsItems, `Webview: dSettingsItems`)
   const settingsDefaults = getSettingsDefaults(dSettingsItems)
   // const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, dSettings))
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
-  clo(sectionToggles, `Webview: sectionToggles`)
+  // clo(sectionToggles, `Webview: sectionToggles`)
   const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
-  clo(filterSettingsDefaults, `Webview: filterSettingsDefaults`)
+  // clo(filterSettingsDefaults, `Webview: filterSettingsDefaults`)
   const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
-  clo(otherSettingsDefaults, `Webview: otherSettingsDefaults`)
+  // clo(otherSettingsDefaults, `Webview: otherSettingsDefaults`)
 
   // const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
+  // clo(dashboardSettingsOrDefaults, `Webview: dashboardSettingsOrDefaults`)
   const [dashboardSettings, setDashboardSettings] = React.useState(dashboardSettingsOrDefaults)
 
   /****************************************************************************************************************************
