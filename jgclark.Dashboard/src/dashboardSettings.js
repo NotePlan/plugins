@@ -193,12 +193,12 @@ export const dashboardSettingDefs = [
   },
   {
     type: 'heading',
-    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard plugin"
+    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
   },
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
   if (!allSettings || !allSettings.map) clo(allSettings,`createDashboardSettingsItems: allSettings is not an array; typeof allSettings=${typeof allSettings}`  )
-  return allSettings.map(setting => {
+  return dashboardSettingDefs.map(setting => {
     switch (setting.type) {
       case 'separator':
         return {

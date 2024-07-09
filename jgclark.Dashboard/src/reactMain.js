@@ -199,7 +199,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
+  logDebug(pluginJson, `showDashboardReact 2 starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
   try {
     const startTime = new Date()
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
@@ -317,7 +317,7 @@ export async function getInitialDataForReactWindow(config: TDashboardConfig, use
   {
     sections: sections,
     lastFullRefresh: new Date(),
-    dashboardSettings: config,
+    dashboardSettings: JSON.stringify(config),
     notePlanSettings: NPSettings,
     logSettings: getLogSettings(),
     demoMode: useDemoData,

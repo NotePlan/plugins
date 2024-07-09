@@ -83,14 +83,20 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // to set them to the defaults specified for each item, which is what this block was doing
   // and I don't think is (fully) doing anymore. I made some changes but we need to verify that it's working as expected
   // and then clean out all the commented out code and other cruft
-  const dSettings = data.pluginData.dashboardSettings || {}
+  const dSettingsString = data.pluginData.dashboardSettings || "" // dashboardSettings is saved as a JSON string!!
+  const dSettings = parseSettings(dSettingsString || "{}") || {}
   // const savedSharedSettings = parseSettings(dSettings || "{}") || {}
   // const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, dSettings))
-  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(dSettings))
+  const dSettingsItems = createDashboardSettingsItems(dSettings)
+  clo(dSettingsItems, `Webview: dSettingsItems`)
+  const settingsDefaults = getSettingsDefaults(dSettingsItems)
   // const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, dSettings))
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
+  clo(sectionToggles, `Webview: sectionToggles`)
   const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
+  clo(filterSettingsDefaults, `Webview: filterSettingsDefaults`)
   const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
+  clo(otherSettingsDefaults, `Webview: otherSettingsDefaults`)
 
   // const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
