@@ -1,8 +1,62 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 8.7.2024 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
+// Types for Settings
+
+export type TDashboardLoggingConfig = {
+  _logLevel: string,
+  _logTimer: boolean,
+}
+
+export type TNotePlanConfig = {
+  defaultFileExtension: string,
+  doneDatesAvailable: boolean,
+  timeblockMustContainString: string,
+}
+
+export type TDashboardConfig = {
+  separateSectionForReferencedNotes: boolean,
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  dashboardTheme: string,
+  hideDuplicates: boolean,
+  ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
+  ignoreFolders: Array<string>,
+  includeFolderName: boolean,
+  includeTaskContext: boolean,
+  rescheduleNotMove: boolean,
+  newTaskSectionHeading: string,
+  newTaskSectionHeadingLevel: number,
+  autoAddTrigger: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
+  showWeekSection: boolean,
+  showMonthSection: boolean,
+  showQuarterSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
+  maxItemsToShowInSection: number,
+  overdueSortOrder: string,
+  tagsToShow: string,
+  ignoreTagMentionsWithPhrase: string,
+  updateTagMentionsOnTrigger: boolean,
+  useTodayDate: boolean,
+  // _logLevel: string,
+  // _logTimer: boolean,
+  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
+  FFlag_LimitOverdues: boolean,
+  FFlag_HardRefreshButton: boolean,
+  moveSubItems: boolean,
+  interactiveProcessingHighlightTask: boolean,
+  // sharedSettings: any, // Note: no longer needed after settings refactor
+}
+
+//-----------------------------------------------------------------------------
+// Other types
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
@@ -206,7 +260,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-// export type TDashboardSettings = {
+// export type TDashboardConfig = {
 //   //TODO: jgclark: add the specific shared settings
 //   [key: string]: any,
 // }

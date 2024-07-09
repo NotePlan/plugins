@@ -1,19 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { allSectionDetails } from "./constants"
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TItemType, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardConfig, TDashboardLoggingConfig, TItemType, TNotePlanConfig, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
-  // getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
   removeDateTagsAndToday,
@@ -34,13 +32,9 @@ import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
-  // getTaskPriority,
-  // insertParas,
   isTermInURL,
   parasToText,
-  // removeTaskPriorityIndicators,
   smartPrependPara,
-  // smartPrependParas,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
@@ -56,13 +50,11 @@ import {
 } from '@helpers/userInput'
 import {
   isOpen, isOpenTask, isOpenNotScheduled,
-  // isOpenTaskNotScheduled,
   removeDuplicates
 } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Types
-
 // Note: types.js now contains the Type definitions
 
 //-----------------------------------------------------------------
@@ -72,54 +64,6 @@ const pluginID = pluginJson['plugin.id']
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 const WEBVIEW_WINDOW_ID = windowCustomId
 
-export type TDashboardLoggingConfig = {
-  _logLevel: string,
-  _logTimer: boolean,
-}
-
-export type TNotePlanConfig = {
-  defaultFileExtension: string,
-  doneDatesAvailable: boolean,
-  timeblockMustContainString: string,
-}
-
-export type TDashboardConfig = {
-  dashboardTheme: string,
-  separateSectionForReferencedNotes: boolean,
-  hideDuplicates: boolean,
-  ignoreTasksWithPhrase: string,
-  ignoreChecklistItems: boolean,
-  ignoreFolders: Array<string>,
-  includeFolderName: boolean,
-  includeTaskContext: boolean,
-  rescheduleNotMove: boolean,
-  newTaskSectionHeading: string,
-  newTaskSectionHeadingLevel: number,
-  autoAddTrigger: boolean,
-  excludeChecklistsWithTimeblocks: boolean,
-  excludeTasksWithTimeblocks: boolean,
-  showYesterdaySection: boolean,
-  showTomorrowSection: boolean,
-  showWeekSection: boolean,
-  showMonthSection: boolean,
-  showQuarterSection: boolean,
-  showOverdueSection: boolean,
-  showProjectSection: boolean,
-  maxItemsToShowInSection: number,
-  overdueSortOrder: string,
-  tagToShow: string,
-  ignoreTagMentionsWithPhrase: string,
-  updateTagMentionsOnTrigger: boolean,
-  useTodayDate: boolean,
-  // _logLevel: string,
-  // _logTimer: boolean,
-  filterPriorityItems: boolean, // also kept in a DataStore.preference key
-  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
-  FFlag_LimitOverdues: boolean,
-  FFlag_HardRefreshButton: boolean,
-  moveSubItems: boolean,
-  // sharedSettings: any, // Note: no longer needed after settings refactor
-}
 
 /**
  * Return an Object that includes settings:
@@ -138,9 +82,13 @@ export function getDashboardSettings(): TDashboardConfig {
   // Check again
   // if (!settings.dashboardSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
 
-  return parseSettings(dashboardSettings || '') ?? {}
-
-  // return settings.dashboardSettings ? parseSettings(settings.dashboardSettings) : {}
+  // return parseSettings(dashboardSettings || '') ?? {}
+  if (dashboardSettings) {
+    // return parseSettings(dashboardSettings)
+    return dashboardSettings
+  } else {
+    throw new Error('Failed to get DataStore.settings.dashboardSettings')
+  }
 }
 
 /**

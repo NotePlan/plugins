@@ -1,15 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
-import type { TDropdownItem, TDashboardSettings } from "./types.js"
+import type { TDropdownItem } from "./types.js"
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
 // The filters below are non-section switches that display in the filters menu
-export const dashboardFilters = [
+export const dashboardFilterDefs = [
   { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
@@ -22,7 +22,7 @@ export const dashboardFilters = [
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
-export const dashboardSettings = [
+export const dashboardSettingDefs = [
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -117,7 +117,7 @@ export const dashboardSettings = [
     label: "Tag/Mention section",
   },
   {
-    key: "tagToShow",
+    key: "tagsToShow",
     label: "#tag/@mention(s) to show",
     description: "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
     type: 'input',
@@ -219,9 +219,9 @@ export const dashboardSettings = [
     required: true
   },
 ]
-
-export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
-  return dashboardSettings.map(setting => {
+export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
+  // FIXME(@dwertheimer): next line is failing "allSettings.map is not a function"; I've clearly made a mistake somewhere in updating this
+  return allSettings.map(setting => {
     switch (setting.type) {
       case 'separator':
         return {
@@ -238,7 +238,7 @@ export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettin
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          checked: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'input':
@@ -246,7 +246,7 @@ export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettin
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -254,7 +254,7 @@ export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettin
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -263,7 +263,7 @@ export const createDashboardSettingsItems = (dashboardSettings: TDashboardSettin
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: dashboardSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: dashboardSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
     }

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,6 +11,7 @@
 import React from 'react'
 // import { getFeatureFlags } from '../../shared.js'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
+import type { TNotePlanConfig } from '../../../types.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
@@ -74,15 +75,18 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.dashboardSettings, dashboardSettings)
+  const { /*dashboardSettings: pluginDataSettings, */ notePlanSettings, logSettings } = pluginData
 
-  const { dashboardSettings: pluginDataSettings, notePlanSettings: notePlanSettings } = pluginData
+  // const { FFlag_DashboardSettings } = getFeatureFlags(notePlanSettings, dashboardSettings)
 
-  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings, pluginDataSettings)
-  const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings, pluginDataSettings)
-  const featureFlagItems = createFeatureFlagItems(dashboardSettings, pluginDataSettings)
+  // const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings, pluginDataSettings)
+  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
+  // const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings, pluginDataSettings)
+  const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
+  // const featureFlagItems = createFeatureFlagItems(dashboardSettings, pluginDataSettings)
+  const featureFlagItems = createFeatureFlagItems(dashboardSettings)
 
-  const isDevMode = notePlanSettings._logLevel === 'DEV'
+  const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
 
   //----------------------------------------------------------------------

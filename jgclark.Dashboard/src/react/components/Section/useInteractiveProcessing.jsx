@@ -1,5 +1,13 @@
-// useInteractiveProcessing.jsx
 // @flow
+//-----------------------------------------------------------------------------
+// useInteractiveProcessing.jsx
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
+//-----------------------------------------------------------------------------
+
+import { useEffect } from 'react'
+import type { TSectionItem, TSection, TDashboardConfig } from '../../../types.js'
+import { logDebug, JSP } from '@helpers/react/reactDev.js'
+
 /**
  * Custom hook for handling interactive processing logic
  * Is loaded by all sections but should only run for the button that was checked
@@ -14,10 +22,6 @@
  * @returns {void}
  */
 
-import { useEffect } from 'react'
-import type { TSectionItem, TSection, TDashboardSettings } from '../../../types.js'
-import { logDebug, JSP } from '@helpers/react/reactDev.js'
-
 function useInteractiveProcessing(
   items: Array<TSectionItem>,
   thisSection: TSection,
@@ -26,7 +30,7 @@ function useInteractiveProcessing(
   reactSettings: any,
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void,
-  dashboardSettings: TDashboardSettings,
+  dashboardSettings: TDashboardConfig,
 ): void {
 
   // Check if this section should process interactively

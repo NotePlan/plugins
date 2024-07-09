@@ -9,9 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React from 'react'
-// import { getFeatureFlags } from '../../shared.js'
 import { useAppContext } from '../AppContext.jsx'
-// import { createFeatureFlagItems } from './featureFlagItems.js'
 // import useLastFullRefresh from './useLastFullRefresh.js'
 import type { TDoneCount } from '../../../types.js'
 import { logDebug } from '@helpers/react/reactDev.js'
@@ -45,7 +43,6 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  // const { FFlag_DashboardSettings } = getFeatureFlags(pluginData.dashboardSettings, dashboardSettings)
 
   // Don't show counts on mobile, or if we don't have @done() dates available
   const isMobile = pluginData.platform === "iOS"

@@ -2,13 +2,10 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import {
-    type MessageDataObject, type TSectionItem,
-    // type TDashboardSettings
-} from './types'
+import type { MessageDataObject, TSectionItem, TDashboardConfig } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -103,14 +100,15 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 }
 
 /**
+ * TODO: this is no longer used it seems. Is that right?
  * Get the feature flags which are set.
- * Note: Feature flags are only available to people with DEBUG logging enabled
+ * Note: Feature flags are only available to people with DEV logging enabled
  * @param {TAnyObject} pluginSettings 
  * @param {TAnyObject} dashboardSettings
  * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, dashboardSettings)
 //  */
-export function getFeatureFlags(pluginSettings: TAnyObject, dashboardSettings: TDashboardSettings): TAnyObject {
-    const isDebugLogging = dashboardSettings?._logLevel === 'DEV'
+export function getFeatureFlags(NPSettings: TAnyObject, dashboardSettings: TDashboardConfig): TAnyObject {
+    const isDebugLogging = NPSettings._logLevel === 'DEV'
     // find all keys that start with Fflag
     const featureFlags = (isDebugLogging ? Object.keys(dashboardSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
         // $FlowIgnore
@@ -122,13 +120,13 @@ export function getFeatureFlags(pluginSettings: TAnyObject, dashboardSettings: T
 
 /**
  * Returns a reduced version of the provided settings object
- * without the dashboardSettingsand reactSettings objects
+ * without the sharedSettings and reactSettings objects
  * @param {TAnyObject} settings
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
     // FIXME(@dwertheimer): why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
-    const keysToEliminate = ['dashboardSettings', 'reactSettings', "timeblockMustContainString"]
+    const keysToEliminate = ['sharedSettings', 'reactSettings', "timeblockMustContainString"]
     const settingsRedacted = JSON.parse(JSON.stringify(settings))
     const keys = Object.keys(settingsRedacted)
     for (const key of keys) {

@@ -14,9 +14,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - removed "edit settings (for iOS)" command, as not needed
 - improved spacing and ordering of heading, and made tapping heading elements easier on iOS
 - other UI tweaks
+- complete refactoring of settings data structures under the hood (TODO: not quite complete)
 
 ### Fixed
-- TODO: fix task completion timestamps using GMT not local time (thanks, @mjd9ball). FIXME: odd issue with NPParagraph::markComplete() calling new NPdateTime::nowDoneDateTimeString constant.
+- fix task completion timestamps using GMT not local time (thanks, @mjd9ball).
 
 ## What's improved in v2.0?
 ### New

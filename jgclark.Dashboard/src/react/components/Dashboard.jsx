@@ -11,7 +11,6 @@
 import React, { useEffect, useRef } from 'react'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
-// import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
@@ -47,13 +46,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
+  const logSettings = pluginData.logSettings
+
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
   useWatchForResizes(sendActionToPlugin)
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
   // FIXME:
-  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: dashboardSettings._logLevel !== "DEV" })
+  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: logSettings._logLevel !== "DEV" })
 
   //----------------------------------------------------------------------
   // Refs

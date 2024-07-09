@@ -1,15 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TPluginData } from './types'
+import type { TPluginData, TDashboardConfig } from './types'
 import { allSectionDetails } from "./constants"
-import { dashboardFilters, dashboardSettings } from "./dashboardSettings"
-import { type TDashboardConfig, getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
+import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
 import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
 import {
   bridgeClickDashboardItem,
@@ -81,12 +81,12 @@ export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
     const dashboardSettings = (getDashboardSettings()) || {}
-    const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
+    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     if (key !== "dashboardSettings" && allKeys.includes(key)) {
       const thisSettingDetail = allSettings.find(s => s.key === key) || {}
       const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-      dashboardSettings[key] = setTo
+      dashboardSettingDefs[key] = setTo
       logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
       await showDashboardReact('full', false)
@@ -108,7 +108,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
     const dashboardSettings = (getDashboardSettings()) || {}
-    const allSettings = [...dashboardFilters, ...dashboardSettings].filter(k => k.label && k.key)
+    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     const params = paramsIn.split(';')
     logDebug('setSettings', `Given ${params.length} key=value pairs to set:`)
@@ -119,7 +119,7 @@ export async function setSettings(paramsIn: string): Promise<void> {
       if (key !== "dashboardSettings" && allKeys.includes(key)) {
         const thisSettingDetail = allSettings.find(s => s.key === key) || {}
         const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-        dashboardSettings[key] = setTo
+        dashboardSettingDefs[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       } else {
         logError('setSettings', `Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
@@ -229,6 +229,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     const config = getDashboardSettings()
     clo(config, 'showDashboardReact: config=')
     logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
+    const logSettings = await getLogSettings()
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -243,7 +244,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       postBodyScript: `
         <script type="text/javascript" >
         // Set DataStore.settings so default clo etc. logging works in React
-        let DataStore = { dashboardSettings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        let DataStore = { dashboardSettings: {_logLevel: "${logSettings._logLevel}" } };
         </script>
       `,
     }

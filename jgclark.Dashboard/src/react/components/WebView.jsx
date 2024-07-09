@@ -32,19 +32,18 @@ import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug, clo, logInfo } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
  * Reduces an array of dashboard settings items into an object including default values.
- *
+ * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getDropdownItemValues()?
  * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
 function getSettingsDefaults(items: Array<TDropdownItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
-    // $FlowFixMe
     if (item.key) {
-      acc[item?.key] = item.value || item.checked || ''
+      acc[item.key] = item.value || item.checked || ''
     }
     return acc
   }, {})
@@ -77,12 +76,18 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // this will save the data at the Root React Component level, which will give the plugin access to this data also
   // sending this dispatch will re-render the Webview component with the new data
 
-  const redactedSettings = getSettingsRedacted(data.pluginData.dashboardSettings) || {}
-  const savedSharedSettings = parseSettings(data.pluginData.dashboardSettings || "{}") || {}
-  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.dashboardSettings))
-  const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.dashboardSettings))
+  // FIXME(@dwertheimer): I've tried to understand this, and adapt it accordingly, but I've failed. I figured redactedSettings wasn't needed, as we have separated settings into two different objects.
+  const dSettings = data.pluginData.dashboardSettings || {}
+  // const redactedSettings = getSettingsRedacted(dSettings)
+  // const savedSharedSettings = parseSettings(dSettings || "{}") || {}
+  // const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, dSettings))
+  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(dSettings))
+  // const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, dSettings))
+  const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
+  const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
 
-  const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
+  // const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
+  const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, lastChange: `_WebView_DefaultSettings` }
   const [dashboardSettings, setDashboardSettings] = React.useState(combinedSettings)
 
   /****************************************************************************************************************************
