@@ -71,7 +71,8 @@ export async function showDemoDashboard(): Promise<void> {
 
 /**
  * x-callback entry point to change a single setting.
- * (Note: see also setSettings to do many at the same time.)
+ * (Note: see also setSettings which does many at the same time.)
+ * FIXME: doesn't work for show*Sections
  * @param {string} key 
  * @param {string} value 
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
@@ -81,18 +82,20 @@ export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
     const dashboardSettings = (await getDashboardSettings()) || {}
+    // clo(dashboardSettings, 'dashboardSettings:')
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
-    if (key !== "dashboardSettings" && allKeys.includes(key)) {
+    logDebug('setSetting', `Existing setting keys: ${String(allKeys)}`)
+    if (allKeys.includes(key)) {
       const thisSettingDetail = allSettings.find(s => s.key === key) || {}
       const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-      dashboardSettingDefs[key] = setTo
-      logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
+      // $FlowFixMe[prop-missing]
+      dashboardSettings[key] = setTo
+      // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
       await showDashboardReact('full', false)
     } else {
-      logError('setSetting', `Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
-      throw (`ERROR`)
+      throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
     }
   } catch (error) {
     logError('setSetting', error.message)
@@ -102,8 +105,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 /**
  * x-callback entry point to change multiple settings in one go.
  * @param {string} `key=value` pairs separated by ;
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreTasksWithPhrase=#waiting
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
@@ -116,14 +118,14 @@ export async function setSettings(paramsIn: string): Promise<void> {
     for (const param of params) {
       const [key, value] = param.split('=')
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
-      if (key !== "dashboardSettings" && allKeys.includes(key)) {
+      if (allKeys.includes(key)) {
         const thisSettingDetail = allSettings.find(s => s.key === key) || {}
         const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
-        dashboardSettingDefs[key] = setTo
+        // $FlowFixMe[prop-missing]
+        dashboardSettings[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
       } else {
-        logError('setSettings', `Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
-        throw new Error(`Key '${key}' not found in dashboardSettings`)
+        throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
       }
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
@@ -134,6 +136,9 @@ export async function setSettings(paramsIn: string): Promise<void> {
   }
 }
 
+/**
+ * Make a callback with all the current settings in it, and 
+ */
 export async function makeSettingsAsCallback(): Promise<void> {
   try {
     const dashboardSettings = (await getDashboardSettings()) || {}
@@ -142,13 +147,16 @@ export async function makeSettingsAsCallback(): Promise<void> {
     const options = [{ label: 'raw URL', value: 'raw' }, { label: 'pretty link', value: 'link' }]
     const result = await chooseOption('Settings as URL or Link?', options, 'raw URL')
     let output = ''
+    // let clipboardType = ''
     // then make the URL, using helpers to deal with encodings.
     switch (result) {
       case 'raw':
         output = createRunPluginCallbackUrl('jgclark.Dashboard', 'setSettings', params)
+        // clipboardType = 'public.url'
         break
       case 'link':
-        output = createPrettyRunPluginLink('Open Dashboard with current Settings', 'jgclark.Dashboard', 'setSettings', params)
+        output = createPrettyRunPluginLink('Set all Dashboard settings  to your current ones', 'jgclark.Dashboard', 'setSettings', params)
+        // clipboardType = 'public.utf8-plain-text'
         break
       default:
         return
@@ -156,9 +164,10 @@ export async function makeSettingsAsCallback(): Promise<void> {
     logDebug('makeSettingsAsCallback', `${result} output: '${output}'`)
 
     // now copy to Clipboard and tell the user
-    const types = Clipboard.types
-    logDebug('makeSettingsAsCallback', `Clipboard.types = ${String(types)}`)
-    await Clipboard.setStringForType(output, 'public.url')
+    // This does not work for JGC:
+    // Clipboard.setStringForType(output, clipboardType)
+    // But this simpler version does:
+    Clipboard.string = output
     await showMessage('Settings as URL or Link copied to Clipboard', 'OK', 'Dashboard', false)
   } catch (error) {
     logError('makeSettingsAsCallback', error.message)

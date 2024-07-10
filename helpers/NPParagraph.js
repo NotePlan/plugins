@@ -1391,7 +1391,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     // Default to using current date/time
     // TEST: this should return in user locale time format (up to a point)
     // FIXME: this call (which uses Noteplan.environment.is12hr) makes Dashbaord fail. The previous call without Noteplan.environment doesn't fail.
-    let dateString = nowDoneDateTimeString
+    let dateString = nowDoneDateTimeString()
     if (useScheduledDateAsCompletionDate) {
       // But use scheduled date instead if found
       if (hasScheduledDate(para.content)) {

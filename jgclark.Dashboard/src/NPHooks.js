@@ -3,7 +3,7 @@
 // Last updated 2024-07-08 for v2.0.1 by @jgclark
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { getDashboardSettings, setPluginData } from './dashboardHelpers'
+import { getDashboardSettings, getLogSettings, setPluginData } from './dashboardHelpers'
 import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
@@ -48,30 +48,30 @@ export function init(): void {
 }
 
 /**
- * NotePlan calls this function settings are updated in the Preferences panel
- * You should not need to edit this function
+ * Log settings have been updated in the Preferences panel.
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Updating settings in React Window`)
-  const combinedSettings = await getDashboardSettings()
-  clo(combinedSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to combinedSettings')
-  await setPluginData({ dashboardSettings: combinedSettings }, '_settings were updated')
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
+  // const combinedSettings = await getDashboardSettings()
+  const logSettings = await getLogSettings()
+  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
+  await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
   return
 }
 
-/**
- * Update Settings/Preferences (for iOS/iPadOS)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings(): Promise<void> {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
+// /**
+//  * Update Settings/Preferences (for iOS/iPadOS)
+//  * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+//  * @author @dwertheimer
+//  */
+// export async function updateSettings(): Promise<void> {
+//   try {
+//     logDebug(pluginJson, `updateSettings running`)
+//     await editSettings(pluginJson)
+//   } catch (error) {
+//     logError(pluginJson, JSP(error))
+//   }
+// }
 
 /**
  * Check the version of the plugin (which triggers init() which forces an update if the version is out of date)

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-10 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TDropdownItem } from "./types.js"
@@ -10,20 +10,20 @@ import { clo } from '@helpers/react/reactDev'
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
 // The filters below are non-section switches that display in the filters menu
-export const dashboardFilterDefs = [
-  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
-  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
-  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
-  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
-  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
-  { label: 'Include note link for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
-  { label: 'Include folder name in note link?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
-  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
-  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', default: false, description: "Whether to stop display of open tasks that contain a time block" },
-  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
+export const dashboardFilterDefs: Array<TDropdownItem> = [
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
+  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
+  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
+  { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
+  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
+  { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: "Whether to show the note link for an open task or checklist" },
+  { label: 'Include folder name in note link?', key: 'includeFolderName', type: 'switch', default: true, description: "Whether to include the folder name when showing a note link" },
+  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', type: 'switch', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
+  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open tasks that contain a time block" },
+  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
-export const dashboardSettingDefs = [
+export const dashboardSettingDefs: Array<TDropdownItem> = [
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -131,14 +131,14 @@ export const dashboardSettingDefs = [
     type: 'input',
     default: "",
   },
-  {
-    key: "updateTagMentionsOnTrigger",
-    hidden: true,
-    label: "Update items in this section when triggered?",
-    description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-    type: 'switch',
-    default: true,
-  },
+  // {
+  //   key: "updateTagMentionsOnTrigger",
+  //   hidden: true,
+  //   label: "Update items in this section when triggered?",
+  //   description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
+  //   type: 'switch',
+  //   default: true,
+  // },
   {
     type: 'separator',
   },
@@ -197,8 +197,7 @@ export const dashboardSettingDefs = [
   },
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
-  // FIXME(@dwertheimer): next line is failing "allSettings.map is not a function"; I've clearly made a mistake somewhere in updating this
-  return allSettings.map(setting => {
+  return dashboardSettingDefs.map(setting => {
     switch (setting.type) {
       case 'separator':
         return {
@@ -215,7 +214,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          checked: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'input':
@@ -223,7 +222,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -231,7 +230,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -240,7 +239,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: dashboardSettingDefs[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
     }

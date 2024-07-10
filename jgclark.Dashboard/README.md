@@ -114,6 +114,37 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSettin
 In both the names of the possible settings are:
 TODO: table
 
+separateSectionForReferencedNotes: boolean,
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  dashboardTheme: string,
+  hideDuplicates: boolean,
+  ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
+  ignoreFolders: Array<string>,
+  includeFolderName: boolean,
+  includeTaskContext: boolean,
+  rescheduleNotMove: boolean,
+  newTaskSectionHeading: string,
+  newTaskSectionHeadingLevel: number,
+  autoAddTrigger: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
+  showWeekSection: boolean,
+  showMonthSection: boolean,
+  showQuarterSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
+  maxItemsToShowInSection: number,
+  overdueSortOrder: string,
+  tagsToShow: string,
+  ignoreTagMentionsWithPhrase: string,
+  updateTagMentionsOnTrigger: boolean,
+  useTodayDate: boolean,
+  moveSubItems: boolean,
+  interactiveProcessingHighlightTask: boolean,
+
 The latter is fiddly to set up, so you can call **/Make Callback from Current Settings** command to generate a call based on your current settings.
 
 ### Updating the Dashboard automatically

@@ -265,18 +265,22 @@ export type TPluginData = {
 //   [key: string]: any,
 // }
 
+// TODO: change to TSettingItemType
 export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
 
+// TODO: change to TSettingItem
 export type TDropdownItem = {
   type: TDropdownItemType,
-  label?: string,
-  key?: string,
-  checked?: boolean,
+  key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
   value?: string,
+  label?: string,
+  checked?: boolean,
   options?: Array<string>,
   textType?: 'title' | 'description' | 'separator',
-  tooltip?: string, // TODO(dbw): is this unused, now you have changed to use descriptions in the settings dialog?
+  tooltip?: string, // TODO(@dwertheimer): now only used in uiElementRenderHelpers for featureFlagItems -- can this be simplified?
   description?: string,
+  default?: any,
+  refreshAllOnChange?: boolean,
 }
 
 export type TPluginCommandSimplified = {

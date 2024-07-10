@@ -1,5 +1,5 @@
 // @flow
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-10 for v2.0.1 by @jgclark
 
 import { allSectionDetails } from "../../../constants.js"
 import type { TDashboardConfig, TDropdownItem } from "../../../types.js"
@@ -11,32 +11,29 @@ import { clo } from '@helpers/react/reactDev.js'
  * Create two arrays of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters.
  * The first array is for section toggling, the second array is for all the other toggles for the filter menu.
  * @param {TDashboardConfig} dashboardSettings 
- * @param {TAnyObject} pluginSettings 
  * @returns {[Array<TDropdownItem>, Array<TDropdownItem>]}
  */
 export const createFilterDropdownItems = (
   dashboardSettings: TDashboardConfig,
-  // pluginSettings: TAnyObject
 ): [Array<TDropdownItem>, Array<TDropdownItem>] => {
   const sectionsWithoutTags = allSectionDetails.filter(s => s.sectionCode !== 'TAG')
-  const tagSections = getTagSectionDetails(dashboardSettings, /* pluginSettings*/)
-  const sectionsWithTags = [...sectionsWithoutTags, ...tagSections]
-  const dropdownSectionItems = sectionsWithTags.filter(s => s.showSettingName !== '').map((s) => ({
+  const tagSections = getTagSectionDetails(dashboardSettings)
+  const allSections = [...sectionsWithoutTags, ...tagSections]
+  const sectionDropbownItems: Array<TDropdownItem> = allSections.filter(s => s.showSettingName !== '').map((s) => ({
     label: `Show ${s.sectionName}`,
-    description: '',
+    description: `Show or hide items in section ${s.sectionName}`,
     key: s.showSettingName,
     type: 'switch',
-    checked: (typeof dashboardSettings !== undefined && dashboardSettings[s.showSettingName]) ?? /* pluginSettings[s.showSettingName] ?? */ true,
+    checked: (typeof dashboardSettings !== undefined && dashboardSettings[s.showSettingName]) ?? true,
   }))
 
-  const nonSectionItems = dashboardFilterDefs.map(s => ({
+  const nonSectionDropbownItems: Array<TDropdownItem> = dashboardFilterDefs.map(s => ({
     label: s.label,
     description: s.description,
     key: s.key,
     type: 'switch',
-    checked: Boolean((typeof dashboardSettings !== undefined && dashboardSettings[s.key]) ?? /* pluginSettings[s.key] ?? */ s.default),
+    checked: Boolean((typeof dashboardSettings !== undefined && dashboardSettings[s.key]) ?? s.default),
   }))
 
-  // $FlowFixMe[incompatible-return]
-  return [dropdownSectionItems, nonSectionItems]
+  return [sectionDropbownItems, nonSectionDropbownItems]
 }

@@ -670,7 +670,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
     // logDebug('dateTime / getDateObjFromDateString', `- ${toISOShortDateTimeString(date)}`)
     return date
   } else {
-    logWarn('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
+    logDebug('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
     return
   }
 }

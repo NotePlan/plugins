@@ -3,9 +3,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.0.1] WIP @jgclark
 ### Added
-- FIXME: new x-callback 'setSetting' to change a single Dashboard setting. TODO: See README for details.
-- FIXME: new x-callback 'setSettings' to change multiple Dashboard settings in one call. TODO: See README for details.
-- new **/Make Callback from Current Settings** command that logs the current setting as a URL or a markdown link. FIXME: not copying to clipboard. FIXME: the output doesn't match what appears to be set in my UI.
+- new x-callback 'setSetting' to change a single Dashboard setting. TODO: See README for details. TODO: still need to handle show*Section settings.
+- new x-callback 'setSettings' to change multiple Dashboard settings in one call.
+- new **/Make Callback from Current Settings** command that copies the current setting as a URL or a markdown link to the Clipboard.
 
 ### Changes
 - made the Filters dropdown menu a two-column display (except on narrow screens)
