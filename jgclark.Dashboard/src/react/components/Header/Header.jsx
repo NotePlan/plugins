@@ -77,13 +77,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   const { /*dashboardSettings: pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
 
-  // const { FFlag_DashboardSettings } = getFeatureFlags(notePlanSettings, dashboardSettings)
-
-  // const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings, pluginDataSettings)
   const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
-  // const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings, pluginDataSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
-  // const featureFlagItems = createFeatureFlagItems(dashboardSettings, pluginDataSettings)
   const featureFlagItems = createFeatureFlagItems(dashboardSettings)
 
   const isDevMode = logSettings._logLevel === 'DEV'

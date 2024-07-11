@@ -659,13 +659,14 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: newSettings }
+  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+  // TODO: from @dwertheimer - this is probably not needed anymore and should be deleted
   // logLevel is a special case that we need to specifically update in DataStore
   // so that plugin-side functions that log can pick it up even before React is ready
-  if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
-    combinedUpdatedSettings._logLevel =  newSettings._logLevel
-    logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
-  }
+  // if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
+  //   combinedUpdatedSettings._logLevel =  newSettings._logLevel
+  //   logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
+  // }
   logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings`)
   DataStore.settings = combinedUpdatedSettings
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])

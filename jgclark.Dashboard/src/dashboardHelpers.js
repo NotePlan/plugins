@@ -89,7 +89,6 @@ export async function getDashboardSettings(): Promise<TDashboardConfig> {
       pluginSettings.dashboardSettings = pluginSettings.sharedSettings
       delete pluginSettings.sharedSettings
       DataStore.settings = pluginSettings
-      return parseSettings(pluginSettings.dashboardSettings)
     } else {
       throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
     }
@@ -134,15 +133,15 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
   // logDebug(pluginJson, `Start of getLogSettings()`)
   try {
     // Get plugin settings
-    const config: TDashboardLoggingConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
+    const config:TDashboardConfig  = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`)
     }
-    // clo(config, `settings`)
+    const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
+    // $FlowIgnore
+    return logBits
 
-    // clo(config, 'getLogSettings() returning config')
-    return config
   } catch (err) {
     logError('getLogSettings', `${err.name}: ${err.message}`)
     // $FlowFixMe[incompatible-return] reason for suppression

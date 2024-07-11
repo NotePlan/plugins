@@ -118,7 +118,7 @@ export function renderItem({
   }
 
   return (
-    <div className="ui-item" key={`item${index}`} title={item.tooltip || ''}>
+    <div className="ui-item" key={`item${index}`} title={item.description || ''}>
       {element()}
     </div>
   )

@@ -148,7 +148,7 @@ export type TActionType =
   | 'moveFromCalToCal'
   | 'moveToNote'
   | 'onClickDashboardItem'
-  | 'reactSettingsChanged'
+  // | 'reactSettingsChanged'
   | 'refresh'
   | 'refreshSomeSections'
   | 'setNextReviewDate'
@@ -277,7 +277,6 @@ export type TDropdownItem = {
   checked?: boolean,
   options?: Array<string>,
   textType?: 'title' | 'description' | 'separator',
-  tooltip?: string, // TODO(@dwertheimer): now only used in uiElementRenderHelpers for featureFlagItems -- can this be simplified?
   description?: string,
   default?: any,
   refreshAllOnChange?: boolean,

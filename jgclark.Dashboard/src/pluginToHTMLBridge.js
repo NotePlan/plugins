@@ -251,16 +251,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doUpdateTaskDate(data)
         break
       }
-      case 'reactSettingsChanged': {
-        // $FlowIgnore
-        if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
-        result = await doSettingsChanged(data, 'reactSettings')
-        break
-      }
+      // saving this for now 2024-07-11, but delete if it's been more than two weeks :)
+      // case 'reactSettingsChanged': {
+      //   // $FlowIgnore
+      //   if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
+      //   result = await doSettingsChanged(data, 'reactSettings')
+      //   break
+      // }
       case 'dashboardSettingsChanged': {
-        // $FlowIgnore
-        if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
-        result = await doSettingsChanged(data, 'dashboardSettings')
+       result = await doSettingsChanged(data, 'dashboardSettings')
         break
       }
       // case 'setSpecificDate': {

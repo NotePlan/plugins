@@ -306,17 +306,17 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(config: TDashboardConfig, useDemoData: boolean = false): Promise<TPluginData> {
+export async function getInitialDataForReactWindow(dashboardSettings: TDashboarddashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} config.FFlag_ForceInitialLoadForBrowserDebugging=${String(config.FFlag_ForceInitialLoadForBrowserDebugging)}`)
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)
 
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
 
-  const sections = config.FFlag_ForceInitialLoadForBrowserDebugging === true
+  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
     ? await getAllSectionsData(useDemoData, true, true)
     : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
@@ -326,12 +326,12 @@ export async function getInitialDataForReactWindow(config: TDashboardConfig, use
   {
     sections: sections,
     lastFullRefresh: new Date(),
-    dashboardSettings: JSON.stringify(config),
+    dashboardSettings: dashboardSettings,
     notePlanSettings: NPSettings,
-    logSettings: getLogSettings(),
+    logSettings: await getLogSettings(),
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
-    themeName: config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
   }
 
   // Calculate all done task counts (if the appropriate setting is on)
