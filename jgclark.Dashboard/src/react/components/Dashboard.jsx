@@ -239,7 +239,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (pluginData.startDelayedRefreshTimer) {
       logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
       updatePluginData({...pluginData, startRefreshTimer: false},'Got message from plugin; resetting refresh timer')
-      refreshTimer()
+      !(reactSettings?.interactiveProcessing) && refreshTimer() // start the cache-busting timer if !interactiveProcessing 
     }
   }, [pluginData.startDelayedRefreshTimer])
 
