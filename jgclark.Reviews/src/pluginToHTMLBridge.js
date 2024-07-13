@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Projects plugin
-// Last updated 1.4.2024 for v0.14.0 by @jgclark
+// Last updated 2024-07-12 for v0.14.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -97,6 +97,7 @@ export async function runPluginCommand(data: any) {
  * Somebody clicked on a checkbox in the HTML view
  * @param {SettingDataObject} data - setting name
  */
+// eslint-disable-next-line require-await
 export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
     // Note: Currently unused so commenting out
@@ -147,7 +148,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / completeProject', `-> completeProject on filename ${filename} (ID ${ID})`)
           await completeProject(note)
         }
-        // This seems to handle a refresh by itself
+        // The above handles refreshing the full-review-list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -159,7 +160,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / cancelProject', `-> cancelProject on filename ${filename} (ID ${ID})`)
           await cancelProject(note)
         }
-        // This seems to handle a refresh by itself
+        // The above handles refreshing the full-review-list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -171,7 +172,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / toggleProject', `-> togglePauseProject on filename ${filename} (ID ${ID})`)
           await togglePauseProject(note)
         }
-        // This seems to handle a refresh by itself
+        // The above handles refreshing the full-review-list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -182,10 +183,10 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         if (note) {
           logDebug('bCPLI / reviewFinished', `-> reviewFinished on filename ${filename} (ID ${ID})`)
           // update this to actually take a note to work on
-          finishReviewForNote(note)
+          await finishReviewForNote(note)
           logDebug('bCPLI / reviewFinished', `-> after finishReview`)
 
-          // This seems to handle a refresh by itself
+          // The above handles refreshing the full-review-list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
           // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
@@ -200,11 +201,10 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         if (note) {
           const period = controlStr.replace('nr', '')
           logDebug('bCPLI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename} (ID ${ID})`)
-          skipReviewForNote(note, period)
+          await skipReviewForNote(note, period)
           logDebug('bCPLI / review', `-> after setNextReviewDate`)
 
-          // TODO: Refresh for now? Or can we actually do this ...?
-          await makeProjectLists()
+          // The above handles refreshing the full-review-list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
           // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
@@ -220,7 +220,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           await addProgressUpdate(note)
           logDebug('bCPLI / addProgress', `-> after addProgressUpdate`)
 
-          // This seems to handle a refresh by itself
+          // The above handles refreshing the full-review-list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
           // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {

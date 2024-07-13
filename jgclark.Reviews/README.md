@@ -3,13 +3,17 @@ Unlike many task or project management apps, NotePlan has very little enforced s
 
 This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. The approach will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
 
-The main review screen looks like this, showing the projects due for review from various different NotePlan folders:
+Command **/project lists** command generates the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
-![Project Lists: example in 'Rich' style](review-list-rich-0.11@2x.png)
+![Project Lists: example in 'Rich' style](review-list-rich-0.14@2x.png)
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
-User George (@george65) has recorded two video walkthroughs that show most of what the plugin does:
+After each project is a edit icon, which when clicked opens a dialog with helpful controls for that particular project:
+
+![Edit dialog](edit-dialog-0.14.png)
+
+User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (using an earlier version of the plugin):
 
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
     [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
@@ -82,8 +86,7 @@ Use the '**Hashtags to review**' setting to control which notes are included in 
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
-## The Commands
-### "/project lists" command
+## The main /project lists command
 This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: As you can see in the linked videos above, place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
 
 You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
@@ -92,7 +95,7 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 
 Notes about the displays:
 - the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use (though see below on how to override this).  In this style this heading row deliberately 'sticks' to the top of the window as you scroll the list:
-![Buttons in 'Rich' style](review-list-buttons-0.12.png)
+![Buttons in 'Rich' style](top-controls-0.14.png)
 - due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
 - if you can make the window wide enough it will display in 2 (or even 3!) columns
 - the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
@@ -116,7 +119,7 @@ Other settings:
 - Confirm next Review?: When running '/next project review' it asks whether to start the next review.
 - Theme to use in rich project lists: if set to a valid installed Theme name, then that will always be used in place of the currently active theme for the rest of NotePlan.
 
-## The Commands
+## The other Commands
 Each command is described in turn. If you have a Rich style project list open, the list will be automatically updated after most of them.
 
 ### "/start reviews" command
@@ -194,6 +197,9 @@ This is what user @George65 does:
 
 Another approach is to add a hashtag like `#next` or `#na` to all actionable tasks. Then you can use the "/searchOpenTasks" command (from the [Search Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions)) with search term `#next` to sync _all_ your open `#next` tasks to your `#next Search Results` note. You can then use this as the source to drag'n'drop tasks into daily/weekly/monthly notes.
 
+## Using with Dashboard plugin
+My separate [Dashboard plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/) shows a simpler version of the data from the Projects Review List in its 'Projects' section. It has the same type of edit dialog to complete/cancel/finish review/skip review, and also shows progress indicators.
+
 ## Configuration
 These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
 
@@ -202,7 +208,7 @@ Most of these commands can be run from an x-callback call:
 
 `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists`
 
-The `command` parameter is the command name, but needs to be 'percent encoded' (i.e. with any spaces changed to `%20`).
+The `command` parameter is the command name (as above), but needs to be 'percent encoded' (i.e. with any spaces changed to `%20`).
 
 If you wish to override your current settings for this call, add `&arg0=` followed by a JSON version of the keys and values e.g.
 `arg0={"foldersToInclude":["CCC Projects"],"displayDates":true,"displayProgress":false,"displayGroupedByFolder":false,"displayOrder":"title"}`
@@ -215,12 +221,12 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 Particular thanks to George C, 'John1' and David W for their suggestions and beta testing.
 
 ## Known issues
-There is what I consider to be a bug in the NotePlan API that means most of these commands **can only update a project note if it is open in the main  Editor**, not in a separate window, or the non-leftmost split window.
+There is what I consider to be a bug in the NotePlan API that means most of these commands **can only update a project note if it is open in the main Editor**, not in a separate window, or the non-leftmost split window.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 2.5 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
+I'm not part of the NotePlan team, but I've spent at least 3 working weeks on this particular plugin. If you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 

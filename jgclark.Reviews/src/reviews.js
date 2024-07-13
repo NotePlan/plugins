@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 24.6.2024 for v0.14.0+, @jgclark
+// Last updated 2024-07-13 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,10 +21,10 @@ import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
   getReviewSettings,
-  // makeFakeButton,
   Project,
   type ReviewConfig,
   saveEditorToCache,
+  updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
@@ -58,7 +58,7 @@ import {
 // Settings
 const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const windowTitle = `Review List`
+const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
@@ -416,28 +416,28 @@ export async function renderProjectListsHTML(
       '',
       'Skip this Project review and select new date')
     const updateProgressPCButton = makePluginCommandButton(
-      `\u00A0<i class="fa-regular fa-message-pen"></i>\u00A0Add Progress`,
+      `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
       'jgclark.Reviews',
       'add progress update',
       '',
       'Add a progress line to the currently open Project note',
     )
     const pausePCButton = makePluginCommandButton(
-      `Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`,
+      `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
       'jgclark.Reviews',
       'pause project toggle',
       '',
       'Pause the currently open Project note',
     )
     const completePCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-check"></i>\u00A0Complete`,
+      `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
       'jgclark.Reviews',
       'complete project',
       '',
       'Complete the currently open Project note',
     )
     const cancelPCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-xmark"></i>\u00A0Cancel`,
+      `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
       'jgclark.Reviews',
       'cancel project',
       '',
@@ -448,7 +448,7 @@ export async function renderProjectListsHTML(
     // outputArray.push(`<h1>${windowTitle}</h1>`)
 
     // Add a sticky area for buttons
-    const controlButtons = `<b>Reviews</b>: ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><b>List</b>: \n${refreshPCButton} \n<b>Project</b>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
+    const controlButtons = `<span class="sticky-box-header">Reviews</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
     // TODO: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
@@ -541,7 +541,7 @@ export async function renderProjectListsHTML(
     <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
-        <div>Project Reviews</div>
+        <div>Reviews</div>
         <div id="projectControlDialogProjectControls">
           <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
           <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
@@ -549,12 +549,12 @@ export async function renderProjectListsHTML(
           <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
           <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
         </div>
-        <div>Project Actions</div>
+        <div>Actions</div>
         <div>
-          <button data-control-str="progress"><i class="fa-regular fa-message-pen"></i> Add Progress</button>
-          <button data-control-str="pause">Toggle <i class="fa-solid fa-play-pause"></i> Pause</button>
-          <button data-control-str="complete"><i class="fa-solid fa-check"></i> Complete</button>
-          <button data-control-str="cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>
+          <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
+          <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
+          <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
+          <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
         </div>
         <div></div>
         <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
@@ -979,11 +979,8 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
 
     logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
 
-    // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
-    logDebug('makeFullReviewList', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
-    await NotePlan.openURL(refreshXCallbackURL)
-
+    // Finally, refresh Dashboard if open
+    updateDashboardIfOpen()
   } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)
   }
@@ -1335,6 +1332,11 @@ export async function skipReview(): Promise<void> {
   }
 }
 
+/**
+ * Skip the next review for the given note, to the date/interval specified.
+ * Note: skipReview() is an interactive version of this for Editor.note
+ * @author @jgclark
+ */
 export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
@@ -1343,7 +1345,6 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
     if (!note || note.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
-
     logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)} with ${skipIntervalOrDate}`)
 
     const thisNoteAsProject = new Project(note)
@@ -1366,10 +1367,6 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
 
     // Update metadata in that note
     await updateMetadataInNote(note, [nextReviewMetadataStr])
-
-    // // Save Editor, so the latest changes can be picked up elsewhere
-    // // Putting the Editor.save() here, rather than in the above functions, seems to work
-    // await saveEditorToCache(null)
 
     // Update the full-review-list too
     thisNoteAsProject.nextReviewDateStr = newDateStr
@@ -1531,11 +1528,8 @@ export async function updateReviewListAfterChange(
       }
       // logFullReviewList()
 
-      // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-      // DataStore.invokePluginCommand('refreshDashboard', '')
-      const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
-      logDebug('updateReviewListAfterChange', `sent message to refresh Dashboard (if available)`)
-      await NotePlan.openURL(refreshXCallbackURL)
+      // Finally, refresh Dashboard
+      updateDashboardIfOpen()
     }
 
   } catch (error) {
