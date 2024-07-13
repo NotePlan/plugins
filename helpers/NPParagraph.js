@@ -10,7 +10,6 @@ import {
   hyphenatedDate,
   hyphenatedDateString,
   isScheduled,
-  nowShortDateTimeISOString,
   replaceArrowDatesInString,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_WEEK_NOTE_LINK,
@@ -20,7 +19,11 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from '@helpers/NPdateTime'
+import {
+  getNPWeekData, getMonthData, getYearData, getQuarterData,
+  nowDoneDateTimeString,
+  toLocaleDateTimeString,
+} from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
@@ -1386,7 +1389,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean | TParagraph {
   if (para) {
     // Default to using current date/time
-    let dateString = nowShortDateTimeISOString
+    // TEST: this should return in user locale time format (up to a point)
+    // FIXME: this call (which uses Noteplan.environment.is12hr) makes Dashbaord fail. The previous call without Noteplan.environment doesn't fail.
+    let dateString = nowDoneDateTimeString()
     if (useScheduledDateAsCompletionDate) {
       // But use scheduled date instead if found
       if (hasScheduledDate(para.content)) {
@@ -1401,8 +1406,6 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
           logDebug('markComplete', `will use date of note ${dateString} as completion date`)
         }
       }
-    } else {
-      dateString = nowShortDateTimeISOString
     }
     const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
 
@@ -1413,12 +1416,12 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para <${para.content}>`)
+      logDebug('markComplete', `updated para "{para.content}"`)
       return para
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para <${para.content}>`)
+      logDebug('markComplete', `updated para "{para.content}"`)
       return para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
@@ -1441,15 +1444,15 @@ export function markCancelled(para: TParagraph): boolean {
     if (para.type === 'open') {
       para.type = 'cancelled'
       para.note?.updateParagraph(para)
-      logDebug('markCancelled', `updated para <${para.content}>`)
+      logDebug('markCancelled', `updated para "${para.content}"`)
       return true
     } else if (para.type === 'checklist') {
       para.type = 'checklistCancelled'
       para.note?.updateParagraph(para)
-      logDebug('markCancelled', `updated para <${para.content}>`)
+      logDebug('markCancelled', `updated para "${para.content}"`)
       return true
     } else if (para.type === 'cancelled' || para.type === 'checklistCancelled') {
-      logInfo('markCancelled', `para <${para.content}> is already cancelled: is this a duplicate line?`)
+      logInfo('markCancelled', `para "${para.content}" is already cancelled: is this a duplicate line?`)
       return false
     } else {
       logWarn('markCancelled', `unexpected para type ${para.type}, so won't continue`)
@@ -1479,7 +1482,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
     if (content === '') {
       throw new Error('NPP/completeItem: content empty')
     }
-    logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: <${content}>`)
+    logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: "${content}"`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
     if (typeof possiblePara === 'boolean') {
       return false
@@ -1503,7 +1506,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
  */
 export function completeItemEarlier(filenameIn: string, content: string): boolean | TParagraph {
   try {
-    logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: <${content}>`)
+    logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: "${content}"`)
     const possiblePara = findParaFromStringAndFilename(filenameIn, content)
     if (typeof possiblePara === 'boolean') {
       return false

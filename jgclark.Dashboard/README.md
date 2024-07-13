@@ -82,9 +82,9 @@ The 'action buttons' available in this section are:
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
 
 ### Controlling from Shortcuts, Streamdeck etc.
-In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a single call that opens (or refreshes) the Dashboard. 
+In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a number of 'callback's. 
 
-At simplest:
+The simplest **opens (or refreshes) the Dashboard**:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
 ```
@@ -102,6 +102,50 @@ Use `arg0=` followed by a comma-separated list of one or more of the following s
 | Month | `M` | Quarter | `Q` |
 | Projects | `PROJ` | Overdue | `OVERDUE` |
 | tags / mentions from your settings | `#tag` / `@mention` |
+
+You can also **set a particular setting**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName>&arg1=<value>
+```
+Or you can **set multieple settings in one call**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName=value pairs separated by semicolons>
+```
+In both the names of the possible settings are:
+TODO: table
+
+separateSectionForReferencedNotes: boolean,
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  dashboardTheme: string,
+  hideDuplicates: boolean,
+  ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
+  ignoreFolders: Array<string>,
+  includeFolderName: boolean,
+  includeTaskContext: boolean,
+  rescheduleNotMove: boolean,
+  newTaskSectionHeading: string,
+  newTaskSectionHeadingLevel: number,
+  autoAddTrigger: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
+  showWeekSection: boolean,
+  showMonthSection: boolean,
+  showQuarterSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
+  maxItemsToShowInSection: number,
+  overdueSortOrder: string,
+  tagsToShow: string,
+  ignoreTagMentionsWithPhrase: string,
+  updateTagMentionsOnTrigger: boolean,
+  useTodayDate: boolean,
+  moveSubItems: boolean,
+  interactiveProcessingHighlightTask: boolean,
+
+The latter is fiddly to set up, so you can call **/Make Callback from Current Settings** command to generate a call based on your current settings.
 
 ### Updating the Dashboard automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).

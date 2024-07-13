@@ -21,7 +21,7 @@ type Props = {
 };
 
 function TaskItem({ item, thisSection }: Props): Node {
-  const { setReactSettings, sharedSettings } = useAppContext()
+  const { setReactSettings, dashboardSettings } = useAppContext()
 
   const [visible, setVisible] = useState(true)
 
@@ -79,7 +79,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         />
         {/* after StatusIcon */}
         <ItemContent item={item} >
-        {sharedSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
+          {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
         <a className="dialogTrigger">
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
         </a>

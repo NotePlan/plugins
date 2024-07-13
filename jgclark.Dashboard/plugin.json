@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.0",
+  "plugin.version": "2.0.1",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.0.0: major new release -- see documentation for all the new features",
+  "plugin.lastUpdateInfo": "2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.min.js",
@@ -47,13 +47,28 @@
     },
     {
       "name": "setSetting",
-      "description": "Set a key:value setting",
+      "description": "Set a single key:value setting",
       "jsFunction": "setSetting",
       "hidden": true,
       "arguments": [
-        "key to set",
+        "key",
         "value"
       ]
+    },
+    {
+      "name": "setSettings",
+      "description": "Set multiple key:value settings",
+      "jsFunction": "setSettings",
+      "hidden": true,
+      "arguments": [
+        "params as concatentaed list of key=value;"
+      ]
+    },
+    {
+      "name": "Make Callback from Current Settings",
+      "description": "Make a callback url or link for the current settings, and copy to the clipboard.",
+      "jsFunction": "makeSettingsAsCallback",
+      "hidden": "false"
     },
     {
       "name": "decideWhetherToUpdateDashboard",
@@ -72,11 +87,6 @@
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall",
       "hidden": true
-    },
-    {
-      "name": "Dashboard: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "editSettings"
     }
   ],
   "plugin.commands.unused": [
@@ -85,9 +95,61 @@
       "description": "test: buildListOfDoneTasksToday",
       "jsFunction": "buildListOfDoneTasksToday",
       "hidden": false
+    },
+    {
+      "name": "Dashboard: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "editSettings"
     }
   ],
   "plugin.settings": [
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "jgclark.Dashboard",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEV",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "_logTimer",
+      "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "All the rest of the Settings have been migrated to the Dashboard Window, so please make your changes there."
+    },
+    {
+      "type": "hidden",
+      "key": "dashboardSettings",
+      "description": "Saves last state of dashboardSettings as JSON string.",
+      "required": true,
+      "default": "{}"
+    }
+  ],
+  "plugin.unused_settings": [
     {
       "type": "heading",
       "title": "Do Not Change These Settings"
@@ -98,21 +160,8 @@
     },
     {
       "type": "hidden",
-      "key": "pluginID",
-      "default": "jgclark.Dashboard",
-      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
-    },
-    {
-      "type": "hidden",
       "key": "reactSettings",
       "description": "Saves last state of react UI choices as JSON string.",
-      "required": true,
-      "default": "{}"
-    },
-    {
-      "type": "hidden",
-      "key": "sharedSettings",
-      "description": "Saves last state of shared settings as JSON string.",
       "required": true,
       "default": "{}"
     },
@@ -267,7 +316,7 @@
       "title": "Tag/Mention section"
     },
     {
-      "key": "tagToShow",
+      "key": "tagsToShow",
       "title": "#tag/@mention to show",
       "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to a signle hashtag or mention for speed, and it can show tasks duplicated from other sections.",
       "type": "string",
@@ -287,99 +336,6 @@
       "hidden": true,
       "title": "Update items in this section when triggered?",
       "description": "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Debugging"
-    },
-    {
-      "key": "_logLevel",
-      "type": "string",
-      "title": "Log Level",
-      "choices": [
-        "DEV",
-        "DEBUG",
-        "INFO",
-        "WARN",
-        "ERROR",
-        "none"
-      ],
-      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
-      "default": "INFO",
-      "required": true
-    },
-    {
-      "key": "triggerLogging",
-      "title": "Include extra trigger logs?",
-      "type": "bool",
-      "default": false,
-      "required": true
-    }
-  ],
-  "plugin.unused_settings": [
-    {
-      "type": "heading",
-      "title": "Other Calendar sections"
-    },
-    {
-      "key": "showYesterdaySection",
-      "title": "Show section for Yesterday?",
-      "description": "Whether to show a 'Yesterday' section for Yesterday's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "showTomorrowSection",
-      "title": "Show section for Tomorrow?",
-      "description": "Whether to show a 'Tomorrow' section for Tomorrow's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "showWeekSection",
-      "title": "Show section for Week?",
-      "description": "Whether to show a 'Week' section for Week's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "showMonthSection",
-      "title": "Show section for Month?",
-      "description": "Whether to show a 'Month' section for open items in this month's calendar note",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "showQuarterSection",
-      "title": "Show section for Quarter?",
-      "description": "Whether to show a 'Qaurter' section for open items in this quarter's calendar note",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "showProjectSection",
-      "title": "Show section for Projects?",
-      "description": "Whether to show the Projects section. This uses data from the Projects & Reviews Plugin.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "updateOverdueOnTrigger",
-      "hidden": true,
-      "title": "Update Overdue section when triggered?",
-      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
       "type": "bool",
       "default": true,
       "required": true

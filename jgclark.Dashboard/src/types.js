@@ -1,8 +1,62 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
+// Types for Settings
+
+export type TDashboardLoggingConfig = {
+  _logLevel: string,
+  _logTimer: boolean,
+}
+
+export type TNotePlanConfig = {
+  defaultFileExtension: string,
+  doneDatesAvailable: boolean,
+  timeblockMustContainString: string,
+}
+
+export type TDashboardConfig = {
+  separateSectionForReferencedNotes: boolean,
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  dashboardTheme: string,
+  hideDuplicates: boolean,
+  ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
+  ignoreFolders: Array<string>,
+  includeFolderName: boolean,
+  includeTaskContext: boolean,
+  rescheduleNotMove: boolean,
+  newTaskSectionHeading: string,
+  newTaskSectionHeadingLevel: number,
+  autoAddTrigger: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
+  showWeekSection: boolean,
+  showMonthSection: boolean,
+  showQuarterSection: boolean,
+  showOverdueSection: boolean,
+  showProjectSection: boolean,
+  maxItemsToShowInSection: number,
+  overdueSortOrder: string,
+  tagsToShow: string,
+  ignoreTagMentionsWithPhrase: string,
+  updateTagMentionsOnTrigger: boolean,
+  useTodayDate: boolean,
+  // _logLevel: string,
+  // _logTimer: boolean,
+  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
+  FFlag_LimitOverdues: boolean,
+  FFlag_HardRefreshButton: boolean,
+  moveSubItems: boolean,
+  interactiveProcessingHighlightTask: boolean,
+  // sharedSettings: any, // Note: no longer needed after settings refactor
+}
+
+//-----------------------------------------------------------------------------
+// Other types
 
 export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
@@ -94,7 +148,7 @@ export type TActionType =
   | 'moveFromCalToCal'
   | 'moveToNote'
   | 'onClickDashboardItem'
-  | 'reactSettingsChanged'
+  // | 'reactSettingsChanged'
   | 'refresh'
   | 'refreshSomeSections'
   | 'setNextReviewDate'
@@ -106,7 +160,7 @@ export type TActionType =
   | 'scheduleAllOverdueToday'
   | 'setNewReviewInterval'
   // | 'setSpecificDate'
-  | 'sharedSettingsChanged'
+  | 'dashboardSettingsChanged'
   | 'startReviews'
   | '(not yet set)'
   | 'toggleType'
@@ -150,7 +204,7 @@ export type MessageDataObject = {
   actionType: TActionType, // main verb (was .type)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
-  newSettings?: string, /* either reactSettings or sharedSettings depending on actionType */
+  newSettings?: string, /* either reactSettings or dashboardSettingsdepending on actionType */
   modifierKey?: any, /* used when modifier key is pressed with an action */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
@@ -193,7 +247,9 @@ export type TReactSettings = {
 }
 
 export type TPluginData = {
-  settings: any, /* plugin settings, includes stringified sharedSettings */
+  dashboardSettings: any, /* plugin settings */
+  logSettings: any, /* logging settings from plugin preferences */
+  notePlanSettings: any, /* for copies of some app settings */
   refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
   sections: Array<TSection>,
   lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
@@ -204,23 +260,26 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSharedSettings = {
-  //TODO: jgclark: add the specific shared settings
-  [key: string]: any,
-}
+// export type TDashboardConfig = {
+//   //TODO: jgclark: add the specific shared settings
+//   [key: string]: any,
+// }
 
+// TODO: change to TSettingItemType
 export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
 
+// TODO: change to TSettingItem
 export type TDropdownItem = {
   type: TDropdownItemType,
-  label?: string,
-  key?: string,
-  checked?: boolean,
+  key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
   value?: string,
+  label?: string,
+  checked?: boolean,
   options?: Array<string>,
   textType?: 'title' | 'description' | 'separator',
-  tooltip?: string, // TODO(dbw): is this unused, now you have changed to use descriptions in the settings dialog?
   description?: string,
+  default?: any,
+  refreshAllOnChange?: boolean,
 }
 
 export type TPluginCommandSimplified = {

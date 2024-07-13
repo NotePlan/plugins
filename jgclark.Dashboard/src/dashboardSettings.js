@@ -1,28 +1,29 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 21.6.2024 for v2.0.0-b10 by @jgclark
+// Last updated 2024-07-10 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
-import type { TDropdownItem, TSharedSettings } from "./types.js"
+import type { TDropdownItem } from "./types.js"
+import { clo } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
 // The filters below are non-section switches that display in the filters menu
-export const dashboardFilters = [
-  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', default: false },
-  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', default: false, refreshAllOnChange: true },
-  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', default: false, refreshAllOnChange: true },
-  { label: 'Hide duplicates?', key: 'hideDuplicates', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
-  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
-  { label: 'Include note link for tasks?', key: 'includeTaskContext', default: true, description: "Whether to show the note link for an open task or checklist" },
-  { label: 'Include folder name in note link?', key: 'includeFolderName', default: true, description: "Whether to include the folder name when showing a note link" },
-  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
-  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', default: false, description: "Whether to stop display of open tasks that contain a time block" },
-  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', default: false, description: "Whether to stop display of open checklists that contain a time block" },
+export const dashboardFilterDefs: Array<TDropdownItem> = [
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
+  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
+  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
+  { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
+  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
+  { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: "Whether to show the note link for an open task or checklist" },
+  { label: 'Include folder name in note link?', key: 'includeFolderName', type: 'switch', default: true, description: "Whether to include the folder name when showing a note link" },
+  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', type: 'switch', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
+  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open tasks that contain a time block" },
+  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
-const dashboardSettings = [
+export const dashboardSettingDefs: Array<TDropdownItem> = [
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -117,7 +118,7 @@ const dashboardSettings = [
     label: "Tag/Mention section",
   },
   {
-    key: "tagToShow",
+    key: "tagsToShow",
     label: "#tag/@mention(s) to show",
     description: "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
     type: 'input',
@@ -130,14 +131,14 @@ const dashboardSettings = [
     type: 'input',
     default: "",
   },
-  {
-    key: "updateTagMentionsOnTrigger",
-    hidden: true,
-    label: "Update items in this section when triggered?",
-    description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-    type: 'switch',
-    default: true,
-  },
+  // {
+  //   key: "updateTagMentionsOnTrigger",
+  //   hidden: true,
+  //   label: "Update items in this section when triggered?",
+  //   description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
+  //   type: 'switch',
+  //   default: true,
+  // },
   {
     type: 'separator',
   },
@@ -192,28 +193,11 @@ const dashboardSettings = [
   },
   {
     type: 'heading',
-    label: "Logging"
-  },
-  {
-    key: "_logLevel",
-    type: "combo",
-    label: "Log Level",
-    options: [
-      "DEV",
-      "DEBUG",
-      "INFO",
-      "WARN",
-      "ERROR",
-      "none"
-    ],
-    description: "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
-    default: "INFO",
-    required: true
+    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
   },
 ]
-
-export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pluginSettings: TAnyObject): Array<TDropdownItem> => {
-  return dashboardSettings.map(setting => {
+export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
+  return dashboardSettingDefs.map(setting => {
     switch (setting.type) {
       case 'separator':
         return {
@@ -230,7 +214,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'switch',
-          checked: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          checked: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'input':
@@ -238,7 +222,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'input',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
       case 'combo':
@@ -246,7 +230,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key,
           type: 'combo',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           options: setting.options,
           description: setting.description,
         }
@@ -255,7 +239,7 @@ export const createDashboardSettingsItems = (sharedSettings: TSharedSettings, pl
           label: setting.label || '',
           key: setting.key || '',
           type: 'text',
-          value: sharedSettings[setting.key] ?? pluginSettings[setting.key] ?? setting.default,
+          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
           description: setting.description,
         }
     }

@@ -1,5 +1,13 @@
-// useInteractiveProcessing.jsx
 // @flow
+//-----------------------------------------------------------------------------
+// useInteractiveProcessing.jsx
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
+//-----------------------------------------------------------------------------
+
+import { useEffect } from 'react'
+import type { TSectionItem, TSection, TDashboardConfig } from '../../../types.js'
+import { logDebug, JSP } from '@helpers/react/reactDev.js'
+
 /**
  * Custom hook for handling interactive processing logic
  * Is loaded by all sections but should only run for the button that was checked
@@ -14,10 +22,6 @@
  * @returns {void}
  */
 
-import { useEffect } from 'react'
-import type { TSectionItem, TSection, TSharedSettings } from '../../../types.js'
-import { logDebug, JSP } from '@helpers/react/reactDev.js'
-
 function useInteractiveProcessing(
   items: Array<TSectionItem>,
   thisSection: TSection,
@@ -26,7 +30,7 @@ function useInteractiveProcessing(
   reactSettings: any,
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void,
-  sharedSettings: TSharedSettings,
+  dashboardSettings: TDashboardConfig,
 ): void {
 
   // Check if this section should process interactively
@@ -88,7 +92,7 @@ function useInteractiveProcessing(
         },
         interactiveProcessing: { ...prev.interactiveProcessing, currentIPIndex: currentIPIndex + 1, startingUp: false }
       }))
-      if (sharedSettings.interactiveProcessingHighlightTask) {
+      if (dashboardSettings.interactiveProcessingHighlightTask) {
         const actionType = 'showLineInEditorFromFilename'
         sendActionToPlugin(actionType, { actionType, item: itemsCopy[0] }, 'Title clicked in Dialog', true)
       }
@@ -104,7 +108,7 @@ function useInteractiveProcessing(
         setItemsCopy([])
       }
     }
-  }, [thisSection, reactSettings, itemsCopy, setItemsCopy, setReactSettings, sendActionToPlugin, sharedSettings, shouldProcess])
+  }, [thisSection, reactSettings, itemsCopy, setItemsCopy, setReactSettings, sendActionToPlugin, dashboardSettings, shouldProcess])
 }
 
 export default useInteractiveProcessing

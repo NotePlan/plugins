@@ -1,15 +1,33 @@
 /* Ensure the dropdown content is completely hidden when closed */
 .dropdown-content {
   display: none;
-  flex-direction: column;
-  gap: 1rem;
+  /* flex-direction: column; */
+  /* gap: 1rem; */
+  grid-template-columns: max-content max-content;
+  grid-template-areas: "left right";
+  grid-gap: 1.5rem;
   position: absolute;
   background-color: var(--bg-alt-color);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
+  box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
   overflow: hidden;
   max-height: 0;
-  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
   opacity: 0;
+}
+
+/* Make dropdown content only 1 column wide on narrow (i.e. iOS) screens */
+@media screen and (width <= 450px) {
+	.dropdown-content {
+		grid-template-columns: unset;
+    grid-template-areas: "justTheOne";
+	}
+}
+
+.column {
+  display: grid;
+  justify-items: end;
+  height: fit-content;
 }
 
 /* Keyframes for the unfurl animation */
@@ -35,13 +53,13 @@
 }
 
 /* Show the dropdown content when the menu is open */
-.dropdown-content.show, .dropdown-content.show-in-columns {
-  display: block;
+.dropdown-content.show {
+  display: grid;
   width: max-content;
-  right: -1rem;
-  animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
+  right: -2rem;
   opacity: 1;
-  padding: 15px;
+  padding: 0.5rem 1.0rem;
+  animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
 }
 
 /* Show the dropdown content to be shown in 2 simple cols when the menu is open */
@@ -82,9 +100,11 @@
 /* Style for switch-line */
 .dropdown .switch-line {
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding-bottom: 5px;
+  /* align-items: center; */
+  justify-content: flex-end;
+  gap: 0.3rem; /* between label and switch */
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 }
 
 /* Style for switch-input */

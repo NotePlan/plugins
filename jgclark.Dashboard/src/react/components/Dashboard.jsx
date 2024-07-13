@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-06-28 for v2.0.0-b16 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,7 +11,6 @@
 import React, { useEffect, useRef } from 'react'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
-// import { getFeatureFlags } from '../../shared.js'
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
@@ -44,15 +43,19 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, sharedSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
+
+  const logSettings = pluginData.logSettings
 
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
   useWatchForResizes(sendActionToPlugin)
-    // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
-    const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: sharedSettings._logLevel !== "DEV" })
+  // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
+  // FIXME:
+  const shortDelayTimerIsOn = true // logSettings._logLevel !== "DEV"
+  const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
 
   //----------------------------------------------------------------------
   // Refs
@@ -72,15 +75,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   let sections = [...origSections]
   let unduplicatedSections = sections
   
-  if (sections.length > 1 && sharedSettings) {
-    unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, sharedSettings)
+  if (sections.length > 1 && dashboardSettings) {
+    unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
   }
   
   // logDebug('Dashboard', `origSections length: ${origSections.length}`)
   // logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
-  sections = sharedSettings?.hideDuplicates ? unduplicatedSections : origSections
+  sections = dashboardSettings?.hideDuplicates ? unduplicatedSections : origSections
   
   // logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
@@ -107,17 +110,17 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }, [])
 
   useEffect(() => {
-    if (!sharedSettings) {
-      // Fallback or initialization logic for sharedSettings
-      logError('Dashboard', 'sharedSettings is undefined')
+    if (!dashboardSettings) {
+      // Fallback or initialization logic for dashboardSettings
+      logError('Dashboard', 'dashboardSettings is undefined')
     } 
-  }, [sharedSettings])
+  }, [dashboardSettings])
   
   // temporary code to output variable changes to Chrome DevTools console
   const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length===0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
-    (sharedSettings && Object.keys(sharedSettings).length > 0) ? logChanges('sharedSettings', sharedSettings) : null
-  }, [sharedSettings])
+    (dashboardSettings && Object.keys(dashboardSettings).length > 0) ? logChanges('dashboardSettings', dashboardSettings) : null
+  }, [dashboardSettings])
   useEffect(() => {
     logChanges('reactSettings', reactSettings)
   }, [reactSettings])
@@ -140,7 +143,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Change the title when the section data changes
   // TODO: this doesn't work and I'm not sure it ever can
   useEffect(() => {
-    const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, sharedSettings)
+    const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, dashboardSettings)
     const windowTitle = `Dashboard - ${totalUnduplicatedSectionItems} items`
     if (document.title !== windowTitle) {
       // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
@@ -154,29 +157,30 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
       const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
       const strReactSettings = JSON.stringify(trimmedReactSettings)
-      sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', settings: strReactSettings }, 'Dashboard reactSettings updated', true)
+      //FIXME: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
+      // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
     }
   }, [reactSettings])
 
-  // when sharedSettings changes anywhere, send it to the plugin to save in settings
+  // when dashboardSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
-  // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to sharedSettings
+  // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
+  // FIXME: .lastChange doesn't sound like a setting, but could be in pluginData?
   useEffect(() => {
-    const settingsNeedFirstTimeMigration = sharedSettings?.settingsMigrated === undefined
-    if (settingsNeedFirstTimeMigration || sharedSettings?.lastChange && typeof sharedSettings.lastChange === 'string' && sharedSettings.lastChange.length > 0 && sharedSettings.lastChange[0] !== '_') {
-      settingsNeedFirstTimeMigration && logDebug('Dashboard', `Settings need first time migration sending to plugin to be saved`, sharedSettings)
-      logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: "${sharedSettings.lastChange}" sending to plugin to be saved`, sharedSettings)
-      const sharedSets = { ...sharedSettings }
+    const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
+    if (settingsNeedFirstTimeMigration || dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0 && dashboardSettings.lastChange[0] !== '_') {
+      settingsNeedFirstTimeMigration && logDebug('Dashboard', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
+      logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
+      const sharedSets = { ...dashboardSettings }
       if (settingsNeedFirstTimeMigration) { 
-        sharedSets.settingsMigrated = true 
+        sharedSets.settingsMigrated = true //FIXME: (@jgclark) these two fields should be added to your settings typedef
         sharedSets.lastChange = '_Saving first time migration'
       }
-      const strSharedSetings = JSON.stringify(sharedSets)
-      sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSharedSetings }, 'Dashboard sharedSettings updated', true)
-    } else if (sharedSettings && Object.keys(sharedSettings).length > 0) {
-      // logDebug('Dashboard', `Watcher for sharedSettings changes. Shared settings updated: ${JSON.stringify(sharedSettings,null,2)}`,sharedSettings)
+      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
+    } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
+      // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
     }
-  }, [sharedSettings])
+  }, [dashboardSettings])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
   useEffect(() => {
@@ -225,7 +229,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       } else {
         // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
         // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
-        logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
+        // logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
@@ -235,7 +239,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (pluginData.startDelayedRefreshTimer) {
       logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
       updatePluginData({...pluginData, startRefreshTimer: false},'Got message from plugin; resetting refresh timer')
-      refreshTimer()
+      !(reactSettings?.interactiveProcessing) && refreshTimer() // start the cache-busting timer if !interactiveProcessing 
     }
   }, [pluginData.startDelayedRefreshTimer])
 
@@ -269,14 +273,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   if (sections.length === 0) {
     return <div className="dashboard">Error: No Sections to display ...</div>
   }
-  const autoUpdateEnabled = parseInt(sharedSettings?.autoUpdateAfterIdleTime || "0") > 0
+  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0") > 0 //FIXME: (@jgclark) needs adding to the typedef
   //autoRefresh
-  // logDebug('Dashboard', `setting typeof ${typeof sharedSettings?.autoUpdateAfterIdleTime} ${sharedSettings?.autoUpdateAfterIdleTime ?? '-'} / ${parseInt(sharedSettings?.autoUpdateAfterIdleTime || "0")} / ${String(autoUpdateEnabled)}`)
+  // logDebug('Dashboard', `setting typeof ${typeof dashboardSettings?.autoUpdateAfterIdleTime} ${dashboardSettings?.autoUpdateAfterIdleTime ?? '-'} / ${parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0")} / ${String(autoUpdateEnabled)}`)
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
       {autoUpdateEnabled && (
         <IdleTimer
-          idleTime={parseInt(sharedSettings?.autoUpdateAfterIdleTime?.length ? sharedSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
+          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime?.length ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
           onIdleTimeout={autoRefresh}
         />
       )}

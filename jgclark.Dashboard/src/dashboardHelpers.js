@@ -1,19 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 28.6.2024 for v2.0.0-b15 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { allSectionDetails } from "./constants"
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TItemType, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardConfig, TDashboardLoggingConfig, TItemType, TNotePlanConfig, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
-  // getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
   removeDateTagsAndToday,
@@ -34,13 +32,9 @@ import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
-  // getTaskPriority,
-  // insertParas,
   isTermInURL,
   parasToText,
-  // removeTaskPriorityIndicators,
   smartPrependPara,
-  // smartPrependParas,
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
@@ -50,15 +44,17 @@ import {
   isTypeThatCanHaveATimeBlock,
   RE_TIMEBLOCK_APP,
 } from '@helpers/timeblocks'
-import { chooseHeading, displayTitleWithRelDate, showMessage, chooseNote } from '@helpers/userInput'
+import {
+  chooseHeading, chooseNote, displayTitleWithRelDate,
+  // showMessage, 
+} from '@helpers/userInput'
 import {
   isOpen, isOpenTask, isOpenNotScheduled,
-  // isOpenTaskNotScheduled,
   removeDuplicates
 } from '@helpers/utils'
 
 //-----------------------------------------------------------------
-
+// Types
 // Note: types.js now contains the Type definitions
 
 //-----------------------------------------------------------------
@@ -68,132 +64,110 @@ const pluginID = pluginJson['plugin.id']
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 const WEBVIEW_WINDOW_ID = windowCustomId
 
-export type dashboardConfigType = {
-  dashboardTheme: string,
-  separateSectionForReferencedNotes: boolean,
-  ignoreTasksWithPhrase: string,
-  ignoreChecklistItems: boolean,
-  ignoreFolders: Array<string>,
-  includeFolderName: boolean,
-  includeTaskContext: boolean,
-  rescheduleNotMove: boolean,
-  newTaskSectionHeading: string,
-  newTaskSectionHeadingLevel: number,
-  autoAddTrigger: boolean,
-  excludeChecklistsWithTimeblocks: boolean,
-  excludeTasksWithTimeblocks: boolean,
-  timeblockMustContainString: string,
-  showYesterdaySection: boolean,
-  showTomorrowSection: boolean,
-  showWeekSection: boolean,
-  showMonthSection: boolean,
-  showQuarterSection: boolean,
-  showOverdueSection: boolean,
-  showProjectSection: boolean,
-  // updateOverdueOnTrigger: boolean,
-  maxItemsToShowInSection: number,
-  overdueSortOrder: string,
-  tagToShow: string,
-  ignoreTagMentionsWithPhrase: string,
-  updateTagMentionsOnTrigger: boolean,
-  useTodayDate: boolean,
-  _logLevel: string,
-  triggerLogging: boolean,
-  filterPriorityItems: boolean, // also kept in a DataStore.preference key
-  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
-  FFlag_LimitOverdues: boolean,
-  moveSubItems: boolean,
-  defaultFileExtension: string,
-  doneDatesAvailable: boolean,
-  sharedSettings: any,
-}
 
 /**
- * Get the sharedSettings values as an object
- * @returns {any} the settings object or an empty object if there are none
+ * Return an Object that includes settings:
+ * - that are about what sections to display and how they should look.
+ * - that control other bits of Dashboard logic.
+ * Note: this does not include logSettings or copies of NP app-level settings.
+ * These can potentially be changed by setSetting(s) calls.
  */
-export async function getSharedSettings(): Promise<any> {
+export async function getDashboardSettings(): Promise<TDashboardConfig> {
   // Note: We think following (newer API call) is unreliable.
-  // let settings: dashboardConfigType = DataStore.settings
-  // if (!settings.sharedSettings) clo(settings, `getSharedSettings (newer API): DataStore.settings?.sharedSettings not found; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
+  let pluginSettings = DataStore.settings
+  if (!pluginSettings || !pluginSettings.dashboardSettings) {
+    clo(pluginSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
 
-  // So instead back to the older way:
-  const settings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-  // Check again
-  if (!settings.sharedSettings) clo(settings, `getSharedSettings (older lookup): sharedSettings not found this way either; should be there by default. here's the full settings for ${settings.pluginID} plugin: `)
+    // So instead back to the older way:
+    pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
+    // Check again
+  }
+  if (!pluginSettings.dashboardSettings) {
+    if (pluginSettings.sharedSettings) {
+      logDebug(`getDashboardSettings: no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
+      pluginSettings.dashboardSettings = pluginSettings.sharedSettings
+      delete pluginSettings.sharedSettings
+      DataStore.settings = pluginSettings
+    } else {
+      throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
+    }
+  }
 
-  return parseSettings(settings.sharedSettings || '') ?? {}
+  return parseSettings(pluginSettings.dashboardSettings)
 }
 
 /**
  * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
  * Calls DataStore.settings so can't be used on front-end
  */
-export async function getCombinedSettings(): Promise<any> {
-  const sharedSettings = await getSharedSettings()
-  if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
-  const pluginSettings = await getSettings()
-  const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
-  // clo(pluginSettings, 'getCombinedSettings: pluginSettings')
-  // clo(sharedSettings, 'getCombinedSettings: sharedSettings')
-  returnObj.maxItemsToShowInSection = pluginSettings.maxItemsToShowInSection ?? 20
-  returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
-  // Now add all the show*Section settings (or default to true)
-  for (const sd of allSectionDetails) {
-    const thisShowSettingName = sd.showSettingName
-    if (thisShowSettingName) {
-      // Default to true unless user has explictly set to false
-      returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
-    }
-  }
-  const sharedSettingsKeys = Object.keys(sharedSettings)
-  for (const key of sharedSettingsKeys) {
-    // sharedSettings should override any pre-existing setting
-    returnObj[key] = sharedSettings[key]
-  }
-  return returnObj
-}
+// export async function getCombinedSettings(): Promise<any> {
+//   const sharedSettings = await getSharedSettings()
+//   if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
+//   const pluginSettings = await getSettings()
+//   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
+//   // clo(pluginSettings, 'getCombinedSettings: pluginSettings')
+//   // clo(sharedSettings, 'getCombinedSettings: sharedSettings')
+//   returnObj.maxItemsToShowInSection = pluginSettings.maxItemsToShowInSection ?? 20
+//   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
+//   // Now add all the show*Section settings (or default to true)
+//   for (const sd of allSectionDetails) {
+//     const thisShowSettingName = sd.showSettingName
+//     if (thisShowSettingName) {
+//       // Default to true unless user has explictly set to false
+//       returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
+//     }
+//   }
+//   const sharedSettingsKeys = Object.keys(sharedSettings)
+//   for (const key of sharedSettingsKeys) {
+//     // sharedSettings should override any pre-existing setting
+//     returnObj[key] = sharedSettings[key]
+//   }
+//   return returnObj
+// }
 
 /**
- * TODO: Set a config setting, used from x-callback.
- * @param {string} key 
- * @param {string} value 
+ * Get config settings from original plugin preferences system -- only to do with logging now
  */
-// eslint-disable-next-line require-await
-export async function setSetting(key: string, value: string): Promise<void> {
-  logDebug('setSetting', `'${key}'' -> '${value}'`)
-  // TODO: for George to set maxItemsToShowInSection from x-callback. But let's let anything be set.
-}
-
-/**
- * WARNING: You should probably now be using getCombinedSettings() instead of this function
- * Get config settings
- */
-export async function getSettings(): Promise<any> {
-  // logDebug(pluginJson, `Start of getSettings()`)
+export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
+  // logDebug(pluginJson, `Start of getLogSettings()`)
   try {
     // Get plugin settings
-    const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
+    const config:TDashboardConfig  = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    
     if (config == null || Object.keys(config).length === 0) {
-      throw new Error(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`)
     }
-    // clo(config, `settings`)
+    const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
+    // $FlowIgnore
+    return logBits
 
-    // Extend settings with value we might want to use when DataStore isn't available etc.
-    config.timeblockMustContainString = String(DataStore.preference('timeblockTextMustContainString')) ?? ''
-    config.defaultFileExtension = DataStore.defaultFileExtension
-    // logDebug('isAppendCompletionLinks', String(DataStore.preference('isAppendCompletionLinks')))
-    config.doneDatesAvailable = !!DataStore.preference('isAppendCompletionLinks')
-
-    // clo(config, 'getSettings() returning config')
-    return config
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    await showMessage(err.message)
+    logError('getLogSettings', `${err.name}: ${err.message}`)
+    // $FlowFixMe[incompatible-return] reason for suppression
     return
   }
 }
+
+/**
+ * Get config settings from NotePlan's app-level preferences, which we need available for when NotePlan object isn't available to React.
+ */
+export function getNotePlanSettings(): TNotePlanConfig {
+  try {
+    logDebug(pluginJson, `Start of getNotePlanSettings()`)
+    // Extend settings with value we might want to use when DataStore isn't available etc.
+    return {
+      timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString')) ?? '',
+      defaultFileExtension: DataStore.defaultFileExtension,
+      doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks')
+    }
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    // $FlowFixMe[incompatible-return] reason for suppression
+    return
+  }
+}
+
 
 //-----------------------------------------------------------------
 
@@ -207,7 +181,16 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
-      // if (p.children().length > 0) clo(p.children(), `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (${p.indents} indents) in ${note.filename} paras[p.lineIndex+1]= {${origParas[p.lineIndex + 1]?.type}} (${origParas[p.lineIndex + 1]?.indents||''} indents) "${origParas[p.lineIndex + 1]?.content}"`)
+      const hasChild = p.children().length > 0
+      if (hasChild) { // debugging why sometimes hasChild is wrong
+        // $FlowIgnore 
+        const pp = p.note?.paragraphs || []
+        const nextLineIndex = p.lineIndex + 1
+        clo(p, `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+        clo(p.contentRange, `contentRange for paragraph`)
+        clo(p.children(), `Children of paragraph`)
+        clo(p.children()[0].contentRange, `contentRange for child[0]`)
+      }
       return {
         filename: note.filename,
         noteType: note.type,
@@ -220,7 +203,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
-        hasChild: p.children().length > 0,
+        hasChild
       }
     })
     return dashboardParas
@@ -242,14 +225,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
  * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForCurrentTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
-  config: dashboardConfigType,
+  config: TDashboardConfig,
   useEditorWherePossible: boolean = false
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
@@ -260,7 +243,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Note: this takes 100-110ms for me
     const startTime = new Date() // for timing only
     if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
-    // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
+      // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
       logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
@@ -422,6 +405,7 @@ function deepCompare(value1: any, value2: any, path: string): void {
 function isObject(value: any): boolean {
   return value !== null && typeof value === 'object'
 }
+
 // ---------------------------------------------------
 
 /**
@@ -466,10 +450,10 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
 }
 
 /**
- * @params {dashboardConfigType} config Settings
+ * @params {TDashboardConfig} config Settings
  * @returns {}
  */
-export async function getRelevantOverdueTasks(config: dashboardConfigType, yesterdaysCombinedSortedParas: Array<TParagraph>): Promise<Array<TParagraph>> {
+export async function getRelevantOverdueTasks(config: TDashboardConfig, yesterdaysCombinedSortedParas: Array<TParagraph>): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
@@ -614,7 +598,7 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
       if (startTimeStr.endsWith('PM')) {
         startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
       }
-// logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
+      // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
   } catch (error) {
@@ -658,7 +642,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
   try {
-    const config = await getCombinedSettings()
+    const config = await getDashboardSettings()
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))

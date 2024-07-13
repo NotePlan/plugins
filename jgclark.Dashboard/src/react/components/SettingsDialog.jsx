@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -44,17 +44,18 @@ const SettingsDialog = ({
     toggleDialog,
     style, // Destructure style prop
 }: SettingsDialogProps): React$Node => {
+
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { sendActionToPlugin, sharedSettings, setSharedSettings } = useAppContext()
+    const { /* sendActionToPlugin, */ dashboardSettings, setDashboardSettings } = useAppContext()
 
     //----------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------
-    const dialogRef = useRef<?ElementRef<'dialog'>>(null)
-    const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
-    const [changesMade, setChangesMade] = useState(false)
+    const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
+  const dropdownRef = useRef <? { current: null | HTMLInputElement } > (null)
+  const [changesMade, setChangesMade] = useState(false)
     const [updatedSettings, setUpdatedSettings] = useState(() => {
         const initialSettings: Settings = {}
         items.forEach(item => {
@@ -85,11 +86,11 @@ const SettingsDialog = ({
         if (onSaveChanges) {
             onSaveChanges(updatedSettings)
         }
-        // const strSettings = JSON.stringify({...sharedSettings,...updatedSettings})
-        setSharedSettings({ ...sharedSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
+        // setDashboardSettings({ ...dashboardSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
+        setDashboardSettings({ ...dashboardSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
         logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
         // we are going to let the watcher pick up the changes and communicate them to the plugin
-        // sendActionToPlugin('sharedSettingsChanged', { actionType: 'sharedSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
+        // sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: strSettings }, 'Dashboard Settings Panel updates', true)
         // sendActionToPlugin('refresh', { actionType: 'refresh' }, 'Refresh after Dashboard Settings Panel updates', true)
         toggleDialog()
     }

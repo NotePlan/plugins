@@ -27,24 +27,22 @@
 import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { type TReactSettings, type TDropdownItem } from '../../types'
-import { parseSettings, getSettingsRedacted } from '../../shared.js'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
-import { logDebug, clo, logInfo } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
  * Reduces an array of dashboard settings items into an object including default values.
- *
+ * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getDropdownItemValues()?
  * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
 function getSettingsDefaults(items: Array<TDropdownItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
-    // $FlowFixMe
     if (item.key) {
-      acc[item?.key] = item.value || item.checked || ''
+      acc[item.key] = item.value || item.checked || ''
     }
     return acc
   }, {})
@@ -69,21 +67,15 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             HOOKS
    ****************************************************************************************************************************/
 
-  // GENERALLY SPEAKING YOU DO NOT WANT TO USE STATE HOOKS IN THE WEBVIEW COMPONENT
-  // because the plugin may need to know what changes were made so when it updates data, it will be consistent
-  // otherwise when the plugin updates data, it will overwrite any changes made locally in the Webview
-  // instead of using hooks here, save updates to data using:
-  // dispatch('UPDATE_DATA', {...data,changesToData})
-  // this will save the data at the Root React Component level, which will give the plugin access to this data also
-  // sending this dispatch will re-render the Webview component with the new data
-
-  const redactedSettings = getSettingsRedacted(data.pluginData.settings) || {}
-  const savedSharedSettings = parseSettings(data.pluginData.settings.sharedSettings || "{}") || {}
-  const settingsDefaults = getSettingsDefaults(createDashboardSettingsItems(savedSharedSettings, data.pluginData.settings))
-  const filterSettingsDefaults = getSettingsDefaults(createFilterDropdownItems(savedSharedSettings, data.pluginData.settings))
-
-  const combinedSettings = { ...settingsDefaults, ...filterSettingsDefaults, ...redactedSettings, ...savedSharedSettings, lastChange: `_WebView_DefaultSettings` }
-  const [sharedSettings, setSharedSettings] = React.useState(combinedSettings)
+  // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
+  const dSettings = data.pluginData.dashboardSettings || {}
+  const dSettingsItems = createDashboardSettingsItems(dSettings)
+  const settingsDefaults = getSettingsDefaults(dSettingsItems)
+  const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
+  const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
+  const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
+  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
+  const [dashboardSettings, setDashboardSettings] = React.useState(dashboardSettingsOrDefaults)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -129,63 +121,34 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @property {string} effectName - Name of the effect for debugging purposes.
    */
   /**
-   * Helper function to initialize settings (used for reactSettings and sharedSettings)
+   * Helper function to initialize settings (used for reactSettings and dashboardSettings)
+   * TODO: (@dwertheimer): This was general purpose but after dashboardSettings refactor I'm not sure it's needed anymore
    * @param {Settings} settings
    */
-  function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
-    if (!setter) return
-    const pluginSettingsValue = pluginData?.settings?.[settingsKey] || ''
-    // const settingsExist = currentSettings && Object.keys(currentSettings).length > 0
-    // if (settingsExist) {
-    //   logDebug(
-    //     `Webview`,
-    //     `${effectName} initializer running. currentSettings: ${window.webkit && JSON.stringify(
-    //       currentSettings || {},
-    //       null,
-    //       2,
-    //     )} pluginSettingsValue: ${pluginSettingsValue}`, currentSettings
-    //   )
-    // }
+  // function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
+  //   if (!setter) return
+  //   const pluginSettingsPassed = pluginData.dashboardSettings || {}
 
-    let parsedSettings = defaultSettings
-    if (pluginSettingsValue) {
-      try {
-        logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.settings.${settingsKey}`)
-        parsedSettings = parseSettings(pluginData.settings[settingsKey])
-      } catch (error) {
-        logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.settings.${settingsKey}: ${pluginData.settings[settingsKey]}`)
-      }
-    }
+  //   let parsedSettings = currentSettings
+  //   if (pluginSettingsPassed) {
+  //     try {
+  //       logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.dashboardSettings.${settingsKey}`)
+  //       // parsedSettings = parseSettings(pluginData.dashboardSettings[settingsKey])
+  //       parsedSettings = { ...defaultSettings, ...pluginSettingsPassed }
+  //     } catch (error) {
+  //       logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.dashboardSettings.${settingsKey}: ${pluginData.dashboardSettings[settingsKey]}`)
+  //     }
+  //   }
 
-    setter((prev) => ({ ...prev, ...parsedSettings, lastChange: `_Webview_firstLoad` }))
-  }
+  //   setter((prev) => ({ ...prev, ...parsedSettings, lastChange: `_Webview_firstLoad` }))
+  // }
 
   /**
    * Set up the initial React Settings (runs only on load)
    */
   useEffect(() => {
-    initializeSettings({
-      setter: setReactSettings,
-      currentSettings: reactSettings,
-      settingsKey: 'reactSettings',
-      defaultSettings: defaultReactSettings,
-      effectName: 'setReactSettings'
-    })
+    setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
   }, [setReactSettings])
-
-  /**
-   * Set up the initial Shared Settings (runs only on load)
-   * TODO: Maybe remove this...may not be necessary now that I am initializing in state
-   */
-  // useEffect(() => {
-  //   initializeSettings({
-  //     setter: setSharedSettings,
-  //     currentSettings: sharedSettings,
-  //     settingsKey: 'sharedSettings',
-  //     defaultSettings: combinedSettings,
-  //     effectName: 'setSharedSettings'
-  //   })
-  // }, [setSharedSettings])
 
 
   /**
@@ -286,8 +249,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}
-      sharedSettings={sharedSettings}
-      setSharedSettings={setSharedSettings}
+      dashboardSettings={dashboardSettings}
+      setDashboardSettings={setDashboardSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>

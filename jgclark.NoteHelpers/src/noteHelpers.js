@@ -10,14 +10,13 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/
 import { displayTitle } from '@helpers/general'
 // import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
-import { addTrigger, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
+import { addTrigger, noteHasFrontMatter, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 // import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseFolder,
   // chooseHeading,
   chooseOption, getInput, showMessage
 } from '@helpers/userInput'
-import { noteHasFrontMatter } from '../../helpers/NPFrontMatter'
 
 //-----------------------------------------------------------------
 // Settings

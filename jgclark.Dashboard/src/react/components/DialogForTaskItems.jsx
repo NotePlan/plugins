@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 30.6.2024 for v2.0.0 by @dbw
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -36,11 +36,11 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, reactSettings, sharedSettings, pluginData } = useAppContext()
+  const { sendActionToPlugin, reactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
-  const resched = sharedSettings?.rescheduleNotMove || pluginData?.settings.rescheduleNotMove || false
-  // logDebug('DialogForTaskItems', `- rescheduleNotMove: sharedSettings = ${String(sharedSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.settings.rescheduleNotMove)}`)
+  const resched = dashboardSettings?.rescheduleNotMove || pluginData?.dashboardSettings.rescheduleNotMove || false
+  // logDebug('DialogForTaskItems', `- rescheduleNotMove: dashboardSettings = ${String(dashboardSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.dashboardSettings.rescheduleNotMove)}`)
 
   // Deduce the action to take when this is a date-changed button
   // - Item in calendar note & move -> move to new calendar note for that picked date: use doMoveFromCalToCal()
@@ -51,7 +51,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
   const { interactiveProcessing } = reactSettings??{}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
-  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = sharedSettings || {}
+  const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
   const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
   /**
    * Array of buttons to render.

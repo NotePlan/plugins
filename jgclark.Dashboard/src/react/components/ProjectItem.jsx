@@ -20,11 +20,11 @@ type Props = {
 }
 
 function ProjectItem({ item }: Props): React.Node {
-  const { sendActionToPlugin, setReactSettings, sharedSettings /*, setSharedSettings */ } = useAppContext()
+  const { sendActionToPlugin, setReactSettings, dashboardSettings /*, setDashboardSettings */ } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
-  const folderNamePart = sharedSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+  const folderNamePart = dashboardSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
   // logDebug(`ProjectItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
   // const percentComplete = item.project?.percentComplete ?? 0
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`

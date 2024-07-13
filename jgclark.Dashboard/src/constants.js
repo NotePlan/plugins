@@ -17,7 +17,7 @@ export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'Q', sectionName: 'Quarter', showSettingName: 'showQuarterSection' },
   // TAG types are treated specially (one for each tag a user wants to see). 
   // Use getTagSectionDetails() to get them
-  { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagToShow setting
+  { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagsToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
   // overdue last becasue it takes the longest to load
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },

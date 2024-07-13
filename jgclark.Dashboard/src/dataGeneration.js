@@ -16,10 +16,12 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers.
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   // extendParasToAddStartTimes,
-  getCombinedSettings, getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  getDashboardSettings,
+  getNotePlanSettings,
+  getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
   // getSharedSettings,
-  makeDashboardParas, type dashboardConfigType
+  makeDashboardParas, type TDashboardConfig
 } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -46,7 +48,7 @@ import {
   // includesScheduledFutureDate,
   // toISOShortDateTimeString,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 // import { displayTitle } from '@helpers/general'
 import {
@@ -84,7 +86,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
-    const config: any = await getCombinedSettings()
+    const config: any = await getDashboardSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
 
     let sections: Array<TSection> = []
@@ -94,7 +96,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.tagToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+    if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
     if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     sections.push(await getProjectSectionData(config, useDemoData))
 
@@ -119,7 +121,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
-    const config: dashboardConfigType = await getCombinedSettings()
+    const config: TDashboardConfig = await getDashboardSettings()
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -128,7 +130,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('TAG') && config.tagToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+    if (sectionCodesToGet.includes('TAG') && config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
 
@@ -141,12 +143,12 @@ export async function getSomeSectionsData(
 
 /**
  * Get open items from Today's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getTodaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTodaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '0'
     const thisSectionCode = 'DT'
@@ -154,7 +156,8 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     const items: Array<TSectionItem> = []
     let itemCount = 0
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
-    const thisFilename = `${getTodaysDateUnhyphenated()}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ not reliable
     const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅ reliable
@@ -316,12 +319,12 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
 
 /**
  * Get open items from Yesterday's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getYesterdaySectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getYesterdaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '2'
     let itemCount = 0
@@ -329,7 +332,9 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     const thisSectionCode = 'DY'
     const yesterday = new moment().subtract(1, 'days').toDate()
     const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
-    const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename =
+      `${moment(yesterday).format('YYYYMMDD')}.${NPSettings.defaultFileExtension}`
     const items: Array<TSectionItem> = []
     // const yesterday = new moment().subtract(1, 'days').toDate()
     const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
@@ -458,12 +463,12 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
 
 /**
  * Get open items from Tomorrow's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getTomorrowSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTomorrowSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '4'
     const thisSectionCode = 'DO'
@@ -474,7 +479,8 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
     const filenameDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowsNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${moment(tomorrow).format('YYYYMMDD')}.${NPSettings.defaultFileExtension}`
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
@@ -587,12 +593,12 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
 
 /**
  * Get open items from this Week's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisWeekSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '6'
     const thisSectionCode = 'W'
@@ -601,10 +607,11 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPWeekStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
+    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -735,12 +742,12 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
 }
 /**
  * Get open items from this Month's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisMonthSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '8'
     const thisSectionCode = 'M'
@@ -749,7 +756,8 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPMonthStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Month's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -883,12 +891,12 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
 }
 /**
  * Get open items from this Quarter's note
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisQuarterSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '10'
     const thisSectionCode = 'Q'
@@ -897,7 +905,8 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPQuarterStr(today)
-    const thisFilename = `${dateStr}.${config.defaultFileExtension}`
+    const NPSettings = getNotePlanSettings()
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logDebug('getDataForDashboard', `---------- Gathering Quarter's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -1026,32 +1035,38 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
 /**
  * Get the tagged sections for each tag - they will all be sectionCode=TAG
  * sectionName will be the tag name, and showSettingName will be unique for this tag
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export function getTaggedSections(config: dashboardConfigType, useDemoData: boolean = false): Array<TSection> {
+export function getTaggedSections(config: TDashboardConfig, useDemoData: boolean = false): Array<TSection> {
+  const startTime = new Date()
   const tagSections = getTagSectionDetails(config, {})
-  return tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
+  // clo(tagSections)
+  // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
+
+  const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
     const showSettingForTag = config[sectionDetail.showSettingName]
-    // logDebug(`getTaggedSections sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
+    // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
     if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
     return acc  // Return the accumulator
   }, [])
+  logTimer('getTaggedSections', startTime, `at end`, 1500)
+  return output
 }
 
 /**
- * Add a section for tagToShow, if wanted, and if not running because triggered by a change in the daily note.
+ * Add a section for tagsToShow, if wanted, and if not running because triggered by a change in the daily note.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
- * @param {dashboardConfigType} config
+ * @param {TDashboardConfig} config
  * @param {boolean} useDemoData?
  */
-export function getTaggedSectionData(config: dashboardConfigType, useDemoData: boolean = false, sectionDetail:TSectionDetails, index: number): TSection {
-  const tagStart = new Date()
+export function getTaggedSectionData(config: TDashboardConfig, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
+  const thisStartTime = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
   const maxInSection = config.maxItemsToShowInSection ?? 30
-  logDebug('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)}: ${sectionDetail.sectionName} --------`)
+  logInfo('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)}: ${sectionDetail.sectionName} --------`)
   // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
   let itemCount = 0
   let totalCount = 0
@@ -1076,7 +1091,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       // Get notes with matching hashtag or mention (as can't get list of paras directly)
       // Note: this is slow (about 1ms per note, so 3100ms for 3250 notes)
       const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
-      // logDebug('getTaggedSectionData', `- found ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
+      logTimer('getTaggedSectionData', thisStartTime, `to find ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
@@ -1087,14 +1102,14 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
 
         // Get the relevant paras from this note
         const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras contatining ${sectionDetail.sectionName} in ${n.filename}`)
+        // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename} after ${timer(thisStartTime)}`)
         // clo(tagParasFromNote, `tagParasFromNote for ${sectionDetail.sectionName} in ${n.filename}`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
+        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
         for (const p of filteredTagParasFromNote) {
@@ -1104,7 +1119,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras`)
+        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
       }
       // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
@@ -1113,21 +1128,21 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
       filteredTagParas = filteredTagParas.filter(p=>!filenameIsInFuture(p.filename||'',dateToUseUnhyphenated))
       const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYY-MM-DD") : new moment().format("YYYY-MM-DD")
       filteredTagParas = filteredTagParas.filter(p=>!includesScheduledFutureDate(p.content,dateToUseHyphenated))
-      // logDebug('getTaggedSectionData', `- after filtering for future, ${filteredTagParas.length} paras (after ${dateToUseUnhyphenated})`)
+      logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
 
       if (filteredTagParas.length > 0) {
         // Remove possible dupes from these sync'd lines
         filteredTagParas = eliminateDuplicateSyncedParagraphs(filteredTagParas)
-        // logDebug('getTaggedSectionData', `- after sync dedupe -> ${filteredTagParas.length} (after ${timer(thisStartTime)})`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after sync dedupe -> ${filteredTagParas.length}`)
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
         // Note: this is a quick operation
         // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
-        // logDebug('getTaggedSectionData', `- after deduping overdue -> ${filteredReducedParas.length} (after ${timer(thisStartTime)})`)
+        // logTimer('getTaggedSectionData',thisStartTime, `- after deduping overdue -> ${filteredReducedParas.length}`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a quick operation
         const dashboardParas = makeDashboardParas(filteredTagParas)
-        // logDebug('getTaggedSectionData', `- after eliminating dupes -> ${dashboardParas.length} (after ${timer(thisStartTime)})`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after eliminating dupes -> ${dashboardParas.length}`)
 
         totalCount = dashboardParas.length
 
@@ -1139,7 +1154,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
-        // logDebug('getTaggedSectionData', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} (after ${timer(thisStartTime)})`)
+        logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
         // Apply limit to set of ordered results
         const sortedTagParasLimited = sortedTagParas.length > maxInSection ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
@@ -1174,13 +1189,13 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
     generatedDate: new Date(),
     actionButtons: [],
   }
-  logDebug('getTaggedSectionData', `- found ${itemCount} items for ${sectionDetail.sectionName} in ${timer(tagStart)}`)
+  logTimer('getTaggedSectionData', thisStartTime, `to find ${itemCount} ${sectionDetail.sectionName} items`, 1000)
   return section
 }
 
 // ----------------------------------------------------------
 // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
-export async function getOverdueSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+export async function getOverdueSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = '13'
     const thisSectionCode = 'OVERDUE'
@@ -1189,9 +1204,10 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
     let dashboardParas: Array<TParagraphForDashboard> = []
     const maxInSection = config.maxItemsToShowInSection
+    const NPSettings = getNotePlanSettings()
     const thisStartTime = new Date()
 
-    logDebug('getDataForDashboard', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
+    logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
       for (let c = 0; c < 60; c++) {
@@ -1201,7 +1217,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${config.defaultFileExtension}` : `fake_note_${String(c % 7)}.${config.defaultFileExtension}`
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
         const type = c % 3 < 2 ? 'Calendar' : 'Notes'
         const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
         overdueParas.push({
@@ -1224,7 +1240,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       // const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
       overdueParas = await getRelevantOverdueTasks(config, [])
 
-      logDebug('getDataForDashboard', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
+      logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
 
     const items: Array<TSectionItem> = []
@@ -1233,12 +1249,12 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
       // Note: this takes ~600ms for 1,000 items
       dashboardParas = makeDashboardParas(overdueParas)
-      logDebug('getDataForDashboard', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
+      logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
 
       // Remove possible dupes from sync'd lines
       // Note: currently commented out, to save 2? secs of processing
       // overdueParas = eliminateDuplicateSyncedParagraphs(overdueParas)
-      // logDebug('getDataForDashboard', `- after sync lines dedupe ->  ${overdueParas.length}`)
+      // logDebug('getOverdueSectionData', `- after sync lines dedupe ->  ${overdueParas.length}`)
 
       totalOverdue = dashboardParas.length
 
@@ -1246,12 +1262,12 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       const sortOrder =
         config.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : config.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
-      logDebug('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
+      logDebug('getOverdueSectionData', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
       // Note: now apply 2x limit, because we also do filtering in the Section component
       const overdueTaskParasLimited = totalOverdue > maxInSection * 2 ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
-      logDebug('getDataForDashboard', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
+      logDebug('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         // const thisFilename = p.filename ?? ''
@@ -1260,7 +1276,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
         itemCount++
       })
     }
-    logDebug('getDataForDashboard', `- finished finding overdue items after ${timer(thisStartTime)}`)
+    logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
       totalOverdue > itemCount ? `{count} of {totalCount} tasks ordered by ${config.overdueSortOrder}` : `{count} task{s} ordered by ${config.overdueSortOrder}`
@@ -1290,6 +1306,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       ],
     }
     // console.log(JSON.stringify(section))
+    logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -1298,14 +1315,22 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
   }
 }
 
-export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
+/**
+ * Make a Section for all projects ready for review
+ * FIXME: this is taking 1815ms for JGC
+ * @param {TDashboardConfig} config 
+ * @param {boolean} useDemoData?
+ * @returns 
+ */
+export async function getProjectSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
   const maxProjectsToShow = config.maxItemsToShowInSection
   let nextNotesToReview: Array<TNote> = []
   const items: Array<TSectionItem> = []
-  logDebug('getDataForDashboard', `------- Gathering Project items for section #${String(sectionNum)} --------`)
+  logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNum)} --------`)
+  const thisStartTime = new Date()
 
   if (useDemoData) {
     nextNotesToReview = nextProjectNoteItems
@@ -1318,8 +1343,11 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
         project: {
           title: n.title ?? '(error)',
           filename: thisFilename,
+          // $FlowIgnore[prop-missing]
           reviewInterval: n.reviewInterval ?? '',
+          // $FlowIgnore[prop-missing]
           percentComplete: n.percentComplete ?? NaN,
+          // $FlowIgnore[prop-missing]
           lastProgressComment: n.lastProgressComment ?? '',
         },
       })
@@ -1335,7 +1363,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
       const fileAge = Date.now() - reviewListDate
       // If this note is more than a day old, then regenerate it
       if (fileAge > 1000 * 60 * 60 * 24) {
-        logDebug('getDataForDashboard', `Regenerating fullReviewList as too old`)
+        logDebug('getProjectSectionData', `Regenerating fullReviewList as too old`)
         // Call plugin command makeFullReviewList
         await makeFullReviewList()
       }
@@ -1364,7 +1392,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
         itemCount++
       })
     } else {
-      logDebug('getDataForDashboard', `looked but found no notes to review`)
+      logDebug('getProjectSectionData', `looked but found no notes to review`)
       // $FlowFixMe[incompatible-return]
       return null
     }
@@ -1392,10 +1420,10 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
     ],
   }
   // console.log(JSON.stringify(section))
+  logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
   return section
 }
 
-// type SectionItemIndex = { sectionIndex: number, itemIndex: number }
 
 /**
  * Finds all items within the provided sections that match the given field/value pairs.

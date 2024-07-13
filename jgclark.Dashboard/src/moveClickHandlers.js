@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 16.6.2024 for v2.0.0-b9 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,7 +9,7 @@ import pluginJson from '../plugin.json'
 import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
-  getCombinedSettings,
+  getDashboardSettings,
   moveItemBetweenCalendarNotes,
   handlerResult,
 } from './dashboardHelpers'
@@ -52,7 +52,7 @@ const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main`
  */
 export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = await getCombinedSettings()
+  const config = await getDashboardSettings()
   const dateOrInterval = String(controlStr)
   logDebug('doMoveFromCalToCal', `Starting with controlStr ${controlStr}`)
   let startDateStr = getDateStringFromCalendarFilename(filename, true)
@@ -110,7 +110,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
 export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberScheduled = 0
-    const config: any = await getCombinedSettings()
+    const config: any = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -251,7 +251,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
   try {
 
     let numberScheduled = 0
-    const config = await getCombinedSettings()
+    const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -382,7 +382,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     let numberChanged = 0
-    const config = await getCombinedSettings()
+    const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()

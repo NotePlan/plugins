@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------
 // shared.js
 // shared functions between plugin and React
-// Last updated 10.5.2024 for v2.0.0 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type MessageDataObject, type TSectionItem, type TSharedSettings } from './types'
+import type { MessageDataObject, TSectionItem, TDashboardConfig } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -15,14 +15,14 @@ export type ValidatedData = {
     [string]: any,
 }
 
-export function parseSettings(settings: string): any {
+export function parseSettings(settingsStr: string): any {
     try {
-        if (!settings) {
-            throw new Error('Undefined settings passed')
+        if (!settingsStr) {
+            throw new Error('Undefined settingsStr passed')
         }
-        return JSON.parse(settings)
+        return JSON.parse(settingsStr)
     } catch (error) {
-        logError(`shared/parseSettings`, `Error parsing settings: ${error.message}: Settings string: ${(JSP(settings))}`)
+        logError(`shared/parseSettings`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
     }
 }
 
@@ -100,18 +100,19 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
 }
 
 /**
+ * TODO: this is no longer used it seems. Is that right?
  * Get the feature flags which are set.
- * Note: Feature flags are only available to people with DEBUG logging enabled
+ * Note: Feature flags are only available to people with DEV logging enabled
  * @param {TAnyObject} pluginSettings 
- * @param {TAnyObject} sharedSettings 
- * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, sharedSettings)
+ * @param {TAnyObject} dashboardSettings
+ * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, dashboardSettings)
 //  */
-export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSharedSettings): TAnyObject {
-    const isDebugLogging = sharedSettings?._logLevel === 'DEV'
+export function getFeatureFlags(NPSettings: TAnyObject, dashboardSettings: TDashboardConfig): TAnyObject {
+    const isDebugLogging = NPSettings._logLevel === 'DEV'
     // find all keys that start with Fflag
-    const featureFlags = (isDebugLogging ? Object.keys(sharedSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
+    const featureFlags = (isDebugLogging ? Object.keys(dashboardSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {
         // $FlowIgnore
-        acc[k] = sharedSettings[k]
+        acc[k] = dashboardSettings[k]
         return acc
     }, {}) : {})
     return featureFlags
@@ -124,7 +125,10 @@ export function getFeatureFlags(pluginSettings: TAnyObject, sharedSettings: TSha
  * @returns {TAnyObject} The redacted settings object
  */
 export function getSettingsRedacted(settings: TAnyObject): TAnyObject {
-    const keysToEliminate = ['sharedSettings', 'reactSettings',"timeblockMustContainString"]
+    // FIXME(@jgclark): you asked why is timeblockMustContainString a special case? Or at least why are defaultFileExtension and doneDatesAvailable not eliminated as well?
+    // it probably doesn't matter anymore but the reason was that i didn't want it to get recursive. 
+    // the np settings had a shared settings object and i didn't want that sharedSettings to be saved inside sharedSettings when all other fields were migrated
+    const keysToEliminate = ['sharedSettings', 'reactSettings', "timeblockMustContainString"]
     const settingsRedacted = JSON.parse(JSON.stringify(settings))
     const keys = Object.keys(settingsRedacted)
     for (const key of keys) {

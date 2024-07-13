@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Last updated 29.6.2024 for v2.0.0 by @jgclark
+// Last updated 2024-07-07 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -18,7 +18,7 @@ type UseSectionSortAndFilter = {
 const useSectionSortAndFilter = (
   section: TSection,
   items: Array<TSectionItem>,
-  sharedSettings: any
+  dashboardSettings: any
 ): UseSectionSortAndFilter => {
   const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
   const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
@@ -26,8 +26,8 @@ const useSectionSortAndFilter = (
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
   useEffect(() => {
-    const filterPriorityItems = sharedSettings?.filterPriorityItems ?? false
-    const limitToApply = sharedSettings?.maxItemsToShowInSection ?? 20
+    const filterPriorityItems = dashboardSettings?.filterPriorityItems ?? false
+    const limitToApply = dashboardSettings?.maxItemsToShowInSection ?? 20
     let maxPrioritySeen = 0
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
@@ -78,7 +78,7 @@ const useSectionSortAndFilter = (
         ID: `${section.ID}-Filter`,
         itemType: 'filterIndicator',
         para: {
-          content: `There are also ${String(filteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${filteredOut >= 2 ? "items" : "item"} currently hidden`,
+          content: `There ${filteredOut >= 2 ? "are" : "is"} also ${String(filteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${filteredOut >= 2 ? "items" : "item"} currently hidden`,
           filename: '',
           type: 'text',
           noteType: 'Notes',
@@ -92,7 +92,7 @@ const useSectionSortAndFilter = (
     setItemsToShow(itemsToShow)
     setFilteredOut(filteredOut)
     setLimitApplied(limitApplied)
-  }, [section, items, sharedSettings])
+  }, [section, items, dashboardSettings])
 
   return { filteredItems, itemsToShow, filteredOut, limitApplied }
 }

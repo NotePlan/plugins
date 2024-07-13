@@ -3,19 +3,24 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
-## Unreleased
-- fix to edge case with in getNextNoteToReview() for Dashboard plugin
-- when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
-- under the hood changes to suit Dashboard 2.0
+<!-- ## Future
+- TODO: add auto-refresh? -->
 
-## [0.14.0] - 2024-04-???
+## [0.14.0] - 2024-07-???
 ### Added
 - edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window
-- trying to sort depdency management ???
 - after you change settings for this plugin, it will automatically refresh the rich Project List view if its open (requires NP 3.11beta or later)
 
-### Improved
+### Changed
 - sizes of headings and text in the 'rich' style of Project List should better match those of text in the NP editor windows for your chosen theme
+- under the hood changes to suit Dashboard 2.0
+- changed some icons to match newer set used in the projects section of the Dashboard plugin.
+- when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
+- should now offer to install 'Shared' plugin which it depends on, if its not already installed (thanks, @Anton)
+- if there are no tasks at all in a project note, the circle display now doesn't show 0% but just a filled circle. (Edge case for @sush.)
+
+### Fixed
+- fix to edge case with getNextNoteToReview() for Dashboard plugin
 
 ## [0.13.2] - 2024-03-19
 - replace the "time" that Project List was updated with a "time since"

@@ -1,35 +1,39 @@
 // @flow
+// Last updated 2024-07-10 for v2.0.1 by @jgclark
+
 import { allSectionDetails } from "../../../constants.js"
-import type { TDropdownItem, TSharedSettings } from "../../../types.js"
-import { dashboardFilters} from "../../../dashboardSettings.js"
+import type { TDashboardConfig, TDropdownItem } from "../../../types.js"
+import { dashboardFilterDefs } from "../../../dashboardSettings.js"
 import { getTagSectionDetails } from "../Section/sectionHelpers.js"
+import { clo } from '@helpers/react/reactDev.js'
+
 /**
- * Create array of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters
- * @param {TSharedSettings} sharedSettings 
- * @param {TAnyObject} pluginSettings 
- * @returns {Array<TDropdownItem>}
+ * Create two arrays of TDropdownItems to use in Dropdown menu, using details in constants allSectionDetails, dashboardFilters.
+ * The first array is for section toggling, the second array is for all the other toggles for the filter menu.
+ * @param {TDashboardConfig} dashboardSettings 
+ * @returns {[Array<TDropdownItem>, Array<TDropdownItem>]}
  */
 export const createFilterDropdownItems = (
-  sharedSettings: TSharedSettings,
-  pluginSettings: TAnyObject
-): Array<TDropdownItem> => {
-  const sectionsWithoutTag = allSectionDetails.filter(s => s.sectionCode !== 'TAG')
-  const tagSections = getTagSectionDetails(sharedSettings, pluginSettings)
-  const sectionsWithTags = [...sectionsWithoutTag, ...tagSections]
-  const dropdownSectionNames = sectionsWithTags.filter(s => s.showSettingName !== '').map((s) => ({
+  dashboardSettings: TDashboardConfig,
+): [Array<TDropdownItem>, Array<TDropdownItem>] => {
+  const sectionsWithoutTags = allSectionDetails.filter(s => s.sectionCode !== 'TAG')
+  const tagSections = getTagSectionDetails(dashboardSettings)
+  const allSections = [...sectionsWithoutTags, ...tagSections]
+  const sectionDropbownItems: Array<TDropdownItem> = allSections.filter(s => s.showSettingName !== '').map((s) => ({
     label: `Show ${s.sectionName}`,
+    description: `Show or hide items in section ${s.sectionName}`,
     key: s.showSettingName,
     type: 'switch',
-    checked: (typeof sharedSettings !== undefined && sharedSettings[s.showSettingName]) ?? pluginSettings[s.showSettingName] ?? true,
+    checked: (typeof dashboardSettings !== undefined && dashboardSettings[s.showSettingName]) ?? true,
   }))
 
-  const nonSectionItems = dashboardFilters.map(s => ({
+  const nonSectionDropbownItems: Array<TDropdownItem> = dashboardFilterDefs.map(s => ({
     label: s.label,
     description: s.description,
     key: s.key,
     type: 'switch',
-    checked: Boolean((typeof sharedSettings !== undefined && sharedSettings[s.key]) ?? pluginSettings[s.key] ?? s.default),
+    checked: Boolean((typeof dashboardSettings !== undefined && dashboardSettings[s.key]) ?? s.default),
   }))
 
-  return [...nonSectionItems, ...dropdownSectionNames]
+  return [sectionDropbownItems, nonSectionDropbownItems]
 }

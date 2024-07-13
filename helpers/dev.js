@@ -335,7 +335,6 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
   // this was the main offender.  Perform a null change against a value that is `undefined` will be true
   // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
   if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
-    // eslint-disable-next-line
     userLogLevel = pluginSettings['_logLevel']
   }
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
@@ -351,28 +350,27 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
  * @returns {string}
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
-  const thisMessageLevel = LOG_LEVELS.indexOf(type)
-  const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
   let msg = ''
-  let pluginId = ''
-  let pluginVersion = ''
-  // let msgType = ''
-  const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
-
-  if (isPluginJson) {
-    pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-    msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
-  } else {
-    if (message.length > 0) {
-      // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
-      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
-    } else {
-      // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
-      msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
-    }
-  }
   if (shouldOutputForLogLevel(type)) {
+    const thisMessageLevel = LOG_LEVELS.indexOf(type)
+    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
+    let pluginId = ''
+    let pluginVersion = ''
+    const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
+
+    if (isPluginJson) {
+      pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
+      pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
+      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
+    } else {
+      if (message.length > 0) {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
+      } else {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
+      }
+    }
     console.log(msg)
   }
 
@@ -399,7 +397,7 @@ export function logError(pluginInfo: any, error?: any): string {
  * @author @codedungeon
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
@@ -410,7 +408,7 @@ export function logWarn(pluginInfo: any, message: any = ''): string {
  * @author @codedungeon
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logInfo(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'INFO')
@@ -421,7 +419,7 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
  * @author @dwertheimer
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logDebug(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'DEBUG')
@@ -440,11 +438,41 @@ export function logDebug(pluginInfo: any, message: any = ''): string {
 export function timer(startTime: Date): string {
   const timeStart = startTime ?? new Date()
   const timeEnd = new Date()
+  // $FlowIgnore[unsafe-arithmetic]
   const difference = timeEnd - timeStart
   // const d = new Date(difference)
   // const diffText = `${d.getMinutes()}m${d.getSeconds()}.${d.getMilliseconds()}s`
   const diffText = `${difference.toLocaleString()}ms`
   return diffText
+}
+
+/**
+ * A special logger that logs the time it takes to execute a function, or a certain stage of a function, that this is called from.
+ * Assumes that `const startTime = new Date()` is included earlier in the function.
+ * If separate _logTimer setting is true, then it will log the time, irrespective of the main _logLevel setting.
+ * But if warningTrigger (in milliseconds)is exceeded, then this will log with a warning, irrespective of _logTimer or _logLevel settings.
+ * @author @jgclark
+ * @param {string} functionName - to display after time in log line
+ * @param {Date} startTime - the date object from when timer started (using Date.now())
+ * @param {string} explanation - (optional) text to display after the duration in log line
+ * @param {number} warningTrigger - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
+ */
+export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningTrigger?: number): void {
+  // $FlowIgnore[unsafe-arithmetic]
+  const difference = new Date() - startTime
+  const diffTimeText = `${difference.toLocaleString()}ms`
+  const output = `${diffTimeText} ${explanation}`
+  if (warningTrigger && difference > warningTrigger) {
+    const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
+    console.log(msg)
+  } else {
+    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+    // const timerSetting = pluginSettings['_logTimer'] ?? false
+    if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
+      const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
+      console.log(msg)
+    }
+  }
 }
 
 /**

@@ -1,6 +1,28 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.1] WIP @jgclark
+### Added
+- new x-callback 'setSetting' to change a single Dashboard setting. TODO: See README for details. TODO: still need to handle show*Section settings.
+- new x-callback 'setSettings' to change multiple Dashboard settings in one call.
+- new **/Make Callback from Current Settings** command that copies the current setting as a URL or a markdown link to the Clipboard.
+- dbw: remove "tooltip" prop for featureFlags
+- dbw: remove DEV limitation on 5s refresh
+- dbw: fix edge case bug on ReactSettings and saving/reading from plugin.settings
+- dbw: fix issues with logSettings not saving/reading properly and not showing DEV FFlag menu
+
+### Changes
+- made the Filters dropdown menu a two-column display (except on narrow screens)
+- (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
+- removed most settings from old setting system
+- removed "edit settings (for iOS)" command, as not needed
+- improved spacing and ordering of heading, and made tapping heading elements easier on iOS
+- other UI tweaks
+- complete refactoring of settings data structures under the hood (TODO: not quite complete)
+
+### Fixed
+- fix task completion timestamps using GMT not local time (thanks, @mjd9ball).
+
 ## What's improved in v2.0?
 ### New
 - The different sections are now generated or refreshed progressively, so the first sections appear more quickly. When refreshing the display, the dashboard is smarter and will only update the necessary sections, displaying indicators next to the section items as it does so.
@@ -353,7 +375,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fixed the bug on the data generation side that was keeping a lot of the data from generating
 - added sharedData to plugin.json and to context, added reading/initializing/setting functions
 - refactored all the reactSettings calls to be sharedData calls instead
-- the specific settings should be added to TSharedSettings in types
+- the specific settings should be added to TDashboardSettings in types
 - ran around in circles trying to figure out why it was refreshing in an endless loop. then figured out that there was some old refresh dashboard code on a settings change, so every time i flipped one switch, it looped forever reloading reloading. i commented out the onSettingsUpdated refresh code.
 - As of now, reactSettings is used only for things that are react-only (like dialogData which is used to open the dialog with certain info)
 - sharedData holds all the values that you created/saved

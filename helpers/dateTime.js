@@ -136,7 +136,8 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 
 // Note: there are others in NPdateTime.js that use locale settings
 
-export const nowShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
+// return datetime in UTC ISO format
+export const nowUTCShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
 
 // See getNoteType in note.js to get the type of a note
 export const isDailyNote = (note: CoreNoteFields): boolean => new RegExp(RE_DAILY_NOTE_FILENAME).test(note.filename)
@@ -669,7 +670,7 @@ export function getDateObjFromDateString(mention: string): ?Date {
     // logDebug('dateTime / getDateObjFromDateString', `- ${toISOShortDateTimeString(date)}`)
     return date
   } else {
-    logWarn('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
+    logDebug('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
     return
   }
 }

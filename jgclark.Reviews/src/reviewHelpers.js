@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 28.6.2024 for v0.14.0+, @jgclark
+// Last updated 2024-07-13 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -394,7 +394,6 @@ export class Project {
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
-      this.note = note
       this.title = note.title
       this.filename = note.filename
       // logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
@@ -406,14 +405,16 @@ export class Project {
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
       // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
       let paras: $ReadOnlyArray<TParagraph>
-      if (checkEditor && Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
+      if (checkEditor && Editor && Editor.note && (Editor.note.filename === note.filename)) {
         const noteReadOnly: CoreNoteFields = Editor.note
         paras = noteReadOnly.paragraphs
+        this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
         logDebug('Project constructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
+        this.note = note
         // logDebug('Project constructor', `- read note from datastore `)
       }
 
@@ -677,14 +678,14 @@ export class Project {
         logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at ${String(insertionIndex)}`)
         Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
         // Also updateCache to make changes more quickly available elsewhere
-        await DataStore.updateCache(Editor)
+        await DataStore.updateCache(Editor, true)
       }
       // ... or the project's note
       else {
         logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at ${String(insertionIndex)}`)
         this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
         // Also updateCache
-        await DataStore.updateCache(this.note)
+        await DataStore.updateCache(this.note, true)
       }
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
@@ -741,14 +742,17 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      DataStore.updateCache(this.note)
+      // logDebug('rH/completeProject', `- before updateCache for ${displayTitle(this.note)}`)
+      // clo(this.note, 'this.note')
+      const res = DataStore.updateCache(this.note)
+      // logDebug('rH/completeProject', `- after updateCache`)
 
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {
-      logError(pluginJson, `Error completing project for for ${this.title}: ${error.message}`)
+      logError(pluginJson, `Error completing project for ${this.title}: ${error.message}`)
       return ''
     }
   }
@@ -778,7 +782,7 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      DataStore.updateCache(this.note)
+      DataStore.updateCache(this.note, true)
 
       const newMSL = this.machineSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
@@ -817,7 +821,7 @@ export class Project {
       Editor.updateParagraph(this.metadataPara)
       // await saveEditorToCache(null)
       // TEST:
-      DataStore.updateCache(this.note)
+      DataStore.updateCache(this.note, true)
 
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
@@ -976,7 +980,10 @@ export class Project {
       else if (this.isPaused) {
         output += `<td class="first-col-indicator">${this.addFAIcon("fa-solid fa-circle-pause", "#888888")}</td>`
       }
-      else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
+      else if (isNaN(this.percentComplete)) {
+        output += `<td class="first-col-indicator">${this.addFAIcon('fa-solid fa-circle', '#888888')}</td>`
+      }
+      else if (this.percentComplete === 0) {
         output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`
       }
       else {
@@ -1000,14 +1007,14 @@ export class Project {
         // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
         if (displayDates) {
           if (this.lastProgressComment !== '') {
-            output = `${output}<br />${this.lastProgressComment}</td>`
+            output = `${output}<br /><i class="fa-light fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
           } else {
             output = `${output}<br />${statsProgress}</td>`
           }
         } else {
           // write progress in next cell instead
           if (this.lastProgressComment !== '') {
-            output += `</td>\n\t\t\t<td>${this.lastProgressComment}</td>`
+            output += `</td>\n\t\t\t<td><i class="fa-light fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
           } else {
             output += `</td>\n\t\t\t<td>${statsProgress}</td>`
           }
@@ -1107,22 +1114,6 @@ export class Project {
       : colorIn
     return makeSVGPercentRing(percent, colorToUse, textToShow, this.ID)
   }
-
-  /**
-   * Note: deprecated in favour of addFAIcon().
-   * Insert one of NP's state icons in given color.
-   * Other styling comes from CSS for 'circle-char-text'
-   * @param {string} char to display (normally just 1 character)
-   * @param {string} colorStr
-   * @returns HTML string to insert
-   */
-  // addNPStateIcon(char: string, colorStr: string = ''): string {
-  //   if (colorStr !== '') {
-  //     return `<span class="circle-char-text" style="color: ${colorStr}">${char}</span>`
-  //   } else {
-  //     return `<span class="circle-char-text">${char}</span>`
-  //   }
-  // }
 
   /**
    * Insert a fontawesome icon in given color.
@@ -1405,4 +1396,11 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
     logError('deleteMetadataMentionInNote', `${error.message}`)
     return
   }
+}
+
+export function updateDashboardIfOpen(): void {
+  // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
+  const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshProjectSection', '')
+  logDebug('makeFullReviewList', `sent message to refresh 🎛 Dashboard: ${refreshXCallbackURL}`)
+  NotePlan.openURL(refreshXCallbackURL) // no point in having await
 }

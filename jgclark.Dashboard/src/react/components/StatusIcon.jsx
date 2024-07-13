@@ -2,12 +2,11 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Icon before an item
 // Called by TaskItem component.
-// Last updated 30.6.2024 for v2.0.0-b17 by @jgclark
+// Last updated 2024-07-08 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 import React, { useState, useEffect } from 'react'
 import type { Node } from 'react'
 import type { TActionType, TSectionItem, MessageDataObject } from '../../types.js'
-// import { getFeatureFlags } from '../../shared.js'
 import { useAppContext } from './AppContext.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'

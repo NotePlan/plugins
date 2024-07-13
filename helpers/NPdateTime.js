@@ -87,6 +87,13 @@ export function nowLocaleShortTime(): string {
   return moment().format('LT')
 }
 
+// return datetime suitable for use in @done(), in local time (i.e. 12hr format adds AM/PM)
+export function nowDoneDateTimeString(): string {
+  return (NotePlan.environment.is12hFormat)
+    ? moment().format('YYYY-MM-DD HH:mm A')
+    : moment().format('YYYY-MM-DD HH:mm')
+}
+
 // TODO: Finish moving references to this file from dateTime.js
 // TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {

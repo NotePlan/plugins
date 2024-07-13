@@ -1,12 +1,12 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2024-06-23 for v2.0.0-b13 by @jgclark
+// Last updated 2024-07-09 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type TSection, type TSharedSettings, type TSectionCode, type TSectionDetails } from '../../../types.js'
+import type { TSection, TDashboardConfig, TSectionCode, TSectionDetails } from '../../../types.js'
 import { allSectionDetails } from "../../../constants.js"
-import { logDebug, clof, clo, logError } from '@helpers/react/reactDev.js'
+import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev.js'
 
 const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]
 
@@ -24,18 +24,18 @@ export function getShowTagSettingName(tag: string): string {
  * Gets the visibility setting for a given section code.
  * 
  * @param {TSectionCode} sectionCode - The section code.
- * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @param {TDashboardConfig} dashboardSettings - Shared settings to determine visibility of sections.
  * @returns {boolean} - Whether the section is visible.
  */
-const sectionIsVisible = (section:TSection, sharedSettings: TSharedSettings): boolean => {
+const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardConfig): boolean => {
   const sectionCode: TSectionCode = section.sectionCode
   if (!sectionCode) logDebug(`sectionHelpers`, `section has no sectionCode`, section)
-    if (!sharedSettings) return false
+  if (!dashboardSettings) return false
   // const thisSection = getSectionDetailsFromSectionCode(sectionCode) // get sectionCode, sectionName, showSettingName
   const settingName = section.showSettingName
   if (!settingName) logDebug(`sectionHelpers`, `sectionCode ${sectionCode} has no showSettingName`, section)
   if (!settingName) return true
-  const showSetting = sectionCode === 'TAG' ? sharedSettings[settingName] : sharedSettings[settingName]
+  const showSetting = sectionCode === 'TAG' ? dashboardSettings[settingName] : dashboardSettings[settingName]
   // logDebug('sectionHelpers', `sectionIsVisible ${sectionCode} ${settingName} ${showSetting} returning ${typeof showSetting === 'undefined' || showSetting === true}`)
   return typeof showSetting === 'undefined' || showSetting === true
 }
@@ -60,20 +60,20 @@ const sectionIsVisible = (section:TSection, sharedSettings: TSharedSettings): bo
  * Filters and returns the prioritized section codes based on visibility settings.
  *
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
- * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @param {TDashboardConfig} dashboardSettings - Shared settings to determine visibility of sections.
  * @param {Array<TSection>} sections - The sections to filter.
  * @returns {Array<TSectionCode>} - Filtered and prioritized section codes.
  */
 function getUseFirstButVisible(
   useFirst: Array<TSectionCode>,
-  sharedSettings: TSharedSettings,
+  dashboardSettings: TDashboardConfig,
   sections: Array<TSection>
 ): Array<TSectionCode> {
-  const useFirstButVisible = sharedSettings ? 
+  const useFirstButVisible = dashboardSettings ? 
     useFirst.filter((sectionCode) => {
       const section = sections.find((section) => section.sectionCode === sectionCode) 
       if (section ){
-        const isVisible = sectionIsVisible(section, sharedSettings)
+        const isVisible = sectionIsVisible(section, dashboardSettings)
         // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
         return section && isVisible  
       } else {
@@ -94,14 +94,14 @@ function getUseFirstButVisible(
  * @param {Array<TSection>} _sections - The sections to filter.
  * @param {Array<string>} paraMatcherFields - The fields (on the underlying para) to match for duplicates.
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
- * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @param {TDashboardConfig} dashboardSettings - Shared settings to determine visibility of sections.
  * @returns {Array<TSection>} - The sections with duplicates removed according to the rules.
  */
 export function getSectionsWithoutDuplicateLines(
   _sections: Array<TSection>,
   paraMatcherFields: Array<string>,
   useFirst: Array<TSectionCode>,
-  sharedSettings: TSharedSettings
+  dashboardSettings: TDashboardConfig
 ): Array<TSection> {
   if (!paraMatcherFields) return _sections
   
@@ -110,7 +110,7 @@ export function getSectionsWithoutDuplicateLines(
   
   // Get ordered sections based on visibility and priority
   // These are just sectionCodes
-  const useFirstVisibleOnly:Array<TSectionCode> = getUseFirstButVisible(useFirst, sharedSettings, sections)
+  const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
   
 // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
 // For each section code (`st`) in `useFirstVisibleOnly`, use `flatMap` to:
@@ -151,7 +151,7 @@ const orderedSections = useFirstVisibleOnly.flatMap(st =>
       return false
     })
   })
-  logDebug('sectionHelpers', `orderedSections (${orderedSections.length}) ${orderedSections.map(s => s.name)}`, orderedSections)
+  logDebug('sectionHelpers/orderedSections', ` (${orderedSections.length}) sections: ${String(orderedSections.map(s => s.name))}`, orderedSections)
 
   // Return the orderedSections instead of the original sections
   return orderedSections
@@ -171,12 +171,12 @@ export const countTotalSectionItems = (sections: Array<TSection>): number => {
 /**
  * Counts the total number of sectionItems in visible sections based on shared settings
  * @param {Array<TSection>} sections - The array of TSection objects
- * @param {TSharedSettings} sharedSettings - Shared settings to determine visibility of sections.
+ * @param {TDashboardConfig} dashboardSettings - Shared settings to determine visibility of sections.
  * @returns {number} The total number of visible sectionItems
  */
-export const countTotalVisibleSectionItems = (sections: Array<TSection>, sharedSettings: TSharedSettings): number => {
+export const countTotalVisibleSectionItems = (sections: Array<TSection>, dashboardSettings: TDashboardConfig): number => {
   return sections.reduce((total, section) => {
-    if (sectionIsVisible(section, sharedSettings)) {
+    if (sectionIsVisible(section, dashboardSettings)) {
       return total + section.sectionItems.length
     }
     return total
@@ -199,13 +199,12 @@ export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSect
 
 /**
  * Get Section Details for all tags in settings
- * @param {TSharedSettings} sharedSettings 
+ * @param {TDashboardConfig} dashboardSettings 
  * @param {TAnyObject} pluginSettings 
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}
  */
-export function getTagSectionDetails(sharedSettings: TSharedSettings, pluginSettings:TAnyObject): Array<TSectionDetails> {
-  //   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }
-  const tags = (sharedSettings.tagToShow ?? pluginSettings.tagToShow ?? '').split(',').map(t => t.trim()).filter(t => t !== '')
+export function getTagSectionDetails(dashboardSettings: TDashboardConfig /*, pluginSettings: TAnyObject */): Array<TSectionDetails> {
+  const tags = (dashboardSettings.tagsToShow ?? /* pluginSettings.tagsToShow ?? */ '').split(',').map(t => t.trim()).filter(t => t !== '')
   return tags.map(t => ({ sectionCode: "TAG", sectionName: t, showSettingName:getShowTagSettingName(t) }))
 }
 

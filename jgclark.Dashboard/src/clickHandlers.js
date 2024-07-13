@@ -3,49 +3,34 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 29.6.2024 for v2.0.0-b16 by @jgclark
+// Last updated 4.7.2024 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
-
-import pluginJson from '../plugin.json'
-import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import {
-  allCalendarSectionCodes,
-  // allSectionCodes
-} from "./constants"
+  addChecklistToNoteHeading,
+  addTaskToNoteHeading,
+} from "../../jgclark.QuickCapture/src/quickCapture"
+import pluginJson from "../plugin.json"
+import { allCalendarSectionCodes } from "./constants"
 import {
   buildListOfDoneTasksToday,
   getTotalDoneCounts,
   rollUpDoneCounts,
 } from "./countDoneTasks"
 import {
-  getCombinedSettings,
+  getDashboardSettings,
   handlerResult,
   mergeSections,
   // moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
   setPluginData,
-} from './dashboardHelpers'
-import {
-  getAllSectionsData, getSomeSectionsData
-} from './dataGeneration'
+} from "./dashboardHelpers"
 import {
   type MessageDataObject,
-  // type TActionOnReturn,
   type TBridgeClickHandlerResult,
   type TPluginData,
-  // type TSection,
-  // type TSectionItem,
-} from './types'
-import { validateAndFlattenMessageObject } from './shared'
-import {
-  calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL,
-  replaceArrowDatesInString
-} from '@helpers/dateTime'
-import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import {
-  // sendToHTMLWindow,
-  getGlobalSharedData,
-} from '@helpers/HTMLView'
+} from "./types"
+import { getAllSectionsData, getSomeSectionsData } from "./dataGeneration"
+import { validateAndFlattenMessageObject } from "./shared"
 import {
   cancelItem,
   completeItem,
@@ -55,15 +40,26 @@ import {
   highlightParagraphInEditor,
   // toggleTaskChecklistParaType,
   unscheduleItem,
-} from '@helpers/NPParagraph'
+} from "@helpers/NPParagraph"
+import { getNPWeekData, type NotePlanWeekInfo } from "@helpers/NPdateTime"
+import { openNoteByFilename } from "@helpers/NPnote"
 import {
-  cyclePriorityStateDown, cyclePriorityStateUp,
-  // getTaskPriority
-} from '@helpers/paragraph'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import { openNoteByFilename } from '@helpers/NPnote'
-import { logWindowsList } from '@helpers/NPWindows'
-import { showMessage } from '@helpers/userInput'
+  calcOffsetDateStr,
+  getDateStringFromCalendarFilename,
+  getTodaysDateHyphenated,
+  RE_DATE,
+  RE_DATE_INTERVAL,
+  replaceArrowDatesInString,
+} from "@helpers/dateTime"
+import {
+  clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer
+} from "@helpers/dev"
+import { getGlobalSharedData } from "@helpers/HTMLView"
+import {
+  cyclePriorityStateDown,
+  cyclePriorityStateUp,
+} from "@helpers/paragraph"
+import { showMessage } from "@helpers/userInput"
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -88,6 +84,7 @@ const WEBVIEW_WINDOW_ID = windowCustomId
  * Tell the React window to update by re-generating all Sections
  */
 export async function refreshAllSections(): Promise<void> {
+  const startTime = new Date()
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   // show refreshing message until done
   await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
@@ -101,9 +98,10 @@ export async function refreshAllSections(): Promise<void> {
     totalDoneCounts: getTotalDoneCounts(newSections)
   }
   await setPluginData(changedData, 'Finished Refreshing all sections')
+  logTimer('refreshAllSections', startTime, `at end for all sections`)
 
   // re-calculate all done task counts (if the appropriate setting is on)
-  const settings = reactWindowData.pluginData.settings
+  const settings = reactWindowData.pluginData.dashboardSettings
   if (settings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
@@ -143,11 +141,11 @@ export async function incrementallyRefreshSections(data: MessageDataObject,
   const updates:any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)}`)
-  logDebug('clickHandlers', `incrementallyRefreshSections took a total of ${timer(incrementalStart)} for ${sectionCodes.length} sections`)
+  logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const settings = reactWindowData.pluginData.settings
+  const settings = reactWindowData.pluginData.dashboardSettings
   if (settings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
@@ -173,6 +171,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
     logError('refreshSomeSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
+  logDebug('refreshSomeSections', `Starting for ${String(sectionCodes)}`)
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData: TPluginData = reactWindowData.pluginData
   // show refreshing message until done
@@ -181,15 +180,18 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   // force the section refresh for the wanted sections
   const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
+  // logDebug('refreshSomeSections', `- after getSomeSectionsData(): ${timer(start)}`)
   const mergedSections = mergeSections(existingSections, newSections)
+  // logDebug('refreshSomeSections', `- after mergeSections(): ${timer(start)}`)
 
   const updates:TAnyObject = { sections: mergedSections }
   // and update the total done counts
-  updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
+  // TODO: turning off for now. Need to figure this out.
+  // updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
-  logDebug(`refreshSomeSections ${sectionCodes.toString()} took ${timer(start)}`)
+  logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
   return handlerResult(true)
 }
 
@@ -200,7 +202,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
  */
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const config = await getCombinedSettings()
+    const config = getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
     const { actionType, toFilename, sectionCodes } = data
 
@@ -578,7 +580,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  */
 export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: string = ''): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = await getCombinedSettings()
+  const config = getDashboardSettings()
   // logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
   logDebug('doUpdateTaskDate', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
   const dateOrInterval = String(controlStr)
@@ -657,13 +659,14 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: newSettings }
+  const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+  // TODO: from @dwertheimer - this is probably not needed anymore and should be deleted
   // logLevel is a special case that we need to specifically update in DataStore
   // so that plugin-side functions that log can pick it up even before React is ready
-  if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
-    combinedUpdatedSettings._logLevel =  newSettings._logLevel
-    logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
-  }
+  // if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
+  //   combinedUpdatedSettings._logLevel =  newSettings._logLevel
+  //   logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
+  // }
   logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings`)
   DataStore.settings = combinedUpdatedSettings
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
