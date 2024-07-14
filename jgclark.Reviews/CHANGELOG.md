@@ -6,7 +6,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- ## Future
 - TODO: add auto-refresh? -->
 
-## [0.14.0] - 2024-07-???
+## [0.14.0] - 2024-07-13
 ### Added
 - edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window
 - after you change settings for this plugin, it will automatically refresh the rich Project List view if its open (requires NP 3.11beta or later)

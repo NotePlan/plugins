@@ -1,6 +1,6 @@
 // @flow
 import { allSectionDetails } from "../../../constants.js"
-import type { TDashboardConfig } from "../../../types.js"
+import type { TDashboardSettings } from "../../../types.js"
 import { dashboardFilterDefs } from "../../../dashboardSettings"
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 
@@ -24,13 +24,13 @@ export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean 
  * This function uses function composition to separate the initialization logic from the event handling logic. 
  * The outer function takes the necessary parameters and returns an inner function that handles the specific change event.
  * 
- * @param {TDashboardConfig} dashboardSettings - The current shared settings.
+ * @param {TDashboardSettings} dashboardSettings - The current shared settings.
  * @param {Function} setDashboardSettings - Function to update the shared settings.
  * @param {Function} sendActionToPlugin - Function to send actions to the plugin.
  * @returns {Function} - A function that takes a key and returns a function to handle the change event.
  */
 export const handleSwitchChange = (
-  dashboardSettings: TDashboardConfig,
+  dashboardSettings: TDashboardSettings,
   setDashboardSettings: Function,
   sendActionToPlugin: Function
 ): Function => {

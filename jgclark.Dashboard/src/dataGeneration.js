@@ -21,7 +21,7 @@ import {
   getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
   // getSharedSettings,
-  makeDashboardParas, type TDashboardConfig
+  makeDashboardParas, type TDashboardSettings
 } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -121,7 +121,7 @@ export async function getSomeSectionsData(
   useEditorWherePossible: boolean
 ): Promise<Array<TSection>> {
   try {
-    const config: TDashboardConfig = await getDashboardSettings()
+    const config: TDashboardSettings = await getDashboardSettings()
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -143,12 +143,12 @@ export async function getSomeSectionsData(
 
 /**
  * Get open items from Today's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getTodaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTodaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '0'
     const thisSectionCode = 'DT'
@@ -319,12 +319,12 @@ export function getTodaySectionData(config: TDashboardConfig, useDemoData: boole
 
 /**
  * Get open items from Yesterday's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {Array<TSection>} 1 or 2 section(s)
  */
-export function getYesterdaySectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getYesterdaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '2'
     let itemCount = 0
@@ -463,12 +463,12 @@ export function getYesterdaySectionData(config: TDashboardConfig, useDemoData: b
 
 /**
  * Get open items from Tomorrow's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getTomorrowSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '4'
     const thisSectionCode = 'DO'
@@ -593,12 +593,12 @@ export function getTomorrowSectionData(config: TDashboardConfig, useDemoData: bo
 
 /**
  * Get open items from this Week's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisWeekSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '6'
     const thisSectionCode = 'W'
@@ -742,12 +742,12 @@ export function getThisWeekSectionData(config: TDashboardConfig, useDemoData: bo
 }
 /**
  * Get open items from this Month's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisMonthSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisMonthSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '8'
     const thisSectionCode = 'M'
@@ -891,12 +891,12 @@ export function getThisMonthSectionData(config: TDashboardConfig, useDemoData: b
 }
 /**
  * Get open items from this Quarter's note
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @param {boolean} useEditorWherePossible?
  * @returns {TSection} data
  */
-export function getThisQuarterSectionData(config: TDashboardConfig, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+export function getThisQuarterSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
     let sectionNum = '10'
     const thisSectionCode = 'Q'
@@ -1035,11 +1035,11 @@ export function getThisQuarterSectionData(config: TDashboardConfig, useDemoData:
 /**
  * Get the tagged sections for each tag - they will all be sectionCode=TAG
  * sectionName will be the tag name, and showSettingName will be unique for this tag
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export function getTaggedSections(config: TDashboardConfig, useDemoData: boolean = false): Array<TSection> {
+export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
   const tagSections = getTagSectionDetails(config, {})
   // clo(tagSections)
@@ -1058,10 +1058,10 @@ export function getTaggedSections(config: TDashboardConfig, useDemoData: boolean
 /**
  * Add a section for tagsToShow, if wanted, and if not running because triggered by a change in the daily note.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export function getTaggedSectionData(config: TDashboardConfig, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
+export function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
   const thisStartTime = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
@@ -1195,7 +1195,7 @@ export function getTaggedSectionData(config: TDashboardConfig, useDemoData: bool
 
 // ----------------------------------------------------------
 // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
-export async function getOverdueSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
+export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = '13'
     const thisSectionCode = 'OVERDUE'
@@ -1318,11 +1318,11 @@ export async function getOverdueSectionData(config: TDashboardConfig, useDemoDat
 /**
  * Make a Section for all projects ready for review
  * FIXME: this is taking 1815ms for JGC
- * @param {TDashboardConfig} config 
+ * @param {TDashboardSettings} config 
  * @param {boolean} useDemoData?
  * @returns 
  */
-export async function getProjectSectionData(config: TDashboardConfig, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0

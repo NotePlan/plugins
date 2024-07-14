@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-12 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -10,21 +10,23 @@ export type TDashboardLoggingConfig = {
   _logTimer: boolean,
 }
 
-export type TNotePlanConfig = {
+export type TNotePlanSettings = {
   defaultFileExtension: string,
   doneDatesAvailable: boolean,
   timeblockMustContainString: string,
 }
 
-export type TDashboardConfig = {
+export type TDashboardSettings = {
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
   hideDuplicates: boolean,
+  hidePriorityMarkers: boolean,
   ignoreTasksWithPhrase: string,
   ignoreChecklistItems: boolean,
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
+  includeScheduledDates: boolean,
   includeTaskContext: boolean,
   rescheduleNotMove: boolean,
   newTaskSectionHeading: string,
@@ -53,6 +55,12 @@ export type TDashboardConfig = {
   moveSubItems: boolean,
   interactiveProcessingHighlightTask: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
+}
+
+export type TDashboardPluginSettings = {
+  ...TDashboardLoggingConfig,
+  pluginID: string,
+  reactSettings: string,
 }
 
 //-----------------------------------------------------------------------------
@@ -260,17 +268,10 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-// export type TDashboardConfig = {
-//   //TODO: jgclark: add the specific shared settings
-//   [key: string]: any,
-// }
+export type TSettingItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
 
-// TODO: change to TSettingItemType
-export type TDropdownItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
-
-// TODO: change to TSettingItem
-export type TDropdownItem = {
-  type: TDropdownItemType,
+export type TSettingItem = {
+  type: TSettingItemType,
   key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
   value?: string,
   label?: string,

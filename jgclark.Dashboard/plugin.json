@@ -77,6 +77,12 @@
       "hidden": true
     },
     {
+      "name": "refreshProjectSection",
+      "description": "Refresh project section",
+      "jsFunction": "refreshProjectSection",
+      "hidden": true
+    },
+    {
       "name": "onMessageFromHTMLView",
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView",
@@ -108,6 +114,13 @@
       "key": "pluginID",
       "default": "jgclark.Dashboard",
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "type": "hidden",
+      "key": "reactSettings",
+      "description": "Saves last state of react UI choices as JSON string.",
+      "required": true,
+      "default": "{}"
     },
     {
       "type": "heading",
@@ -157,13 +170,6 @@
     {
       "type": "heading",
       "title": "Settings have been migrated to the Dashboard Window, so you can make your changes there. They are only here temporarily for migration purposes."
-    },
-    {
-      "type": "hidden",
-      "key": "reactSettings",
-      "description": "Saves last state of react UI choices as JSON string.",
-      "required": true,
-      "default": "{}"
     },
     {
       "key": "separateSectionForReferencedNotes",

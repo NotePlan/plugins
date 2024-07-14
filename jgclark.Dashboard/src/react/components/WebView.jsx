@@ -26,7 +26,7 @@
 
 import React, { useEffect, useLayoutEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
-import { type TReactSettings, type TDropdownItem } from '../../types'
+import { type TReactSettings, type TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
@@ -35,11 +35,11 @@ import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
  * Reduces an array of dashboard settings items into an object including default values.
- * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getDropdownItemValues()?
+ * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getSettingItemValues()?
  * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
-function getSettingsDefaults(items: Array<TDropdownItem>): { [key: string]: any } {
+function getSettingsDefaults(items: Array<TSettingItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
     if (item.key) {
       acc[item.key] = item.value || item.checked || ''

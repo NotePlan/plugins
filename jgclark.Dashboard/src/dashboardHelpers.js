@@ -1,14 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-13 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
+import { WEBVIEW_WINDOW_ID } from './constants'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardConfig, TDashboardLoggingConfig, TItemType, TNotePlanConfig, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -61,9 +62,6 @@ import {
 // Settings
 
 const pluginID = pluginJson['plugin.id']
-const windowCustomId = `${pluginJson['plugin.id']}.main`
-const WEBVIEW_WINDOW_ID = windowCustomId
-
 
 /**
  * Return an Object that includes settings:
@@ -72,7 +70,7 @@ const WEBVIEW_WINDOW_ID = windowCustomId
  * Note: this does not include logSettings or copies of NP app-level settings.
  * These can potentially be changed by setSetting(s) calls.
  */
-export async function getDashboardSettings(): Promise<TDashboardConfig> {
+export async function getDashboardSettings(): Promise<TDashboardSettings> {
   // Note: We think following (newer API call) is unreliable.
   let pluginSettings = DataStore.settings
   if (!pluginSettings || !pluginSettings.dashboardSettings) {
@@ -133,7 +131,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
   // logDebug(pluginJson, `Start of getLogSettings()`)
   try {
     // Get plugin settings
-    const config:TDashboardConfig  = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const config: TDashboardSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`)
@@ -152,7 +150,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
 /**
  * Get config settings from NotePlan's app-level preferences, which we need available for when NotePlan object isn't available to React.
  */
-export function getNotePlanSettings(): TNotePlanConfig {
+export function getNotePlanSettings(): TNotePlanSettings {
   try {
     logDebug(pluginJson, `Start of getNotePlanSettings()`)
     // Extend settings with value we might want to use when DataStore isn't available etc.
@@ -225,14 +223,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
  * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
- * @param {TDashboardConfig} config
+ * @param {TDashboardSettings} config
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForCurrentTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
-  config: TDashboardConfig,
+  config: TDashboardSettings,
   useEditorWherePossible: boolean = false
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
@@ -450,10 +448,10 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
 }
 
 /**
- * @params {TDashboardConfig} config Settings
+ * @params {TDashboardSettings} config Settings
  * @returns {}
  */
-export async function getRelevantOverdueTasks(config: TDashboardConfig, yesterdaysCombinedSortedParas: Array<TParagraph>): Promise<Array<TParagraph>> {
+export async function getRelevantOverdueTasks(config: TDashboardSettings, yesterdaysCombinedSortedParas: Array<TParagraph>): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items

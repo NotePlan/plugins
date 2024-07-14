@@ -1,12 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 21.6.2024 for v2.0.0 by @jgclark
+// Last updated 2024-07-13 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
+import pluginJson from '../plugin.json'
+import type { TSectionDetails, TSectionCode } from "./types"
 
 // NOTE: Dashboard Settings are in the src/dashboardSettingsItems.js file
 
-import type { TSectionDetails, TSectionCode } from "./types"
+// Note: Not yet used everwhere
+export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section

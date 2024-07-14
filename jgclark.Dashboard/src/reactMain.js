@@ -1,21 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-13 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TPluginData, TDashboardConfig } from './types'
-import { allSectionDetails } from "./constants"
+import type { TPluginData, TDashboardSettings } from './types'
+import { allSectionDetails, WEBVIEW_WINDOW_ID } from "./constants"
 import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
 import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
 import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
-import {
-  bridgeClickDashboardItem,
-  // bridgeChangeCheckbox, runPluginCommand
-} from './pluginToHTMLBridge'
-// import type { TSection } from './types'
+import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
@@ -29,8 +25,6 @@ import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
-
-export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -275,7 +269,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: TDashboardConfig = await getDashboardSettings()
+    const config: TDashboardSettings = await getDashboardSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -306,7 +300,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(dashboardSettings: TDashboarddashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
+export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)

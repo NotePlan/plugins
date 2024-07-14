@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import { useEffect } from 'react'
-import type { TSectionItem, TSection, TDashboardConfig } from '../../../types.js'
+import type { TSectionItem, TSection, TDashboardSettings } from '../../../types.js'
 import { logDebug, JSP } from '@helpers/react/reactDev.js'
 
 /**
@@ -30,7 +30,7 @@ function useInteractiveProcessing(
   reactSettings: any,
   setReactSettings: (any) => void,
   sendActionToPlugin: (string, Object, string, boolean) => void,
-  dashboardSettings: TDashboardConfig,
+  dashboardSettings: TDashboardSettings,
 ): void {
 
   // Check if this section should process interactively

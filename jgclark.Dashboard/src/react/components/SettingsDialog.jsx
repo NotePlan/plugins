@@ -10,7 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
-import type { TDropdownItem } from '../../types'
+import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
@@ -22,7 +22,7 @@ import { logDebug } from '@helpers/react/reactDev.js'
 type Settings = { [key: string]: string | boolean };
 
 type SettingsDialogProps = {
-    items: Array<TDropdownItem>,
+    items: Array<TSettingItem>,
     onSaveChanges?: (updatedSettings: { [key: string]: any }) => void,
     className?: string,
     labelPosition?: 'left' | 'right',

@@ -1,7 +1,7 @@
 // @flow
 // Last updated 2024-07-10 for v2.0.1 by @jgclark
 
-import type { TDropdownItem, TDashboardConfig } from "../../../types.js"
+import type { TSettingItem, TDashboardSettings } from "../../../types.js"
 
 
 const featureFlagSettingDefs = [
@@ -10,7 +10,7 @@ const featureFlagSettingDefs = [
     { key: 'FFlag_HardRefreshButton', label: 'Show Hard Refresh Button', description: 'Show button that does a full window reload with changed React components and data' },
 ]
 
-export const createFeatureFlagItems = (dashboardSettings: TDashboardConfig): Array<TDropdownItem> => {
+export const createFeatureFlagItems = (dashboardSettings: TDashboardSettings): Array<TSettingItem> => {
     return featureFlagSettingDefs.map(setting => ({
         label: setting.label,
         key: setting.key,

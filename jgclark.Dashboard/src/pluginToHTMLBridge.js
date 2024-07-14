@@ -1,14 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-14 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-
-// import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-// import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { allSectionCodes } from "./constants"
+import { allSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
 import {
   doAddItem,
   doCancelChecklist,
@@ -25,7 +22,7 @@ import {
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
-  doShowLineInEditorFromTitle,
+  // doShowLineInEditorFromTitle,
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
@@ -59,21 +56,9 @@ import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagr
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import {
   sendToHTMLWindow, getGlobalSharedData,
-  // updateGlobalSharedData
 } from '@helpers/HTMLView'
-import {
-  // projectNotesSortedByChanged,
-  getNoteByFilename
-} from '@helpers/note'
+import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
-
-//-----------------------------------------------------------------
-// Data types + constants
-
-// type SettingDataObject = { settingName: string, state: string }
-
-const windowCustomId = `${pluginJson['plugin.id']}.main` // TODO(later): update me
-const WEBVIEW_WINDOW_ID = windowCustomId
 
 //-----------------------------------------------------------------
 
@@ -235,10 +220,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doShowLineInEditorFromFilename(data)
         break
       }
-      case 'showLineInEditorFromTitle': {
-        result = await doShowLineInEditorFromTitle(data)
-        break
-      }
+      // case 'showLineInEditorFromTitle': {
+      //   result = await doShowLineInEditorFromTitle(data)
+      //   break
+      // }
       case 'moveToNote': {
         result = await doMoveToNote(data)
         break
@@ -320,12 +305,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     // check to see if the theme has changed and if so, update it
-    await checkForMobile()
     await checkForThemeChange()
     if (!handlerResult) return
 
     const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-    if (!actionsOnSuccess.length) {
+    if (actionsOnSuccess.length === 0) {
       logDebug('processActionOnReturn', `note: no post process actions to perform`)
       return
     }
@@ -398,95 +382,83 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
  * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
  */
 export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: Array<string>): Promise<void> {
-  clo(handlerResult, 'updateReactWindowFLC: handlerResult')
-  const { errorMsg, success, updatedParagraph } = handlerResult
-  const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-  const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
-  const { ID } = data.item ?? { ID: '?' }
-  // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
-  if (!success) {
-    logWarn('updateReactWindowFLC', `failed, so won't update window; handlerResult: ${JSP(handlerResult)} data: ${JSP(data)}`)
-    throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
-  }
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  let sections = reactWindowData.pluginData.sections
-  const isProject = data.item?.itemType === "project"
+  try {
+    clo(handlerResult, 'updateReactWindowFLC: handlerResult')
+    const { errorMsg, success, updatedParagraph } = handlerResult
+    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
+    const { ID } = data.item ?? { ID: '?' }
+    // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
+    if (!success) {
+      throw new Error(`handlerResult indicates failure with item: ID ${ID}, so won't update window. ${errorMsg || ''}`)
+    }
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    let sections = reactWindowData.pluginData.sections
+    const isProject = data.item?.itemType === "project"
 
-  if (updatedParagraph) {
-    logDebug(`updateReactWindowFromLineChange`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
-    const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
-    const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
-    // get a reference so we can overwrite it later
-    // find all references to this content (could be in multiple sections)
-    const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
-      itemType: /open|checklist/,
-      'para.filename': oldFilename,
-      'para.content': oldContent,
-    })
+    if (updatedParagraph) {
+      logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
+      const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
+      const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
+      // get a reference so we can overwrite it later
+      // find all references to this content (could be in multiple sections)
+      const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+        itemType: /open|checklist/,
+        'para.filename': oldFilename,
+        'para.content': oldContent,
+      })
 
-    if (indexes.length) {
-      const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-      // clo(indexes, 'updateReactWindowFLC: indexes to update')
-      // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
-      if (shouldRemove) {
-        logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+      if (indexes.length) {
+        const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
+        // clo(indexes, 'updateReactWindowFLC: indexes to update')
+        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+        if (shouldRemove) {
+          logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+          indexes.reverse().forEach((index) => {
+            const { sectionIndex, itemIndex } = index
+            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+          })
+        } else {
+          sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
+          clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
+        }
+      } else {
+        throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
+      }
+    } else if (isProject) {
+      // 
+      const projFilename = data.item?.project?.filename
+      if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
+      const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
+        itemType: "project",
+        'project.filename': projFilename,
+      })
+      logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
+      clo(indexes, 'updateReactWindowFLC: indexes to update')
+      if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+        logDebug('updateReactWindowFLC', `- doing REMOVE_LINE_FROM_JSON:`)
         indexes.reverse().forEach((index) => {
           const { sectionIndex, itemIndex } = index
           sections[sectionIndex].sectionItems.splice(itemIndex, 1)
           // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
         })
-      } else {
-        sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections) 
-        clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
       }
     } else {
-      logError('updateReactWindowFLC', `unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
-      throw `updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`
+      throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}| errorMsg=${errorMsg || '-'}`)
     }
-    // update ID in data object
-  } else if (isProject) {
-    const projFilename = data.item?.project?.filename
-    if (!projFilename) throw `updateReactWindowFLC: unable to find data.item.project.filename in ${JSP(data)}`
-    const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-      itemType: "project",
-      'project.filename': projFilename,
-    })
-    logDebug('', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
-    clo(indexes, 'updateReactWindowFLC: indexes to update')
-    if (shouldRemove) {
-      indexes.reverse().forEach((index) => {
-        const { sectionIndex, itemIndex } = index
-        sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-        // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
-      })
-    } else {
-      logDebug('', `- doing something other than REMOVE_LINE. Assuming UPDATE_LINE_IN_JSON:`)
-      sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
-      // logError('updateReactWindowFLC', `Project type sent but not a remove action, but don't know how to do anything else yet. So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
-    }
-  } else {
-    logError('updateReactWindowFLC', `no updatedParagraph param was supplied to updateReactWindowFromLineChange(). So cannot update react window content for: ID ${ID} | data: ${JSP(data)} |  ${errorMsg || ''}`)
-    throw `updateReactWindowFLC: failed to update item: ID ${ID}: ${errorMsg || ''}`
-  }
-  await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
-}
-
-/**
- * Unfortunately, at the moment, there is no way to incrementally update data on iPad/iPhone
- * See See thread on [Discord](https://discord.com/channels/763107030223290449/1248860667956428822/1248860670179540993)
- * So after updates we have no choice but to do a full refresh of the window for now
- */
-export function checkForMobile(): void {
-  if (NotePlan.environment.platform !== 'macOS') {
-    // await showDashboardReact('full')
-    logDebug('checkForMobile', `Non-Desktop platform detected; continuing as normal...`)
+    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
+  } catch (error) {
+    logError('updateReactWindowFLC', error.message)
+    clo(data.item, `- data.item at error:`)
   }
 }
 
 /**
  * Check to see if the theme has changed since we initially drew the winodw
  * This can happen when your computer goes from light to dark mode or you change the theme
- * We want the dashboard to always match
+ * We want the dashboard to always match.
+ * Note: if/when we get a themeChanged trigger, then this can be simplified.
  */
 export async function checkForThemeChange(): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
@@ -495,8 +467,7 @@ export async function checkForThemeChange(): Promise<void> {
   const config = await getDashboardSettings()
 
   // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
-  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
-  
+  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')  
   const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
 
   // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)

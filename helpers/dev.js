@@ -448,21 +448,22 @@ export function timer(startTime: Date): string {
 
 /**
  * A special logger that logs the time it takes to execute a function, or a certain stage of a function, that this is called from.
+ * It can be turned on/off independently from _logLevel. And for it to always trigger if a threshold is passed.
  * Assumes that `const startTime = new Date()` is included earlier in the function.
- * If separate _logTimer setting is true, then it will log the time, irrespective of the main _logLevel setting.
+ * If separate plugin-level _logTimer setting is true, then it will log, irrespective of the main _logLevel setting.
  * But if warningTrigger (in milliseconds)is exceeded, then this will log with a warning, irrespective of _logTimer or _logLevel settings.
  * @author @jgclark
  * @param {string} functionName - to display after time in log line
- * @param {Date} startTime - the date object from when timer started (using Date.now())
- * @param {string} explanation - (optional) text to display after the duration in log line
- * @param {number} warningTrigger - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
+ * @param {Date} startTime - the date object from when timer started (using new Date())
+ * @param {string} explanation - optional text to display after the duration in log line
+ * @param {number} warningThreshold - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
  */
-export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningTrigger?: number): void {
+export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningThreshold?: number): void {
   // $FlowIgnore[unsafe-arithmetic]
   const difference = new Date() - startTime
   const diffTimeText = `${difference.toLocaleString()}ms`
   const output = `${diffTimeText} ${explanation}`
-  if (warningTrigger && difference > warningTrigger) {
+  if (warningThreshold && difference > warningThreshold) {
     const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
     console.log(msg)
   } else {

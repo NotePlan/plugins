@@ -11,7 +11,7 @@
 import React from 'react'
 // import { getFeatureFlags } from '../../shared.js'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
-// import type { TNotePlanConfig } from '../../../types.js'
+// import type { TNotePlanSettings } from '../../../types.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
