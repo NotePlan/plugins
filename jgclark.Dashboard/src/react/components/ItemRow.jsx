@@ -1,17 +1,17 @@
 // @flow
-/**
- * ItemRow.jsx
- * Represents a row item within a section.
- * Could be: Task, Review Item, Filtered Indicator, or No Tasks Left
- */
+//--------------------------------------------------------------------------
+// Represents a row item within a section.
+// Could be: Task, Review Item, Filtered Indicator, or No Tasks Left
+// Last updated 2024-07-03 for v2.0.1 by @jgclark
+//--------------------------------------------------------------------------
+
 import * as React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
-// import { useAppContext } from './AppContext.jsx'
 import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import NoTasks from './NoTasks.jsx'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug, logInfo } from '@helpers/react/reactDev'
 
 type Props = {
   item: TSectionItem,

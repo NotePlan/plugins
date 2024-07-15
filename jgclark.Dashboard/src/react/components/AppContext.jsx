@@ -10,7 +10,7 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, type Node } from 'react'
-import type { TDashboardConfig, TReactSettings, TPluginData } from '../../types'
+import type { TDashboardSettings, TReactSettings, TPluginData } from '../../types'
 import { logDebug } from '@helpers/react/reactDev'
 
 
@@ -26,7 +26,7 @@ export type AppContextType = {
   reactSettings: ?TReactSettings,
   setReactSettings: (any) => void,
   updatePluginData: (newData: TPluginData, messageForLog?: string) => void,
-  dashboardSettings: TDashboardConfig,
+  dashboardSettings: TDashboardSettings,
   setDashboardSettings: (any) => void
 }
 

@@ -3,14 +3,14 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 4.7.2024 for v2.0.1 by @jgclark
+// Last updated 2024-07-14 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 import {
   addChecklistToNoteHeading,
   addTaskToNoteHeading,
 } from "../../jgclark.QuickCapture/src/quickCapture"
-import pluginJson from "../plugin.json"
-import { allCalendarSectionCodes } from "./constants"
+// import pluginJson from "../plugin.json"
+import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
 import {
   buildListOfDoneTasksToday,
   getTotalDoneCounts,
@@ -18,6 +18,7 @@ import {
 } from "./countDoneTasks"
 import {
   getDashboardSettings,
+  getNotePlanSettings,
   handlerResult,
   mergeSections,
   // moveItemBetweenCalendarNotes,
@@ -73,8 +74,6 @@ import { showMessage } from "@helpers/userInput"
  *                             Data types + constants
  ****************************************************************************************************************************/
 
-const windowCustomId = `${pluginJson['plugin.id']}.main`
-const WEBVIEW_WINDOW_ID = windowCustomId
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -101,8 +100,8 @@ export async function refreshAllSections(): Promise<void> {
   logTimer('refreshAllSections', startTime, `at end for all sections`)
 
   // re-calculate all done task counts (if the appropriate setting is on)
-  const settings = reactWindowData.pluginData.dashboardSettings
-  if (settings.doneDatesAvailable) {
+  const NPSettings = await getNotePlanSettings()
+  if (NPSettings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
       totalDoneCounts: totalDoneCounts
@@ -145,8 +144,8 @@ export async function incrementallyRefreshSections(data: MessageDataObject,
 
   // re-calculate done task counts (if the appropriate setting is on)
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const settings = reactWindowData.pluginData.dashboardSettings
-  if (settings.doneDatesAvailable) {
+  const NPSettings = await getNotePlanSettings()
+  if (NPSettings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
       totalDoneCounts: totalDoneCounts
@@ -186,7 +185,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   const updates:TAnyObject = { sections: mergedSections }
   // and update the total done counts
-  // TODO: turning off for now. Need to figure this out.
+  // TODO: turning off for now, as was being called too often? Need to figure this out.
   // updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
@@ -197,12 +196,13 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
 /**
  * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for.
- * Note: It only writes to Calendar, as that's only what Dashboard needs.
+ * Note: It only writes to Calendar notes, as that's only what Dashboard needs.
  * @param {MessageDataObject} {actionType: addTask|addChecklist etc., toFilename:xxxxx}
+ * @returns {TBridgeClickHandlerResult} result to be used by click result handler
  */
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-    const config = getDashboardSettings()
+    const config = await getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
     const { actionType, toFilename, sectionCodes } = data
 
@@ -221,8 +221,6 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     const content = await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
 
     // Add text to the new location in destination note
-    // FIXME: following not working yet -- add separate setting
-    // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
     const newHeadingLevel = config.newTaskSectionHeadingLevel
     const headingToUse = config.newTaskSectionHeading
     // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
@@ -233,11 +231,9 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
       addChecklistToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     }
     // TEST: update cache
-    DataStore.updateCache(DataStore.noteByFilename(toFilename, 'Calendar'))
+    DataStore.updateCache(DataStore.noteByFilename(toFilename, 'Calendar'), true)
 
     // update just the section we've added to
-    // Note: earlier work is smart enough to realise that pressing the nextPeriod button in DT -> DO
-    // FIXME: this doesn't seem to work for DO, but does for DT
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
   }
   catch (err) {
@@ -528,24 +524,24 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
   }
 }
 
+// Note: not currently used
 // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
-// TODO: is this still needed?
-export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-  const { title, filename, content } = validateAndFlattenMessageObject(data)
-  const note = await Editor.openNoteByTitle(title)
-  if (note) {
-    const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
-    logDebug(
-      'bridgeClickDashboardItem',
-      `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-    )
-    return handlerResult(true)
-  } else {
-    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title '${title}' in Editor`)
-    return handlerResult(false)
-  }
-}
+// export async function doShowLineInEditorFromTitle(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+//   // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
+//   const { title, filename, content } = validateAndFlattenMessageObject(data)
+//   const note = await Editor.openNoteByTitle(title)
+//   if (note) {
+//     const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
+//     logDebug(
+//       'bridgeClickDashboardItem',
+//       `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
+//     )
+//     return handlerResult(true)
+//   } else {
+//     logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title '${title}' in Editor`)
+//     return handlerResult(false)
+//   }
+// }
 
 // Instruction to move task from a note to a project note.
 // Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
@@ -575,10 +571,9 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  * The new date is indicated by the controlStr ('t' or date interval),
  * or failing that the dateString (an NP date)
  * @param {MessageDataObject} data for the item
- * @param {string?} npDateStrIn optional NP date string
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
-export async function doUpdateTaskDate(data: MessageDataObject, npDateStrIn: string = ''): Promise<TBridgeClickHandlerResult> {
+export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
   const config = getDashboardSettings()
   // logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)

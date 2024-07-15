@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-13 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import { WEBVIEW_WINDOW_ID } from './constants'
 import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
@@ -13,12 +14,10 @@ import {
   moveItemBetweenCalendarNotes,
   handlerResult,
 } from './dashboardHelpers'
-// import { showDashboardReact } from './reactMain'
 import { validateAndFlattenMessageObject } from './shared'
 import {
   type MessageDataObject,
   type TBridgeClickHandlerResult,
-  // type TControlString,
 } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
@@ -31,15 +30,15 @@ import {
   RE_NP_WEEK_SPEC,
   replaceArrowDatesInString
 } from '@helpers/dateTime'
+import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
-import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { showMessageYesNo } from '@helpers/userInput'
+
 //-----------------------------------------------------------------
 // constants
 
 const checkThreshold = 20 // number beyond which to check with user whether to proceed
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main`
 
 //-----------------------------------------------------------------
 

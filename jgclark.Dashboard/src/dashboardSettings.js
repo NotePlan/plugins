@@ -4,13 +4,13 @@
 // Last updated 2024-07-10 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
-import type { TDropdownItem } from "./types.js"
+import type { TSettingItem } from "./types.js"
 import { clo } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
 // The filters below are non-section switches that display in the filters menu
-export const dashboardFilterDefs: Array<TDropdownItem> = [
+export const dashboardFilterDefs: Array<TSettingItem> = [
   { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
@@ -23,7 +23,7 @@ export const dashboardFilterDefs: Array<TDropdownItem> = [
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
-export const dashboardSettingDefs: Array<TDropdownItem> = [
+export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -196,7 +196,7 @@ export const dashboardSettingDefs: Array<TDropdownItem> = [
     label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
   },
 ]
-export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TDropdownItem> => {
+export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
     switch (setting.type) {
       case 'separator':

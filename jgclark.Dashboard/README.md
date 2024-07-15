@@ -81,72 +81,6 @@ The 'action buttons' available in this section are:
 - "Complete", "Cancel" and "Pause" Project buttons, that each mimic the same command from the Project & Reviews plugin
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
 
-### Controlling from Shortcuts, Streamdeck etc.
-In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a number of 'callback's. 
-
-The simplest **opens (or refreshes) the Dashboard**:
-```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
-```
-
-Or add `arg0` to set a list of sections you want to see. For example, to show the today, tomorrow + @home mentions, run this x-callback:
-```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard&arg0=DT,DO,@home
-```
-Use `arg0=` followed by a comma-separated list of one or more of the following section codes:
-
-| Section | Code | Section | Code |
-| -------- | -------- | -------- | -------- |
-| Today | `DT` | Yesterday | `DY` |
-| Tomorrow | `DO` | Week | `W` |
-| Month | `M` | Quarter | `Q` |
-| Projects | `PROJ` | Overdue | `OVERDUE` |
-| tags / mentions from your settings | `#tag` / `@mention` |
-
-You can also **set a particular setting**:
-```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName>&arg1=<value>
-```
-Or you can **set multieple settings in one call**:
-```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName=value pairs separated by semicolons>
-```
-In both the names of the possible settings are:
-TODO: table
-
-separateSectionForReferencedNotes: boolean,
-  filterPriorityItems: boolean, // also kept in a DataStore.preference key
-  dashboardTheme: string,
-  hideDuplicates: boolean,
-  ignoreTasksWithPhrase: string,
-  ignoreChecklistItems: boolean,
-  ignoreFolders: Array<string>,
-  includeFolderName: boolean,
-  includeTaskContext: boolean,
-  rescheduleNotMove: boolean,
-  newTaskSectionHeading: string,
-  newTaskSectionHeadingLevel: number,
-  autoAddTrigger: boolean,
-  excludeChecklistsWithTimeblocks: boolean,
-  excludeTasksWithTimeblocks: boolean,
-  showYesterdaySection: boolean,
-  showTomorrowSection: boolean,
-  showWeekSection: boolean,
-  showMonthSection: boolean,
-  showQuarterSection: boolean,
-  showOverdueSection: boolean,
-  showProjectSection: boolean,
-  maxItemsToShowInSection: number,
-  overdueSortOrder: string,
-  tagsToShow: string,
-  ignoreTagMentionsWithPhrase: string,
-  updateTagMentionsOnTrigger: boolean,
-  useTodayDate: boolean,
-  moveSubItems: boolean,
-  interactiveProcessingHighlightTask: boolean,
-
-The latter is fiddly to set up, so you can call **/Make Callback from Current Settings** command to generate a call based on your current settings.
-
 ### Updating the Dashboard automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
 
@@ -190,6 +124,73 @@ The Filter menu includes the following toggles:
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
+
+## Controlling from Shortcuts, Streamdeck etc.
+In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a number of 'callback's. 
+
+The simplest **opens (or refreshes) the Dashboard**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
+```
+
+Or add `arg0` to **set a list of sections you want to see**. For example, to show the today, tomorrow + @home mentions, run this x-callback:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard&arg0=DT,DO,@home
+```
+Use `arg0=` followed by a comma-separated list of one or more of the following section codes:
+
+| Section | Code | Section | Code |
+| -------- | -------- | -------- | -------- |
+| Today | `DT` | Yesterday | `DY` |
+| Tomorrow | `DO` | Week | `W` |
+| Month | `M` | Quarter | `Q` |
+| Projects | `PROJ` | Overdue | `OVERDUE` |
+| tags / mentions from your settings | `#tag` / `@mention` |
+
+You can also **set a particular setting**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName>&arg1=<value>
+```
+Or you can **set multiple settings in one call**:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName=value pairs separated by semicolons>
+```
+For both callbacks, the names of the possible settings (described above), and their types, are:
+
+| Name | Type | Name | Type |
+| -------- | -------- | -------- | -------- |
+| separateSectionForReferencedNotes | true / false |
+| filterPriorityItems | true / false |
+| dashboardTheme | string |
+| hideDuplicates | true / false |
+| ignoreTasksWithPhrase | string |
+| ignoreChecklistItems | true / false |
+| ignoreFolders | comma-separated values |
+| includeFolderName | true / false |
+| includeTaskContext | true / false |
+| rescheduleNotMove | true / false |
+| newTaskSectionHeading | string |
+| newTaskSectionHeadingLevel | 1-5 |
+| autoAddTrigger | true / false |
+| excludeChecklistsWithTimeblocks | true / false |
+| excludeTasksWithTimeblocks | true / false |
+| showYesterdaySection | true / false |
+| showTomorrowSection | true / false |
+| showWeekSection | true / false |
+| showMonthSection | true / false |
+| showQuarterSection | true / false |
+| showOverdueSection | true / false |
+| showProjectSection | true / false |
+| maxItemsToShowInSection | number |
+| overdueSortOrder | string |
+| tagsToShow | string |
+| ignoreTagMentionsWithPhrase | string |
+| updateTagMentionsOnTrigger | true / false |
+| useTodayDate | true / false |
+| moveSubItems | true / false |
+| interactiveProcessingHighlightTask | true / false |
+
+As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the callback URL based on your current settings. This is copied to the clipboard.
 
 ## Support
 The Dashboard requires the **Shared Resources** plugin to be installed as well, to work and display properly. The Dashboard should automatically offer to install it if it isn't already.

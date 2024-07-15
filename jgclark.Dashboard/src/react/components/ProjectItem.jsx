@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
+// Last updated 2024-07-11 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
@@ -12,7 +12,7 @@ import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import ProjectIcon from './ProjectIcon.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
-import { logDebug, clo } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
@@ -20,12 +20,12 @@ type Props = {
 }
 
 function ProjectItem({ item }: Props): React.Node {
-  const { sendActionToPlugin, setReactSettings, dashboardSettings /*, setDashboardSettings */ } = useAppContext()
+  const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
   const noteTitle = item.project?.title ?? '<no title>'
-  const folderNamePart = dashboardSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
-  // logDebug(`ProjectItem`, `for ${itemFilename} (${folderNamePart} / ${noteTitle})`)
+  const folderNamePart = dashboardSettings?.includeFolderName && getFolderFromFilename(itemFilename) !== '/' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+  // logInfo(`ProjectItem`, `for ${itemFilename} folder='${getFolderFromFilename(itemFilename)}' (${folderNamePart} / ${noteTitle})`)
   // const percentComplete = item.project?.percentComplete ?? 0
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
   const progressText = item.project?.lastProgressComment ?? ''

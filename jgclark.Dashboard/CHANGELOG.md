@@ -3,25 +3,29 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [2.0.1] WIP @jgclark
 ### Added
-- new x-callback 'setSetting' to change a single Dashboard setting. TODO: See README for details. TODO: still need to handle show*Section settings.
-- new x-callback 'setSettings' to change multiple Dashboard settings in one call.
+- new x-callback **setSetting** command to change a single Dashboard setting.
+- new x-callback **setSettings** command (plural) to change multiple Dashboard settings in one call.
 - new **/Make Callback from Current Settings** command that copies the current setting as a URL or a markdown link to the Clipboard.
 - dbw: remove "tooltip" prop for featureFlags
 - dbw: remove DEV limitation on 5s refresh
 - dbw: fix edge case bug on ReactSettings and saving/reading from plugin.settings
-- dbw: fix issues with logSettings not saving/reading properly and not showing DEV FFlag menu
+- fix issues with logSettings not saving/reading properly and not showing DEV FFlag menu
 
-### Changes
+### Changed/Improved
 - made the Filters dropdown menu a two-column display (except on narrow screens)
 - (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
 - removed most settings from old setting system
 - removed "edit settings (for iOS)" command, as not needed
 - improved spacing and ordering of heading, and made tapping heading elements easier on iOS
 - other UI tweaks
-- complete refactoring of settings data structures under the hood (TODO: not quite complete)
+- complete refactoring of settings data structures under the hood
+- improved communication between Projects and Dashboard plugins
 
 ### Fixed
 - fix task completion timestamps using GMT not local time (thanks, @mjd9ball).
+- updating the Project List (in Projects & Reviews plugin) now refreshes the Project section in the Dashboard again.
+- fixed Project item display when project in root folder
+- a newly-added Project progress line will now be shown in the main window
 
 ## What's improved in v2.0?
 ### New

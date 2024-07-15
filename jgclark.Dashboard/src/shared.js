@@ -5,7 +5,7 @@
 // Last updated 2024-07-09 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import type { MessageDataObject, TSectionItem, TDashboardConfig } from './types'
+import type { MessageDataObject, TSectionItem, TDashboardSettings } from './types'
 import { clo, clof, JSP, log, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
 export type ValidatedData = {
@@ -107,7 +107,7 @@ export function validateAndFlattenMessageObject(data: MessageDataObject): Valida
  * @param {TAnyObject} dashboardSettings
  * @usage const { FFlagInteractiveProcessing } = getFeatureFlags(pluginSettings, dashboardSettings)
 //  */
-export function getFeatureFlags(NPSettings: TAnyObject, dashboardSettings: TDashboardConfig): TAnyObject {
+export function getFeatureFlags(NPSettings: TAnyObject, dashboardSettings: TDashboardSettings): TAnyObject {
     const isDebugLogging = NPSettings._logLevel === 'DEV'
     // find all keys that start with Fflag
     const featureFlags = (isDebugLogging ? Object.keys(dashboardSettings).filter(k => k.startsWith('FFlag')).reduce((acc, k) => {

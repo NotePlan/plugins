@@ -13,14 +13,14 @@ import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
 import ComboBox from '../components/ComboBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
-import type { TDropdownItem } from '../../types'
+import type { TSettingItem } from '../../types'
 import { logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
 type RenderItemProps = {
-  item: TDropdownItem,
+  item: TSettingItem,
   index: number,
   labelPosition: 'left' | 'right',
   handleFieldChange: (key: string, value: any) => void,

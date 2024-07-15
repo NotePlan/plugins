@@ -9,7 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState } from 'react'
-import type { TDropdownItem } from '../../types'
+import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/DropdownMenu.css' // Import the CSS file
 import { logDebug } from '@helpers/react/reactDev.js'
@@ -18,8 +18,8 @@ import { logDebug } from '@helpers/react/reactDev.js'
 // Type Definitions
 //--------------------------------------------------------------------------
 type DropdownMenuProps = {
-  sectionItems?: Array<TDropdownItem>,
-  otherItems: Array<TDropdownItem>,
+  sectionItems?: Array<TSettingItem>,
+  otherItems: Array<TSettingItem>,
   handleSwitchChange?: (key: string, e: any) => void,
   handleInputChange?: (key: string, e: any) => void,
   handleComboChange?: (key: string, e: any) => void,
