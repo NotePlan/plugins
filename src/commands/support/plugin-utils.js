@@ -55,6 +55,8 @@ module.exports = {
     const response = { files: fileList }
     if (filesystem.existsSync(changeLogFilename)) {
       response.changelog = changeLogFilename
+    } else {
+      console.log(`${pluginName}: Could not find required file: CHANGELOG.md`)
     }
     return response
   },
