@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2.7.2024 for v2.0.0-b17 by @jgclark */
+/* Last updated 2024-07-17 for v2.0.2 by @jgclark */
 
 :root {
 	--minBreakPoint: 500px; /* FIXME: not working */
@@ -25,6 +25,11 @@ body {
 	width: 90vw;
 }
 
+/* TODO: Trying this as a way to unset the colour of icons */
+i {
+	color: unset;
+}
+
 /* 
  * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)
  */
@@ -33,7 +38,7 @@ dialog::backdrop {
 }
 
 /* ------------------------------------------------------------------ */
-/* New settings for Grid-based layout */
+/* Settings for Grid-based layout */
 .header {
 	font-size: 0.92rem;
 	/* Define grid-template-areas for better control */
@@ -62,7 +67,7 @@ dialog::backdrop {
 	/* This ensures that the content of these divs is also centered */
 	align-items: center;
 	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
-	width: 9rem;
+	width: 10rem;
 
 }
 /* Turn fixed width off on narrow screens */
@@ -90,19 +95,33 @@ dialog::backdrop {
 }
 
 .dropdownButtons {
-	/* Assign the area */
-	grid-area: dropdowns;
-	gap: 0.7rem;
-	justify-self: end;
-	/* Align to the right edge */
-	margin-right: 20px;
+	/* justify-self: end; */
+	justify-content: end;
 
 }
 
-/* Widen button gaps for narrow screens (iOS) */
+/* droppdown button icons */
+.dropdownButtons i {
+	/* Assign the area */
+	grid-area: dropdowns;
+	color: var(--tint-color);
+	gap: 0.9rem;
+	justify-self: end;
+	justify-content: end;
+	/* Align to the right edge */
+	/* margin-right: 20px; */
+}
+
+/* for narrow screens (iOS) ... */
+/* FIXME: needs to apply to iPad as well */
 @media screen and (width <= 450px) {
+	/* Widen button gaps  */
 	.dropdownButtons {
 		gap: 1.2rem !important;
+	}
+	/* move buttons left to allow space for extra close button that appears */
+	.dropdownButtons :nth-last-child(1) {
+		padding-right: 2rem;
 	}
 }
 
@@ -123,11 +142,15 @@ dialog::backdrop {
 }
 
 /* Specific alignment fixes for icons inside buttons or links */
-.fa-regular,
-.fa-solid {
-	/* Centers icon within its container, vertically and horizontally */
-	align-self: center;
-	margin: auto;
+/* Inside a layer to make them lower priority than other  */
+@layer A {
+	.fa-regular,
+	.fa-solid {
+		/* Centers icon within its container, vertically and horizontally */
+		align-self: center;
+		margin: auto;
+		color: var(--tint-color);
+	}
 }
 
 .section {
@@ -179,38 +202,8 @@ dialog::backdrop {
 	font-size: 0.9rem;
 	/* give breathing room on right only */
 	margin: 0 0.5rem 0 0;
-	padding-top: 0px;
-	align-self: self-end;
-}
-
-/* If rather narrow, slide [items] slides under [info] */
-/* This needs to come after the earlier definitions to take priority */
-@media screen and (width <=600px) {
-	.section {
-		grid-template-columns: 1fr;
-	}
-
-	.sectionInfo {
-		border-top: solid 0.5px var(--tint-color);
-		border-bottom: solid 1px var(--divider-color);
-		display: grid;
-		/* now make this area grid column-based not row-based */
-		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 0.1rem;
-		padding-top: 0.3rem;
-		padding-bottom: 0.3rem;
-		/* put all items essentially on a baseline */
-		align-items: end;
-	}
-
-	.sectionName {
-		/* turn off padding under section name */
-		padding-top: 0.1rem;
-		padding-bottom: 0rem;
-		padding-left: 1px;
-		/* some padding to right */
-		padding-right: 0.5rem;
-	}
+	padding-top: 0.2rem;
+	/* align-self: self-end; */
 }
 
 /* turn on bottom border of last item (from theme CSS) */
@@ -237,7 +230,7 @@ dialog::backdrop {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
 	display: grid;
-	grid-template-columns: [icon] 1.2rem [item-details] auto;
+	grid-template-columns: [icon] 1.1rem [item-details] auto;
 	/* was: minmax(20rem, 30rem); */
 	/* no bottom padding */
 	padding: 3px 4px 0px 2px;
@@ -261,9 +254,10 @@ dialog::backdrop {
 /* General item icon details */
 /* Need to override some CSS that comes in the theme */
 .itemIcon {
+	color: var(--item-icon-color);
 	margin-bottom: unset !important;
 	line-height: unset !important;
-	font-size: 1.05rem !important;
+	font-size: 1.0rem  !important;
 	/* font-size: unset !important; */
 	font-weight: 400;
 	/* position this horizontally centred; vertically at start */
@@ -274,14 +268,65 @@ dialog::backdrop {
 	cursor: pointer;
 }
 
+/* The actual item's details (was col4) */
+.sectionItem {
+	/* reduce vertical spacing and line below */
+	font-size: 1.0rem;
+	font-weight: 400;
+	padding: 1px 4px;
+	border-bottom: 0px;
+	break-inside: avoid;
+	line-height: 1.2rem;
+}
+
+/* If rather narrow, slide [items] under [info] */
+/* This needs to come after the earlier definitions to take priority */
+@media screen and (width <=600px) {
+	.section {
+		grid-template-columns: 1fr;
+	}
+
+	.sectionInfo {
+		border-top: solid 0.5px var(--tint-color);
+		border-bottom: solid 1px var(--divider-color);
+		display: grid;
+		/* now make this area grid column-based not row-based */
+		grid-template-columns: max-content max-content auto;
+		grid-column-gap: 0.1rem;
+		padding-top: 0.4rem;
+		/* padding-bottom: 0.3rem; */
+		/* put all items essentially on a baseline */
+		/* align-items: end; */
+		align-items: center;
+	}
+
+	.sectionName {
+		/* turn off padding under section name */
+		padding-top: 0.1rem;
+		padding-bottom: 0rem;
+		padding-left: 1px;
+		/* some padding to right */
+		padding-right: 0.5rem;
+	}
+
+	.sectionItemRow {
+		padding: 3px 4px 0px 4px;
+		column-gap: 0px;
+	}
+}
+
+/* ------------------------------------------------------------------ */
+
 /* Specific item icon details */
 /* Need to override some CSS that comes in the theme */
+/* TODO: fix this being too large */
 .projectIcon {
 	margin-bottom: unset !important;
 	line-height: unset !important;
-	font-size: 0.9rem !important;
-	height: 0.9rem;
-	width: 0.9rem;
+	font-size: 0.7rem !important;
+	height: 0.7rem;
+	width: 0.7rem;
+	line-height: 1.1rem;
 	align-self: center;
 	justify-self: center;
 }
@@ -298,27 +343,14 @@ dialog::backdrop {
 	opacity: 0.5;
 }
 
-/* The actual item's details (was col4) */
-.sectionItem {
-	/* reduce vertical spacing and line below */
-	font-size: 1.0rem;
-	font-weight: 400;
-	padding: 1px 4px;
-	border-bottom: 0px;
-	break-inside: avoid;
-	line-height: 1.2rem;
-}
-
 /* --------------------------------------------------------------- */
 
+/* All buttons, but at lower priority */
 @layer A {
-
-	/* all buttons, but at lower priority */
 	button,
 	input {
 		color: var(--fg-sidebar-color);
 		background-color: var(--bg-sidebar-color);
-		/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7); */
 		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
@@ -342,6 +374,11 @@ dialog::backdrop {
 	/* max-height: 1.3rem; */
 }
 
+/* fa-icons in HA Button */
+.HAButton i {
+	color: var(--tint-color);
+}
+
 /* For buttons in section info areas */
 .PCButton {
 	font-weight: 500;
@@ -359,6 +396,11 @@ dialog::backdrop {
 	align-self: center;
 	/* max-height: 1.3rem; */
 	line-height: 1.2rem;
+}
+
+/* fa-icons in HA Button */
+.PCButton i {
+	color: var(--tint-color);
 }
 
 /* Set link text to plain (again).  Note: now internal calls used this is removed */
@@ -488,7 +530,7 @@ button,
 	padding: 0px 3px;
 }
 
-/* add space after icons: 'i.fa-solid, i.fa-light, i.fa-regular { padding-right: 6px; }',  */
+/* Colour the note titles */
 .noteTitle {
 	/* add "font-weight: 700;" to make noteTitles bold */
 	color: var(--tint-color) !important;
@@ -609,7 +651,7 @@ input.apple-switch:checked:after {
 
 /* Circular progress bar for Project items */
 .CircularProgressbar-path {
-  stroke: var(--tint-color) !important;
+  stroke: var(--item-icon-color) !important;
 	stroke-linecap: butt !important;
 }
 .CircularProgressbar-trail {
@@ -624,7 +666,7 @@ input.apple-switch:checked:after {
 
 /* Header waiting spinner */
 .fa-spin {
-	color: var(--tint-color);
+	/* color: var(--tint-color); */
 	animation: spin 1s infinite linear;
 }
 

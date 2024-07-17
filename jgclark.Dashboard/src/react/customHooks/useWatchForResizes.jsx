@@ -24,7 +24,7 @@ export default function useWatchForResizes(
         width: window.innerWidth,
         height: window.innerHeight,
       }
-      logDebug('useWatchForResizes', `Window was resized to: ${JSON.stringify(newDimensions)}`)
+      // logDebug('useWatchForResizes', `Window was resized to: ${JSON.stringify(newDimensions)}`)
 
       if (debounceTimeout) {
         clearTimeout(debounceTimeout)

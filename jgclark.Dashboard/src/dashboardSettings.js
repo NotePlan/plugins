@@ -102,6 +102,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ["priority", "earliest", "most recent"],
     default: "priority",
   },
+  {
+    key: "lookBackDaysForOverdue",
+    label: "Number of days to look back for Overdue tasks",
+    description: "If set to any number > 0, will restrict Overdue tasks to just this last number of days.",
+    type: 'input',
+    default: "",
+  },
   // {
   //   key: "updateOverdueOnTrigger",
   //   hidden: true,
@@ -146,6 +153,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: "Automatic Refresh"
   },
+  // TODO: remove this in v2.1
   {
     key: "autoAddTrigger",
     label: "Add dashboard auto-update trigger when dashboard opened?",

@@ -506,7 +506,13 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
   }
 }
 
-// Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
+/**
+ * Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line.
+ * If ⌘ (command) key is clicked, then open in a new floating window.
+ * If option key is clicked, then open in a new split view.
+ * @param {MessageDataObject} data with details of item
+ * @returns {TBridgeClickHandlerResult} how to handle this result
+*/
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)

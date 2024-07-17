@@ -45,11 +45,11 @@ const StatusIcon = ({
       case 'open':
         return 'todo fa-regular fa-circle'
       case 'cancelled':
-        return 'todo fa-regular fa-circle-xmark'
+        return 'cancelled fa-regular fa-circle-xmark'
       case 'checklist':
         return 'todo fa-regular fa-square'
       case 'checklistCancelled':
-        return 'todo fa-regular fa-square-xmark'
+        return 'cancelled fa-regular fa-square-xmark'
       case 'congrats':
         return 'fa-regular fa-circle-check'
       case 'deleted':

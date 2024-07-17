@@ -36,6 +36,11 @@ dialog:modal {
   align-items: center; 
 }
 
+/* icons in title */
+.dialogTitle i {
+  color: var(--tint-color);
+}
+
 .dialogTitle div:nth-last-child(1) {
   /* Put very last div (Close button etc.) on RHS */
   justify-self: end;
@@ -68,10 +73,10 @@ dialog:modal {
 
 /* Tweak the first column labels */
 .buttonGrid div.preText {
-  align-self: center; /* self-start; */
-  /* padding-block-start: 5px; */
+  align-self: self-start;
+  padding-block-start: 5px;
   justify-self: end;
-  margin-top: 2px;
+  /* margin-top: 5px; */
 }
 
 /* Put very last div (Close button) on RHS -- no longer used */
@@ -86,6 +91,7 @@ dialog:modal {
 
 /* for Dialog main buttons: a little more pronounced */
 .mainButton {
+  color: var(--tint-color);
 	background-color: var(--bg-alt-color);
 	font-size: 0.9rem;
 	font-weight: 600;
@@ -104,6 +110,10 @@ dialog:modal {
   padding: 1px 4px 0px 4px;
   /* have margin to the right+top+bottom of buttons */
   margin: 3px 4px 3px 0px;
+}
+/* set FontAwesome icon colour to tint color */
+.dialogBody button i {
+  color: var(--tint-color);
 }
 
 .itemActionsDialog {
@@ -142,13 +152,9 @@ dialog:modal {
   pointer-events: none; /* Prevent placeholder text from being selectable */
 }
 
-/* set FontAwesome icon colour to tint color */
-i.fa-solid, i.fa-regular {
-  color: var(--tint-color);
-}
-
 .closeButton {
 	font-size: unset;
+  color: var(--tint-color);
   background-color: transparent;
   border: none;
   box-shadow: none;

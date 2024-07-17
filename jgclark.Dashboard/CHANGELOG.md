@@ -1,7 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.0.1] WIP @jgclark
+## [2.0.2] 2024-07-16
+- fixed 'All Overdue → Today' button not working (thanks for the report, @oldielajolla)
+- fix to auto-refresh
+- fix to stop 5s refresh in DEV mode
+- improve wording around number of open items in section descriptions
+- small layout tweaks when on a narrow screen
+- reverted the Filters dropdown menu to be single column while we work out why 1 user is having trouble with 2-col layout.
+
+Note: I intend to remove the "Add dashboard auto-update trigger when dashboard opened?" setting and functionality in a future release. It is much less needed now Dashboard can auto-refresh after a given number of minutes.
+
+## [2.0.1] 2024-07-15
 ### Added
 - new x-callback **setSetting** command to change a single Dashboard setting.
 - new x-callback **setSettings** command (plural) to change multiple Dashboard settings in one call.
@@ -13,13 +23,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ### Changed/Improved
 - made the Filters dropdown menu a two-column display (except on narrow screens)
-- (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
 - removed most settings from old setting system
 - removed "edit settings (for iOS)" command, as not needed
 - improved spacing and ordering of heading, and made tapping heading elements easier on iOS
 - other UI tweaks
-- complete refactoring of settings data structures under the hood
 - improved communication between Projects and Dashboard plugins
+- (under-the-hood) add quite a lot of logTimer() calls, and added a new setting for it to both old and new setting systems
+- (under the hood) complete refactoring of settings data structures under the hood
 
 ### Fixed
 - fix task completion timestamps using GMT not local time (thanks, @mjd9ball).

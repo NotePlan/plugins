@@ -1,5 +1,27 @@
-/* Ensure the dropdown content is completely hidden when closed */
+/**
+ * CSS for the Dropdown menus
+ * Last updated 2024-07-17 for v2.0.2 by @jgclark
+ */
+
+/* Content in just 1 column */
 .dropdown-content {
+  /* Ensure the dropdown content is completely hidden when closed */
+  display: none;
+  grid-template-columns: unset;
+  grid-template-areas: "justTheOne";
+  position: absolute;
+  background-color: var(--bg-alt-color);
+  /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
+  box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
+  overflow: hidden;
+  /* max-height: 0; */
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+  opacity: 0;
+}
+
+/* TODO: bring this back into play in some way */
+.dropdown-content-two-cols {
+  /* Ensure the dropdown content is completely hidden when closed */
   display: none;
   /* flex-direction: column; */
   /* gap: 1rem; */
@@ -61,23 +83,6 @@
   padding: 0.5rem 1.0rem;
   animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
 }
-
-/* Show the dropdown content to be shown in 2 simple cols when the menu is open */
-/* FIXME: isn't currently working, so for now defined the same as the simpler case above */
-/* .dropdown-content.show-in-columns {
-  display: block;
-  column-count: 2;
-	column-fill: balance;
-	column-width: auto;
-	column-rule: 1px dotted var(--tint-color);
-	align-items: center;
-	column-gap: 1rem;
-  min-width: max-content;
-  max-width: 80%;
-  right: -0.5rem;
-  animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
-  opacity: 1;
-} */
 
 /* Flex container to align dropdowns */
 #dropdowns {

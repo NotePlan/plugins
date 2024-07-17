@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-16 for v2.0.2 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   // ---------------------------------------------------------------------
-  const { sectionFilename } = section
+  const { sectionFilename, totalCount } = section
   const titleStyle = sectionFilename ? { cursor: 'pointer' } : {}
 
   //----------------------------------------------------------------------
@@ -80,7 +80,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  const { filteredItems, itemsToShow, filteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  const { filteredItems, itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
 
   useInteractiveProcessing(filteredItems, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings)
 
@@ -127,14 +127,18 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
   if (descriptionToUse.includes('{count}')) {
-    if (limitApplied) {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>first ${String(numItemsToShow)}</span>`)
+    const totalNumItems = items.length
+    if (numFilteredOut > 0) {
+      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${(numItemsToShow > 0) ? 'first ' : ''
+        }${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
+    } else if (limitApplied) {
+      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
     } else {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)}</span>`)
+      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)}</span>`)
     }
   }
   if (descriptionToUse.includes('{totalCount}')) {
-    descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(filteredOut)}</span>`)
+    descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
   }
 
   // Pluralise item in description if neccesary
@@ -153,7 +157,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
             <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
             {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
-            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin"></i> : null}
+            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
           </div>{' '}
         </TooltipOnKeyPress>
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>

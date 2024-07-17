@@ -245,11 +245,13 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.todo
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'}`)
+      const todoColor = RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'
+      tempSel.push(`color: ${todoColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       // hack: easier to add second definition than to undo the last one
       tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.todo', tempSel))
+      rootSel.push(`--item-icon-color: ${todoColor}`)
     }
 
     // Set class for completed tasks ('checked') if present

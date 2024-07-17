@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-09 for v2.0.1 by @jgclark
+// Last updated 2024-07-14 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -88,7 +88,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // Render
   //----------------------------------------------------------------------
   const isDesktop = pluginData.platform === "macOS"
-  const updatedText = isDesktop ? "Last updated" : "Updated"
+  const updatedText = "Updated"
   const timeAgoText = isDesktop ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m")
 
   return (
@@ -107,7 +107,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             onClick={handleRefreshClick(sendActionToPlugin, true)}
             className="HAButton hardRefreshButton"
           >
-            <i className={"fa-solid fa-arrows-retweet"}></i>
+            <i className={"fa-regular fa-arrows-retweet"}></i>
             <span className="pad-left">{isDesktop ? "Hard Refresh" : " HR "}</span>
           </button>
         )}

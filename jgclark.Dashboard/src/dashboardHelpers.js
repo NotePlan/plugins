@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated 2024-07-16 for v2.0.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,10 +23,7 @@ import {
   sendToHTMLWindow,
   getGlobalSharedData,
 } from '@helpers/HTMLView'
-import {
-  filterOutParasInExcludeFolders, getNoteByFilename,
-  // projectNotesSortedByChanged
-} from '@helpers/note'
+import { filterOutParasInExcludeFolders, getNoteByFilename } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
@@ -47,7 +44,6 @@ import {
 } from '@helpers/timeblocks'
 import {
   chooseHeading, chooseNote, displayTitleWithRelDate,
-  // showMessage, 
 } from '@helpers/userInput'
 import {
   isOpen, isOpenTask, isOpenNotScheduled,
@@ -448,10 +444,13 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
 }
 
 /**
- * @params {TDashboardSettings} config Settings
- * @returns {}
+ * Get all overdue tasks, filtered and sorted according to various settings. But the number of items returned is not limited.
+ * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
+ * @param {TDashboardSettings} settings
+ * @param {Array<TParagraph>} yesterdaysParas
+ * @returns {Array<TParagraph>}
  */
-export async function getRelevantOverdueTasks(config: TDashboardSettings, yesterdaysCombinedSortedParas: Array<TParagraph>): Promise<Array<TParagraph>> {
+export async function getRelevantOverdueTasks(config: TDashboardSettings, yesterdaysParas: Array<TParagraph>): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
@@ -470,13 +469,13 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     }
     logDebug('getRelevantOverdueTasks', `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredOverdueParas.length} paras (after ${timer(thisStartTime)})`)
 
-    // Limit overdues to last n days for testing purposes
-    if (config.FFlag_LimitOverdues) {
-      const cutoffDate = moment().subtract(14, 'days').format('YYYYMMDD')
-      logDebug('getRelevantOverdueTasks', `FFlag_LimitOverdues limiting to last 14 days (2w): > ${cutoffDate}`)
+    // Limit overdues to last N days for testing purposes
+    if (!Number.isNaN(config.lookBackDaysForOverdue) && config.lookBackDaysForOverdue > 0) {
+      const numDaysToLookBack = config.lookBackDaysForOverdue
+      const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYYMMDD')
+      logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
       filteredOverdueParas = filteredOverdueParas.filter((p) => p.filename ? p.filename > cutoffDate : true)
     }
-
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
     // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
@@ -487,10 +486,10 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
 
     // Remove items already in Yesterday section (if turned on)
     if (config.showYesterdaySection) {
-      if (yesterdaysCombinedSortedParas.length > 0) {
-        // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysCombinedSortedParas
+      if (yesterdaysParas.length > 0) {
+      // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
         filteredOverdueParas.map((p) => {
-          if (yesterdaysCombinedSortedParas.filter((y) => y.content === p.content).length > 0) {
+          if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
             logDebug('getRelevantOverdueTasksReducedParas', `- removing duplicate item {${p.content}} from overdue list`)
             filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
           }

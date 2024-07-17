@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-12 for v2.0.1 by @jgclark
+// Last updated 2024-07-16 for v2.0.2 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -31,7 +31,7 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
-  autoAddTrigger: boolean,
+  autoAddTrigger: boolean, // TODO: remove me in v2.1
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
@@ -47,14 +47,16 @@ export type TDashboardSettings = {
   ignoreTagMentionsWithPhrase: string,
   updateTagMentionsOnTrigger: boolean,
   useTodayDate: boolean,
-  // _logLevel: string,
-  // _logTimer: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
-  FFlag_LimitOverdues: boolean,
+  lookBackDaysForOverdue: number,
   FFlag_HardRefreshButton: boolean,
+  autoUpdateAfterIdleTime: number,
   moveSubItems: boolean,
+  enableInteractiveProcessing: boolean,
   interactiveProcessingHighlightTask: boolean,
+  settingsMigrated: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
+  lastChange: string, // not really a setting, but a way to track the last change made
 }
 
 export type TDashboardPluginSettings = {
