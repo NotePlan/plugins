@@ -24,7 +24,7 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreTasksWithPhrase: string,
   ignoreChecklistItems: boolean,
-  ignoreFolders: Array<string>,
+  ignoreFolders: string, // Needs to be split into Array<string>
   includeFolderName: boolean,
   includeScheduledDates: boolean,
   includeTaskContext: boolean,

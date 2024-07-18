@@ -324,7 +324,8 @@ export function getOpenItemParasForCurrentTimePeriod(
     // logDebug('getOpenItemPFCTP', `- after 'ignore' phrases filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
 
     // Remove items referenced from items in 'ignoreFolders'
-    refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)
+    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    refOpenParas = filterOutParasInExcludeFolders(refOpenParas, ignoreFolders, true)
     // logDebug('getOpenItemPFCTP', `- after 'ignore' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
@@ -457,9 +458,10 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
+    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
-
+    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, ignoreFolders, true)
+    logDebug('getRelevantOverdueTasks', `- after 'ignoreFolders'(${config.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras (after ${timer(thisStartTime)})`)
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
