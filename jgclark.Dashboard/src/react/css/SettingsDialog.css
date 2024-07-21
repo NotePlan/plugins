@@ -169,7 +169,7 @@
     font-size: 14px;
 }
 
-/* TODO: Style for input box with invalid input */
+/* Style for input box with invalid input */
 .settings-dialog .input-box-input:invalid {
   border: 1px solid #faa;
 }
