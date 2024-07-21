@@ -140,7 +140,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
   return (
     <>
-      {/* CSS for this part is in dashboardDialog.css */}
+      {/* CSS for this part is in DashboardDialog.css */}
       {/*----------- Dialog that can be shown for any project item -----------*/}
       <dialog
         id="projectControlDialog"

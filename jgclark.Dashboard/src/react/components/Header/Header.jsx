@@ -2,16 +2,14 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-14 for v2.0.1 by @jgclark
+// Last updated 2024-07-19 for v2.0.3 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React from 'react'
-// import { getFeatureFlags } from '../../shared.js'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
-// import type { TNotePlanSettings } from '../../../types.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
@@ -30,6 +28,7 @@ import {
   onDropdownMenuChangesMade
 } from './headerDropdownHandlers.js'
 import { logDebug } from '@helpers/react/reactDev.js'
+import './Header.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -113,7 +112,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
       </div>
 
-      {pluginData?.totalDoneCounts && <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />}
+      <div className="totalCounts">
+        {pluginData?.totalDoneCounts
+          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
+          : ''}
+      </div>
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}

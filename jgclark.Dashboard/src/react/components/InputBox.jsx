@@ -1,5 +1,9 @@
-// InputBox.jsx
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show an HTML Input control, with various possible settings.
+// Last updated 2024-07-19 for v2.0.3 by @jgclark
+//--------------------------------------------------------------------------
+// InputBox.jsx
 import React, { useState, useEffect } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
 
@@ -8,10 +12,12 @@ type InputBoxProps = {
   value: string,
   onChange: (e: any) => void,
   onSave?: (newValue: string) => void,
+  inputType?: string,
   showSaveButton?: boolean,
 };
 
-const InputBox = ({ label, value, onChange, onSave, showSaveButton = true }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true }: InputBoxProps): React$Node => {
+// logDebug('InputBox', `label='${label}'`)
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
 
@@ -36,10 +42,11 @@ const InputBox = ({ label, value, onChange, onSave, showSaveButton = true }: Inp
       <label className="input-box-label">{label}</label>
       <div className="input-box-wrapper">
         <input
-          type="text"
+          type={inputType}
           className="input-box-input"
           value={inputValue}
           onChange={handleInputChange}
+          min="0" // true for number; ignored for rest.
         />
         {showSaveButton && (
           <button

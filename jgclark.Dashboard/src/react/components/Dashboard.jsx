@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-19 for v2.0.3 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
-import '../css/dashboard.css'
+import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -91,10 +91,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   logDebug('Dashboard', `sections after sort length: ${sections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
-
+  // DBW says the 98 was to avoid scrollbars. TEST: removing
   const dashboardContainerStyle = {
-    maxWidth: '98vw',
-    width: '98vw',
+    maxWidth: '100vw',  // '98vw',
+    width: '100vw', // '98vw',
   }
 
   //----------------------------------------------------------------------

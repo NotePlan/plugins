@@ -1,9 +1,7 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2024-07-17 for v2.0.2 by @jgclark */
+/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
 
-:root {
-	--minBreakPoint: 500px; /* FIXME: not working */
-	font-size: 16px; /* this works */
+:root {	font-size: 16px; /* this works */
 	/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
 	.w3-panel {
 		margin-top: 0px;
@@ -35,94 +33,6 @@ i {
  */
 dialog::backdrop {
   background: rgba(0,0,0,0.4);
-}
-
-/* ------------------------------------------------------------------ */
-/* Settings for Grid-based layout */
-.header {
-	font-size: 0.92rem;
-	/* Define grid-template-areas for better control */
-	display: grid;
-	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated refresh counts empty dropdowns";
-	grid-template-columns: max-content max-content max-content 1fr min-content;
-	/* Vertical alignment */
-	align-items: baseline;
-	/* Space between grid items */
-	gap: 0.5rem;
-	/* Padding around the header content */
-	padding: 0.4rem;
-	background-color: var(--bg-sidebar-color);
-	/* Ensure the header uses the full width */
-	width: 100%;
-	position: sticky;
-	top: 0px;
-	z-index: 1000;
-	border-bottom: solid 1px var(--divider-color);
-}
-
-.lastFullRefresh {
-	/* Assign the area */
-	grid-area: lastUpdated;
-	/* This ensures that the content of these divs is also centered */
-	align-items: center;
-	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
-	width: 10rem;
-
-}
-/* Turn fixed width off on narrow screens */
-@media screen and (max-width: 450px) {
-	.lastFullRefresh {
-		width: unset;
-	}
-}
-
-.refresh {
-	/* Assign the area */
-	grid-area: refresh;
-}
-
-/* may use in future */
-.totalCounts {
-	/* Assign the area */
-	grid-area: counts;
-	align-self: unset; /* TEST: shouldn't be needed but otherwise lands up with 'end' */
-	
-	/* Make sure totalCounts only shows when necessary */
-	@media screen and (max-width: 500px) {
-		display: none;
-	}
-}
-
-.dropdownButtons {
-	/* justify-self: end; */
-	justify-content: end;
-
-}
-
-/* droppdown button icons */
-.dropdownButtons i {
-	/* Assign the area */
-	grid-area: dropdowns;
-	color: var(--tint-color);
-	gap: 0.9rem;
-	justify-self: end;
-	justify-content: end;
-	/* Align to the right edge */
-	/* margin-right: 20px; */
-}
-
-/* for narrow screens (iOS) ... */
-/* FIXME: needs to apply to iPad as well */
-@media screen and (width <= 450px) {
-	/* Widen button gaps  */
-	.dropdownButtons {
-		gap: 1.2rem !important;
-	}
-	/* move buttons left to allow space for extra close button that appears */
-	.dropdownButtons :nth-last-child(1) {
-		padding-right: 2rem;
-	}
 }
 
 /* unused */
@@ -419,11 +329,11 @@ button,
 
 /* --------------------------------------------------------------- */
 
-/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
 	/* float above everything, including the header */
-	z-index: 20;
+	/* z-index: 20; */
 }
 
 .tooltip::before,
@@ -465,15 +375,16 @@ button,
 .tooltip:hover::after {
 	/* opacity: 1; */
 	display: block;
+	z-index: 20;
 }
 
 /* ------------------------------------------------------------------ */
 
-.commentLine {
-	/* show as italic */
+/* show as italic. Note: now unused */
+/* .commentLine {
 	font-weight: 400;
 	font-style: italic;
-}
+} */
 
 .clickTarget {
 	/* change cursor for icons which can be clicked on */
@@ -549,9 +460,9 @@ button,
 }
 
 .fadeOutAndHide {
+	/* Start from fully visible */
 	transition: opacity 500ms ease-out;
 	opacity: 0;
-	/* Start from fully visible */
 }
 
 /* Some headings specified from measuring the colour of NP sidebar elements */
@@ -668,10 +579,4 @@ input.apple-switch:checked:after {
 .fa-spin {
 	/* color: var(--tint-color); */
 	animation: spin 1s infinite linear;
-}
-
-/* MESSAGE_BANNER w3.css overrides */
-.iOS .header {
-    padding-right: 10px;
-    box-sizing: border-box; /* Ensure the padding is included in the element's total width */
 }

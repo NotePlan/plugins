@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-19 for v2.0.3 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -123,6 +123,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decrement the number of items to show if the last one is the filterIndicator
   let numItemsToShow = itemsToShow.length
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
+  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'congrats') numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -165,7 +166,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
           {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks one at a time`}>
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
                 <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
               </button>

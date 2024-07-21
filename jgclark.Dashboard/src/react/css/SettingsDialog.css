@@ -1,3 +1,6 @@
+/* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
+/* Last updated 2024-07-19 for v2.0.2 by @jgclark */
+
 /* Ensure the settings dialog content is hidden when closed */
 .settings-dialog-content {
     display: flex;
@@ -23,7 +26,7 @@
     max-width: 600px;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
+    /* z-index: 1000; */
     opacity: 0;
     transition: opacity 0.2s ease-out;
     overflow: hidden;
@@ -35,7 +38,7 @@
 }
 
 /* Style for the dialog buttons container */
-.settings-dialog-buttons {
+.settings-dialog-header {
     background-color: var(--bg-alt-color);
     display: flex;
     align-items: center;
@@ -49,7 +52,7 @@
 }
 
 /* Style for the centered header */
-.settings-dialog-header {
+.settings-dialog-title {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -64,16 +67,15 @@
 /* Style for the buttons */
 .settings-dialog .PCButton {
     font-family: system-ui;
-    padding: 6px 12px;
+    padding: 4px 6px;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s, box-shadow 0.2s;
     /* height: 30px; */
-    /* Set height to 75% of the container height */
-    align-self: center;
     /* Ensure buttons are centered vertically */
+    align-self: center;
+    cursor: pointer;
 }
 
 /* Style for the Cancel button */
@@ -85,25 +87,32 @@
     max-height: unset;
 }
 
-/* Hover style for the Cancel button */
+/* Darken Cancel button slightly on Hover */
 .settings-dialog .cancel-button:hover {
-    /* background-color: #f1f1f1; */
     /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
 }
 
-/* Style for the Save & Close button */
+/* Style for the inactive Save & Close button */
+.settings-dialog .save-button-inactive {
+    background-color: var(--tint-color);
+    color: var(--bg-main-color);
+    max-height: unset;
+    opacity: 0.3;
+    cursor: unset;
+}
+
+/* Style for the active Save & Close button */
 .settings-dialog .save-button {
     background-color: var(--tint-color);
     color: var(--bg-main-color);
     max-height: unset;
 }
 
-/* Hover style for the Save & Close button */
+/* Darken Save & Close button slightly on Hover */
 .settings-dialog .save-button:hover {
-    /* background-color: var(--bg-alt-color); */
     /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
-    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
 }
 
 /* Style for switch-line */
@@ -160,6 +169,11 @@
     font-size: 14px;
 }
 
+/* TODO: Style for input box with invalid input */
+.settings-dialog .input-box-input:invalid {
+  border: 1px solid #faa;
+}
+
 /* Focus style for input-box-input */
 .settings-dialog .input-box-input:focus {
     /* border-color: #007BFF; */
@@ -168,14 +182,14 @@
     box-shadow: 0 0 3px var(--hashtag-color);
 }
 
-/* Style for input-box-save */
+/* For optional 'save' button on Input Box */
 .settings-dialog .input-box-save {
     padding: 6px 12px;
     /* Reduce height to 75% */
     border: none;
     border-radius: 4px;
     background-color: var(--tint-color);
-    color: white;
+    color: var(--bg-main-color);
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s, box-shadow 0.3s;
@@ -220,6 +234,7 @@
     align-items: center;
     gap: 10px;
     position: relative;
+    width: fit-content;
 }
 
 /* Style for combobox-input */
@@ -230,9 +245,9 @@
     border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
     border-radius: 4px;
     font-family: system-ui;
-    font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
+    font-size: 0.9rem;
+    /* width: 100%; */
+    /* box-sizing: border-box; */
 }
 
 /* Focus style for combobox-input */
@@ -245,10 +260,10 @@
 /* Style for combobox-arrow */
 .settings-dialog .combobox-arrow {
     position: absolute;
-    right: 10px;
+    right: 0.8rem;
     pointer-events: none;
-    font-size: 14px;
-    /* color: var(--tint-color); */
+    font-size: 1.2rem;
+    color: var(--tint-color);
 }
 
 /* Style for combobox-dropdown */
@@ -269,7 +284,7 @@
     padding: 8px 12px;
     cursor: pointer;
     color: var(--fg-main-color);
-    transition: background-color 0.2s;
+    /* transition: background-color 0.2s; */
 }
 
 /* Hover style for combobox option */

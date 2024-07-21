@@ -1,6 +1,6 @@
 /**
  * CSS for the Dropdown menus
- * Last updated 2024-07-17 for v2.0.2 by @jgclark
+ * Last updated 2024-07-17 for v2.0.3 by @jgclark
  */
 
 /* Content in just 1 column */
@@ -87,14 +87,9 @@
 /* Flex container to align dropdowns */
 #dropdowns {
   display: flex;
-  gap: 10px;
   align-items: flex-start;
-  padding-right: 0px; /* by default for macOS */
-}
-
-/* make room for NP sheet "X" button */
-.iPadOS #dropdowns, .iOS #dropdowns {
-  padding-right: 20px; 
+  /* gap: 0.8rem;
+  margin-right: 1rem; */
 }
 
 .dropdown {
@@ -145,13 +140,18 @@
   gap: 10px;
 }
 
-/* Style for input-box-input */
+/* General Style for input-box-input */
 .dropdown .input-box-input {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+}
+
+/* TODO: Style for input box with invalid input */
+.dropdown .input-box-input:invalid {
+  border: 1px solid #faa;
 }
 
 /* Focus style for input-box-input */
@@ -186,82 +186,6 @@
 .dropdown .input-box-save:not(:disabled):hover {
   background-color: #0056b3;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Style for combobox-container */
-.dropdown .combobox-container {
-  display: flex;
-  flex-direction: column;
-  width: 98%;
-}
-
-/* Style for combobox-label */
-.dropdown .combobox-label {
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: var(--fg-alt-color);
-}
-
-/* Style for combobox-wrapper */
-.dropdown .combobox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: relative;
-}
-
-/* Style for combobox-input */
-.dropdown .combobox-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Focus style for combobox-input */
-.dropdown .combobox-input:focus {
-  border-color: #007BFF;
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-/* Style for combobox-arrow */
-.dropdown .combobox-arrow {
-  position: absolute;
-  right: 10px;
-  pointer-events: none;
-  font-size: 12px;
-  color: var(--tint-color);
-}
-
-/* Style for combobox-dropdown */
-.dropdown .combobox-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: var(--bg-main-color);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  z-index: 5;
-}
-
-/* Style for combobox-option */
-.dropdown .combobox-option {
-  padding: 8px 12px;
-  cursor: pointer;
-  color: var(--fg-main-color);
-  transition: background-color 0.3s;
-}
-
-/* Hover style for combobox option */
-.dropdown .combobox-option:hover {
-  background-color: var(--bg-alt-color);
-  color: var(--fg-alt-color);
 }
 
 .dropdown .dropdown-heading,

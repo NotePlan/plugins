@@ -184,7 +184,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
   return (
     <>
-      {/* CSS for this part is in dashboardDialog.css */}
+      {/* CSS for this part is in DashboardDialog.css */}
       {/*----------- Dialog that can be shown for any task-based item -----------*/}
       <dialog
         className={`itemControlDialog ${animationClass}`}

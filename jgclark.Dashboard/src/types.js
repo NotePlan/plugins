@@ -270,7 +270,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'text' | 'separator' | 'heading' | 'header'
+export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' 
 
 export type TSettingItem = {
   type: TSettingItemType,

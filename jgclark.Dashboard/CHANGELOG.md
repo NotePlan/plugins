@@ -1,6 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.3] 2024-07-19
+- fixed filter dropdown menu placement issue
+- fixed Today section description when there are no open tasks left
+- added greyed-out 'save & close' button when opening settings dialog
+- added some constraints to number fields in the settings dialog
+- fixed tooltips hidden by window header
+- tidied up other z-index-ing
+
 ## [2.0.2] 2024-07-16
 - fixed 'All Overdue → Today' button not working (thanks for the report, @oldielajolla)
 - fix to auto-refresh
