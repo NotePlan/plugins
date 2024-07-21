@@ -12,7 +12,12 @@ type ComboBoxProps = {
 const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
-  const dropdownRef = useRef<?ElementRef<'div'>>(null)
+  const comboboxRef = useRef <? ElementRef < 'div' >> (null)
+  const comboboxInputRef = useRef <? ElementRef < 'input' >> (null)
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
 
   const toggleDropdown = () => setIsOpen(!isOpen)
   const handleOptionClick = (option: string) => {
@@ -22,15 +27,47 @@ const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps):
   }
 
   const handleClickOutside = (event: any) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
       setIsOpen(false)
     }
   }
+
+  // Scroll combobox fully into view
+  // FIXME(@dbw): please can you help? I've added this but it's not working.
+  const handleComboboxOpen = () => {
+    setTimeout(() => {
+      if (comboboxInputRef.current instanceof HTMLInputElement) {
+        comboboxInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        console.log('Found comboboxInputRef so added scroll handler')
+      } else {
+        console.log('Could not find comboboxInputRef')
+      }
+
+    }, 100) // Delay to account for rendering/animation
+  }
+
+  //----------------------------------------------------------------------
+  // Effects
+  //----------------------------------------------------------------------
 
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    const combobox = comboboxInputRef.current
+    if (combobox instanceof HTMLInputElement) {
+      console.log('adding event listener for comboboxInputRef')
+      combobox.addEventListener('click', handleComboboxOpen)
+    }
+    return () => {
+      if (combobox instanceof HTMLInputElement) {
+        console.log('removing event listener for comboboxInputRef')
+        combobox.removeEventListener('click', handleComboboxOpen)
+      }
     }
   }, [])
 
@@ -47,7 +84,7 @@ const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps):
         />
         <span className="combobox-arrow">&#9662;</span>
         {isOpen && (
-          <div className="combobox-dropdown" ref={dropdownRef} >
+          <div className="combobox-dropdown" ref={comboboxRef} >
             {options.map((option: string) => (
               <div
                 key={option}

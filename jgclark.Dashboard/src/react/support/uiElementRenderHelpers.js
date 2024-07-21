@@ -14,14 +14,14 @@ import InputBox from '../components/InputBox.jsx'
 import ComboBox from '../components/ComboBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import type { TSettingItem } from '../../types'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
 type RenderItemProps = {
-  item: TSettingItem,
   index: number,
+  item: TSettingItem,
   labelPosition: 'left' | 'right',
   handleFieldChange: (key: string, value: any) => void,
   handleSwitchChange?: (key: string, e: any) => void,
@@ -39,28 +39,30 @@ type RenderItemProps = {
  * @returns {React$Node} The rendered item.
  */
 export function renderItem({
-  item,
   index,
+  item,
   labelPosition,
   handleFieldChange,
-  handleSwitchChange = (key, e) => {},
-  handleInputChange = (key, e) => {},
-  handleComboChange = (key, e) => {},
-  handleSaveInput = (key, newValue) => {},
+  handleSwitchChange = (key, e) => { },
+  handleInputChange = (key, e) => { },
+  handleComboChange = (key, e) => { },
+  handleSaveInput = (key, newValue) => { },
   showSaveButton = true,
   inputRef, // Destructure inputRef
 }: RenderItemProps): React$Node {
   const element = () => {
+    const thisLabel = item.label || '?'
+    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
     switch (item.type) {
       case 'switch':
         return (
           <Switch
             key={`sw${index}`}
-            label={item.label || ''}
+            label={thisLabel}
             checked={item.checked || false}
             onChange={(e) => {
               if (item.key) {
-                logDebug('Switch', `onChange "${item.label || ''}" (${item.key || ''}) was clicked`, e.target.checked)
+                logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
                 item.key && handleFieldChange(item.key, e.target.checked)
                 item.key && handleSwitchChange(item.key, e)
               }
@@ -72,8 +74,27 @@ export function renderItem({
       case 'input':
         return (
           <InputBox
+            inputType="text"
             key={`ibx${index}`}
-            label={item.label || ''}
+            label={thisLabel}
+            value={item.value || ''}
+            onChange={(e) => {
+              item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
+              item.key && handleInputChange(item.key, e)
+            }}
+            onSave={(newValue) => {
+              item.key && handleFieldChange(item.key, newValue)
+              item.key && handleSaveInput(item.key, newValue)
+            }}
+            showSaveButton={showSaveButton}
+          />
+        )
+      case 'number':
+        return (
+          <InputBox
+            inputType="number"
+            key={`ibx${index}`}
+            label={thisLabel}
             value={item.value || ''}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
@@ -90,7 +111,7 @@ export function renderItem({
         return (
           <ComboBox
             key={`cmb${index}`}
-            label={item.label || ''}
+            label={thisLabel}
             options={item.options || []}
             value={item.value || ''}
             onChange={(option: string) => {
@@ -105,13 +126,13 @@ export function renderItem({
           <TextComponent
             key={`text${index}`}
             textType={item.textType || 'description'}
-            label={item.label || ''}
+            label={thisLabel}
           />
         )
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
-        return <div key={`hed${index}`} className="ui-heading">{item.label || ''}</div>
+        return <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
       default:
         return null
     }

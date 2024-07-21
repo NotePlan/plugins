@@ -221,8 +221,8 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
 
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/dashboard.css">
-      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/dashboardDialog.css"> --Ю
+      <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/Dashboard.css">
+      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/DashboardDialog.css"> --Ю
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->

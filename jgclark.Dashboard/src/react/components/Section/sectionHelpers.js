@@ -71,13 +71,13 @@ function getUseFirstButVisible(
   const useFirstButVisible = dashboardSettings ? 
     useFirst.filter((sectionCode) => {
       const section = sections.find((section) => section.sectionCode === sectionCode) 
-      if (section ){
+      if (section) {
         const isVisible = sectionIsVisible(section, dashboardSettings)
         // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
         return section && isVisible  
       } else {
         // TAG sections are a special case, so don't log an error if not found
-        sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
+        // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
         return false
       }
 }) 

@@ -82,14 +82,25 @@ The wrapper class has the name of the platform in the class
 - iOS
 - macOS
 - iPadOS
-...so we should be able to style things differently (e.g. `.iOS .header`)
+...so we can style things differently (e.g. `.iOS .header`), particularly where there are touch (not click) targets.
+
+However, in most cases it is more portable to check for screen height or width and then override that, as Dashboard can be displayed at iOS-type sizes on macOS and iPadOS as well.
+```css
+@media screen and (width <= 450px) {
+	.something-to-override {
+		padding-right: 1rem;
+	}
+}
+```
 
 ### Z-index CSS values for window elements
-- StatusIcon rollover MetaTooltips: 1001
-- Header: 1000
+<!-- - StatusIcon rollover MetaTooltips: 101 -->
+- modal-backdrop: 100
+- sticky banner (from css.plugins.css): 100
 - Dialog: 50
-- Tooltips (buttons with tooltips): 20
+- Tooltips (::after on buttons with tooltips): 20
+- Header: 10
 - Date Picker (.rdp): 10
-- combobox-dropdown: 5
-- Dropdown Menus (e.g. filter): 1
-- dropdown-content: 1
+- combobox-dropdown: 10
+- Dropdown Menus (e.g. filter): 5
+

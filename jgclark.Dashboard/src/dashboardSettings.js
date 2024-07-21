@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-10 for v2.0.1 by @jgclark
+// Last updated 2024-07-20 for v2.0.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TSettingItem } from "./types.js"
@@ -49,7 +49,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: "maxItemsToShowInSection",
     label: "Max number of items to show in a section?",
     description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
-    type: 'input',
+    type: 'number',
     default: "30",
   },
   {
@@ -63,7 +63,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: "newTaskSectionHeadingLevel",
     label: "Heading level for new Headings",
     description: "Heading level (1-5) to use when adding new headings in notes.",
-    type: 'input',
+    type: 'number',
     default: "2",
   },
   {
@@ -102,14 +102,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ["priority", "earliest", "most recent"],
     default: "priority",
   },
-  // {
-  //   key: "updateOverdueOnTrigger",
-  //   hidden: true,
-  //   label: "Update Overdue section when triggered?",
-  //   description: "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-  //   type: 'switch',
-  //   default: true,
-  // },
+  {
+    key: "lookBackDaysForOverdue",
+    label: "Number of days to look back for Overdue tasks",
+    description: "If set to any number > 0, will restrict Overdue tasks to just this last number of days.",
+    type: 'number',
+    default: "",
+  },
   {
     type: 'separator',
   },
@@ -146,6 +145,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: "Automatic Refresh"
   },
+  // TODO: remove this in v2.1
   {
     key: "autoAddTrigger",
     label: "Add dashboard auto-update trigger when dashboard opened?",
@@ -157,7 +157,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: "autoUpdateAfterIdleTime", // aka "autoRefresh"
     label: "Automatic Update frequency",
     description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
-    type: 'input',
+    type: 'number',
     default: "0",
   },
   {
@@ -198,6 +198,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
+    const thisKey = setting.key ?? ''
     switch (setting.type) {
       case 'separator':
         return {
@@ -212,34 +213,42 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'switch':
         return {
           label: setting.label || '',
-          key: setting.key,
+          key: thisKey,
           type: 'switch',
-          checked: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          checked: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
       case 'input':
         return {
           label: setting.label || '',
-          key: setting.key,
+          key: thisKey,
           type: 'input',
-          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
+        }
+      case 'number':
+        return {
+          label: setting.label || '',
+          key: thisKey,
+          type: 'number',
+          value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
       case 'combo':
         return {
           label: setting.label || '',
-          key: setting.key,
+          key: thisKey,
           type: 'combo',
-          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[thisKey] ?? setting.default,
           options: setting.options,
           description: setting.description,
         }
       default:
         return {
           label: setting.label || '',
-          key: setting.key || '',
+          key: thisKey || '',
           type: 'text',
-          value: allSettings[setting.key] ?? /* pluginSettings[setting.key] ?? */ setting.default,
+          value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
     }

@@ -1,9 +1,7 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2.7.2024 for v2.0.0-b17 by @jgclark */
+/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
 
-:root {
-	--minBreakPoint: 500px; /* FIXME: not working */
-	font-size: 16px; /* this works */
+:root {	font-size: 16px; /* this works */
 	/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
 	.w3-panel {
 		margin-top: 0px;
@@ -25,85 +23,16 @@ body {
 	width: 90vw;
 }
 
+/* TODO: Trying this as a way to unset the colour of icons */
+i {
+	color: unset;
+}
+
 /* 
  * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)
  */
 dialog::backdrop {
   background: rgba(0,0,0,0.4);
-}
-
-/* ------------------------------------------------------------------ */
-/* New settings for Grid-based layout */
-.header {
-	font-size: 0.92rem;
-	/* Define grid-template-areas for better control */
-	display: grid;
-	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated refresh counts empty dropdowns";
-	grid-template-columns: max-content max-content max-content 1fr min-content;
-	/* Vertical alignment */
-	align-items: baseline;
-	/* Space between grid items */
-	gap: 0.5rem;
-	/* Padding around the header content */
-	padding: 0.4rem;
-	background-color: var(--bg-sidebar-color);
-	/* Ensure the header uses the full width */
-	width: 100%;
-	position: sticky;
-	top: 0px;
-	z-index: 1000;
-	border-bottom: solid 1px var(--divider-color);
-}
-
-.lastFullRefresh {
-	/* Assign the area */
-	grid-area: lastUpdated;
-	/* This ensures that the content of these divs is also centered */
-	align-items: center;
-	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
-	width: 9rem;
-
-}
-/* Turn fixed width off on narrow screens */
-@media screen and (max-width: 450px) {
-	.lastFullRefresh {
-		width: unset;
-	}
-}
-
-.refresh {
-	/* Assign the area */
-	grid-area: refresh;
-}
-
-/* may use in future */
-.totalCounts {
-	/* Assign the area */
-	grid-area: counts;
-	align-self: unset; /* TEST: shouldn't be needed but otherwise lands up with 'end' */
-	
-	/* Make sure totalCounts only shows when necessary */
-	@media screen and (max-width: 500px) {
-		display: none;
-	}
-}
-
-.dropdownButtons {
-	/* Assign the area */
-	grid-area: dropdowns;
-	gap: 0.7rem;
-	justify-self: end;
-	/* Align to the right edge */
-	margin-right: 20px;
-
-}
-
-/* Widen button gaps for narrow screens (iOS) */
-@media screen and (width <= 450px) {
-	.dropdownButtons {
-		gap: 1.2rem !important;
-	}
 }
 
 /* unused */
@@ -123,11 +52,15 @@ dialog::backdrop {
 }
 
 /* Specific alignment fixes for icons inside buttons or links */
-.fa-regular,
-.fa-solid {
-	/* Centers icon within its container, vertically and horizontally */
-	align-self: center;
-	margin: auto;
+/* Inside a layer to make them lower priority than other  */
+@layer A {
+	.fa-regular,
+	.fa-solid {
+		/* Centers icon within its container, vertically and horizontally */
+		align-self: center;
+		margin: auto;
+		color: var(--tint-color);
+	}
 }
 
 .section {
@@ -179,38 +112,8 @@ dialog::backdrop {
 	font-size: 0.9rem;
 	/* give breathing room on right only */
 	margin: 0 0.5rem 0 0;
-	padding-top: 0px;
-	align-self: self-end;
-}
-
-/* If rather narrow, slide [items] slides under [info] */
-/* This needs to come after the earlier definitions to take priority */
-@media screen and (width <=600px) {
-	.section {
-		grid-template-columns: 1fr;
-	}
-
-	.sectionInfo {
-		border-top: solid 0.5px var(--tint-color);
-		border-bottom: solid 1px var(--divider-color);
-		display: grid;
-		/* now make this area grid column-based not row-based */
-		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 0.1rem;
-		padding-top: 0.3rem;
-		padding-bottom: 0.3rem;
-		/* put all items essentially on a baseline */
-		align-items: end;
-	}
-
-	.sectionName {
-		/* turn off padding under section name */
-		padding-top: 0.1rem;
-		padding-bottom: 0rem;
-		padding-left: 1px;
-		/* some padding to right */
-		padding-right: 0.5rem;
-	}
+	padding-top: 0.2rem;
+	/* align-self: self-end; */
 }
 
 /* turn on bottom border of last item (from theme CSS) */
@@ -237,7 +140,7 @@ dialog::backdrop {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
 	display: grid;
-	grid-template-columns: [icon] 1.2rem [item-details] auto;
+	grid-template-columns: [icon] 1.1rem [item-details] auto;
 	/* was: minmax(20rem, 30rem); */
 	/* no bottom padding */
 	padding: 3px 4px 0px 2px;
@@ -261,9 +164,10 @@ dialog::backdrop {
 /* General item icon details */
 /* Need to override some CSS that comes in the theme */
 .itemIcon {
+	color: var(--item-icon-color);
 	margin-bottom: unset !important;
 	line-height: unset !important;
-	font-size: 1.05rem !important;
+	font-size: 1.0rem  !important;
 	/* font-size: unset !important; */
 	font-weight: 400;
 	/* position this horizontally centred; vertically at start */
@@ -274,14 +178,65 @@ dialog::backdrop {
 	cursor: pointer;
 }
 
+/* The actual item's details (was col4) */
+.sectionItem {
+	/* reduce vertical spacing and line below */
+	font-size: 1.0rem;
+	font-weight: 400;
+	padding: 1px 4px;
+	border-bottom: 0px;
+	break-inside: avoid;
+	line-height: 1.2rem;
+}
+
+/* If rather narrow, slide [items] under [info] */
+/* This needs to come after the earlier definitions to take priority */
+@media screen and (width <=600px) {
+	.section {
+		grid-template-columns: 1fr;
+	}
+
+	.sectionInfo {
+		border-top: solid 0.5px var(--tint-color);
+		border-bottom: solid 1px var(--divider-color);
+		display: grid;
+		/* now make this area grid column-based not row-based */
+		grid-template-columns: max-content max-content auto;
+		grid-column-gap: 0.1rem;
+		padding-top: 0.4rem;
+		/* padding-bottom: 0.3rem; */
+		/* put all items essentially on a baseline */
+		/* align-items: end; */
+		align-items: center;
+	}
+
+	.sectionName {
+		/* turn off padding under section name */
+		padding-top: 0.1rem;
+		padding-bottom: 0rem;
+		padding-left: 1px;
+		/* some padding to right */
+		padding-right: 0.5rem;
+	}
+
+	.sectionItemRow {
+		padding: 3px 4px 0px 4px;
+		column-gap: 0px;
+	}
+}
+
+/* ------------------------------------------------------------------ */
+
 /* Specific item icon details */
 /* Need to override some CSS that comes in the theme */
+/* TODO: fix this being too large */
 .projectIcon {
 	margin-bottom: unset !important;
 	line-height: unset !important;
-	font-size: 0.9rem !important;
-	height: 0.9rem;
-	width: 0.9rem;
+	font-size: 0.7rem !important;
+	height: 0.7rem;
+	width: 0.7rem;
+	line-height: 1.1rem;
 	align-self: center;
 	justify-self: center;
 }
@@ -298,27 +253,14 @@ dialog::backdrop {
 	opacity: 0.5;
 }
 
-/* The actual item's details (was col4) */
-.sectionItem {
-	/* reduce vertical spacing and line below */
-	font-size: 1.0rem;
-	font-weight: 400;
-	padding: 1px 4px;
-	border-bottom: 0px;
-	break-inside: avoid;
-	line-height: 1.2rem;
-}
-
 /* --------------------------------------------------------------- */
 
+/* All buttons, but at lower priority */
 @layer A {
-
-	/* all buttons, but at lower priority */
 	button,
 	input {
 		color: var(--fg-sidebar-color);
 		background-color: var(--bg-sidebar-color);
-		/* border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7); */
 		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
@@ -342,6 +284,11 @@ dialog::backdrop {
 	/* max-height: 1.3rem; */
 }
 
+/* fa-icons in HA Button */
+.HAButton i {
+	color: var(--tint-color);
+}
+
 /* For buttons in section info areas */
 .PCButton {
 	font-weight: 500;
@@ -361,6 +308,11 @@ dialog::backdrop {
 	line-height: 1.2rem;
 }
 
+/* fa-icons in HA Button */
+.PCButton i {
+	color: var(--tint-color);
+}
+
 /* Set link text to plain (again).  Note: now internal calls used this is removed */
 /* .PCButton a {
 	font-size: 0.85rem;
@@ -377,11 +329,11 @@ button,
 
 /* --------------------------------------------------------------- */
 
-/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
 	/* float above everything, including the header */
-	z-index: 20;
+	/* z-index: 20; */
 }
 
 .tooltip::before,
@@ -423,15 +375,16 @@ button,
 .tooltip:hover::after {
 	/* opacity: 1; */
 	display: block;
+	z-index: 20;
 }
 
 /* ------------------------------------------------------------------ */
 
-.commentLine {
-	/* show as italic */
+/* show as italic. Note: now unused */
+/* .commentLine {
 	font-weight: 400;
 	font-style: italic;
-}
+} */
 
 .clickTarget {
 	/* change cursor for icons which can be clicked on */
@@ -488,7 +441,7 @@ button,
 	padding: 0px 3px;
 }
 
-/* add space after icons: 'i.fa-solid, i.fa-light, i.fa-regular { padding-right: 6px; }',  */
+/* Colour the note titles */
 .noteTitle {
 	/* add "font-weight: 700;" to make noteTitles bold */
 	color: var(--tint-color) !important;
@@ -507,9 +460,9 @@ button,
 }
 
 .fadeOutAndHide {
+	/* Start from fully visible */
 	transition: opacity 500ms ease-out;
 	opacity: 0;
-	/* Start from fully visible */
 }
 
 /* Some headings specified from measuring the colour of NP sidebar elements */
@@ -609,7 +562,7 @@ input.apple-switch:checked:after {
 
 /* Circular progress bar for Project items */
 .CircularProgressbar-path {
-  stroke: var(--tint-color) !important;
+  stroke: var(--item-icon-color) !important;
 	stroke-linecap: butt !important;
 }
 .CircularProgressbar-trail {
@@ -624,12 +577,6 @@ input.apple-switch:checked:after {
 
 /* Header waiting spinner */
 .fa-spin {
-	color: var(--tint-color);
+	/* color: var(--tint-color); */
 	animation: spin 1s infinite linear;
-}
-
-/* MESSAGE_BANNER w3.css overrides */
-.iOS .header {
-    padding-right: 10px;
-    box-sizing: border-box; /* Ensure the padding is included in the element's total width */
 }

@@ -73,7 +73,7 @@ function ProjectItem({ item }: Props): React.Node {
 
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div>
+      <div className="ProjectIcon">
         <ProjectIcon item={item} />
       </div>
 

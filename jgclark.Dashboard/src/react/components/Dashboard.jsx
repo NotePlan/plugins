@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-19 for v2.0.3 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
-import '../css/dashboard.css'
+import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -53,8 +53,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   useWatchForResizes(sendActionToPlugin)
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
-  // FIXME:
-  const shortDelayTimerIsOn = true // logSettings._logLevel !== "DEV"
+  const shortDelayTimerIsOn = logSettings._logLevel !== "DEV"
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
 
   //----------------------------------------------------------------------
@@ -92,10 +91,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   logDebug('Dashboard', `sections after sort length: ${sections.length}`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
-
+  // DBW says the 98 was to avoid scrollbars. TEST: removing
   const dashboardContainerStyle = {
-    maxWidth: '98vw',
-    width: '98vw',
+    maxWidth: '100vw',  // '98vw',
+    width: '100vw', // '98vw',
   }
 
   //----------------------------------------------------------------------
@@ -141,7 +140,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }, [])
 
   // Change the title when the section data changes
-  // TODO: this doesn't work and I'm not sure it ever can
+  // TODO(@dbw): this doesn't work and I'm not sure it ever can
   useEffect(() => {
     const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, dashboardSettings)
     const windowTitle = `Dashboard - ${totalUnduplicatedSectionItems} items`
@@ -153,28 +152,28 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // when reactSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
-  useEffect(() => {
-    if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
-      const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
-      const strReactSettings = JSON.stringify(trimmedReactSettings)
-      //FIXME: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
-      // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
-    }
-  }, [reactSettings])
+  // TEST: removing effect according to @dbw comment below
+  // useEffect(() => {
+  //   if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
+  //     const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
+  //     const strReactSettings = JSON.stringify(trimmedReactSettings)
+  //     // TODO: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
+  //     // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
+  //   }
+  // }, [reactSettings])
 
   // when dashboardSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
-  // FIXME: .lastChange doesn't sound like a setting, but could be in pluginData?
   useEffect(() => {
     const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
     if (settingsNeedFirstTimeMigration || dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0 && dashboardSettings.lastChange[0] !== '_') {
-      settingsNeedFirstTimeMigration && logDebug('Dashboard', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
+      settingsNeedFirstTimeMigration && logDebug('Dashboard(component)', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
       logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
       const sharedSets = { ...dashboardSettings }
       if (settingsNeedFirstTimeMigration) { 
-        sharedSets.settingsMigrated = true //FIXME: (@jgclark) these two fields should be added to your settings typedef
-        sharedSets.lastChange = '_Saving first time migration'
+        sharedSets.settingsMigrated = true
+        sharedSets.lastChange = 'Saving first time migration'
       }
       sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
@@ -273,14 +272,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   if (sections.length === 0) {
     return <div className="dashboard">Error: No Sections to display ...</div>
   }
-  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0") > 0 //FIXME: (@jgclark) needs adding to the typedef
-  //autoRefresh
-  // logDebug('Dashboard', `setting typeof ${typeof dashboardSettings?.autoUpdateAfterIdleTime} ${dashboardSettings?.autoUpdateAfterIdleTime ?? '-'} / ${parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0")} / ${String(autoUpdateEnabled)}`)
+  const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0") > 0
+
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
       {autoUpdateEnabled && (
         <IdleTimer
-          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime?.length ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
+          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
           onIdleTimeout={autoRefresh}
         />
       )}

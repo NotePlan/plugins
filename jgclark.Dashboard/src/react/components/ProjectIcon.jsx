@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's Icon
 // Called by ProjectItem + DialogForProjectItems components
-// Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
+// Last updated 2024-07-14 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
@@ -30,7 +30,7 @@ function ProjectIcon({ item }: Props): React.Node {
         strokeLinecap: "butt",
         // backgroundColor: "var(--bg-sidebar-color)",
         backgroundColor: "transparent",
-        pathColor: "var(--tint-color)",
+        pathColor: "var(--item-icon-color)",
       })}
     >
       {/* foreground path */}
@@ -41,14 +41,15 @@ function ProjectIcon({ item }: Props): React.Node {
           strokeLinecap: "butt",
           // backgroundColor: "var(--bg-sidebar-color)",
           backgroundColor: "transparent",
-          pathColor: "var(--tint-color)",
+          pathColor: "var(--item-icon-color)",
         })}
       ></CircularProgressbar>
     </CircularProgressbarWithChildren>
   )
 
   return (
-    <span className="projectIcon">
+    <span>
+      {/* <span className="projectIcon"> */}
       {projectIcon}
     </span>
   )

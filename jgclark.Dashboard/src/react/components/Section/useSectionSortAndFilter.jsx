@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Last updated 2024-07-07 for v2.0.1 by @jgclark
+// Last updated 2024-07-16 for v2.0.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -11,7 +11,7 @@ import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
   itemsToShow: Array<TSectionItem>,
-  filteredOut: number,
+  numFilteredOut: number,
   limitApplied: boolean,
 };
 
@@ -22,7 +22,7 @@ const useSectionSortAndFilter = (
 ): UseSectionSortAndFilter => {
   const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
   const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
-  const [filteredOut, setFilteredOut] = useState<number>(0)
+  const [numFilteredOut, setFilteredOut] = useState < number > (0)
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
   useEffect(() => {
@@ -70,15 +70,15 @@ const useSectionSortAndFilter = (
 
     const itemsToShow = (limitToApply > 0) ? filteredItems.slice(0, limitToApply) : filteredItems.slice()
 
-    const filteredOut = items.length ? items.length - itemsToShow.length : items.length - itemsToShow.length
+    const numFilteredOut = items.length ? items.length - itemsToShow.length : items.length - itemsToShow.length
     const limitApplied = (items.length ?? 0) > itemsToShow.length
 
-    if (filteredOut > 0) {
+    if (numFilteredOut > 0) {
       itemsToShow.push({
         ID: `${section.ID}-Filter`,
         itemType: 'filterIndicator',
         para: {
-          content: `There ${filteredOut >= 2 ? "are" : "is"} also ${String(filteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${filteredOut >= 2 ? "items" : "item"} currently hidden`,
+          content: `There ${numFilteredOut >= 2 ? "are" : "is"} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOut >= 2 ? "items" : "item"} currently hidden`,
           filename: '',
           type: 'text',
           noteType: 'Notes',
@@ -90,11 +90,11 @@ const useSectionSortAndFilter = (
 
     setFilteredItems(filteredItems)
     setItemsToShow(itemsToShow)
-    setFilteredOut(filteredOut)
+    setFilteredOut(numFilteredOut)
     setLimitApplied(limitApplied)
   }, [section, items, dashboardSettings])
 
-  return { filteredItems, itemsToShow, filteredOut, limitApplied }
+  return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
 }
 
 export default useSectionSortAndFilter

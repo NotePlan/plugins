@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 30.6.2024 for v2.0.0-b17 by @jgclark
+// Last updated 2024-07-16 for v2.0.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1174,8 +1174,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
   }
 
   // Return section details, even if no items found
-  const tagSectionDescription =
-    totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} item{s} ordered by ${config.overdueSortOrder}`
+  // const tagSectionDescription =
+  // totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} item{s} ordered by ${config.overdueSortOrder}`
+  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
   const section: TSection = {
     ID: sectionNum,
     name: sectionDetail.sectionName,
@@ -1229,7 +1230,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
             filename: filename,
             title: `Overdue Test Note ${c % 10}`,
             type: type,
-            changedDate: `???`,
+            changedDate: fakeDateMom.toDate(),
           },
         })
       }
@@ -1262,16 +1263,14 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       const sortOrder =
         config.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : config.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
-      logDebug('getOverdueSectionData', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
+      logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
       // Apply limit to set of ordered results
-      // Note: now apply 2x limit, because we also do filtering in the Section component
-      const overdueTaskParasLimited = totalOverdue > maxInSection * 2 ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
+      // Note: there is also filtering in the Section component
+      const overdueTaskParasLimited = totalOverdue > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
       logDebug('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        // const thisFilename = p.filename ?? ''
-        // $FlowIgnore[incompatible-call]
         items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
@@ -1279,7 +1278,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `{count} of {totalCount} tasks ordered by ${config.overdueSortOrder}` : `{count} task{s} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `{count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNum,
