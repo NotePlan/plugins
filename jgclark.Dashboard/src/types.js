@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -17,6 +17,9 @@ export type TNotePlanSettings = {
 }
 
 export type TDashboardSettings = {
+  FFlag_Perspectives: boolean,
+  activePerspectiveName: string,
+  perspectiveDefs: Array<TDashboardPerspective>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
@@ -63,6 +66,14 @@ export type TDashboardPluginSettings = {
   ...TDashboardLoggingConfig,
   pluginID: string,
   reactSettings: string,
+}
+
+export type TPerspectiveDef = {
+  name: string,
+  includedFolders: string,
+  excludedFolders: string,
+  includedTags: string,
+  excludedTags: string
 }
 
 //-----------------------------------------------------------------------------
@@ -270,7 +281,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' 
+export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'perspective' 
 
 export type TSettingItem = {
   type: TSettingItemType,

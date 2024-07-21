@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-05-26 for v2.0.0 by @dwertheimer
+// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,7 +13,8 @@ import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
 import ComboBox from '../components/ComboBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
-import type { TSettingItem } from '../../types'
+import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
+import type { TSettingItem, TPerspectiveDef } from '../../types'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -53,6 +54,7 @@ export function renderItem({
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
+
     switch (item.type) {
       case 'switch':
         return (
@@ -119,6 +121,13 @@ export function renderItem({
               item.key && handleComboChange(item.key, { target: { value: option } })
             }}
             inputRef={inputRef} // Pass inputRef
+          />
+        )
+      case 'perspective':
+        return (
+          <PerspectiveSettings
+            heading={thisLabel}
+            label={item.description ?? ''}
           />
         )
       case 'text':

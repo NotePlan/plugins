@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-20 for v2.0.3 by @jgclark
+// Last updated 2024-07-20 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TSettingItem } from "./types.js"
@@ -24,6 +24,42 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 export const dashboardSettingDefs: Array<TSettingItem> = [
+  // TODO(later): include at v2.1.0 release
+  // {
+  //   type: 'heading',
+  //   label: "Perspectives",
+  // },
+  {
+    key: "perspectives",
+    label: "Define Perspectives",
+    description: "A 'Perspective' defines a set of filters to be applied to all sections in the Dashboard view.",
+    type: 'perspective',
+    default:
+      [
+        {
+          name: "Home",
+          includedFolders: "Home, NotePlan",
+          excludedFolders: "",
+          includedTags: "",
+          excludedTags: "",
+        },
+        {
+          name: "Work",
+          includedFolders: "CCC, Ministry",
+          excludedFolders: "",
+          includedTags: "",
+          excludedTags: "",
+        },
+      ],
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "General",
+  },
+
   {
     key: "rescheduleNotMove",
     label: "Reschedule items in place, rather than move?",
@@ -130,28 +166,12 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: "",
   },
-  // {
-  //   key: "updateTagMentionsOnTrigger",
-  //   hidden: true,
-  //   label: "Update items in this section when triggered?",
-  //   description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-  //   type: 'switch',
-  //   default: true,
-  // },
   {
     type: 'separator',
   },
   {
     type: 'heading',
     label: "Automatic Refresh"
-  },
-  // TODO: remove this in v2.1
-  {
-    key: "autoAddTrigger",
-    label: "Add dashboard auto-update trigger when dashboard opened?",
-    description: "Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened. This will ensure an immediate Dashboard refresh is triggered when the note is changed.",
-    type: 'switch',
-    default: false,
   },
   {
     key: "autoUpdateAfterIdleTime", // aka "autoRefresh"
