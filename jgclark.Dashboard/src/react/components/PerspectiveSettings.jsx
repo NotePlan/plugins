@@ -10,8 +10,8 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 // import type { TSettingItem, TPerspectiveDef } from '../../types'
-import { renderItem } from '../support/uiElementRenderHelpers'
 import InputBox from '../components/InputBox.jsx'
+import TextComponent from '../components/TextComponent.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 
@@ -44,9 +44,10 @@ const PerspectiveSettings = ({
     // only continue if we have this Feature Flag turned on FIXME: has no effect
     if (!dashboardSettings.FFlag_Perspectives) return
 
-    const perspectiveDefs = dashboardSettings.perspectiveDefs
+    const perspectiveDefs = dashboardSettings?.perspectives || []
     clo(perspectiveDefs, 'perspectiveDefs') // FIXME: nothing shown
-    const activePerspectiveName = dashboardSettings.activePerspectiveName
+    //FIXME: @jgclark: where are you setting the default activePerspectiveName?
+    const activePerspectiveName = dashboardSettings.activePerspectiveName || perspectiveDefs[0]?.name || '' //FIXME: @jgclark: think about what you want this to do if you don't have an activePerspectiveName set
     logDebug('PerspectiveSettings', `active perspective: ${activePerspectiveName}`) // FIXME: nothing shown
 
     //----------------------------------------------------------------------
@@ -155,14 +156,11 @@ const PerspectiveSettings = ({
     return (
       <>
         {/* Add Heading and Description at start of Perspective section */}
-        {renderItem({
-          type: "heading",
-          label: heading
-        })}
-        {renderItem({
-          type: "text",
-          label: label
-        })}
+        <div className="ui-heading">{heading}</div>
+        <InputBox
+            textType={'description'}
+            label={label}
+          />
 
         <div className="ui-perspective-container">
           {/* Then for each Perspective Definition ... */}
@@ -174,6 +172,10 @@ const PerspectiveSettings = ({
               <InputBox
                 inputType="text"
                 label="Name"
+                // FIXME: (@jgclark) There is no "key" field in perspectives as defined in dashboardSettings, there's a "name"
+                // so persp.key is going to be undefined
+                // also note that `updatedSettings[persp.key]` is not going to work because perspectives is an array of objects
+                // and persp.name (or persp.key if you create one) is a string
                 value={`${(typeof persp.key === "undefined") ? '' :
                   updatedSettings[persp.key]}`}
                 onSave={(newValue) => {
@@ -205,10 +207,7 @@ const PerspectiveSettings = ({
           ))}
 
           {/* Finally add a Separator */}
-          {renderItem({
-            type: "separator",
-            label: ""
-          })}
+          <hr className={`ui-separator`} />
 
         </div>
       </>

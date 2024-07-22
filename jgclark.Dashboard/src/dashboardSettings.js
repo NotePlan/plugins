@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import type { TSettingItem } from "./types.js"
-import { clo } from '@helpers/react/reactDev'
+import { clo,clof } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard
@@ -23,6 +23,11 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
+// This section is an array that describes the order and type of the individual settings
+// The current value for each TYPE ofsetting (or the fallback) is set later in this file in createDashboardSettingsItems()
+// So to add a new setting of an existing type (e.g. heading, input, switch), just add it to this array at the top of this file
+// But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
+// So it knows how to render it and set the default value
 export const dashboardSettingDefs: Array<TSettingItem> = [
   // TODO(later): include at v2.1.0 release
   // {
@@ -218,6 +223,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
+    clof(setting, 'createDashboardSettingsItems: setting',true)
     const thisKey = setting.key ?? ''
     switch (setting.type) {
       case 'separator':
@@ -261,6 +267,14 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'combo',
           value: allSettings[thisKey] ?? setting.default,
           options: setting.options,
+          description: setting.description,
+        }
+      case 'perspective':
+        return {
+          label: setting.label || '',
+          key: thisKey,
+          type: 'perspective',
+          value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
       default:
