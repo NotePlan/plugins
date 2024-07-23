@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Perspectives settings
 // Called by DashboardSettings component.
-// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-23 for v2.1.0.a1 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -14,6 +14,7 @@ import InputBox from '../components/InputBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
+import '../css/PerspectiveSettings.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -34,21 +35,20 @@ const PerspectiveSettings = ({
   label,
 }: PerspectiveSettingsProps): React$Node => {
   try {
-    logDebug('PerspectiveSettings', `Starting`) // FIXME: nothing shown
+    logDebug('PerspectiveSettings', `Starting`) // HELP: nothing shown
 
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
     const { dashboardSettings, setDashboardSettings } = useAppContext()
 
-    // only continue if we have this Feature Flag turned on FIXME: has no effect
+    // only continue if we have this Feature Flag turned on HELP: has no effect
     if (!dashboardSettings.FFlag_Perspectives) return
 
     const perspectiveDefs = dashboardSettings?.perspectives || []
-    clo(perspectiveDefs, 'perspectiveDefs') // FIXME: nothing shown
-    //FIXME: @jgclark: where are you setting the default activePerspectiveName?
-    const activePerspectiveName = dashboardSettings.activePerspectiveName || perspectiveDefs[0]?.name || '' //FIXME: @jgclark: think about what you want this to do if you don't have an activePerspectiveName set
-    logDebug('PerspectiveSettings', `active perspective: ${activePerspectiveName}`) // FIXME: nothing shown
+    clo(perspectiveDefs, 'perspectiveDefs') // HELP: nothing shown
+    const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
+    logDebug('PerspectiveSettings', `active perspective: ${activePerspectiveName}`) // HELP: nothing shown
 
     //----------------------------------------------------------------------
     // State
@@ -156,23 +156,25 @@ const PerspectiveSettings = ({
     return (
       <>
         {/* Add Heading and Description at start of Perspective section */}
-        <div className="ui-heading">{heading}</div>
-        <InputBox
-            textType={'description'}
-            label={label}
-          />
+        {/* <div className="ui-heading">{heading}</div> */}
+        <TextComponent
+          textType={'header'}
+          label={heading}
+        />
+        <TextComponent
+          textType={'description'}
+          label={"A 'Perspective' defines a set of item filters to be applied to all sections in the Dashboard view. This is a just a limited proof of concept for now."}
+        />
 
         <div className="ui-perspective-container">
           {/* Then for each Perspective Definition ... */}
           {perspectiveDefs.map((persp, index) => (
             <div key={`persp${index}`}>
-
-              {/* For now just show Name and Included Folders */}
-              <div>Perspective {`${index + 1}`}:</div>
+              {/* ... start with the name input box */}
               <InputBox
                 inputType="text"
-                label="Name"
-                // FIXME: (@jgclark) There is no "key" field in perspectives as defined in dashboardSettings, there's a "name"
+                label={`Perspective Name (${index + 1})`}
+                // HELP: (@jgclark) There is no "key" field in perspectives as defined in dashboardSettings, there's a "name"
                 // so persp.key is going to be undefined
                 // also note that `updatedSettings[persp.key]` is not going to work because perspectives is an array of objects
                 // and persp.name (or persp.key if you create one) is a string
@@ -187,29 +189,34 @@ const PerspectiveSettings = ({
               persp.key && handleInputChange(persp.key, e)
                 }}
               />
-              <InputBox
-                inputType="text"
-                label="Included folders"
-                value={`${(typeof persp.key === "undefined") ? '' :
-                  typeof updatedSettings[persp.key] === 'boolean'
-                    ? ''
-                    : updatedSettings[persp.key]}`}
-                onSave={(newValue) => {
-                  //   persp.key && handleFieldChange(persp.key, newValue)
-                  //   persp.key && handleSaveInput(persp.key, newValue)
-                }}
-                onChange={(e) => {
-                  persp.key && handleFieldChange(persp.key, (e.currentTarget: HTMLInputElement).value)
-              persp.key && handleInputChange(persp.key, e)
-                }}
-              />
+              {/* For now just show Included Folders */}
+              <div className="perspectiveSettingsBlock">
+                <InputBox
+                  inputType="text"
+                  label="Included folders"
+                  value={`${(typeof persp.key === "undefined") ? '' :
+                    typeof updatedSettings[persp.key] === 'boolean'
+                      ? ''
+                      : updatedSettings[persp.key]}`}
+                  onSave={(newValue) => {
+                    //   persp.key && handleFieldChange(persp.key, newValue)
+                    //   persp.key && handleSaveInput(persp.key, newValue)
+                  }}
+                  onChange={(e) => {
+                    persp.key && handleFieldChange(persp.key, (e.currentTarget: HTMLInputElement).value)
+                persp.key && handleInputChange(persp.key, e)
+                  }}
+                />
+              </div>
             </div>
           ))}
-
-          {/* Finally add a Separator */}
-          <hr className={`ui-separator`} />
-
         </div>
+
+        {/* Finally add a Separator */}
+        <TextComponent
+          textType={'separator'}
+          label=''
+        />
       </>
     )
   } catch (error) {
@@ -217,5 +224,5 @@ const PerspectiveSettings = ({
   }
 }
 
-// FIXME: there's a flow error here which I don't understand ("Duplicate export for default")
+// HELP: there's a flow error here which I don't understand ("Duplicate export for default")
 export default PerspectiveSettings

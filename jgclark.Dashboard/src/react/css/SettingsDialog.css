@@ -221,13 +221,6 @@
     /* width: 98%; */
 }
 
-/* Style for combobox-label */
-.settings-dialog .combobox-label {
-    margin-bottom: 0.3rem;
-    font-weight: bold;
-    color: var(--fg-alt-color);
-}
-
 /* Style for combobox-wrapper */
 .settings-dialog .combobox-wrapper {
     display: flex;
@@ -235,6 +228,13 @@
     gap: 10px;
     position: relative;
     width: fit-content;
+}
+
+/* Style for combobox-label */
+.settings-dialog .combobox-label {
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+    color: var(--fg-alt-color);
 }
 
 /* Style for combobox-input */

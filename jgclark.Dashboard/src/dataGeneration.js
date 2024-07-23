@@ -1,17 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
-import type {
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails
-} from './types'
 import { allSectionCodes } from "./constants.js"
+import type {
+  TDashboardSettings,
+  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
+} from './types'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
@@ -21,7 +22,8 @@ import {
   getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
   // getSharedSettings,
-  makeDashboardParas, type TDashboardSettings
+  isFilenameInFolderAllowedInCurrentPerspective,
+  makeDashboardParas,
 } from './dashboardHelpers'
 import {
   openTodayItems,
@@ -50,7 +52,6 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-// import { displayTitle } from '@helpers/general'
 import {
   // getTimeRangeFromTimeBlockString,
   // localeDateStr,
@@ -1372,11 +1373,15 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
 
     if (nextNotesToReview) {
       nextNotesToReview.map((n) => {
-        const thisID = `${sectionNum}-${itemCount}`
-        const thisFilename = n.filename ?? '<filename not found>'
+        const thisFilename = n.filename
+
+        // // If we have a Perspective set, check if this is wanted
+        // if (!config.FFlag_Perspectives || isFilenameInFolderAllowedInCurrentPerspective(thisFilename, config)) {
+
         // Make a project instance for this note, as a quick way of getting its metadata
         // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
         const projectInstance = new Project(n, '', false)
+        const thisID = `${sectionNum}-${itemCount}`
         items.push({
           ID: thisID,
           itemType: 'project',
@@ -1389,6 +1394,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
           },
         })
         itemCount++
+        // }
       })
     } else {
       logDebug('getProjectSectionData', `looked but found no notes to review`)
@@ -1422,7 +1428,6 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
   return section
 }
-
 
 /**
  * Finds all items within the provided sections that match the given field/value pairs.

@@ -687,7 +687,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
- * @returns {Array<TNote>} - array of notes that are not in excluded folders
+ * @returns {Array<TParagraph>} - array of paragraphs that are not in excluded folders
  */
 export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {

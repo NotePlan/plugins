@@ -1,7 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Filters and sorts items to be shown in a Section
+// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -26,15 +27,17 @@ const useSectionSortAndFilter = (
   const [limitApplied, setLimitApplied] = useState<boolean>(false)
 
   useEffect(() => {
-    const filterPriorityItems = dashboardSettings?.filterPriorityItems ?? false
-    const limitToApply = dashboardSettings?.maxItemsToShowInSection ?? 20
+    const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
+    const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
+
+    // Find highest priority seen
     let maxPrioritySeen = 0
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
         maxPrioritySeen = i.para.priority
       }
     }
-
+    // and then filter lower-priority items (if wanted)
     const filteredItems = filterPriorityItems ? items.filter(f => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
 

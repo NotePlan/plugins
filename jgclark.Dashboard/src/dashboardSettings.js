@@ -1,15 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-20 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-23 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TSettingItem } from "./types.js"
 import { clo,clof } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
-// Note that filters are automatically created for each section in the dashboard
-// The filters below are non-section switches that display in the filters menu
+// Note that filters are automatically created for each section in the dashboard.
+// The filters below are non-section switches that display in the filters menu.
 export const dashboardFilterDefs: Array<TSettingItem> = [
   { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
@@ -24,41 +24,34 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 ]
 
 // This section is an array that describes the order and type of the individual settings
-// The current value for each TYPE ofsetting (or the fallback) is set later in this file in createDashboardSettingsItems()
+// The current value for each TYPE of setting (or the fallback) is set later in this file in createDashboardSettingsItems()
 // So to add a new setting of an existing type (e.g. heading, input, switch), just add it to this array at the top of this file
 // But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
-// So it knows how to render it and set the default value
+// So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
-  // TODO(later): include at v2.1.0 release
-  // {
-  //   type: 'heading',
-  //   label: "Perspectives",
-  // },
   {
     key: "perspectives",
     label: "Define Perspectives",
-    description: "A 'Perspective' defines a set of filters to be applied to all sections in the Dashboard view.",
     type: 'perspective',
     default:
       [
         {
           name: "Home",
+          includeCalendarNotes: true,
           includedFolders: "Home, NotePlan",
           excludedFolders: "",
           includedTags: "",
-          excludedTags: "",
+          excludedTags: ""
         },
         {
           name: "Work",
+          includeCalendarNotes: true,
           includedFolders: "CCC, Ministry",
           excludedFolders: "",
           includedTags: "",
-          excludedTags: "",
-        },
+          excludedTags: ""
+        }
       ],
-  },
-  {
-    type: 'separator',
   },
   {
     type: 'heading',
@@ -223,7 +216,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
 ]
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
-    clof(setting, 'createDashboardSettingsItems: setting',true)
+    // clof(setting, 'createDashboardSettingsItems: setting',true)
     const thisKey = setting.key ?? ''
     switch (setting.type) {
       case 'separator':

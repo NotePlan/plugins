@@ -19,7 +19,7 @@ export type TNotePlanSettings = {
 export type TDashboardSettings = {
   FFlag_Perspectives: boolean,
   activePerspectiveName: string,
-  perspectiveDefs: Array<TDashboardPerspective>,
+  perspectiveDefs: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
@@ -70,6 +70,7 @@ export type TDashboardPluginSettings = {
 
 export type TPerspectiveDef = {
   name: string,
+  includeCalendarNotes: boolean,
   includedFolders: string,
   excludedFolders: string,
   includedTags: string,

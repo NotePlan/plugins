@@ -25,35 +25,68 @@ describe('helpers/folders', () => {
    * - {boolean} excludeSpecialFolders?
    */
   describe('getFoldersMatching tests', () => {
-    test('no inclusions -> error', () => {
+    test('no inclusions or exclusions -> error', () => {
       const inclusions = []
       const folders = Object.keys(f.getFoldersMatching(inclusions, true))
       expect(folders.length).toBe(0)
     })
-    test('just / inclusions -> 1', () => {
-      const inclusions = ['/']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(1)
+    describe('just inclusions', () => {
+      test('just / inclusion -> 1', () => {
+        const inclusions = ['/']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        expect(folders.length).toBe(1)
+      })
+      test('CCC inclusion no @specials -> 3 left', () => {
+        const inclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        expect(folders.length).toBe(3)
+      })
+      test('CCC Areas, / inclusion no @specials -> 3 left', () => {
+        const inclusions = ['CCC Areas', '/']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        expect(folders.length).toBe(3)
+      })
+      test('CCC inclusion with @specials -> 4 left', () => {
+        const inclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+        expect(folders.length).toBe(4)
+      })
+      test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
+        const inclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+        expect(folders.length).toBe(6)
+      })
     })
-    test('CCC inclusion no @specials -> 3 left', () => {
-      const inclusions = ['CCC']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(3)
+    describe('just exclusions', () => {
+      test('exclude CCC Areas; include @specials -> 7 left', () => {
+        const exclusions = ['CCC Areas']
+        const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
+        expect(folders.length).toBe(7)
+      })
+      test('exclude CCC, LEVEL 2; include @specials -> 4 left', () => {
+        const exclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
+        expect(folders.length).toBe(4)
+      })
+      test('exclude CCC, LEVEL 2; no @specials -> 3 left', () => {
+        const exclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching([], true, exclusions))
+        expect(folders.length).toBe(3)
+      })
     })
-    test('CCC Areas, / inclusion no @specials -> 3 left', () => {
-      const inclusions = ['CCC Areas', '/']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(3)
-    })
-    test('CCC inclusion with @specials -> 4 left', () => {
-      const inclusions = ['CCC']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
-      expect(folders.length).toBe(4)
-    })
-    test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
-      const inclusions = ['CCC', 'LEVEL 2']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
-      expect(folders.length).toBe(6)
+    describe('both inclusions + exclusions', () => {
+      test('exclude CCC Areas; include @specials -> 5 left', () => {
+        const inclusions = ['TEST', 'CCC']
+        const exclusions = ['LEVEL']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(5)
+      })
+      test('exclude CCC Areas; exclude @specials -> 4 left', () => {
+        const inclusions = ['TEST', 'CCC']
+        const exclusions = ['LEVEL']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true, exclusions))
+        expect(folders.length).toBe(4)
+      })
     })
   })
 

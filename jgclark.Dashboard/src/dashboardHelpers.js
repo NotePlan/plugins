@@ -1,15 +1,16 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-22 for v2.1.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
+import { dashboardSettingDefs } from "./dashboardSettings.js"
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TPerspectiveDef, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -18,6 +19,7 @@ import {
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { getFoldersMatching } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   sendToHTMLWindow,
@@ -835,4 +837,37 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
     }
   })
   return existingSections
+}
+
+/**
+ * Test to see if the current filename 
+ * @param {string} filename 
+ * @param {TDashboardSettings} dashboardSettings 
+ * @returns {boolean}
+ */
+export function isFilenameInFolderAllowedInCurrentPerspective(
+  filename: string,
+  dashboardSettings: TDashboardSettings
+): boolean {
+  // TODO(later): turn start into a helper function
+  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? 'Home' // TODO(later): undo later
+  // logDebug('isFilenameInCurrentPerspective', `Applying perspective '${activePerspectiveName}' for section ${section.ID}`)
+  logDebug('isFilenameIn...CurrentPerspective', `Applying perspective '${activePerspectiveName}' to filename '${filename}'`)
+  // Get relevant perspectiveDef
+  const allDefs = dashboardSettings.perspectiveDefs ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
+  const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
+  if (!activeDef) {
+    logError('isFilenameIn...CurrentPerspective', `Could not find definition for perspective '${activePerspectiveName}'.`)
+    return false
+  } else {
+    // clo(activeDef, 'activeDef')
+    const includedFolderSettingArr = activeDef.excludedFolders?.split(',') ?? []
+    const excludedFolderSettingArr = activeDef.includedFolders?.split(',') ?? []
+    const folderListToUse = getFoldersMatching(includedFolderSettingArr, true, excludedFolderSettingArr)   // TODO(later): get config for ignore root or not
+
+    // TEST:
+    const matchFound = folderListToUse.some((f) => filename.includes(f))
+    logDebug('isFilenameIn...CurrentPerspective', `- Found matching folders amongst ${String(folderListToUse)}`)
+    return matchFound
+  }
 }
