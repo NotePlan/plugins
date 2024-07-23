@@ -6,7 +6,7 @@
 // TODO: be smarter about what to do if this line is clicked on. Or stop it being a link.
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import {Node} from 'react'
 import type { TSectionItem } from '../../types.js'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
 /**
  * Component for displaying a filter indicator.
  */
-const TasksFiltered = ({ item }: Props): React.Node => {
+const TasksFiltered = ({ item }: Props): Node => {
   return (
     <div className="sectionItemRow" id={item.ID}>
       {/* This empty span needed to mimic the StatusIcon line */}

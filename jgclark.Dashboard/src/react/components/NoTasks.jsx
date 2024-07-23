@@ -4,12 +4,12 @@
 // Last updated 24.6.2024 for v2.0.0-b14 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import {type Node} from 'react'
 
 /**
  * Component for displaying a message when there are no tasks.
  */
-const NoTasks = (): React.Node => {
+const NoTasks = (): Node => {
   return (
     <div className="sectionItemRow" data-section-type="">
       <div className="TaskItem checked">

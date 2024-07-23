@@ -24,7 +24,7 @@
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, useLayoutEffect, type Node } from 'react'
+import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import { type TReactSettings, type TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
@@ -75,7 +75,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
   const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
-  const [dashboardSettings, setDashboardSettings] = React.useState(dashboardSettingsOrDefaults)
+  const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
 
   /****************************************************************************************************************************
    *                             VARIABLES

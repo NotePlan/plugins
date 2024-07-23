@@ -5,7 +5,7 @@
 // Last updated 2024-07-14 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import { type Node } from 'react'
 import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'
@@ -15,7 +15,7 @@ type Props = {
   item: TSectionItem,
 }
 
-function ProjectIcon({ item }: Props): React.Node {
+function ProjectIcon({ item }: Props): Node {
 
   const percentComplete = item.project?.percentComplete ?? 0
 

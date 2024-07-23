@@ -5,7 +5,7 @@
 // Last updated 2024-07-11 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import { type Node } from 'react'
 // import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 // import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'
@@ -19,7 +19,7 @@ type Props = {
   item: TSectionItem,
 }
 
-function ProjectItem({ item }: Props): React.Node {
+function ProjectItem({ item }: Props): Node {
   const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'

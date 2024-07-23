@@ -5,7 +5,7 @@
 // Last updated 2024-07-03 for v2.0.1 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import {type Node} from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
@@ -22,7 +22,7 @@ type Props = {
  * Represents a row item within a section.
  * Loads the proper Component depending on itemType
  */
-function ItemRow({ item, thisSection }: Props): React.Node {
+function ItemRow({ item, thisSection }: Props): Node {
   const { itemType } = item
 
   return (
