@@ -83,8 +83,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // destructure all the startup data we expect from the plugin
   const { pluginData } = data
-  // pluginData.sections = pluginData.sections.slice(0, 1) //FIXME: dbw remove this
-  // logDebug('WebView', `DBW TEMPORARILY LIMITING TO ONE ITEM - REMOVE THIS`)
 
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
@@ -207,7 +205,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   /**
    * Send data back to the plugin to update the data in the plugin
-   * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
+   * This could cause a refresh of the WebView if the plugin sends back new data, so we want to save any passthrough data first
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */

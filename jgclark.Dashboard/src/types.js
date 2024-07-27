@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-07-24 for v2.0.4 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -40,6 +40,7 @@ export type TDashboardSettings = {
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueSection: boolean,
+  showPrioritySection: boolean,
   showProjectSection: boolean,
   maxItemsToShowInSection: number,
   overdueSortOrder: string,
@@ -68,7 +69,7 @@ export type TDashboardPluginSettings = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'PRIORITY' | 'OVERDUE' | 'TAG' | 'PROJ' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 

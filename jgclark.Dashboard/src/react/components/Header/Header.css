@@ -43,7 +43,7 @@
 
 }
 /* Turn fixed width off on narrow screens */
-@media screen and (max-width: 450px) {
+@media screen and (max-width: 600px) {
 	.lastFullRefresh {
 		width: unset;
 	}

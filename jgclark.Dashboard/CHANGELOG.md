@@ -1,6 +1,16 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## Placeholder for 2.1.0
+- TODO: new 'Notes' section ...
+- TODO: add active links to section titles in description area
+
+## [2.0.4] 2024-07-27 not released
+- new 'Priority' section for all items with a priority marker (>>, !!!, !! or !) (for @lbednarski). Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
+<!-- Note: I'm not sure that deduping between sections is working as it should -->
+- updated some of the icons in the section descriptions
+- fixed setting 'Add folder name in note link' not working
+
 ## [2.0.3] 2024-07-19
 - fixed filter dropdown menu placement issue
 - fixed Today section description when there are no open tasks left

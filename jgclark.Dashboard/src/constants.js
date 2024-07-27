@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Constants for Dashboard code
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated 2024-07-24 for v2.0.4 by @jgclark
 //-----------------------------------------------------------------------------
 import pluginJson from '../plugin.json'
 import type { TSectionDetails, TSectionCode } from "./types"
@@ -22,13 +22,15 @@ export const allSectionDetails: Array<TSectionDetails> = [
   // Use getTagSectionDetails() to get them
   { sectionCode: 'TAG', sectionName: '', showSettingName: `showTagSection` }, // sectionName set later to reflect the tagsToShow setting
   { sectionCode: 'PROJ', sectionName: 'Projects', showSettingName: 'showProjectSection' },
-  // overdue last becasue it takes the longest to load
+  // these at the end becasue they take the longest to load
+  { sectionCode: 'PRIORITY', sectionName: 'Priority', showSettingName: 'showPrioritySection' },
   { sectionCode: 'OVERDUE', sectionName: 'Overdue', showSettingName: 'showOverdueSection' },
 ]
-
-export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG', 'PROJ']
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
 export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
 
+export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+
+export const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
