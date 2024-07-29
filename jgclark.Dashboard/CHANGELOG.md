@@ -5,6 +5,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - can now save activePerspectiveName
 - nicer-looking PerspectiveDefinitionSettings component -- though it doesn't yet persist changes
 - Projects section now filters using perspective folders
+- updated Settings component's display logic to allow a 'compact' mode where sensible
 
 ## [Perspectives.a1] 
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')

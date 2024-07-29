@@ -337,8 +337,8 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     includeCalendarNotes: true,
     includedFolders: "Home, NotePlan",
     excludedFolders: "",
-    includedTags: "#jgcDR,#home",
-    excludedTags: "#test"
+    includedTags: "#jgcDR, @home",
+    excludedTags: "#test, @church"
   },
   {
     key: 'persp1',
@@ -347,6 +347,6 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     includedFolders: "CCC, Ministry",
     excludedFolders: "",
     includedTags: "@church",
-    excludedTags: "#test"
+    excludedTags: "#test, @home"
   }
 ]
