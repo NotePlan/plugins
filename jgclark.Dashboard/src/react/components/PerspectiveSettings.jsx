@@ -2,15 +2,17 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Perspectives settings
 // Called by DashboardSettings component.
-// Last updated 2024-07-23 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
-// import type { TSettingItem, TPerspectiveDef } from '../../types'
-import InputBox from '../components/InputBox.jsx'
+// import type { perspectiveSettingDefaults, perspectiveSettingDefinitions } from '../../dashboardSettings.js'
+import type { TPerspectiveDef } from '../../types'
+import ComboBox from '../components/ComboBox.jsx'
+import PerspectiveDefinitionSettings from '../components/PerspectiveDefinitionSettings.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
@@ -22,8 +24,7 @@ import '../css/PerspectiveSettings.css'
 type Settings = { [key: string]: string | boolean };
 
 type PerspectiveSettingsProps = {
-  heading: string,
-  label: string,
+  values: any
 };
 
 //--------------------------------------------------------------------------
@@ -31,44 +32,43 @@ type PerspectiveSettingsProps = {
 //--------------------------------------------------------------------------
 
 const PerspectiveSettings = ({
-  heading,
-  label,
+  values
 }: PerspectiveSettingsProps): React$Node => {
   try {
-    logDebug('PerspectiveSettings', `Starting`) // HELP: nothing shown
+    const { dashboardSettings, setDashboardSettings } = useAppContext()
+    // only continue if we have this Feature Flag turned on
+    if (!dashboardSettings.FFlag_Perspectives) return
+
+    // clo(value, 'PerspectiveSettings starting with value:')
 
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
-    const { dashboardSettings, setDashboardSettings } = useAppContext()
 
-    // only continue if we have this Feature Flag turned on HELP: has no effect
-    if (!dashboardSettings.FFlag_Perspectives) return
-
-    const perspectiveDefs = dashboardSettings?.perspectives || []
-    clo(perspectiveDefs, 'perspectiveDefs') // HELP: nothing shown
+    const perspectiveDefs: Array<TPerspectiveDef> = values || []
+    clo(perspectiveDefs, 'perspectiveDefs')
     const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
-    logDebug('PerspectiveSettings', `active perspective: ${activePerspectiveName}`) // HELP: nothing shown
+    logDebug('PerspectiveSettings', `perspectiveDef names: ${perspectiveDefs.map((pd) => pd.name).sort().join(' / ')}`)
+    logDebug('PerspectiveSettings', `activePerspectiveName: '${activePerspectiveName}'`)
 
     //----------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------
     // const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
     // const dropdownRef = useRef <? { current: null | HTMLInputElement } > (null)
-    const [changesMade, setChangesMade] = useState(false)
+    // const [changesMade, setChangesMade] = useState(false)
     // const [inputValue, setInputValue] = useState(value)
-    const [updatedSettings, setUpdatedSettings] = useState(() => {
-      const initialSettings: Settings = {}
-      perspectiveDefs.forEach(item => {
-        clo(item)
-        // TODO:
-        if (item.key) initialSettings[item.key] = item.value || item.checked || ''
-      })
-      return initialSettings
-    })
+    // const [updatedSettings, setUpdatedSettings] = useState(() => {
+    //   const initialSettings: Settings = {}
+    //   perspectiveDefs.forEach(def => {
+    //     clo(def)
+    //     // TODO:
+    //     if (def.key) initialSettings[def.key] = def.value || def.checked || ''
+    //   })
+    //   return initialSettings
+    // })
 
-
-    if (!updatedSettings) return null // Prevent rendering before items are loaded
+    // if (!updatedSettings) return null // Prevent rendering before items are loaded
 
     //----------------------------------------------------------------------
     // Handlers
@@ -81,18 +81,18 @@ const PerspectiveSettings = ({
     //   }
     // }
 
-    const handleFieldChange = (key: string, value: any) => {
-      logDebug('PerspectiveSettings', `handleFieldChange() fired`)
-      setChangesMade(true)
-      setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
-    }
+    // const handleFieldChange = (key: string, value: any) => {
+    //   logDebug('PerspectiveSettings', `handleFieldChange() fired`)
+    //   setChangesMade(true)
+    //   setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
+    // }
 
-    const handleInputChange = (e: any) => {
-      logDebug('PerspectiveSettings', `handleInputChange() fired`)
-      // TODO: understand what needs to go here
-      // setInputValue(e.target.value)
-      // onChange(e)
-    }
+    // const handleInputChange = (e: any) => {
+    //   logDebug('PerspectiveSettings', `handleInputChange() fired`)
+    //   // TODO: understand what needs to go here
+    //   // setInputValue(e.target.value)
+    //   // onChange(e)
+    // }
 
     // const handleSaveClick = () => {
     //   logDebug('InputBox', `handleSaveClick: inputValue=${inputValue}`)
@@ -159,56 +159,33 @@ const PerspectiveSettings = ({
         {/* <div className="ui-heading">{heading}</div> */}
         <TextComponent
           textType={'header'}
-          label={heading}
+          label={'Perspective Definitions'}
         />
         <TextComponent
           textType={'description'}
-          label={"A 'Perspective' defines a set of item filters to be applied to all sections in the Dashboard view. This is a just a limited proof of concept for now."}
+          label={"A 'Perspective' defines a set of item filters to be applied to all sections in the Dashboard view. **This is a just a limited proof of concept for now.**"}
         />
+        {/* Note: now moved to main settings */}
+        {/* <ComboBox
+          compactDisplay={true}
+          label={`Active Perspective Name`}
+          value={activePerspectiveName}
+          options={perspectiveDefs.map((pd) => pd.name).sort()}
+          onChange={(newValue) => {
+            logDebug('PerspectiveSettings', `activePerspectiveName '${newValue}' selected`)
+            // TODO: more
+          }}
+        /> */}
 
         <div className="ui-perspective-container">
           {/* Then for each Perspective Definition ... */}
-          {perspectiveDefs.map((persp, index) => (
-            <div key={`persp${index}`}>
-              {/* ... start with the name input box */}
-              <InputBox
-                inputType="text"
-                label={`Perspective Name (${index + 1})`}
-                // HELP: (@jgclark) There is no "key" field in perspectives as defined in dashboardSettings, there's a "name"
-                // so persp.key is going to be undefined
-                // also note that `updatedSettings[persp.key]` is not going to work because perspectives is an array of objects
-                // and persp.name (or persp.key if you create one) is a string
-                value={`${(typeof persp.key === "undefined") ? '' :
-                  updatedSettings[persp.key]}`}
-                onSave={(newValue) => {
-                  //   persp.key && handleFieldChange(persp.key, newValue)
-                  //   persp.key && handleSaveInput(persp.key, newValue)
-                }}
-                onChange={(e) => {
-                  persp.key && handleFieldChange(persp.key, (e.currentTarget: HTMLInputElement).value)
-              persp.key && handleInputChange(persp.key, e)
-                }}
-              />
-              {/* For now just show Included Folders */}
-              <div className="perspectiveSettingsBlock">
-                <InputBox
-                  inputType="text"
-                  label="Included folders"
-                  value={`${(typeof persp.key === "undefined") ? '' :
-                    typeof updatedSettings[persp.key] === 'boolean'
-                      ? ''
-                      : updatedSettings[persp.key]}`}
-                  onSave={(newValue) => {
-                    //   persp.key && handleFieldChange(persp.key, newValue)
-                    //   persp.key && handleSaveInput(persp.key, newValue)
-                  }}
-                  onChange={(e) => {
-                    persp.key && handleFieldChange(persp.key, (e.currentTarget: HTMLInputElement).value)
-                persp.key && handleInputChange(persp.key, e)
-                  }}
-                />
-              </div>
-            </div>
+          {perspectiveDefs.map((pd, index) => (
+            <PerspectiveDefinitionSettings
+              key={index}
+              defIndex={index}
+              definitionValues={pd}
+              activePerspective={pd.name === activePerspectiveName}
+            />
           ))}
         </div>
 
@@ -224,5 +201,4 @@ const PerspectiveSettings = ({
   }
 }
 
-// HELP: there's a flow error here which I don't understand ("Duplicate export for default")
 export default PerspectiveSettings

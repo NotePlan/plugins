@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Represents a row item within a section.
-// Could be: Task, Review Item, Filtered Indicator, or No Tasks Left
-// Last updated 2024-07-03 for v2.0.1 by @jgclark
+// Could be: Task, Review Item, Filtered Indicator, or Nno Tasks Left
+// Last updated 2024-07-28 for v2.2.0.a2 by @jgclark
 //--------------------------------------------------------------------------
 
 import {type Node} from 'react'
@@ -11,6 +11,7 @@ import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
 import NoTasks from './NoTasks.jsx'
+import NoProjects from './NoProjects.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev'
 
 type Props = {
@@ -27,15 +28,16 @@ function ItemRow({ item, thisSection }: Props): Node {
 
   return (
     <>
-      {itemType === 'project' ? (
-        <ProjectItem item={item} />
-      ) : itemType === 'filterIndicator' ? (
-        <TasksFiltered item={item} />
-      ) : itemType === 'congrats' ? (
-        <NoTasks />
-      ) : (
-              <TaskItem item={item} thisSection={thisSection} />
-      )}
+      {itemType === 'project'
+        ? (<ProjectItem item={item} />)
+        : itemType === 'projectCongrats'
+          ? (<NoProjects />)
+          : itemType === 'filterIndicator'
+            ? (<TasksFiltered item={item} />)
+            : itemType === 'itemCongrats'
+              ? (<NoTasks />)
+              : (<TaskItem item={item} thisSection={thisSection} />)
+      }
     </>
   )
 }

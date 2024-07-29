@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show an HTML Input control, with various possible settings.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect } from 'react'
@@ -14,9 +14,10 @@ type InputBoxProps = {
   onSave?: (newValue: string) => void,
   inputType?: string,
   showSaveButton?: boolean,
+  compactDisplay?: boolean,
 };
 
-const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay }: InputBoxProps): React$Node => {
   // logDebug('InputBox', `label='${label}'`)
 
   //----------------------------------------------------------------------
@@ -56,26 +57,24 @@ const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = 
   //----------------------------------------------------------------------
 
   return (
-    <div className="input-box-container">
+    <div className={compactDisplay ? "input-box-container-compact" : "input-box-container"} >
       <label className="input-box-label">{label}</label>
-      <div className="input-box-wrapper">
-        <input
-          type={inputType}
-          className="input-box-input"
-          value={inputValue}
-          onChange={handleInputChange}
-          min="0" // works for 'number' type; ignored for rest.
-        />
-        {showSaveButton && (
-          <button
-            className="input-box-save"
-            onClick={handleSaveClick}
-            disabled={!isSaveEnabled}
-          >
-            Save
-          </button>
-        )}
-      </div>
+      <input
+        type={inputType}
+        className="input-box-input"
+        value={inputValue}
+        onChange={handleInputChange}
+        min="0" // works for 'number' type; ignored for rest.
+      />
+      {showSaveButton && (
+        <button
+          className="input-box-save"
+          onClick={handleSaveClick}
+          disabled={!isSaveEnabled}
+        >
+          Save
+        </button>
+      )}
     </div>
   )
 }

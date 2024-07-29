@@ -1,5 +1,10 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show an HTML ComboBox control, with various possible settings.
+// Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
+//--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
+import { logDebug } from '@helpers/react/reactDev'
 
 type ComboBoxProps = {
   label: string,
@@ -7,13 +12,15 @@ type ComboBoxProps = {
   value: string,
   onChange: (value: string) => void,
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
+  compactDisplay?: boolean,
 };
 
-const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps): React$Node => {
+const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay }: ComboBoxProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const comboboxRef = useRef <? ElementRef < 'div' >> (null)
   const comboboxInputRef = useRef <? ElementRef < 'input' >> (null)
+  // logDebug('ComboBox', `${String(compactDisplay)}`)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -71,34 +78,71 @@ const ComboBox = ({ label, options, value, onChange, inputRef }: ComboBoxProps):
     }
   }, [])
 
-  return (
-    <div className="combobox-container">
-      <label className="combobox-label">{label}</label>
-      <div className="combobox-wrapper" onClick={toggleDropdown}>
-        <input
-          type="text"
-          className="combobox-input"
-          value={selectedValue}
-          readOnly
-          ref={inputRef} // Pass the inputRef to the input element
-        />
-        <span className="combobox-arrow">&#9662;</span>
-        {isOpen && (
-          <div className="combobox-dropdown" ref={comboboxRef} >
-            {options.map((option: string) => (
-              <div
-                key={option}
-                className="combobox-option"
-                onClick={() => handleOptionClick(option)}
-              >
-                {option}
-              </div>
-            ))}
-          </div>
-        )}
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
+
+  if (compactDisplay) {
+    // logDebug('ComboBox', `using compact display for '${label}'`)
+    return (
+      <div className="combobox-container">
+        <div className="combobox-wrapper" onClick={toggleDropdown}>
+          <label className="combobox-label">{label}</label>
+          <input
+            type="text"
+            className="combobox-input"
+            value={selectedValue}
+            readOnly
+            ref={inputRef} // Pass the inputRef to the input element
+          />
+          <span className="combobox-arrow">&#9662;</span>
+          {isOpen && (
+            <div className="combobox-dropdown" ref={comboboxRef} >
+              {options.map((option: string) => (
+                <div
+                  key={option}
+                  className="combobox-option"
+                  onClick={() => handleOptionClick(option)}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  } else {
+  // logDebug('ComboBox', `using standard display for '${label}'`)
+    return (
+      <div className="combobox-container">
+        <label className="combobox-label">{label}</label>
+        <div className="combobox-wrapper" onClick={toggleDropdown}>
+          <input
+            type="text"
+            className="combobox-input"
+            value={selectedValue}
+            readOnly
+            ref={inputRef} // Pass the inputRef to the input element
+          />
+          <span className="combobox-arrow">&#9662;</span>
+          {isOpen && (
+            <div className="combobox-dropdown" ref={comboboxRef} >
+              {options.map((option: string) => (
+                <div
+                  key={option}
+                  className="combobox-option"
+                  onClick={() => handleOptionClick(option)}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 }
 
 export default ComboBox

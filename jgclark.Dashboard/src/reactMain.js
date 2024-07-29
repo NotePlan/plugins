@@ -69,6 +69,7 @@ export async function showDemoDashboard(): Promise<void> {
  * FIXME: doesn't work for show*Sections
  * @param {string} key 
  * @param {string} value 
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=activePerspectiveName&arg1=Home
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
  */
@@ -77,6 +78,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
     const dashboardSettings = (await getDashboardSettings()) || {}
     // clo(dashboardSettings, 'dashboardSettings:')
+
     const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
     const allKeys = allSettings.map(s => s.key)
     logDebug('setSetting', `Existing setting keys: ${String(allKeys)}`)

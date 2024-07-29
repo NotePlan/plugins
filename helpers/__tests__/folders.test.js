@@ -33,7 +33,7 @@ describe('helpers/folders', () => {
     describe('just inclusions', () => {
       test('just / inclusion -> 1', () => {
         const inclusions = ['/']
-        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        const folders = f.getFoldersMatching(inclusions, true)
         expect(folders.length).toBe(1)
       })
       test('CCC inclusion no @specials -> 3 left', () => {
@@ -54,6 +54,11 @@ describe('helpers/folders', () => {
       test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
         const inclusions = ['CCC', 'LEVEL 2']
         const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+        expect(folders.length).toBe(6)
+      })
+      test('CCC, LEVEL 2 inclusion with @specials and explicit empty exclusions -> 6 left', () => {
+        const inclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, []))
         expect(folders.length).toBe(6)
       })
     })
@@ -86,6 +91,18 @@ describe('helpers/folders', () => {
         const exclusions = ['LEVEL']
         const folders = Object.keys(f.getFoldersMatching(inclusions, true, exclusions))
         expect(folders.length).toBe(4)
+      })
+      test('include CCC; exclude Areas -> 1 left', () => {
+        const inclusions = ['CCC']
+        const exclusions = ['Areas']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(1)
+      })
+      test('include CCC, Home; exclude CCC -> 1 left', () => {
+        const inclusions = ['CCC', 'Home']
+        const exclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(1)
       })
     })
   })

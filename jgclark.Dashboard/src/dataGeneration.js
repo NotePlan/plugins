@@ -22,7 +22,7 @@ import {
   getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
   // getSharedSettings,
-  isFilenameInFolderAllowedInCurrentPerspective,
+  isFilenameAllowedInCurrentPerspective,
   makeDashboardParas,
 } from './dashboardHelpers'
 import {
@@ -1322,11 +1322,11 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
  * @param {boolean} useDemoData?
  * @returns 
  */
-export async function getProjectSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
-  const maxProjectsToShow = config.maxItemsToShowInSection
+  const maxProjectsToShow = dashboardSettings.maxItemsToShowInSection
   let nextNotesToReview: Array<TNote> = []
   const items: Array<TSectionItem> = []
   logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNum)} --------`)
@@ -1368,33 +1368,39 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
         await makeFullReviewList()
       }
 
-      nextNotesToReview = await getNextNotesToReview(maxProjectsToShow)
+      nextNotesToReview = await getNextNotesToReview(0) // get all overdue
+    }
+
+    if (!dashboardSettings.FFlag_Perspectives) {
+
     }
 
     if (nextNotesToReview) {
       nextNotesToReview.map((n) => {
+        // If we already have enough projects to show, return early
+        if (itemCount >= maxProjectsToShow) { return }
+
         const thisFilename = n.filename
 
-        // // If we have a Perspective set, check if this is wanted
-        // if (!config.FFlag_Perspectives || isFilenameInFolderAllowedInCurrentPerspective(thisFilename, config)) {
-
-        // Make a project instance for this note, as a quick way of getting its metadata
-        // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
-        const projectInstance = new Project(n, '', false)
-        const thisID = `${sectionNum}-${itemCount}`
-        items.push({
-          ID: thisID,
-          itemType: 'project',
-          project: {
-            title: n.title ?? '(error)',
-            filename: thisFilename,
-            reviewInterval: projectInstance.reviewInterval,
-            percentComplete: projectInstance.percentComplete,
-            lastProgressComment: projectInstance.lastProgressComment,
-          },
-        })
-        itemCount++
-        // }
+        // If we have a Perspective set, check if this is wanted
+        if (!dashboardSettings.FFlag_Perspectives || isFilenameAllowedInCurrentPerspective(thisFilename, dashboardSettings)) {
+          // Make a project instance for this note, as a quick way of getting its metadata
+          // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
+          const projectInstance = new Project(n, '', false)
+          const thisID = `${sectionNum}-${itemCount}`
+          items.push({
+            ID: thisID,
+            itemType: 'project',
+            project: {
+              title: n.title ?? '(error)',
+              filename: thisFilename,
+              reviewInterval: projectInstance.reviewInterval,
+              percentComplete: projectInstance.percentComplete,
+              lastProgressComment: projectInstance.lastProgressComment,
+            },
+          })
+          itemCount++
+        }
       })
     } else {
       logDebug('getProjectSectionData', `looked but found no notes to review`)

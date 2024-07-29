@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-23 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
 //-----------------------------------------------------------------------------
 
-import type { TSettingItem } from "./types.js"
-import { clo,clof } from '@helpers/react/reactDev'
+import type { TPerspectiveDef, TSettingItem } from "./types.js"
+import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard.
@@ -30,40 +30,19 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 // So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
-    key: "perspectives",
-    label: "Define Perspectives",
-    type: 'perspective',
-    default:
-      [
-        {
-          name: "Home",
-          includeCalendarNotes: true,
-          includedFolders: "Home, NotePlan",
-          excludedFolders: "",
-          includedTags: "",
-          excludedTags: ""
-        },
-        {
-          name: "Work",
-          includeCalendarNotes: true,
-          includedFolders: "CCC, Ministry",
-          excludedFolders: "",
-          includedTags: "",
-          excludedTags: ""
-        }
-      ],
+    type: 'heading',
+    label: "Perspectives",
+  },
+  {
+    key: "activePerspectiveName",
+    label: "Name of active Perspective",
+    description: "The Perspective that is active (if any).",
+    type: 'input',
+    default: "",
   },
   {
     type: 'heading',
-    label: "General",
-  },
-
-  {
-    key: "rescheduleNotMove",
-    label: "Reschedule items in place, rather than move?",
-    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
-    type: 'switch',
-    default: false,
+    label: "General Settings",
   },
   {
     key: "ignoreTasksWithPhrase",
@@ -75,16 +54,10 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: "ignoreFolders",
     label: "Folders to ignore when finding items",
-    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
+    // TODO(later): add this takes priority over 'Folders to include'
+    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be included, e.g. @Archive, @Templates.)",
     type: 'input',
-    default: "@Archive, Saved Searches",
-  },
-  {
-    key: "maxItemsToShowInSection",
-    label: "Max number of items to show in a section?",
-    description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
-    type: 'number',
-    default: "30",
+    default: "@Archive, @Templates, Saved Searches",
   },
   {
     key: "newTaskSectionHeading",
@@ -99,6 +72,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "Heading level (1-5) to use when adding new headings in notes.",
     type: 'number',
     default: "2",
+    compactDisplay: true,
+  },
+  {
+    key: "rescheduleNotMove",
+    label: "Reschedule items in place, rather than move?",
+    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
+    type: 'switch',
+    default: false,
   },
   {
     key: "moveSubItems",
@@ -115,11 +96,27 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: true,
   },
   {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "Display settings",
+  },
+  {
+    key: "maxItemsToShowInSection",
+    label: "Max number of items to show in a section?",
+    description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
+    type: 'number',
+    default: "30",
+    compactDisplay: true,
+  },
+  {
     key: "dashboardTheme",
     label: "Theme to use for Dashboard",
     description: "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.",
     type: 'input',
     default: "",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -135,6 +132,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'combo',
     options: ["priority", "earliest", "most recent"],
     default: "priority",
+    compactDisplay: true,
   },
   {
     key: "lookBackDaysForOverdue",
@@ -142,6 +140,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If set to any number > 0, will restrict Overdue tasks to just this last number of days.",
     type: 'number',
     default: "",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -177,6 +176,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
     type: 'number',
     default: "0",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -211,9 +211,10 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
+    label: "Logging: Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings."
   },
 ]
+
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
     // clof(setting, 'createDashboardSettingsItems: setting',true)
@@ -226,50 +227,53 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'heading':
       case 'header':
         return {
-          label: setting.label || '',
           type: 'heading',
+          label: setting.label || '',
         }
       case 'switch':
         return {
+          type: 'switch',
           label: setting.label || '',
           key: thisKey,
-          type: 'switch',
           checked: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
       case 'input':
         return {
+          type: 'input',
           label: setting.label || '',
           key: thisKey,
-          type: 'input',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
       case 'number':
         return {
+          type: 'number',
           label: setting.label || '',
           key: thisKey,
-          type: 'number',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
       case 'combo':
         return {
+          type: 'combo',
           label: setting.label || '',
           key: thisKey,
-          type: 'combo',
           value: allSettings[thisKey] ?? setting.default,
           options: setting.options,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
-      case 'perspective':
-        return {
-          label: setting.label || '',
-          key: thisKey,
-          type: 'perspective',
-          value: allSettings[thisKey] ?? setting.default,
-          description: setting.description,
-        }
+      // case 'perspective':
+      //   return {
+      //     type: 'perspective',
+      //     // label: setting.label || '',
+      //     key: thisKey,
+      //     value: allSettings[thisKey] ?? setting.default,
+      //     // description: setting.description,
+      //   }
       default:
         return {
           label: setting.label || '',
@@ -281,3 +285,68 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
     }
   })
 }
+
+export const perspectiveSettingDefinitions: Array<TSettingItem> = [
+  {
+    key: "name",
+    label: "Perspective Name",
+    description: "",
+    type: 'input',
+    compactDisplay: true
+  },
+  {
+    key: "includeCalendarNotes",
+    label: "Include Calendar Notes?",
+    description: "",
+    type: 'switch',
+  },
+  {
+    key: "includedFolders",
+    label: "Included Folders",
+    description: "(Optional) Comma-separated list of names of folders (or parts of names) to include in this perspective.",
+    type: 'input',
+    compactDisplay: false
+  },
+  {
+    key: "excludedFolders",
+    label: "Excluded Folders",
+    description: "(Optional) Comma-separated list of names of folders (or parts of names) to exclude from this perspective. (If there is a conflict, Exclusion has a higher priority than Inclusion.)",
+    type: 'input',
+    compactDisplay: false
+  },
+  {
+    key: "includedTags",
+    label: "Tags/Mentions to Include",
+    description: "(Optional) Comma-separated list of #tags or @mentions to include in this perspective.",
+    type: 'input',
+    compactDisplay: true
+  },
+  {
+    key: "excludedTags",
+    label: "Tags/Mentions to Exclude",
+    description: "(Optional) Comma-separated list of #tags or @mentions to exclude from this perspective.",
+    type: 'input',
+    compactDisplay: true
+  },
+]
+
+export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
+  {
+    key: 'persp0',
+    name: "Home",
+    includeCalendarNotes: true,
+    includedFolders: "Home, NotePlan",
+    excludedFolders: "",
+    includedTags: "#jgcDR,#home",
+    excludedTags: "#test"
+  },
+  {
+    key: 'persp1',
+    name: "Work",
+    includeCalendarNotes: true,
+    includedFolders: "CCC, Ministry",
+    excludedFolders: "",
+    includedTags: "@church",
+    excludedTags: "#test"
+  }
+]

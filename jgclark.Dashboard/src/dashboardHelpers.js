@@ -12,6 +12,7 @@ import { dashboardSettingDefs } from "./dashboardSettings.js"
 import { parseSettings } from './shared'
 import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TPerspectiveDef, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   getAPIDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
@@ -840,34 +841,74 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
 }
 
 /**
- * Test to see if the current filename 
+ * Get active Perspective definition
+ * @param {TDashboardSettings} dashboardSettings
+ * @returns {TPerspectiveDef | false}
+ */
+export function getCurrentPerspectiveDef(
+  dashboardSettings: TDashboardSettings
+): TPerspectiveDef | false {
+  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? 'Home'
+  logDebug('getCurrentPerspectiveDef', `Getting perspective '${activePerspectiveName}'`)
+  // Get relevant perspectiveDef
+  const allDefs = dashboardSettings.perspectives ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
+  const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
+  if (!activeDef) {
+    logError('getCurrentPerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
+    return false
+  } else {
+    clo(activeDef, 'activeDef')
+    return activeDef
+  }
+}
+
+/**
+ * Test to see if the current filename is in a folder that is allowed in the current Perspective definition
  * @param {string} filename 
  * @param {TDashboardSettings} dashboardSettings 
  * @returns {boolean}
  */
-export function isFilenameInFolderAllowedInCurrentPerspective(
+export function isFilenameAllowedInCurrentPerspective(
   filename: string,
   dashboardSettings: TDashboardSettings
 ): boolean {
-  // TODO(later): turn start into a helper function
-  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? 'Home' // TODO(later): undo later
-  // logDebug('isFilenameInCurrentPerspective', `Applying perspective '${activePerspectiveName}' for section ${section.ID}`)
-  logDebug('isFilenameIn...CurrentPerspective', `Applying perspective '${activePerspectiveName}' to filename '${filename}'`)
-  // Get relevant perspectiveDef
-  const allDefs = dashboardSettings.perspectiveDefs ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
-  const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
+  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
   if (!activeDef) {
-    logError('isFilenameIn...CurrentPerspective', `Could not find definition for perspective '${activePerspectiveName}'.`)
+    logError('isFilenameIn...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
     return false
-  } else {
-    // clo(activeDef, 'activeDef')
-    const includedFolderSettingArr = activeDef.excludedFolders?.split(',') ?? []
-    const excludedFolderSettingArr = activeDef.includedFolders?.split(',') ?? []
-    const folderListToUse = getFoldersMatching(includedFolderSettingArr, true, excludedFolderSettingArr)   // TODO(later): get config for ignore root or not
-
-    // TEST:
-    const matchFound = folderListToUse.some((f) => filename.includes(f))
-    logDebug('isFilenameIn...CurrentPerspective', `- Found matching folders amongst ${String(folderListToUse)}`)
-    return matchFound
   }
+  // Note: can't use simple .split(',') as it does unexpected things with empty strings
+  const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
+  const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
+  // logDebug('isFilenameIn...CurrentPerspective', `using ${String(includedFolderArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedFolderArr.length)} exclusions [${excludedFolderArr.toString()}]`)
+  const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
+
+  const matchFound = folderListToUse.some((f) => filename.includes(f))
+  logDebug('isFilenameIn...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst ${String(folderListToUse)}`)
+  return matchFound
+}
+
+/**
+ * Test to see if the current line contents is allowed in the current Perspective definition, by whether it has a disallowed tag/mention
+ * @param {string} content
+ * @param {TDashboardSettings} dashboardSettings 
+ * @returns {boolean}
+ */
+export function isTagAllowedInCurrentPerspective(
+  content: string,
+  dashboardSettings: TDashboardSettings
+): boolean {
+  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
+  if (!activeDef) {
+    logError('isTag...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
+    return false
+  }
+  // Note: can't use simple .split(',') as it does unexpected things with empty strings
+  const includedTagArr = stringListOrArrayToArray(activeDef.includedTags, ',')
+  const excludedTagArr = stringListOrArrayToArray(activeDef.excludedTags, ',')
+  // logDebug('isTag...CurrentPerspective', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
+
+  const matchFound = includedTagArr.some((t) => content.includes(t)) && !excludedTagArr.some((t) => content.includes(t))
+  logDebug('isTag...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst '${String(content)}'`)
+  return matchFound
 }

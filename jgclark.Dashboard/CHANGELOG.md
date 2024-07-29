@@ -1,10 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.0.a1] 
+## [Perspectives.a2] 
+- can now save activePerspectiveName
+- nicer-looking PerspectiveDefinitionSettings component -- though it doesn't yet persist changes
+- Projects section now filters using perspective folders
+
+## [Perspectives.a1] 
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
-- WIP: added settings to define Perpsectives
-- 
+- started to add settings to define Perpsectives
 
 ## [2.0.3] 2024-07-19
 - fixed filter dropdown menu placement issue

@@ -16,6 +16,7 @@ import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 import { clo } from '@helpers/dev.js'
+import PerspectiveSettings from './PerspectiveSettings.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -156,7 +157,9 @@ const SettingsDialog = ({
 					</button>
 				)}
 			</div>
+
 			<div className="settings-dialog-content">
+				{/* Iterate over all the settings */}
 				{items.map((item, index) => (
 					<div key={`sdc${index}`}>
 						{renderItem({
@@ -180,6 +183,11 @@ const SettingsDialog = ({
 						})}
 						{item.description && (
 							<div className="item-description">{item.description}</div>
+						)}
+						{/* Include Perspectives after activePerspectiveName, if turned on */}
+						{dashboardSettings.FFlag_Perspectives && item.key === 'activePerspectiveName' && (
+							<PerspectiveSettings values={dashboardSettings.perspectives}
+							/>
 						)}
 					</div>
 				))}

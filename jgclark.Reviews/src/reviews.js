@@ -1638,7 +1638,7 @@ export async function getNextNotesToReview(numToReturn: number): Promise<Array<T
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
           if (nextNotes.length > 0) {
             const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
-            logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
+            // logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
             notesToReview.push(noteToUse) // add first matching note
             if ((numToReturn > 0) && (notesToReview.length >= numToReturn)) {
               break // stop processing the loop
@@ -1653,12 +1653,12 @@ export async function getNextNotesToReview(numToReturn: number): Promise<Array<T
       if (notesToReview.length === 0) {
         // If we get here then there are no projects needed for review
         logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
-        logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
+      } else {
+        logDebug('reviews/getNextNotesToReview', `-> ${notesToReview.length} notesToReview`)
       }
       return notesToReview
     }
   } catch (error) {
-    logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
     logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
     return []
   }

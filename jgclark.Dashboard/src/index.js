@@ -21,7 +21,8 @@ export { editSettings } from '@helpers/NPSettings'
 
 export {
   decideWhetherToUpdateDashboard,
-  refreshProjectSection
+  refreshProjectSection, // TODO: remove me in time
+  refreshSectionByCode,
 } from './dashboardHooks.js'
 
 export {

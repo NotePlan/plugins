@@ -31,6 +31,7 @@ type RenderItemProps = {
   handleSaveInput?: (key: string, newValue: string) => void,
   showSaveButton?: boolean,
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
+  indent?: boolean,
 }
 
 /**
@@ -50,6 +51,7 @@ export function renderItem({
   handleSaveInput = (key, newValue) => { },
   showSaveButton = true,
   inputRef, // Destructure inputRef
+  indent = false,
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -71,6 +73,7 @@ export function renderItem({
             }}
             labelPosition={labelPosition}
             description={item.description || ''}
+            className={indent ? 'indent' : ''}
           />
         )
       case 'input':
@@ -89,6 +92,8 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
           />
         )
       case 'number':
@@ -107,6 +112,8 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
           />
         )
       case 'combo':
@@ -121,21 +128,22 @@ export function renderItem({
               item.key && handleComboChange(item.key, { target: { value: option } })
             }}
             inputRef={inputRef} // Pass inputRef
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
           />
         )
-      case 'perspective':
-        return (
-          <PerspectiveSettings
-            heading={thisLabel}
-            label={item.description ?? ''}
-          />
-        )
+      // case 'perspective':
+      //   return (
+      //     <PerspectiveSettings
+      //       value={item.value} />
+      //   )
       case 'text':
         return (
           <TextComponent
             key={`text${index}`}
             textType={item.textType || 'description'}
             label={thisLabel}
+            className={indent ? 'indent' : ''}
           />
         )
       case 'separator':

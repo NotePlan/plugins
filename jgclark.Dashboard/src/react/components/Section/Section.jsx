@@ -69,7 +69,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
         sectionItems = [{
           ID: '0-Congrats',
-          itemType: 'congrats',
+          itemType: 'itemCongrats',
         }]
       }
     }
@@ -123,7 +123,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decrement the number of items to show if the last one is the filterIndicator
   let numItemsToShow = itemsToShow.length
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
-  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'congrats') numItemsToShow = 0
+  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'itemCongrats') numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -164,7 +164,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
-          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'itemCongrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks`}>
                 <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>

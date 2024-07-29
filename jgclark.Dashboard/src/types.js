@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-28 for v2.2.0.a1 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -19,7 +19,7 @@ export type TNotePlanSettings = {
 export type TDashboardSettings = {
   FFlag_Perspectives: boolean,
   activePerspectiveName: string,
-  perspectiveDefs: Array<TPerspectiveDef>,
+  perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
@@ -69,6 +69,7 @@ export type TDashboardPluginSettings = {
 }
 
 export type TPerspectiveDef = {
+  key: string,
   name: string,
   includeCalendarNotes: boolean,
   includedFolders: string,
@@ -101,7 +102,7 @@ export type TSection = {
   doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
 }
 
-export type TItemType = 'open' | 'checklist' | 'congrats' | 'project' | 'filterIndicator'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator'
 
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
@@ -282,7 +283,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'perspective' 
+export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' // | 'perspective' 
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -295,6 +296,7 @@ export type TSettingItem = {
   description?: string,
   default?: any,
   refreshAllOnChange?: boolean,
+  compactDisplay?: boolean,
 }
 
 export type TPluginCommandSimplified = {
