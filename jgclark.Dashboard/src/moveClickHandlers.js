@@ -401,7 +401,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
       const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
       if (p) {
-        yesterdaysCombinedSortedDashboardParas.push(p)
+        yesterdaysCombinedSortedParas.push(p)
       } else {
         logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
       }
