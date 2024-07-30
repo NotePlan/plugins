@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-24 for v2.0.4 by @jgclark
+// Last updated 2024-07-29 for v2.0.5 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -284,6 +284,7 @@ export type TSettingItem = {
   description?: string,
   default?: any,
   refreshAllOnChange?: boolean,
+  compactDisplay?: boolean,
 }
 
 export type TPluginCommandSimplified = {

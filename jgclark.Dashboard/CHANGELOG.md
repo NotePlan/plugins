@@ -1,15 +1,19 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## Placeholder for 2.1.0
+<!-- ## Placeholder for 2.1.0
 - TODO: new 'Notes' section ...
-- TODO: add active links to section titles in description area
+- TODO: add active links to section titles in description area -->
 
-## [2.0.4] 2024-07-27 not released
+## [2.0.5] 2024-07-30
+- some layout tweaks in the main Settings dialog
+- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla).
+
+## [2.0.4] 2024-07-23 unreleased
 - new 'Priority' section for all items with a priority marker (>>, !!!, !! or !) (for @lbednarski). Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
 <!-- Note: I'm not sure that deduping between sections is working as it should -->
-- updated some of the icons in the section descriptions
 - fixed setting 'Add folder name in note link' not working
+- updated some of the icons in the section descriptions
 
 ## [2.0.3] 2024-07-19
 - fixed filter dropdown menu placement issue
@@ -20,7 +24,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - tidied up other z-index-ing
 
 ## [2.0.2] 2024-07-16
-- fixed 'All Overdue → Today' button not working (thanks for the report, @oldielajolla)
+- fixed 'All Overdue → Today' button not working (thanks for the report, @Oldielajolla)
 - fix to auto-refresh
 - fix to stop 5s refresh in DEV mode
 - improve wording around number of open items in section descriptions

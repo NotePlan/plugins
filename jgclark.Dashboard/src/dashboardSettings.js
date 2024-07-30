@@ -51,6 +51,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
     type: 'number',
     default: "30",
+    compactDisplay: true,
   },
   {
     key: "newTaskSectionHeading",
@@ -65,6 +66,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "Heading level (1-5) to use when adding new headings in notes.",
     type: 'number',
     default: "2",
+    compactDisplay: true,
   },
   {
     key: "moveSubItems",
@@ -86,6 +88,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.",
     type: 'input',
     default: "",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -101,6 +104,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'combo',
     options: ["priority", "earliest", "most recent"],
     default: "priority",
+    compactDisplay: true,
   },
   {
     key: "lookBackDaysForOverdue",
@@ -108,6 +112,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If set to any number > 0, will restrict Overdue tasks to just this last number of days.",
     type: 'number',
     default: "",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -159,6 +164,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
     type: 'number',
     default: "0",
+    compactDisplay: true,
   },
   {
     type: 'separator',
@@ -225,6 +231,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'input',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
       case 'number':
         return {
@@ -233,6 +240,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'number',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
       case 'combo':
         return {
@@ -242,6 +250,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           options: setting.options,
           description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
         }
       default:
         return {
