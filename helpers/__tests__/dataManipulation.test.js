@@ -23,5 +23,8 @@ describe(`${FILE}`, () => {
     test('quote-delim list -> [...]', () => {
       expect(d.stringListOrArrayToArray("'one','two','three'", ',')).toEqual(["'one'", "'two'", "'three'"])
     })
+    test('whitespace around separators should be removed', () => {
+      expect(d.stringListOrArrayToArray('NotePlan, Home, Something Else , and more ', ',')).toEqual(["NotePlan", "Home", "Something Else", "and more"])
+    })
   })
 })
