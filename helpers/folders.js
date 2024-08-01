@@ -34,10 +34,10 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     // Remove root as a special case
     const rootIncluded = inclusions.some((f) => f === '/')
     const rootExcluded = exclusions.some((f) => f === '/')
-    // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`) // ✅
+    // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
     const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
-    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}, exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`) // ✅
+    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}, exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // Deal with special case of inclusions just '/'
     if (inclusions.length === 1 && inclusions[0] === '/') {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
+// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import type { TPerspectiveDef, TSettingItem } from "./types.js"
@@ -295,12 +295,6 @@ export const perspectiveSettingDefinitions: Array<TSettingItem> = [
     compactDisplay: true
   },
   {
-    key: "includeCalendarNotes",
-    label: "Include Calendar Notes?",
-    description: "",
-    type: 'switch',
-  },
-  {
     key: "includedFolders",
     label: "Included Folders",
     description: "(Optional) Comma-separated list of names of folders (or parts of names) to include in this perspective.",
@@ -334,18 +328,16 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
   {
     key: 'persp0',
     name: "Home",
-    includeCalendarNotes: true,
     includedFolders: "Home, NotePlan",
-    excludedFolders: "",
+    excludedFolders: "Readwise 📚, Saved Searches",
     includedTags: "#jgcDR, @home",
     excludedTags: "#test, @church"
   },
   {
     key: 'persp1',
     name: "Work",
-    includeCalendarNotes: true,
     includedFolders: "CCC, Ministry",
-    excludedFolders: "",
+    excludedFolders: "Readwise 📚, Saved Searches",
     includedTags: "@church",
     excludedTags: "#test, @home"
   }

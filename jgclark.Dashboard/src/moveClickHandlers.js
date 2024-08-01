@@ -374,7 +374,8 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 /**
  * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
- * Note: This uses an API call that doesn't include open checklist items
+ * Note: This uses an API call that doesn't include open checklist items.
+ * FIXME: This doesn't honour the useDemoData setting yet.
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
@@ -392,6 +393,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     if (!yesterdaysNote) {
       throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
     }
+
     // Override one setting so we can work on combined items
     config.separateSectionForReferencedNotes = false
     const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
@@ -401,7 +403,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
       const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
       if (p) {
-        yesterdaysCombinedSortedDashboardParas.push(p)
+        yesterdaysCombinedSortedParas.push(p)
       } else {
         logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
       }

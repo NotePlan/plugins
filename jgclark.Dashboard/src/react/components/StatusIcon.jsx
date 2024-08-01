@@ -51,6 +51,7 @@ const StatusIcon = ({
       case 'checklistCancelled':
         return 'cancelled fa-regular fa-square-xmark'
       case 'itemCongrats':
+      case 'projectCongrats':
         return 'fa-regular fa-circle-check'
       case 'deleted':
         return 'fa-regular fa-trash-xmark'

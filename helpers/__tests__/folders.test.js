@@ -31,7 +31,7 @@ describe('helpers/folders', () => {
       expect(folders.length).toBe(0)
     })
     describe('just inclusions', () => {
-      test('just / inclusion -> 1', () => {
+      test('just/inclusion -> 1', () => {
         const inclusions = ['/']
         const folders = f.getFoldersMatching(inclusions, true)
         expect(folders.length).toBe(1)
@@ -105,6 +105,7 @@ describe('helpers/folders', () => {
         expect(folders.length).toBe(1)
       })
     })
+    // Note: see additional large test at the end of this file!
   })
 
   /**
@@ -196,5 +197,23 @@ describe('helpers/folders', () => {
     test('leading slash', () => {
       expect(f.getLowestLevelFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
     })
+  })
+})
+
+describe('getFoldersMatching: bigger real world test', () => {
+  beforeAll(() => {
+    DataStore.folders =
+      ['/', 'CCC Areas', 'CCC Areas/Facilities', 'CCC Areas/Staff', 'CCC Meetings', 'CCC Meetings/2023', 'CCC Meetings/2023/01', 'CCC Meetings/2023 /02', 'CCC Notes', 'CCC Projects', 'CCC Projects/Facilities',
+        'Home 🏠 Areas', 'Home 🏠 Notes', 'Home 🏠 Projects', 'Ministry Areas', 'Ministry Meetings', 'Ministry Notes', 'Ministry Notes/Gather Movement', 'Ministry Notes/Magic - Conjuring', 'Ministry Projects',
+        'NotePlan Notes', 'NotePlan Projects', 'NotePlan Projects/Plugins',
+        'Readwise 📚', 'Readwise 📚/articles', 'Readwise 📚/books', 'Readwise 📚/podcasts', 'Readwise 📚/tweets', 'Reviews', 'Saved Searches', 'Summaries',
+        'TEST', 'TEST/BUG TEST', 'TEST/BUG TEST/George65', 'TEST/BUG hunting for others', 'TEST/BUG hunting for others/George65', 'TEST/Conflict Testing', 'TEST/DEMOs', 'TEST/Dashboard TESTs',
+        'TEST/Date TESTs', 'TEST/Duplicate Testing', 'TEST/Event TESTs', 'TEST/Filer TESTs', 'TEST/MOC TESTs', 'TEST/Progress Log tests for Jord8on', 'TEST/Repeat TESTs', 'TEST/Review TESTs', 'TEST/Review TESTs/Test Completed Goal.md', 'TEST/Review TESTs/Test Completed Goal.md/Gather Movement', 'TEST/Review TESTs/Test Completed Goal.md/Magic - Conjuring', 'TEST/Search TESTs', 'TEST/Summary TESTs', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', 'TEST/TESTs for DW things', 'TEST/Window TESTs /']
+  })
+  test('real world test -> 6 left', () => {
+    const inclusions = ['Home', 'NotePlan']
+    const exclusions = ['Readwise 📚']
+    const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+    expect(folders.length).toBe(6)
   })
 })

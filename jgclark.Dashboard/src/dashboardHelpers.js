@@ -1,26 +1,28 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-22 for v2.1.0.a1 by @jgclark
+// Last updated 2024-07-30 for v2.2.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { dashboardSettingDefs } from "./dashboardSettings.js"
+import {
+  getAllowedFoldersInCurrentPerspective,
+  // isFilenameAllowedInCurrentPerspective,
+  isFilenameAllowedInFolderList,
+} from './perspectiveHelpers'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TPerspectiveDef, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   getAPIDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { getFoldersMatching } from '@helpers/folders'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   sendToHTMLWindow,
@@ -178,16 +180,24 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
-      const hasChild = p.children().length > 0
-      if (hasChild) { // debugging why sometimes hasChild is wrong
-        // $FlowIgnore 
-        const pp = p.note?.paragraphs || []
-        const nextLineIndex = p.lineIndex + 1
-        clo(p, `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
-        clo(p.contentRange, `contentRange for paragraph`)
-        clo(p.children(), `Children of paragraph`)
-        clo(p.children()[0].contentRange, `contentRange for child[0]`)
-      }
+      // Note: Demo data gives .children not function returning children
+      // So test to see if children() function is present, before trying to use it
+      // $FlowFixMe[method-unbinding]
+      const anyChildren = (p.children && typeof p.children === 'function')
+        ? p.children()
+        : p.children
+      const hasChild = anyChildren.length > 0
+
+      // TODO(add back in later): debugging why sometimes hasChild is wrong
+      // if (hasChild) {
+      //   const pp = note.paragraphs || []
+      //   const nextLineIndex = p.lineIndex + 1
+      //   clo(p, `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+      //   clo(p.contentRange, `contentRange for paragraph`)
+      //   clo(anyChildren, `Children of paragraph`)
+      //   clo(anyChildren[0].contentRange, `contentRange for child[0]`)
+      // }
+
       return {
         filename: note.filename,
         noteType: note.type,
@@ -242,11 +252,11 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
       // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
-      logDebug('getOpenItemPFCTP', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
+      logTimer('getOpenItemPFCTP', startTime, `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
     } else {
       // read note from DataStore in the usual way
       parasToUse = timePeriodNote.paragraphs
-      logDebug('getOpenItemPFCTP', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras (after ${timer(startTime)})`)
+      logTimer('getOpenItemPFCTP', startTime, `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
     }
 
     // Run following in background thread
@@ -265,7 +275,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     let openParas = config.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    // logDebug('getOpenItemPFCTP', `- after '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
     const tempSize = openParas.length
 
     // Keep only non-empty open tasks not scheduled (other than >today)
@@ -274,7 +284,7 @@ export function getOpenItemParasForCurrentTimePeriod(
       isOpenNotScheduled(p) ||
       (p.content.includes(thisNoteDateSched) ||
         (isToday && p.content.includes('>today'))))
-    // logDebug('getOpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
@@ -282,7 +292,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logDebug('getOpenItemPFCTP', `- after 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
@@ -291,19 +301,19 @@ export function getOpenItemParasForCurrentTimePeriod(
     } else {
       // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    // logDebug('getOpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    // logDebug('getOpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
     // clo(openDashboardParas)
 
-    logDebug('getOpenItemPFCTP', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName}`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -321,24 +331,32 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (config.ignoreTasksWithPhrase) {
       const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} paras`)
     } else {
       // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    // logDebug('getOpenItemPFCTP', `- after 'ignore' phrases filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
 
-    // Remove items referenced from items in 'ignoreFolders'
-    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
-    refOpenParas = filterOutParasInExcludeFolders(refOpenParas, ignoreFolders, true)
-    // logDebug('getOpenItemPFCTP', `- after 'ignore' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // If we are using a Perspective, get list of suitable folders
+    if (config.FFlag_Perspectives && config.activePerspectiveName) {
+      const allowedFoldersInCurrentPerspective = getAllowedFoldersInCurrentPerspective(config)
+      refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
+      logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${config.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
+    }
+
+    // // Remove items referenced from items in 'ignoreFolders'
+    // const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    // refOpenParas = filterOutParasInExcludeFolders(refOpenParas, ignoreFolders, true)
+    // // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
+
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-    // logDebug('getOpenItemPFCTP', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)
     // clo(refOpenDashboardParas)
 
-    logDebug('getOpenItemPFCTP', `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName}`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
@@ -459,6 +477,8 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
+
+    // TODO(perspective): work here
 
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
     const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
@@ -838,77 +858,4 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
     }
   })
   return existingSections
-}
-
-/**
- * Get active Perspective definition
- * @param {TDashboardSettings} dashboardSettings
- * @returns {TPerspectiveDef | false}
- */
-export function getCurrentPerspectiveDef(
-  dashboardSettings: TDashboardSettings
-): TPerspectiveDef | false {
-  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? 'Home'
-  logDebug('getCurrentPerspectiveDef', `Getting perspective '${activePerspectiveName}'`)
-  // Get relevant perspectiveDef
-  const allDefs = dashboardSettings.perspectives ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
-  const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
-  if (!activeDef) {
-    logError('getCurrentPerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
-    return false
-  } else {
-    clo(activeDef, 'activeDef')
-    return activeDef
-  }
-}
-
-/**
- * Test to see if the current filename is in a folder that is allowed in the current Perspective definition
- * @param {string} filename 
- * @param {TDashboardSettings} dashboardSettings 
- * @returns {boolean}
- */
-export function isFilenameAllowedInCurrentPerspective(
-  filename: string,
-  dashboardSettings: TDashboardSettings
-): boolean {
-  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
-  if (!activeDef) {
-    logError('isFilenameIn...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
-    return false
-  }
-  // Note: can't use simple .split(',') as it does unexpected things with empty strings
-  const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
-  const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
-  // logDebug('isFilenameIn...CurrentPerspective', `using ${String(includedFolderArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedFolderArr.length)} exclusions [${excludedFolderArr.toString()}]`)
-  const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
-
-  const matchFound = folderListToUse.some((f) => filename.includes(f))
-  logDebug('isFilenameIn...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst ${String(folderListToUse)}`)
-  return matchFound
-}
-
-/**
- * Test to see if the current line contents is allowed in the current Perspective definition, by whether it has a disallowed tag/mention
- * @param {string} content
- * @param {TDashboardSettings} dashboardSettings 
- * @returns {boolean}
- */
-export function isTagAllowedInCurrentPerspective(
-  content: string,
-  dashboardSettings: TDashboardSettings
-): boolean {
-  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
-  if (!activeDef) {
-    logError('isTag...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
-    return false
-  }
-  // Note: can't use simple .split(',') as it does unexpected things with empty strings
-  const includedTagArr = stringListOrArrayToArray(activeDef.includedTags, ',')
-  const excludedTagArr = stringListOrArrayToArray(activeDef.excludedTags, ',')
-  // logDebug('isTag...CurrentPerspective', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
-
-  const matchFound = includedTagArr.some((t) => content.includes(t)) && !excludedTagArr.some((t) => content.includes(t))
-  logDebug('isTag...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst '${String(content)}'`)
-  return matchFound
 }

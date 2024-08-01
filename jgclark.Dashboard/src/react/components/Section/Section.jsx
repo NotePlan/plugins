@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-08-01 for v2.1.0 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -63,14 +63,23 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
     let sectionItems = section.sectionItems
     if (!sectionItems || sectionItems.length === 0) {
-      if (section.ID !== '0') {
-        sectionItems = []
-      } else {
-        logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
-        sectionItems = [{
-          ID: '0-Congrats',
-          itemType: 'itemCongrats',
-        }]
+      switch (section.ID) {
+        case '0':
+          logDebug('Section', `Section 0 (DT) doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [{
+            ID: '0-Congrats',
+            itemType: 'itemCongrats',
+          }]
+          break
+        case '14':
+          logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [{
+            ID: '14-Congrats',
+            itemType: 'projectCongrats',
+          }]
+          break
+        default:
+          sectionItems = []
       }
     }
 
@@ -123,7 +132,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decrement the number of items to show if the last one is the filterIndicator
   let numItemsToShow = itemsToShow.length
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
-  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'itemCongrats') numItemsToShow = 0
+  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -144,7 +153,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Pluralise item in description if neccesary
   if (descriptionToUse.includes('{s}')) {
-    if (numItemsToShow >= 2) {
+    if (numItemsToShow !== 1) {
       descriptionToUse = descriptionToUse.replace('{s}', `s`)
     } else {
       descriptionToUse = descriptionToUse.replace('{s}', ``)

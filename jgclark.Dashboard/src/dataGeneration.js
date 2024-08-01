@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
+// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -16,13 +16,10 @@ import type {
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  // extendParasToAddStartTimes,
   getDashboardSettings,
   getNotePlanSettings,
   getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
   getStartTimeFromPara,
-  // getSharedSettings,
-  isFilenameAllowedInCurrentPerspective,
   makeDashboardParas,
 } from './dashboardHelpers'
 import {
@@ -40,6 +37,11 @@ import {
   nextProjectNoteItems,
 } from './demoData'
 import {
+  getAllowedFoldersInCurrentPerspective,
+  // isFilenameAllowedInCurrentPerspective,
+  isFilenameAllowedInFolderList,
+} from './perspectiveHelpers'
+import {
   getDateStringFromCalendarFilename,
   getNPMonthStr,
   getNPQuarterStr,
@@ -47,28 +49,19 @@ import {
   getTodaysDateUnhyphenated,
   filenameIsInFuture,
   includesScheduledFutureDate,
-  // includesScheduledFutureDate,
-  // toISOShortDateTimeString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
-  // getTimeRangeFromTimeBlockString,
-  // localeDateStr,
   toNPLocaleDateString,
-  // setMomentLocaleFromEnvironment,
 } from '@helpers/NPdateTime'
 import {
   findNotesMatchingHashtagOrMention,
-  // getReferencedParagraphs
 } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-// import { getTimeBlockString } from '@helpers/timeblocks'
 import {
-  // isOpen, isOpenTask,
   isOpen, isOpenTask,
-  // removeDuplicates
 } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -137,7 +130,7 @@ export async function getSomeSectionsData(
 
     return sections
   } catch (error) {
-    logError('getSomeSectionDetails', error.message)
+    logError('getSomeSectionData', error.message)
     return []
   }
 }
@@ -612,7 +605,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
+    logDebug('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -1042,7 +1035,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
  */
 export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
-  const tagSections = getTagSectionDetails(config, {})
+  const tagSections = getTagSectionDetails(config)
   // clo(tagSections)
   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
 
@@ -1062,23 +1055,26 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export function getTaggedSectionData(config: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
+export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false, sectionDetail: TSectionDetails, index: number): TSection {
   const thisStartTime = new Date()
   const sectionNum = `12-${index}`
   const thisSectionCode = 'TAG'
-  const maxInSection = config.maxItemsToShowInSection ?? 30
+  const maxInSection = dashboardSettings.maxItemsToShowInSection ?? 30
   logInfo('getTaggedSectionData', `------- Gathering Tag items for section #${String(sectionNum)}: ${sectionDetail.sectionName} --------`)
-  // if (config.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
+  // if (dashboardSettings.ignoreChecklistItems) logDebug('getTaggedSectionData', `Note: will filter out checklists`)
   let itemCount = 0
   let totalCount = 0
   const items: Array<TSectionItem> = []
   let isHashtag = false
   let isMention = false
-  // const thisStartTime = new Date()
+
+  // Get list of suitable folders to filter by (if set)
+  const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
 
   if (useDemoData) {
     isHashtag = true
     tagParasFromNote.map((item) => {
+      // TODO: filtering needed here as well
       const thisID = `${sectionNum}-${itemCount}`
       items.push({ ID: thisID, ...item })
       itemCount++
@@ -1094,10 +1090,11 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
       const notesWithTag = findNotesMatchingHashtagOrMention(sectionDetail.sectionName, true)
       logTimer('getTaggedSectionData', thisStartTime, `to find ${notesWithTag.length} notes with ${sectionDetail.sectionName}`)
       for (const n of notesWithTag) {
-        // Don't continue if this note is in an excluded folder
-        const thisNoteFolder = getFolderFromFilename(n.filename)
-        if (config.ignoreFolders.includes(thisNoteFolder)) {
-          // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
+
+        // Only continue if this is an allowed folder
+        // FIXME: continuing when it shouldn't?
+        if (allowedFoldersInCurrentPerspective !== [] && !isFilenameAllowedInFolderList(n.filename, allowedFoldersInCurrentPerspective)) {
+          logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is not in allowed list`)
           continue
         }
 
@@ -1107,27 +1104,27 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
         // clo(tagParasFromNote, `tagParasFromNote for ${sectionDetail.sectionName} in ${n.filename}`)
 
         // Further filter out checklists and otherwise empty items
-        const filteredTagParasFromNote = config.ignoreChecklistItems
+        const filteredTagParasFromNote = dashboardSettings.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
+        // logDebug('getTaggedSectionData', `- after filtering for open only (${dashboardSettings.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
         for (const p of filteredTagParasFromNote) {
-          if (!config.ignoreTagMentionsWithPhrase ||config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+          if (!dashboardSettings.ignoreTagMentionsWithPhrase || dashboardSettings.ignoreTagMentionsWithPhrase === '' || !p.content.includes(dashboardSettings.ignoreTagMentionsWithPhrase)) {
             filteredTagParas.push(p)
           } else {
-            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${dashboardSettings.ignoreTagMentionsWithPhrase}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
+        // logDebug('getTaggedSectionData', `- after filtering for ${dashboardSettings.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
       }
       // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
       // filter out paras in the future
-      const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
+      const dateToUseUnhyphenated = dashboardSettings.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
       filteredTagParas = filteredTagParas.filter(p=>!filenameIsInFuture(p.filename||'',dateToUseUnhyphenated))
-      const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYY-MM-DD") : new moment().format("YYYY-MM-DD")
+      const dateToUseHyphenated = dashboardSettings.showTomorrowSection ? new moment().add(1, 'days').format("YYYY-MM-DD") : new moment().format("YYYY-MM-DD")
       filteredTagParas = filteredTagParas.filter(p=>!includesScheduledFutureDate(p.content,dateToUseHyphenated))
       logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
 
@@ -1149,9 +1146,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
 
         // Sort paragraphs by one of several options
         const sortOrder =
-          config.overdueSortOrder === 'priority'
+          dashboardSettings.overdueSortOrder === 'priority'
             ? ['-priority', '-changedDate']
-            : config.overdueSortOrder === 'earliest'
+            : dashboardSettings.overdueSortOrder === 'earliest'
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
@@ -1176,8 +1173,8 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
 
   // Return section details, even if no items found
   // const tagSectionDescription =
-  // totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}` : `{count} item{s} ordered by ${config.overdueSortOrder}`
-  const tagSectionDescription = `{count} item{s} ordered by ${config.overdueSortOrder}`
+  // totalCount > itemCount ? `first {count} from ${String(totalCount)} items ordered by ${dashboardSettings.overdueSortOrder}` : `{count} item{s} ordered by ${dashboardSettings.overdueSortOrder}`
+  const tagSectionDescription = `{count} item{s} ordered by ${dashboardSettings.overdueSortOrder}`
   const section: TSection = {
     ID: sectionNum,
     name: sectionDetail.sectionName,
@@ -1188,6 +1185,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
     sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
+    totalCount: totalCount, // TEST: Is this needed or helpful?
     generatedDate: new Date(),
     actionButtons: [],
   }
@@ -1212,8 +1210,8 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logInfo('getOverdueSectionData', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
     if (useDemoData) {
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
+      logInfo('getOverdueSectionData', `- Getting DEMO data`)
       for (let c = 0; c < 60; c++) {
-        // const thisID = `${sectionNum}-${String(c)}`
         const thisType = c % 3 === 0 ? 'checklist' : 'open'
         const priorityPrefix = c % 20 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : c % 5 === 0 ? '! ' : ''
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
@@ -1233,13 +1231,12 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
             type: type,
             changedDate: fakeDateMom.toDate(),
           },
+          children: [],
         })
       }
     } else {
-      // Get overdue tasks (and dedupe)
+      // Get overdue tasks
       // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      // TODO: find better way to dedupe again
-      // const overdueParas = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas)
       overdueParas = await getRelevantOverdueTasks(config, [])
 
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
@@ -1317,7 +1314,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
 
 /**
  * Make a Section for all projects ready for review
- * FIXME: this is taking 1815ms for JGC
+ * Note: this is taking 1815ms for JGC
  * @param {TDashboardSettings} config 
  * @param {boolean} useDemoData?
  * @returns 
@@ -1371,9 +1368,8 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
       nextNotesToReview = await getNextNotesToReview(0) // get all overdue
     }
 
-    if (!dashboardSettings.FFlag_Perspectives) {
-
-    }
+    // Get list of suitable folders to filter by (if set)
+    const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
 
     if (nextNotesToReview) {
       nextNotesToReview.map((n) => {
@@ -1382,8 +1378,9 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
 
         const thisFilename = n.filename
 
-        // If we have a Perspective set, check if this is wanted
-        if (!dashboardSettings.FFlag_Perspectives || isFilenameAllowedInCurrentPerspective(thisFilename, dashboardSettings)) {
+        // Only continue if this is an allowed folder
+        // FIXME: continuing when it shouldn't?
+        if (allowedFoldersInCurrentPerspective !== [] && isFilenameAllowedInFolderList(thisFilename, allowedFoldersInCurrentPerspective)) {
           // Make a project instance for this note, as a quick way of getting its metadata
           // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
           const projectInstance = new Project(n, '', false)

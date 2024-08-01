@@ -248,7 +248,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
       // output += '<i class="fa-solid fa-arrow-down-wide-short fa-flip-horizontal pad-right"></i>'
       // output += '<i style="color: var(--fg-main-color); font-size: small; opacity: 0.7;" class="fa-regular fa-list-tree pad-left"></i>'
       output += '<i class="childMarker fa-solid fa-block-quote pad-left"></i>'
-      clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
+      // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
     }
 
     // console.log(`makeParaContet...: \n-> ${output}`)

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-28 for v2.2.0.a1 by @jgclark
+// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -27,7 +27,8 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreTasksWithPhrase: string,
   ignoreChecklistItems: boolean,
-  ignoreFolders: string, // Needs to be split into Array<string>
+  ignoreFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includeFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includeFolderName: boolean,
   includeScheduledDates: boolean,
   includeTaskContext: boolean,
@@ -71,7 +72,7 @@ export type TDashboardPluginSettings = {
 export type TPerspectiveDef = {
   key: string,
   name: string,
-  includeCalendarNotes: boolean,
+  // includeCalendarNotes: boolean,
   includedFolders: string,
   excludedFolders: string,
   includedTags: string,

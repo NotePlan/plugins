@@ -2,6 +2,10 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [Perspectives.a2] 
+- perspective folder filtering working for Calendar + Project sections
+- added a 'congrats' message if there are no Projects left to review
+
+## [Perspectives.a2] 
 - can now save activePerspectiveName
 - nicer-looking PerspectiveDefinitionSettings component -- though it doesn't yet persist changes
 - Projects section now filters using perspective folders

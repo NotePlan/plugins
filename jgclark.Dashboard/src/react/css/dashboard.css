@@ -13,6 +13,12 @@
 	}
 }
 
+/* TEST: for subtle colouring */
+html {
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%);
+	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%);
+}
+
 html,
 body {
 	font-size: 16px;
