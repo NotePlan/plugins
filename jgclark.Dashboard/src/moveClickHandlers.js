@@ -398,20 +398,23 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     config.separateSectionForReferencedNotes = false
     const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
     // const yesterdaysCombinedSortedDashboardParas = yestCombinedSortedParas.concat(sortedRefParas)
+
+    // TEST: Now removing Yesterday data
     // Now convert these back to full TParagraph
-    const yesterdaysCombinedSortedParas: Array<TParagraph> = []
-    for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
-      const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
-      if (p) {
-        yesterdaysCombinedSortedParas.push(p)
-      } else {
-        logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
-      }
-    }
+    // const yesterdaysCombinedSortedParas: Array<TParagraph> = []
+    // for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
+    //   const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
+    //   if (p) {
+    //     yesterdaysCombinedSortedDashboardParas.push(p)
+    //   } else {
+    //     logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
+    //   }
+    // }
 
     // Get paras for all overdue items in notes
     // Note: we need full TParagraphs, not ReducedParagraphs
-    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, []) // note: does not include open checklist items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
