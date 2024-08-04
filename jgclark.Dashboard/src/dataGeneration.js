@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-02 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,7 +18,9 @@ import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   getDashboardSettings,
   getNotePlanSettings,
-  getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks,
+  getOpenItemParasForCurrentTimePeriod,
+  getRelevantOverdueTasks,
+  getRelevantPriorityTasks,
   getStartTimeFromPara,
   makeDashboardParas,
 } from './dashboardHelpers'
@@ -40,6 +42,7 @@ import {
   getAllowedFoldersInCurrentPerspective,
   // isFilenameAllowedInCurrentPerspective,
   isFilenameAllowedInFolderList,
+  isNoteInAllowedFolderList,
 } from './perspectiveHelpers'
 import {
   getDateStringFromCalendarFilename,
@@ -92,6 +95,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
     if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
     sections.push(await getProjectSectionData(config, useDemoData))
 
     return sections
@@ -125,8 +129,9 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('TAG') && config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
     return sections
   } catch (error) {
@@ -1050,7 +1055,7 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
 }
 
 /**
- * Add a section for tagsToShow, if wanted, and if not running because triggered by a change in the daily note.
+ * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -1194,7 +1199,11 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
 }
 
 // ----------------------------------------------------------
-// Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
+/**
+ * Generate data for a section for Overdue tasks
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData?
+ */
 export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = '13'
@@ -1238,7 +1247,6 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // Get overdue tasks
       // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
       overdueParas = await getRelevantOverdueTasks(config, [])
-
       logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
     }
 
@@ -1276,7 +1284,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `{count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `first {count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNum,
@@ -1312,10 +1320,128 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
   }
 }
 
+// ----------------------------------------------------------
+/**
+ * Generate data for a section of raised Priority tasks
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData?
+ */
+export async function getPrioritySectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+  try {
+    const sectionNum = '14'
+    const thisSectionCode = 'PRIORITY'
+    let totalPriority = 0
+    let itemCount = 0
+    let priorityParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
+    let dashboardParas: Array<TParagraphForDashboard> = []
+    const maxInSection = dashboardSettings.maxItemsToShowInSection
+    const NPSettings = getNotePlanSettings()
+    const thisStartTime = new Date()
+
+    logInfo('getPrioritySectionData', `------- Gathering Priority Tasks for section #${String(sectionNum)} -------`)
+    if (useDemoData) {
+      // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
+      for (let c = 0; c < 60; c++) {
+        // const thisID = `${sectionNum}-${String(c)}`
+        const thisType = c % 3 === 0 ? 'checklist' : 'open'
+        const priorityPrefix = c % 20 === 0 ? '>> ' : c % 10 === 0 ? '!!! ' : c % 5 === 0 ? '!! ' : '! '
+        const fakeDateMom = new moment('2023-10-01').add(c, 'days')
+        const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
+        const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
+        const type = c % 3 < 2 ? 'Calendar' : 'Notes'
+        const content = `${priorityPrefix}test priority item ${c} >${fakeIsoDateStr}`
+        priorityParas.push({
+          filename: filename,
+          content: content,
+          rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
+          type: thisType,
+          note: {
+            filename: filename,
+            title: `Priority Test Note ${c % 10}`,
+            type: type,
+            changedDate: fakeDateMom.toDate(),
+          },
+        })
+      }
+    } else {
+      // Get priority tasks
+      // Note: Cannot move the reduce into here otherwise scheduleAllPriorityOpenToToday() doesn't have all it needs to work
+      priorityParas = await getRelevantPriorityTasks(dashboardSettings)
+      logDebug('getPrioritySectionData', `- found ${priorityParas.length} priority paras in ${timer(thisStartTime)}`)
+    }
+
+    const items: Array<TSectionItem> = []
+
+    if (priorityParas.length > 0) {
+      // Get list of suitable folders to filter by (if set)
+      const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+
+      // Remove items that are not in an allowed note folder (but allow all in Calendar notes)
+      if (allowedFoldersInCurrentPerspective !== []) {
+        priorityParas = priorityParas.filter((p) => isNoteInAllowedFolderList(p.note, allowedFoldersInCurrentPerspective, true))
+      }
+
+      // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
+      // Note: this takes ~600ms for 1,000 items
+      dashboardParas = makeDashboardParas(priorityParas)
+      logTimer('getPrioritySectionData', thisStartTime, `- after reducing paras -> ${dashboardParas.length}`)
+
+      // TODO(later): Remove possible dupes from sync'd lines
+      // priorityParas = eliminateDuplicateSyncedParagraphs(priorityParas)
+      // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
+
+      totalPriority = dashboardParas.length
+
+      // Sort paragraphs by priority
+      const sortOrder = ['-priority', '-changedDate']
+      const sortedPriorityTaskParas = sortListBy(dashboardParas, sortOrder)
+      logTimer('getPrioritySectionData', thisStartTime, `- Sorted ${sortedPriorityTaskParas.length} items`)
+
+      // Apply limit to set of ordered results
+      // Note: there is also filtering in the Section component
+      const priorityTaskParasLimited = totalPriority > maxInSection ? sortedPriorityTaskParas.slice(0, maxInSection) : sortedPriorityTaskParas
+      logDebug('getPrioritySectionData', `- after limit, now ${priorityTaskParasLimited.length} items to show`)
+      priorityTaskParasLimited.map((p) => {
+        const thisID = `${sectionNum}-${itemCount}`
+        items.push(getSectionItemObject(thisID, p))
+        itemCount++
+      })
+    }
+    logTimer('getPrioritySectionData', thisStartTime, `- finished finding priority items`)
+
+    const prioritySectionDescription =
+      totalPriority > itemCount ? `first {count} of {totalCount}` : `{count}`
+
+    const section: TSection = {
+      ID: sectionNum,
+      name: 'Priority Tasks',
+      showSettingName: 'showPrioritySection',
+      sectionCode: thisSectionCode,
+      description: prioritySectionDescription,
+      FAIconClass: 'fa-regular fa-angles-up',
+      // FAIconClass: 'fa-light fa-star-exclamation',
+      sectionTitleClass: 'priority',
+      sectionFilename: '',
+      sectionItems: items,
+      generatedDate: new Date(),
+      totalCount: totalPriority,
+      actionButtons: [
+      ],
+    }
+    logTimer('getPrioritySectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1500)
+    return section
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    // $FlowFixMe[incompatible-return]
+    return null
+  }
+}
+
 /**
  * Make a Section for all projects ready for review
  * Note: this is taking 1815ms for JGC
- * @param {TDashboardSettings} config 
+ * @param {TDashboardSettings} dashboardSettings 
  * @param {boolean} useDemoData?
  * @returns 
  */
@@ -1368,10 +1494,10 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
       nextNotesToReview = await getNextNotesToReview(0) // get all overdue
     }
 
-    // Get list of suitable folders to filter by (if set)
-    const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
-
     if (nextNotesToReview) {
+      // Get list of suitable folders to filter by (if set)
+      const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+
       nextNotesToReview.map((n) => {
         // If we already have enough projects to show, return early
         if (itemCount >= maxProjectsToShow) { return }
@@ -1414,8 +1540,9 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
     sectionCode: thisSectionCode,
     description: `{count} project{s} ready to review`,
     sectionItems: items,
-    FAIconClass: 'fa-light fa-calendar-check',
-    sectionTitleClass: 'sidebarYearly',
+    FAIconClass: 'fa-regular fa-chart-gantt',
+    // FAIconClass: 'fa-light fa-square-kanban',
+    sectionTitleClass: 'projects',
     generatedDate: new Date(),
     actionButtons: [
       {

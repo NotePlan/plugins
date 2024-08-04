@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 24.6.2023 for v0.6.0, @jgclark
+// Last updated 3.7.2023 for v0.6.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { generateRepeatsFromRecentNotes } from './repeats.js'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
@@ -25,8 +26,8 @@ import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInp
 
 export async function tidyUpAll(): Promise<void> {
   try {
-    logDebug(pluginJson, `tidyUpAll: Starting`)
     const config: TidyConfig = await getSettings()
+    logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(config.runSilently)}`)
 
     // Show spinner dialog
     CommandBar.showLoading(true, `Tidying up ...`, 0)

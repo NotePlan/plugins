@@ -88,7 +88,7 @@ function getUseFirstButVisible(
 }
 
 /**
- * Removes duplicates from sections based on specified fields and prioritizes sections based on a given order.
+ * Removes duplicate items from sections based on specified fields and prioritizes sections based on a given order.
  *
  * @param {Array<TSection>} _sections - The sections to filter.
  * @param {Array<string>} paraMatcherFields - The fields (on the underlying para) to match for duplicates.
@@ -120,6 +120,8 @@ export function getSectionsWithoutDuplicateLines(
   const orderedSections = useFirstVisibleOnly.flatMap(st =>
     sections.filter(section => section.sectionCode === st)
   )
+  const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections)
+  logInfo('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
   
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter(section => !useFirst.includes(section.sectionCode)))
@@ -127,8 +129,9 @@ export function getSectionsWithoutDuplicateLines(
   const itemMap:any = new Map()
   
   // Now we are working with actual TSection objects, not sectionCodes anymore
-  // Process each section (but not if it's a "PROJ" section)
+  // Process each section (but not if it's a "PROJ" section, because it doesn't have paragraph-level items)
   orderedSections.forEach(section => {
+    logInfo('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
     if (section.sectionCode === 'PROJ') return
 
     // If the item has a synced line, use the blockId for the key, not the constructed key
@@ -141,18 +144,19 @@ export function getSectionsWithoutDuplicateLines(
         itemMap.set(key, true)
         return true
       } else {
-        // logDebug('getSectionsWithoutDuplicateLines', `Duplicate item found: ${key}`)
+        logInfo('getSectionsWithoutDuplicateLines', `  - Duplicate item ${item.ID}: ${key}`)
       }
       
       return false
     })
+    logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
   })
-  logDebug('sectionHelpers/orderedSections', ` (${orderedSections.length}) sections: ${String(orderedSections.map(s => s.name))}`, orderedSections)
+  const totalItemsAfterDedupe = countTotalSectionItems(orderedSections)
+  logInfo('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map(s => s.name))} with ${totalItemsAfterDedupe} items`)
 
   // Return the orderedSections instead of the original sections
   return orderedSections
 }
-
 
 /**
  * Counts the total number of sectionItems in an array of TSection objects
@@ -160,7 +164,7 @@ export function getSectionsWithoutDuplicateLines(
  * @returns {number} The total number of sectionItems
  */
 export const countTotalSectionItems = (sections: Array<TSection>): number => {
-  sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
+  // sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
   return sections.reduce((total, section) => total + section.sectionItems.length, 0)
 }
 

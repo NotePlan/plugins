@@ -10,16 +10,16 @@
   border: 1px solid var(--divider-color);
   border-radius: 6px;
   margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.jer-value-main-row {
+  min-height: 1.3em !important;
 }
 
 .perspectiveSettingsBlock {
   padding: 0rem 0.5rem 0.3rem 0.5rem;
   border-radius: 6px;
-}
-
-/* TODO: get working to indent items under Perspective Name field */
-.perspectiveSettingsBlock:nth-child(n+2) {
-  /* margin-left: 1rem; */
 }
 
 .activePerspective {

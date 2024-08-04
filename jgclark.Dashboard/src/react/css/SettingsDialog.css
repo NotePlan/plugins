@@ -17,7 +17,7 @@
     /* z-index: 1000; */
     opacity: 0;
     transition: opacity 0.2s ease-out;
-    overflow: auto;
+    overflow: hidden;
 }
 
 /* Ensure the settings dialog content is hidden when closed */
@@ -27,6 +27,7 @@
     gap: 1rem;
     background-color: var(--bg-mid-color);
     padding: 0.75rem 1.25rem;
+    border-radius: 8px;
     overflow-y: auto;
     max-height: 80vh;
 }
@@ -66,10 +67,10 @@
 /* Style for the buttons */
 .settings-dialog .PCButton {
     font-family: system-ui;
-    padding: 4px 6px;
+    padding: 2px 4px;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
+    /* font-size: 14px; */
     transition: background-color 0.2s, box-shadow 0.2s;
     /* height: 30px; */
     /* Ensure buttons are centered vertically */
@@ -120,6 +121,7 @@
     align-items: center;
     gap: 0.5rem;
     /* Left justify */
+    gap: 0.5rem;
     justify-content: flex-start;
     /* little space above/below */
     padding: 0.1rem 0rem 0.3rem 0rem;
@@ -149,7 +151,8 @@
 .settings-dialog .input-box-container-compact {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: end;
+    gap: 0.5rem;
     /* width: 98%; */
 }
 
@@ -165,7 +168,7 @@
     font-weight: 500;
     color: var(--fg-alt-color);
     /* margin-bottom: 0.3rem; */
-    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 /* Style for input-box-input */
@@ -177,9 +180,14 @@
     background-color: var(--bg-main-color);
     border-radius: 4px;
     font-family: system-ui;
-    font-size: 14px;
+    font-size: 0.85rem;
     /* vertical spacing above and below */
     margin: 0.3rem 0rem;
+}
+
+/* Make number boxes a little narrower */
+.settings-dialog .input-box-input-number {
+    width: 6rem;
 }
 
 /* Style for input box with invalid input */
@@ -231,7 +239,14 @@
 .settings-dialog .combobox-container {
     display: flex;
     flex-direction: column;
-    /* width: 98%; */
+}
+
+/* Style for combobox-container (compact version) */
+.settings-dialog .combobox-container-compact {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
 }
 
 /* Style for combobox-wrapper */
@@ -247,8 +262,8 @@
 .settings-dialog .combobox-label {
     font-weight: 500;
     color: var(--fg-alt-color);
-    margin-bottom: 0.3rem;
     margin-right: 0.1rem;
+    margin-bottom: 0.3rem;
 }
 
 /* Style for combobox-input */
@@ -341,12 +356,14 @@
     opacity: 0.8;
 }
 
+/* Style for Section headings */
 .settings-dialog .ui-heading {
-    font-size: 150%;
+    font-size: 130%;
     color: var(--tint-color);
-    padding-bottom: 0.3rem;
+    /* padding-bottom: 0.3rem; */
     font-weight: 600;
     text-align: start;
+    line-height: 140%;
 }
 
 .settings-dialog hr {

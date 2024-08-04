@@ -5,8 +5,9 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)
-- all overdue tasks
 - all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing. This can give "deferred date" functionality (see below).
+- all overdue tasks
+- all open items with an added priority
 - the next notes ready to review (if you use the "Projects and Reviews" plugin)
 
 ... and then gives you many controls, mostly in two edit dialogs, that let you quickly complete, cancel or move items to different time periods.
@@ -81,6 +82,9 @@ The 'action buttons' available in this section are:
 - "Complete", "Cancel" and "Pause" Project buttons, that each mimic the same command from the Project & Reviews plugin
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
 
+### Priority section
+Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
+
 ### Updating the Dashboard automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
 
@@ -145,7 +149,7 @@ Use `arg0=` followed by a comma-separated list of one or more of the following s
 | Tomorrow | `DO` | Week | `W` |
 | Month | `M` | Quarter | `Q` |
 | Projects | `PROJ` | Overdue | `OVERDUE` |
-| tags / mentions from your settings | `#tag` / `@mention` |
+| Items with Priority | `PRIORITY` | tags / mentions from your settings | `#tag` / `@mention` |
 
 You can also **set a particular setting**:
 ```
@@ -180,6 +184,7 @@ For both callbacks, the names of the possible settings (described above), and th
 | showMonthSection | true / false |
 | showQuarterSection | true / false |
 | showOverdueSection | true / false |
+| showPrioritySection | true / false |
 | showProjectSection | true / false |
 | maxItemsToShowInSection | number |
 | overdueSortOrder | string |

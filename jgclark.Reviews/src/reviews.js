@@ -880,7 +880,8 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
  * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-export function logFullReviewList(): void {
+// eslint-disable-next-line require-await -- stops a logging error
+export async function logFullReviewList(): Promise<void> {
   const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
   console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
 }

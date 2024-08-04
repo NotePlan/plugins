@@ -1,9 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
-
 import type { TPerspectiveDef, TSettingItem } from "./types.js"
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
@@ -29,17 +28,19 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 // But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
 // So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
-  {
-    type: 'heading',
-    label: "Perspectives",
-  },
-  {
-    key: "activePerspectiveName",
-    label: "Name of active Perspective",
-    description: "The Perspective that is active (if any).",
-    type: 'input',
-    default: "",
-  },
+  // {
+  //   type: 'heading',
+  //   label: "Perspectives",
+  // },
+  // {
+  //   key: "activePerspectiveName",
+  //   label: "Name of active Perspective",
+  //   description: "The Perspective that is active (if any).",
+  //   type: 'combo',
+  //   options: [], // placeholder that will be replaced later
+  //   default: "",
+  //   compactDisplay: true,
+  // },
   {
     type: 'heading',
     label: "General Settings",
@@ -55,9 +56,10 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: "ignoreFolders",
     label: "Folders to ignore when finding items",
     // TODO(later): add this takes priority over 'Folders to include'
-    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be included, e.g. @Archive, @Templates.)",
+    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
     default: "@Archive, @Templates, Saved Searches",
+    compactDisplay: true,
   },
   {
     key: "newTaskSectionHeading",
@@ -80,6 +82,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
     type: 'switch',
     default: false,
+    compactDisplay: true,
   },
   {
     key: "moveSubItems",
@@ -266,14 +269,6 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
         }
-      // case 'perspective':
-      //   return {
-      //     type: 'perspective',
-      //     // label: setting.label || '',
-      //     key: thisKey,
-      //     value: allSettings[thisKey] ?? setting.default,
-      //     // description: setting.description,
-      //   }
       default:
         return {
           label: setting.label || '',
@@ -286,43 +281,43 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
   })
 }
 
-export const perspectiveSettingDefinitions: Array<TSettingItem> = [
-  {
-    key: "name",
-    label: "Perspective Name",
-    description: "",
-    type: 'input',
-    compactDisplay: true
-  },
-  {
-    key: "includedFolders",
-    label: "Included Folders",
-    description: "(Optional) Comma-separated list of names of folders (or parts of names) to include in this perspective.",
-    type: 'input',
-    compactDisplay: false
-  },
-  {
-    key: "excludedFolders",
-    label: "Excluded Folders",
-    description: "(Optional) Comma-separated list of names of folders (or parts of names) to exclude from this perspective. (If there is a conflict, Exclusion has a higher priority than Inclusion.)",
-    type: 'input',
-    compactDisplay: false
-  },
-  {
-    key: "includedTags",
-    label: "Tags/Mentions to Include",
-    description: "(Optional) Comma-separated list of #tags or @mentions to include in this perspective.",
-    type: 'input',
-    compactDisplay: true
-  },
-  {
-    key: "excludedTags",
-    label: "Tags/Mentions to Exclude",
-    description: "(Optional) Comma-separated list of #tags or @mentions to exclude from this perspective.",
-    type: 'input',
-    compactDisplay: true
-  },
-]
+// export const perspectiveSettingDefinitions: Array<TSettingItem> = [
+//   {
+//     key: "name",
+//     label: "Perspective Name",
+//     description: "",
+//     type: 'input',
+//     compactDisplay: true
+//   },
+//   {
+//     key: "includedFolders",
+//     label: "Included Folders",
+//     description: "(Optional) Comma-separated list of names of folders (or parts of names) to include in this perspective.",
+//     type: 'input',
+//     compactDisplay: false
+//   },
+//   {
+//     key: "excludedFolders",
+//     label: "Excluded Folders",
+//     description: "(Optional) Comma-separated list of names of folders (or parts of names) to exclude from this perspective. (If there is a conflict, Exclusion has a higher priority than Inclusion.)",
+//     type: 'input',
+//     compactDisplay: false
+//   },
+//   {
+//     key: "includedTags",
+//     label: "Tags/Mentions to Include",
+//     description: "(Optional) Comma-separated list of #tags or @mentions to include in this perspective.",
+//     type: 'input',
+//     compactDisplay: true
+//   },
+//   {
+//     key: "excludedTags",
+//     label: "Tags/Mentions to Exclude",
+//     description: "(Optional) Comma-separated list of #tags or @mentions to exclude from this perspective.",
+//     type: 'input',
+//     compactDisplay: true
+//   },
+// ]
 
 export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
   {
@@ -336,9 +331,9 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
   {
     key: 'persp1',
     name: "Work",
-    includedFolders: "CCC, Ministry",
+    includedFolders: "Work, CCC, Ministry",
     excludedFolders: "Readwise 📚, Saved Searches",
-    includedTags: "@church",
+    includedTags: "@work, @church",
     excludedTags: "#test, @home"
   }
 ]

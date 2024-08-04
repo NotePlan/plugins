@@ -197,7 +197,7 @@ dialog::backdrop {
 
 /* If rather narrow, slide [items] under [info] */
 /* This needs to come after the earlier definitions to take priority */
-@media screen and (width <=600px) {
+@media screen and (width <= 600px) {
 	.section {
 		grid-template-columns: 1fr;
 	}
@@ -453,6 +453,11 @@ button,
 	color: var(--tint-color) !important;
 }
 
+/* Desaturate note folder names */
+.folderName {
+	opacity: 50%;
+}
+
 /* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 /*	column-count: 3;
 	column-fill: balance;
@@ -472,6 +477,7 @@ button,
 }
 
 /* Some headings specified from measuring the colour of NP sidebar elements */
+/* TODO: move the font-size somewhere more sensible */
 .sidebarDaily {
 	font-size: 1.0rem;
 	color: #d0703c;
@@ -505,6 +511,11 @@ button,
 .sidebarMention {
 	font-size: 1.0rem;
 	color: var(--attag-color);
+}
+
+.priority, .overdue, .projects {
+	font-size: 1.0rem;
+	color: var(--item-icon-color);
 }
 
 #error {

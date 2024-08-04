@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the definition settings for 1 Perspective settings
-// Called by PerspectiveSettings component.
+// TODO: remove me, I think.
+// Note: Was Called by PerspectiveSettings component.
 // Last updated 2024-07-26 for v2.1.0.a2 by @jgclark
 //--------------------------------------------------------------------------
 
@@ -9,7 +10,6 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
-import { perspectiveSettingDefinitions } from '../../dashboardSettings.js'
 import type { TPerspectiveDef } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 // import InputBox from '../components/InputBox.jsx'

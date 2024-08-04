@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-08-02 for v2.1.0.a3 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -10,7 +10,9 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
+import { getListOfPerspectiveNames } from '../../../perspectiveHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
+import ComboBox from '../ComboBox.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
@@ -27,7 +29,7 @@ import {
   handleDropdownFieldChange,
   onDropdownMenuChangesMade
 } from './headerDropdownHandlers.js'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug } from '@helpers/react/reactDev.js'
 import './Header.css'
 
 //--------------------------------------------------------------------------
@@ -74,14 +76,32 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  const { /*dashboardSettings: pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
+  const {/* pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
 
   const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
   const featureFlagItems = createFeatureFlagItems(dashboardSettings)
 
   const isDevMode = logSettings._logLevel === 'DEV'
+  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? ''
+  const perspectiveNameOptions = getListOfPerspectiveNames(dashboardSettings, true)
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
+
+  // TODO: HELP: I get lost on what to put here.
+  // These are two handlers from other places for reference.
+  // const handleOptionClick = (option: string) => {
+  //   setSelectedValue(option)
+  //   onChange(option)
+  //   setIsOpen(false)
+  // }
+
+  // const handleFieldChange = (key: string, value: any) => {
+  //   setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
+  // }
 
   //----------------------------------------------------------------------
   // Render
@@ -92,6 +112,18 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   return (
     <div className="header">
+      <div className="perspectiveName">
+        {dashboardSettings.FFlag_Perspectives && (
+          <ComboBox
+            label={'Persp'}
+            value={activePerspectiveName}
+            onChange={null} // TODO: HELP: I can't figure this out
+            options={perspectiveNameOptions}
+            compactDisplay={true}
+          />
+        )}
+      </div>
+
       <div className="lastFullRefresh">
         {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>

@@ -126,6 +126,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const hideSection = !items.length || (dashboardSettings && dashboardSettings[`${section.showSettingName}`] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
+
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
   section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
 
@@ -139,8 +140,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   if (descriptionToUse.includes('{count}')) {
     const totalNumItems = items.length
     if (numFilteredOut > 0) {
+      if (descriptionToUse.includes('first')) {
+        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+      } else {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${(numItemsToShow > 0) ? 'first ' : ''
-        }${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
+        }${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+      }
     } else if (limitApplied) {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
     } else {

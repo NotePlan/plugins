@@ -44,6 +44,7 @@ export type TDashboardSettings = {
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueSection: boolean,
+  showPrioritySection: boolean,
   showProjectSection: boolean,
   maxItemsToShowInSection: number,
   overdueSortOrder: string,
@@ -82,7 +83,7 @@ export type TPerspectiveDef = {
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'OVERDUE' | 'TAG' | 'PROJ' // | 'COUNT' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'PRIORITY' | 'OVERDUE' | 'TAG' | 'PROJ' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 

@@ -42,7 +42,11 @@
       "name": "Show Demo Dashboard",
       "description": "Show Demo Dashboard",
       "jsFunction": "showDemoDashboard",
-      "hidden": true,
+      "hidden": false,
+      "comment": "TODO: remove me in time",
+      "alias": [
+        "sdd"
+      ],
       "arguments": []
     },
     {
@@ -68,6 +72,18 @@
       "name": "Make Callback from Current Settings",
       "description": "Make a callback url or link for the current settings, and copy to the clipboard.",
       "jsFunction": "makeSettingsAsCallback",
+      "hidden": "false"
+    },
+    {
+      "name": "Add new Perspective",
+      "description": "Add new Perspective from current settings.",
+      "jsFunction": "addNewPerspective",
+      "hidden": "false"
+    },
+    {
+      "name": "Delete Perspective",
+      "description": "Delete an existing Perspective.",
+      "jsFunction": "deletePerspective",
       "hidden": "false"
     },
     {

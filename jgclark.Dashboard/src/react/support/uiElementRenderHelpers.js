@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
+// Last updated 2024-05-29 for v2.0.5 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -32,6 +32,7 @@ type RenderItemProps = {
   showSaveButton?: boolean,
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
+  className?: string,
 }
 
 /**
@@ -52,7 +53,9 @@ export function renderItem({
   showSaveButton = true,
   inputRef, // Destructure inputRef
   indent = false,
+  className = '',
 }: RenderItemProps): React$Node {
+
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
@@ -113,7 +116,6 @@ export function renderItem({
             }}
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
           />
         )
       case 'combo':
@@ -129,7 +131,6 @@ export function renderItem({
             }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
           />
         )
       // case 'perspective':
@@ -143,7 +144,7 @@ export function renderItem({
             key={`text${index}`}
             textType={item.textType || 'description'}
             label={thisLabel}
-            className={indent ? 'indent' : ''}
+            // className={indent ? 'indent' : ''}
           />
         )
       case 'separator':
@@ -156,7 +157,7 @@ export function renderItem({
   }
 
   return (
-    <div className="ui-item" key={`item${index}`} title={item.description || ''}>
+    <div className={`ui-item ${className}`} key={`item${index}`} title={item.description || ''}>
       {element()}
     </div>
   )

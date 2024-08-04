@@ -14,9 +14,9 @@ import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
+import PerspectiveSettings from './PerspectiveSettings.jsx'
 import { logDebug } from '@helpers/react/reactDev.js'
 import { clo } from '@helpers/dev.js'
-import PerspectiveSettings from './PerspectiveSettings.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -159,6 +159,12 @@ const SettingsDialog = ({
 			</div>
 
 			<div className="settings-dialog-content">
+				{/* Include Perspectives after activePerspectiveName, if turned on */}
+				{dashboardSettings.FFlag_Perspectives && (
+					<PerspectiveSettings values={dashboardSettings.perspectives}
+					/>
+				)}
+
 				{/* Iterate over all the settings */}
 				{items.map((item, index) => (
 					<div key={`sdc${index}`}>
@@ -180,14 +186,10 @@ const SettingsDialog = ({
 							labelPosition,
 							showSaveButton: false, // Do not show save button
 							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+							className: '', // for future use
 						})}
 						{item.description && (
 							<div className="item-description">{item.description}</div>
-						)}
-						{/* Include Perspectives after activePerspectiveName, if turned on */}
-						{dashboardSettings.FFlag_Perspectives && item.key === 'activePerspectiveName' && (
-							<PerspectiveSettings values={dashboardSettings.perspectives}
-							/>
 						)}
 					</div>
 				))}

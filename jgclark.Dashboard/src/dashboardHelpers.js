@@ -22,13 +22,13 @@ import {
   includesScheduledFutureDate,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   sendToHTMLWindow,
   getGlobalSharedData,
 } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, getNoteByFilename } from '@helpers/note'
+import { filterOutParasInExcludeFolders, getNoteByFilename, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
@@ -476,15 +476,13 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
-    logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
-
-    // TODO(perspective): work here
+    logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
     const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, ignoreFolders, true)
-    logDebug('getRelevantOverdueTasks', `- after 'ignoreFolders'(${config.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras (after ${timer(thisStartTime)})`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'ignoreFolders'(${config.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
@@ -492,7 +490,7 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     } else {
       logDebug('getRelevantOverdueTasks...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
     }
-    logDebug('getRelevantOverdueTasks', `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredOverdueParas.length} paras (after ${timer(thisStartTime)})`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredOverdueParas.length} paras`)
 
     // Limit overdues to last N days for testing purposes
     if (!Number.isNaN(config.lookBackDaysForOverdue) && config.lookBackDaysForOverdue > 0) {
@@ -507,7 +505,7 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     // Note: this is a quick operation
     // $FlowFixMe[class-object-subtyping]
     filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
-    logInfo('getRelevantOverdueTasksReducedParas', `- after deduping overdue -> ${filteredOverdueParas.length} in ${timer(thisStartTime)}`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping -> ${filteredOverdueParas.length}`)
 
     // Remove items already in Yesterday section (if turned on)
     if (config.showYesterdaySection) {
@@ -515,20 +513,105 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
       // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
         filteredOverdueParas.map((p) => {
           if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
-            logDebug('getRelevantOverdueTasksReducedParas', `- removing duplicate item {${p.content}} from overdue list`)
+            logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
             filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
           }
         })
       }
     }
 
-    logInfo('getRelevantOverdueTasksReducedParas', `- after deduping with yesterday -> ${filteredOverdueParas.length} in ${timer(thisStartTime)}`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
     // $FlowFixMe[class-object-subtyping]
     return filteredOverdueParas
   } catch (error) {
-    logError('getRelevantOverdueTasksReducedParas', error.message)
+    logError('getRelevantOverdueTasks', error.message)
     return []
   }
+}
+
+/**
+ * Get all tasks marked with a priority, filtered and sorted according to various settings. But the number of items returned is not limited.
+ * @param {TDashboardSettings} settings
+ * @returns {Array<TParagraph>}
+ */
+export async function getRelevantPriorityTasks(
+  config: TDashboardSettings,
+): Promise<Array<TParagraph>> {
+  try {
+    const thisStartTime = new Date()
+
+    await CommandBar.onAsyncThread()
+    // Get list of folders to ignore
+    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    logInfo('getRelevantPriorityTasks', `ignoreFolders: ${ignoreFolders.toString()}`)
+    // Reduce list to all notes that are not blank or in @ folders or ignoreFolders
+    let notesToCheck = projectNotesFromFilteredFolders(ignoreFolders, true).concat(pastCalendarNotes())
+    logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
+    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+    notesToCheck = notesToCheck
+      .filter((n) => n.filename.match(/(.txt|.md)$/))
+      .filter((n) => n.content && n.content.length !== 'undefined' && n.content.length >= 1)
+    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
+
+    // Now find all open items in them which have a priority marker
+    const priorityParas = getAllOpenPriorityItems(notesToCheck)
+    logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParas.length)} priorityParas`)
+    await CommandBar.onMainThread()
+    // Log for testing
+    // for (const p of priorityParas) {
+    //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)
+    // }
+
+    // Filter out anything from 'ignoreTasksWithPhrase' setting
+    let filteredPriorityParas = priorityParas
+    if (config.ignoreTasksWithPhrase) {
+      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+      filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      logDebug('getRelevantPriorityTasks', `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredPriorityParas.length} paras`)
+    }
+
+    // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+    // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
+    // Note: this is a quick operation
+    // $FlowFixMe[class-object-subtyping]
+    filteredPriorityParas = removeDuplicates(filteredPriorityParas, ['content'])
+    logTimer('getRelevantPriorityTasks', thisStartTime, `- after deduping -> ${filteredPriorityParas.length}`)
+
+    // $FlowFixMe[class-object-subtyping]
+    return filteredPriorityParas
+  } catch (error) {
+    logError('getRelevantPriorityTasks', error.message)
+    return []
+  }
+}
+
+/**
+ * ???
+ * @param {Array<TNote>} notesToCheck 
+ * @returns {Array<TParagraph>}
+ */
+function getAllOpenPriorityItems(notesToCheck: Array<TNote>): Array<TParagraph> {
+  const priorityParas: Array<TParagraph> = []
+  for (const note of notesToCheck) {
+    const priorityParasForNote = getOpenPriorityItems(note)
+    priorityParas.push(...priorityParasForNote)
+  }
+  return priorityParas
+}
+
+/**
+ * ???
+ * @param {TNote} note 
+ * @returns {Array<TParagraph>}
+ */
+function getOpenPriorityItems(note: TNote): Array<TParagraph> {
+  const priorityParas: Array<TParagraph> = []
+  for (const paragraph of note.paragraphs) {
+    if (isOpenNotScheduled(paragraph) && getNumericPriorityFromPara(paragraph) > 0) {
+      priorityParas.push(paragraph)
+    }
+  }
+  return priorityParas
 }
 
 /**

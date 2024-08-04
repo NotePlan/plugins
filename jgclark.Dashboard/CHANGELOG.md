@@ -1,6 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- TODO:  
+- Change Perspectives to include all settings, not just the 5 from the proof of concept
+-->
+
+## [Perspectives.a3] -- all WIP not fully working, @jgc,  2024-08-04
+- new "/Add new Perspective" command (and callback)
+- new "/Delete Perspective" command (and callback)
+- added Perspective selector to Header bar -- but doesn't get saved
+- added JSON setting display/editor to Settings dialog (a temporary measure during development)
+- merged changes from v2.0.5 on main branch, so added Priority Section.
+
 ## [Perspectives.a2] 
 - perspective folder filtering working for Calendar + Project sections
 - added a 'congrats' message if there are no Projects left to review
@@ -13,7 +24,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [Perspectives.a1] 
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
-- started to add settings to define Perpsectives
+- started to add settings to define Perspectives
+
+<!-- ## Placeholder for 2.1.0
+- TODO: new 'Notes' section ...
+- TODO: add active links to section titles in description area -->
+
+## [2.0.5] 2024-07-30
+- some layout tweaks in the main Settings dialog
+- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla).
+
+## [2.0.4] 2024-07-23 unreleased
+- new 'Priority' section for all items with a priority marker (>>, !!!, !! or !) (for @lbednarski). Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
+<!-- Note: I'm not sure that deduping between sections is working as it should -->
+- fixed setting 'Add folder name in note link' not working
+- updated some of the icons in the section descriptions
 
 ## [2.0.3] 2024-07-19
 - fixed filter dropdown menu placement issue
@@ -24,7 +49,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - tidied up other z-index-ing
 
 ## [2.0.2] 2024-07-16
-- fixed 'All Overdue → Today' button not working (thanks for the report, @oldielajolla)
+- fixed 'All Overdue → Today' button not working (thanks for the report, @Oldielajolla)
 - fix to auto-refresh
 - fix to stop 5s refresh in DEV mode
 - improve wording around number of open items in section descriptions

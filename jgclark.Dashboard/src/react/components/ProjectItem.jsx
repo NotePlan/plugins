@@ -78,7 +78,7 @@ function ProjectItem({ item }: Props): Node {
       </div>
 
       <div className="sectionItemContent sectionItem">
-        {folderNamePart}
+        <span className="pad-left folderName">{folderNamePart}</span>
         {noteTitleWithOpenAction}
         <a className="dialogTrigger">
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
