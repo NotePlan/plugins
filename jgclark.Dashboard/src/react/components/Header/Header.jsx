@@ -10,9 +10,7 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
-import { getListOfPerspectiveNames } from '../../../perspectiveHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
-import ComboBox from '../ComboBox.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
@@ -21,6 +19,7 @@ import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
+import PerspectiveSelector  from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import {
   handleSwitchChange,
@@ -83,8 +82,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const featureFlagItems = createFeatureFlagItems(dashboardSettings)
 
   const isDevMode = logSettings._logLevel === 'DEV'
-  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? ''
-  const perspectiveNameOptions = getListOfPerspectiveNames(dashboardSettings, true)
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
 
   //----------------------------------------------------------------------
@@ -114,13 +111,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
     <div className="header">
       <div className="perspectiveName">
         {dashboardSettings.FFlag_Perspectives && (
-          <ComboBox
-            label={'Persp'}
-            value={activePerspectiveName}
-            onChange={null} // TODO: HELP: I can't figure this out
-            options={perspectiveNameOptions}
-            compactDisplay={true}
-          />
+          <PerspectiveSelector/>
         )}
       </div>
 

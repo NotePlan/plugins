@@ -1,45 +1,72 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to show an HTML ComboBox control, with various possible settings. Based on basic HTML controls, not a fancy React Component.
+// Dashboard React component to show an HTML ComboBox control, with various possible settings.
+// Based on basic HTML controls, not a fancy React Component.
 // Last updated 2024-07-30 for v2.0.5 by @jgclark
+//--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+// Imports
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
 
+//--------------------------------------------------------------------------
+// Type Definitions
+//--------------------------------------------------------------------------
 type ComboBoxProps = {
   label: string,
   options: Array<string>,
   value: string,
   onChange: (value: string) => void,
-  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
+  inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
 };
 
+//--------------------------------------------------------------------------
+// ComboBox Component Definition
+//--------------------------------------------------------------------------
 const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = false }: ComboBoxProps): React$Node => {
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
-  const comboboxRef = useRef <? ElementRef < 'div' >> (null)
-  const comboboxInputRef = useRef <? ElementRef < 'input' >> (null)
+  const comboboxRef = useRef<?ElementRef<'div'>>(null)
+  const comboboxInputRef = useRef<?ElementRef<'input'>>(null)
 
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
 
+  /**
+   * Toggles the dropdown open or closed.
+   */
   const toggleDropdown = () => setIsOpen(!isOpen)
+
+  /**
+   * Handles the selection of an option.
+   * @param {string} option - The selected option.
+   */
   const handleOptionClick = (option: string) => {
     setSelectedValue(option)
     onChange(option)
     setIsOpen(false)
   }
 
+  /**
+   * Closes the dropdown if a click occurs outside of it.
+   * @param {any} event - The click event.
+   */
   const handleClickOutside = (event: any) => {
     if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
       setIsOpen(false)
     }
   }
 
-  // Scroll combobox fully into view
-  // FIXME(@dbw): please can you help? I've added this but it's not working.
+  /**
+   * Scrolls the combobox fully into view.
+   */
   const handleComboboxOpen = () => {
     setTimeout(() => {
       if (comboboxInputRef.current instanceof HTMLInputElement) {
@@ -48,7 +75,6 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
       } else {
         console.log('Could not find comboboxInputRef')
       }
-
     }, 100) // Delay to account for rendering/animation
   }
 
@@ -77,8 +103,15 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
     }
   }, [])
 
+  useEffect(() => {
+    setSelectedValue(value)
+  }, [value])
+
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
   return (
-    <div className={compactDisplay ? 'combobox-container-compact' : 'combobox-container'} >
+    <div className={compactDisplay ? 'combobox-container-compact' : 'combobox-container'}>
       <label className="combobox-label">{label}</label>
       <div className="combobox-wrapper" onClick={toggleDropdown}>
         <input
@@ -86,11 +119,11 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
           className="combobox-input"
           value={selectedValue}
           readOnly
-          ref={inputRef} // Pass the inputRef to the input element
+          ref={inputRef || comboboxInputRef} // Pass the inputRef to the input element
         />
         <span className="combobox-arrow">&#9662;</span>
         {isOpen && (
-          <div className="combobox-dropdown" ref={comboboxRef} >
+          <div className="combobox-dropdown" ref={comboboxRef}>
             {options.map((option: string) => (
               <div
                 key={option}
