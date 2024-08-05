@@ -26,7 +26,8 @@ import '../css/PerspectiveSettings.css'
 type Settings = { [key: string]: string | boolean };
 
 type PerspectiveSettingsProps = {
-  values: any
+  values: any,
+  handleFieldChange: (key: string, value: any)=>void,
 };
 
 // type JsonEditorReturnData = {
@@ -44,10 +45,11 @@ type PerspectiveSettingsProps = {
 //--------------------------------------------------------------------------
 
 const PerspectiveSettings = ({
-  values
+  values,
+  handleFieldChange,
 }: PerspectiveSettingsProps): React$Node => {
   try {
-    const { dashboardSettings, setDashboardSettings } = useAppContext()
+    const { dashboardSettings } = useAppContext()
     // only continue if we have this Feature Flag turned on
     if (!dashboardSettings.FFlag_Perspectives) return
 
@@ -73,9 +75,10 @@ const PerspectiveSettings = ({
     //----------------------------------------------------------------------
 
     const setJsonData = (updatedData: any) => {
-      clo(updatedData, 'PerspectiveSettings updated')
-      // TODO: HELP: why is this apparently not working?
-      setDashboardSettings(prev => ({ ...prev, ...{ dashboardSettings: updatedData }, lastChange: 'Perspective Settings updated' }))
+      clo(updatedData, `PerspectiveSettings updated; but wont' be saved until user clicks Save:`)
+      // Note that JSON was updated but setDashboardSettings should not be called until the user clicks "Save on the window" 
+      // so we don't set it here, we just pass it back to the parent component (SettingsDialog) to handle as if it was any other field
+      handleFieldChange('perspectives', updatedData)
     }
 
     //----------------------------------------------------------------------
