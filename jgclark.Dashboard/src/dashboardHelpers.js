@@ -77,16 +77,17 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
   if (!pluginSettings || !pluginSettings.dashboardSettings) {
     clo(pluginSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
 
-    // So instead back to the older way:
+    // Fall back to the older way:
     pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
-    // Check again
+
   }
   if (!pluginSettings.dashboardSettings) {
     if (pluginSettings.sharedSettings) {
-      logDebug(`getDashboardSettings: no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
+      logDebug('getDashboardSettings', `no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
       pluginSettings.dashboardSettings = pluginSettings.sharedSettings
       delete pluginSettings.sharedSettings
+      logDebug('getDashboardSettings', `now deleted sharedSettings.`)
       DataStore.settings = pluginSettings
     } else {
       throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
@@ -387,7 +388,7 @@ export function getOpenItemParasForCurrentTimePeriod(
  * Note: suggested by ChatGPT
  * Deeply compares values, potentially recursively if they are objects.
  * Logs differences with a path to the differing property.
- * 
+ * TODO(@dwertheimer): this is not used. Could it be moved to a helper file?
  * @param {any} value1 The first value to compare.
  * @param {any} value2 The second value to compare.
  * @param {string} path The base path to the property being compared.

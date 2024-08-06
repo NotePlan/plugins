@@ -54,7 +54,7 @@ import {
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+// import { getFolderFromFilename } from '@helpers/folders'
 import {
   toNPLocaleDateString,
 } from '@helpers/NPdateTime'
@@ -1204,7 +1204,7 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
-export async function getOverdueSectionData(config: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getOverdueSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = '13'
     const thisSectionCode = 'OVERDUE'
@@ -1212,7 +1212,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     let itemCount = 0
     let overdueParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
     let dashboardParas: Array<TParagraphForDashboard> = []
-    const maxInSection = config.maxItemsToShowInSection
+    const maxInSection = dashboardSettings.maxItemsToShowInSection
     const NPSettings = getNotePlanSettings()
     const thisStartTime = new Date()
 
@@ -1226,8 +1226,9 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
         const fakeDateMom = new moment('2023-10-01').add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
-        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
-        const type = c % 3 < 2 ? 'Calendar' : 'Notes'
+        const fakeFolder = c % 2 < 1 ? 'Home Projects' : 'Work Projects'
+        const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${NPSettings.defaultFileExtension}` : `${fakeFolder}/fake_note_${String(c % 7)}.${NPSettings.defaultFileExtension}`
+        const noteType = c % 3 < 2 ? 'Calendar' : 'Notes'
         const content = `${priorityPrefix}test overdue item ${c} >${fakeIsoDateStr}`
         overdueParas.push({
           filename: filename,
@@ -1237,7 +1238,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
           note: {
             filename: filename,
             title: `Overdue Test Note ${c % 10}`,
-            type: type,
+            type: noteType,
             changedDate: fakeDateMom.toDate(),
           },
           children: [],
@@ -1246,8 +1247,17 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     } else {
       // Get overdue tasks
       // Note: Cannot move the reduce into here otherwise scheduleAllOverdueOpenToToday() doesn't have all it needs to work
-      overdueParas = await getRelevantOverdueTasks(config, [])
-      logDebug('getOverdueSectionData', `- found ${overdueParas.length} overdue paras in ${timer(thisStartTime)}`)
+      overdueParas = await getRelevantOverdueTasks(dashboardSettings, [])
+      logTimer('getOverdueSectionData', thisStartTime, `- found ${overdueParas.length} overdue paras`)
+    }
+
+    // Get list of suitable folders to filter by (if set)
+    const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+
+    // Remove items that are not in an allowed note folder (but allow all in Calendar notes)
+    if (allowedFoldersInCurrentPerspective !== []) {
+      overdueParas = overdueParas.filter((p) => isNoteInAllowedFolderList(p.note, allowedFoldersInCurrentPerspective, true))
+      logTimer('getOverdueSectionData', thisStartTime, `- -> ${overdueParas.length} overdue paras after filtering to ${String(allowedFoldersInCurrentPerspective.length)} allowed perspective folders `)
     }
 
     const items: Array<TSectionItem> = []
@@ -1256,35 +1266,35 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
       // Note: this takes ~600ms for 1,000 items
       dashboardParas = makeDashboardParas(overdueParas)
-      logDebug('getOverdueSectionData', `- after reducing paras -> ${dashboardParas.length} in ${timer(thisStartTime)}`)
+      logTimer('getOverdueSectionData', thisStartTime, `- ${dashboardParas.length} reduced paras`)
 
       // Remove possible dupes from sync'd lines
       // Note: currently commented out, to save 2? secs of processing
       // overdueParas = eliminateDuplicateSyncedParagraphs(overdueParas)
-      // logDebug('getOverdueSectionData', `- after sync lines dedupe ->  ${overdueParas.length}`)
+      // logDebug('getOverdueSectionData', `- after sync lines dedupe -> ${overdueParas.length}`)
 
       totalOverdue = dashboardParas.length
 
       // Sort paragraphs by one of several options
       const sortOrder =
-        config.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : config.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
+        dashboardSettings.overdueSortOrder === 'priority' ? ['-priority', '-changedDate'] : dashboardSettings.overdueSortOrder === 'earliest' ? ['changedDate', 'priority'] : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
-      logDebug('getOverdueSectionData', `- Sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
+      logTimer('getOverdueSectionData', thisStartTime, `- sorted ${sortedOverdueTaskParas.length} items by ${String(sortOrder)}`)
 
       // Apply limit to set of ordered results
       // Note: there is also filtering in the Section component
       const overdueTaskParasLimited = totalOverdue > maxInSection ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
-      logDebug('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
+      logDebug('getOverdueSectionData', `- ${overdueTaskParasLimited.length} after limit`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         items.push(getSectionItemObject(thisID,p))
         itemCount++
       })
     }
-    logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
+    logTimer('getOverdueSectionData', thisStartTime, `- finished finding overdue items`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `first {count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `first {count} of {totalCount} ordered by ${dashboardSettings.overdueSortOrder}` : `{count} ordered by ${dashboardSettings.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNum,

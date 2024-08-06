@@ -4,7 +4,7 @@
 // Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { dashboardSettingDefs } from "./dashboardSettings.js"
+import { dashboardSettingDefs, perspectiveSettingDefaults } from "./dashboardSettings.js"
 import { getDashboardSettings } from "./dashboardHelpers.js"
 import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -25,13 +25,20 @@ import { chooseOption, getInputTrimmed } from '@helpers/userInput'
 export function getCurrentPerspectiveDef(
   dashboardSettings: TDashboardSettings
 ): TPerspectiveDef | false {
+
   const activePerspectiveName = dashboardSettings.activePerspectiveName ?? ''
   if (!activePerspectiveName) {
     logDebug('getCurrentPerspectiveDef', `No active perspective`)
     return false
   }
   // Get relevant perspectiveDef
-  const allDefs = dashboardSettings.perspectives ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
+  const allDefs = dashboardSettings.perspectives ?? perspectiveSettingDefaults
+  if (!allDefs) {
+    logWarn('getCurrentPerspectiveDef', `No perspectives defined, AND couldn't find defaults.`)
+    clo(perspectiveSettingDefaults, `perspectiveSettingDefaults:`)
+    return false
+  }
+  clo(allDefs, `getCurrentPerspectiveDef: allDefs =`)
   const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
   if (!activeDef) {
     logWarn('getCurrentPerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
@@ -141,9 +148,12 @@ export function getListOfPerspectiveNames(
   dashboardSettings: TDashboardSettings,
   includeEmptyOption: boolean,
 ): Array<string> {
-  const options: Array<string> = [] // ['Home', 'Work']
+  const options: Array<string> = [] // ['Home', 'Work'] // FIXME:
   // Get all perspective names
-  const allDefs = dashboardSettings.perspectives ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
+  const allDefs = dashboardSettings.perspectives ?? perspectiveSettingDefaults
+  if (allDefs.length === 0) {
+    throw new Error(`No existing Perspective settings found. Stopping.`)
+  }
   for (const def of allDefs) {
     options.push(def.name)
   }
@@ -210,7 +220,7 @@ export function isNoteInAllowedFolderList(
 ): boolean {
   // Is note a Calendar note or is in folderList?
   const matchFound = (allowAllCalendarNotes && note.type === 'Calendar') || folderList.some((f) => note.filename.includes(f))
-  logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
+  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
   return matchFound
 }
 

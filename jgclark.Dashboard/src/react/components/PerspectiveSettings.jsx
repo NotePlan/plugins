@@ -23,10 +23,9 @@ import '../css/PerspectiveSettings.css'
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
-type Settings = { [key: string]: string | boolean };
+// type Settings = { [key: string]: string | boolean };
 
 type PerspectiveSettingsProps = {
-  values: any,
   handleFieldChange: (key: string, value: any)=>void,
 };
 
@@ -45,7 +44,6 @@ type PerspectiveSettingsProps = {
 //--------------------------------------------------------------------------
 
 const PerspectiveSettings = ({
-  values,
   handleFieldChange,
 }: PerspectiveSettingsProps): React$Node => {
   try {
@@ -64,7 +62,7 @@ const PerspectiveSettings = ({
     // const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
     // logDebug('PerspectiveSettings', `perspectiveDef names: ${perspectiveDefs.map((pd) => pd.name).sort().join(' / ')}`)
     // logDebug('PerspectiveSettings', `activePerspectiveName: '${activePerspectiveName}'`)
-    clo(dashboardSettings.perspectives, 'Perspective settings at start:')
+    clo(dashboardSettings.perspectives, 'starting PerspectiveSettings with:')
 
     //----------------------------------------------------------------------
     // State
@@ -112,7 +110,7 @@ const PerspectiveSettings = ({
         {/* JSON Editor for now to view/udpate. From https://github.com/CarlosNZ/json-edit-react */}
         <JsonEditor
           data={dashboardSettings.perspectives ?? {}}
-          rootName={"perspectives"}
+          rootName={"dashboardSettings.perspectives"}
           setData={setJsonData}
           rootFontSize={"10pt"}
           collapse={false}

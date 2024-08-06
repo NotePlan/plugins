@@ -121,8 +121,11 @@ export async function refreshAllSections(): Promise<void> {
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
  * @returns {TBridgeClickHandlerResult}
  */
-export async function incrementallyRefreshSections(data: MessageDataObject, 
-  calledByTrigger: boolean = false, setFullRefreshDate: boolean = false): Promise<TBridgeClickHandlerResult> {
+export async function incrementallyRefreshSections(
+  data: MessageDataObject,
+  calledByTrigger: boolean = false,
+  setFullRefreshDate: boolean = false
+): Promise<TBridgeClickHandlerResult> {
   const incrementalStart = new Date()
   const { sectionCodes } = data
   if (!sectionCodes) {

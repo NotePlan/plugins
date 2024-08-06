@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
+/* Last updated 2024-08-05 for v2.1.0.a4 by @jgclark */
 
 /* Settings for Grid-based layout */
 .header {
@@ -104,8 +104,8 @@
 .header .combobox-container-compact {
     display: flex;
     flex-direction: row;
-    align-items: baseline;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 /* Style for combobox-wrapper */
@@ -121,21 +121,17 @@
 .header .combobox-label {
     font-weight: 500;
     color: var(--fg-alt-color);
-    margin-right: 0.1rem;
-    margin-bottom: 0.3rem;
 }
 
 /* Style for combobox-input */
 .header .combobox-input {
     flex: 1;
-    padding: 4px 8px;
+    padding: 3px 6px;
     background-color: var(--bg-main-color);
     border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
     border-radius: 4px;
-    /* font-family: system-ui; */
     font-size: 0.9rem;
     /* width: 100%; */
-    /* box-sizing: border-box; */
 }
 
 /* Focus style for combobox-input */
@@ -173,7 +169,7 @@
     cursor: pointer;
     color: var(--fg-main-color);
     padding: 0.2rem 0rem 0.2rem 0.4rem;
-		min-height: 0.9rem;
+    min-height: 0.9rem;
     /* transition: background-color 0.2s; */
 }
 

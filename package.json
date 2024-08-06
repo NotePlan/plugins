@@ -160,7 +160,7 @@
     "node-notifier": "10.0.0",
     "plotly.js-dist-min": "^2.32.0",
     "progress": "2.0.3",
-    "react": "^18.2.0",
+    "react": "18.3",
     "react-circular-progressbar": "^2.1.0",
     "react-data-table-component": "^7.5.3",
     "react-day-picker": "^8.10.1",

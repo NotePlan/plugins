@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-08-02 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-05 for v2.1.0.a4 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------

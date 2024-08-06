@@ -170,6 +170,10 @@ export async function makeSettingsAsCallback(): Promise<void> {
   }
 }
 
+/**
+ * ???
+ * @param {string} limitToSections e.g. "TD,TY,#work"
+ */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
   const dashboardSettings = (await getDashboardSettings()) || {}
@@ -211,12 +215,19 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
 
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
+    // TODO: can this be moved to onInstallOrUpdate?
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
     // log warnings if we don't have required files
+    // TODO: can this be moved to onInstallOrUpdate?
     await checkForRequiredSharedFiles(pluginJson)
     logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
+
+    // Get settings
+    const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
+    clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
+    const logSettings = await getLogSettings()
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
@@ -232,10 +243,6 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
-    // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
-    // logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
-    const logSettings = await getLogSettings()
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -397,7 +404,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
  * Update the sections data in the React Window data object
  * @returns {Promise<any>} - returns the full reactWindowData
  */
-async function refreshDashboardData(prevData?: any): any {
+export async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
   const sections = await getAllSectionsData(demoMode, false, true)

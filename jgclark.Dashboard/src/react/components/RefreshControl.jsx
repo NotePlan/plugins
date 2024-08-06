@@ -1,8 +1,9 @@
 // @flow
-
+//----------------------------------------------------------------------
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
 // Last updated 2024-06-25 for v2.0.0-b14 by @jgclark
+//----------------------------------------------------------------------
 
 import React from 'react'
 import Button from './Button.jsx'
@@ -15,6 +16,7 @@ type Props = {
 /**
  * Conditional rendering based on the `refreshing` state.
  * Displays a spinner icon when data is being refreshed.
+ * FIXME: why is it not spinning any more?
  * Otherwise, displays a refresh button.
  *
  * @param {Props} props - The props object containing plugin data and event handlers.

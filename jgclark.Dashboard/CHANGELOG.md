@@ -4,6 +4,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 <!-- TODO:  
 - Change Perspectives to include all settings, not just the 5 from the proof of concept
 -->
+## [Perspectives.a4] -- all WIP not fully working, @jgc,  2024-08-06
+- separated out PerspectiveSelector
+- _before transition to separate perspectiveSettings data structure_
 
 ## [Perspectives.a3] -- all WIP not fully working, @jgc,  2024-08-04
 - new "/Add new Perspective" command (and callback)

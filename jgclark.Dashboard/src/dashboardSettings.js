@@ -28,19 +28,19 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 // But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
 // So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
-  // {
-  //   type: 'heading',
-  //   label: "Perspectives",
-  // },
-  // {
-  //   key: "activePerspectiveName",
-  //   label: "Name of active Perspective",
-  //   description: "The Perspective that is active (if any).",
-  //   type: 'combo',
-  //   options: [], // placeholder that will be replaced later
-  //   default: "",
-  //   compactDisplay: true,
-  // },
+  {
+    type: 'heading',
+    label: "Perspectives",
+  },
+  {
+    key: "activePerspectiveName",
+    label: "Name of active Perspective",
+    description: "The Perspective that is active (if any).",
+    type: 'input', // TODO: make this a 'combo'
+    // options: [], // placeholder that will be replaced later
+    default: "",
+    compactDisplay: true,
+  },
   {
     type: 'heading',
     label: "General Settings",

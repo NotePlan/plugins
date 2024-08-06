@@ -260,7 +260,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
  */
 export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
   try {
-    logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`)
+    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`)
 
     // Pass request back to plugin
     // Note: no longer passing rawContent, as it's not needed
