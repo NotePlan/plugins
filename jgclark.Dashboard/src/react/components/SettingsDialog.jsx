@@ -161,6 +161,7 @@ const SettingsDialog = ({
 			<div className="settings-dialog-content">
 				{/* Include Perspectives after activePerspectiveName, if turned on */}
 				{dashboardSettings.FFlag_Perspectives && (
+					// TODO: change function?
 					<PerspectiveSettings handleFieldChange={handleFieldChange}
 					/>
 				)}

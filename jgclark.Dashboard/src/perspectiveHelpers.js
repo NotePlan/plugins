@@ -1,47 +1,146 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { dashboardSettingDefs, perspectiveSettingDefaults } from "./dashboardSettings.js"
+import pluginJson from '../plugin.json'
 import { getDashboardSettings } from "./dashboardHelpers.js"
+import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed } from '@helpers/userInput'
 
-// TODO: change to save all settings in separate data structure
-
-// TODO: update to DBW suggestion:
+// Note: DBW originally suggested:
 // e.g. perspectiveSettings[“Home”] rather than a flat array
+
+//-----------------------------------------------------------------------------
+
+const pluginID = pluginJson['plugin.id']
+
+export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
+  // $FlowFixMe[prop-missing] rest specified later
+  {
+    name: "Home",
+    isActive: false,
+    // $FlowFixMe[prop-missing]
+    dashboardSettings: {
+      includedFolders: "Home, NotePlan",
+      excludedFolders: "Readwise 📚, Saved Searches",
+      ignoreItemsWithTerms: "#test, @church",
+    }
+  },
+  // $FlowFixMe[prop-missing] rest specified later
+  {
+    name: "Work",
+    isActive: false,
+    // $FlowFixMe[prop-missing] rest specified later
+    dashboardSettings: {
+      includedFolders: "Work, CCC, Ministry",
+      excludedFolders: "Readwise 📚, Saved Searches",
+      ignoreItemsWithTerms: "#test, @home",
+    }
+  }
+]
+
+//-----------------------------------------------------------------------------
+/**
+ * Delete all Perspective settings
+ */
+// eslint-disable-next-line require-await
+export async function deletePerspectiveSettings(): Promise<void> {
+  logDebug('getPerspectiveSettings', `Attempting to delete all Perspective settings ...`)
+  const pluginSettings = DataStore.settings
+  delete pluginSettings.perspectiveSettings
+  clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
+}
+
+/**
+ * Get all perspective settings (as array of TPerspectiveDef)
+ * @returns {Array<TPerspectiveDef>} all perspective settings
+ */
+export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
+  // Note: Copied from above.
+  // Note: We think following (newer API call) is unreliable.
+  let pluginSettings = DataStore.settings
+  if (!pluginSettings || !pluginSettings.perspectiveSettings) {
+    clo(pluginSettings, `getPerspectiveSettings (newer API): DataStore.settings?.perspectiveSettings not found. Here's the full settings for ${pluginID} plugin: `)
+
+    // Fall back to the older way:
+    pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    clo(pluginSettings, `getPerspectiveSettings (older lookup): pluginSettings loaded from settings.json`)
+
+  }
+  if (!pluginSettings.perspectiveSettings) {
+    // Will need to set from the defaults
+    logDebug('getPerspectiveSettings', `None found: will use the defaults`)
+    pluginSettings.perspectiveSettings = perspectiveSettingDefaults
+    DataStore.settings = pluginSettings
+  }
+  clo(pluginSettings, `getPerspectiveSettings: pluginSettings =`)
+  // return parseSettings(pluginSettings.perspectiveSettings)
+  return pluginSettings.perspectiveSettings
+}
+
+/**
+ * WARNING: not yet working, and not yet called
+ * Initialise Perspective settings when Dashboard starts up
+ * Note: used to be handled in WebView
+ */
+export async function initialisePerpsectiveSettings(): Promise<void> {
+  const pluginSettings = DataStore.settings
+  const currentDashboardSettings = await getDashboardSettings()
+  // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
+  const pSettings = pluginSettings.perspectiveSettings || {} // 
+  logInfo('initialisePerpsectiveSettings', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
+
+  // TODO: P version of these:
+  // const pSettingsItems = createDashboardSettingsItems(pSettings)
+  const pSettingDefaults = perspectiveSettingDefaults.map(
+    psd => ({
+      ...psd,
+      // FIXME: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
+      dashboardSettings: { ...psd.dashboardSettings, currentDashboardSettings }
+    })
+  )
+  logInfo('initialisePerpsectiveSettings', `found ${String(pSettingDefaults.length)} pSettingDefaults: ${JSON.stringify(pSettingDefaults, null, 2)}`)
+
+  const perspectiveSettingsOrDefaults = {
+    ...pSettingDefaults, ...pSettings, lastChange: `initialisePerpsectiveSettings`
+  }
+  logInfo('initialisePerpsectiveSettings', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
+  const outputObj = parseSettings(pluginSettings.perspectiveSettingsOrDefaults)
+  pluginSettings.perspectiveSettings = outputObj
+  clo(outputObj, `initialisePerpsectiveSettings -> outputObj =`)
+}
 
 /**
  * Get active Perspective definition
- * @param {TDashboardSettings} dashboardSettings
+ * @param {string} activePerspectiveName
+ * @param {TDashboardSettings} perspectiveSettings
  * @returns {TPerspectiveDef | false}
  */
-export function getCurrentPerspectiveDef(
-  dashboardSettings: TDashboardSettings
+export function getActivePerspectiveDef(
+  dashboardSettings: TDashboardSettings,
+  perspectiveSettings: Array<TPerspectiveDef>
 ): TPerspectiveDef | false {
-
-  const activePerspectiveName = dashboardSettings.activePerspectiveName ?? ''
+  const activePerspectiveName = dashboardSettings.activePerspectiveName
   if (!activePerspectiveName) {
-    logDebug('getCurrentPerspectiveDef', `No active perspective`)
+    logWarn('getActivePerspectiveDef', `No active perspective name passed. Returning false.`)
     return false
   }
   // Get relevant perspectiveDef
-  const allDefs = dashboardSettings.perspectives ?? perspectiveSettingDefaults
+  const allDefs = perspectiveSettings ?? []
   if (!allDefs) {
-    logWarn('getCurrentPerspectiveDef', `No perspectives defined, AND couldn't find defaults.`)
-    clo(perspectiveSettingDefaults, `perspectiveSettingDefaults:`)
+    logWarn('getActivePerspectiveDef', `No perspectives defined.`)
     return false
   }
-  clo(allDefs, `getCurrentPerspectiveDef: allDefs =`)
+  clo(allDefs, `getActivePerspectiveDef: allDefs =`)
   const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
   if (!activeDef) {
-    logWarn('getCurrentPerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
+    logWarn('getActivePerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
     return false
   } else {
     clo(activeDef, `Active perspective '${activePerspectiveName}':`)
@@ -52,23 +151,24 @@ export function getCurrentPerspectiveDef(
 /**
  * Get named Perspective definition
  * @param {string} name to find
- * @param {TDashboardSettings} dashboardSettings
+ * @param {TDashboardSettings} perspectiveSettings
  * @returns {TPerspectiveDef | false}
  */
-export function getPerspectiveNamed(name: string, dashboardSettings: TDashboardSettings): TPerspectiveDef | false {
-  return dashboardSettings.perspectives.find(s => s.name === name) ?? false
+export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPerspectiveDef>): TPerspectiveDef | false {
+  return perspectiveSettings.find(s => s.name === name) ?? false
 }
 
 /**
  * Add new Perspective using current settings
  * TEST: live
  * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Add%20new%20Perspective&arg0=Home
- * TODO: shift to using new data structure
+ * @param {string} nameIn
  */
 export async function addNewPerspective(nameIn: string = ''): Promise<void> {
   try {
     logDebug('addNewPerspective', `Starting with ${nameIn} para`)
     const dashboardSettings = (await getDashboardSettings()) || {}
+    const existingDefs = (await getPerspectiveSettings()) || {}
 
     // Get name of new Perspective
     const res = await getInputTrimmed('Please give the name of the new Perspective', 'OK', 'New Perspective', '')
@@ -77,18 +177,14 @@ export async function addNewPerspective(nameIn: string = ''): Promise<void> {
       return
     }
     // Find out how many Perspective definitions we already have
-    const existingDefs = dashboardSettings.perspectives
     const newPerspectiveObject: TPerspectiveDef = {
-      key: `persp${String(existingDefs.length)}`, // TODO: remove in time
-      // $FlowIgnore[incompatible-type]
-      name: res,
-      includedFolders: dashboardSettings.includeFolders,
-      excludedFolders: dashboardSettings.ignoreFolders,
-      includedTags: '', // not implemented yet
-      excludedTags: '', // not implemented yet
+      name: String(res), // to keep flow happy
+      isActive: false,
+      dashboardSettings: dashboardSettings
     }
-    dashboardSettings.perspectives.push(newPerspectiveObject)
+    existingDefs.push(newPerspectiveObject)
     // TODO: HELP: How to get this persisted?
+
   } catch (error) {
     logError('addNewPerspective', error.message)
   }
@@ -105,18 +201,18 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
     let nameToUse = ''
     const dashboardSettings = (await getDashboardSettings()) || {}
-    const allDefs = dashboardSettings.perspectives ?? dashboardSettingDefs.find((dsd) => dsd.key === 'perspectives')
-    if (allDefs.length === 0) {
+    const existingDefs = (await getPerspectiveSettings()) || []
+    if (existingDefs.length === 0) {
       throw new Error(`No perspective settings found. Stopping.`)
     }
-    logDebug('deletePerspective', `Starting with ${allDefs.length} perspectives and param '${nameIn}'`)
+    logDebug('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
 
-    if (nameIn !== '' && getPerspectiveNamed(nameIn, dashboardSettings)) {
+    if (nameIn !== '' && getPerspectiveNamed(nameIn, existingDefs)) {
       nameToUse = nameIn
       logDebug('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
     } else {
       logDebug('deletePerspective', `Asking user to pick perspective to delete`)
-      const options = allDefs.map((p) => {
+      const options = existingDefs.map((p) => {
         return { label: p.name, value: p.name }
       })
       const res = await chooseOption('Please pick the Perspective to delete', options)
@@ -127,12 +223,17 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       nameToUse = String(res)
       logDebug('deletePerspective', `Will delete perspective '${nameToUse}' selected by user`)
     }
-    // delete this Def from the perspectives
-    // delete dashboardSettings.perspectives[nameToUse]
-    const perspectivesWithoutOne = allDefs.filter(obj => obj.name !== nameToUse)
-    dashboardSettings.perspectives = perspectivesWithoutOne
-    logDebug('deletePerspective', `Finished with ${dashboardSettings.perspectives.length} perspectives remaining`)
+
+    // if this is the active perspective, then unset the activePerspectiveName
+    if (nameToUse === dashboardSettings.activePerspectiveName) {
+      dashboardSettings.activePerspectiveName = ''
+    }
+
+    // delete this Def from the list of Perspective Defs
+    const perspectivesWithoutOne = existingDefs.filter(obj => obj.name !== nameToUse)
+    logDebug('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
     // TODO: HELP: How to get this change persisted?
+
   } catch (error) {
     logError('deletePerspective', error.message)
   }
@@ -140,51 +241,73 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
 
 /**
  * Get list of all Perspective names
- * @param {TDashboardSettings} dashboardSettings
+ * @param {Array<TPerspectiveDef>} allDefs
  * @param {boolean} includeEmptyOption?
  * @returns {Array<string>}
  */
 export function getListOfPerspectiveNames(
-  dashboardSettings: TDashboardSettings,
+  allDefs: Array<TPerspectiveDef>,
   includeEmptyOption: boolean,
 ): Array<string> {
-  const options: Array<string> = [] // ['Home', 'Work'] // FIXME:
+  try {
+    const options: Array<string> = [] // ['Home', 'Work']
   // Get all perspective names
-  const allDefs = dashboardSettings.perspectives ?? perspectiveSettingDefaults
-  if (allDefs.length === 0) {
-    throw new Error(`No existing Perspective settings found. Stopping.`)
+    if (!allDefs || allDefs.length === 0) {
+      throw new Error(`No existing Perspective settings found.`)
+    }
+    for (const def of allDefs) {
+      options.push(def.name)
+    }
+    if (includeEmptyOption) {
+      options.unshift("-")
+    }
+    logDebug('getListOfPerspectiveNames ->', String(options))
+    return options
+  } catch (err) {
+    logError('getListOfPerspectiveNames', err.message)
+    return ['-']
   }
-  for (const def of allDefs) {
-    options.push(def.name)
-  }
-  if (includeEmptyOption) {
-    options.unshift("-")
-  }
-  logDebug('getListOfPerspectiveNames ->', String(options))
-  return options
 }
 
 /**
  * Get all folders that are allowed in the current Perspective.
- * @param {TDashboardSettings} dashboardSettings 
+ * @param {string} activePerspectiveName 
+ * @param {Array<TPerspectiveDef>} perspectiveSettings 
  * @returns 
  */
 export function getAllowedFoldersInCurrentPerspective(
-  dashboardSettings: TDashboardSettings
+  dashboardSettings: TDashboardSettings,
+  perspectiveSettings: Array<TPerspectiveDef>
 ): Array<string> {
   if (dashboardSettings.activePerspectiveName === '') {
     logWarn('getAllowedFoldersInCurrentPerspective', `No active Perspective, so returning empty list.`)
     return []
   }
-  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
+  const activeDef = getActivePerspectiveDef(dashboardSettings, perspectiveSettings)
   if (!activeDef) {
     logWarn('getAllowedFoldersInCurrentPerspective', `Could not get active Perspective definition. Stopping.`)
     return []
   }
   // Note: can't use simple .split(',') as it does unexpected things with empty strings. 
   // Note: also needed to check that whitespace is trimmed.
-  const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
-  const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
+  const includedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.includeFolders ?? '', ',')
+  const excludedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.ignoreFolders ?? '', ',')
+  const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
+  return folderListToUse
+}
+
+/**
+ * Get all folders that are allowed in the current settings/Perspective.
+ * @param {TDashboardSettings} dashboardSettings 
+ * @returns 
+ */
+export function getCurrentlyAllowedFolders(
+  dashboardSettings: TDashboardSettings
+): Array<string> {
+  // Note: can't use simple .split(',') as it does unexpected things with empty strings. 
+  // Note: also needed to check that whitespace is trimmed.
+  const includedFolderArr = stringListOrArrayToArray(dashboardSettings.includeFolders ?? '', ',')
+  const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.ignoreFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
 }
@@ -224,54 +347,48 @@ export function isNoteInAllowedFolderList(
   return matchFound
 }
 
-
 /**
+ * Note: NOT CURRENTLY USED
  * Test to see if the current filename is in a folder that is allowed in the current Perspective definition
  * @param {string} filename 
  * @param {TDashboardSettings} dashboardSettings 
  * @returns {boolean}
  */
-export function isFilenameAllowedInCurrentPerspective(
-  filename: string,
-  dashboardSettings: TDashboardSettings
-): boolean {
-  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
-  if (!activeDef) {
-    logError('isFilenameIn...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
-    return false
-  }
-  // Note: can't use simple .split(',') as it does unexpected things with empty strings
-  const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
-  const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
-  // logDebug('isFilenameIn...CurrentPerspective', `using ${String(includedFolderArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedFolderArr.length)} exclusions [${excludedFolderArr.toString()}]`)
-  const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
+// export function isFilenameAllowedInCurrentPerspective(
+//   filename: string,
+//   dashboardSettings: TDashboardSettings
+// ): boolean {
+//   const activeDef = getActivePerspectiveDef(dashboardSettings)
+//   if (!activeDef) {
+//     logError('isFilenameIn...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
+//     return false
+//   }
+//   // Note: can't use simple .split(',') as it does unexpected things with empty strings
+//   const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
+//   const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
+//   // logDebug('isFilenameIn...CurrentPerspective', `using ${String(includedFolderArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedFolderArr.length)} exclusions [${excludedFolderArr.toString()}]`)
+//   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
 
-  const matchFound = folderListToUse.some((f) => filename.includes(f))
-  logDebug('isFilenameIn...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst ${String(folderListToUse)}`)
-  return matchFound
-}
+//   const matchFound = folderListToUse.some((f) => filename.includes(f))
+//   logDebug('isFilenameIn...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst ${String(folderListToUse)}`)
+//   return matchFound
+// }
 
 /**
- * Test to see if the current line contents is allowed in the current Perspective definition, by whether it has a disallowed tag/mention
- * @param {string} content
- * @param {TDashboardSettings} dashboardSettings 
- * @returns {boolean}
+ * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention)
+ * @param {string} lineContent
+ * @param {string} ignoreItemsWithTerms
+ * @returns {boolean} true if disallowed
  */
-export function isTagAllowedInCurrentPerspective(
-  content: string,
-  dashboardSettings: TDashboardSettings
+export function isLineDisallowedByExcludedTerms(
+  lineContent: string,
+  ignoreItemsWithTerms: string,
 ): boolean {
-  const activeDef = getCurrentPerspectiveDef(dashboardSettings)
-  if (!activeDef) {
-    logError('isTag...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
-    return false
-  }
   // Note: can't use simple .split(',') as it does unexpected things with empty strings
-  const includedTagArr = stringListOrArrayToArray(activeDef.includedTags, ',')
-  const excludedTagArr = stringListOrArrayToArray(activeDef.excludedTags, ',')
-  // logDebug('isTag...CurrentPerspective', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
+  const excludedTagArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
+  // logDebug('isLineDisallowedByExcludedTerms', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
 
-  const matchFound = includedTagArr.some((t) => content.includes(t)) && !excludedTagArr.some((t) => content.includes(t))
-  logDebug('isTag...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst '${String(content)}'`)
+  const matchFound = excludedTagArr.some((t) => lineContent.includes(t))
+  logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
   return matchFound
 }

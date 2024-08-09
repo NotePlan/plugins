@@ -1,9 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- TODO:  
-- Change Perspectives to include all settings, not just the 5 from the proof of concept
--->
+## [Perspectives.a5] @jgc,  2024-08-09 WIP for @dbw
+- made a separate perspectiveSettings data structure, than now includes all settings, not just the 5 from the proof of concept. FIXME: something is wrong with the initialisation of perspectives.
+- tighten up removal of priority indicators, to only happen at the start of a line's content
+- now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)
+
 ## [Perspectives.a4] -- all WIP not fully working, @jgc,  2024-08-06
 - separated out PerspectiveSelector
 - _before transition to separate perspectiveSettings data structure_

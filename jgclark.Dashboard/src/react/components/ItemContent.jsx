@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 2024-07-26 for v2.0.4 by @jgclark
+// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -51,7 +51,7 @@ function ItemContent({ item, children }: Props): React$Node {
   // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
 
   // compute the things we need later
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, dashboardSettings, 140)
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
   // get rid of arrowDates if desired by user
   if (mainContent && !dashboardSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
@@ -64,7 +64,7 @@ function ItemContent({ item, children }: Props): React$Node {
     // Regex to match the entire <span>...</span> block and capture its content
     mainContent = mainContent.replace(/(<span[^>]*>)(.*?)(<\/span>)/g, (_match, startTag, content, endTag) => {
       // Replace exclamations or ">>" within the captured content
-      const replaced = content.replace(/(?:!+|>>)\s*/g, '')
+      const replaced = content.replace(/^(!{1,3}|>>)\s+/g, '')
       // Reconstruct the <span> block with the cleaned content
       return `${startTag}${replaced}${endTag}`
     })

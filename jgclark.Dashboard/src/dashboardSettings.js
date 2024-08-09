@@ -1,9 +1,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
-import type { TPerspectiveDef, TSettingItem } from "./types.js"
+import type { TSettingItem } from "./types.js"
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
@@ -46,20 +46,28 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: "General Settings",
   },
   {
-    key: "ignoreTasksWithPhrase",
-    label: "Ignore items in calendar sections with this phrase(s)",
-    description: "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting. To include more than one phrase, separate them by commas.",
-    type: 'input',
-    default: "#waiting",
-  },
-  {
-    key: "ignoreFolders",
-    label: "Folders to ignore when finding items",
-    // TODO(later): add this takes priority over 'Folders to include'
+    key: "includedFolders",
+    label: "Folders to include when finding items",
     description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
     default: "@Archive, @Templates, Saved Searches",
     compactDisplay: true,
+  },
+  {
+    key: "ignoreFolders",
+    label: "Folders to ignore when finding items",
+    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
+    type: 'input',
+    default: "@Archive, @Templates, Saved Searches",
+    compactDisplay: true,
+  },
+  // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
+  {
+    key: "ignoreItemsWithTerms",
+    label: "Ignore items in calendar sections with this phrase(s)",
+    description: "If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.",
+    type: 'input',
+    default: "#waiting",
   },
   {
     key: "newTaskSectionHeading",
@@ -159,13 +167,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: "",
   },
-  {
-    key: "ignoreTagMentionsWithPhrase",
-    label: "Ignore items in this section with this phrase",
-    description: "Open tasks/checklists in this section will be ignored if they include this phrase.",
-    type: 'input',
-    default: "",
-  },
+  // Note: now effectively made Dashboard-wide, aka "ignoreItemsWithTerms"
+  // {
+  //   key: "ignoreTagMentionsWithPhrase",
+  //   label: "Ignore items in this section with this phrase",
+  //   description: "Open tasks/checklists in this section will be ignored if they include this phrase.",
+  //   type: 'input',
+  //   default: "",
+  // },
   {
     type: 'separator',
   },
@@ -280,60 +289,3 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
     }
   })
 }
-
-// export const perspectiveSettingDefinitions: Array<TSettingItem> = [
-//   {
-//     key: "name",
-//     label: "Perspective Name",
-//     description: "",
-//     type: 'input',
-//     compactDisplay: true
-//   },
-//   {
-//     key: "includedFolders",
-//     label: "Included Folders",
-//     description: "(Optional) Comma-separated list of names of folders (or parts of names) to include in this perspective.",
-//     type: 'input',
-//     compactDisplay: false
-//   },
-//   {
-//     key: "excludedFolders",
-//     label: "Excluded Folders",
-//     description: "(Optional) Comma-separated list of names of folders (or parts of names) to exclude from this perspective. (If there is a conflict, Exclusion has a higher priority than Inclusion.)",
-//     type: 'input',
-//     compactDisplay: false
-//   },
-//   {
-//     key: "includedTags",
-//     label: "Tags/Mentions to Include",
-//     description: "(Optional) Comma-separated list of #tags or @mentions to include in this perspective.",
-//     type: 'input',
-//     compactDisplay: true
-//   },
-//   {
-//     key: "excludedTags",
-//     label: "Tags/Mentions to Exclude",
-//     description: "(Optional) Comma-separated list of #tags or @mentions to exclude from this perspective.",
-//     type: 'input',
-//     compactDisplay: true
-//   },
-// ]
-
-export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
-  {
-    key: 'persp0',
-    name: "Home",
-    includedFolders: "Home, NotePlan",
-    excludedFolders: "Readwise 📚, Saved Searches",
-    includedTags: "#jgcDR, @home",
-    excludedTags: "#test, @church"
-  },
-  {
-    key: 'persp1',
-    name: "Work",
-    includedFolders: "Work, CCC, Ministry",
-    excludedFolders: "Readwise 📚, Saved Searches",
-    includedTags: "@work, @church",
-    excludedTags: "#test, @home"
-  }
-]

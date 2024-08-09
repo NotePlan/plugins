@@ -1,18 +1,20 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TPluginData, TDashboardSettings } from './types'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData, } from './types'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from "./constants"
-import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
-import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
 import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
-import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
+import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import { getPerspectiveSettings, initialisePerspectiveSettings } from './perspectiveHelpers'
+import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import {
@@ -71,7 +73,7 @@ export async function showDemoDashboard(): Promise<void> {
  * @param {string} value 
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=activePerspectiveName&arg1=Home
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreItemsWithTerms&arg1=#waiting
  */
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
@@ -101,7 +103,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 /**
  * x-callback entry point to change multiple settings in one go.
  * @param {string} `key=value` pairs separated by ;
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreTasksWithPhrase=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreItemsWithTerms=#waiting
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
@@ -267,7 +269,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('showDashboardReact', JSP(error))
   }
 }
 
@@ -278,10 +280,11 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: TDashboardSettings = await getDashboardSettings()
+    const dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    // const perspectiveSettings = await initialisePerspectiveSettings() // TODO(later): move from WebView to here
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-    const pluginData = await getInitialDataForReactWindow(config, useDemoData)
-    // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
+    const pluginData = await getInitialDataForReactWindow(dashboardSettings, useDemoData)
+    logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
@@ -309,7 +312,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
+export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, /* perspectiveSettings: Array<TPerspectiveDef>, */ useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)
@@ -330,6 +333,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
     sections: sections,
     lastFullRefresh: new Date(),
     dashboardSettings: dashboardSettings,
+    perspectiveSettings: perspectiveSettings,
     notePlanSettings: NPSettings,
     logSettings: await getLogSettings(),
     demoMode: useDemoData,

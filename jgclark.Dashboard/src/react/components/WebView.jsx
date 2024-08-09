@@ -26,8 +26,9 @@
 
 import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
-import { type TReactSettings, type TSettingItem } from '../../types'
+import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
+import { perspectiveSettingDefaults } from '../../perspectiveHelpers.js'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
@@ -67,6 +68,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             HOOKS
    ****************************************************************************************************************************/
 
+  // Note: DBW says this initialisation code could be brought back into the plugin side; it only lives here as this was where we was first needing the data.
+
   // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   const dSettings = data.pluginData.dashboardSettings || {}
   const dSettingsItems = createDashboardSettingsItems(dSettings)
@@ -74,8 +77,30 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
   const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
   const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
-  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
+  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
+
+  // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
+  // Note: ideally move to perspectiveHelpers::initialisePerpsectiveSettings
+
+  const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {} // FIXME: always blank
+  logInfo('WebView', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
+  // TODO: P version of these:
+  // const pSettingsItems = createDashboardSettingsItems(pSettings)
+  const pSettingDefaults = perspectiveSettingDefaults.map(
+    psd => ({
+      ...psd,
+      // FIXME: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
+      dashboardSettings: { ...psd.dashboardSettings, dashboardSettingsOrDefaults }
+    })
+  )
+  logInfo('WebView', `found ${String(pSettingDefaults.length)} pSettingDefaults: ${JSON.stringify(pSettingDefaults, null, 2)}`)
+
+  const perspectiveSettingsOrDefaults = {
+    ...pSettingDefaults, ...pSettings, lastChange: `_WebView_PerspectiveDefaultSettings`
+  }
+  logInfo('WebView', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
+  const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -102,52 +127,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             EFFECTS
    ****************************************************************************************************************************/
 
-  type Settings = {
-    setter: (prev: any) => void,
-    currentSettings: ?Object,
-    settingsKey: string,
-    defaultSettings: Object,
-    effectName: string
-  };
-
-  /**
-   * @typedef {Object} Settings
-   * @property {Function} setter - Function to set settings state.
-   * @property {Object|null} currentSettings - Current settings state.
-   * @property {string} settingsKey - Key to access the right settings from plugin data.
-   * @property {Object} defaultSettings - Default settings to apply.
-   * @property {string} effectName - Name of the effect for debugging purposes.
-   */
-  /**
-   * Helper function to initialize settings (used for reactSettings and dashboardSettings)
-   * TODO: (@dwertheimer): This was general purpose but after dashboardSettings refactor I'm not sure it's needed anymore
-   * @param {Settings} settings
-   */
-  // function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
-  //   if (!setter) return
-  //   const pluginSettingsPassed = pluginData.dashboardSettings || {}
-
-  //   let parsedSettings = currentSettings
-  //   if (pluginSettingsPassed) {
-  //     try {
-  //       logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.dashboardSettings.${settingsKey}`)
-  //       // parsedSettings = parseSettings(pluginData.dashboardSettings[settingsKey])
-  //       parsedSettings = { ...defaultSettings, ...pluginSettingsPassed }
-  //     } catch (error) {
-  //       logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.dashboardSettings.${settingsKey}: ${pluginData.dashboardSettings[settingsKey]}`)
-  //     }
-  //   }
-
-  //   setter((prev) => ({ ...prev, ...parsedSettings, lastChange: `_Webview_firstLoad` }))
-  // }
-
   /**
    * Set up the initial React Settings (runs only on load)
    */
   useEffect(() => {
+    // logDebug('WebView', `useEffect -> setReactSettings() for '_Webview_firstLoad'`)
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
   }, [setReactSettings])
-
 
   /**
    * When the data changes, console.log it so we know and scroll the window
@@ -249,6 +235,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       setReactSettings={setReactSettings}
       dashboardSettings={dashboardSettings}
       setDashboardSettings={setDashboardSettings}
+      perspectiveSettings={perspectiveSettings}
+      setPerspectiveSettings={setPerspectiveSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>

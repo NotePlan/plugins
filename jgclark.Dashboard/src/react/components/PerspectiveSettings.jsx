@@ -47,7 +47,7 @@ const PerspectiveSettings = ({
   handleFieldChange,
 }: PerspectiveSettingsProps): React$Node => {
   try {
-    const { dashboardSettings } = useAppContext()
+    const { dashboardSettings, perspectiveSettings } = useAppContext()
     // only continue if we have this Feature Flag turned on
     if (!dashboardSettings.FFlag_Perspectives) return
 
@@ -62,7 +62,7 @@ const PerspectiveSettings = ({
     // const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
     // logDebug('PerspectiveSettings', `perspectiveDef names: ${perspectiveDefs.map((pd) => pd.name).sort().join(' / ')}`)
     // logDebug('PerspectiveSettings', `activePerspectiveName: '${activePerspectiveName}'`)
-    clo(dashboardSettings.perspectives, 'starting PerspectiveSettings with:')
+    clo(perspectiveSettings, 'starting PerspectiveSettings with:')
 
     //----------------------------------------------------------------------
     // State
@@ -76,6 +76,7 @@ const PerspectiveSettings = ({
       clo(updatedData, `PerspectiveSettings updated; but wont' be saved until user clicks Save:`)
       // Note that JSON was updated but setDashboardSettings should not be called until the user clicks "Save on the window" 
       // so we don't set it here, we just pass it back to the parent component (SettingsDialog) to handle as if it was any other field
+      // TODO: This won't work yet because it needs to write to pS not dS
       handleFieldChange('perspectives', updatedData)
     }
 
@@ -109,8 +110,8 @@ const PerspectiveSettings = ({
 
         {/* JSON Editor for now to view/udpate. From https://github.com/CarlosNZ/json-edit-react */}
         <JsonEditor
-          data={dashboardSettings.perspectives ?? {}}
-          rootName={"dashboardSettings.perspectives"}
+          data={perspectiveSettings ?? {}}
+          rootName={"perspectiveSettings"}
           setData={setJsonData}
           rootFontSize={"10pt"}
           collapse={false}

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-07-30 for v2.2.0.a3 by @jgclark
+// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,12 +9,14 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import {
-  getAllowedFoldersInCurrentPerspective,
+  getCurrentlyAllowedFolders,
+  getPerspectiveSettings,
   // isFilenameAllowedInCurrentPerspective,
   isFilenameAllowedInFolderList,
+  perspectiveSettingDefaults,
 } from './perspectiveHelpers'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TPerspectiveDef, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -228,20 +230,20 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * Various config.* items are used:
  * - ignoreFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
- * - ignoreTasksWithPhrase
+ * - ignoreItemsWithTerms
  * - ignoreTasksScheduledToFuture
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
  * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
- * @param {TDashboardSettings} config
+ * @param {TDashboardSettings} dashboardSettings
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 export function getOpenItemParasForCurrentTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
-  config: TDashboardSettings,
-  useEditorWherePossible: boolean = false
+  dashboardSettings: TDashboardSettings,
+  useEditorWherePossible: boolean = false,
 ): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
@@ -273,10 +275,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
     // Keep only non-empty open tasks (and checklists if wanted)
-    let openParas = config.ignoreChecklistItems
+    let openParas = dashboardSettings.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    // logTimer('getstartTime, OpenItemPFCTP', `- after '${config.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
     const tempSize = openParas.length
 
     // Keep only non-empty open tasks not scheduled (other than >today)
@@ -295,17 +297,17 @@ export function getOpenItemParasForCurrentTimePeriod(
     }
     // logTimer('getstartTime, OpenItemPFCTP', `- after 'future' filter: ${openParas.length} paras`)
 
-    // Filter out anything from 'ignoreTasksWithPhrase' setting
-    if (config.ignoreTasksWithPhrase) {
-      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+    // Filter out anything from 'ignoreItemsWithTerms' setting
+    if (dashboardSettings.ignoreItemsWithTerms) {
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
       openParas = openParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     } else {
-      // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+      // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-    // logTimer('getstartTime, OpenItemPFCTP', `- after 'config.ignoreTasksWithPhrase' filter: ${openParas.length} paras`)
+    // logTimer('getstartTime, OpenItemPFCTP', `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
     // Filter out checklists with timeblocks, if wanted
-    if (config.excludeChecklistsWithTimeblocks) {
+    if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
     // logTimer('getstartTime, OpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
@@ -323,29 +325,29 @@ export function getOpenItemParasForCurrentTimePeriod(
     let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Allow to ignore checklist items.
-      refOpenParas = config.ignoreChecklistItems
+      refOpenParas = dashboardSettings.ignoreChecklistItems
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
 
-    // Filter out anything from 'ignoreTasksWithPhrase' setting
-    if (config.ignoreTasksWithPhrase) {
-      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+    // Filter out anything from 'ignoreItemsWithTerms' setting
+    if (dashboardSettings.ignoreItemsWithTerms) {
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
       logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} paras`)
     } else {
-      // logDebug('getOpenItemParasForCurrent...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+      // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
 
     // If we are using a Perspective, get list of suitable folders
-    if (config.FFlag_Perspectives && config.activePerspectiveName) {
-      const allowedFoldersInCurrentPerspective = getAllowedFoldersInCurrentPerspective(config)
+    if (dashboardSettings.FFlag_Perspectives && dashboardSettings.activePerspectiveName) {
+      const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
       refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
-      logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${config.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
+      logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
     }
 
     // // Remove items referenced from items in 'ignoreFolders'
-    // const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    // const ignoreFolders = dashboardSettings.ignoreFolders ? dashboardSettings.ignoreFolders.split(',').map(folder => folder.trim()) : []
     // refOpenParas = filterOutParasInExcludeFolders(refOpenParas, ignoreFolders, true)
     // // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
 
@@ -361,7 +363,7 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
-    if (config.separateSectionForReferencedNotes) {
+    if (dashboardSettings.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
       const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
       // come back to main thread
@@ -469,33 +471,33 @@ function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): b
 /**
  * Get all overdue tasks, filtered and sorted according to various settings. But the number of items returned is not limited.
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
- * @param {TDashboardSettings} settings
+ * @param {TDashboardSettings} dashboardSettings
  * @param {Array<TParagraph>} yesterdaysParas
  * @returns {Array<TParagraph>}
  */
-export async function getRelevantOverdueTasks(config: TDashboardSettings, yesterdaysParas: Array<TParagraph>): Promise<Array<TParagraph>> {
+export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSettings, yesterdaysParas: Array<TParagraph>): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
-    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    const ignoreFolders = dashboardSettings.ignoreFolders ? dashboardSettings.ignoreFolders.split(',').map(folder => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, ignoreFolders, true)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'ignoreFolders'(${config.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
-    // Filter out anything from 'ignoreTasksWithPhrase' setting
-    if (config.ignoreTasksWithPhrase) {
-      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'ignoreFolders'(${dashboardSettings.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
+    // Filter out anything from 'ignoreItemsWithTerms' setting
+    if (dashboardSettings.ignoreItemsWithTerms) {
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
       filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
     } else {
-      logDebug('getRelevantOverdueTasks...', `config.ignoreTasksWithPhrase not set; config (${Object.keys(config).length} keys)=${JSON.stringify(config, null, 2)}`)
+      logDebug('getRelevantOverdueTasks...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredOverdueParas.length} paras`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'dashboardSettings.ignoreItemsWithTerms'(${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`)
 
     // Limit overdues to last N days for testing purposes
-    if (!Number.isNaN(config.lookBackDaysForOverdue) && config.lookBackDaysForOverdue > 0) {
-      const numDaysToLookBack = config.lookBackDaysForOverdue
+    if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
+      const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
       const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYYMMDD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
       filteredOverdueParas = filteredOverdueParas.filter((p) => p.filename ? p.filename > cutoffDate : true)
@@ -509,7 +511,7 @@ export async function getRelevantOverdueTasks(config: TDashboardSettings, yester
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping -> ${filteredOverdueParas.length}`)
 
     // Remove items already in Yesterday section (if turned on)
-    if (config.showYesterdaySection) {
+    if (dashboardSettings.showYesterdaySection) {
       if (yesterdaysParas.length > 0) {
       // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
         filteredOverdueParas.map((p) => {
@@ -563,12 +565,12 @@ export async function getRelevantPriorityTasks(
     //   console.log(`- ${displayTitle(p.note)} : ${p.content}`)
     // }
 
-    // Filter out anything from 'ignoreTasksWithPhrase' setting
+    // Filter out anything from 'ignoreItemsWithTerms' setting
     let filteredPriorityParas = priorityParas
-    if (config.ignoreTasksWithPhrase) {
-      const phrases: Array<string> = config.ignoreTasksWithPhrase.split(',').map(phrase => phrase.trim())
+    if (config.ignoreItemsWithTerms) {
+      const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
       filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
-      logDebug('getRelevantPriorityTasks', `- after 'config.ignoreTasksWithPhrase'(${config.ignoreTasksWithPhrase}) filter: ${filteredPriorityParas.length} paras`)
+      logDebug('getRelevantPriorityTasks', `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
     }
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)

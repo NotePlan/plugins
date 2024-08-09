@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-07-29 for v2.0.5 by @dwertheimer
+// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -14,6 +14,7 @@ import {
   moveItemBetweenCalendarNotes,
   handlerResult,
 } from './dashboardHelpers'
+import { getPerspectiveSettings } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import {
   type MessageDataObject,
@@ -110,6 +111,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
   try {
     let numberScheduled = 0
     const config: any = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -130,7 +132,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false, perspectiveSettings)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // If there are lots, then double check whether to proceed
@@ -251,6 +253,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 
     let numberScheduled = 0
     const config = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
     // Override one config item so we can work on separate dated vs scheduled items
     config.separateSectionForReferencedNotes = true
     const thisStartTime = new Date()
@@ -270,7 +273,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config, false, perspectiveSettings)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // If there are lots, then double check whether to proceed
@@ -383,6 +386,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
   try {
     let numberChanged = 0
     const config = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
 
@@ -396,7 +400,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
 
     // Override one setting so we can work on combined items
     config.separateSectionForReferencedNotes = false
-    const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+    const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false, perspectiveSettings)
     // const yesterdaysCombinedSortedDashboardParas = yestCombinedSortedParas.concat(sortedRefParas)
 
     // TEST: Now removing Yesterday data

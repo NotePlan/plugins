@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to select and manage perspectives
 // Called by DashboardSettings component.
-// Last updated 2024-08-05 for v2.1.0.a3 by @dwertheimer
+// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -11,7 +11,6 @@
 import React, { useEffect, useState } from 'react'
 import ComboBox from '../ComboBox.jsx'
 import {
-  // getCurrentPerspectiveDef,
   getListOfPerspectiveNames,
   getPerspectiveNamed,
 } from '../../../perspectiveHelpers.js'
@@ -31,6 +30,7 @@ const PerspectiveSelector = (): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, setDashboardSettings } = useAppContext()
+  const { perspectiveSettings, setPerspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
   // State
@@ -47,17 +47,17 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     // We set the initial options for the ComboBox to the list of perspective names from the dashboard settings here
-    // We also watch for changes to dashboardSettings.perspectives (e.g. when a new perspective is added) so we can re-render 
+    // We also watch for changes to perspectiveSettings (e.g. when a new perspective is added) so we can re-render 
     // the ComboBox with the updated list of perspective names.
-    logDebug('PerspectiveSelector', 'useEffect called because dashboardSettings.perspectives changed')
-    const options = getListOfPerspectiveNames(dashboardSettings, true)
+    logDebug('PerspectiveSelector', 'useEffect called because perspectiveSettings changed')
+    const options = getListOfPerspectiveNames(perspectiveSettings, true)
     clo(options, 'PerspectiveSelector: new options')
     setPerspectiveNameOptions(options)
-  }, [dashboardSettings.perspectives]) // dependencies: run any time this changes
+  }, [perspectiveSettings]) // dependencies: run any time this changes
 
   useEffect(() => {
     // TEST: is this needed, asks @dbw?
-    const options = getListOfPerspectiveNames(dashboardSettings, true)
+    const options = getListOfPerspectiveNames(perspectiveSettings, true)
   // If a user changed the name of the active perspective in settings then our activePerspectiveName state will be out of date.
   // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
     const perspectiveNameIfItExists = dashboardSettings.activePerspectiveName ? options.find((option) => option === dashboardSettings.activePerspectiveName) : '-'
@@ -84,10 +84,11 @@ const PerspectiveSelector = (): React$Node => {
     // Need to clear down the saved dashboardSettings entirely.
 
     // Actually change the settings
-    const activePerspectiveDef = getPerspectiveNamed(newValue, dashboardSettings)
+    const activePerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
     if (!activePerspectiveDef) {
       logDebug('PerspectiveSelector', `⚠️ Cannot get activePerspectiveDef`)
     }
+    // TODO: set the isActive indicator
     clo(activePerspectiveDef, 'PerspectiveSelector: activePerspectiveDef')
     setDashboardSettings((prev) => ({ ...prev, ...activePerspectiveDef }))
     // beware race conditions, as we cannot await.

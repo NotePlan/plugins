@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-08-01 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -19,19 +19,19 @@ export type TNotePlanSettings = {
 export type TDashboardSettings = {
   FFlag_Perspectives: boolean,
   activePerspectiveName: string,
-  perspectives: Array<TPerspectiveDef>,
+  // perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
-  ignoreTasksWithPhrase: string,
+  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // TEST: was 'ignoreTasksWithPhrase'
   ignoreChecklistItems: boolean,
   ignoreFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includeFolders: string, // Note: Run through stringListOrArrayToArray() before use
-  includeFolderName: boolean,
-  includeScheduledDates: boolean,
-  includeTaskContext: boolean,
+  includeFolderName: boolean, // TODO(later): ideally rename to show...
+  includeScheduledDates: boolean, // TODO(later): ideally rename to show...
+  includeTaskContext: boolean, // TODO(later): ideally rename to show...
   rescheduleNotMove: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
@@ -48,9 +48,9 @@ export type TDashboardSettings = {
   showProjectSection: boolean,
   maxItemsToShowInSection: number,
   overdueSortOrder: string,
-  tagsToShow: string,
-  ignoreTagMentionsWithPhrase: string,
-  updateTagMentionsOnTrigger: boolean,
+  tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
+  // ignoreTagMentionsWithPhrase: string,
+  updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
   useTodayDate: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
   lookBackDaysForOverdue: number,
@@ -67,17 +67,14 @@ export type TDashboardSettings = {
 export type TDashboardPluginSettings = {
   ...TDashboardLoggingConfig,
   pluginID: string,
-  reactSettings: string,
+  dashboardSettings: string,
+  perspectiveSettings: string,
 }
 
 export type TPerspectiveDef = {
-  key: string,
   name: string,
-  // includeCalendarNotes: boolean,
-  includedFolders: string,
-  excludedFolders: string,
-  includedTags: string,
-  excludedTags: string
+  isActive: boolean,
+  dashboardSettings: TDashboardSettings,
 }
 
 //-----------------------------------------------------------------------------
@@ -272,7 +269,8 @@ export type TReactSettings = {
 }
 
 export type TPluginData = {
-  dashboardSettings: any, /* plugin settings */
+  dashboardSettings: any,
+  perspectiveSettings: any,
   logSettings: any, /* logging settings from plugin preferences */
   notePlanSettings: any, /* for copies of some app settings */
   refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */

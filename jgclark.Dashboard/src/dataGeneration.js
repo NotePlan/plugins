@@ -1,7 +1,8 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-08-02 for v2.1.0.a3 by @jgclark
+// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,10 +10,6 @@ import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
 import { allSectionCodes } from "./constants.js"
-import type {
-  TDashboardSettings,
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
-} from './types'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
@@ -39,11 +36,19 @@ import {
   nextProjectNoteItems,
 } from './demoData'
 import {
+  getActivePerspectiveDef,
   getAllowedFoldersInCurrentPerspective,
+  getCurrentlyAllowedFolders,
+  getPerspectiveSettings,
   // isFilenameAllowedInCurrentPerspective,
   isFilenameAllowedInFolderList,
+  isLineDisallowedByExcludedTerms,
   isNoteInAllowedFolderList,
 } from './perspectiveHelpers'
+import type {
+  TDashboardSettings, TPerspectiveDef,
+  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
+} from './types'
 import {
   getDateStringFromCalendarFilename,
   getNPMonthStr,
@@ -84,7 +89,10 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
     const config: any = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
+    const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
     // clo(config, 'getAllSectionsData config is currently',2)
+    logInfo('getAllSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
 
     let sections: Array<TSection> = []
     sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -120,6 +128,9 @@ export async function getSomeSectionsData(
 ): Promise<Array<TSection>> {
   try {
     const config: TDashboardSettings = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
+    const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
+    logInfo('getSomeSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
@@ -1073,8 +1084,8 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
   let isHashtag = false
   let isMention = false
 
-  // Get list of suitable folders to filter by (if set)
-  const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+  // Get list of suitable folders to filter by
+  const currentlyAllowedFolders: Array<string> = getCurrentlyAllowedFolders(dashboardSettings)
 
   if (useDemoData) {
     isHashtag = true
@@ -1097,8 +1108,7 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
       for (const n of notesWithTag) {
 
         // Only continue if this is an allowed folder
-        // FIXME: continuing when it shouldn't?
-        if (allowedFoldersInCurrentPerspective !== [] && !isFilenameAllowedInFolderList(n.filename, allowedFoldersInCurrentPerspective)) {
+        if (currentlyAllowedFolders !== [] && !isFilenameAllowedInFolderList(n.filename, currentlyAllowedFolders)) {
           logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is not in allowed list`)
           continue
         }
@@ -1112,19 +1122,21 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
         const filteredTagParasFromNote = dashboardSettings.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logDebug('getTaggedSectionData', `- after filtering for open only (${dashboardSettings.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after filtering for open only (${dashboardSettings.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
+        // Save this para, unless in matches the 'ignoreItemsWithTerms' setting
         for (const p of filteredTagParasFromNote) {
-          if (!dashboardSettings.ignoreTagMentionsWithPhrase || dashboardSettings.ignoreTagMentionsWithPhrase === '' || !p.content.includes(dashboardSettings.ignoreTagMentionsWithPhrase)) {
+          // if (!dashboardSettings.ignoreTagMentionsWithPhrase || dashboardSettings.ignoreTagMentionsWithPhrase === '' || !p.content.includes(dashboardSettings.ignoreTagMentionsWithPhrase)) {
+          if (!isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms)) {
             filteredTagParas.push(p)
           } else {
-            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${dashboardSettings.ignoreTagMentionsWithPhrase}'`)
+            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${dashboardSettings.ignoreItemsWithTerms}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${dashboardSettings.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after filtering for ${dashboardSettings.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
       }
-      // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
+      logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = dashboardSettings.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
@@ -1201,8 +1213,9 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
 // ----------------------------------------------------------
 /**
  * Generate data for a section for Overdue tasks
- * @param {TDashboardSettings} config
+ * @param {TDashboardSettings} dashboardSettings
  * @param {boolean} useDemoData?
+ * @returns {TSection} section data
  */
 export async function getOverdueSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
@@ -1251,13 +1264,13 @@ export async function getOverdueSectionData(dashboardSettings: TDashboardSetting
       logTimer('getOverdueSectionData', thisStartTime, `- found ${overdueParas.length} overdue paras`)
     }
 
-    // Get list of suitable folders to filter by (if set)
-    const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+    // Get list of suitable folders to filter by
+    const currentlyAllowedFolders: Array<string> = getCurrentlyAllowedFolders(dashboardSettings)
 
     // Remove items that are not in an allowed note folder (but allow all in Calendar notes)
-    if (allowedFoldersInCurrentPerspective !== []) {
-      overdueParas = overdueParas.filter((p) => isNoteInAllowedFolderList(p.note, allowedFoldersInCurrentPerspective, true))
-      logTimer('getOverdueSectionData', thisStartTime, `- -> ${overdueParas.length} overdue paras after filtering to ${String(allowedFoldersInCurrentPerspective.length)} allowed perspective folders `)
+    if (currentlyAllowedFolders !== []) {
+      overdueParas = overdueParas.filter((p) => isNoteInAllowedFolderList(p.note, currentlyAllowedFolders, true))
+      logTimer('getOverdueSectionData', thisStartTime, `- -> ${overdueParas.length} overdue paras after filtering to ${String(currentlyAllowedFolders.length)} allowed folders`)
     }
 
     const items: Array<TSectionItem> = []
@@ -1271,7 +1284,11 @@ export async function getOverdueSectionData(dashboardSettings: TDashboardSetting
       // Remove possible dupes from sync'd lines
       // Note: currently commented out, to save 2? secs of processing
       // overdueParas = eliminateDuplicateSyncedParagraphs(overdueParas)
-      // logDebug('getOverdueSectionData', `- after sync lines dedupe -> ${overdueParas.length}`)
+      logDebug('getOverdueSectionData', `- after sync lines dedupe -> ${overdueParas.length} items`)
+
+      // Remove paras with disallowed terms
+      dashboardParas = dashboardParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+      logTimer('getOverdueSectionData', thisStartTime, `- after ignoreTerms filter -> ${dashboardParas.length} items`)
 
       totalOverdue = dashboardParas.length
 
@@ -1384,12 +1401,13 @@ export async function getPrioritySectionData(dashboardSettings: TDashboardSettin
     const items: Array<TSectionItem> = []
 
     if (priorityParas.length > 0) {
-      // Get list of suitable folders to filter by (if set)
-      const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+      // Get list of suitable folders to filter by
+      const currentlyAllowedFolders: Array<string> = getCurrentlyAllowedFolders(dashboardSettings)
 
       // Remove items that are not in an allowed note folder (but allow all in Calendar notes)
-      if (allowedFoldersInCurrentPerspective !== []) {
-        priorityParas = priorityParas.filter((p) => isNoteInAllowedFolderList(p.note, allowedFoldersInCurrentPerspective, true))
+      if (currentlyAllowedFolders !== []) {
+        priorityParas = priorityParas.filter((p) => isNoteInAllowedFolderList(p.note, currentlyAllowedFolders, true))
+        logTimer('getPrioritySectionData', thisStartTime, `- -> ${priorityParas.length} priority paras after filtering to ${String(currentlyAllowedFolders.length)} allowed folders`)
       }
 
       // Create a much cut-down version of this array that just leaves a few key fields, plus filename, priority
@@ -1400,6 +1418,10 @@ export async function getPrioritySectionData(dashboardSettings: TDashboardSettin
       // TODO(later): Remove possible dupes from sync'd lines
       // priorityParas = eliminateDuplicateSyncedParagraphs(priorityParas)
       // logTimer('getPrioritySectionData', thisStartTime, `- after sync lines dedupe -> ${priorityParas.length}`)
+
+      // Remove paras with disallowed terms
+      dashboardParas = dashboardParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+      logTimer('getPrioritySectionData', thisStartTime, `- after ignoreTerms filter -> ${dashboardParas.length} items`)
 
       totalPriority = dashboardParas.length
 
@@ -1505,8 +1527,8 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
     }
 
     if (nextNotesToReview) {
-      // Get list of suitable folders to filter by (if set)
-      const allowedFoldersInCurrentPerspective: Array<string> = (dashboardSettings.FFlag_Perspectives) ? getAllowedFoldersInCurrentPerspective(dashboardSettings) : []
+      // Get list of suitable folders to filter by
+      const currentlyAllowedFolders: Array<string> = getCurrentlyAllowedFolders(dashboardSettings)
 
       nextNotesToReview.map((n) => {
         // If we already have enough projects to show, return early
@@ -1516,7 +1538,7 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
 
         // Only continue if this is an allowed folder
         // FIXME: continuing when it shouldn't?
-        if (allowedFoldersInCurrentPerspective !== [] && isFilenameAllowedInFolderList(thisFilename, allowedFoldersInCurrentPerspective)) {
+        if (currentlyAllowedFolders !== [] && isFilenameAllowedInFolderList(thisFilename, currentlyAllowedFolders)) {
           // Make a project instance for this note, as a quick way of getting its metadata
           // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
           const projectInstance = new Project(n, '', false)
