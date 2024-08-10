@@ -21,7 +21,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
-import '../css/Dashboard.css'
+import '../css/dashboard.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -179,9 +179,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [dashboardSettings])
 
-  // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
+  // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
   useEffect(() => {
-    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
+    clo(reactSettings?.dialogData, `Dashboard: reactSettings.dialogData useEffect`)
+    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen) || !reactSettings.dialogData.isTask) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData
     if (!dialogData.isOpen || !dialogItemDetails) return
@@ -224,8 +225,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         const newPluginData = { ...pluginData, sections: updatedSections }
         updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
-        // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
         // logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }

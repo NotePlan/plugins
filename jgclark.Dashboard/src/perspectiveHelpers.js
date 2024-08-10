@@ -51,7 +51,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
  */
 // eslint-disable-next-line require-await
 export async function deletePerspectiveSettings(): Promise<void> {
-  logDebug('getPerspectiveSettings', `Attempting to delete all Perspective settings ...`)
+  logDebug('deletePerspectiveSettings', `Attempting to delete all Perspective settings ...`)
   const pluginSettings = DataStore.settings
   delete pluginSettings.perspectiveSettings
   clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
@@ -62,26 +62,30 @@ export async function deletePerspectiveSettings(): Promise<void> {
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
 export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
+  logDebug('getPerspectiveSettings', `Attempting to get Perspective settings ...`)
   // Note: Copied from above.
   // Note: We think following (newer API call) is unreliable.
   let pluginSettings = DataStore.settings
-  if (!pluginSettings || !pluginSettings.perspectiveSettings) {
+  let perspectiveSettingsStr = pluginSettings?.perspectiveSettings
+  let perspectiveSettings 
+  if (!perspectiveSettingsStr) {
     clo(pluginSettings, `getPerspectiveSettings (newer API): DataStore.settings?.perspectiveSettings not found. Here's the full settings for ${pluginID} plugin: `)
 
     // Fall back to the older way:
     pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     clo(pluginSettings, `getPerspectiveSettings (older lookup): pluginSettings loaded from settings.json`)
-
+    perspectiveSettingsStr = pluginSettings?.perspectiveSettings
   }
-  if (!pluginSettings.perspectiveSettings) {
+  if (!perspectiveSettingsStr) {
     // Will need to set from the defaults
     logDebug('getPerspectiveSettings', `None found: will use the defaults`)
-    pluginSettings.perspectiveSettings = perspectiveSettingDefaults
+    perspectiveSettings = perspectiveSettingDefaults
+    perspectiveSettingsStr = JSON.stringify(perspectiveSettings) // must stringify it because it is JS ARRAY and needs to be stored as string
+    pluginSettings.perspectiveSettings = perspectiveSettingsStr 
     DataStore.settings = pluginSettings
   }
   clo(pluginSettings, `getPerspectiveSettings: pluginSettings =`)
-  // return parseSettings(pluginSettings.perspectiveSettings)
-  return pluginSettings.perspectiveSettings
+  return parseSettings(perspectiveSettingsStr) // must parse it because it is stringified JSON (an array of TPerspectiveDef)
 }
 
 /**
@@ -93,24 +97,35 @@ export async function initialisePerpsectiveSettings(): Promise<void> {
   const pluginSettings = DataStore.settings
   const currentDashboardSettings = await getDashboardSettings()
   // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
-  const pSettings = pluginSettings.perspectiveSettings || {} // 
+  const pSettings = pluginSettings.perspectiveSettings || {} // FIXME: @jgclark: this won't work because pluginSettings.perspectiveSettings is a string, not an object and needs parsing
+  // FIXME: @jgclark: shouldn't it just call the function getPerspectiveSettings() on that line?
   logInfo('initialisePerpsectiveSettings', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
 
   // TODO: P version of these:
   // const pSettingsItems = createDashboardSettingsItems(pSettings)
+  // FIXME: @jgclark: i am not sure what this is supposed to do and where it will be called
+  // I'm not understanding the intents, so it's hard for me to suggest a fix. Can you provide more documentation on what this is supposed to do?
+  // FIXME: @jgclark: The code below seems to want to create a map of perspectives and for each perspective, we are going to merge the dashboardSettings with the currentDashboardSettings
+  // I don't understand why we are doing this. Can you provide more context?
+  // I am concerned that we might be mixing objects and arrays (remember that you wanted perspectives to be an array of objects) -- keep an eye on that
   const pSettingDefaults = perspectiveSettingDefaults.map(
     psd => ({
       ...psd,
-      // FIXME: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
-      dashboardSettings: { ...psd.dashboardSettings, currentDashboardSettings }
+      // FIXME: @jgclark said: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
+      // FIXME: @jgclark: this seems backwards to me. I would expect the psd settings to come 2nd so that they override the currentDashboardSettings
+      // as written, the current dashboard settings will override whatever you have in perspectives/dashboardSettings in each perspective
+      dashboardSettings: { ...psd.dashboardSettings, ...currentDashboardSettings } // so I would reverse these two
+      // But again, I'm not sure what the intent is here and why we would be adding every dashboard setting to every perspective whether it is used or not
     })
   )
   logInfo('initialisePerpsectiveSettings', `found ${String(pSettingDefaults.length)} pSettingDefaults: ${JSON.stringify(pSettingDefaults, null, 2)}`)
 
+  // FIXME: So now what is this doing? seems to me like it's undoing some of the work we just did
   const perspectiveSettingsOrDefaults = {
     ...pSettingDefaults, ...pSettings, lastChange: `initialisePerpsectiveSettings`
   }
   logInfo('initialisePerpsectiveSettings', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
+  // FIXME: and i don't understand the following line at all because as far as I know this variable does not exist in pluginSettings and so how could you parse it?
   const outputObj = parseSettings(pluginSettings.perspectiveSettingsOrDefaults)
   pluginSettings.perspectiveSettings = outputObj
   clo(outputObj, `initialisePerpsectiveSettings -> outputObj =`)
@@ -294,39 +309,6 @@ export function getAllowedFoldersInCurrentPerspective(
   const excludedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.ignoreFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
-}
-
-/**
- * Get all folders that are allowed in the current settings/Perspective.
- * @param {TDashboardSettings} dashboardSettings 
- * @returns 
- */
-export function getCurrentlyAllowedFolders(
-  dashboardSettings: TDashboardSettings
-): Array<string> {
-  // Note: can't use simple .split(',') as it does unexpected things with empty strings. 
-  // Note: also needed to check that whitespace is trimmed.
-  const includedFolderArr = stringListOrArrayToArray(dashboardSettings.includeFolders ?? '', ',')
-  const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.ignoreFolders ?? '', ',')
-  const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
-  return folderListToUse
-}
-
-/**
- * Is the filename from the given list of folders?
- * @param {string} filename
- * @param {Array<string>} folderList
- * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
- * @returns {boolean}
- */
-export function isFilenameAllowedInFolderList(
-  filename: string,
-  folderList: Array<string>,
-): boolean {
-  // Is filename in folderList?
-  const matchFound = folderList.some((f) => filename.includes(f))
-  logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
-  return matchFound
 }
 
 /**

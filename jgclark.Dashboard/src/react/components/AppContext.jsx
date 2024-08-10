@@ -9,7 +9,7 @@
  ****************************************************************************************************************************/
 // @flow
 
-import React, { createContext, useContext, useEffect, type Node } from 'react'
+import { createContext, useContext, useEffect, type Node } from 'react'
 import type { TDashboardSettings, TReactSettings, TPerspectiveDef, TPluginData } from '../../types'
 import { logDebug } from '@helpers/react/reactDev'
 

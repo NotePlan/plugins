@@ -37,16 +37,17 @@ import {
 } from './demoData'
 import {
   getActivePerspectiveDef,
-  getAllowedFoldersInCurrentPerspective,
-  getCurrentlyAllowedFolders,
+  /* getAllowedFoldersInCurrentPerspective, */
   getPerspectiveSettings,
-  // isFilenameAllowedInCurrentPerspective,
-  isFilenameAllowedInFolderList,
   isLineDisallowedByExcludedTerms,
   isNoteInAllowedFolderList,
 } from './perspectiveHelpers'
+import {
+  // isFilenameAllowedInCurrentPerspective,
+  isFilenameAllowedInFolderList
+, getCurrentlyAllowedFolders } from './perspectivesShared.js'
 import type {
-  TDashboardSettings, TPerspectiveDef,
+  TDashboardSettings, /* TPerspectiveDef, */
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
 } from './types'
 import {
@@ -100,13 +101,22 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
-    if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
-    sections.push(await getProjectSectionData(config, useDemoData))
 
-    return sections
+    if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+
+    if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+
+      if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+
+      if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+
+      // FIXME: (@jgclark) why do the rest of these load conditionally but projects always load even if not wanted?
+      const projectSection = await getProjectSectionData(config, useDemoData)
+      if (projectSection) sections.push()
+
+
+    return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
+
   } catch (error) {
     logError('getAllSectionDetails', error.message)
     return []
@@ -139,12 +149,19 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('TAG') && config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
+    if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
+      const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
+      sections = tagSections.length ? sections.concat(getTaggedSections(config, useDemoData)) : sections
+    }
+    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
+      const projectSection = await getProjectSectionData(config, useDemoData)
+      if (projectSection) sections.push(projectSection)
+    }
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
-    return sections
+    return sections.filter((s) => s) //get rid of any nulls
+
   } catch (error) {
     logError('getSomeSectionData', error.message)
     return []
@@ -1050,6 +1067,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
  * @returns {Array<TSection>}
  */
 export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
+  try {
   const startTime = new Date()
   const tagSections = getTagSectionDetails(config)
   // clo(tagSections)
@@ -1063,6 +1081,10 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
   }, [])
   logTimer('getTaggedSections', startTime, `at end`, 1500)
   return output
+} catch (error) {
+  logError('getTaggedSections', `ERROR: ${error.message}`)
+  return []
+} 
 }
 
 /**
@@ -1477,7 +1499,8 @@ export async function getPrioritySectionData(dashboardSettings: TDashboardSettin
  * @param {boolean} useDemoData?
  * @returns 
  */
-export async function getProjectSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
+export async function getProjectSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection|null> {
+  try {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'
   let itemCount = 0
@@ -1589,6 +1612,10 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
   return section
+} catch (error) {
+  logError(`getProjectSectionData`, `ERROR: ${error.message}`)   
+  return null
+}
 }
 
 /**

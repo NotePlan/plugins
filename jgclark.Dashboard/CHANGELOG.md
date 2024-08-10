@@ -5,6 +5,15 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - made a separate perspectiveSettings data structure, than now includes all settings, not just the 5 from the proof of concept. FIXME: something is wrong with the initialisation of perspectives.
 - tighten up removal of priority indicators, to only happen at the start of a line's content
 - now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)
+- dbw: fixed new circular issue in perspectives import by moving shared items to new perspectivesShared.js file
+- dbw: fixed incorrect "import '../css/Dashboard.css'" (Dashboard does not have capital D)
+- dbw: removed HTML loading of that CSS file because it is now loaded in React/Rollup
+- dbw: TooltipOnModifier: you were correct that the empty div issue was fixed. Removed the FIXME
+- dbw: Per your question/comment, changed "getSettingsDefaults()" to "getSettingsObjectFromArray()"
+- dbw: Fixed a logdebug that was failing on empty lastFullRefresh
+- @jgclark: Pls look at ThemedComboBox - I left you some FIXME questions
+- @jgclark: Pls look at my FIXME question in dataGeneration/getAllSectionsData()
+- @jgclark: Pls look at initialisePerpsectiveSettings() -- I partially fixed it but didn't know how to fix it because I didn't know what it was supposed to do. I really need some direction on the intention so I can suggest how it should work. I think we should go straight to having a perspectives context and this seems to be mixing the two in ways I don't follow. Some line-by-line comments with your intentions would help me.
 
 ## [Perspectives.a4] -- all WIP not fully working, @jgc,  2024-08-06
 - separated out PerspectiveSelector

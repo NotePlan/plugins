@@ -159,7 +159,7 @@
       "key": "perspectiveSettings",
       "description": "Saves current state of Perspective definitions as JSON string.",
       "required": true,
-      "default": "{}"
+      "default": "[]"
     },
     {
       "type": "heading",

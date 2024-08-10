@@ -9,14 +9,11 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import {
-  getCurrentlyAllowedFolders,
-  getPerspectiveSettings,
   // isFilenameAllowedInCurrentPerspective,
-  isFilenameAllowedInFolderList,
-  perspectiveSettingDefaults,
-} from './perspectiveHelpers'
+  isFilenameAllowedInFolderList
+, getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TPerspectiveDef, TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, /* TPerspectiveDef, */ TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -395,7 +392,7 @@ export function getOpenItemParasForCurrentTimePeriod(
  * @param {any} value2 The second value to compare.
  * @param {string} path The base path to the property being compared.
  */
-function deepCompare(value1: any, value2: any, path: string): void {
+export function deepCompare(value1: any, value2: any, path: string): void {
   if (isObject(value1) && isObject(value2)) {
     const keys1 = Object.keys(value1)
     const keys2 = Object.keys(value2)

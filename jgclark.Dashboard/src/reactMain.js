@@ -13,7 +13,7 @@ import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from 
 import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { getPerspectiveSettings, initialisePerspectiveSettings } from './perspectiveHelpers'
+import {  getPerspectiveSettings /*, initialisePerspectiveSettings */ } from './perspectiveHelpers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
@@ -233,11 +233,11 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
-    logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
+    logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/Dashboard.css">
-      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/DashboardDialog.css"> --Ю
+      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/Dashboard.css"> -->
+      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/DashboardDialog.css"> -->
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
@@ -281,9 +281,10 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
   try {
     const startTime = new Date()
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
-    // const perspectiveSettings = await initialisePerspectiveSettings() // TODO(later): move from WebView to here
+    const perspectiveSettings = await getPerspectiveSettings() // FIXME: move from WebView to here
+    // FIXME: @jgclark: Maybe this ^^^ will use initialisePerspectiveSettings() I'm not sure what you intend
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-    const pluginData = await getInitialDataForReactWindow(dashboardSettings, useDemoData)
+    const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
@@ -312,7 +313,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, /* perspectiveSettings: Array<TPerspectiveDef>, */ useDemoData: boolean = false): Promise<TPluginData> {
+export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
   logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)

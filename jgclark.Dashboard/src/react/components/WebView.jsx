@@ -35,12 +35,12 @@ import { AppProvider } from './AppContext.jsx'
 import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
- * Reduces an array of dashboard settings items into an object including default values.
- * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getSettingItemValues()?
+ * Reduces an array of dashboard settings or filter items into an object with keys and values
+ * Sets to the value of the item or the checked value if it is a boolean field or an empty string if none of the above
  * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
-function getSettingsDefaults(items: Array<TSettingItem>): { [key: string]: any } {
+function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
     if (item.key) {
       acc[item.key] = item.value || item.checked || ''
@@ -73,10 +73,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   const dSettings = data.pluginData.dashboardSettings || {}
   const dSettingsItems = createDashboardSettingsItems(dSettings)
-  const settingsDefaults = getSettingsDefaults(dSettingsItems)
+  const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
-  const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
-  const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
+  const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
+  const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
 
@@ -91,7 +91,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     psd => ({
       ...psd,
       // FIXME: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
-      dashboardSettings: { ...psd.dashboardSettings, dashboardSettingsOrDefaults }
+      dashboardSettings: { ...psd.dashboardSettings, ...dashboardSettingsOrDefaults }
     })
   )
   logInfo('WebView', `found ${String(pSettingDefaults.length)} pSettingDefaults: ${JSON.stringify(pSettingDefaults, null, 2)}`)
