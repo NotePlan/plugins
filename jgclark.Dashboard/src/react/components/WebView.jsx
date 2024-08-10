@@ -72,6 +72,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   const dSettings = data.pluginData.dashboardSettings || {}
+  // logDebug('WebView', `found ${String(dSettings.length)} dSettings: ${JSON.stringify(dSettings, null, 2)}`)
   const dSettingsItems = createDashboardSettingsItems(dSettings)
   const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
@@ -79,28 +80,26 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
+  // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
   // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   // Note: ideally move to perspectiveHelpers::initialisePerpsectiveSettings
-
-  const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {} // FIXME: always blank
-  logInfo('WebView', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
-  // TODO: P version of these:
-  // const pSettingsItems = createDashboardSettingsItems(pSettings)
-  const pSettingDefaults = perspectiveSettingDefaults.map(
+  // Note: the big issue here was that because its a hidden settings (in plugin.json) then 
+  const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
+  logDebug('WebView', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
+  const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(
     psd => ({
       ...psd,
-      // FIXME: this doesn't merge as expected, but adds a new layer called dashboardSettingsOrDefaults, which in turn includes perspectives
       dashboardSettings: { ...psd.dashboardSettings, ...dashboardSettingsOrDefaults }
     })
   )
-  logInfo('WebView', `found ${String(pSettingDefaults.length)} pSettingDefaults: ${JSON.stringify(pSettingDefaults, null, 2)}`)
+  // logDebug('WebView', `found ${String(perspectiveSettingsOrDefaults.length)} perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
 
-  const perspectiveSettingsOrDefaults = {
-    ...pSettingDefaults, ...pSettings, lastChange: `_WebView_PerspectiveDefaultSettings`
-  }
-  logInfo('WebView', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
-  const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
+  // const perspectiveSettingsOrDefaults = [
+  //   ...pSettingDefaults, pSettings
+  // ]
+  // logDebug('WebView', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
+  const [perspectiveSettings, setPerspectiveSettings] = useState(perspectiveSettingsOrDefaults)
 
   /****************************************************************************************************************************
    *                             VARIABLES

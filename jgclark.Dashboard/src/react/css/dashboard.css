@@ -269,30 +269,12 @@ dialog::backdrop {
 		background-color: var(--bg-sidebar-color);
 		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
+	
+		/* set button/input backgrounds a little lighter on hover */
+		&:hover {
+			background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+		}
 	}
-}
-
-/* For buttons in header area */
-.HAButton {
-	font-size: 0.92rem;
-	font-weight: 500;
-	border-style: solid;
-	border-width: 1px;
-	border-radius: 4px;
-	/* a little internal padding to right */
-	padding: 2px 3px 0px 3px;
-	/* a little external margin */
-	margin: 2px 4px 0px 0px;
-	white-space: nowrap;
-	cursor: pointer;
-	/* Center the button vertically if it's not aligning properly */
-	align-self: center;
-	/* max-height: 1.3rem; */
-}
-
-/* fa-icons in HA Button */
-.HAButton i {
-	color: var(--tint-color);
 }
 
 /* For buttons in section info areas */
@@ -312,12 +294,13 @@ dialog::backdrop {
 	align-self: center;
 	/* max-height: 1.3rem; */
 	line-height: 1.2rem;
+
+	/* fa-icons in HA Button */
+	&:i {
+		color: var(--tint-color);
+	}
 }
 
-/* fa-icons in HA Button */
-.PCButton i {
-	color: var(--tint-color);
-}
 
 /* Set link text to plain (again).  Note: now internal calls used this is removed */
 /* .PCButton a {

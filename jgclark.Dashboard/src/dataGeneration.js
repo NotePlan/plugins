@@ -101,19 +101,15 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-
     if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
 
     if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
 
-      if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
 
-      if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+    if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
-      // FIXME: (@jgclark) why do the rest of these load conditionally but projects always load even if not wanted?
-      const projectSection = await getProjectSectionData(config, useDemoData)
-      if (projectSection) sections.push()
-
+    if (forceLoadAll || config.showPrioritySection) sections.push(await getProjectSectionData(config, useDemoData))
 
     return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
 
@@ -1374,6 +1370,7 @@ export async function getOverdueSectionData(dashboardSettings: TDashboardSetting
  * Generate data for a section of raised Priority tasks
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
+ * @returns {TSection}
  */
 export async function getPrioritySectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
@@ -1497,9 +1494,9 @@ export async function getPrioritySectionData(dashboardSettings: TDashboardSettin
  * Note: this is taking 1815ms for JGC
  * @param {TDashboardSettings} dashboardSettings 
  * @param {boolean} useDemoData?
- * @returns 
+ * @returns {TSection}
  */
-export async function getProjectSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection|null> {
+export async function getProjectSectionData(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TSection> {
   try {
   const sectionNum = '14'
   const thisSectionCode = 'PROJ'

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-07-14 for v2.0.1 by @jgclark
+// Last updated 2024-08-10 for v2.1.0.a6 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -245,6 +245,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       // }
       case 'dashboardSettingsChanged': {
        result = await doSettingsChanged(data, 'dashboardSettings')
+        break
+      }
+      case 'perspectiveSettingsChanged': {
+        result = await doSettingsChanged(data, 'perspectiveSettings')
         break
       }
       // case 'setSpecificDate': {

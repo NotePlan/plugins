@@ -45,25 +45,29 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
+  // Watching any change in perspectiveSettings
   useEffect(() => {
+    logDebug('PerspectiveSelector', 'useEffect called because perspectiveSettings changed')
+    if (!perspectiveSettings) return
     // We set the initial options for the ComboBox to the list of perspective names from the dashboard settings here
     // We also watch for changes to perspectiveSettings (e.g. when a new perspective is added) so we can re-render 
     // the ComboBox with the updated list of perspective names.
-    logDebug('PerspectiveSelector', 'useEffect called because perspectiveSettings changed')
+    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', 'useEffect called because perspectiveSettings changed')
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
-    clo(options, 'PerspectiveSelector: new options')
+    clo(options, 'PerspectiveSelector/useEffect(perspectiveSettings): new options')
     setPerspectiveNameOptions(options)
   }, [perspectiveSettings]) // dependencies: run any time this changes
 
+  // If a user changed the activePerspectiveName in settings then our activePerspectiveName state will be out of date.
   useEffect(() => {
     // TEST: is this needed, asks @dbw?
+    if (!perspectiveSettings) return
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
-  // If a user changed the name of the active perspective in settings then our activePerspectiveName state will be out of date.
   // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
     const perspectiveNameIfItExists = dashboardSettings.activePerspectiveName ? options.find((option) => option === dashboardSettings.activePerspectiveName) : '-'
-    logDebug('PerspectiveSelector', `useEffect: activePerspectiveName: ${dashboardSettings.activePerspectiveName}, perspectiveExists: ${perspectiveNameIfItExists ?? 'no'}`)
+    logDebug('PerspectiveSelector/useEffect(activePerspectiveName)', `useEffect: activePerspectiveName: ${dashboardSettings.activePerspectiveName}, perspectiveExists: ${perspectiveNameIfItExists ?? 'no'}`)
     if (activePerspectiveName !== perspectiveNameIfItExists) {
-      logDebug('PerspectiveSelector', `useEffect: setting activePerspectiveName to ${perspectiveNameIfItExists ?? '-'}`)
+      logDebug('PerspectiveSelector/useEffect(activePerspectiveName)', `useEffect: setting activePerspectiveName to ${perspectiveNameIfItExists ?? '-'}`)
       setActivePerspectiveName(perspectiveNameIfItExists ?? '-')
     }
   }, [activePerspectiveName]) // dependencies: run any time this changes
@@ -76,25 +80,31 @@ const PerspectiveSelector = (): React$Node => {
    * @param {string} newValue - The new perspective name selected.
    */
   const handlePerspectiveChange = (newValue: string) => {
-    logDebug('PerspectiveSelector', `handlePerspectiveChange called with newValue: ${newValue}. Saving to dashboardSettings.activePerspectiveName and local state`)
-    setDashboardSettings((prev)=>({ ...prev, activePerspectiveName: newValue }))
+    logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
+
+    // Get the new settings to apply
+    const newPerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
+    if (!newPerspectiveDef) {
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `⚠️ Cannot get newPerspectiveDef`)
+      return
+    }
+    logDebug('PerspectiveSelector/handlePerspectiveChange', `newPerspectiveDef has ignoreFolders: [${String(newPerspectiveDef.dashboardSettings.ignoreFolders)}]`)
+    // FIXME: ^^^^ isn't updated
+
+    // TEST: override dashboardSettings with what is in the Perspective
+    setDashboardSettings((prev) => ({ ...prev, ...newPerspectiveDef.dashboardSettings }))
+
+    // TEST: set the new activePerspectiveName +
+    // setDashboardSettings((prev)=>({ ...prev, activePerspectiveName: newValue }))
     setActivePerspectiveName(newValue)
 
-    // FIXME: issue is that dashboardSettings does not have excludedFolders, includedFolders etc.
-    // Need to clear down the saved dashboardSettings entirely.
+    logDebug('PerspectiveSelector/handlePerspectiveChange', `- after updating dS, activePerspectiveName: ${String(dashboardSettings.activePerspectiveName)} / ignoreFolders: [${String(dashboardSettings.ignoreFolders)}]`)
 
-    // Actually change the settings
-    const activePerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
-    if (!activePerspectiveDef) {
-      logDebug('PerspectiveSelector', `⚠️ Cannot get activePerspectiveDef`)
-    }
-    // TODO: set the isActive indicator
-    clo(activePerspectiveDef, 'PerspectiveSelector: activePerspectiveDef')
-    setDashboardSettings((prev) => ({ ...prev, ...activePerspectiveDef }))
+    // TODO: set the isActive indicator on all perspectives -- if I actually keep this setting in play.
+    // setPerspectiveSettings((prev) => ({ ...prev, ...etc. }))
+
     // beware race conditions, as we cannot await.
-    clo(dashboardSettings, 'PerspectiveSelector: dashboardSettings')
-
-    logDebug('PerspectiveSelector', `Hopefully the window will now magically React and refresh itself ...`)
+    logDebug('PerspectiveSelector/handlePerspectiveChange', `Hopefully the window will now magically React and refresh itself ...`)
   }
 
   //----------------------------------------------------------------------

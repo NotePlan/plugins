@@ -1,8 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a6] @jgc,  2024-08-10 WIP for @dbw
+- fixed perspectiveSetting initialisation in WebView (I think) and how to persist it in Dashboard::useEffects (I think)
+- BUT FIXME: changing PerspectiveSelector logs the right newValue, but it then fails to get updated anywhere else
+- dealt with FIXME in dataGeneration about calling `getProjectSectionData`
+- added "/Add new Perspective" to help debug. Simply asks for name/ignoreFolder/includeFolder items for now. FIXME: doesn't persist or show the new perspective, despite it logging ok
+- added "/Delete Perspective" and "/Delete all Perspective Settings" commands -- to help debug (actually added in a5)
+- added subtle hover effect to UI buttons, using the clever new CSS 'hsl' operator
+- changed properly to "Dashboard.css" (capital D) to match the Component name
+
 ## [Perspectives.a5] @jgc,  2024-08-09 WIP for @dbw
-- made a separate perspectiveSettings data structure, than now includes all settings, not just the 5 from the proof of concept. FIXME: something is wrong with the initialisation of perspectives.
+- made a separate perspectiveSettings data structure, than now includes all settings, not just the 5 from the proof of concept. @dbw: something is wrong with the initialisation of perspectives.
 - tighten up removal of priority indicators, to only happen at the start of a line's content
 - now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)
 - dbw: fixed new circular issue in perspectives import by moving shared items to new perspectivesShared.js file

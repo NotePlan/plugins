@@ -21,7 +21,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
-import '../css/dashboard.css'
+import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -43,7 +43,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -88,7 +88,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   sections = sortSections(sections, sectionDisplayOrder)
   logDebug('Dashboard', `sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
-  // FIXME: seems to be OK up to here. But then I get confused.
 
   // DBW says the 98 was to avoid scrollbars. TEST: removing
   const dashboardContainerStyle = {
@@ -178,6 +177,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
     }
   }, [dashboardSettings])
+
+  // when perspectiveSettings changes anywhere, send it to the plugin to save in settings
+  // Note: JGC has dropped .lastChange as it doesn't fit easily in the perspectiveSettings structure
+  useEffect(() => {
+    //  if (perspectiveSettings && Object.keys(perspectiveSettings).length > 0) {
+    //     // logDebug('Dashboard', `Watcher for perspectiveSettings changes. Shared settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
+    //   }
+    sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Settings needed updating` }, 'Dashboard perspectiveSettings updated', true)
+  }, [perspectiveSettings])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
   useEffect(() => {

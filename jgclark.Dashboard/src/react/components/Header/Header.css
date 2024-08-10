@@ -87,10 +87,36 @@
 	margin-right: 2rem !important;
 }
 
+/* For buttons in header area */
+.HAButton {
+	font-size: 0.92rem;
+	font-weight: 500;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+	/* a little internal padding to right */
+	padding: 2px 3px 0px 3px;
+	/* a little external margin */
+	margin: 2px 4px 0px 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+
+	/* fa-icons in HA Button */
+	&:i {
+		color: var(--tint-color);
+	}
+}
+
 /* droppdown button icons */
 .dropdownButtons i {
-	/* Assign the area */
 	color: var(--tint-color);
+	cursor: pointer;
+	/* Make button a little darker on hover */
+	&:hover {
+		color: hsl(from var(--tint-color) h s calc(l*0.8));
+	}
 }
 
 /* ---------------------------------- */
@@ -127,7 +153,7 @@
 .header .combobox-input {
     flex: 1;
     padding: 3px 6px;
-    background-color: var(--bg-main-color);
+    /* background-color: var(--bg-main-color); */
     border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
     border-radius: 4px;
     font-size: 0.9rem;
@@ -159,7 +185,11 @@
     right: 0;
     border: 1px solid var(--divider-color);
     border-radius: 4px;
-    background-color: var(--bg-main-color);
+
+    /* background-color: var(--bg-main-color); */
+		/* set button/input backgrounds a little lighter */
+		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+
     box-shadow: 0 2px 5px var(--divider-color);
     z-index: 5;
 }

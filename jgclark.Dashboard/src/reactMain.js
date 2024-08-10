@@ -282,7 +282,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const startTime = new Date()
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
     const perspectiveSettings = await getPerspectiveSettings() // FIXME: move from WebView to here
-    // FIXME: @jgclark: Maybe this ^^^ will use initialisePerspectiveSettings() I'm not sure what you intend
+    // TODO(future): @jgclark: In future this ^^^ could bw where  initialisePerspectiveSettings() will happen?
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)

@@ -9,7 +9,7 @@
 // const {sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, updateReactSettings}  = useAppContext() // MUST BE inside the React component/function code, cannot be at the top of a file
 
 // @flow
-import createContext, useContext, useCallback, type Node } from 'react'
+import { createContext, useContext, useCallback, type Node } from 'react'
 
 /**
  * Type definitions for the application context.

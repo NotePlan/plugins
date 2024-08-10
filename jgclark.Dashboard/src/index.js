@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-08-07 for v2.1.0.a5, @jgclark
+// last updated 2024-08-09 for v2.1.0.a6, @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -21,7 +21,7 @@ export { editSettings } from '@helpers/NPSettings'
 
 export {
   decideWhetherToUpdateDashboard,
-  refreshProjectSection, // TODO: remove me in time
+  refreshProjectSection, // called by Project & Reviews plugin
   refreshSectionByCode,
 } from './dashboardHooks.js'
 
