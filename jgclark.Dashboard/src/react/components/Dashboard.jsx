@@ -189,7 +189,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
   useEffect(() => {
-    clo(reactSettings?.dialogData, `Dashboard: reactSettings.dialogData useEffect`)
     if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen) || !reactSettings.dialogData.isTask) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData

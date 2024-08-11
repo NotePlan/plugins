@@ -61,7 +61,7 @@ type Props = {
   reactSettings: TReactSettings,
   setReactSettings: Function,
 }
-
+//FIXME: @dwertheimer: move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
 
   /****************************************************************************************************************************
@@ -86,11 +86,12 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // Note: ideally move to perspectiveHelpers::initialisePerpsectiveSettings
   // Note: the big issue here was that because its a hidden settings (in plugin.json) then 
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
-  logDebug('WebView', `found ${String(pSettings.length)} pSettings: ${JSON.stringify(pSettings, null, 2)}`)
+  logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+  // FIXME: @dwertheimer for now this is doing nothing for debugging purposes. not sure we are going to need it back
   const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(
     psd => ({
       ...psd,
-      dashboardSettings: { ...psd.dashboardSettings, ...dashboardSettingsOrDefaults }
+      dashboardSettings: { /* ...dashboardSettingsOrDefaults, */ ...psd.dashboardSettings }
     })
   )
   // logDebug('WebView', `found ${String(perspectiveSettingsOrDefaults.length)} perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)

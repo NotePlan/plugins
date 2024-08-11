@@ -228,7 +228,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 
     // Get settings
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
-    clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
+    // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
     const logSettings = await getLogSettings()
 
     // get initial data to pass to the React Window

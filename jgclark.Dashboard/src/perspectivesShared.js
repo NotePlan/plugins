@@ -3,7 +3,7 @@
 import type { TDashboardSettings } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getFoldersMatching } from '@helpers/folders'
-import { logDebug } from '@helpers/react/reactDev'
+import { logDebug } from '@helpers/dev'
 
 /**
  * Get all folders that are allowed in the current settings/Perspective.
