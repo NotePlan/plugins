@@ -164,7 +164,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
   useEffect(() => {
     const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
-    if (settingsNeedFirstTimeMigration || dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0 && dashboardSettings.lastChange[0] !== '_') {
+    const lastChangeText = (dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0) ?? ''
+    const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
+    !shouldSendToPlugin && logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated in React, but not sending to plugin because lastChange="${dashboardSettings.lastChange}"`)
+    if (settingsNeedFirstTimeMigration || shouldSendToPlugin) {
       settingsNeedFirstTimeMigration && logDebug('Dashboard(component)', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
       logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
       const sharedSets = { ...dashboardSettings }
@@ -172,7 +175,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         sharedSets.settingsMigrated = true
         sharedSets.lastChange = 'Saving first time migration'
       }
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
+      // FIXME: DELETEME after perspective testing
+      /perspective/i.test(typeof lastChangeText === "string" ? lastChangeText : '') && logDebug('Dashboard', `Watcher for dashboardSettings. New perspective-related settings: activePerspectiveName:"${sharedSets.activePerspectiveName}"; excludedFolders:${sharedSets.excludedFolders}`, sharedSets)
+      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: sharedSets.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
       // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
     }
@@ -181,10 +186,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // when perspectiveSettings changes anywhere, send it to the plugin to save in settings
   // Note: JGC has dropped .lastChange as it doesn't fit easily in the perspectiveSettings structure
   useEffect(() => {
-    //  if (perspectiveSettings && Object.keys(perspectiveSettings).length > 0) {
-    //     // logDebug('Dashboard', `Watcher for perspectiveSettings changes. Shared settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
-    //   }
-    sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Settings needed updating` }, 'Dashboard perspectiveSettings updated', true)
+     if (perspectiveSettings && perspectiveSettings.length > 0) {
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
+        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+      }
   }, [perspectiveSettings])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority

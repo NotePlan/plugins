@@ -18,7 +18,7 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doMoveToNote,
-  doSettingsChanged,
+  // doSettingsChanged, // TEST: removal of this function
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
