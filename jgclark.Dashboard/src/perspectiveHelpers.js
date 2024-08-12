@@ -29,7 +29,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     // $FlowFixMe[prop-missing]
     dashboardSettings: {
       includedFolders: "Home, NotePlan",
-      excludedFolders: "Readwise 📚, Saved Searches",
+      excludedFolders: "Readwise 📚, Saved Searches, Work",
       ignoreItemsWithTerms: "#test, @church",
     }
   },
@@ -40,7 +40,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {
       includedFolders: "Work, CCC, Ministry",
-      excludedFolders: "Readwise 📚, Saved Searches",
+      excludedFolders: "Readwise 📚, Saved Searches, Home",
       ignoreItemsWithTerms: "#test, @home",
     }
   }
