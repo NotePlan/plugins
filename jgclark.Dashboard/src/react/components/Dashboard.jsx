@@ -186,10 +186,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // when perspectiveSettings changes anywhere, send it to the plugin to save in settings
   // Note: JGC has dropped .lastChange as it doesn't fit easily in the perspectiveSettings structure
   useEffect(() => {
-    //  if (perspectiveSettings && Object.keys(perspectiveSettings).length > 0) {
-    //     // logDebug('Dashboard', `Watcher for perspectiveSettings changes. Shared settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
-    //   }
-    sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Settings needed updating` }, 'Dashboard perspectiveSettings updated', true)
+     if (perspectiveSettings && perspectiveSettings.length > 0) {
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
+        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+      }
   }, [perspectiveSettings])
 
   // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority

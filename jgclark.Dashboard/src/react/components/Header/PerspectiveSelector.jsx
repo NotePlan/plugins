@@ -47,12 +47,13 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Watching any change in perspectiveSettings
   useEffect(() => {
-    logDebug('PerspectiveSelector', 'useEffect called because perspectiveSettings changed')
+    logDebug('PerspectiveSelector', `useEffect called because perspectiveSettings changed to ${perspectiveSettings.length} perspectives`)
     if (!perspectiveSettings) return
     // We set the initial options for the ComboBox to the list of perspective names from the dashboard settings here
     // We also watch for changes to perspectiveSettings (e.g. when a new perspective is added) so we can re-render 
     // the ComboBox with the updated list of perspective names.
     logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', 'useEffect called because perspectiveSettings changed')
+    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings changed`)
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
     clo(options, 'PerspectiveSelector/useEffect(perspectiveSettings): new options')
     setPerspectiveNameOptions(options)
@@ -62,6 +63,7 @@ const PerspectiveSelector = (): React$Node => {
   useEffect(() => {
     // TEST: is this needed, asks @dbw?
     if (!perspectiveSettings) return
+    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because activePerspectiveName changed`)
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
   // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
     const perspectiveNameIfItExists = dashboardSettings.activePerspectiveName ? options.find((option) => option === dashboardSettings.activePerspectiveName) : '-'

@@ -51,6 +51,11 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
 /**
  * Add a new Perspective setting, through asking user.
  * Note: Just a limited subset for now, during debugging.
+ * TODO: @jgclark: (from dbw): My thinking was that a user would add a new perspective by setting all the settings and filters the way they want and then running this command
+ * ...which would ask for just a name and that would save all the settings/filters in their new perspective.
+ * ...or if it already exists, it would save over it (update it)
+ * ...so the only thing they would need to do is name it.
+ * ...I know this is temp code, but I thought I would share my thoughts on how it could work just to be totally clear
  * TODO: Extend to allow x-callback
  */
 export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean, dashboardSettingsIn?: TDashboardSettings */): Promise<void> {
@@ -85,7 +90,9 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
 
   // TODO: Persist this!
   allDefs.push(newDef)
-  DataStore.settings.perspectiveSettings = allDefs
+  const settings = DataStore.settings
+  settings.perspectiveSettings = JSON.stringify(allDefs)
+  DataStore.settings = settings
   clo(newDef, `... added perspectve #${String(allDefs.length)}:`) // ✅
 
   refreshDashboardData() // FIXME: but nothing happens on front end, and new perspective doesn't show up
@@ -131,8 +138,9 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       pluginSettings.perspectiveSettings = perspectiveSettingsStr
       DataStore.settings = pluginSettings
     }
-    // clo(pluginSettings, `getPerspectiveSettings: pluginSettings =`)
-    return parseSettings(perspectiveSettingsStr) // must parse it because it is stringified JSON (an array of TPerspectiveDef)
+    const settingsArr = parseSettings(perspectiveSettingsStr) // must parse it because it is stringified JSON (an array of TPerspectiveDef)
+    logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
+    return settingsArr 
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []

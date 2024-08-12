@@ -87,20 +87,19 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // Note: the big issue here was that because its a hidden settings (in plugin.json) then 
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
   logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
-  // FIXME: @dwertheimer for now this is doing nothing for debugging purposes. not sure we are going to need it back
-  const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(
-    psd => ({
-      ...psd,
-      dashboardSettings: { /* ...dashboardSettingsOrDefaults, */ ...psd.dashboardSettings }
-    })
-  )
+  // FIXME: @jgclark commenting this out because I don't think we should map/copy all the settings
+  // const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(
+  //   psd => ({
+  //     ...psd,
+  //     dashboardSettings: { /* ...dashboardSettingsOrDefaults, */ ...psd.dashboardSettings }
+  //   })
+  // )
   // logDebug('WebView', `found ${String(perspectiveSettingsOrDefaults.length)} perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
-
   // const perspectiveSettingsOrDefaults = [
   //   ...pSettingDefaults, pSettings
   // ]
   // logDebug('WebView', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
-  const [perspectiveSettings, setPerspectiveSettings] = useState(perspectiveSettingsOrDefaults)
+  const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************
    *                             VARIABLES
