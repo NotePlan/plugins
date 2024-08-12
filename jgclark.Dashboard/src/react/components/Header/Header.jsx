@@ -109,16 +109,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   return (
     <div className="header">
-      <div className="perspectiveName">
-        {dashboardSettings.FFlag_Perspectives && (
-          <PerspectiveSelector/>
-        )}
-      </div>
-
-      <div className="lastFullRefresh">
-        {updatedText}: <span id="timer">{timeAgoText}</span>
-      </div>
-
       <div className="refresh">
         <RefreshControl
           refreshing={pluginData.refreshing === true}
@@ -135,10 +125,20 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
       </div>
 
+      <div className="lastFullRefresh">
+        {updatedText}: <span id="timer">{timeAgoText}</span>
+      </div>
+
       <div className="totalCounts">
         {pluginData?.totalDoneCounts
           ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
           : ''}
+      </div>
+
+      <div className="perspectiveName">
+        {dashboardSettings.FFlag_Perspectives && (
+          <PerspectiveSelector />
+        )}
       </div>
 
       <div id="dropdowns" className="dropdownButtons">
@@ -192,7 +192,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <i
             className="fa-solid fa-gear"
             onClick={handleToggleDialog}
-            style={{ cursor: 'pointer' }}
+            // style={{ cursor: 'pointer' }}
           ></i>
         </div>
       </div>

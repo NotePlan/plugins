@@ -16,6 +16,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { logWarn } from '../../../../../helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -93,7 +94,7 @@ const PerspectiveSelector = (): React$Node => {
     // Get the new settings to apply
     const newPerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
     if (!newPerspectiveDef) {
-      logDebug('PerspectiveSelector/handlePerspectiveChange', `⚠️ Cannot get newPerspectiveDef`)
+      logWarn('PerspectiveSelector/handlePerspectiveChange', `Cannot get newPerspectiveDef`)
       return
     }
     clo(newPerspectiveDef, 'PerspectiveSelector/handlePerspectiveChange: newPerspectiveDef')

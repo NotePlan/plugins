@@ -16,8 +16,8 @@ export function getCurrentlyAllowedFolders(
 ): Array<string> {
   // Note: can't use simple .split(',') as it does unexpected things with empty strings. 
   // Note: also needed to check that whitespace is trimmed.
-  const includedFolderArr = stringListOrArrayToArray(dashboardSettings.includeFolders ?? '', ',')
-  const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.ignoreFolders ?? '', ',')
+  const includedFolderArr = stringListOrArrayToArray(dashboardSettings.includedFolders ?? '', ',')
+  const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.excludedFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
 }/**

@@ -2,12 +2,14 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show an Indicator that a Filter has been applied and so some item(s) have been hidden.
 // Called by ItemRow component
-// Last updated 2024-07-14 for v2.0.2 by @jgclark
-// TODO: be smarter about what to do if this line is clicked on. Or stop it being a link.
+// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
+// TODO: turn the filter off if the line is clicked on. Need to add an Event Handler.
 //--------------------------------------------------------------------------
 
-import {Node} from 'react'
+import { type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
+import { useAppContext } from './AppContext.jsx'
+import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
   item: TSectionItem,
@@ -17,6 +19,17 @@ type Props = {
  * Component for displaying a filter indicator.
  */
 const TasksFiltered = ({ item }: Props): Node => {
+  const { sendActionToPlugin } = useAppContext()
+  function handleLineClick(e: MouseEvent) {
+    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
+    const dataObjectToPassToFunction = {
+      actionType: 'turnOffPriorityItemsFilter',
+      modifierKey: modifierName,
+      item,
+    }
+    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Filter indicator clicked', true)
+  }
+
   return (
     <div className="sectionItemRow" id={item.ID}>
       {/* This empty span needed to mimic the StatusIcon line */}
@@ -25,7 +38,9 @@ const TasksFiltered = ({ item }: Props): Node => {
           <i id={item.ID} className="fa-regular fa-plus"></i>
         </div>
       </span>
-      <div className="sectionItemContent sectionItem">
+      <div
+        className="sectionItemContent sectionItem"
+        onClick={(e) => handleLineClick(e)} >
         <span className="content">
           <i>{item?.para?.content || '<no content>'}</i>
         </span>

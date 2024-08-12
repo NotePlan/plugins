@@ -1,8 +1,9 @@
 // @flow
 //--------------------------------------------------------------------------
 // Represents a row item within a section.
-// Could be: Task, Review Item, Filtered Indicator, or Nno Tasks Left
-// Last updated 2024-07-28 for v2.2.0.a2 by @jgclark
+// Could be: Task, Review Item, Filtered Indicator, No Tasks left or No Projects.
+// Called by ItemGrid component.
+// Last updated 2024-07-28 for v2.1.0.a2 by @jgclark
 //--------------------------------------------------------------------------
 
 import {type Node} from 'react'

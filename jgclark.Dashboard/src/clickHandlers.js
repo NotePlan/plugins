@@ -651,6 +651,7 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
     return handlerResult(false)
   }
 }
+
 /**
  * Update a single key in DataStore.settings
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
@@ -658,13 +659,13 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
  * @returns {TBridgeClickHandlerResult}
  */
 export function doSettingsChanged(data: MessageDataObject, settingName: string): TBridgeClickHandlerResult {
-  // clo(data, `doSettingsChanged -> data`)
+  // clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
-  // TODO: from @dwertheimer - this is probably not needed anymore and should be deleted
+  // TODO: from @dwertheimer - this part is probably not needed anymore and should be deleted
   // logLevel is a special case that we need to specifically update in DataStore
   // so that plugin-side functions that log can pick it up even before React is ready
   // if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
@@ -676,7 +677,12 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
-// export async function doSetSpecificDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-//   // const { dateString, itemType, filename } = validateAndFlattenMessageObject(data)
-//   throw (`doSetSpecificDate -> shouldn't be called for data:${JSP(data)}`)
-// }
+export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
+  logDebug('turnOffPriorityItemsFilter', `starting ...`)
+  const currentSettings = await getDashboardSettings()
+  const updatedDashboardSettings = { ...currentSettings, filterPriorityItems: false }
+  clo(updatedDashboardSettings, 'updatedDashboardSettings=')
+  DataStore.settings.dashboardSettings = updatedDashboardSettings
+  logDebug('turnOffPriorityItemsFilter', `------------ refresh ------------`)
+  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+}

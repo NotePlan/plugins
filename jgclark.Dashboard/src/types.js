@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
+// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -27,8 +27,8 @@ export type TDashboardSettings = {
   hidePriorityMarkers: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // TEST: was 'ignoreTasksWithPhrase'
   ignoreChecklistItems: boolean,
-  ignoreFolders: string, // Note: Run through stringListOrArrayToArray() before use
-  includeFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includeFolderName: boolean, // TODO(later): ideally rename to show...
   includeScheduledDates: boolean, // TODO(later): ideally rename to show...
   includeTaskContext: boolean, // TODO(later): ideally rename to show...
@@ -166,25 +166,27 @@ export type TActionType =
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
   | 'deleteItem'
+  | 'incrementallyRefreshSections'
   | 'moveAllTodayToTomorrow'
   | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'
   | 'moveToNote'
   | 'onClickDashboardItem'
+  | 'perspectiveSettingsChanged'
   | 'refresh'
   | 'refreshSomeSections'
-  | 'setNextReviewDate'
   | 'reviewFinished'
+  | 'scheduleAllOverdueToday'
+  | 'setNewReviewInterval'
+  | 'setNextReviewDate'
   | 'showNoteInEditorFromFilename'
   | 'showNoteInEditorFromTitle'
   | 'showLineInEditorFromFilename'
   | 'showLineInEditorFromTitle'
-  | 'scheduleAllOverdueToday'
-  | 'setNewReviewInterval'
   // | 'setSpecificDate'
-  | 'perspectiveSettingsChanged'
   | 'startReviews'
   | '(not yet set)'
+  | 'turnOffPriorityItemsFilter'
   | 'toggleType'
   | 'togglePauseProject'
   | 'unknown'
@@ -192,7 +194,6 @@ export type TActionType =
   | 'updateItemContent'
   | 'updateTaskDate'
   | 'windowWasResized'
-  | 'incrementallyRefreshSections'
   | 'windowReload'
   | 'windowResized'
 
@@ -226,7 +227,7 @@ export type MessageDataObject = {
   actionType: TActionType, // main verb (was .type)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
-  newSettings?: string, /* either reactSettings or dashboardSettingsdepending on actionType */
+  newSettings?: string, /* either reactSettings or dashboardSettings depending on actionType */
   modifierKey?: any, /* used when modifier key is pressed with an action */
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,

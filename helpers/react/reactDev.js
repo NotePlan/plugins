@@ -131,6 +131,18 @@ export const logInfo = (componentName: string, detail?: string, ...args: any[]):
 }
 
 /**
+ * Logs an error message to the console.
+ * Similar to logDebug.
+ * @param {string} componentName - The name of the component.
+ * @param {string} detail - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
+ */
+export const logWarn = (componentName: string, detail?: string, ...args: any[]): void => {
+  log('WARN', componentName, detail, ...args)
+}
+
+/**
  * Create a deep copy of the input object so it can be safely modified without affecting the original
  * Works on basic JS objects, but not on objects with functions or other non-JSON-serializable properties
  * So will work in React but not on NotePlan objects

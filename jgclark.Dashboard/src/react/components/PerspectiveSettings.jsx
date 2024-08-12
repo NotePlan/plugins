@@ -1,13 +1,15 @@
 // @flow
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 // Dashboard React component to show the Perspectives settings
 // Called by DashboardSettings component.
 // Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 
-//--------------------------------------------------------------------------
+// TODO: try and use SF Symbols 'perspective' icon
+
+//----------------------------------------------------------
 // Imports
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 import React from 'react'
 // import { useEffect, useRef, useState, type ElementRef } from 'react'
 // import type { perspectiveSettingDefaults, perspectiveSettingDefinitions } from '../../dashboardSettings.js'
@@ -20,28 +22,28 @@ import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import '../css/PerspectiveSettings.css'
 
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 // Type Definitions
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 // type Settings = { [key: string]: string | boolean };
 
 type PerspectiveSettingsProps = {
   handleFieldChange: (key: string, value: any)=>void,
 };
 
-// type JsonEditorReturnData = {
-//   newData: any,      // data state after update
-//   currentData: any,  // data state before update 
-//   newValue: any,     // the new value of the property being updated
-//   currentValue: any, // the current value of the property being updated
-//   name: string,         // name of the property being updated
-//   path: Array<string>,          // full path to the property being updated, as an array of property keys
-//   // (e.g. [ "user", "friends", 1, "name" ] ) (equivalent to "user.friends[1].name")
-// }
+type JsonEditorReturnData = {
+  newData: any,      // data state after update
+  currentData: any,  // data state before update 
+  newValue: any,     // the new value of the property being updated
+  currentValue: any, // the current value of the property being updated
+  name: string,         // name of the property being updated
+  path: Array<string>,          // full path to the property being updated, as an array of property keys
+  // (e.g. [ "user", "friends", 1, "name" ] ) (equivalent to "user.friends[1].name")
+}
 
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 // PerspectiveSettings Component Definition
-//--------------------------------------------------------------------------
+//----------------------------------------------------------
 
 const PerspectiveSettings = ({
   handleFieldChange,
@@ -76,8 +78,8 @@ const PerspectiveSettings = ({
       clo(updatedData, `PerspectiveSettings updated; but wont' be saved until user clicks Save:`)
       // Note that JSON was updated but setDashboardSettings should not be called until the user clicks "Save on the window" 
       // so we don't set it here, we just pass it back to the parent component (SettingsDialog) to handle as if it was any other field
-      // TODO: This won't work yet because it needs to write to pS not dS
-      handleFieldChange('perspectives', updatedData)
+      // TODO: check this is working
+      handleFieldChange('perspectiveSettings', updatedData)
     }
 
     //----------------------------------------------------------------------

@@ -63,13 +63,13 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
     logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
     return
   }
-  const includeFolders = await getInputTrimmed('Enter list of folders to include (comma-separated):', 'OK', 'Add Perspective', 'TEST')
-  if (typeof includeFolders === 'boolean') {
+  const includedFolders = await getInputTrimmed('Enter list of folders to include (comma-separated):', 'OK', 'Add Perspective', 'TEST')
+  if (typeof includedFolders === 'boolean') {
     logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
     return
   }
-  const ignoreFolders = await getInputTrimmed('Enter list of folders to exclude (comma-separated):', 'OK', 'Add Perspective', 'Work, Home, CCC, Ministry')
-  if (typeof ignoreFolders === 'boolean') {
+  const excludedFolders = await getInputTrimmed('Enter list of folders to exclude (comma-separated):', 'OK', 'Add Perspective', 'Work, Home, CCC, Ministry')
+  if (typeof excludedFolders === 'boolean') {
     logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
     return
   }
@@ -78,8 +78,8 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
     isActive: true, // make it active straight away
     // $FlowFixMe[prop-missing] gets set later
     dashboardSettings: {
-      includeFolders: includeFolders || "",
-      ignoreFolders: ignoreFolders || "",
+      includedFolders: includedFolders || "",
+      excludedFolders: excludedFolders || "",
     }
   }
 
@@ -291,8 +291,8 @@ export function getAllowedFoldersInCurrentPerspective(
   }
   // Note: can't use simple .split(',') as it does unexpected things with empty strings. 
   // Note: also needed to check that whitespace is trimmed.
-  const includedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.includeFolders ?? '', ',')
-  const excludedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.ignoreFolders ?? '', ',')
+  const includedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.includedFolders ?? '', ',')
+  const excludedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.excludedFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
 }

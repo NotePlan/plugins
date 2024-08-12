@@ -84,8 +84,9 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   // Note: ideally move to perspectiveHelpers::initialisePerpsectiveSettings
-  // Note: the big issue here was that because its a hidden settings (in plugin.json) then 
+  // Note: the big issue here was that because its a hidden settings (in plugin.json) then it has to be a string type, not an object or array. So it has to be stringified.
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
+
   logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
   // FIXME: @dwertheimer for now this is doing nothing for debugging purposes. not sure we are going to need it back
   const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(

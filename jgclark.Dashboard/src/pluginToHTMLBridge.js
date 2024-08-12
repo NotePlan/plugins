@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-08-10 for v2.1.0.a6 by @jgclark
+// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,6 +30,7 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
+  turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddProgressUpdate,
@@ -119,7 +120,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        // await refreshAllSections()
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
         break
       }
@@ -244,7 +244,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       //   break
       // }
       case 'dashboardSettingsChanged': {
-       result = await doSettingsChanged(data, 'dashboardSettings')
+        result = await doSettingsChanged(data, 'dashboardSettings')
         break
       }
       case 'perspectiveSettingsChanged': {
@@ -281,6 +281,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'scheduleAllOverdueToday': {
         result = await scheduleAllOverdueOpenToToday(data)
+        break
+      }
+      case 'turnOffPriorityItemsFilter': {
+        result = await turnOffPriorityItemsFilter()
         break
       }
       default: {

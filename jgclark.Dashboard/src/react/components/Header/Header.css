@@ -7,8 +7,8 @@
 	/* Define grid-template-areas for better control */
 	display: grid;
 	/* Allocate space for each area */
-	grid-template-areas: "perspective lastUpdated refresh counts empty dropdowns";
-	grid-template-columns: max-content max-content max-content max-content 1fr min-content;
+	grid-template-areas: "refresh lastUpdated counts empty perspective dropdowns";
+	grid-template-columns: max-content max-content max-content 1fr max-content min-content;
 	/* Vertical alignment */
 	align-items: baseline;
 	/* Space between grid items */

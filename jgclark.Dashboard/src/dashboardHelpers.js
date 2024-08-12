@@ -9,11 +9,10 @@ import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import {
-  // isFilenameAllowedInCurrentPerspective,
   isFilenameAllowedInFolderList
 , getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, /* TPerspectiveDef, */ TSection } from './types'
+import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -56,7 +55,7 @@ import {
 
 //-----------------------------------------------------------------
 // Types
-// Note: types.js now contains the Type definitions
+// Note: see types.js for all the main Type definitions
 
 //-----------------------------------------------------------------
 // Settings
@@ -95,35 +94,6 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 
   return parseSettings(pluginSettings.dashboardSettings)
 }
-
-/**
- * Return Combined Object that includes plugin settings + those settings that are needed on front-end (Window) and back-end (Plugin)
- * Calls DataStore.settings so can't be used on front-end
- */
-// export async function getCombinedSettings(): Promise<any> {
-//   const sharedSettings = await getSharedSettings()
-//   if (!sharedSettings) logError(`getCombinedSettings() This is weird! Why is DataStore.settings not set?`)
-//   const pluginSettings = await getSettings()
-//   const returnObj: any = pluginSettings // baseline values are what was in DataStore.settings
-//   // clo(pluginSettings, 'getCombinedSettings: pluginSettings')
-//   // clo(sharedSettings, 'getCombinedSettings: sharedSettings')
-//   returnObj.maxItemsToShowInSection = pluginSettings.maxItemsToShowInSection ?? 20
-//   returnObj.timeblockMustContainString = pluginSettings.timeblockMustContainString ?? "" // set explicitly by getSettings() 
-//   // Now add all the show*Section settings (or default to true)
-//   for (const sd of allSectionDetails) {
-//     const thisShowSettingName = sd.showSettingName
-//     if (thisShowSettingName) {
-//       // Default to true unless user has explictly set to false
-//       returnObj[thisShowSettingName] = sharedSettings[thisShowSettingName] === false ? false : true
-//     }
-//   }
-//   const sharedSettingsKeys = Object.keys(sharedSettings)
-//   for (const key of sharedSettingsKeys) {
-//     // sharedSettings should override any pre-existing setting
-//     returnObj[key] = sharedSettings[key]
-//   }
-//   return returnObj
-// }
 
 /**
  * Get config settings from original plugin preferences system -- only to do with logging now
@@ -166,7 +136,6 @@ export function getNotePlanSettings(): TNotePlanSettings {
     return
   }
 }
-
 
 //-----------------------------------------------------------------
 
@@ -225,7 +194,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
 /**
  * Return list(s) of open task/checklist paragraphs in calendar note of type 'timePeriodName', or scheduled to that same date.
  * Various config.* items are used:
- * - ignoreFolders? for folders to ignore for referenced notes
+ * - excludedFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
  * - ignoreItemsWithTerms
  * - ignoreTasksScheduledToFuture
@@ -343,9 +312,9 @@ export function getOpenItemParasForCurrentTimePeriod(
       logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
     }
 
-    // // Remove items referenced from items in 'ignoreFolders'
-    // const ignoreFolders = dashboardSettings.ignoreFolders ? dashboardSettings.ignoreFolders.split(',').map(folder => folder.trim()) : []
-    // refOpenParas = filterOutParasInExcludeFolders(refOpenParas, ignoreFolders, true)
+    // // Remove items referenced from items in 'excludedFolders'
+    // const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
+    // refOpenParas = filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true)
     // // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
 
     // Remove possible dupes from sync'd lines
@@ -478,11 +447,11 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
-    // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
-    const ignoreFolders = dashboardSettings.ignoreFolders ? dashboardSettings.ignoreFolders.split(',').map(folder => folder.trim()) : []
+    // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
+    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, ignoreFolders, true)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'ignoreFolders'(${dashboardSettings.ignoreFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
+    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${dashboardSettings.excludedFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
       const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
@@ -542,10 +511,10 @@ export async function getRelevantPriorityTasks(
 
     await CommandBar.onAsyncThread()
     // Get list of folders to ignore
-    const ignoreFolders = config.ignoreFolders ? config.ignoreFolders.split(',').map(folder => folder.trim()) : []
-    logInfo('getRelevantPriorityTasks', `ignoreFolders: ${ignoreFolders.toString()}`)
-    // Reduce list to all notes that are not blank or in @ folders or ignoreFolders
-    let notesToCheck = projectNotesFromFilteredFolders(ignoreFolders, true).concat(pastCalendarNotes())
+    const excludedFolders = config.excludedFolders ? config.excludedFolders.split(',').map(folder => folder.trim()) : []
+    logInfo('getRelevantPriorityTasks', `excludedFolders: ${excludedFolders.toString()}`)
+    // Reduce list to all notes that are not blank or in @ folders or excludedFolders
+    let notesToCheck = projectNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     notesToCheck = notesToCheck

@@ -169,7 +169,7 @@ For both callbacks, the names of the possible settings (described above), and th
 | hideDuplicates | true / false |
 | ignoreItemsWithTerms | string |
 | ignoreChecklistItems | true / false |
-| ignoreFolders | comma-separated values |
+| excludedFolders | comma-separated values |
 | includeFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
