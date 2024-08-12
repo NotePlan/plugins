@@ -80,7 +80,12 @@ const PerspectiveSelector = (): React$Node => {
    * @param {string} newValue - The new perspective name selected.
    */
   const handlePerspectiveChange = (newValue: string) => {
-    logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
+    if (activePerspectiveName === newValue) {
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}; but that was no change, so returning`)
+      return
+    } else {
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
+    }
 
     if (newValue === "-") {
       setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
@@ -92,22 +97,21 @@ const PerspectiveSelector = (): React$Node => {
 
     // Get the new settings to apply
     const newPerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
-    if (!newPerspectiveDef) {
+    if (!newPerspectiveDef || newPerspectiveDef.dashboardSettings === undefined) {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `⚠️ Cannot get newPerspectiveDef`)
       return
     }
-    clo(newPerspectiveDef, 'PerspectiveSelector/handlePerspectiveChange: newPerspectiveDef')
-    logDebug('PerspectiveSelector/handlePerspectiveChange', `newPerspectiveDef has excludedFolders: [${String(newPerspectiveDef.dashboardSettings.excludedFolders)}]`)
+    // clo(newPerspectiveDef, 'PerspectiveSelector/handlePerspectiveChange: newPerspectiveDef')
+    logDebug('PerspectiveSelector/handlePerspectiveChange', `newPerspectiveDef("${newValue}") has excludedFolders: [${String(newPerspectiveDef.dashboardSettings.excludedFolders)}]`)
     // FIXME: ^^^^ isn't updated
 
-    // TEST: override dashboardSettings with what is in the Perspective & set the new activePerspectiveName
-    setDashboardSettings((prev) => ({ ...prev, ...newPerspectiveDef.dashboardSettings, activePerspectiveName: newValue }))
-
-    // TEST: set the new activePerspectiveName +
-    // setDashboardSettings((prev)=>({ ...prev, activePerspectiveName: newValue }))
     setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
 
-    logDebug('PerspectiveSelector/handlePerspectiveChange', `- after updating dS, activePerspectiveName: ${String(dashboardSettings.activePerspectiveName)} / excludedFolders: [${String(dashboardSettings.excludedFolders)}]`)
+    // TEST: override dashboardSettings with what is in the Perspective & set the new activePerspectiveName
+    setDashboardSettings((prev) => ({ ...prev, ...(newPerspectiveDef.dashboardSettings), activePerspectiveName: newValue, lastChange:`perspective changed to ${newValue}` }))
+
+    // Cannot immediately rely on the updated dashboardSettings, because it happens asynchronously.
+    // logDebug('PerspectiveSelector/handlePerspectiveChange', `- after updating dS, activePerspectiveName: ${String(dashboardSettings.activePerspectiveName)} / excludedFolders: [${String(dashboardSettings.excludedFolders)}]`)
 
     // TODO: set the isActive indicator on all perspectives -- if I actually keep this setting in play.
     // setPerspectiveSettings((prev) => ({ ...prev, ...etc. }))
