@@ -173,7 +173,7 @@ export async function makeSettingsAsCallback(): Promise<void> {
 }
 
 /**
- * ???
+ * TODO(dbw): fix flow errors and add JSDoc
  * @param {string} limitToSections e.g. "TD,TY,#work"
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
@@ -281,7 +281,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
   try {
     const startTime = new Date()
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
-    const perspectiveSettings = await getPerspectiveSettings() // FIXME: move from WebView to here
+    const perspectiveSettings = await getPerspectiveSettings() // TODO: move from WebView to here
     // TODO(future): @jgclark: In future this ^^^ could bw where  initialisePerspectiveSettings() will happen?
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 

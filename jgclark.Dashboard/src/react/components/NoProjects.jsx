@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show there are no Projects overdue for review. Called by ItemRow.
-// Last updated 2024-07-28 for v2.2.0.a2 by @jgclark
+// Last updated 2024-08-13 for v2.2.0.a7 by @jgclark
 //--------------------------------------------------------------------------
 
 import { type Node } from 'react'
@@ -16,7 +16,7 @@ const NoProjects = (): Node => {
         <i className="fa-regular fa-circle-check"></i>
       </div>
       <div className="sectionItemContent sectionItem">
-        <div className="content">
+        <div> {/* Note: no className here */}
           <i>
             No Projects need reviewing: take a break <i className="fa-solid fa-mug pad-left"></i>
           </i>

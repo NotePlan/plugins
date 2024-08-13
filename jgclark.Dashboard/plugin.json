@@ -87,6 +87,12 @@
       "hidden": "false"
     },
     {
+      "name": "Update current Perspective",
+      "description": "Update the current Perspective defintion",
+      "jsFunction": "updateCurrentPerspectiveDef",
+      "hidden": "false"
+    },
+    {
       "name": "Delete all Perspective Settings",
       "description": "Delete all Perspective Settings.",
       "jsFunction": "deletePerspectiveSettings",

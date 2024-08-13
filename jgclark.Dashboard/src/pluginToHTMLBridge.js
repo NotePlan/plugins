@@ -18,7 +18,7 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doMoveToNote,
-  // doSettingsChanged, // TEST: removal of this function
+  doSettingsChanged,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -99,7 +99,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
+    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -124,7 +124,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowReload': {
-        showDashboardReact()
+        await showDashboardReact('full') // FIXME: cause of circular dependency
         return
       }
       case 'completeTask': {

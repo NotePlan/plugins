@@ -1,21 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-08-09 for v2.1.0.a6 by @jgclark
+// Last updated 2024-08-13 for v2.1.0.a7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getDashboardSettings } from "./dashboardHelpers.js"
-import { refreshDashboardData } from './reactMain'
+// import { refreshDashboardData } from './reactMain'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed } from '@helpers/userInput'
-
-// Note: DBW originally suggested:
-// e.g. perspectiveSettings[“Home”] rather than a flat array
 
 //-----------------------------------------------------------------------------
 
@@ -49,6 +46,112 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
 //-----------------------------------------------------------------------------
 
 /**
+ * Get all perspective settings (as array of TPerspectiveDef)
+ * @returns {Array<TPerspectiveDef>} all perspective settings
+ */
+export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
+  try {
+    logDebug('getPerspectiveSettings', `Attempting to get Perspective settings ...`)
+    // Note: (in an earlier place this code was used) we think following (newer API call) is unreliable.
+    let pluginSettings = DataStore.settings
+    let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
+    let perspectiveSettings: Array<TPerspectiveDef>
+    if (!perspectiveSettingsStr) {
+      clo(pluginSettings, `getPerspectiveSettings (newer API): DataStore.settings?.perspectiveSettings not found. Here's the full settings for ${pluginID} plugin: `)
+
+      // Fall back to the older way:
+      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+      clo(pluginSettings, `getPerspectiveSettings (older lookup): pluginSettings loaded from settings.json`)
+      perspectiveSettingsStr = pluginSettings?.perspectiveSettings
+    }
+
+    if (!perspectiveSettingsStr) {
+      // must parse it because it is stringified JSON (an array of TPerspectiveDef)
+      const settingsArr = parseSettings(perspectiveSettingsStr) ?? []
+      logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
+      return settingsArr
+    }
+    else {
+      // No settings found, so will need to set from the defaults instead
+      // FIXME: Why am I getting here when settings.json is showing settings?
+      logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
+      perspectiveSettings = perspectiveSettingDefaults
+
+      // now fill in with the rest of the current dashboardSettings
+      const currentDashboardSettings = await getDashboardSettings()
+      const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
+        psd => ({
+          ...psd,
+          dashboardSettings: {
+            ...currentDashboardSettings, ...psd.dashboardSettings,
+            // ensure aPN is the same as this perspective name (just in case)
+            activePerspectiveName: psd.name
+          }
+        })
+      )
+      // const extendedPerspectiveSettings = [
+      //   ...pSettingDefaults, pSettings
+      // ]
+      clo(extendedPerspectiveSettings, `extendedPerspectiveSettings =`)
+
+      // persist and return
+      savePerspectiveSettings(extendedPerspectiveSettings)
+      return extendedPerspectiveSettings
+    }
+  } catch (error) {
+    logError('getPerspectiveSettings', `Error: ${error.message}`)
+    return []
+  }
+}
+
+/**
+ * Update the current perspective settings (as a TPerspectiveDef)
+ * @returns {boolean} success
+ */
+export async function updateCurrentPerspectiveDef(): Promise<boolean> {
+  try {
+    // FIXME: doesn't get this OK:
+    const activePerspectiveName = DataStore.settings.dashboardSettings.activePerspectiveName
+    const allDefs = await getPerspectiveSettings()
+    // const activeDefIndex: number = allDefs.findIndex((d) => d.name === activePerspectiveName)
+    const activeDefIndex: number = allDefs.findIndex((d) => d.isActive)
+    if (activeDefIndex === undefined || activeDefIndex === -1) {
+      logWarn('updateCurrentPerspectiveDef', `Couldn't find definition for perspective '${activePerspectiveName}'.`)
+      return false
+    }
+    logDebug('updateCurrentPerspectiveDef', `Will update def '${activePerspectiveName}' (#${String(activeDefIndex)})`)
+    const dashboardSettings = await getDashboardSettings()
+    allDefs[activeDefIndex].dashboardSettings = dashboardSettings
+    const res = await savePerspectiveSettings(allDefs)
+    return true
+  } catch (error) {
+    logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Persist all perspective settings as a stringified array, to suit the forced type of the hidden setting.
+ * TODO: from this NP automatically triggers NPHooks::onSettingsUpdated(). This might or might not be desirable.
+ * TODO: ideally this should trigger updates in the front end too, but I don't know how.
+ * @param {Array<TPerspectiveDef>} allDefs perspective definitions
+ * @return {boolean} true if successful
+ */
+export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolean {
+  try {
+    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ""
+    const pluginSettings = DataStore.settings
+    pluginSettings.perspectiveSettings = perspectiveSettingsStr
+    DataStore.settings = pluginSettings
+    logDebug('savePerspectiveSettings', `Apparently saved OK.`)
+    return true
+  } catch (error) {
+    logError('savePerspectiveSettings', `Error: ${error.message}`)
+    return false
+  }
+}
+
+/**
  * Add a new Perspective setting, through asking user.
  * Note: Just a limited subset for now, during debugging.
  * TODO: @jgclark: (from dbw): My thinking was that a user would add a new perspective by setting all the settings and filters the way they want and then running this command
@@ -60,7 +163,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
  */
 export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean, dashboardSettingsIn?: TDashboardSettings */): Promise<void> {
   const allDefs = await getPerspectiveSettings()
-  logDebug('addPerspectiveSetting', `Found ${allDefs.length} existing Perspective settings ...`)
+  logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspective settings ...`)
 
   // Get user input
   const name = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
@@ -87,15 +190,14 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
       excludedFolders: excludedFolders || "",
     }
   }
+  logInfo('addPerspectiveSetting', `... added perspectve #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
 
-  // TODO: Persist this!
-  allDefs.push(newDef)
-  const settings = DataStore.settings
-  settings.perspectiveSettings = JSON.stringify(allDefs)
-  DataStore.settings = settings
-  clo(newDef, `... added perspectve #${String(allDefs.length)}:`) // ✅
+  // persist this
+  const res = savePerspectiveSettings([...allDefs, newDef])
 
-  refreshDashboardData() // FIXME: but nothing happens on front end, and new perspective doesn't show up
+  // Refresh dashboard
+  // TODO: without using refreshDashboardData - causes circ dependency (and didn't work when tried)
+  // Though shouldn't React magically do it for us?
 }
 
 /**
@@ -108,43 +210,6 @@ export async function deletePerspectiveSettings(): Promise<void> {
   pluginSettings.perspectiveSettings = "[]"
   clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
   DataStore.settings = pluginSettings
-}
-
-/**
- * Get all perspective settings (as array of TPerspectiveDef)
- * @returns {Array<TPerspectiveDef>} all perspective settings
- */
-export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
-  try {
-    logDebug('getPerspectiveSettings', `Attempting to get Perspective settings ...`)
-    // Note: Copied from above.
-    // Note: We think following (newer API call) is unreliable.
-    let pluginSettings = DataStore.settings
-    let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
-    let perspectiveSettings: Array<TPerspectiveDef>
-    if (!perspectiveSettingsStr) {
-      clo(pluginSettings, `getPerspectiveSettings (newer API): DataStore.settings?.perspectiveSettings not found. Here's the full settings for ${pluginID} plugin: `)
-
-      // Fall back to the older way:
-      pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-      clo(pluginSettings, `getPerspectiveSettings (older lookup): pluginSettings loaded from settings.json`)
-      perspectiveSettingsStr = pluginSettings?.perspectiveSettings
-    }
-    if (!perspectiveSettingsStr) {
-      // Will need to set from the defaults
-      logDebug('getPerspectiveSettings', `None found: will use the defaults`)
-      perspectiveSettings = perspectiveSettingDefaults
-      perspectiveSettingsStr = JSON.stringify(perspectiveSettings) ?? "" // must stringify it because it is JS ARRAY and needs to be stored as string
-      pluginSettings.perspectiveSettings = perspectiveSettingsStr
-      DataStore.settings = pluginSettings
-    }
-    const settingsArr = parseSettings(perspectiveSettingsStr) // must parse it because it is stringified JSON (an array of TPerspectiveDef)
-    logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
-    return settingsArr 
-  } catch (error) {
-    logError('getPerspectiveSettings', `Error: ${error.message}`)
-    return []
-  }
 }
 
 /**
@@ -178,13 +243,13 @@ export function getActivePerspectiveDef(
     logWarn('getActivePerspectiveDef', `No perspectives defined.`)
     return false
   }
-  clo(allDefs, `getActivePerspectiveDef: allDefs =`)
+  // clo(allDefs, `getActivePerspectiveDef: allDefs =`)
   const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
   if (!activeDef) {
     logWarn('getActivePerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
     return false
   } else {
-    clo(activeDef, `Active perspective '${activePerspectiveName}':`)
+    logDebug('getActivePerspectiveDef', `Active perspective = '${activePerspectiveName}':`)
     return activeDef
   }
 }
@@ -204,7 +269,6 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPe
  * @param {string} nameIn
  * TEST: live
  * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Home
- * TODO: neither actually changing anything
  */
 export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
@@ -214,13 +278,13 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     if (existingDefs.length === 0) {
       throw new Error(`No perspective settings found. Stopping.`)
     }
-    logDebug('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
+    logInfo('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
 
     if (nameIn !== '' && getPerspectiveNamed(nameIn, existingDefs)) {
       nameToUse = nameIn
-      logDebug('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
+      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
     } else {
-      logDebug('deletePerspective', `Asking user to pick perspective to delete`)
+      logInfo('deletePerspective', `Asking user to pick perspective to delete`)
       const options = existingDefs.map((p) => {
         return { label: p.name, value: p.name }
       })
@@ -230,7 +294,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
         return
       }
       nameToUse = String(res)
-      logDebug('deletePerspective', `Will delete perspective '${nameToUse}' selected by user`)
+      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' selected by user`)
     }
 
     // if this is the active perspective, then unset the activePerspectiveName
@@ -240,9 +304,15 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
 
     // delete this Def from the list of Perspective Defs
     const perspectivesWithoutOne = existingDefs.filter(obj => obj.name !== nameToUse)
-    logDebug('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
-    // TODO: HELP: How to get this change persisted?
+    logInfo('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
 
+    // Persist this change 
+    // TODO: is this hitting old string vs object problem?
+    const pluginSettings = DataStore.settings
+    pluginSettings.perspectiveSettings = JSON.stringify(perspectivesWithoutOne)
+    DataStore.settings = pluginSettings
+
+    // FIXME: not updating elsewhere in the interface
   } catch (error) {
     logError('deletePerspective', error.message)
   }

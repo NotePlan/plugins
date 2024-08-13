@@ -61,7 +61,9 @@ type Props = {
   reactSettings: TReactSettings,
   setReactSettings: Function,
 }
-//FIXME: @dwertheimer: move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders
+
+// FIXME: @dwertheimer: move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders.
+// (Really needed: this is firing for every key press in the settings dialog, for example.)
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
 
   /****************************************************************************************************************************

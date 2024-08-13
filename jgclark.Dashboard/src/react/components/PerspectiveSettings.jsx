@@ -60,11 +60,9 @@ const PerspectiveSettings = ({
     //----------------------------------------------------------------------
 
     // const perspectiveDefs: Array<TPerspectiveDef> = values || []
-    // clo(perspectiveDefs, 'perspectiveDefs')
-    // const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
-    // logDebug('PerspectiveSettings', `perspectiveDef names: ${perspectiveDefs.map((pd) => pd.name).sort().join(' / ')}`)
-    // logDebug('PerspectiveSettings', `activePerspectiveName: '${activePerspectiveName}'`)
-    clo(perspectiveSettings, 'starting PerspectiveSettings with:')
+    const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
+    logDebug('PerspectiveSettings', `starting with '${activePerspectiveName}' active from ${String(perspectiveSettings.length)} perspectives: ${perspectiveSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+
 
     //----------------------------------------------------------------------
     // State
@@ -116,7 +114,7 @@ const PerspectiveSettings = ({
           rootName={"perspectiveSettings"}
           setData={setJsonData}
           rootFontSize={"10pt"}
-          collapse={false}
+          collapse={2} // earlier: false
           className={"ui-perspective-container"}
           showArrayIndices={true}
           showStringQuotes={true}

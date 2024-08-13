@@ -399,20 +399,19 @@ button,
 	color: var(--tint-color);
 }
 
+/* all links turn off text color and underlining by default ... */
 .content,
 .content:visited,
 .content:active {
-	/* all links turn off text color and underlining by default */
 	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
 
+/* ... except when hovering over a content item */
 .content:hover,
 .noteTitle:hover {
-	/* except when hovering over a content item */
 	text-decoration: underline;
-	/* text-decoration-color: var(--tint-color); */
 }
 
 .externalLink {

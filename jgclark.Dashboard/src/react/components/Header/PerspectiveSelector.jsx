@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to select and manage perspectives
 // Called by DashboardSettings component.
-// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
+// Last updated 2024-08-12 for v2.1.0.a7 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -15,8 +15,7 @@ import {
   getPerspectiveNamed,
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
-import { logWarn } from '../../../../../helpers/react/reactDev.js'
+import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions

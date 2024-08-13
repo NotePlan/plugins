@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-08-09 for v2.1.0.a6, @jgclark
+// last updated 2024-08-13 for v2.1.0.a7, @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -29,6 +29,7 @@ export {
   addNewPerspective,
   deletePerspective,
   deletePerspectiveSettings,
+  updateCurrentPerspectiveDef,
 } from './perspectiveHelpers.js'
 
 export {

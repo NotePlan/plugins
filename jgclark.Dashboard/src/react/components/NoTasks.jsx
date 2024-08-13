@@ -16,7 +16,7 @@ const NoTasks = (): Node => {
         <i className="fa-regular fa-circle-check"></i>
       </div>
       <div className="sectionItemContent sectionItem">
-        <div className="content">
+        <div> {/* Note: no className here */}
           <i>
             Nothing left on your list for today: take a break <i className="fa-solid fa-mug pad-left"></i>
           </i>
