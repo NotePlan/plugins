@@ -13,7 +13,7 @@ import ComboBox from '../ComboBox.jsx'
 import {
   getListOfPerspectiveNames,
   getPerspectiveNamed,
-} from '../../../perspectiveHelpers.js'
+cleanSettings} from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
@@ -30,7 +30,7 @@ const PerspectiveSelector = (): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const { dashboardSettings, setDashboardSettings } = useAppContext()
-  const { perspectiveSettings, setPerspectiveSettings } = useAppContext()
+  const { perspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
   // State
@@ -52,17 +52,19 @@ const PerspectiveSelector = (): React$Node => {
     // We set the initial options for the ComboBox to the list of perspective names from the dashboard settings here
     // We also watch for changes to perspectiveSettings (e.g. when a new perspective is added) so we can re-render 
     // the ComboBox with the updated list of perspective names.
-    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', 'useEffect called because perspectiveSettings changed')
-    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings changed`)
+    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings changed`, perspectiveSettings)
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
     clo(options, 'PerspectiveSelector/useEffect(perspectiveSettings): new options')
     setPerspectiveNameOptions(options)
   }, [perspectiveSettings]) // dependencies: run any time this changes
 
-  // If a user changed the activePerspectiveName in settings then our activePerspectiveName state will be out of date.
+  // sets the selection in the combobox to "-" if can't find an active perspective
   useEffect(() => {
-    // TEST: is this needed, asks @dbw?
-    if (!perspectiveSettings) return
+    // This is needed because it sets the selection in the combobox to "-" if can't find an active perspective
+    if (!perspectiveSettings) {
+      logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings is falsy`)
+      return
+    }
     logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because activePerspectiveName changed`)
     const options = getListOfPerspectiveNames(perspectiveSettings, true)
   // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
@@ -77,6 +79,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
+
   /**
    * Handler for when the perspective name is changed in the ComboBox.
    * @param {string} newValue - The new perspective name selected.
@@ -87,10 +90,10 @@ const PerspectiveSelector = (): React$Node => {
       return
     } else {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
+      setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
     }
 
     if (newValue === "-") {
-      setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
       //FIXME: @jgclark: what should happen in this case to the dashboardSettings (when a user thinks they're turning it "off")?
       setDashboardSettings((prev) => ({ ...prev, activePerspectiveName: newValue }))
       logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue is '-' so returning`)
@@ -108,9 +111,12 @@ const PerspectiveSelector = (): React$Node => {
     // FIXME: ^^^^ isn't updated
 
     setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
+    //FIXME: dbw this becomes recursive i think
+    // sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
 
     // TEST: override dashboardSettings with what is in the Perspective & set the new activePerspectiveName
-    setDashboardSettings((prev) => ({ ...prev, ...(newPerspectiveDef.dashboardSettings), activePerspectiveName: newValue, lastChange:`perspective changed to ${newValue}` }))
+    const perspectiveDashboardSettings = cleanSettings(newPerspectiveDef.dashboardSettings)
+    setDashboardSettings((prev) => ({ ...prev, ...perspectiveDashboardSettings, activePerspectiveName: newValue, lastChange:`perspective changed to ${newValue}` }))
 
     // Cannot immediately rely on the updated dashboardSettings, because it happens asynchronously.
     // logDebug('PerspectiveSelector/handlePerspectiveChange', `- after updating dS, activePerspectiveName: ${String(dashboardSettings.activePerspectiveName)} / excludedFolders: [${String(dashboardSettings.excludedFolders)}]`)
@@ -126,6 +132,7 @@ const PerspectiveSelector = (): React$Node => {
   // Render
   //----------------------------------------------------------------------
   if (!perspectiveNameOptions.length) {
+    logWarn('PerspectiveSelector', `perspectiveNameOptions is empty, so returning null.`)
     return null
   }
 

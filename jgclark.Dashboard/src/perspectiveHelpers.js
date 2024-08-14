@@ -65,7 +65,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       perspectiveSettingsStr = pluginSettings?.perspectiveSettings
     }
 
-    if (!perspectiveSettingsStr) {
+    if (perspectiveSettingsStr && perspectiveSettingsStr !== "[]") {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       const settingsArr = parseSettings(perspectiveSettingsStr) ?? []
       logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
@@ -73,22 +73,24 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
     }
     else {
       // No settings found, so will need to set from the defaults instead
-      // FIXME: Why am I getting here when settings.json is showing settings?
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
       perspectiveSettings = perspectiveSettingDefaults
 
       // now fill in with the rest of the current dashboardSettings
       const currentDashboardSettings = await getDashboardSettings()
-      const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
-        psd => ({
-          ...psd,
-          dashboardSettings: {
-            ...currentDashboardSettings, ...psd.dashboardSettings,
-            // ensure aPN is the same as this perspective name (just in case)
-            activePerspectiveName: psd.name
-          }
-        })
-      )
+          // FIXME: @jgclark (from dbw): I'm still not convinced we need to copy all of these
+          const extendedPerspectiveSettings = perspectiveSettings
+        //   const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
+        // psd => ({
+        //   ...psd /*, 
+        //   dashboardSettings: cleanSettings({
+        //     ...currentDashboardSettings, ...psd.dashboardSettings,
+        //     // // ensure aPN is the same as this perspective name (just in case)
+        //     // activePerspectiveName: psd.name
+        //     */
+        //   })
+        // })
+      // )
       // const extendedPerspectiveSettings = [
       //   ...pSettingDefaults, pSettings
       // ]
@@ -152,6 +154,28 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
 }
 
 /**
+ * Clean a Dashboard  settings object of properties we don't want to use
+ * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
+ * @param {TDashboardSettings} settingsIn 
+ * @returns 
+ */
+export function cleanSettings(settingsIn:TDashboardSettings): TDashboardSettings {
+  // Remove things that make no sense for a perspective to override
+  // and things that will be set based on NP settings not Dashboard settings
+  // FIXME: @jgclark pls add to these so we have a complete list of settings which should *not* be saved
+  const keysToRemove = ['lastChange','activePerspectiveName','timeblockMustContainString','timeblockMustContainString']
+  // $FlowIgnore
+  return Object.keys(settingsIn).reduce((acc, key) => {
+    const isFFlag = key.startsWith('FFlag')
+    if (!keysToRemove.includes(key) && !isFFlag) {
+      // $FlowIgnore
+      acc[key] = settingsIn[key]
+    }
+    return acc
+  }, {})
+}
+
+/**
  * Add a new Perspective setting, through asking user.
  * Note: Just a limited subset for now, during debugging.
  * TODO: @jgclark: (from dbw): My thinking was that a user would add a new perspective by setting all the settings and filters the way they want and then running this command
@@ -171,23 +195,26 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
     logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
     return
   }
-  const includedFolders = await getInputTrimmed('Enter list of folders to include (comma-separated):', 'OK', 'Add Perspective', 'TEST')
-  if (typeof includedFolders === 'boolean') {
-    logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-    return
-  }
-  const excludedFolders = await getInputTrimmed('Enter list of folders to exclude (comma-separated):', 'OK', 'Add Perspective', 'Work, Home, CCC, Ministry')
-  if (typeof excludedFolders === 'boolean') {
-    logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-    return
-  }
+
+
+  // const includedFolders = await getInputTrimmed('Enter list of folders to include (comma-separated):', 'OK', 'Add Perspective', 'TEST')
+  // if (typeof includedFolders === 'boolean') {
+  //   logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
+  //   return
+  // }
+  // const excludedFolders = await getInputTrimmed('Enter list of folders to exclude (comma-separated):', 'OK', 'Add Perspective', 'Work, Home, CCC, Ministry')
+  // if (typeof excludedFolders === 'boolean') {
+  //   logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
+  //   return
+  // }
   const newDef: TPerspectiveDef = {
     name: name,
     isActive: true, // make it active straight away
     // $FlowFixMe[prop-missing] gets set later
     dashboardSettings: {
-      includedFolders: includedFolders || "",
-      excludedFolders: excludedFolders || "",
+      ...cleanSettings(await getDashboardSettings())
+      // includedFolders: includedFolders || "",
+      // excludedFolders: excludedFolders || "",
     }
   }
   logInfo('addPerspectiveSetting', `... added perspectve #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
@@ -208,6 +235,10 @@ export async function deletePerspectiveSettings(): Promise<void> {
   logDebug('deletePerspectiveSettings', `Attempting to delete all Perspective settings ...`)
   const pluginSettings = DataStore.settings
   pluginSettings.perspectiveSettings = "[]"
+  const dashSets = await getDashboardSettings()
+  // $FlowIgnore
+  delete dashSets.perspectives
+  pluginSettings.dashboardSettings = JSON.stringify(dashSets)
   clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
   DataStore.settings = pluginSettings
 }

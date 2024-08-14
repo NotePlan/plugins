@@ -90,10 +90,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
     const config: any = await getDashboardSettings()
-    const perspectiveSettings = await getPerspectiveSettings()
-    const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
     // clo(config, 'getAllSectionsData config is currently',2)
-    logInfo('getAllSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
 
     let sections: Array<TSection> = []
     sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))

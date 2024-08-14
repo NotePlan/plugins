@@ -24,13 +24,13 @@ import { clo } from '@helpers/dev.js'
 type Settings = { [key: string]: string | boolean };
 
 type SettingsDialogProps = {
-    items: Array<TSettingItem>,
-    onSaveChanges?: (updatedSettings: { [key: string]: any }) => void,
-    className?: string,
-    labelPosition?: 'left' | 'right',
-    isOpen: boolean,
-    toggleDialog: () => void,
-    style?: Object, // Add style prop
+	items: Array<TSettingItem>,
+	onSaveChanges?: (updatedSettings: { [key: string]: any }) => void,
+	className?: string,
+	labelPosition?: 'left' | 'right',
+	isOpen: boolean,
+	toggleDialog: () => void,
+	style?: Object, // Add style prop
 };
 
 //--------------------------------------------------------------------------
@@ -38,20 +38,20 @@ type SettingsDialogProps = {
 //--------------------------------------------------------------------------
 
 const SettingsDialog = ({
-    items,
-    onSaveChanges = () => { }, // optional in case Header wants to do something else
-    className,
-    labelPosition = 'right',
-    isOpen,
-    toggleDialog,
-    style, // Destructure style prop
+	items,
+	onSaveChanges = () => { }, // optional in case Header wants to do something else
+	className,
+	labelPosition = 'right',
+	isOpen,
+	toggleDialog,
+	style, // Destructure style prop
 }: SettingsDialogProps): React$Node => {
 
 	// clo(items, 'items', 2)
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
-	const { dashboardSettings, setDashboardSettings } = useAppContext()
+	const { dashboardSettings, setDashboardSettings, setPerspectiveSettings } = useAppContext()
 
 	//----------------------------------------------------------------------
 	// State
@@ -89,9 +89,20 @@ const SettingsDialog = ({
 		if (onSaveChanges) {
 			onSaveChanges(updatedSettings)
 		}
-		// $FlowFixMe[cannot-spread-indexer]
-		setDashboardSettings({ ...dashboardSettings, ...updatedSettings, lastChange: 'Dashboard Settings Modal saved' })
-		logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
+		const settingsToSave = { ...updatedSettings }
+		// perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
+		if (settingsToSave.perspectiveSettings) {
+			setPerspectiveSettings(settingsToSave.perspectiveSettings)
+			delete settingsToSave.perspectiveSettings
+			// setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
+			logDebug('Dashboard', `Perspective Settings changed in Settings Dialog`, settingsToSave)
+		}
+		if (Object.keys(settingsToSave).length > 0) {
+			// there were other (non-perspective) changes made
+			// $FlowFixMe[cannot-spread-indexer]
+			setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
+			logDebug('Dashboard', `Dashboard Settings Panel updates`, settingsToSave)
+		}
 		toggleDialog()
 	}
 

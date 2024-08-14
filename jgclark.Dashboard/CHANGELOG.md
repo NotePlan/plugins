@@ -7,6 +7,18 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added savePerspectiveSettings() to make one place to save changes (at least on the back end). FIXME: need to get this to affect front end too.
 - turned off underlining on the 'take a break' message lines
 - clicking on 'there are X items hidden' message lines now should turn off filtering. FIXME: but it doesn't persist or update the window.
+- dbw: RUN THE /DELETE ALL PERSPECTIVES COMMAND BEFORE YOU TRY ANYTHING BECAUSE THERE WERE LEGACY ISSUES
+- dbw: got perspective switching to work reliably
+- dbw: fixed bug where watcher was seeing first set of perspectives and calling back-end again
+- dbw: got JSON editing in settings panel to work/save reliably (don't know if you're keeping this but i fixed it anyway)
+- dbw: fixed bug where saving perspectives JSON in the settings panel was writing the perspectives into the dashboardSettings, creating lots of clutter
+- dbw: changed /add new perspective to copy current window settings (init does not copy all settings from defaults, as this is unnecessary)
+- dbw: created a cleaning function (cleanSettings()) that cleans keys we don't want to save recursively in dashboardSettings. You will want to complete the list of keys which should *not* be saved because we don't want to overwrite *all* the user's settings (e.g. FFlags etc.)
+- dbw: removed pulling of perspectives in the backend. changing a perspective changes all the settings, so the back-end doesn't need to know or do anything different than before
+- dbw: fixed a bug in the partially-implemented include/exclude folders bit that was keeping code from running. This code still needs to be completed
+- dbw: started trying to fix the dialog-window-needs-repositioning-when-calendar-is-open issue but ran out of time and did not get it to work. I'm confident it's 90% right...just some small edit needed to make it work.
+- dbw: reduced some logging
+
 
 ## [Perspectives.a6] @jgc, 2024-08-10 WIP for @dbw
 - fixed perspectiveSetting initialisation in WebView (I think) and how to persist it in Dashboard::useEffects (I think)

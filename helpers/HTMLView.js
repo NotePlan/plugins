@@ -821,9 +821,9 @@ export function simplifyInlineImagesForHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
-      logDebug(`simplifyInlineImagesForHTML`, capture)
+      // logDebug(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output

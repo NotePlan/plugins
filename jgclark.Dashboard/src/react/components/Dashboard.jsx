@@ -187,8 +187,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Note: JGC has dropped .lastChange as it doesn't fit easily in the perspectiveSettings structure
   useEffect(() => {
      if (perspectiveSettings && perspectiveSettings.length > 0) {
-        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(perspectiveSettings,null,2)}`,perspectiveSettings)
-        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+        if (JSON.stringify(perspectiveSettings) !== JSON.stringify(pluginData.perspectiveSettings)) {
+          logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated`,perspectiveSettings)
+          sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+        } else {
+          logDebug('Dashboard',`Watcher for perspectiveSettings changes. Settings match. Maybe this was the initialization?`)
+        }
       }
   }, [perspectiveSettings])
 

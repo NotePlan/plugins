@@ -255,7 +255,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                   {button.label}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} />
+              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={()=>positionDialog(dialogRef)} /> {/* FIXME: this doesn't work */ }
             </div>
             {/* </div> */}
 

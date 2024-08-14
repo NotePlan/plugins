@@ -306,16 +306,19 @@ export function getOpenItemParasForCurrentTimePeriod(
     }
 
     // If we are using a Perspective, get list of suitable folders
-    if (dashboardSettings.FFlag_Perspectives && dashboardSettings.activePerspectiveName) {
-      const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-      refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
-      logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
-    }
+    // FIXME: @jgclark: I don't understand why this is here. If someone selects a perspective it overwrites
+    // the settings with the perspective values. Why would we need to do this?
+    // @dbw commenting it out for now
+    // if (dashboardSettings.FFlag_Perspectives && dashboardSettings.activePerspectiveName) {
+    //   const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
+    //   refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
+    //   logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
+    // }
 
     // // Remove items referenced from items in 'excludedFolders'
-    // const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
-    // refOpenParas = filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true)
-    // // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
+    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
+    refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
+    logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
 
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)

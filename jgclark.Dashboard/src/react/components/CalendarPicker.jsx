@@ -11,9 +11,10 @@ type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected
   numberOfMonths?: number, // Number of months to show in the calendar
   startingSelectedDate?: Date, // Date to start with selected
+  positionFunction?: ()=>{} // Function to call to reposition the dialog because it will be taller when calendar is open
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate }: Props): React$Node => {
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction }: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(startingSelectedDate||new Date())
   const [isOpen, setIsOpen] = useState(false)
 
@@ -23,7 +24,10 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     onSelectDate(date) // Propagate the change up to the parent component
   }
 
+  const callRepositionFunctionAfterOpening = () => positionFunction ? window.setTimeout(() => positionFunction(), 100) : null
+
   const toggleDatePicker = () => {
+    if (!isOpen && positionFunction) callRepositionFunctionAfterOpening()
     setIsOpen(!isOpen)
   }
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
