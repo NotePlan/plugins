@@ -73,8 +73,8 @@ export type TDashboardPluginSettings = {
 
 export type TPerspectiveDef = {
   name: string,
-  isActive: boolean,
   dashboardSettings: TDashboardSettings,
+  isActive?: boolean, //dbw note: I think we don't need this anymore, so I am making it optional
 }
 
 //-----------------------------------------------------------------------------

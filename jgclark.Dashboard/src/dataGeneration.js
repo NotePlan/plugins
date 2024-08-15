@@ -131,9 +131,9 @@ export async function getSomeSectionsData(
 ): Promise<Array<TSection>> {
   try {
     const config: TDashboardSettings = await getDashboardSettings()
-    const perspectiveSettings = await getPerspectiveSettings()
-    const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
-    logInfo('getSomeSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
+    // const perspectiveSettings = await getPerspectiveSettings()
+    // const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
+    // logInfo('getSomeSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))

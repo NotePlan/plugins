@@ -40,7 +40,13 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
       excludedFolders: "Readwise 📚, Saved Searches, Home",
       ignoreItemsWithTerms: "#test, @home",
     }
-  }
+  },
+  {
+    name: "-",
+    // $FlowFixMe[prop-missing] rest specified later
+    dashboardSettings: {
+    }
+  }  
 ]
 
 //-----------------------------------------------------------------------------
@@ -238,6 +244,8 @@ export async function deletePerspectiveSettings(): Promise<void> {
   const dashSets = await getDashboardSettings()
   // $FlowIgnore
   delete dashSets.perspectives
+  // $FlowIgnore
+  delete dashSets.perspectiveSettings
   pluginSettings.dashboardSettings = JSON.stringify(dashSets)
   clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
   DataStore.settings = pluginSettings
@@ -360,17 +368,20 @@ export function getListOfPerspectiveNames(
   includeEmptyOption: boolean,
 ): Array<string> {
   try {
-    const options: Array<string> = [] // ['Home', 'Work']
   // Get all perspective names
     if (!allDefs || allDefs.length === 0) {
       throw new Error(`No existing Perspective settings found.`)
     }
-    for (const def of allDefs) {
-      options.push(def.name)
-    }
-    if (includeEmptyOption) {
-      options.unshift("-")
-    }
+
+// Put "-" at the top of the list
+// First, add any def with def.name === "-" to the options array
+const options = allDefs
+  .map(def => def.name)
+  .sort((a, b) => (a === "-" ? -1 : b === "-" ? 1 : 0))
+
+    // if (includeEmptyOption) {
+    //   options.unshift("-")
+    // }
     logDebug('getListOfPerspectiveNames ->', String(options))
     return options
   } catch (err) {
@@ -469,3 +480,5 @@ export function isLineDisallowedByExcludedTerms(
   logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
   return matchFound
 }
+
+export const endsWithStar = (input:string) => /\*$/.test(input)

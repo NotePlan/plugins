@@ -18,6 +18,9 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fixed a bug in the partially-implemented include/exclude folders bit that was keeping code from running. This code still needs to be completed
 - dbw: started trying to fix the dialog-window-needs-repositioning-when-calendar-is-open issue but ran out of time and did not get it to work. I'm confident it's 90% right...just some small edit needed to make it work.
 - dbw: reduced some logging
+---
+- dbw: make "-" an actual perpective that holds the values of your settings when there is "no" perspective
+- dbw: add the "*" thing when you edit a saved perspective. HAS NOT BEEN TESTED
 
 
 ## [Perspectives.a6] @jgc, 2024-08-10 WIP for @dbw

@@ -99,6 +99,9 @@ const SettingsDialog = ({
 		}
 		if (Object.keys(settingsToSave).length > 0) {
 			// there were other (non-perspective) changes made
+			if (typeof settingsToSave.activePerspectiveName === 'string' && settingsToSave.activePerspectiveName.length > 0) {
+				settingsToSave.activePerspectiveName += `*`
+			}
 			// $FlowFixMe[cannot-spread-indexer]
 			setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
 			logDebug('Dashboard', `Dashboard Settings Panel updates`, settingsToSave)
