@@ -59,6 +59,7 @@ export type TDashboardSettings = {
   moveSubItems: boolean,
   enableInteractiveProcessing: boolean,
   interactiveProcessingHighlightTask: boolean,
+  enableInteractiveProcessingTransitions: boolean,
   settingsMigrated: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
   lastChange: string, // not really a setting, but a way to track the last change made

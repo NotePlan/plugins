@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -172,7 +172,6 @@ const SettingsDialog = ({
 			<div className="settings-dialog-content">
 				{/* Include Perspectives after activePerspectiveName, if turned on */}
 				{dashboardSettings.FFlag_Perspectives && (
-					// TODO: change function?
 					<PerspectiveSettings handleFieldChange={handleFieldChange}
 					/>
 				)}

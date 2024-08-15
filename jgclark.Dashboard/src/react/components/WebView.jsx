@@ -84,23 +84,11 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  // set up perspectiveSettings state using defaults as the base and then overriding with any values from the plugin saved settings
-  // Note: ideally move to perspectiveHelpers::initialisePerpsectiveSettings
-  // Note: the big issue here was that because its a hidden settings (in plugin.json) then it has to be a string type, not an object or array. So it has to be stringified.
+  // Note: previously set perspectiveSettings here, but now moved to backend.
+  // Note: the big issue here had been that because its a hidden settings (in plugin.json) then it has to be a string type, not an object or array. So it has to be stringified.
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
-  logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
-  // FIXME: @jgclark commenting this out because I don't think we should map/copy all the settings
-  // const perspectiveSettingsOrDefaults = perspectiveSettingDefaults.map(
-  //   psd => ({
-  //     ...psd,
-  //     dashboardSettings: { /* ...dashboardSettingsOrDefaults, */ ...psd.dashboardSettings }
-  //   })
-  // )
-  // logDebug('WebView', `found ${String(perspectiveSettingsOrDefaults.length)} perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
-  // const perspectiveSettingsOrDefaults = [
-  //   ...pSettingDefaults, pSettings
-  // ]
-  // logDebug('WebView', `perspectiveSettingsOrDefaults: ${JSON.stringify(perspectiveSettingsOrDefaults, null, 2)}`)
+  // logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+  // TODO: check with @DBW that this is still needed here?
   const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************

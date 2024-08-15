@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to select and manage perspectives
 // Called by DashboardSettings component.
-// Last updated 2024-08-12 for v2.1.0.a7 by @dbw
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,7 +13,8 @@ import ComboBox from '../ComboBox.jsx'
 import {
   getListOfPerspectiveNames,
   getPerspectiveNamed,
-cleanSettings} from '../../../perspectiveHelpers.js'
+  cleanDashboardSettings
+} from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
@@ -115,7 +116,7 @@ const PerspectiveSelector = (): React$Node => {
     // sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
 
     // TEST: override dashboardSettings with what is in the Perspective & set the new activePerspectiveName
-    const perspectiveDashboardSettings = cleanSettings(newPerspectiveDef.dashboardSettings)
+    const perspectiveDashboardSettings = cleanDashboardSettings(newPerspectiveDef.dashboardSettings)
     setDashboardSettings((prev) => ({ ...prev, ...perspectiveDashboardSettings, activePerspectiveName: newValue, lastChange:`perspective changed to ${newValue}` }))
 
     // Cannot immediately rely on the updated dashboardSettings, because it happens asynchronously.

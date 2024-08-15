@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-08-13 for v2.1.0.a7 by @jgclark
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -82,8 +82,8 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
           const extendedPerspectiveSettings = perspectiveSettings
         //   const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
         // psd => ({
-        //   ...psd /*, 
-        //   dashboardSettings: cleanSettings({
+        //   ...psd /*,
+      //   dashboardSettings: cleanDashboardSettings({
         //     ...currentDashboardSettings, ...psd.dashboardSettings,
         //     // // ensure aPN is the same as this perspective name (just in case)
         //     // activePerspectiveName: psd.name
@@ -159,7 +159,7 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
  * @param {TDashboardSettings} settingsIn 
  * @returns 
  */
-export function cleanSettings(settingsIn:TDashboardSettings): TDashboardSettings {
+export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboardSettings {
   // Remove things that make no sense for a perspective to override
   // and things that will be set based on NP settings not Dashboard settings
   // FIXME: @jgclark pls add to these so we have a complete list of settings which should *not* be saved
@@ -177,7 +177,6 @@ export function cleanSettings(settingsIn:TDashboardSettings): TDashboardSettings
 
 /**
  * Add a new Perspective setting, through asking user.
- * Note: Just a limited subset for now, during debugging.
  * TODO: @jgclark: (from dbw): My thinking was that a user would add a new perspective by setting all the settings and filters the way they want and then running this command
  * ...which would ask for just a name and that would save all the settings/filters in their new perspective.
  * ...or if it already exists, it would save over it (update it)
@@ -212,7 +211,7 @@ export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean
     isActive: true, // make it active straight away
     // $FlowFixMe[prop-missing] gets set later
     dashboardSettings: {
-      ...cleanSettings(await getDashboardSettings())
+      ...cleanDashboardSettings(await getDashboardSettings())
       // includedFolders: includedFolders || "",
       // excludedFolders: excludedFolders || "",
     }
@@ -235,22 +234,12 @@ export async function deletePerspectiveSettings(): Promise<void> {
   logDebug('deletePerspectiveSettings', `Attempting to delete all Perspective settings ...`)
   const pluginSettings = DataStore.settings
   pluginSettings.perspectiveSettings = "[]"
-  const dashSets = await getDashboardSettings()
+  const dSettings = await getDashboardSettings()
   // $FlowIgnore
-  delete dashSets.perspectives
-  pluginSettings.dashboardSettings = JSON.stringify(dashSets)
+  delete dSettings.perspectives // TODO(@dbw): why is this old name used?
+  pluginSettings.dashboardSettings = JSON.stringify(dSettings)
   clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
   DataStore.settings = pluginSettings
-}
-
-/**
- * WARNING: not yet working, and not yet called. Aim is to migrate this aspect of WebView into the backend.
- * Initialise Perspective settings when Dashboard starts up
- * Note: used to be handled in WebView
- */
-export async function initialisePerpsectiveSettings(): Promise<void> {
-  const pluginSettings = DataStore.settings
-  const currentDashboardSettings = await getDashboardSettings()
 }
 
 /**

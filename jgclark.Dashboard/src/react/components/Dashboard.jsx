@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-07-25 for v2.0.4 by @jgclark
+// Last updated 2024-07-25 for v2.1.0.a7 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -147,18 +147,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.sections])
 
-  // when reactSettings changes anywhere, send it to the plugin to save in settings
-  // if you don't want the info sent, use a _ for the first char of lastChange
-  // TEST: removing effect according to @dbw comment below
-  // useEffect(() => {
-  //   if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
-  //     const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
-  //     const strReactSettings = JSON.stringify(trimmedReactSettings)
-  //     // TODO: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
-  //     // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
-  //   }
-  // }, [reactSettings])
-
   // when dashboardSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
@@ -183,8 +171,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [dashboardSettings])
 
-  // when perspectiveSettings changes anywhere, send it to the plugin to save in settings
-  // Note: JGC has dropped .lastChange as it doesn't fit easily in the perspectiveSettings structure
+  // When perspectiveSettings changes anywhere, send it to the plugin to save in settings
   useEffect(() => {
      if (perspectiveSettings && perspectiveSettings.length > 0) {
         if (JSON.stringify(perspectiveSettings) !== JSON.stringify(pluginData.perspectiveSettings)) {

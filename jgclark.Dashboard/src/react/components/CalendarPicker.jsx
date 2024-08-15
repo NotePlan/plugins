@@ -1,5 +1,9 @@
-// CalendarPicker.jsx
 // @flow
+//----------------------------------------------------------
+// Calendar Picker component.
+// Used in DialogFor*Items components.
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+//----------------------------------------------------------
 import React, { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
 // Import styles directly into component
@@ -32,6 +36,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
   }
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
 
+  // TODO: looks like these could all move to CalendarPicker.css?
   const calendarStyles = { /* note: the non-color styles are set in CalendarPicker.css */
     container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
     caption: { color: 'var(--tint-color)' },
@@ -49,7 +54,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
   return (
     <>
       <button className="PCButton" onClick={toggleDatePicker}>
-        <i className="fa-solid fa-calendar-alt pad-left pad-right" /*style={{ color: 'var(--fg-main-color)', paddingLeft: '5px', paddingRight: '5px' }}*/></i>
+        <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
       </button>
       {isOpen && (
         <div className="dayPicker-container">

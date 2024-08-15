@@ -1,8 +1,8 @@
 // @flow
 //----------------------------------------------------------
 // Dashboard React component to show the Perspectives settings
-// Called by DashboardSettings component.
-// Last updated 2024-08-03 for v2.1.0.a3 by @jgclark
+// Called by SettingsDialog component.
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
 //----------------------------------------------------------
 
 // TODO: try and use SF Symbols 'perspective' icon
@@ -31,15 +31,15 @@ type PerspectiveSettingsProps = {
   handleFieldChange: (key: string, value: any)=>void,
 };
 
-type JsonEditorReturnData = {
-  newData: any,      // data state after update
-  currentData: any,  // data state before update 
-  newValue: any,     // the new value of the property being updated
-  currentValue: any, // the current value of the property being updated
-  name: string,         // name of the property being updated
-  path: Array<string>,          // full path to the property being updated, as an array of property keys
-  // (e.g. [ "user", "friends", 1, "name" ] ) (equivalent to "user.friends[1].name")
-}
+// type JsonEditorReturnData = {
+//   newData: any,      // data state after update
+//   currentData: any,  // data state before update 
+//   newValue: any,     // the new value of the property being updated
+//   currentValue: any, // the current value of the property being updated
+//   name: string,         // name of the property being updated
+//   path: Array<string>,          // full path to the property being updated, as an array of property keys
+//   // (e.g. [ "user", "friends", 1, "name" ] ) (equivalent to "user.friends[1].name")
+// }
 
 //----------------------------------------------------------
 // PerspectiveSettings Component Definition
@@ -53,13 +53,10 @@ const PerspectiveSettings = ({
     // only continue if we have this Feature Flag turned on
     if (!dashboardSettings.FFlag_Perspectives) return
 
-    // clo(values, 'PerspectiveSettings starting with values:')
-
     //----------------------------------------------------------------------
     // Context
     //----------------------------------------------------------------------
 
-    // const perspectiveDefs: Array<TPerspectiveDef> = values || []
     const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
     logDebug('PerspectiveSettings', `starting with '${activePerspectiveName}' active from ${String(perspectiveSettings.length)} perspectives: ${perspectiveSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
 

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-14 for v2.1.0.a7 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -85,7 +85,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
   useEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
-    // $FlowIgnore
+    // $FlowIgnore[incompatible-call]
     positionDialog(dialogRef)
     // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
@@ -255,7 +255,8 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                   {button.label}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={()=>positionDialog(dialogRef)} /> {/* FIXME: this doesn't work */ }
+              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={() => positionDialog(dialogRef)} /> {/* FIXME: this doesn't work */}
+              {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
             {/* </div> */}
 
