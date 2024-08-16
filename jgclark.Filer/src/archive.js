@@ -2,15 +2,13 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 18.4.2023 for v1.1.0
+// last updated 9.6.2024 for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getFilerSettings } from './filerHelpers'
 import { getFolderFromFilename } from '@helpers/folders'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
 
 //-----------------------------------------------------------------------------
 
@@ -47,7 +45,7 @@ export function archiveNoteUsingFolder(noteIn?: TNote): string | void {
     const currentFolder = getFolderFromFilename(currentFilename)
     logDebug('archiveNoteUsingFolder', `- currentFolder: ${currentFolder}`)
     // Work out requested archived filename
-    const archiveFolderToMoveTo = '@Archive/' + currentFolder
+    const archiveFolderToMoveTo = `@Archive/${currentFolder}`
     logDebug('archiveNoteUsingFolder', `- archiveFolderToMoveTo: ${archiveFolderToMoveTo}`)
 
     // Check if this folder structure is already set up under @Archive

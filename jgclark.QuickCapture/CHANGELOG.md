@@ -1,6 +1,10 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.16.1] - 2024-05-25 (_unreleased, as hoping that @EduardMe might yet improve the situation_)
+### Changed
+- better handle what when a callback runs /qath, /qalh or /qach and asks for a future calendar note that hasn't yet been created. (But note: API doesn't allow note to be created.)
+
 ## [0.16.0] - 2024-02-13
 ### Added
 - new **/quick add checklist under heading** command

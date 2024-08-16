@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 30.3.2024 for v0.14.0 by @jgclark
+  Last updated: 2024-07-12 for v0.14.1 by @jgclark
   */
 dialog:modal {
   max-width: 90%;
@@ -20,7 +20,7 @@ dialog {
 .dialogTitle {
   background: var(--bg-alt-color);
   padding-block-start: 0.6rem;
-  padding-inline-start: 0.5rem;
+  padding-inline-start: 1.0rem;
   padding-inline-end: 0.5rem;
   padding-block-end: 0.2rem;
   border-block-end: 1px solid gray;
@@ -32,8 +32,8 @@ dialog {
 }
 
 .dialogBody {
-  padding-block-start: 0.3rem;
-  padding-inline-start: 0.5rem;
+  padding-block-start: 0.5rem;
+  padding-inline-start: 1.0rem;
   padding-inline-end: 0.5rem;
   padding-block-end: 0.6rem;
 }
@@ -44,29 +44,22 @@ dialog {
 
 .buttonGrid {
   display: grid;
-  /* grid-template-columns: max-content minmax(15rem, 28rem); */
-  grid-template-columns: minmax(4rem, 6rem) minmax(15rem, auto);
-  column-gap: 0.3rem;
+  grid-template-columns: max-content minmax(15rem, 28rem);
+  /* grid-template-columns: minmax(4rem, 6rem) minmax(15rem, auto); */
+  column-gap: 0.5rem;
   row-gap: 0.2rem;
   /* vertically align content items in center */
   align-items: center; 
 }
 
 .buttonGrid div:nth-child(odd) {
-  align-self: self-start;
-  padding-block-start: 5px;
+  align-self: center;
   justify-self: end;
 }
 
 .buttonGrid div:nth-last-child(1) {
   /* Put very last div (Close button) on RHS */
   justify-self: end;
-}
-
-.buttonGrid div:nth-child(1) {
-  /* Put very first div down a bit to try to align with input field */
-  padding-block-start: 10px;
-  /* align-self: self-start; */
 }
 
 /* for Dialog main buttons: a little more pronounced */

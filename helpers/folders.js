@@ -19,7 +19,6 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
       throw new Error('No inclusions given.')
     }
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
-    // const fullFolderList = DataStore.folders.filter((f) => f !== '/')
     const fullFolderList = DataStore.folders
 
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
@@ -62,6 +61,33 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     return ['(error)']
   }
 }
+
+/**
+ * Return a list of subfolders of a given folder
+ * TEST: this is not yet tested!
+ * TODO: @tests in jest file.
+ * @author @jgclark
+ * @param {string} folderpath - e.g. "some/folder". Leading or trailing '/' will be removed.
+ * @returns {Array<string>} array of subfolder names
+ */
+export function getSubFolders(parentFolderPathArg: string): Array<string> {
+  try {
+    const parts = parentFolderPathArg.match(/\/?(.*?)\/?$/)
+    const parentFolderPath = parts ? parts[1] : null
+    if (!parentFolderPath) {
+      throw new Error('No valid parentFolderPath given.')
+    }
+    // Get all folders as array of strings (other than @Trash). Also remove root as a special case
+    const subfolderList = DataStore.folders.filter(f => f.startsWith(parentFolderPath))
+
+    logDebug('folders / getSubFolders', `-> ${subfolderList.length} items: [${subfolderList.toString()}]`)
+    return subfolderList
+  } catch (error) {
+    logError('folders / getSubFolders', error.message)
+    return ['(error)']
+  }
+}
+
 
 /**
  * Return a list of folders, with those that match the 'exclusions' list (or any of their sub-folders) removed.

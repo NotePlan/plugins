@@ -1,114 +1,76 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 30.4.2024 for v1.2.2 by @SirTristam
+// Last updated 2024-07-14 for v2.0.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
+import { allSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
 import {
-  getSettings,
-  moveItemBetweenCalendarNotes
-} from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+  doAddItem,
+  doCancelChecklist,
+  doCancelTask,
+  doContentUpdate,
+  doCompleteTask,
+  doCompleteTaskThen,
+  doCompleteChecklist,
+  doCyclePriorityStateDown,
+  doCyclePriorityStateUp,
+  doDeleteItem,
+  doMoveToNote,
+  doSettingsChanged,
+  doShowNoteInEditorFromFilename,
+  doShowNoteInEditorFromTitle,
+  doShowLineInEditorFromFilename,
+  // doShowLineInEditorFromTitle,
+  // doSetSpecificDate,
+  doToggleType,
+  doUnscheduleItem,
+  doUpdateTaskDate,
+  // refreshAllSections,
+  refreshSomeSections,
+  incrementallyRefreshSections,
+} from './clickHandlers'
 import {
-  calcOffsetDateStr,
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-  RE_DATE_INTERVAL,
-  RE_NP_WEEK_SPEC,
-  replaceArrowDatesInString,
-} from '@helpers/dateTime'
+  doAddProgressUpdate,
+  doCancelProject,
+  doCompleteProject,
+  doTogglePauseProject,
+  doReviewFinished,
+  doSetNewReviewInterval,
+  doSetNextReviewDate,
+  doStartReviews,
+} from './projectClickHandlers'
+import {
+  doMoveFromCalToCal,
+  scheduleAllOverdueOpenToToday,
+  scheduleAllTodayTomorrow,
+  scheduleAllYesterdayOpenToToday,
+} from './moveClickHandlers'
+import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
+import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
+import {
+  copyUpdatedSectionItemData, findSectionItems,
+} from './dataGeneration'
+import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
-import { sendToHTMLWindow } from '@helpers/HTMLView'
-import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
-  cyclePriorityStateDown,
-  cyclePriorityStateUp,
-  getTaskPriority,
-} from '@helpers/paragraph'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import {
-  cancelItem,
-  completeItem,
-  completeItemEarlier,
-  findParaFromStringAndFilename,
-  highlightParagraphInEditor,
-  toggleTaskChecklistParaType,
-  unscheduleItem,
-} from '@helpers/NPParagraph'
-import {
-  getLiveWindowRectFromWin, getWindowFromCustomId,
-  logWindowsList,
-  storeWindowRect,
-} from '@helpers/NPWindows'
-import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
-import { chooseHeading } from '@helpers/userInput'
+  sendToHTMLWindow, getGlobalSharedData,
+} from '@helpers/HTMLView'
+import { getNoteByFilename } from '@helpers/note'
+import { formatReactError } from '@helpers/react/reactDev'
 
 //-----------------------------------------------------------------
-// Data types + constants
-
-type MessageDataObject = {
-  itemID: string,
-  type: string,
-  controlStr: string,
-  encodedFilename: string,
-  encodedContent: string,
-  itemType?: string,
-  encodedUpdatedContent?: string
-}
-type SettingDataObject = { settingName: string, state: string }
-
-const windowCustomId = `${pluginJson['plugin.id']}.main`
-
-//-----------------------------------------------------------------
-
-/**
- * Callback function to receive async messages from HTML view
- * Plugin entrypoint for command: "/onMessageFromHTMLView" (called by plugin via sendMessageToHTMLView command)
- * Do not do the processing in this function, but call a separate function to do the work.
- * @author @dwertheimer
- * @param {string} type - the type of action the HTML view wants the plugin to perform
- * @param {any} data - the data that the HTML view sent to the plugin
- */
-export async function onMessageFromHTMLView(type: string, data: any): any {
-  try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
-    // clo(data, 'onMessageFromHTMLView dispatching data object:')
-    switch (type) {
-      case 'onClickDashboardItem':
-        await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
-        break
-      case 'onChangeCheckbox':
-        await bridgeChangeCheckbox(data) // data is a string
-        break
-      case 'refresh':
-        await showDashboard() // no await needed, I think
-        break
-      case 'runPluginCommand':
-        await runPluginCommand(data) // no await needed, I think
-        break
-      default:
-        logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
-        break
-    }
-    return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
 
 /**
  * HTML View requests running a plugin command
- * @param {any} data object
+ * TODO(@dbw): can this be removed -- there's something with the same name in np.Shared/Root.jsx
+ * @param {TPluginCommandSimplified} data object with plugin details
  */
-export async function runPluginCommand(data: any) {
+export async function runPluginCommand(data: TPluginCommandSimplified) {
   try {
-    clo(data, 'runPluginCommand received data object')
-    // logDebug('pluginToHTMLBridge/runPluginCommand', `- settingName: ${settingName}, state: ${state}`)
+    // clo(data, 'runPluginCommand received data object')
+    logDebug('pluginToHTMLBridge/runPluginCommand', `running ${data.commandName} in ${data.pluginID}`)
     await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -116,522 +78,413 @@ export async function runPluginCommand(data: any) {
 }
 
 /**
- * Somebody clicked on a checkbox in the HTML view
- * @param {SettingDataObject} data - setting name
- */
-export async function bridgeChangeCheckbox(data: SettingDataObject) {
-  try {
-    // clo(data, 'bridgeChangeCheckbox received data object')
-    const { settingName, state } = data
-    logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
-    DataStore.setPreference('Dashboard-filterPriorityItems', state)
-    // having changed this pref, refresh the dashboard
-    await showDashboard()
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
- * Somebody clicked on a something in the HTML view
+ * Somebody clicked on a something in the HTML React view
+ * NOTE: processActionOnReturn will be called for each item after the CASES based on TBridgeClickHandlerResult
  * @param {MessageDataObject} data - details of the item clicked
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
     // const windowId = getWindowIdFromCustomId(windowCustomId);
-    const windowId = windowCustomId
-    if (!windowId) {
-      logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
-      return
-    }
-    const ID = data.itemID
-    const type = data.type
-    // const controlStr = data.controlStr ?? ''
-    const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
-    const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
-    logDebug('', '------------------------- bridgeClickDashboardItem:')
-    logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
-    // clo(data, 'bridgeClickDashboardItem received data object')
-    switch (type) {
-      case 'completeTask': {
-        // Complete the task in the actual Note
-        const res = completeItem(filename, content)
-        // Ask for cache refresh for this note. (Can't now remember why this is needed.)
-        DataStore.updateCache(getNoteByFilename(filename), false)
+    // if (!windowId) {
+    //   logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
+    //   return
+    // }
 
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeTask', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeTask', data)
-        } else {
-          logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-        }
+    // const ID = data.item?.ID ?? '<no ID found>'
+    const actionType: TActionType = data.actionType
+    const logMessage = data.logMessage ?? ''
+    const filename = data.item?.para?.filename ?? '<no filename found>'
+    let content = data.item?.para?.content ?? '<no content found>'
+    const updatedContent = data.updatedContent ?? ''
+    let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
+
+    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
+    // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
+    if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
+
+    // Allow for a combination of button click and a content update
+    if (updatedContent && data.actionType !== 'updateItemContent') {
+      logDebug('bCDI', `content updated with another button press; need to update content first; new content: "${updatedContent}"`)
+      // $FlowIgnore[incompatible-call]
+      result = doContentUpdate(data)
+      if (result.success) {
+        // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
+        content = result.updatedParagraph?.content ?? ''
+        // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
+        data.item?.para?.content ? data.item.para.content = content : null
+        logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
+        // await updateReactWindowFromLineChange(result, data, ['para.content'])
+      }
+    }
+
+    switch (actionType) {
+      case 'refresh': {
+        // await refreshAllSections()
+        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
+        break
+      }
+      case 'windowReload': {
+        showDashboardReact()
+        return
+      }
+      case 'completeTask': {
+        result = doCompleteTask(data)
         break
       }
       case 'completeTaskThen': {
-        // Complete the task in the actual Note, but with the date it was scheduled for
-        const res = completeItemEarlier(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeTask', data)
-        } else {
-          logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-        }
+        result = doCompleteTaskThen(data)
         break
       }
       case 'cancelTask': {
-        // Cancel the task in the actual Note
-        const res = cancelItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'cancelTask', data)
-        } else {
-          logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-        }
+        result = doCancelTask(data)
         break
       }
       case 'completeChecklist': {
-        // Complete the checklist in the actual Note
-        const res = completeItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'completeChecklist', data)
-        } else {
-          logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-        }
+        result = doCompleteChecklist(data)
         break
       }
       case 'cancelChecklist': {
-        // Cancel the checklist in the actual Note
-        const res = cancelItem(filename, content)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(getNoteByFilename(filename), false)
-
-        // Update display in Dashboard too
-        if (res) {
-          logDebug('bCDI / cancelChecklist', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow(windowId, 'cancelChecklist', data)
-        } else {
-          logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-        }
+        result = doCancelChecklist(data)
         break
       }
-      case 'toggleType': {
-        // Send a request to toggleType to plugin
-        logDebug('bCDI / toggleType', `-> toggleType on ID ${ID} in filename ${filename}`)
-
-        const res = toggleTaskChecklistParaType(filename, content)
-        logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
-        // Update display in Dashboard too
-        sendToHTMLWindow(windowId, 'toggleType', data)
-        // Only use if necessary:
-        // logDebug('bCDI', '---------------- refresh ---------------')
-        // await showDashboard('refresh')
-        break
-      }
-      case 'cyclePriorityStateUp': {
-        // Send a request to cyclePriorityStateUp to plugin
-
-        // Get para
-        const para = findParaFromStringAndFilename(filename, content)
-        if (para && typeof para !== 'boolean') {
-          const paraContent = para.content ?? 'error'
-          // logDebug('bCDI / cyclePriorityStateUp', `will cycle priority on para {${paraContent}}`)
-          // Note: next 2 lines have to be this way around, otherwise a race condition
-          const newPriority = (getTaskPriority(paraContent) + 1) % 5
-          const updatedContent = cyclePriorityStateUp(para)
-          logDebug('bCDI / cyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
-
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboard('refresh')
-          // Note: But this doesn't work, because of race condition.
-          // So we better try that logic after all.
-          const updatedData = {
-            itemID: ID,
-            newContent: updatedContent,
-            newPriority: newPriority
-          }
-          sendToHTMLWindow(windowId, 'cyclePriorityStateUp', updatedData)
-        } else {
-          logWarn('bCDI / cyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
-        }
-        break
-      }
-      case 'cyclePriorityStateDown': {
-        // Send a request to cyclePriorityStateDown to plugin
-
-        // Get para
-        const para = findParaFromStringAndFilename(filename, content)
-        if (para && typeof para !== 'boolean') {
-          const paraContent = para.content ?? 'error'
-          // logDebug('bCDI / cyclePriorityStateDown', `will cycle priority on para {${paraContent}}`)
-          // Note: next 2 lines have to be this way around, otherwise a race condition
-          const newPriority = (getTaskPriority(paraContent) - 1) % 5
-          const updatedContent = cyclePriorityStateDown(para)
-          logDebug('bCDI / cyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
-
-          // Update the content in place
-          const updatedData = {
-            itemID: ID,
-            newContent: updatedContent,
-            newPriority: newPriority
-          }
-          sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
-        } else {
-          logWarn('bCDI / cyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
-        }
-        break
-      }
-      case 'updateItemContent': {
-        // Send a request to change the content of this item
-
-        if (!data.encodedUpdatedContent) {
-          throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
-        }
-        const encodedUpdatedContent = data.encodedUpdatedContent
-        const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
-        logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
-
-        // Get para, using original content
-        const para = findParaFromStringAndFilename(filename, content)
-        if (para && typeof para !== 'boolean') {
-          const paraContent = para.content ?? 'error'
-          logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
-
-          // And update in the app itself
-          para.content = updatedContent
-          const thisNote = para.note
-          if (thisNote) {
-            thisNote.updateParagraph(para)
-            logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
-            // I think this will help as we're about to refresh, and need to pick up this changed note
-            DataStore.updateCache(thisNote)
-          }
-
-          //   logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
-          //   // Update the content in place
-          //   const updatedData = {
-          //     itemID: ID,
-          //     updatedContent: updatedContent
-          //   }
-          //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
-          // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
-
-        } else {
-          logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
-        }
+      case 'deleteItem': {
+        result = await doDeleteItem(data)
         break
       }
       case 'unscheduleItem': {
-        // Send a request to unscheduleItem to plugin
-        logDebug('bCDI / unscheduleItem', `-> unscheduleItem on ID ${ID} in filename ${filename}`)
-        const res = unscheduleItem(filename, content)
-        logDebug('bCDI / unscheduleItem', `  -> result ${String(res)}`)
-
-        // Update display in Dashboard too
-        sendToHTMLWindow(windowId, 'unscheduleItem', data)
+        result = await doUnscheduleItem(data)
+        break
+      }
+      case 'updateItemContent': {
+        result = doContentUpdate(data)
+        break
+      }
+      case 'toggleType': {
+        result = await doToggleType(data)
+        break
+      }
+      case 'cyclePriorityStateUp': {
+        result = await doCyclePriorityStateUp(data)
+        break
+      }
+      case 'cyclePriorityStateDown': {
+        result = await doCyclePriorityStateDown(data)
         break
       }
       case 'setNextReviewDate': {
-        // Mimic the /skip review command.
-        const note = await DataStore.projectNoteByFilename(filename)
-        if (note) {
-          const period = data.controlStr.replace('nr', '')
-          logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
-          skipReviewForNote(note, period)
-          // Now send a message for the dashboard to update its display
-          sendToHTMLWindow(windowId, 'removeItem', data)
-        } else {
-          logWarn('bCDI / setNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
-        }
+        result = await doSetNextReviewDate(data)
         break
       }
       case 'reviewFinished': {
-      // Mimic the /finish review command.
-        const note = await DataStore.projectNoteByFilename(filename)
-        if (note) {
-          logDebug('bCDI / review', `-> reviewFinished on ID ${ID} in filename ${filename}`)
-          // TODO: update this to actually take a note to work on
-          finishReviewForNote(note)
-          logDebug('bCDI / review', `-> after finishReview`)
-          sendToHTMLWindow(windowId, 'removeItem', data)
-        } else {
-          logWarn('bCDI / review', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
-        }
+        result = await doReviewFinished(data)
         break
       }
-      case 'windowResized': {
-        logDebug('bCDI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
-        const thisWin = getWindowFromCustomId(windowCustomId)
-        const rect = getLiveWindowRectFromWin(thisWin)
-        if (rect) {
-          // logDebug('bCDI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
-          storeWindowRect(windowCustomId)
-        }
+      case 'startReviews': {
+        result = await doStartReviews()
         break
       }
+      case 'cancelProject': {
+        result = await doCancelProject(data)
+        break
+      }
+      case 'completeProject': {
+        result = await doCompleteProject(data)
+        break
+      }
+      case 'togglePauseProject': {
+        result = await doTogglePauseProject(data)
+        break
+      }
+      case 'setNewReviewInterval': {
+        result = await doSetNewReviewInterval(data)
+        break
+      }
+      case 'addProgress': {
+        result = await doAddProgressUpdate(data)
+        break
+      }
+      // case 'windowResized': {
+      // TODO(later: work on this
+      // result = await doWindowResized()
+      // break
+      // }
       case 'showNoteInEditorFromFilename': {
-        // Handle a show note call simply by opening the note in the main Editor.
-        // Note: use the showLine... variant of this (below) where possible
-        const note = await Editor.openNoteByFilename(filename)
-        if (note) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
-        } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
-        }
+        result = await doShowNoteInEditorFromFilename(data)
         break
       }
       case 'showNoteInEditorFromTitle': {
-        // Handle a show note call simply by opening the note in the main Editor
-        // Note: use the showLine... variant of this (below) where possible
-        // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-        const wantedTitle = filename
-        const note = await Editor.openNoteByTitle(wantedTitle)
-        if (note) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
-        } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
-        }
+        result = await doShowNoteInEditorFromTitle(data)
         break
       }
       case 'showLineInEditorFromFilename': {
-        // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
-        // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-        const note = await Editor.openNoteByFilename(filename)
-        if (note) {
-          const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-          logDebug(
-            'bridgeClickDashboardItem',
-            `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-          )
-        } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
-        }
+        result = await doShowLineInEditorFromFilename(data)
         break
       }
-      case 'showLineInEditorFromTitle': {
-        // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
-        // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-        const wantedTitle = decodeURIComponent(filename)
-        const note = await Editor.openNoteByTitle(wantedTitle)
-        if (note) {
-          const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
-          logDebug(
-            'bridgeClickDashboardItem',
-            `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
-          )
-        } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
-        }
-        break
-      }
-
+      // case 'showLineInEditorFromTitle': {
+      //   result = await doShowLineInEditorFromTitle(data)
+      //   break
+      // }
       case 'moveToNote': {
-        // Instruction to move task from a note to a project note.
-        if (!data.itemType) {
-          throw new Error(`Trying to moveToNote but no itemType was passed`)
-        }
-
-        // Note: Requires user input
-        const itemType = data.itemType
-        logDebug('moveToNote', `starting with itemType: ${itemType}`)
-
-        // Start by getting settings from *Filer plugin*
-        // const config = await getFilerSettings() ?? { whereToAddInSection: 'start', allowNotePreambleBeforeHeading: true }
-
-        // const startDateStr = getDateStringFromCalendarFilename(filename, true)
-
-        // Ask user for destination project note
-        const allNotes = projectNotesSortedByChanged()
-
-        const res = await CommandBar.showOptions(
-          allNotes.map((n) => n.title ?? 'untitled'),
-          `Select note to move this ${itemType} to`)
-        const destNote = allNotes[res.index]
-
-        // Ask to which heading to add the selectedParas
-        const headingToFind = await chooseHeading(destNote, true, true, false)
-        logDebug('moveToNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-
-        // Add text to the new location in destination note
-        // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
-        const newHeadingLevel = await getSettingFromAnotherPlugin("jgclark.QuickCapture", "headingLevel", 2)
-        logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
-        if (itemType === "task") {
-          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel) 
-        } else {
-          addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
-        }
-        // Ask for cache refresh for this note
-        DataStore.updateCache(destNote, false)
-
-        // delete from existing location
-        const origNote = getNoteByFilename(filename)
-        const origPara = findParaFromStringAndFilename(filename, content)
-        if (origNote && origPara) {
-          logDebug('moveToNote', `- Removing 1 para from original note ${filename}`)
-          origNote.removeParagraph(origPara)
-        } else {
-          logWarn('moveToNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
-        }
-        // Send a message to update the row in the dashboard
-        logDebug('moveToNote', `- Sending request to window to update`)
-        sendToHTMLWindow(windowId, 'updateItemFilename', { itemID: ID, filename: destNote.filename })
-
-        // Ask for cache refresh for this note
-        DataStore.updateCache(origNote, false)
+        result = await doMoveToNote(data)
         break
       }
-
       case 'moveFromCalToCal': {
-        // Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
-        // Note: Overloads ID with the dateInterval to use
-        const config = await getSettings()
-        const dateInterval = data.controlStr
-        let startDateStr = ''
-        let newDateStr = ''
-        if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
-          logError('moveFromCalToCal', `bad move date interval: ${dateInterval}`)
-          break
-        }
-        if (dateInterval === 't') {
-          // Special case to change to '>today'
-
-          startDateStr = getDateStringFromCalendarFilename(filename, true)
-          newDateStr = getTodaysDateHyphenated()
-          logDebug('moveFromCalToCal', `move task from ${startDateStr} -> 'today'`)
-        } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-          const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
-
-          // Get the (ISO) current date on the task
-          startDateStr = getDateStringFromCalendarFilename(filename, true)
-          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
-
-          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
-          if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
-            const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-            const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
-            if (NPWeekData) {
-              newDateStr = NPWeekData.weekString
-              logDebug('moveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
-            } else {
-              throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
-            }
-          }
-          logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
-        }
-        // Do the actual move
-        const res = await moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
-        if (res) {
-          logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
-          // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
-          // await showDashboard()
-          // So instead send a message to delete the row in the dashboard
-          sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
-        } else {
-          logWarn('moveFromCalToCal', `-> moveFromCalToCal to ${newDateStr} not successful`)
-        }
+        result = await doMoveFromCalToCal(data)
         break
       }
-
       case 'updateTaskDate': {
-        // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
-        const dateInterval = data.controlStr
-        const config = await getSettings()
-        // const startDateStr = ''
-        let newDateStr = ''
-        if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
-          logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
-          break
-        }
-        if (dateInterval === 't') {
-          // Special case to change to '>today' (or the actual date equivalent)
-          newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-          logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
-        } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-          const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
-          // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
-          const startDateStr = getTodaysDateHyphenated()
-          // Get the new date, but output using the longer of the two types of dates given
-          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
-
-          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
-          if (offsetUnit === 'w') {
-            const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-            // $FlowFixMe(incompatible-type)
-            const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
-            // clo(NPWeekData, "NPWeekData:")
-            newDateStr = NPWeekData.weekString
-            logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
-          }
-          logDebug('bridgeClickDashboardItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
-        }
-        // Make the actual change
-        const thePara = findParaFromStringAndFilename(filename, content)
-        if (typeof thePara !== 'boolean') {
-          const theLine = thePara.content
-          const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
-          logDebug('bridgeClickDashboardItem', `Found line {${theLine}}\n-> changed line: {${changedLine}}`)
-          thePara.content = changedLine
-          const thisNote = thePara.note
-          if (thisNote) {
-            thisNote.updateParagraph(thePara)
-            logDebug('bridgeClickDashboardItem', `- appeared to update line OK -> {${changedLine}}`)
-
-            // Ask for cache refresh for this note
-            DataStore.updateCache(thisNote, false)
-
-            // refresh whole display, as we don't know which if any section the moved task might need to be added to
-            logDebug('bridgeClickDashboardItem', `------------ refresh ------------`)
-            await showDashboard()
-          } else {
-            logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
-          }
-        }
+        result = await doUpdateTaskDate(data)
+        break
+      }
+      // saving this for now 2024-07-11, but delete if it's been more than two weeks :)
+      // case 'reactSettingsChanged': {
+      //   // $FlowIgnore
+      //   if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
+      //   result = await doSettingsChanged(data, 'reactSettings')
+      //   break
+      // }
+      case 'dashboardSettingsChanged': {
+       result = await doSettingsChanged(data, 'dashboardSettings')
+        break
+      }
+      // case 'setSpecificDate': {
+      //   result = await doSetSpecificDate(data)
+      //   break
+      // }
+      case 'refreshSomeSections': {
+        result = await refreshSomeSections(data)
+        break
+      }
+      case 'incrementallyRefreshSections': {
+        result = await incrementallyRefreshSections(data)
+        break
+      }
+      case 'addChecklist': {
+        result = await doAddItem(data)
+        break
+      }
+      case 'addTask': {
+        result = await doAddItem(data)
+        break
+      }
+      case 'moveAllTodayToTomorrow': {
+        result = await scheduleAllTodayTomorrow(data)
+        break
+      }
+      case 'moveAllYesterdayToToday': {
+        result = await scheduleAllYesterdayOpenToToday(data)
+        break
+      }
+      case 'scheduleAllOverdueToday': {
+        result = await scheduleAllOverdueOpenToToday(data)
         break
       }
       default: {
-        logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${type}`)
+        logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
     }
-    // Other info from DW:
-    // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
-    // if (para) {
-    //   // you can do whatever you want here. For example, you could change the status of the paragraph
-    //   // to done depending on whether it was an open task or a checklist item
-    //   para.type = statusWas === 'open' ? 'done' : 'checklistDone'
-    //   para.note?.updateParagraph(para)
-    //   const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-    //   sendToHTMLWindow(windowId,'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
-    //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
-    //   // to show how to update a single div in the HTML view
-    // } else {
-    //   logError('bridgeClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
-    // }
+
+    if (result) {
+      await processActionOnReturn(result, data) // process all actions based on result of handler
+      // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', {msg:"Action processed\n\n\n\n\nYASSSSS" })
+    } else {
+      logWarn('bCDI', `false result from call`)
+    }
+
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
+}
+
+/**
+ * One function to handle all actions on return from the various handlers
+ * An attempt to reduce duplicated code in each
+ * @param {TBridgeClickHandlerResult} handlerResult
+ * @param {MessageDataObject} data
+ */
+async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
+  try {
+    // check to see if the theme has changed and if so, update it
+    await checkForThemeChange()
+    if (!handlerResult) return
+
+    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    if (actionsOnSuccess.length === 0) {
+      logDebug('processActionOnReturn', `note: no post process actions to perform`)
+      return
+    }
+    const { success, updatedParagraph } = handlerResult
+    const isProject = data.item?.itemType === 'project'
+    const actsOnALine = actionsOnSuccess.some(str => str.includes("LINE"))
+
+    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`)
+    if (actsOnALine && filename === '') {
+      logWarn('processActionOnReturn', `Starting with no filename`)
+    }
+
+    if (success) {
+      if (filename !== '') {
+        // update the cache for the note, as it might have changed
+        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
+      }
+      if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content||''}"`}`)
+        await updateReactWindowFromLineChange(handlerResult, data, [])
+      }
+      if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
+        if (isProject) {
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for Project '${filename}': calling updateReactWindowFLC()`)
+          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'project'])
+        } else {
+          logDebug('processActionOnReturn', `UPDATE_LINE_IN_JSON for non-Project: {${updatedParagraph?.content ?? '(no content)'}}: calling updateReactWindowFLC()`)
+          await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
+        }
+      }
+      if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
+        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
+        // await refreshAllSections() // this works fine
+        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
+      }
+      if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+        const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+        for (const sectionCode of wantedsectionCodes) {
+          // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+          await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
+        }
+      }
+      if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
+        const wantedsectionCodes = handlerResult.sectionCodes ?? []
+        if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
+        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
+        await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
+      }
+      if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
+        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        reactWindowData.pluginData.startDelayedRefreshTimer = true
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
+      }
+    } else {
+      logDebug('processActionOnReturn', `-> failed handlerResult`)
+    }
+  } catch (error) {
+    logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
+    clo(data.item, `- data.item at error:`)
+  }
+}
+
+/**
+ * Update React window data based on the result of handling item content update.
+ * @param {TBridgeClickHandlerResult} res The result of handling item content update.
+ * @param {MessageDataObject} data The data of the item that was updated.
+ * @param {Array<string>} fieldPathsToUpdate The field paths to update in React window data -- paths are in SectionItem fields (e.g. "ID" or "para.content")
+ */
+export async function updateReactWindowFromLineChange(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject, fieldPathsToUpdate: Array<string>): Promise<void> {
+  try {
+    clo(handlerResult, 'updateReactWindowFLC: handlerResult')
+    const { errorMsg, success, updatedParagraph } = handlerResult
+    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+    const shouldRemove = actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')
+    const { ID } = data.item ?? { ID: '?' }
+    // clo(handlerResult.updatedParagraph, 'updateReactWindowFLC: handlerResult.updatedParagraph:')
+    if (!success) {
+      throw new Error(`handlerResult indicates failure with item: ID ${ID}, so won't update window. ${errorMsg || ''}`)
+    }
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    let sections = reactWindowData.pluginData.sections
+    const isProject = data.item?.itemType === "project"
+
+    if (updatedParagraph) {
+      logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
+      const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
+      const newPara: TParagraphForDashboard = makeDashboardParas([updatedParagraph])[0]
+      // get a reference so we can overwrite it later
+      // find all references to this content (could be in multiple sections)
+      const indexes = findSectionItems(sections, ['itemType', 'para.filename', 'para.content'], {
+        itemType: /open|checklist/,
+        'para.filename': oldFilename,
+        'para.content': oldContent,
+      })
+
+      if (indexes.length) {
+        const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
+        // clo(indexes, 'updateReactWindowFLC: indexes to update')
+        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+        if (shouldRemove) {
+          logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+          indexes.reverse().forEach((index) => {
+            const { sectionIndex, itemIndex } = index
+            sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+          })
+        } else {
+          sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)
+          clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
+        }
+      } else {
+        throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
+      }
+    } else if (isProject) {
+      // 
+      const projFilename = data.item?.project?.filename
+      if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
+      const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
+        itemType: "project",
+        'project.filename': projFilename,
+      })
+      logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
+      clo(indexes, 'updateReactWindowFLC: indexes to update')
+      if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
+        logDebug('updateReactWindowFLC', `- doing REMOVE_LINE_FROM_JSON:`)
+        indexes.reverse().forEach((index) => {
+          const { sectionIndex, itemIndex } = index
+          sections[sectionIndex].sectionItems.splice(itemIndex, 1)
+          // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+        })
+      }
+    } else {
+      throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}| errorMsg=${errorMsg || '-'}`)
+    }
+    await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
+  } catch (error) {
+    logError('updateReactWindowFLC', error.message)
+    clo(data.item, `- data.item at error:`)
+  }
+}
+
+/**
+ * Check to see if the theme has changed since we initially drew the winodw
+ * This can happen when your computer goes from light to dark mode or you change the theme
+ * We want the dashboard to always match.
+ * Note: if/when we get a themeChanged trigger, then this can be simplified.
+ */
+export async function checkForThemeChange(): Promise<void> {
+  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  const { pluginData } = reactWindowData
+  const { themeName: themeInWindow } = pluginData
+  const config = await getDashboardSettings()
+
+  // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
+  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')  
+  const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
+
+  // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
+  if (!currentTheme) {
+    logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
+    return
+  }
+  if (currentTheme && currentTheme !== themeInWindow) {
+    logDebug('checkForThemeChange', `theme changed from "${themeInWindow}" to "${currentTheme}"`)
+    // Update the CSS in the window
+    // The following doesn't work in practice ...
+    // const themeCSS = generateCSSFromTheme()
+    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'CHANGE_THEME', {themeCSS}, `Theme CSS Changed`)
+    // reactWindowData.themeName = currentTheme // save the theme in the reactWindowData
+    // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
+
+    // ... so for now, force a reload instead
+    await showDashboardReact('full')
+  } 
 }

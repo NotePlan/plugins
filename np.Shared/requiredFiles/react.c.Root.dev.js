@@ -5,131 +5,6 @@ var RootBundle = (function (exports, React$1) {
 
   var React__default = /*#__PURE__*/_interopDefaultLegacy(React$1);
 
-  const ErrorBoundaryContext = React$1.createContext(null);
-
-  const initialState = {
-    didCatch: false,
-    error: null
-  };
-  class ErrorBoundary extends React$1.Component {
-    constructor(props) {
-      super(props);
-      this.resetErrorBoundary = this.resetErrorBoundary.bind(this);
-      this.state = initialState;
-    }
-    static getDerivedStateFromError(error) {
-      return {
-        didCatch: true,
-        error
-      };
-    }
-    resetErrorBoundary() {
-      const {
-        error
-      } = this.state;
-      if (error !== null) {
-        var _this$props$onReset, _this$props;
-        for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-          args[_key] = arguments[_key];
-        }
-        (_this$props$onReset = (_this$props = this.props).onReset) === null || _this$props$onReset === void 0 ? void 0 : _this$props$onReset.call(_this$props, {
-          args,
-          reason: "imperative-api"
-        });
-        this.setState(initialState);
-      }
-    }
-    componentDidCatch(error, info) {
-      var _this$props$onError, _this$props2;
-      (_this$props$onError = (_this$props2 = this.props).onError) === null || _this$props$onError === void 0 ? void 0 : _this$props$onError.call(_this$props2, error, info);
-    }
-    componentDidUpdate(prevProps, prevState) {
-      const {
-        didCatch
-      } = this.state;
-      const {
-        resetKeys
-      } = this.props;
-
-      // There's an edge case where if the thing that triggered the error happens to *also* be in the resetKeys array,
-      // we'd end up resetting the error boundary immediately.
-      // This would likely trigger a second error to be thrown.
-      // So we make sure that we don't check the resetKeys on the first call of cDU after the error is set.
-
-      if (didCatch && prevState.error !== null && hasArrayChanged(prevProps.resetKeys, resetKeys)) {
-        var _this$props$onReset2, _this$props3;
-        (_this$props$onReset2 = (_this$props3 = this.props).onReset) === null || _this$props$onReset2 === void 0 ? void 0 : _this$props$onReset2.call(_this$props3, {
-          next: resetKeys,
-          prev: prevProps.resetKeys,
-          reason: "keys"
-        });
-        this.setState(initialState);
-      }
-    }
-    render() {
-      const {
-        children,
-        fallbackRender,
-        FallbackComponent,
-        fallback
-      } = this.props;
-      const {
-        didCatch,
-        error
-      } = this.state;
-      let childToRender = children;
-      if (didCatch) {
-        const props = {
-          error,
-          resetErrorBoundary: this.resetErrorBoundary
-        };
-        if (typeof fallbackRender === "function") {
-          childToRender = fallbackRender(props);
-        } else if (FallbackComponent) {
-          childToRender = React$1.createElement(FallbackComponent, props);
-        } else if (fallback === null || React$1.isValidElement(fallback)) {
-          childToRender = fallback;
-        } else {
-          throw error;
-        }
-      }
-      return React$1.createElement(ErrorBoundaryContext.Provider, {
-        value: {
-          didCatch,
-          error,
-          resetErrorBoundary: this.resetErrorBoundary
-        }
-      }, childToRender);
-    }
-  }
-  function hasArrayChanged() {
-    let a = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-    let b = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
-    return a.length !== b.length || a.some((item, index) => !Object.is(item, b[index]));
-  }
-
-  /**
-   * Warning/message banner at top of page
-   * Send a SHOW_BANNER message from the plugin with the following payload:
-   * @param { warn, msg, color, border, hide } props
-   * @returns
-   */
-  function MessageBanner(props) {
-    if (!props.warn) {
-      return null;
-    }
-    // onclick="this.parentElement.style.display='none'" class="w3-button w3-display-topright"
-    console.log(`Root: MessageBanner: props=${JSON.stringify(props)}`);
-    const className = `w3-panel w3-display-container ${props.border ? 'w3-leftbar' : ''} ${props.border ?? 'w3-border-red'} ${props.color ?? 'w3-pale-red'}`;
-    window.scrollTo(0, 0);
-    return /*#__PURE__*/React.createElement("div", {
-      className: className
-    }, /*#__PURE__*/React.createElement("span", {
-      onClick: () => props.hide(),
-      className: "w3-button w3-display-right"
-    }, "X"), /*#__PURE__*/React.createElement("p", null, props.msg));
-  }
-
   // Development-related helper functions
   /**
    * NotePlan API properties which should not be traversed when stringifying an object
@@ -286,6 +161,19 @@ var RootBundle = (function (exports, React$1) {
   };
   const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none'];
   const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none'];
+  const shouldOutputForLogLevel = logType => {
+    let userLogLevel = 1;
+    const thisMessageLevel = LOG_LEVELS.indexOf(logType);
+    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
+    // this was the main offender.  Perform a null change against a value that is `undefined` will be true
+    // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+    if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+      // eslint-disable-next-line
+      userLogLevel = pluginSettings['_logLevel'];
+    }
+    const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel);
+    return thisMessageLevel >= userLogLevelIndex;
+  };
 
   /**
    * Formats log output to include timestamp pluginId, pluginVersion
@@ -295,7 +183,7 @@ var RootBundle = (function (exports, React$1) {
    * @param {string} type
    * @returns {string}
    */
-  function log(pluginInfo, message = '', type = 'INFO') {
+  function log$1(pluginInfo, message = '', type = 'INFO') {
     const thisMessageLevel = LOG_LEVELS.indexOf(type);
     const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
     let msg = '';
@@ -316,19 +204,36 @@ var RootBundle = (function (exports, React$1) {
         msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`;
       }
     }
-    let userLogLevel = 1;
-    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
-    // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-    // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
-    if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
-      // eslint-disable-next-line
-      userLogLevel = pluginSettings['_logLevel'];
-    }
-    const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel);
-    if (thisMessageLevel >= userLogLevelIndex) {
+    if (shouldOutputForLogLevel(type)) {
       console.log(msg);
     }
     return msg;
+  }
+
+  /**
+   * Formats log output as ERROR to include timestamp pluginId, pluginVersion
+   * @author @codedungeon
+   * @param {any} pluginInfo
+   * @param {any} message
+   * @returns {string}
+   */
+  function logError$1(pluginInfo, error) {
+    if (typeof error === 'object' && error != null) {
+      const msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`;
+      return log$1(pluginInfo, msg, 'ERROR');
+    }
+    return log$1(pluginInfo, error, 'ERROR');
+  }
+
+  /**
+   * Formats log output as INFO to include timestamp pluginId, pluginVersion
+   * @author @codedungeon
+   * @param {any} pluginInfo
+   * @param {any} message
+   * @returns {void}
+   */
+  function logInfo(pluginInfo, message = '') {
+    return log$1(pluginInfo, message, 'INFO');
   }
 
   /**
@@ -339,7 +244,7 @@ var RootBundle = (function (exports, React$1) {
    * @returns {void}
    */
   function logDebug$1(pluginInfo, message = '') {
-    return log(pluginInfo, message, 'DEBUG');
+    return log$1(pluginInfo, message, 'DEBUG');
   }
 
   // Functions which can be imported into any React Component
@@ -404,15 +309,54 @@ var RootBundle = (function (exports, React$1) {
     };
   }
   /**
-   * A prettier version of logDebug
-   * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
-   * Uses the same color for each call in a component (based on the first param)
-   * @param {string} componentName|fullString (recommended that you use the first param for a component name), e.g. "ItemGrid" -- try to use the same first param for each call in a component
-   * @param {string} detail other text (detail) to display (does display in NotePlan also)
-   * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
+   * Logs information to the console.
+   *
+   * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
+   * @param {string} componentName - The name of the component.
+   * @param {string} [detail] - Additional detail about the log.
+   * @param {...any} args - Additional arguments to log.
    * @returns {void}
    */
-  const logDebug = (componentName, detail, ...args) => console.log(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`, ...args);
+  const log = (logType, componentName, detail, ...args) => {
+    if (shouldOutputForLogLevel(logType)) {
+      const isNotePlanConsole = !!window.webkit;
+      let arg1, arg2;
+      if (isNotePlanConsole) {
+        arg1 = `${componentName}${detail ? `: ${detail} ` : ''}`;
+        arg2 = ``;
+        logType === 'DEBUG' ? logDebug$1(arg1, arg2, ...args) : logType === 'ERROR' ? logError$1(arg1, arg2, ...args) : logInfo(arg1, arg2, ...args);
+      } else {
+        arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`;
+        arg2 = `color: #000; background: ${stringToColor(componentName)}`;
+        console[logType.toLowerCase()](arg1, arg2, ...args);
+      }
+    }
+  };
+
+  /**
+   * A prettier version of logDebug
+   * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text.
+   * Uses the same color for each call in a component (based on the first param).
+   * @param {string} componentName - The name of the component.
+   * @param {string} detail - Additional detail about the log.
+   * @param {...any} args - Additional arguments to log.
+   * @returns {void}
+   */
+  const logDebug = (componentName, detail, ...args) => {
+    log('DEBUG', componentName, detail, ...args);
+  };
+
+  /**
+   * Logs an error message to the console.
+   * Similar to logDebug.
+   * @param {string} componentName - The name of the component.
+   * @param {string} detail - Additional detail about the log.
+   * @param {...any} args - Additional arguments to log.
+   * @returns {void}
+   */
+  const logError = (componentName, detail, ...args) => {
+    log('ERROR', componentName, detail, ...args);
+  };
 
   /**
    * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
@@ -432,6 +376,131 @@ var RootBundle = (function (exports, React$1) {
       componentStack: cs.split('\n').map(s => s.replace(/\@file.*$/, '')).filter(s => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary').join(' < ')
     };
   };
+
+  const ErrorBoundaryContext = React$1.createContext(null);
+
+  const initialState = {
+    didCatch: false,
+    error: null
+  };
+  class ErrorBoundary extends React$1.Component {
+    constructor(props) {
+      super(props);
+      this.resetErrorBoundary = this.resetErrorBoundary.bind(this);
+      this.state = initialState;
+    }
+    static getDerivedStateFromError(error) {
+      return {
+        didCatch: true,
+        error
+      };
+    }
+    resetErrorBoundary() {
+      const {
+        error
+      } = this.state;
+      if (error !== null) {
+        var _this$props$onReset, _this$props;
+        for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+          args[_key] = arguments[_key];
+        }
+        (_this$props$onReset = (_this$props = this.props).onReset) === null || _this$props$onReset === void 0 ? void 0 : _this$props$onReset.call(_this$props, {
+          args,
+          reason: "imperative-api"
+        });
+        this.setState(initialState);
+      }
+    }
+    componentDidCatch(error, info) {
+      var _this$props$onError, _this$props2;
+      (_this$props$onError = (_this$props2 = this.props).onError) === null || _this$props$onError === void 0 ? void 0 : _this$props$onError.call(_this$props2, error, info);
+    }
+    componentDidUpdate(prevProps, prevState) {
+      const {
+        didCatch
+      } = this.state;
+      const {
+        resetKeys
+      } = this.props;
+
+      // There's an edge case where if the thing that triggered the error happens to *also* be in the resetKeys array,
+      // we'd end up resetting the error boundary immediately.
+      // This would likely trigger a second error to be thrown.
+      // So we make sure that we don't check the resetKeys on the first call of cDU after the error is set.
+
+      if (didCatch && prevState.error !== null && hasArrayChanged(prevProps.resetKeys, resetKeys)) {
+        var _this$props$onReset2, _this$props3;
+        (_this$props$onReset2 = (_this$props3 = this.props).onReset) === null || _this$props$onReset2 === void 0 ? void 0 : _this$props$onReset2.call(_this$props3, {
+          next: resetKeys,
+          prev: prevProps.resetKeys,
+          reason: "keys"
+        });
+        this.setState(initialState);
+      }
+    }
+    render() {
+      const {
+        children,
+        fallbackRender,
+        FallbackComponent,
+        fallback
+      } = this.props;
+      const {
+        didCatch,
+        error
+      } = this.state;
+      let childToRender = children;
+      if (didCatch) {
+        const props = {
+          error,
+          resetErrorBoundary: this.resetErrorBoundary
+        };
+        if (typeof fallbackRender === "function") {
+          childToRender = fallbackRender(props);
+        } else if (FallbackComponent) {
+          childToRender = React$1.createElement(FallbackComponent, props);
+        } else if (fallback === null || React$1.isValidElement(fallback)) {
+          childToRender = fallback;
+        } else {
+          throw error;
+        }
+      }
+      return React$1.createElement(ErrorBoundaryContext.Provider, {
+        value: {
+          didCatch,
+          error,
+          resetErrorBoundary: this.resetErrorBoundary
+        }
+      }, childToRender);
+    }
+  }
+  function hasArrayChanged() {
+    let a = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+    let b = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+    return a.length !== b.length || a.some((item, index) => !Object.is(item, b[index]));
+  }
+
+  /**
+   * Warning/message banner at top of page
+   * Send a SHOW_BANNER message from the plugin with the following payload:
+   * @param { warn, msg, color, border, hide } props
+   * @returns
+   */
+  function MessageBanner(props) {
+    if (!props.warn) {
+      return null;
+    }
+    // onclick="this.parentElement.style.display='none'" class="w3-button w3-display-topright"
+    console.log(`Root: MessageBanner: props=${JSON.stringify(props)}`);
+    const className = `w3-panel w3-display-container ${props.border ? 'w3-leftbar' : ''} ${props.border ?? 'w3-border-red'} ${props.color ?? 'w3-pale-red'}`;
+    window.scrollTo(0, 0);
+    return /*#__PURE__*/React.createElement("div", {
+      className: className
+    }, /*#__PURE__*/React.createElement("span", {
+      onClick: () => props.hide(),
+      className: "w3-button w3-display-right"
+    }, "X"), /*#__PURE__*/React.createElement("p", null, props.msg));
+  }
 
   const ErrorFallback = props => {
     clo(props);
@@ -486,6 +555,12 @@ var RootBundle = (function (exports, React$1) {
     const [history, setHistory] = React$1.useState([lastUpdated]);
     // $FlowFixMe
     const tempSavedClicksRef = React$1.useRef([]); // temporarily store the clicks in the webview
+
+    // NP does not destroy windows on close. So if we have an autorefresh sending requests to NP, it will run forever
+    // So we do a check in sendToHTMLWindow to see if the window is still open
+    if (npData?.NPWindowID === false) {
+      throw new Error('Root: npData.NPWindowID is false; The window must have been closed. Stopping the React app. This is not a problem you need to worry about.');
+    }
 
     /****************************************************************************************************************************
      *                             VARIABLES
@@ -553,6 +628,73 @@ var RootBundle = (function (exports, React$1) {
     };
 
     /**
+     * Replaces a stylesheet's content with a new stylesheet string.
+     * @param {string} oldName - The name or href of the stylesheet to be replaced.
+     * @param {string} newStyles - The new stylesheet string.
+     */
+    function replaceStylesheetContent(oldName, newStyles) {
+      // Convert the styleSheets collection to an array
+      const styleSheetsArray = Array.from(document.styleSheets);
+
+      // TODO: trying to replace a stylesheet that was loaded as part of the HTML page
+      // yields error: "This CSSStyleSheet object was not constructed by JavaScript"
+      // So unless we change the way this works to install the initial stylesheet in the HTML page,
+      // this approach won't work, so for now, we are going to add it as another stylesheet
+      // Find the stylesheet with the specified name or href
+      const oldSheet = styleSheetsArray.find(sheet => sheet && sheet.title === oldName);
+      let wasSaved = false;
+      // $FlowIgnore
+      if (oldSheet && typeof oldSheet.replaceSync === 'function') {
+        // Use replaceSync to replace the stylesheet's content
+        logDebug(`Root`, `replaceStylesheetContent: found existing stylesheet "${oldName}" Will try to replace it.`);
+        try {
+          // $FlowIgnore
+          oldSheet.replaceSync(newStyles);
+          wasSaved = true;
+        } catch (error) {
+          logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`);
+        }
+      }
+      if (!wasSaved) {
+        // If the old stylesheet is not found, create a new one
+        const newStyle = document.createElement('style');
+        newStyle.title = oldName;
+        newStyle.textContent = newStyles;
+        document?.head?.appendChild(newStyle);
+        // Check to make sure it's there
+        testOutputStylesheets();
+        const styleElement = document.querySelector(`style[title="${oldName}"]`);
+        if (styleElement) {
+          logDebug('CHANGE_THEME replaceStylesheetContent: VERIFIED: CSS has been successfully added to the document');
+        } else {
+          logDebug("CHANGE_THEME replaceStylesheetContent: CSS has apparently NOT been added. Can't find it in the document");
+        }
+      }
+    }
+
+    // Function to get the first 55 characters of each stylesheet's content
+    function testOutputStylesheets() {
+      const styleSheets = document.styleSheets;
+      for (let i = 0; i < styleSheets.length; i++) {
+        const styleSheet = styleSheets[i];
+        try {
+          // $FlowIgnore
+          const rules = styleSheet.cssRules || styleSheet.rules;
+          let cssText = '';
+          // $FlowIgnore
+          for (let j = 0; j < rules.length; j++) {
+            // $FlowIgnore
+            cssText += rules[j].cssText;
+            if (cssText.length >= 55) break;
+          }
+          logDebug(`CHANGE_THEME StyleSheet ${i}: "${styleSheet.title ?? ''}": ${cssText.substring(0, 55).replace(/\n/g, '')}`);
+        } catch (e) {
+          console.warn(`Unable to access stylesheet: ${styleSheet.href}`, e);
+        }
+      }
+    }
+
+    /**
      * This is effectively a reducer we will use to process messages from the plugin
      * And also from components down the tree, using the dispatch command
      */
@@ -604,6 +746,15 @@ var RootBundle = (function (exports, React$1) {
                   ...payload
                 };
                 break;
+              case 'CHANGE_THEME':
+                {
+                  const {
+                    themeCSS
+                  } = payload;
+                  logDebug(`Root`, `CHANGE_THEME changing theme to "${themeCSS.substring(0, 55)}"...`);
+                  replaceStylesheetContent('Updated Theme Styles', themeCSS);
+                  break;
+                }
               case 'SHOW_BANNER':
                 if (npData.passThroughVars.lastWindowScrollTop) {
                   logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`);
@@ -656,7 +807,7 @@ var RootBundle = (function (exports, React$1) {
       if (!action) throw new Error('sendToPlugin: command/action must be called with a string');
       // logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails)
       if (!data) throw new Error('sendToPlugin: data must be called with an object');
-      console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `);
+      // logDebug(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `)
       const {
         command,
         id
@@ -799,6 +950,7 @@ var RootBundle = (function (exports, React$1) {
   }
 
   exports.Root = Root;
+  exports.logDebug = logDebug;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

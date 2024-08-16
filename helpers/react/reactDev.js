@@ -7,6 +7,8 @@
  */
 // eslint-disable-next-line no-unused-vars
 
+import { logDebug as ogLogDebug, shouldOutputForLogLevel, logError as ogLogError, logInfo as ogLogInfo } from '@helpers/dev'
+
 export function decodeHTMLEntities(text: string): string {
   const textArea = document.createElement('textarea')
   textArea.innerHTML = text
@@ -67,33 +69,66 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
   return { r, g, b }
 }
 /**
- * A prettier version of logDebug
- * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
- * Uses the same color for each call in a component (based on the first param)
- * @param {string} componentName|fullString (recommended that you use the first param for a component name), e.g. "ItemGrid" -- try to use the same first param for each call in a component
- * @param {string} detail other text (detail) to display (does display in NotePlan also)
- * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
+ * Logs information to the console.
+ *
+ * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
+ * @param {string} componentName - The name of the component.
+ * @param {string} [detail] - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logDebug = (componentName: string, detail?: string, ...args?: any): void =>
-  console.log(
-    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
-    `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
-    ...args,
-  )
+const log = (logType: string, componentName: string, detail?: string, ...args: any[]): void => {
+  if (shouldOutputForLogLevel(logType)) {
+    const isNotePlanConsole = !!window.webkit
+    let arg1, arg2
+    if (isNotePlanConsole) {
+      arg1 = `${componentName}${detail ? `: ${detail} ` : ''}`
+      arg2 = ``
+      logType === 'DEBUG' ? ogLogDebug(arg1, arg2, ...args) : logType === 'ERROR' ? ogLogError(arg1, arg2, ...args) : ogLogInfo(arg1, arg2, ...args)
+    } else {
+      arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`
+      arg2 = `color: #000; background: ${stringToColor(componentName)}`
+      console[logType.toLowerCase()](arg1, arg2, ...args)
+    }
+  }
+}
 
 /**
- * Logs an error message to the console.. (Similar to above.)
- * @param {string} componentName The error message to log.
- * @param {string} detail The detail of the error message.
- * @param {...any} args The arguments to log.
+ * A prettier version of logDebug
+ * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text.
+ * Uses the same color for each call in a component (based on the first param).
+ * @param {string} componentName - The name of the component.
+ * @param {string} detail - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
  */
-export const logError = (componentName: string, detail?: string = '', ...args: any): void =>
-  console.error(
-    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
-    `${window.webkit ? '' : `color: #F00; background: #FFF`}`,
-    ...args,
-  )
+export const logDebug = (componentName: string, detail?: string, ...args: any[]): void => {
+  log('DEBUG', componentName, detail, ...args)
+}
+
+/**
+ * Logs an error message to the console.
+ * Similar to logDebug.
+ * @param {string} componentName - The name of the component.
+ * @param {string} detail - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
+ */
+export const logError = (componentName: string, detail?: string, ...args: any[]): void => {
+  log('ERROR', componentName, detail, ...args)
+}
+
+/**
+ * Logs an error message to the console.
+ * Similar to logDebug.
+ * @param {string} componentName - The name of the component.
+ * @param {string} detail - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
+ */
+export const logInfo = (componentName: string, detail?: string, ...args: any[]): void => {
+  log('INFO', componentName, detail, ...args)
+}
 
 /**
  * Create a deep copy of the input object so it can be safely modified without affecting the original
@@ -112,7 +147,7 @@ export const deepCopy = (input: TAnyObject): TAnyObject => JSON.parse(JSON.strin
  * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
  */
 
-export const formatReactError = (error: Error, cs: string = '') => {
+export const formatReactError = (error: any, cs: string = ''): any => {
   return {
     name: error.name,
     message: error.message,
@@ -127,4 +162,4 @@ export const formatReactError = (error: Error, cs: string = '') => {
   }
 }
 
-export { clo, JSP } from '@helpers/dev'
+export { clo, JSP, clof, timer, log } from '@helpers/dev'

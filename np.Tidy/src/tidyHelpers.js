@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 6.4.2024 for v0.12.0, @jgclark
+// Last updated 7.6.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ export type TidyConfig = {
   removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
   runConflictFinderCommand: boolean,
+  runGenerateRepeatsCommand: boolean,
   savePreviousVersion: boolean,
   runDuplicateFinderCommand: boolean,
   runFileRootNotesCommand: boolean,
@@ -103,13 +104,13 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
       }
     }
     if (matchCount === 0) {
-      logDebug('repeats', 'No matched paragraphs found')
+      logDebug('returnRegexMatchedParas', 'No matched paragraphs found')
     } else {
-      logDebug('repeats', 'Found ${matchCount} matched paragraphs')
+      logDebug('returnRegexMatchedParas', 'Found ${matchCount} matched paragraphs')
     }
     return matchedParas
   } catch (error) {
-    logError(`${pluginJson}/repeats`, error.message)
+    logError(`${pluginJson}/returnRegexMatchedParas`, error.message)
   }
 }
 

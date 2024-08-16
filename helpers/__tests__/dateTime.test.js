@@ -5,6 +5,7 @@
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
+// import { filenameIsInFuture } from '../dateTime'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /*, Note, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
@@ -136,6 +137,10 @@ describe(`${PLUGIN_NAME}`, () => {
    * replaceArrowDatesInString()
    */
   describe('replaceArrowDatesInString()' /* function */, () => {
+    test('should replace today with todays date', () => {
+      const result = dt.replaceArrowDatesInString('test today >today', '')
+      expect(result).toEqual(`test today`)
+    })
     test('should replace today with todays date', () => {
       const result = dt.replaceArrowDatesInString('foo >today bar')
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
@@ -662,6 +667,55 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should find in "a >2122-W04 date"', () => {
       expect(dt.includesScheduledFutureDate('a >2122-W04< date')).toEqual(true)
+    })
+  })
+
+  describe('filenameIsInFuture()', () => {
+    // const today = getTodaysDateUnhyphenated()
+
+    // Daily notes
+    test('should return false for a daily note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/20200101.md')).toEqual(false)
+    })
+
+    test('should return true for a daily note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/21240611.md')).toEqual(true)
+    })
+
+    // Weekly notes
+    test('should return false for a weekly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-W01.md')).toEqual(false)
+    })
+
+    test('should return true for a weekly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-W02.md')).toEqual(true)
+    })
+
+    // Monthly notes
+    test('should return false for a monthly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-01.md')).toEqual(false)
+    })
+
+    test('should return true for a monthly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-06.md')).toEqual(true)
+    })
+
+    // Quarterly notes
+    test('should return false for a quarterly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-Q1.md')).toEqual(false)
+    })
+
+    test('should return true for a quarterly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-Q3.md')).toEqual(true)
+    })
+
+    // Yearly notes
+    test('should return false for a yearly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020.md')).toEqual(false)
+    })
+
+    test('should return true for a yearly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124.md')).toEqual(true)
     })
   })
 

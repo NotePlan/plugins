@@ -1,12 +1,12 @@
 /* eslint-disable require-await */
 // @flow
+// Last updated 2024-07-12 for v2.0.1 by @jgclark
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { showDashboard } from './HTMLGeneratorGrid'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getLogSettings, setPluginData } from './dashboardHelpers'
+import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { editSettings } from '@helpers/NPSettings'
-import { isHTMLWindowOpen } from '@helpers/NPWindows'
+// import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -17,19 +17,6 @@ import { showMessage } from '@helpers/userInput'
  *
  */
 
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings started`)
-    const res = await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -40,7 +27,7 @@ export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall started`)
     // Tell user the plugin has been updated
-      await updateSettingData(pluginJson)
+    await updateSettingData(pluginJson)
     await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
@@ -61,23 +48,31 @@ export function init(): void {
 }
 
 /**
- * NotePlan calls this function settings are updated in the Preferences panel
- * You should not need to edit this function
+ * Log settings have been updated in the Preferences panel.
+ * Note: It's only changes to the log settings that the front-end won't notice, and so re-render.
  */
 export async function onSettingsUpdated(): Promise<void> {
-  try {
-    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated started`)
-    // If v3.11+, can now refresh Dashboard
-    if (NotePlan.environment.buildVersion >= 1181) {
-      if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-        logDebug(pluginJson, `will refresh Dashboard as it is open`)
-        await showDashboard('refresh', false) // probably don't need await
-      }
-    }
-  } catch (error) {
-    logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
-  }
+  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
+  const logSettings = await getLogSettings()
+  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
+  await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
+  return
 }
+
+// Note: not needed as Dashboard has its own built-in settings window.
+// /**
+//  * Update Settings/Preferences (for iOS/iPadOS)
+//  * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+//  * @author @dwertheimer
+//  */
+// export async function updateSettings(): Promise<void> {
+//   try {
+//     logDebug(pluginJson, `updateSettings running`)
+//     await editSettings(pluginJson)
+//   } catch (error) {
+//     logError(pluginJson, JSP(error))
+//   }
+// }
 
 /**
  * Check the version of the plugin (which triggers init() which forces an update if the version is out of date)

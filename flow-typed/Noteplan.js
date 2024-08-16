@@ -96,9 +96,10 @@ declare interface TEditor extends CoreNoteFields {
    */
   replaceSelectionWithText(text: string): void;
   /**
-   * Opens a note using the given filename.
+   * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
    * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * Note: if the note doesn't exist, then returns null
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
@@ -122,7 +123,7 @@ declare interface TEditor extends CoreNoteFields {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,
-    createIfNeeded: true,
+    createIfNeeded: boolean,
     content?: string,
   ): Promise<TNote>;
   /**
@@ -566,7 +567,7 @@ declare class DataStore {
    *
    * @param {Date}
    * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
@@ -577,8 +578,9 @@ declare class DataStore {
    * Monthly: "YYYY-MM", example: "2022-10"
    * Yearly: "YYYY", example: "2022"
    * Note: Some available from v3.7.2
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
    * @param {string}
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDateString(dateString: string): ?TNote;
   /**
@@ -607,6 +609,8 @@ declare class DataStore {
   static noteByFilename(filename: string, type: NoteType): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
+   * Note: Can also move *folders* by specifying its filename (without trailing slash).
+   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
    * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    */
@@ -1255,10 +1259,12 @@ declare interface Paragraph {
   +prefix: string;
   /**
    * Get the range of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +contentRange: TRange | void;
   /**
    * Get the line index of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +lineIndex: number;
   /**
@@ -1295,26 +1301,22 @@ declare interface Paragraph {
    */
   +noteType: ?NoteType;
   /**
-   * Get the linked note titles this paragraph contains,
-   * such as '[[Note Name]]' (will return names without the brackets).
+   * Get the linked note titles this paragraph contains, such as '[[Note Name]]' (will return names without the brackets).
    */
   +linkedNoteTitles: $ReadOnlyArray<string>;
   /**
-   * Creates a duplicate object, so you can change values without affecting the
-   * original object
+   * Creates a duplicate object, so you can change values without affecting the original object
    */
   duplicate(): Paragraph;
   /**
    * Returns indented paragraphs (children) underneath a task
-   * Only tasks can have children, but any paragraph indented underneath a task
-   * can be a child of the task. This includes bullets, tasks, quotes, text.
-   * Children are counted until a blank line, HR, title, or another item at the
-   * same level as the parent task. So for items to be counted as children, they
-   * need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child,
-   * grandchild, greatgrandchild, etc. So a task that has a child task that has
-   * a child task will have 2 children (and the first child will have one)
+   * Only tasks can have children, but any paragraph indented underneath a task can be a child of the task.
+   * This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc. 
+   * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * @return {[TParagraph]}
    */
   children(): $ReadOnlyArray<TParagraph>;
@@ -1990,7 +1992,7 @@ declare class HTMLView {
   // Impossible constructor.
   constructor(_: empty): empty;
   /**
-   * Show HTML in a NotePlan sheet.
+   * Show HTML in a sheet (e.g. mobile/iPad modal).
    * Note: Available from v3.6.2
    * @param {string} HTML to show
    * @param {number?} width (optional integer)
@@ -2063,10 +2065,10 @@ declare class HTMLView {
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
    * Note: Available in v3.8. Second parameter added in build 1089.
    * @param { string } code JS to execute
-   * @param { string } windowId ID of the HTML window to execute it in.
+   * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string, windowId: string): Promise | void;
+  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
@@ -2083,6 +2085,17 @@ declare class HTMLView {
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
 type Window = HTMLView | Editor
+
+// dbw commenting this out because it doesn't work and causes Flow errors
+// type document = {
+//   /**
+//    * Set the title of the HTML window.
+//    * Note: Available From 3.12 b1201.
+//    */
+//   title?: string,
+//   addEventListener?: any,
+//   removeEventListener?: any,
+// }
 
 type FetchOptions = {
   /* all optional */

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
@@ -230,19 +231,25 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
 
 /**
  * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
+ * Optionally look in sub-folders as well.
  * @author @jgclark
  *
  * @param {string} folder - folder to scan
+ * @param {string} alsoSubFolders? - also look in subfolders under the folder name
  * @return {Array<TNote>} - list of notes
  */
-export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
+export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boolean = false): Array<TNote> {
   try {
     // logDebug('note/notesInFolderSortedByTitle', `Starting for folder '${folder}'`)
     const allNotesInFolder = DataStore.projectNotes.slice()
     let notesInFolder: Array<TNote>
     // If folder given (not empty) then filter using it
     if (folder !== '') {
-      notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      if (alsoSubFolders) {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename).startsWith(folder))
+      } else {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      }
     } else {
       // return all project notes
       notesInFolder = allNotesInFolder
@@ -428,6 +435,41 @@ export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], 
     return notesSorted
   } catch (err) {
     logError('note/projectNotesSortedByTitle', err.message)
+    return []
+  }
+}
+
+/**
+ * Filter out from the supplied list of notes any that are in specific excluded folders, or optionally in all special @folders.
+ * @author @jgclark
+ * @param {$ReadOnlyArray<TNote>} projectNotesIn
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
+ */
+export function filterOutProjectNotesFromExcludedFolders(projectNotesIn: $ReadOnlyArray<TNote>, foldersToExclude: Array<string>, excludeSpecialFolders: boolean = true): Array<TNote> {
+  try {
+    const excludedFolders = foldersToExclude
+    if (excludeSpecialFolders) {
+      excludedFolders.push('@Templates')
+    }
+    const outputList: Array<TNote> = []
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `Starting with ${String(projectNotesIn.length)} notes and excluding ${String(excludedFolders)}`)
+    for (const n of projectNotesIn) {
+      let include = true
+      const thisFolder = getFolderFromFilename(n.filename)
+      for (const ef of excludedFolders) {
+        if (thisFolder.startsWith(ef)) {
+          include = false
+          logDebug('note/filterOutProjectNotesFromExcludedFolders', `- exclued note filename ${n.filename} as starts with an excludedFolder ${ef}`)
+        }
+      }
+      if (include) outputList.push(n)
+    }
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `-> ${String(outputList)}`)
+    return outputList
+  } catch (err) {
+    logError('note/filterOutProjectNotesFromExcludedFolders', err.message)
     return []
   }
 }
@@ -650,12 +692,12 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
 export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {
     if (!excludedFolders) {
-      logDebug('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+      logInfo('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
       return paras
     }
     const noteFilenameList: Array<string> = paras.map((p) => p.note?.filename ?? '(unknown)')
     const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
-    logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
+    // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
       const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)

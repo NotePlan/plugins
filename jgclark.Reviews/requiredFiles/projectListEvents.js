@@ -295,7 +295,7 @@ function addCommandButtonEventListeners() {
     console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      console.log(`Attempting to send plugin command ${button.dataset.command} ...`)
+      console.log(`Attempting to send plugin command '${button.dataset.command}' ...`)
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)

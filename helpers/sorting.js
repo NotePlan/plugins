@@ -168,7 +168,7 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
  * TODO: Extend to add 'working-on' support (W)
  * @author @dwertheimer
  * @param {SortableParagraphSubset} item
- * @returns {number} priority from 3, 2, 1, -1 (default)
+ * @returns {number} priority from 3, 2, 1, 4 for >> or -1 (default)
  */
 export function getNumericPriority(item: SortableParagraphSubset): number {
   let prio = -1
@@ -176,8 +176,8 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
     prio = item.exclamations[0].length
   } else if (item.parensPriority[0]) {
     prio = item.parensPriority[0].charCodeAt(0) - 'A'.charCodeAt(0) + 1
-  } else {
-    prio = -1
+  } else if (item.content.startsWith('>>')) {
+    prio = 4
   }
   return prio
 }

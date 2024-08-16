@@ -135,9 +135,9 @@ export async function appendTaskToNote(
  * Note: duplicate headings not properly handled, due to NP architecture.
  * @author @jgclark
  * @param {string?} noteTitleArg note title to use (can be YYYYMMDD as well as usual calendar titles)
- * @param {string?} headingArg
- * @param {string?} textArg
- * @param {string?} headingLevelArg
+ * @param {string?} headingArg optional heading to put checklist under
+ * @param {string?} textArg optional text to use as checklist
+ * @param {string? | number?} headingLevelArg optional heading level 1-5
  */
 export async function addChecklistToNoteHeading(
   noteTitleArg?: string = '',
@@ -228,15 +228,15 @@ export async function addChecklistToNoteHeading(
  * Note: duplicate headings not properly handled, due to NP architecture.
  * @author @jgclark
  * @param {string?} noteTitleArg note title to use (can be YYYYMMDD as well as usual calendar titles)
- * @param {string?} headingArg
- * @param {string?} textArg
- * @param {string?} headingLevelArg
+ * @param {string?} headingArg optional heading to put task under
+ * @param {string?} textArg optional task text
+ * @param {string? | number?} headingLevelArg optional heading level 1-5
  */
 export async function addTaskToNoteHeading(
   noteTitleArg?: string = '',
   headingArg?: string = '',
   textArg?: string = '',
-  headingLevelArg?: string
+  headingLevelArg?: string | number
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${headingArg != null ? headingArg : '<undefined>'}' arg2 '${textArg != null ? textArg : '<undefined>'}' arg3 '${headingLevelArg != null ? headingLevelArg : '<undefined>'}'`)

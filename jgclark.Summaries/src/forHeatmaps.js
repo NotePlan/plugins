@@ -5,44 +5,44 @@
 // Last updated 16.2.2024 for v0.20.0+, @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import {
-  calcHashtagStatsPeriod,
-  calcMentionStatsPeriod,
+  // calcHashtagStatsPeriod,
+  // calcMentionStatsPeriod,
   gatherOccurrences,
-  generateProgressUpdate,
+  // generateProgressUpdate,
   getSummariesSettings,
   type OccurrencesToLookFor,
   TMOccurrences,
-  type SummariesConfig
+  // type SummariesConfig
 } from './summaryHelpers'
 import {
   generateTaskCompletionStats,
   getFirstDateForWeeklyStats
 } from './forCharts'
 import {
-  calcWeekOffset,
-  getDateObjFromDateString,
-  getDateStringFromCalendarFilename,
+  // calcWeekOffset,
+  // getDateObjFromDateString,
+  // getDateStringFromCalendarFilename,
   getISODateStringFromYYYYMMDD,
-  getJSDateStartOfToday,
-  getTodaysDateHyphenated,
-  getWeek,
-  hyphenatedDate,
-  hyphenatedDateString,
+  // getJSDateStartOfToday,
+  // getTodaysDateHyphenated,
+  // getWeek,
+  // hyphenatedDate,
+  // hyphenatedDateString,
   RE_ISO_DATE,
   todaysDateISOString, // const
-  toISODateString,
-  unhyphenatedDate,
-  isoWeekStartEndDates,
+  // toISODateString,
+  // unhyphenatedDate,
+  // isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import { getNPWeekData, localeDateStr, pad, setMomentLocaleFromEnvironment } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { getLocale } from '@helpers/NPConfiguration'
-import { chooseOption, getInput, showMessage } from '@helpers/userInput'
+import { getInput } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 const pluginID = 'jgclark.Summaries'
@@ -64,7 +64,7 @@ export async function testJGCHeatmaps(): Promise<void> {
 
     // Get date range to use
     const toDateStr = todaysDateISOString
-    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    const [fromDateStr, _numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
 
     const heatmapDefinitions: Array<HeatmapDefinition> = [
       {
@@ -105,7 +105,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     const config = await getSummariesSettings()
 
     // Set some default values
-    const [fromDateStrDefault, numWeeksDefault] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+    const [fromDateStrDefault, _numWeeksDefault] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
     const toDateStrDefault = todaysDateISOString
     const numberIntervalsDefault = 180
 
@@ -136,9 +136,9 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
         toDateStr: toDateStrDefault,
       }
     }
-    const numWeeks = (heatmapDef.intervalType === 'week')
-      ? heatmapDef.numberIntervals
-      : heatmapDef.numberIntervals / 7.0
+    // const numWeeks = (heatmapDef.intervalType === 'week')
+    //   ? heatmapDef.numberIntervals
+    //   : heatmapDef.numberIntervals / 7.0
 
     logDebug('showTagHeatmap', `- starting for ${tagName} for (${heatmapDef.fromDateStr} to ${heatmapDef.toDateStr}) ...`)
     clo(heatmapDef, 'heatmapDef')
@@ -160,6 +160,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       GOMentionsAverage: [],
       GOMentionsTotal: tagName.startsWith('@') ? [tagName] : [],
       GOMentionsExclude: [],
+      GOChecklistRefNote: "",
     }
     const tagOccurrences: Array<TMOccurrences> = gatherOccurrences(`${heatmapDef.numberIntervals} days`, heatmapDef.fromDateStr, heatmapDef.toDateStr, occConfig)
 
@@ -183,8 +184,8 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     // Calc total from the period
     let total = 0
     let count = 0
-    for (let item of thisStatsMap) {
-      const isoDate = item[0]
+    for (const item of thisStatsMap) {
+    // const isoDate = item[0]
       const value = item[1]
       if (!isNaN(value)) {
         total += value
@@ -238,9 +239,9 @@ export async function calcTagStatsMap(
     logDebug(pluginJson, `calcTagStatsMap: starting for '${tagName}' for interval ${intervalType} ...`)
 
     if (intervalType === 'day') {
-      const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
-      const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
-      const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
+      // const fromDateMoment = moment(fromDateStr, 'YYYY-MM-DD')
+      // const toDateMoment = moment(toDateStr, 'YYYY-MM-DD')
+      // const daysInInterval = toDateMoment.diff(fromDateStr, 'day')
 
       // start a timer and spinner
       CommandBar.showLoading(true, `Generating ${tagName} stats ...`)
@@ -259,6 +260,7 @@ export async function calcTagStatsMap(
         GOMentionsAverage: [],
         GOMentionsTotal: tagName.startsWith('@') ? [tagName] : [],
         GOMentionsExclude: [],
+        GOChecklistRefNote: "",
       }
       const tagOccurrences: Array<TMOccurrences> = gatherOccurrences('day ?', fromDateStr, toDateStr, occConfig)
       const thisTagOcc = tagOccurrences[0]
@@ -270,12 +272,12 @@ export async function calcTagStatsMap(
       // thisTagOcc.logValuesMap()
 
       // Copying the existing object, which is the easiest way to re-order by date
-      let outputMap = new Map([...thisTagOcc.valuesMap].sort())
+      const outputMap = new Map([...thisTagOcc.valuesMap].sort())
       logInfo('calcTagStatsMap', `-> ${outputMap.size} statsMap items.`)
 
       return outputMap
     } else {
-      throw new Error('Unsupported interval type: ' + intervalType)
+      throw new Error(`Unsupported interval type: ${intervalType}`)
     }
 
     // // Calc total completed in period
@@ -317,7 +319,7 @@ export async function generateHeatMap(
   chartTitle: string,
   statsMap: Map<string, number>,
   colorScaleRange: string = '["#FFFFFF", "#03B003"]',
-  intervalType: string,
+  _intervalType: string,
   fromDateStr: string,
   toDateStr: string,
   filenameToSave: string,
@@ -334,7 +336,7 @@ export async function generateHeatMap(
         isoDate = isoDate, for use in tooltips
      */
     const dataToPass = []
-    for (let item of statsMap) {
+    for (const item of statsMap) {
       const tempDate = item[0]
       const isoDate = (tempDate.match(RE_ISO_DATE)) ? tempDate : getISODateStringFromYYYYMMDD(tempDate)
       const value = item[1]
@@ -345,9 +347,9 @@ export async function generateHeatMap(
       if (!weekInfo?.weekNumber) throw new Error(`Invalid startWeek based on ${isoDate}, so can't continue`)
       const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
-      const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : weekInfo.weekYear // with this library the value needs to be identical all week
+      const weekTitle = (weekNum !== 1) ? `W${pad(weekNum)}` : weekInfo.weekYear // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
-      let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
+      const dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
       if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
         // one of the data points added on the start to get the layour right ... don't pass the date
         dataPointObj.isoDate = ''
@@ -448,14 +450,14 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
 
   // Work out time interval to use
   const toDateStr = todaysDateISOString
-  let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+  const [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
   logDebug('generateHeatMap', `generateHeatMap: starting for ${String(numWeeks)} weeks (${fromDateStr} to ${toDateStr}) ...`)
 
   const statsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', fromDateStr) // to today
 
   // Calc total completed in period
   let total = 0
-  for (let item of statsMap) {
+  for (const item of statsMap) {
     const isoDate = item[0]
     const value = item[1]
     if (withinDateRange(isoDate, fromDateStr, toDateStr)) {

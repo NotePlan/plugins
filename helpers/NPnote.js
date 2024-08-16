@@ -44,19 +44,20 @@ export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     let thisFilename = ''
     // TODO: Ideally move this to a function, for i18n. Can Moment or Chrono libraries help?
-    const noteIdentifier = (noteIdentifierIn === 'today')
-      ? '{0d}'
-      : (noteIdentifierIn === 'yesterday')
+    const noteIdentifier =
+      noteIdentifierIn === 'today'
+        ? '{0d}'
+        : noteIdentifierIn === 'yesterday'
         ? '{-1d}'
-        : (noteIdentifierIn === 'tomorrow')
-          ? '{+1d}'
-          : (noteIdentifierIn === 'this week')
-            ? '{0w}'
-            : (noteIdentifierIn === 'last week')
-              ? '{-1w}'
-              : (noteIdentifierIn === 'next week')
-                ? '{+1w}'
-                : noteIdentifierIn
+        : noteIdentifierIn === 'tomorrow'
+        ? '{+1d}'
+        : noteIdentifierIn === 'this week'
+        ? '{0w}'
+        : noteIdentifierIn === 'last week'
+        ? '{-1w}'
+        : noteIdentifierIn === 'next week'
+        ? '{+1w}'
+        : noteIdentifierIn
     const possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
     if (possibleProjectNotes.length > 0) {
       thisFilename = possibleProjectNotes[0].filename
@@ -243,7 +244,7 @@ export function getReferencedParagraphs(note: Note, includeHeadings: boolean = t
       }
     })
   })
-  logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
+  // logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
   return wantedParas
 }
 
@@ -265,7 +266,7 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
   return getReferencedParagraphs(note)
 }
 
-export type OpenNoteOptions = $Shape<{
+export type OpenNoteOptions = Partial<{
   newWindow?: boolean,
   splitView?: boolean,
   highlightStart?: number,
@@ -276,21 +277,51 @@ export type OpenNoteOptions = $Shape<{
 
 /**
  * Convenience Method for Editor.openNoteByFilename, include only the options you care about (requires NP v3.7.2+)
+ * Tries to work around NP bug where opening a note that doesn't exist doesn't work
+ * If you send the options.content field to force content setting,   it should have a value or undefined (not null)
  * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`
  * @param {OpenNoteOptions} options - options for opening the note (all optional -- see fields in type)
  * @returns {Promise<TNote|void>} - the note that was opened
+ * @author @dwertheimer
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
-  // $FlowFixMe[incompatible-call]
-  return await Editor.openNoteByFilename(
+  const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+  let note = await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
     options.highlightStart || 0,
     options.highlightEnd || 0,
     options.splitView || false,
     options.createIfNeeded || false,
-    options.content || null,
+    options.content || undefined /* important for this to be undefined or NP creates a note with "null" */,
   )
+  if (!note) {
+    logDebug(pluginJson, `openNoteByFilename could not open note with filename: "${filename}" (probably didn't exist)`)
+    // note may not exist yet, so try to create it (if it's a calendar note)
+    const dataStoreNote = isCalendarNote ? await DataStore.noteByFilename(filename, 'Calendar') : null
+    if (dataStoreNote) {
+      dataStoreNote.content = ''
+      // $FlowIgnore[incompatible-call]
+      note = await Editor.openNoteByFilename(
+        filename,
+        options.newWindow || false,
+        options.highlightStart || 0,
+        options.highlightEnd || 0,
+        options.splitView || false,
+        options.createIfNeeded || false,
+        options.content || undefined,
+      )
+    }
+  }
+  if (!note) {
+    logError(
+      pluginJson,
+      `openNoteByFilename could not open ${isCalendarNote ? 'Calendar ' : 'Project'} note with filename: "${filename}" ${
+        isCalendarNote ? '' : '. You may need to set "createIfNeeded" to true for this to work'
+      }`,
+    )
+  }
+  return note
 }
 
 /**
@@ -349,9 +380,31 @@ export function scrollToParagraphWithContent(content: string): boolean {
 }
 
 /**
+ * Return list of all notes of type ['Notes'] or ['Calendar'] or both (default).
+ * @author @jgclark
+ * @param {Array<string>} noteTypesToInclude
+ * @returns {Array<TNote>}
+ */
+export function getAllNotesOfType(noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
+  try {
+    let allNotesToCheck: Array<TNote> = []
+    if (noteTypesToInclude.includes('Calendar')) {
+      allNotesToCheck = DataStore.calendarNotes.slice()
+    }
+    if (noteTypesToInclude.includes('Notes')) {
+      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    }
+    return allNotesToCheck
+  } catch (err) {
+    logError('getAllNotesOfType', `${err.name}: ${err.message}`)
+    return [] // for completeness
+  }
+}
+
+/**
  * Return list of all notes changed in the last 'numDays'.
- * Set 'noteTypesToInclude' to just ['Notes'] or ['Calendar'] to include just those note types
- * Edge case: if numDays === 0 return all Calendar and Project notes
+ * Set 'noteTypesToInclude' to just ['Notes'] or ['Calendar'] to include just those note types.
+ * Note: if numDays === 0 then it will only return notes changed in the current day, not the last 24 hours.
  * @author @jgclark
  * @param {number} numDays
  * @param {Array<string>} noteTypesToInclude
@@ -367,20 +420,15 @@ export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: A
       allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
     }
     let matchingNotes: Array<TNote> = []
-    if (numDays > 0) {
-      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-      const momentToStartLooking = todayStart.subtract(numDays, 'days')
-      const jsdateToStartLooking = momentToStartLooking.toDate()
+    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+    const momentToStartLooking = todayStart.subtract(numDays, 'days')
+    const jsdateToStartLooking = momentToStartLooking.toDate()
 
-      matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-      logDebug(
-        'getNotesChangedInInterval',
-        `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`,
-      )
-    } else {
-      matchingNotes = allNotesToCheck
-      logDebug('getNotesChangedInInterval', `returning all ${allNotesToCheck.length} notes`)
-    }
+    matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
+    logDebug(
+      'getNotesChangedInInterval',
+      `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`,
+    )
     return matchingNotes
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -449,15 +497,15 @@ export function findNotesMatchingHashtagOrMention(
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
 ): Array<TNote> {
-  logDebug(
-    `NPNote/findNotesMatchingHashtagOrMention`,
-    `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
-  )
+  // logDebug(
+  //   `NPNote/findNotesMatchingHashtagOrMention`,
+  //   `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
+  // )
   return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true, alsoSearchCalendarNotes)
 }
 
 /**
- * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on. 
+ * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
  * Originally only looked in Project Notes, but 'alsoSearchCalendarNotes' allows it to look further.
  * @author @jgclark
  * @param {string} tag - tag/mention name to look for
@@ -478,7 +526,7 @@ export function findNotesMatchingHashtag(
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
   alsoSearchMentions: boolean = false,
-  alsoSearchCalendarNotes: boolean = false
+  alsoSearchCalendarNotes: boolean = false,
 ): Array<TNote> {
   // Check for special conditions first
   if (tag === '') {
@@ -532,7 +580,7 @@ export function findNotesMatchingHashtag(
       }
     })
   }
-  logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  // logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
 
   // If we care about the excluded tag, then further filter out notes where it is found
   if (tagsToExclude.length > 0) {
@@ -559,11 +607,7 @@ export function findNotesMatchingHashtag(
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<Array<TNote>>} array of list of notes
  */
-export function findNotesMatchingHashtags(
-  tags: Array<string>,
-  folder: ?string,
-  includeSubfolders: ?boolean = false
-): Array<Array<TNote>> {
+export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
   if (tags.length === 0) {
     logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
     return []

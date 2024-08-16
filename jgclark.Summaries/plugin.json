@@ -307,8 +307,8 @@
     },
     {
       "key": "progressChecklistReferenceNote",
-      "title": "Name of reference note for checklist items",
-      "description": "Name of the note to use as a reference for checklist items. If this is left blank, then no reference note will be used.",
+      "title": "Title of Reference note for checklist items",
+      "description": "Title of the note to use as a reference for checklist items. If this is left blank, then no reference note will be used.",
       "type": "string",
       "default": "",
       "required": false

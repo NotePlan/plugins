@@ -1,29 +1,17 @@
 {
-  "noteplan.minAppVersion": "3.8.1",
+  "noteplan.minAppVersion": "3.7",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Dashboard",
   "plugin.name": "🎛 Dashboard",
-  "plugin.description": "A Dashboard for NotePlan",
-  "plugin.icon": "🎛",
-  "plugin.author": "Jonathan Clark",
-  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.2.2",
-  "plugin.lastUpdateInfo": "1.2.2: Correct date handling when rescheduling tasks\n1.2.1: Add ability to schedule to today using the specific date\n1.2.0: add support for use on iPhones. Updating settings will refresh Dashboard.\n1.1.3: small fixes\n1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
-  "plugin.dependsOn": [
-    {
-      "id": "np.Shared",
-      "minVersion": "0.4.8"
-    }
-  ],
+  "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
+  "plugin.author": "@jgclark",
+  "plugin.version": "2.0.5",
+  "plugin.hidden": false,
+  "plugin.lastUpdateInfo": "2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
+  "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "dashboard.css",
-    "dashboardDialog.css",
-    "dashboardEvents.js",
-    "debounce.js",
-    "HTMLWinCommsSwitchboard.js",
-    "dashboardShortcuts.js",
-    "showTimeAgo.js"
+    "react.c.WebView.bundle.min.js",
+    "react.c.WebView.bundle.dev.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -33,42 +21,57 @@
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
-    "pluginToHTMLCommsBridge.js",
-    "encodeDecode.js",
-    "shortcut.js"
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.script": "script.js",
-  "plugin.isRemote": "false",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/README.md",
   "plugin.commands": [
     {
-      "name": "show dashboard",
+      "name": "Show Dashboard",
+      "description": "Show Dashboard",
+      "jsFunction": "showDashboardReact",
+      "hidden": false,
       "alias": [
-        "db",
-        "sdb"
+        "sd"
       ],
-      "description": "Show Dashboard window",
-      "jsFunction": "showDashboard"
+      "arguments": [
+        "Sections to load (sectionCodes, comma-separated -- see README for list)"
+      ]
     },
     {
-      "name": "refreshDashboard",
-      "hidden": true,
-      "description": "Refresh Dashboard window if already open",
-      "jsFunction": "refreshDashboard"
-    },
-    {
-      "name": "onMessageFromHTMLView",
-      "description": "Dashboard: Callback function to receive messages from HTML view",
-      "jsFunction": "onMessageFromHTMLView",
-      "hidden": true
-    },
-    {
-      "name": "show demo dashboard",
-      "alias": [
-        "ddb"
-      ],
+      "name": "Show Demo Dashboard",
       "description": "Show Demo Dashboard",
       "jsFunction": "showDemoDashboard",
-      "hidden": true
+      "hidden": true,
+      "alias": [
+        "sdd"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "setSetting",
+      "description": "Set a single key:value setting",
+      "jsFunction": "setSetting",
+      "hidden": true,
+      "arguments": [
+        "key",
+        "value"
+      ]
+    },
+    {
+      "name": "setSettings",
+      "description": "Set multiple key:value settings",
+      "jsFunction": "setSettings",
+      "hidden": true,
+      "arguments": [
+        "params as concatentaed list of key=value;"
+      ]
+    },
+    {
+      "name": "Make Callback from Current Settings",
+      "description": "Make a callback url or link for the current settings, and copy to the clipboard.",
+      "jsFunction": "makeSettingsAsCallback",
+      "hidden": "false"
     },
     {
       "name": "decideWhetherToUpdateDashboard",
@@ -77,87 +80,15 @@
       "hidden": true
     },
     {
-      "name": "addTask",
-      "description": "HTML window entry point to interactively add a new task",
-      "jsFunction": "addTask",
+      "name": "refreshProjectSection",
+      "description": "Refresh project section",
+      "jsFunction": "refreshProjectSection",
       "hidden": true
     },
     {
-      "name": "addChecklist",
-      "description": "HTML window entry point to interactively add a new checklist",
-      "jsFunction": "addChecklist",
-      "hidden": true
-    },
-    {
-      "name": "schedule yesterday to today",
-      "description": "schedule all yesterday's open items to today",
-      "jsFunction": "scheduleAllYesterdayOpenToToday",
-      "hidden": true
-    },
-    {
-      "name": "schedule today to tomorrow",
-      "description": "schedule all open items from today to tomorrow",
-      "jsFunction": "scheduleAllTodayTomorrow",
-      "hidden": true
-    },
-    {
-      "name": "schedule overdue to today",
-      "description": "schedule all overdue items to today",
-      "jsFunction": "scheduleAllOverdueOpenToToday",
-      "hidden": true
-    },
-    {
-      "name": "toggleOverdueSection",
-      "description": "toggle whether Overdue section is shown",
-      "jsFunction": "toggleOverdueSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleMonthSection",
-      "description": "toggle whether Month section is shown",
-      "jsFunction": "toggleMonthSection",
-      "hidden": true
-    },
-    {
-      "name": "togglePriorityFilter",
-      "description": "toggle priority filter",
-      "jsFunction": "togglePriorityFilter",
-      "hidden": true
-    },
-    {
-      "name": "toggleQuarterSection",
-      "description": "toggle whether Quarter section is shown",
-      "jsFunction": "toggleQuarterSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleTomorrowSection",
-      "description": "toggle whether Tomorrow section is shown",
-      "jsFunction": "toggleTomorrowSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleWeekSection",
-      "description": "toggle whether Week section is shown",
-      "jsFunction": "toggleWeekSection",
-      "hidden": true
-    },
-    {
-      "name": "toggleWeekSection",
-      "description": "toggle whether Week section is shown",
-      "jsFunction": "toggleWeekSection",
-      "hidden": true
-    },
-    {
-      "name": "turnOnAllSections",
-      "description": "turn on all sections",
-      "jsFunction": "turnOnAllSections",
-      "hidden": true
-    },
-    {
-      "name": "versionCheck",
-      "description": "test: version check",
-      "jsFunction": "versionCheck",
+      "name": "onMessageFromHTMLView",
+      "description": "React Window calling back to plugin",
+      "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     },
     {
@@ -165,22 +96,83 @@
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall",
       "hidden": true
-    },
+    }
+  ],
+  "plugin.commands.unused": [
     {
-      "name": "Dashboard: reset window size",
-      "description": "reset Dashboard window size",
-      "jsFunction": "resetDashboardWinSize"
+      "name": "buildListOfDoneTasksToday",
+      "description": "test: buildListOfDoneTasksToday",
+      "jsFunction": "buildListOfDoneTasksToday",
+      "hidden": false
     },
     {
       "name": "Dashboard: update plugin settings",
       "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
+      "jsFunction": "editSettings"
     }
   ],
   "plugin.settings": [
     {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "jgclark.Dashboard",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "type": "hidden",
+      "key": "reactSettings",
+      "description": "Saves last state of react UI choices as JSON string.",
+      "required": true,
+      "default": "{}"
+    },
+    {
       "type": "heading",
-      "title": "Dashboard main settings"
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEV",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "_logTimer",
+      "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "All the rest of the Settings have been migrated to the Dashboard Window, so please make your changes there."
+    },
+    {
+      "type": "hidden",
+      "key": "dashboardSettings",
+      "description": "Saves last state of dashboardSettings as JSON string.",
+      "required": true,
+      "default": "{}"
+    }
+  ],
+  "plugin.unused_settings": [
+    {
+      "type": "heading",
+      "title": "Do Not Change These Settings"
+    },
+    {
+      "type": "heading",
+      "title": "Settings have been migrated to the Dashboard Window, so you can make your changes there. They are only here temporarily for migration purposes."
     },
     {
       "key": "separateSectionForReferencedNotes",
@@ -191,11 +183,19 @@
       "required": true
     },
     {
-      "key": "dashboardTheme",
-      "title": "Theme to use for Dashboard",
-      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
+      "key": "ignoreChecklistItems",
+      "title": "Ignore checklist items",
+      "description": "If set, only tasks are included in any of the sections.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "ignoreTasksWithPhrase",
+      "title": "Ignore items in calendar sections with this phrase",
+      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.\nNote: This doesn't apply to the Tag/Mention section, which has its own setting.",
       "type": "string",
-      "default": "",
+      "default": "#waiting",
       "required": false
     },
     {
@@ -207,14 +207,6 @@
         "@Archive",
         "Saved Searches"
       ],
-      "required": false
-    },
-    {
-      "key": "ignoreTasksWithPhrase",
-      "title": "Ignore items in calendar sections with this phrase",
-      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.\nNote: This doesn't apply to the Tag/Mention section, which has its own setting.",
-      "type": "string",
-      "default": "#waiting",
       "required": false
     },
     {
@@ -242,14 +234,6 @@
       "required": true
     },
     {
-      "key": "ignoreChecklistItems",
-      "title": "Ignore checklist items",
-      "description": "If set, only tasks are included in any of the sections.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
       "key": "excludeChecklistsWithTimeblocks",
       "title": "Exclude checklists that include time blocks?",
       "description": "Whether to stop display of open checklists that contain a time block",
@@ -266,16 +250,12 @@
       "required": true
     },
     {
-      "key": "maxTasksToShowInSection",
+      "key": "maxItemsToShowInSection",
       "title": "Max number of items to show in a section?",
       "description": "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
       "type": "number",
       "default": 30,
       "required": true
-    },
-    {
-      "type": "heading",
-      "title": "Moving tasks"
     },
     {
       "key": "newTaskSectionHeading",
@@ -295,58 +275,19 @@
     },
     {
       "key": "useTodayDate",
-      "title": "Use '>today' to schedule tasks for today?",
+      "title": "Use 'today' to schedule tasks for today?",
       "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "What Calendar sections to show"
-    },
-    {
-      "key": "showYesterdaySection",
-      "title": "Show section for Yesterday?",
-      "description": "Whether to show a 'Yesterday' section for Yesterday's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "showTomorrowSection",
-      "title": "Show section for Tomorrow?",
-      "description": "Whether to show a 'Tomorrow' section for Tomorrow's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "showWeekSection",
-      "title": "Show section for Week?",
-      "description": "Whether to show a 'Week' section for Week's open items, after the 'Today' section.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "showMonthSection",
-      "title": "Show section for Month?",
-      "description": "Whether to show a 'Month' section for open items in this month's calendar note",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "showQuarterSection",
-      "title": "Show section for Quarter?",
-      "description": "Whether to show a 'Qaurter' section for open items in this quarter's calendar note",
-      "type": "bool",
-      "default": true,
-      "required": true
+      "key": "dashboardTheme",
+      "title": "Theme to use for Dashboard",
+      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "type": "separator"
@@ -356,7 +297,7 @@
       "title": "Overdue Tasks section"
     },
     {
-      "key": "showOverdueTaskSection",
+      "key": "showOverdueSection",
       "title": "Show section for Overdue tasks?",
       "description": "If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note.",
       "type": "bool",
@@ -377,15 +318,6 @@
       "required": true
     },
     {
-      "key": "updateOverdueOnTrigger",
-      "hidden": true,
-      "title": "Update Overdue section when triggered?",
-      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "type": "separator"
     },
     {
@@ -393,7 +325,7 @@
       "title": "Tag/Mention section"
     },
     {
-      "key": "tagToShow",
+      "key": "tagsToShow",
       "title": "#tag/@mention to show",
       "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to a signle hashtag or mention for speed, and it can show tasks duplicated from other sections.",
       "type": "string",
@@ -415,35 +347,6 @@
       "description": "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
       "type": "bool",
       "default": true,
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Debugging"
-    },
-    {
-      "key": "_logLevel",
-      "type": "string",
-      "title": "Log Level",
-      "choices": [
-        "DEBUG",
-        "INFO",
-        "WARN",
-        "ERROR",
-        "none"
-      ],
-      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
-      "default": "INFO",
-      "required": true
-    },
-    {
-      "key": "triggerLogging",
-      "title": "Include extra trigger logs?",
-      "type": "bool",
-      "default": false,
       "required": true
     }
   ]

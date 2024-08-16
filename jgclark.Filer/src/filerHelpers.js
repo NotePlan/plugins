@@ -2,12 +2,12 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 29.4.2023, for v1.1.0
+// last updated 9.6.2024, for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
-import { getSetting } from '@helpers/NPConfiguration'
+// import { getSetting } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -52,7 +52,7 @@ export async function getFilerSettings(): Promise<any> {
     }
   } catch (err) {
     logError(pluginJson, `GetFilerSettings(): ${err.name}: ${err.message}`)
-    await showMessage('Error: ' + err.message)
+    await showMessage(`Error: ${err.message}`)
   }
 }
 

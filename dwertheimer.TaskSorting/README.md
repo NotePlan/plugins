@@ -89,6 +89,10 @@ This plugin will give you a choice of whether to mark all open tasks as complete
 
 ### /ctt - Duplicate line for each @tag but change the order so each tag shows up first on its own line (and therefore will be sorted under that @mention heading when using /ts - task sorter)
 
+### /cnt copy **all** noteTags from "noteTags" in frontMatter to all task in the current note
+
+![NoteTags demo](src/docs/cnt-demo.gif)
+
 ## Future Features / Todo List
 
 - Sort tasks via template call

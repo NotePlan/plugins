@@ -22,7 +22,11 @@ a, a:visited, a:active {
 }
 /* Keep a header stuck to top middle of window */
 .sticky-box-top-middle {
-  position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); line-height: 1.8rem; margin: auto; padding: 4px; align: middle; text-align: center;
+  position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); border-radius: 6px; line-height: 1.8rem; margin: auto; padding: 4px; text-align: center;
+}
+/* header text within box */
+.sticky-box-header {
+  font-weight: 600;
 }
 /* removed L-R borders for now */
 th {
@@ -97,7 +101,7 @@ button, .fake-button, .clickTarget {
 	color: var(--fg-main-color);
 	background-color: var(--bg-main-color);
   /* add a clearer border to all buttons (compared to Dashboard main window) */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.5);
 	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
 	padding: 2px 3px 0px 3px;
 	margin: 0px 2px; /* a little L and R */

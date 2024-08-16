@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 3.4.2024 for v0.14.0, @jgclark
+// Last updated 2024-07-13 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,10 +21,10 @@ import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
   getReviewSettings,
-  // makeFakeButton,
   Project,
   type ReviewConfig,
   saveEditorToCache,
+  updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
@@ -42,7 +42,7 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeNote } from '@helpers/note'
+import { filterOutProjectNotesFromExcludedFolders, getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import {
@@ -58,7 +58,7 @@ import {
 // Settings
 const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
-const windowTitle = `Review List`
+const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
@@ -416,28 +416,28 @@ export async function renderProjectListsHTML(
       '',
       'Skip this Project review and select new date')
     const updateProgressPCButton = makePluginCommandButton(
-      `\u00A0<i class="fa-regular fa-message-pen"></i>\u00A0Add Progress`,
+      `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
       'jgclark.Reviews',
       'add progress update',
       '',
       'Add a progress line to the currently open Project note',
     )
     const pausePCButton = makePluginCommandButton(
-      `Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`,
+      `Toggle\u00A0<i class="fa-solid fa-circle-pause"></i>\u00A0Pause`,
       'jgclark.Reviews',
       'pause project toggle',
       '',
       'Pause the currently open Project note',
     )
     const completePCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-check"></i>\u00A0Complete`,
+      `<i class="fa-solid fa-circle-check"></i>\u00A0Complete`,
       'jgclark.Reviews',
       'complete project',
       '',
       'Complete the currently open Project note',
     )
     const cancelPCButton = makePluginCommandButton(
-      `<i class="fa-solid fa-xmark"></i>\u00A0Cancel`,
+      `<i class="fa-solid fa-circle-xmark"></i>\u00A0Cancel`,
       'jgclark.Reviews',
       'cancel project',
       '',
@@ -448,7 +448,7 @@ export async function renderProjectListsHTML(
     // outputArray.push(`<h1>${windowTitle}</h1>`)
 
     // Add a sticky area for buttons
-    const controlButtons = `<b>Reviews</b>: ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><b>List</b>: \n${refreshPCButton} \n<b>Project</b>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
+    const controlButtons = `<span class="sticky-box-header">Reviews</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
     // TODO: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
@@ -541,7 +541,7 @@ export async function renderProjectListsHTML(
     <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
-        <div>Project Reviews</div>
+        <div>Reviews</div>
         <div id="projectControlDialogProjectControls">
           <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
           <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
@@ -549,12 +549,12 @@ export async function renderProjectListsHTML(
           <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
           <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
         </div>
-        <div>Project Actions</div>
+        <div>Actions</div>
         <div>
-          <button data-control-str="progress"><i class="fa-regular fa-message-pen"></i> Add Progress</button>
-          <button data-control-str="pause">Toggle <i class="fa-solid fa-play-pause"></i> Pause</button>
-          <button data-control-str="complete"><i class="fa-solid fa-check"></i> Complete</button>
-          <button data-control-str="cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>
+          <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
+          <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
+          <button data-control-str="complete"><i class="fa-solid fa-circle-check"></i> Complete</button>
+          <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
         </div>
         <div></div>
         <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
@@ -880,7 +880,8 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
  * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-export function logFullReviewList(): void {
+// eslint-disable-next-line require-await -- stops a logging error
+export async function logFullReviewList(): Promise<void> {
   const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
   console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
 }
@@ -979,11 +980,8 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
 
     logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
 
-    // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
-    logDebug('makeFullReviewList', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
-    await NotePlan.openURL(refreshXCallbackURL)
-
+    // Finally, refresh Dashboard if open
+    updateDashboardIfOpen()
   } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)
   }
@@ -1335,7 +1333,12 @@ export async function skipReview(): Promise<void> {
   }
 }
 
-export async function skipReviewForNote(note: TNote, skipPeriod: string): Promise<void> {
+/**
+ * Skip the next review for the given note, to the date/interval specified.
+ * Note: skipReview() is an interactive version of this for Editor.note
+ * @author @jgclark
+ */
+export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1343,28 +1346,28 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
     if (!note || note.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
+    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)} with ${skipIntervalOrDate}`)
 
-    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)}`)
     const thisNoteAsProject = new Project(note)
 
-    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
-      ? calcOffsetDateStr(todaysDateISOString, skipPeriod)
-      : ''
+    // Get new date from parameter as date interval or iso date 
+    const newDateStr: string = skipIntervalOrDate.match(RE_DATE_INTERVAL)
+      ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
+      : skipIntervalOrDate.match(RE_DATE)
+        ? skipIntervalOrDate
+        : ''
     if (newDateStr === '') {
-      logWarn('skipReviewForNote', `${skipPeriod} is not a valid interval, so will stop.`)
+      logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
       return
     }
+
+    // create new metadata`@nextReview(date)`. Note: different from `@reviewed(date)` below.
     const nextReviewDate = getDateObjFromDateString(newDateStr)
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReviewForNote', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
     // Update metadata in that note
     await updateMetadataInNote(note, [nextReviewMetadataStr])
-
-    // // Save Editor, so the latest changes can be picked up elsewhere
-    // // Putting the Editor.save() here, rather than in the above functions, seems to work
-    // await saveEditorToCache(null)
 
     // Update the full-review-list too
     thisNoteAsProject.nextReviewDateStr = newDateStr
@@ -1380,6 +1383,67 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
     await renderProjectLists(config, false)
   } catch (error) {
     logError('skipReviewForNote', error.message)
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
+ * Set a new review interval the note open in the Editor, by asking user.
+ * Note: see below for a non-interactive version that takes parameters
+ * @author @jgclark
+ * @param {TNote?} noteArg 
+ */
+export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
+  try {
+    logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
+    const currentNote: TNote = noteArg ? noteArg : Editor
+    if (!currentNote || currentNote.type !== 'Notes') {
+      throw new Error(`Not in a Project note (at least 2 lines long)`)
+    }
+    const thisNoteAsProject = new Project(currentNote)
+
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    // Ask for new date interval
+    const reply = await getInputTrimmed("Next review interval (e.g. '2w' or '3m') to set", 'OK', 'Set new review interval')
+    if (!reply || typeof reply === 'boolean') {
+      logDebug('setNewReviewInterval', `User cancelled command.`)
+      return
+    }
+    // Get new date interval
+    const newIntervalStr: string = reply.match(RE_DATE_INTERVAL) ? reply : ''
+    if (newIntervalStr === '') {
+      logError('setNewReviewInterval', `No valid interval entered, so will stop.`)
+      return
+    }
+    logDebug('setNewReviewInterval', `- intervals: existing = ${thisNoteAsProject.reviewInterval ?? '-'} / new = ${newIntervalStr}`)
+
+    // Update metadata in the current open note in Editor, or the given note
+    if (!noteArg) {
+      logDebug('setNewReviewInterval', `- updating metadata in Editor`)
+      const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
+      // Save Editor, so the latest changes can be picked up elsewhere
+      // Putting the Editor.save() here, rather than in the above functions, seems to work
+      await saveEditorToCache(null)
+    } else {
+      logDebug('setNewReviewInterval', `- updating metadata in note`)
+      const res = await updateMetadataInNote(currentNote, [`@review(${newIntervalStr})`])
+    }
+
+    // Update the full-review-list too
+    thisNoteAsProject.reviewInterval = newIntervalStr
+    thisNoteAsProject.calcDurations()
+    thisNoteAsProject.calcNextReviewDate()
+    logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+    const newMSL = thisNoteAsProject.machineSummaryLine()
+    logDebug('setNewReviewInterval', `- updatedMachineSummaryLine => '${newMSL}'`)
+    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+
+    // Update list for user (if open)
+    await renderProjectLists(config, false)
+  } catch (error) {
+    logError('setNewReviewInterval', error.message)
   }
 }
 
@@ -1465,11 +1529,8 @@ export async function updateReviewListAfterChange(
       }
       // logFullReviewList()
 
-      // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-      // DataStore.invokePluginCommand('refreshDashboard', '')
-      const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
-      logDebug('updateReviewListAfterChange', `sent message to refresh Dashboard (if available)`)
-      await NotePlan.openURL(refreshXCallbackURL)
+      // Finally, refresh Dashboard
+      updateDashboardIfOpen()
     }
 
   } catch (error) {
@@ -1540,14 +1601,14 @@ async function getNextNoteToReview(): Promise<?TNote> {
  * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
  * Note: This is a variant of the original singular version above
  * @author @jgclark
- * @param { number } numToReturn first n notes to return
+ * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
  * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
  */
-export function getNextNotesToReview(numToReturn: number): Array<TNote> {
+export async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-
+    // $FlowFixMe[incompatible-type] reason for suppression
+    const config: ReviewConfig = await getReviewSettings()
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
@@ -1576,10 +1637,11 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
         // Get items with review due before today, or today etc.
         if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
           if (nextNotes.length > 0) {
-            notesToReview.push(nextNotes[0]) // add first matching note
-            if (notesToReview.length >= numToReturn) {
+            const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
+            logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
+            notesToReview.push(noteToUse) // add first matching note
+            if ((numToReturn > 0) && (notesToReview.length >= numToReturn)) {
               break // stop processing the loop
             }
           } else {
@@ -1606,7 +1668,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    logDebug('toggleDisplayFinished', `starting with pref='${DataStore.preference('Reviews-DisplayFinished') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-DisplayFinished') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayFinished'))
     const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
     const newValue = !savedValue
@@ -1625,7 +1687,7 @@ export async function toggleDisplayFinished(): Promise<void> {
 
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyDue', `starting with pref='${DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))')}' ...`)
     logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayOnlyDue'))
     const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     const newValue = !savedValue

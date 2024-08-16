@@ -174,5 +174,9 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(isTitleWithEqualOrLowerHeadingLevel(item, prevLowestLevel)).toBe(false)
       })
     })
+
+    // JGC doesn't know how to mock this out yet
+    // describe('getParaAndAllChildren', () => {
+    // })
   }) // end of describe(`${FILENAME}`, () => {
 }) // end of describe(`${PLUGIN_NAME}`, () => {

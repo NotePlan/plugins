@@ -116,10 +116,10 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       <script type="text/javascript"> const { useState, useEffect, useReducer, createContext, useContext, useRef, useMemo } = React; </script>
     <!-- Load React Components -->`
 
+    // <script> logDebug("HTML JS","Root component loaded. There is no babel, so you cannot use JSX unless it's compiled by rollup."); </script>
     const reactComponents = `     
           ${destructureReact}
           ${componentsStr}
-        <script> console.log("HTML: Components loaded. REMEMBER there is no babel, so you cannot use JSX unless it's compiled by rollup. Alternatively, use React.createElement https://beta.reactjs.org/reference/react/createElement")</script>
         `
 
     const cssTags = css.reduce((acc, cur) => {
@@ -145,6 +145,9 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       <script type="text/javascript" >
         console.log('JS baked into page HTML: Setting globalSharedData');
         globalSharedData = ${JSON.stringify(globalSharedData)};
+        if (typeof DataStore === 'undefined') {
+          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        }
       </script>
     `
     // set up bridge to NP

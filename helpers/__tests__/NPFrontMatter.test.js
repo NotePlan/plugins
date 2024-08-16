@@ -582,6 +582,16 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(true)
         expect(note.content).toMatch(/bar: foo/)
       })
+      test('should not further set a duplicate frontmatter field', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { type: 'separator', content: '---' }],
+          title: 'foo',
+        })
+        const result = f.setFrontMatterVars(note, { bar: 'baz' })
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/\nbar: baz\n/)
+      })
       test('should set a frontmatter field that did not exist before', () => {
         const note = new Note({
           content: '---\ntitle: foo\nbar: baz\n---\n',
