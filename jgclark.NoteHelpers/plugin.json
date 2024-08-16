@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.19.2",
-  "plugin.lastUpdateInfo": "0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.\n0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.",
+  "plugin.version": "0.20.0",
+  "plugin.lastUpdateInfo": "0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.\n0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -41,6 +41,15 @@
       ],
       "description": "Convert the current note to use frontmatter syntax, including some default text that can be added in the Plugin's settings",
       "jsFunction": "addFrontmatterToNote"
+    },
+    {
+      "name": "delete note",
+      "alias": [
+        "dn"
+      ],
+      "description": "Delete the current note (moves to Trash)",
+      "jsFunction": "trashNote",
+      "parameters": []
     },
     {
       "name": "enable heading links",
@@ -118,14 +127,6 @@
       "jsFunction": "openURLFromANote"
     },
     {
-      "name": "rename note filename",
-      "alias": [
-        "rename"
-      ],
-      "description": "Rename the current note's filename",
-      "jsFunction": "renameNoteFile"
-    },
-    {
       "name": "reset caches",
       "alias": [
         "reset",
@@ -143,20 +144,28 @@
       "jsFunction": "listInconsistentNames"
     },
     {
-      "name": "reset title to match filename",
-      "alias": [
-        "filenameToTitle"
-      ],
-      "description": "Resets the current note title to match its filename.",
-      "jsFunction": "filenameToTitle"
-    },
-    {
       "name": "rename filename to title",
       "alias": [
         "titleToFilename"
       ],
       "description": "Renames the current filename to the title of the note.",
       "jsFunction": "titleToFilename"
+    },
+    {
+      "name": "rename note filename",
+      "alias": [
+        "rename"
+      ],
+      "description": "Rename the current note's filename to one you specify.",
+      "jsFunction": "renameNoteFile"
+    },
+    {
+      "name": "reset title to match filename",
+      "alias": [
+        "filenameToTitle"
+      ],
+      "description": "Resets the current note title to match its filename.",
+      "jsFunction": "filenameToTitle"
     },
     {
       "name": "rename inconsistent note filenames",

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 26.6.2024 for v0.19.2+ by @jgclark
+// Last updated 2024-08-16 for v0.19.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -78,6 +78,32 @@ export async function moveNote(): Promise<void> {
       await Editor.openNoteByFilename(newFilename)
     } else {
       logError('moveNote()', `Error trying to move note`)
+    }
+  }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
+//-----------------------------------------------------------------
+/**
+ * Delete a note -- by moving to the special @Trash folder
+ * @author @jgclark
+ */
+export async function trashNote(): Promise<void> {
+  try {
+    const { title, filename } = Editor
+    if (title == null || filename == null) {
+      // No note open, so don't do anything.
+      logError('trashNote()', 'No note open. Stopping.')
+      return
+    }
+
+    const newFilename = DataStore.moveNote(filename, '@Trash')
+
+    if (!newFilename) {
+      logError('trashNote()', `Error trying to move note to @Trash`)
     }
   }
   catch (err) {
