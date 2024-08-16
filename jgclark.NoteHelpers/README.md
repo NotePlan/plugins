@@ -6,7 +6,7 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **convert to frontmatter**: convert the current note to use frontmatter syntax, including optional default text that can be added in the Plugin's settings.
 - **delete note** (alias **dn**): delete the current note (moves to Trash). This is quicker than the current convoluted way through the NotePlan UI.
 - **enable heading links**: converts Local links to headings (they start with the `#` character) to `x-callback-url` links that makes them work the way you expect them to. Note: They currently only support links to headings within the same note.  (by @nmn)
-- **find unlinked notes**: finds and creates links to existing notes in the current note (by @aaronpoweruser). See below for more details.
+- **find and link unlinked notes in current note**: finds and creates links to existing notes in the current note (by @aaronpoweruser). See below for more details.
 - **index folders** (alias **index**): make/update indexes for all notes in a folder (and sub-folders if wanted). There are settings available to customise this:
   - Sort order for index items: 'alphabetical', 'createdDate' or 'updatedDate'
   - What type of date suffix to add?: 'none', 'timeSince' last update, 'updatedDate'
@@ -26,20 +26,23 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename.
 - **reset title to match filename**: resets the current note title to match its filename.
 - **reset caches**: this simply runs the command of that name in the NotePlan Help menu.
-- **Show This Month** (alias /stm)
-- **Show This Quarter** (alias /stq)
-- **Show This Year** (alias /sty)
+- **Show This Month** (alias **/stm**)
+- **Show This Quarter** (alias **/stq**)
+- **Show This Year** (alias **/sty**)
 - **update all indexes** (alias **uai**): updates all the existing folder index notes
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
 (If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
 
-## Find unlinked notes
+## "find and link unlinked notes ..." commands
 Here is a demo:
 ![Unlinked notes demo](docs/unlinked_note_demo.gif) 
 
 _Awaiting @aaronpoweruser to provide more detailed documentation._
+
+- There is also a version of the command **/find and link unlinked notes in all notes** which runs over all notes, not just the current one
+- It introduces a new `onEditorWillSave` trigger called `triggerFindUnlinkedNotes` which can be added to any notes of interest.
 
 ## Using from x-callback-url calls
 You can trigger these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a **template** or **shortcut**, or any other place a URL can be accessed. Every call takes the same form:
