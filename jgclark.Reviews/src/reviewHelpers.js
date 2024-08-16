@@ -711,7 +711,7 @@ export class Project {
       this.percentComplete = progressItem.percentComplete
       this.lastProgressComment = progressItem.comment
       this.mostRecentProgressLineIndex = progressItem.lineIndex
-      logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
+      // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
     } else {
       // logDebug('Project::processProgressLines', `- no progress fields found`)
     }

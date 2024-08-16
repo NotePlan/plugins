@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-07-17 for v2.0.2 by @jgclark
+// Last updated 2024-07-29 for v2.0.5 by @dwertheimer
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -401,7 +401,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
       const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
       if (p) {
-        yesterdaysCombinedSortedDashboardParas.push(p)
+        yesterdaysCombinedSortedParas.push(p)
       } else {
         logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
       }

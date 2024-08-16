@@ -8,11 +8,12 @@ type SwitchProps = {
   onChange: (e: any) => void,
   labelPosition?: 'left' | 'right',
   description?: string,
+  className?: string,
 };
 
-const Switch = ({ label, checked, onChange, labelPosition = 'right', description = '' }: SwitchProps): React$Node => {
+const Switch = ({ label, checked, onChange, labelPosition = 'right', description = '', className = '' }: SwitchProps): React$Node => {
   return (
-    <div className={`switch-line ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description||null}>
+    <div className={`switch-line ${className} ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description || null}>
       {labelPosition === 'left' && <label className="switch-label" htmlFor={label}>{label}</label>}
       <input
         id={label}

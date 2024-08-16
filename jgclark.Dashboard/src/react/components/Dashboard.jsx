@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by parent component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-07-25 for v2.0.4 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -10,10 +10,10 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import { allSectionDetails, sectionDisplayOrder } from "../../constants.js"
+import { allSectionDetails, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
-import { getSectionsWithoutDuplicateLines, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
 // import { type TActionButton } from '../../types.js'
 import Header from './Header'
 import Section from './Section/Section.jsx'
@@ -69,27 +69,26 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Constants
   //----------------------------------------------------------------------
 
-  const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
-
   let sections = [...origSections]
-  let unduplicatedSections = sections
-  
-  if (sections.length > 1 && dashboardSettings) {
-    unduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
-  }
-  
-  // logDebug('Dashboard', `origSections length: ${origSections.length}`)
-  // logDebug('Dashboard', `unduplicatedSections length: ${unduplicatedSections.length}`)
-  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  let totalSectionItems = countTotalSectionItems(origSections)
+  logInfo('Dashboard', `origSections: ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
-  sections = dashboardSettings?.hideDuplicates ? unduplicatedSections : origSections
-  
-  // logDebug('Dashboard', `sections after hide duplicates: ${sections.length}`)
-  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  if (sections.length > 1 && dashboardSettings.hideDuplicates) {
+    const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
+    totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
+
+    logInfo('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
+    // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+
+    sections = deduplicatedSections
+    logInfo('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
+    // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  }
 
   sections = sortSections(sections, sectionDisplayOrder)
-  logDebug('Dashboard', `sections after sort length: ${sections.length}`)
+  logDebug('Dashboard', `sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  // FIXME: seems to be OK up to here. But then I get confused.
 
   // DBW says the 98 was to avoid scrollbars. TEST: removing
   const dashboardContainerStyle = {
@@ -142,8 +141,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Change the title when the section data changes
   // TODO(@dbw): this doesn't work and I'm not sure it ever can
   useEffect(() => {
-    const totalUnduplicatedSectionItems = countTotalVisibleSectionItems(unduplicatedSections, dashboardSettings)
-    const windowTitle = `Dashboard - ${totalUnduplicatedSectionItems} items`
+    const windowTitle = `Dashboard - ${totalSectionItems} items`
     if (document.title !== windowTitle) {
       // logDebug('Dashboard', `in useEffect, setting title to: ${windowTitle}`)
       document.title = windowTitle

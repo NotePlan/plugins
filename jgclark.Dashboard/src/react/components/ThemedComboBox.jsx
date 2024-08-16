@@ -1,34 +1,52 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to show an HTML ComboBox control, with various possible settings. Based on basic HTML controls, not a fancy React Component.
-// Last updated 2024-07-30 for v2.0.5 by @jgclark
+// Dashboard React component to show an HTML ComboBox control, with various possible settings.
+// Last updated 2024-07-30 for v2.0.x by @jgclark
+//
+// WARNING: Not yet ready for use.
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
+import { ThemedSelect, type OptionType } from '@helpers/react/ThemedSelect'
+import { logDebug } from '@helpers/react/reactDev'
 
 type ComboBoxProps = {
   label: string,
+  description?: string,
   options: Array<string>,
   value: string,
-  onChange: (value: string) => void,
+  onChange: Function,
+  onSelect: Function,
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   compactDisplay?: boolean,
+  defaultValue?: OptionType,
 };
 
-const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = false }: ComboBoxProps): React$Node => {
+const ThemedComboBox = ({ label, description = '', options, value, onChange, onSelect, inputRef, compactDisplay, defaultValue }: ComboBoxProps): React$Node => {
+  logDebug('ThemedComboBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
+
+  const optionsWithID: Array<OptionType> = options.map((option, index) => ({ label: option, value: option, id: index }))
+
   const [isOpen, setIsOpen] = useState(false)
+  const [menuIsOpen, setMenuIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const comboboxRef = useRef <? ElementRef < 'div' >> (null)
   const comboboxInputRef = useRef <? ElementRef < 'input' >> (null)
+  // logDebug('ComboBox', `${String(compactDisplay)}`)
+
 
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
 
-  const toggleDropdown = () => setIsOpen(!isOpen)
-  const handleOptionClick = (option: string) => {
-    setSelectedValue(option)
-    onChange(option)
-    setIsOpen(false)
+  const handleChange = (inputValue: string, { action }: string) => {
+    logDebug('ComboBox.handleChange', inputValue, action)
+    onChange && onChange(value)
+    // if (action === 'input-change') return inputValue
+    // if (action === 'menu-close') {
+    //   if (prevInputValue) setMenuIsOpen(true)
+    //   else setMenuIsOpen(false)
+    // }
+    // return prevInputValue
   }
 
   const handleClickOutside = (event: any) => {
@@ -76,34 +94,30 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
     }
   }, [])
 
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
+
   return (
     <div className={compactDisplay ? 'combobox-container-compact' : 'combobox-container'} >
       <label className="combobox-label">{label}</label>
       <div className="combobox-wrapper" onClick={toggleDropdown}>
-        <input
-          type="text"
-          className="combobox-input"
-          value={selectedValue}
-          readOnly
-          ref={inputRef} // Pass the inputRef to the input element
+        <ThemedSelect
+          // className="combobox-input"
+          options={optionsWithID}
+          onSelect={onSelect}
+          onChange={handleChange}
+          defaultValue={options[0]}
+        // selectionOption={onInputChange}
+        // isDisabled={false}
+        // isLoading={false}
+        // isClearable={true}
+        // isRtl={false}
+        // isSearchable={true}
         />
-        <span className="combobox-arrow">&#9662;</span>
-        {isOpen && (
-          <div className="combobox-dropdown" ref={comboboxRef} >
-            {options.map((option: string) => (
-              <div
-                key={option}
-                className="combobox-option"
-                onClick={() => handleOptionClick(option)}
-              >
-                {option}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
-export default ComboBox
+export default ThemedComboBox

@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-07-25 for v2.0.4 by @jgclark
 //-----------------------------------------------------------------------------
 import type { TDoneCount, TDoneTodayNotes, TSection } from "./types"
 import { getNotesChangedInInterval } from "@helpers/NPnote"
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated } from "@helpers/dateTime"
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, toLocaleDateTimeString } from "@helpers/dateTime"
 import { clo, logDebug, logError, logInfo, logTimer, timer } from "@helpers/dev"
 
 //-----------------------------------------------------------------
@@ -75,7 +75,8 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
       // completedChecklists: numCompletedChecklists,
       lastUpdated: new Date(),
     }
-    logTimer('getNumCompletedTasksTodayFromNote', startTime, `for ${String(numCompletedTasks)} completed tasks in '${filename}'`)
+    // This is a quick operation, so no longer needing to time
+    // logTimer('getNumCompletedTasksTodayFromNote', startTime, `for ${String(numCompletedTasks)} completed tasks in '${filename}'`)
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksTodayFromNote', error.message)
@@ -105,7 +106,7 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
     for (const note of notesChangedToday) {
       const doneCounts = getNumCompletedTasksTodayFromNote(note.filename, false)
       const numDoneToday = doneCounts.completedTasks
-      logDebug('buildListOfDoneTasksToday', `- found ${String(numDoneToday)} done in '${note.filename}' changed ${String(note.changedDate)} (${timer(startTime)})`)
+      logTimer('buildListOfDoneTasksToday', startTime, `- found ${String(numDoneToday)} done in '${note.filename}' changed ${toLocaleDateTimeString(note.changedDate)}`)
       if (numDoneToday > 0) {
         total += numDoneToday
         outputArr.push({

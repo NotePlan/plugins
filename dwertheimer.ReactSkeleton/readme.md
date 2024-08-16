@@ -39,13 +39,104 @@ There are two parts to this code:
 ## Plugin Code
 The main plugin code that will invoke the React Window is in the file `src/reactMain.js`. This is the entrypoint to your plugin. This is also where the callback function is that will receive the calls back from the React view. Of course, these functions could be moved/renamed in `index.js`.
 
+## Styling windows using CSS
+### Sizing and Dimensions
+- use `rem` units for most things, as then spacing will adjust as the text size changes up and down
+- use `px` units for small shims between items -- beyond about 6px I suggest you should be using `rem`s.
+- `vw` units relate to the actual current viewport, and can be useful to position items
+- ensure you test at small screen dimensions, and allow layout to change accordingly! The following sort of construction is useful:
+
+```css
+.section {
+  grid-template-columns: [info] minmax(6rem, 11rem) [items] auto;
+  ...
+}
+
+@media screen and (width <= 600px) {
+	.section {
+		grid-template-columns: 1fr;
+	}
+  ...
+}
+```
+
+### Testing and Debugging styling in Safari
+If you save a copy of the generated HTML, then you can play around and test layout and styling more easily in Safari and its Inspector.  To allow this:
+- System Preferences > Privacy & Security > Privacy
+- click Full Disk Access from the left panel
+- click the + icon to add other applications to the list
+- select Safari from the application folders
+- open, quit, and reopen Safari
+
+### Colors
+The better way is to leave definition of colors to the CSS. By default the will have access to the colors translated from the current theme, thanks to the helper `NPThemeToCSS.js` which sets the following CSS variables:
+
+```css
+    /* Generated from theme 'Toothbleach Condensed JGC' by @jgclark's generateCSSFromTheme */
+    :root {
+        --bg-main-color: #FAFAFA;
+        --fg-main-color: #222E33;
+        --body-line-height: 1.20rem;
+        --fg-sidebar-color: #242E32;
+        --bg-sidebar-color: #F6F6F6;
+        --divider-color: #D6D6D6;
+        --h1-color: #C5487A;
+        --h2-color: #AB5699;
+        --h3-color: #7B72B9;
+        --bg-alt-color: #F0F0F0;
+        --tint-color: #C87230;
+        --bg-mid-color: #f5f5f5;
+        --item-icon-color: #CC6666;
+        --hashtag-color: #5A64A2;
+        --attag-color: #5A64A2
+    }
+```
+
+These can be used like this: 
+```css
+.item {
+  background-color: var(--bg-mid-color);
+}
+```
+
+If you _really_ need to have the colors in your React Components' javascript, they will be available to you in the global NP_THEME object which looks like the following. For example, to get the textColor in your current NotePlan theme, you would use NP_THEME.base.textColor.
+
+```json
+/* Basic Theme as JS for CSS-in-JS use in scripts 
+  Created from theme: "Toothpaste DARK Condensed dbw" */
+  const NP_THEME={
+    "editor": {
+        "textColor": "#DAE3E8",
+        "tintColor": "#E9C0A2",
+        "timeBlockColor": "#E9C062",
+        "menuItemColor": "#c5c5c0",
+        "toolbarIconColor": "#c5c5c0",
+        "tintColor2": "#73B3C0",
+        "altColor": "#2E2F30",
+        "backgroundColor": "#1D1E1F",
+        "toolbarBackgroundColor": "#2E2F30"
+    },
+    "name": "Toothpaste DARK Condensed dbw",
+    "style": "Dark",
+    "base": {
+        "backgroundColor": "#1D1E1F",
+        "textColor": "#DAE3E8",
+        "h1": "#CC6666",
+        "h2": "#E9C062",
+        "h3": "#E9C062",
+        "h4": "#E9C062",
+        "tintColor": "#E9C0A2",
+        "altColor": "#2E2F30"
+    }
+}
+```
+
 ---
 
 > **NOTE**
 > THE REST OF THIS DOCUMENTATION NEEDS UPDATING. YOU CAN STOP READING HERE FOR NOW
 
 ## Invoking React Window
-
 
 openReactWindow
 This is the plugin function (name/jsFunction) used to create a React window with your data and React components.
@@ -116,8 +207,6 @@ const globalSharedData =  {
 }
 
 await DataStore.invokePluginCommandByName('openReactWindow', 'dwertheimer.React', [globalSharedData,windowOptions])
-
-
 
 <p data-line="96" class="sync-line" style="margin:0;"></p>
 
@@ -221,38 +310,6 @@ style={{ color: `${NP_THEME.base.textColor} !important` }} />
 
 import debounce from 'lodash/debounce'
 import React, { Component } from 'react'
-
-Theme Colors
-In your React Components, if you want to access the theme colors, they will be available to you in the global NP_THEME object which looks like the following. For example, to get the textColor in your current NotePlan theme, you would use NP_THEME.base.textColor.
-
-/* Basic Theme as JS for CSS-in-JS use in scripts 
-  Created from theme: "Toothpaste DARK Condensed dbw" */
-  const NP_THEME={
-    "editor": {
-        "textColor": "#DAE3E8",
-        "tintColor": "#E9C0A2",
-        "timeBlockColor": "#E9C062",
-        "menuItemColor": "#c5c5c0",
-        "toolbarIconColor": "#c5c5c0",
-        "tintColor2": "#73B3C0",
-        "altColor": "#2E2F30",
-        "backgroundColor": "#1D1E1F",
-        "toolbarBackgroundColor": "#2E2F30"
-    },
-    "name": "Toothpaste DARK Condensed dbw",
-    "style": "Dark",
-    "base": {
-        "backgroundColor": "#1D1E1F",
-        "textColor": "#DAE3E8",
-        "h1": "#CC6666",
-        "h2": "#E9C062",
-        "h3": "#E9C062",
-        "h4": "#E9C062",
-        "tintColor": "#E9C0A2",
-        "altColor": "#2E2F30"
-    }
-}
-
 
 <p data-line="237" class="sync-line" style="margin:0;"></p>
 

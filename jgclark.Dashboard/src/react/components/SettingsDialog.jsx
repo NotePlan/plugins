@@ -177,6 +177,7 @@ const SettingsDialog = ({
 							labelPosition,
 							showSaveButton: false, // Do not show save button
 							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+							className: '', // for future use
 						})}
 						{item.description && (
 							<div className="item-description">{item.description}</div>

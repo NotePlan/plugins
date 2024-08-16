@@ -104,13 +104,13 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
       }
     }
     if (matchCount === 0) {
-      logDebug('repeats', 'No matched paragraphs found')
+      logDebug('returnRegexMatchedParas', 'No matched paragraphs found')
     } else {
-      logDebug('repeats', 'Found ${matchCount} matched paragraphs')
+      logDebug('returnRegexMatchedParas', 'Found ${matchCount} matched paragraphs')
     }
     return matchedParas
   } catch (error) {
-    logError(`${pluginJson}/repeats`, error.message)
+    logError(`${pluginJson}/returnRegexMatchedParas`, error.message)
   }
 }
 
