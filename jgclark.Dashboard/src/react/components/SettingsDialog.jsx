@@ -99,8 +99,10 @@ const SettingsDialog = ({
 		}
 		if (Object.keys(settingsToSave).length > 0) {
 			// there were other (non-perspective) changes made
-			if (typeof settingsToSave.activePerspectiveName === 'string' && settingsToSave.activePerspectiveName.length > 0) {
-				settingsToSave.activePerspectiveName += `*`
+			const apn = settingsToSave.activePerspectiveName
+			if (typeof apn === 'string' && apn.length > 0 && apn !== "-") {
+				// $FlowIgnore // we know apn is a string so this concat will work
+				settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
 			}
 			// $FlowFixMe[cannot-spread-indexer]
 			setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
