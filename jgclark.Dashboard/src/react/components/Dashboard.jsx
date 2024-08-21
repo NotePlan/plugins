@@ -66,6 +66,27 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
 
+  //
+  // Functions
+  //
+  /**
+   * If a perspective is not set, then save current settings to the default "-" perspective because we always
+   * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
+   * @param {*} perspectiveSettings 
+   * @param {*} newDashboardSettings 
+   * @param {*} setPerspectiveSettings 
+   */
+  function saveDefaultPerspectiveData(perspectiveSettings, newDashboardSettings, setPerspectiveSettings) {
+    const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
+    if (dashPerspectiveIndex > -1) {
+      perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
+    } else {
+      logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${newDashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
+      perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) })
+    }
+    setPerspectiveSettings(perspectiveSettings)
+  }
+
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
@@ -168,24 +189,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
       sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: sharedSets.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
 
-      // if the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspective. Note: default perspective is never shown with a "*" on the end.
       if (sharedSets.activePerspectiveName === "-" || !(sharedSets.activePerspectiveName)) {
-        const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
-        if (dashPerspectiveIndex > -1) {
-          perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) }
-          setPerspectiveSettings(perspectiveSettings)
-        } else {
-          logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${dashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
-          perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) })
-          setPerspectiveSettings(perspectiveSettings)
-        }
-      } else {
-        const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === sharedSets.activePerspectiveName) ?? 0
-        logDebug('Dashboard/useEffect(dashboardSettings)', `- Will now need to update perspective "${sharedSets.activePerspectiveName}" to isModified`)
-        // FIXME: Gets here but vvvvv doesn't seem to work
-        perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) }
-        setPerspectiveSettings(perspectiveSettings)
+        // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspective
+        // when any settings are changed
+        // Note: default perspective is never shown with a "*" on the end.        saveDefaultPerspectiveData(perspectiveSettings, sharedSets, setPerspectiveSettings)
       }
+      // FIXME: (@jgclark) dbw commenting out this @jgclark code which I didn't understand what it was doing
+      // } else {
+      //   const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === sharedSets.activePerspectiveName) ?? 0
+      //   logDebug('Dashboard/useEffect(dashboardSettings)', `- Will now need to update perspective "${sharedSets.activePerspectiveName}" to isModified`)
+      //   // FIXME: Gets here but vvvvv doesn't seem to work
+      //   perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) }
+      // }
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
       !shouldSendToPlugin && logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated in React, but not sending to plugin because lastChange="${dashboardSettings.lastChange}"`)
     }
@@ -320,3 +335,4 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 }
 
 export default Dashboard
+

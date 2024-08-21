@@ -83,11 +83,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  // Note: previously set perspectiveSettings here, but now moved to backend.
-  // Note: the big issue here had been that because its a hidden settings (in plugin.json) then it has to be a string type, not an object or array. So it has to be stringified.
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
   logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
-  // TODO(@dbw): please check that this is still needed here
   const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************

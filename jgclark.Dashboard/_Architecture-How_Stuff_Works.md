@@ -50,6 +50,25 @@ As of 2.0, settings exist in two places (DataStore.settings) and sharedSettings.
 - For the front-end, settings are defined in the file: 
     `src/dashboardSettings.js`
 
+## PerspectiveSettings
+### Initial loading of data from plugin settings file
+- The variable `perspectiveSettings` is persisted in `DataStore.settings` as a hidden field (just like dashboardSettings). 
+- In DataStore (because it's a hidden file), it is stringified JSON
+- fyi, it's actually an array, not an object, when destringified
+- Initially passed to the React window as part of pluginData (type TPluginData), injected by the functions: getInitialDataForReactWindowObjectForReactView() -> getPluginData() -> getPerspectiveSettings()
+  - the value is read from the DataStore.settings on initial load in the function getPerspectiveSettings()
+  - it is destringified and saved in `pluginData.perspectiveSettings` as an array (not a string anymore)
+  - this is the only time that getPerspectiveSettings() is called (on initial load)
+### Loading of perspectives data in React front-end
+- WebView component reads the `pluginData.perspectiveSettings` array
+- WebView turns it into a local state variable in WebView called perspectiveSettings and passes perspectiveSettings/setPerspectiveSettings in the global context so any component can access it
+### Saving of perspective changes
+- Perspective changes are not directly saved by a handler, instead the settings are written to the context using setPerspectiveSettings and will be picked up by a watcher (see below)
+- When a user makes a change in the Settings Dialog (or using the filter switches), the function adjustSettingsAndSave() sets perspective changes in the global context using `setPerspectiveSttings`
+### Watching for perspective changes
+- Dashboard component has a useEffect that is watching for any changes in the global perspectiveSettings, and when/if it sees a change, it sends an action to the plugin to save the changes to the DataStore: `sendActionToPlugin('perspectiveSettingsChanged'...`
+- Dashboard also has a watcher looking for changes in Dashboard settings generally, and inside that watcher/effect, we check to see if the perspective is set to "-", because in that case, we need to update the perspective data for "-" automatically since dashboardSettings has been updated.
+
 
 ## Custom Hooks (src/react/customHooks)
 
