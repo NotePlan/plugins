@@ -90,31 +90,8 @@ const SettingsDialog = ({
 		if (onSaveChanges) {
 			onSaveChanges(updatedSettings)
 		}
-		const settingsToSave = { ...updatedSettings }
 
-		// perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
-		// v1:
-		// if (settingsToSave.perspectiveSettings) {
-		// 	setPerspectiveSettings(settingsToSave.perspectiveSettings)
-		// 	delete settingsToSave.perspectiveSettings
-		// 	// setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
-		// 	logDebug('Dashboard', `Perspective Settings changed in Settings Dialog`, settingsToSave)
-		// }
-		// if (Object.keys(settingsToSave).length > 0) {
-		// 	// there were other (non-perspective) changes made
-		// 	const apn = settingsToSave.activePerspectiveName
-		// 	if (typeof apn === 'string' && apn.length > 0 && apn !== "-" && apn[-1] !== "*") {
-		// 		// $FlowIgnore // we know apn is a string so this concat will work
-		// 		settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
-		// 	}
-		// 	// $FlowFixMe[cannot-spread-indexer]
-		// 	setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
-		// 	logDebug('Dashboard', `Dashboard Settings Panel updates`, settingsToSave)
-		// }
-
-		// v2: Now Calls back-end function to save these settings
-		// FIXME(@dbw): the following now has to be async; is this a problem?
-		adjustSettingsAndSave(settingsToSave, setDashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
+		adjustSettingsAndSave(updatedSettings, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
 
 		toggleDialog()
 	}

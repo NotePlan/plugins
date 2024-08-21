@@ -525,19 +525,24 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
  * TEST: this is new
  * Make a change to the current dashboard settings and save.
  * Note: this does *not* update a current named persectiveDef, but does update the default one ("-").
- * @param {TDashboardSettings} settingsToSave 
+ * @param {TDashboardSettings} updatedSettings 
+ * @param {TDashboardSettings} dashboardSettings
  * @param {Function} setDashboardSettings 
  * @param {Function} setPerspectiveSettings 
  * @param {string} logMessage 
  */
-export async function adjustSettingsAndSave(
-  settingsToSave: any /*TDashboardSettings*/, // TODO: improve type
+export function adjustSettingsAndSave(
+  updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
+  dashboardSettings: TDashboardSettings,
   setDashboardSettings: Function,
   setPerspectiveSettings: Function,
   logMessage: string
-): Promise<void> {
+): void {
   try {
-    logDebug('adjustSettingsAndSave', `starting reason "${logMessage}"`)
+    logDebug('adjustSettingsAndSave', `🥷 starting reason "${logMessage}"`)
+    clo(updatedSettings, `🥷 - before updating dashboardSettings:`)
+    // Note must always include all settings, because FFlags etc. are not in the dialog
+		const settingsToSave = { ...dashboardSettings,...updatedSettings }
     // perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
     // TODO: following discussions on 19/20 August, I'm not sure if this is the right thing to do. We want to update default ("-") not named perspective, right?
     if (settingsToSave.perspectiveSettings) {
@@ -554,9 +559,8 @@ export async function adjustSettingsAndSave(
         // $FlowIgnore // we know apn is a string so this concat will work
         settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
       }
-      const dashboardSettings = (await getDashboardSettings()) || {}
-      setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
-      logDebug('adjustSettingsAndSave', `- after updating dashboardSettings, with aPN=${apn}`)
+      setDashboardSettings({ ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
+      logDebug('adjustSettingsAndSave', `- after updating dashboardSettings, with activePerspectiveName=${settingsToSave.activePerspectiveName}`)
     }
   } catch (err) {
     logError('adjustSettingsAndSave', err.message)

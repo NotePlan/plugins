@@ -58,20 +58,22 @@ const PerspectiveSelector = (): React$Node => {
     logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings changed`, perspectiveSettings)
     const options = getDisplayListOfPerspectiveNames(perspectiveSettings, true)
     if (!options) return
-    clo(options, 'PerspectiveSelector/useEffect(perspectiveSettings): new options')
+    clo(options, `PerspectiveSelector/useEffect(perspectiveSettings): new options, dashboardSettings.activePerspectiveName=${dashboardSettings.activePerspectiveName}`)
     const apn = dashboardSettings.activePerspectiveName
-    if (apn && !options.includes(apn)) {
+    if (apn && endsWithStar(apn) && !options.includes(apn)) {
       const nameWithoutStar = apn.slice(0, -1)
       const index = options.indexOf(nameWithoutStar)
       if (index !== -1) {
         // If the activePerspectiveName ends with a star, we need to add it to the list of options temporarily
         options.splice(index + 1, 0, apn)
       }
+      logDebug('PerspectiveSelector', `useEffect: adding activePerspectiveName "${apn}" to options & setting to active`)
       setActivePerspectiveName(apn)
     }
     clo(perspectiveNameOptions, 'PerspectiveSelector/useEffect(activePerspectiveName): setting new options')
     setPerspectiveNameOptions(options)
-  }, [perspectiveSettings, dashboardSettings.activePerspectiveName]) // dependencies: run any time this changes
+  }, [perspectiveSettings, dashboardSettings.activePerspectiveName, activePerspectiveName]) // dependencies: run any time this changes
+
   // TODO: HELP: Why does ^^^ have dashboardSettings.activePerspectiveName but vvv it is just activePerspectiveName?
   // TODO: HELP: Why does ^^^ have perspectiveSettings but there isn't a useState for it above?
 
@@ -98,7 +100,9 @@ const PerspectiveSelector = (): React$Node => {
     logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because activePerspectiveName changed`)
     const options = getDisplayListOfPerspectiveNames(perspectiveSettings, true)
     // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
-    const perspectiveNameIfItExistsOrDefault: string = dashboardSettings.activePerspectiveName ? options.find((option) => option === dashboardSettings.activePerspectiveName) ?? '-' : '-'
+    const apn = dashboardSettings.activePerspectiveName
+    const endsWithStar = apn && apn.endsWith('*')
+    const perspectiveNameIfItExistsOrDefault: string = endsWithStar ? apn : apn ? options.find((option) => option === apn) ?? '-' : '-'
     // if (endsWithStar(dashboardSettings.activePerspectiveName)) perspectiveNameIfItExistsOrDefault = dashboardSettings.activePerspectiveName
     logDebug('PerspectiveSelector/useEffect(activePerspectiveName)', `useEffect: activePerspectiveName: ${dashboardSettings.activePerspectiveName}, perspectiveExists: ${perspectiveNameIfItExistsOrDefault ?? 'no'}`)
     if (activePerspectiveName !== perspectiveNameIfItExistsOrDefault) {
@@ -121,6 +125,11 @@ const PerspectiveSelector = (): React$Node => {
       return
     } else {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
+      if (endsWithStar(activePerspectiveName)) {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `changed to another perspective, but activePerspectiveName ends with a star`)
+        //TODO: (@jgclark) ask if we should save first
+        setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
+      }
       setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
     }
 
@@ -138,7 +147,9 @@ const PerspectiveSelector = (): React$Node => {
     // FIXME(@dbw): this isn't showing the "*" in the closed state of the combobox on modified perspectives
 
     // TODO: check if current perspective isModified; if so, offer to save first
+    // @jgclark, is isModified necessary? see TODO above
     if (newPerspectiveDef.isModified) {
+
       logWarn('PerspectiveSelector/handlePerspectiveChange', `current Perspective ${newValue} isModified, so ask to see if we should save it first.`) // TODO: drop Warn level later
       // TODO: offer to save first
     }
