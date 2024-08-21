@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Last updated 2024-08-16 for v2.1.0.a8 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TSection, TSectionItem } from './types'
+import type { TSectionItem } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
@@ -13,6 +13,7 @@ import {
   // toLocaleDateString,
 } from '@helpers/dateTime'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
+import { logDebug } from '@helpers/dev'
 
 const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
@@ -31,8 +32,8 @@ export const openTodayItems: Array<TSectionItem> = [
       filename: thisFilename,
       title: thisDateStr,
       priority: 0,
-      content: 'task with timeblock 10:00-11:30',
-      rawContent: 'task with timeblock 10:00-11:30',
+      content: 'before bed routine 🛌 22:00-22:30',
+      rawContent: 'before bed routine 🛌 22:00-22:30',
       prefix: '* ',
     },
   },
@@ -48,21 +49,6 @@ export const openTodayItems: Array<TSectionItem> = [
       rawContent: "reconcile bank statement @repeat(1m)",
       prefix: "* ",
     }
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Mission Partners.md',
-      title: 'Mission Partners',
-      priority: 0,
-      content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      blockId: '^wazhht',
-      prefix: '* ',
-    },
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
@@ -85,13 +71,41 @@ export const openTodayItems: Array<TSectionItem> = [
       type: "checklist",
       filename: thisFilename,
       priority: 0,
-      content: "morning checklist 7:30AM",
-      rawContent: "morning checklist 7:30AM",
+      content: "morning @home 🏠 routine 6:30AM",
+      rawContent: "morning @home 🏠 routine 6:30AM",
+      prefix: "+ ",
+    }
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: "checklist",
+    para: {
+      noteType: "Calendar",
+      type: "checklist",
+      filename: thisFilename,
+      priority: 0,
+      content: "morning #work checklist 7:30AM",
+      rawContent: "morning #work checklist 7:30AM",
       prefix: "+ ",
     }
   },
 ]
 export const refTodayItems: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      noteType: 'Notes',
+      type: 'open',
+      filename: 'CCC Areas/Mission Partners.md',
+      title: 'Mission Partners',
+      priority: 0,
+      content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
+      rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
+      blockId: '^wazhht',
+      prefix: '* ',
+    },
+  },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
@@ -137,8 +151,8 @@ export const openYesterdayParas: Array<TSectionItem> = [
       filename: thisFilename,
 
       priority: 4,
-      content: '>> #editvideo from CFL visit',
-      rawContent: '>> #editvideo from CFL visit',
+      content: '>> #editvideo from CFL visit @work',
+      rawContent: '>> #editvideo from CFL visit @work',
       prefix: '* ',
       hasChild: true,
     },
@@ -242,38 +256,10 @@ export const openWeekParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Calendar',
       filename: thisFilename,
-      priority: 2,
-      content: '!! Arrange EV charger repair',
-      rawContent: '!! Arrange EV charger repair',
-      prefix: '+ ',
-      changedDate: new Date('2023-02-27T00:00:00.000Z'),
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Calendar',
-      filename: thisFilename,
       priority: 0,
       content: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
       rawContent: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
       prefix: '* ',
-      changedDate: new Date('2023-02-27T00:00:00.000Z'),
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'checklist',
-    para: {
-      type: 'checklist',
-      noteType: 'Calendar',
-      filename: thisFilename,
-      priority: 0,
-      content: 'Contact @PeterS again',
-      rawContent: 'Contact @PeterS again',
-      prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -295,6 +281,20 @@ export const openWeekParas: Array<TSectionItem> = [
   },
 ]
 export const refWeekParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Calendar',
+      filename: 'Home 🏠 Areas/Car and Bike.md',
+      priority: 2,
+      content: '!! Arrange EV charger repair',
+      rawContent: '!! Arrange EV charger repair',
+      prefix: '+ ',
+      changedDate: new Date('2023-02-27T00:00:00.000Z'),
+    },
+  },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'checklist',
@@ -319,8 +319,8 @@ export const refWeekParas: Array<TSectionItem> = [
       filename: 'Home 🏠 Areas/Garden.md',
       title: 'Garden 🌿',
       priority: 0,
-      content: 'Re-plant two shrubs in new blue pots >2023-W09',
-      rawContent: 'Re-plant two shrubs in new blue pots >2023-W09',
+      content: 'Re-plant two shrubs in new blue pots @home >2023-W09',
+      rawContent: 'Re-plant two shrubs in new blue pots @home >2023-W09',
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
@@ -380,50 +380,76 @@ export const refMonthParas: Array<TSectionItem> = [
 //-----------------------------------------------------------
 // Demo data for TagToShow section
 
-export const tagParasFromNote: Array<TSectionItem> = [
+export const demoTaggedSectionDetails = [
+  {
+    sectionCode: 'TAG',
+    sectionName: '#home',
+    showSettingName: 'showTagSection_#home',
+  },
+  {
+    sectionCode: 'TAG',
+    sectionName: '@work',
+    showSettingName: 'showTagSection_@work',
+  },
+]
+
+export const demoTaggedParas: Array<TParagraph> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'checklist',
-    para: {
-      type: 'checklist',
-      noteType: 'Notes',
-      filename: 'TEST/DEMOs/Test Project A.md',
-      content: 'Open Deliveroo account #next',
-      rawContent: 'Open Deliveroo account #next',
-      prefix: '+ ',
-      priority: 0,
-    },
+    type: 'checklist',
+    noteType: 'Notes',
+    filename: 'TEST/DEMOs/Test Project A.md',
+    content: 'Open Deliveroo account #next #home',
+    rawContent: 'Open Deliveroo account #next  #home',
+    prefix: '+ ',
+    priority: 0,
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Finance.md',
-      content: 'Make expenses claim #next',
-      rawContent: 'Make expenses claim #next',
-      prefix: '* ',
-      priority: 0,
-    },
+    type: 'checklist',
+    noteType: 'Notes',
+    filename: 'TEST/DEMOs/Test Project A.md',
+    content: '#home Checklist ⛔️ that should be filtered out #waiting #next',
+    rawContent: '#home Checklist ⛔️ that should be filtered out #waiting #next',
+    prefix: '+ ',
+    priority: 0,
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      type: 'checklist',
-      noteType: 'Notes',
-      filename: 'TEST/DEMOs/Test Project A.md',
-      content: 'Checklist item that can be hidden #test',
-      rawContent: 'Checklist item that can be hidden #test',
-      prefix: '+ ',
-      priority: 0,
-    },
+    type: 'open',
+    noteType: 'Notes',
+    filename: 'TEST/DEMOs/Test Project A.md',
+    content: '#home Future task ⛔️ that should be filtered out #next >2099-W09',
+    rawContent: '#home Future task ⛔️ that should be filtered out #next >2099-W09',
+    prefix: '+ ',
+    priority: 0,
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    type: 'open',
+    noteType: 'Calendar',
+    filename: thisFilename,
+    content: '@work Get iPad working on ChurchOffice-staff for printing etc. @church ^bzlp1z',
+    rawContent: '@work Get iPad working on ChurchOffice-staff for printing etc. @church ^bzlp1z',
+    prefix: '* ',
+    priority: 0,
+    blockId: '^bzlp1z',
+    hasChild: true,
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    type: 'open',
+    noteType: 'Notes',
+    filename: 'CCC Areas/Finance.md',
+    content: 'Make expenses claim @work',
+    rawContent: 'Make expenses claim @work',
+    prefix: '* ',
+    priority: 0,
   },
 ]
 
 //-----------------------------------------------------------
-// Notes to review
+// Project Notes to review
 export const nextProjectNoteItems: Array<TNote> = [
   // $FlowIgnore[prop-missing]
   {
@@ -447,3 +473,67 @@ export const nextProjectNoteItems: Array<TNote> = [
     reviewInterval: "2m",
   },
 ]
+
+//-----------------------------------------------------------
+// Overdue Items
+export function makeDummyOverdueItems(extension): Array<TParagraph> {
+  // Note: to make the same processing as the real data, this is done only in terms of extended paras
+  const outputParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
+  for (let c = 1; c < 61; c++) {
+    const thisType = c % 3 === 0 ? 'checklist' : 'open'
+    const priorityPrefix = c % 20 === 0 ? '!!! ' : c % 10 === 0 ? '!! ' : c % 5 === 0 ? '! ' : ''
+    const fakeDateMom = new moment('2023-10-01').add(c, 'days')
+    const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
+    const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
+    const fakeFolder = c % 2 < 1 ? 'Home Projects' : 'Work Projects'
+    const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${extension}` : `${fakeFolder}/fake_note_${String(c % 7)}.${extension}`
+    const noteType = c % 3 < 2 ? 'Calendar' : 'Notes'
+    const content = `${priorityPrefix}test overdue item ${c}${c % 8 === 0 ? ' #waiting❗️ ' : ''} >${fakeIsoDateStr}`
+    outputParas.push({
+      filename: filename,
+      content: content,
+      rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
+      type: thisType,
+      note: {
+        filename: filename,
+        title: `Test Note ${c % 10}`,
+        type: noteType,
+        changedDate: fakeDateMom.toDate(),
+      },
+      children: [],
+    })
+  }
+  return outputParas
+}
+
+//-----------------------------------------------------------
+// Priority Items
+export function makeDummyPriorityItems(extension): Array<TParagraph> {
+  // Note: to make the same processing as the real data, this is done only in terms of extended paras
+  const outputParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
+  for (let c = 1; c < 31; c++) {
+    // const thisID = `${sectionNum}-${String(c)}`
+    const thisType = c % 3 === 0 ? 'checklist' : 'open'
+    const priorityPrefix = c % 20 === 0 ? '>> ' : c % 10 === 0 ? '!!! ' : c % 5 === 0 ? '!! ' : '! '
+    const fakeDateMom = new moment('2023-10-01').add(c, 'days')
+    const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
+    const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
+    const filename = c % 3 < 2 ? `${fakeFilenameDateStr}.${extension}` : `fake_note_${String(c % 7)}.${extension}`
+    const type = c % 3 < 2 ? 'Calendar' : 'Notes'
+    const content = `${priorityPrefix}test priority item ${c}${c % 8 === 0 ? ' #waiting❗️ ' : ''}>${fakeIsoDateStr}`
+    outputParas.push({
+      filename: filename,
+      content: content,
+      rawContent: `${thisType === 'open' ? '*' : '+'} ${priorityPrefix}${content}`,
+      type: thisType,
+      note: {
+        filename: filename,
+        title: `Test Note ${c % 10}`,
+        type: type,
+        changedDate: fakeDateMom.toDate(),
+      },
+      children: [],
+    })
+  }
+  return outputParas
+}

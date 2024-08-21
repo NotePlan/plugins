@@ -124,7 +124,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowReload': {
-        await showDashboardReact('full') // FIXME: cause of circular dependency
+        const useDemoData = data.settings?.useDemoData ?? false
+        await showDashboardReact('full', useDemoData) // FIXME: cause of circular dependency
         return
       }
       case 'completeTask': {

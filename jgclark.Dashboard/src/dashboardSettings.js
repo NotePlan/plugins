@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
+// Last updated 2024-08-15 for v2.1.0.a8 by @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from "./types.js"
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -29,17 +29,11 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 // So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
-    type: 'heading',
-    label: "Perspectives",
-  },
-  {
+    type: 'hidden',
     key: "activePerspectiveName",
     label: "Name of active Perspective",
-    description: "The Perspective that is active (if any).",
-    type: 'input', // TODO: make this a 'combo'
-    // options: [], // placeholder that will be replaced later
+    description: "The Perspective that is active.",
     default: "",
-    compactDisplay: true,
   },
   {
     type: 'heading',
@@ -59,12 +53,12 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
     type: 'input',
     default: "@Archive, @Templates, Saved Searches",
-    compactDisplay: true,
+    compactDisplay: false,
   },
-  // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
   {
+    // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
     key: "ignoreItemsWithTerms",
-    label: "Ignore items in calendar sections with this phrase(s)",
+    label: "Ignore items in calendar sections with phrase(s)",
     description: "If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.",
     type: 'input',
     default: "#waiting",
@@ -75,6 +69,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note.",
     type: 'input',
     default: "Tasks",
+    compactDisplay: true,
   },
   {
     key: "newTaskSectionHeadingLevel",
@@ -241,6 +236,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
         return {
           type: 'heading',
           label: setting.label || '',
+          description: setting.description || '',
         }
       case 'switch':
         return {
@@ -253,6 +249,15 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'input':
         return {
           type: 'input',
+          label: setting.label || '',
+          key: thisKey,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
+        }
+      case 'input-readonly':
+        return {
+          type: 'input-readonly',
           label: setting.label || '',
           key: thisKey,
           value: allSettings[thisKey] ?? setting.default,
@@ -277,6 +282,14 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           options: setting.options,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+        }
+      case 'hidden':
+        return {
+          type: 'hidden',
+          label: setting.label || '',
+          key: thisKey,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
         }
       default:
         return {

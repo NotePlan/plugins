@@ -1,11 +1,31 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- - TODO: as a result improved filtering of future tasks in tag section -->
+
+## [Perspectives.a8] @jgc, 2024-08-21
+- Fixed full generation sometimes having Project rather than Priority section
+- Removed double generation of Tag sections in getSomeSectionData()
+- Updated Demo Data to allow fuller testing of Perspectives and other filtering
+- Settings dialog:
+  - made <input> boxes wider
+  - made the (temporary) currently active perspective box read-only. (There is now a 'input-readonly' type.)
+  - improved some other layout. Includes now allowing 'heading' type to have a description ... something I wished EM had added in the main app.
+- Tweaked layout in header area
+- removed 'autoAddTrigger' setting and logic
+- dbw: make "-" an actual perspective that holds the values of your settings when there is "no" perspective
+- dbw: add the "*" thing when you edit a saved perspective
+- stoped the "*" thing from being appended multiple times
+- removed .isActive
+- added .isModified throughout, and updated display logic
+- lots of work on perspectiveHelpers functions to clarify what each needs to do, and removed some old code. But FIXME: most/all of the comms about changes between backend and frontend doesn't seem to be working.
+  - includes new switchToPerspective() function
+
 ## [Perspectives.a7] @jgc, 2024-08-14
 - removed some of the circular dependencies
 - updated names of some settings, particularly `ignoreFolders`
 - added updateCurrentPerspectiveDef(), and "/Update current Perspective" command for testing. FIXME: is failing to read dashboardSettings properly.
-- added savePerspectiveSettings() to make one place to save changes (at least on the back end). FIXME: need to get this to affect front end too.
+- added saveAllPerspectiveDefs() to make one place to save changes (at least on the back end). FIXME: need to get this to affect front end too.
 - turned off underlining on the 'take a break' message lines
 - clicking on 'there are X items hidden' message lines now should turn off filtering. FIXME: but it doesn't persist or update the window.
 - fixed missing 'enableInteractiveProcessingTransitions' setting in types.js
@@ -20,9 +40,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: fixed a bug in the partially-implemented include/exclude folders bit that was keeping code from running. This code still needs to be completed
 - dbw: started trying to fix the dialog-window-needs-repositioning-when-calendar-is-open issue but ran out of time and did not get it to work. I'm confident it's 90% right...just some small edit needed to make it work.
 - dbw: reduced some logging
----
-- dbw: make "-" an actual perpective that holds the values of your settings when there is "no" perspective
-- dbw: add the "*" thing when you edit a saved perspective. HAS NOT BEEN TESTED
 
 ## [Perspectives.a6] @jgc, 2024-08-10 WIP for @dbw
 - fixed perspectiveSetting initialisation in WebView (I think) and how to persist it in Dashboard::useEffects (I think)

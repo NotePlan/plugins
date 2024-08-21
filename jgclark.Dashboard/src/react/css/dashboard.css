@@ -30,9 +30,9 @@ body {
 }
 
 /* TODO: Trying this as a way to unset the colour of icons */
-i {
+/* i {
 	color: unset;
-}
+} */
 
 /* 
  * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)

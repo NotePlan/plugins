@@ -88,18 +88,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
 
-  // TODO: HELP: I get lost on what to put here.
-  // These are two handlers from other places for reference.
-  // const handleOptionClick = (option: string) => {
-  //   setSelectedValue(option)
-  //   onChange(option)
-  //   setIsOpen(false)
-  // }
-
-  // const handleFieldChange = (key: string, value: any) => {
-  //   setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
-  // }
-
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -136,6 +124,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           : ''}
       </div>
 
+      {/* Perspective selector */}
       <div className="perspectiveName">
         {dashboardSettings.FFlag_Perspectives && (
           <PerspectiveSelector />

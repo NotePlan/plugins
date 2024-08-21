@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-05-29 for v2.0.5 by @jgclark
+// Last updated 2024-08-15 for v2.1.0.a8 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -69,7 +69,7 @@ export function renderItem({
             checked={item.checked || false}
             onChange={(e) => {
               if (item.key) {
-                logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
+                // logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
                 item.key && handleFieldChange(item.key, e.target.checked)
                 item.key && handleSwitchChange(item.key, e)
               }
@@ -95,6 +95,20 @@ export function renderItem({
               item.key && handleSaveInput(item.key, newValue)
             }}
             showSaveButton={showSaveButton}
+            compactDisplay={item.compactDisplay || false}
+            className={indent ? 'indent' : ''}
+          />
+        )
+      case 'input-readonly':
+        return (
+          <InputBox
+            inputType="text"
+            readOnly={true}
+            key={`ibxro${index}`}
+            label={thisLabel}
+            value={item.value || ''}
+            onChange={() => { }}
+            showSaveButton={false}
             compactDisplay={item.compactDisplay || false}
             className={indent ? 'indent' : ''}
           />
@@ -133,11 +147,6 @@ export function renderItem({
             compactDisplay={item.compactDisplay || false}
           />
         )
-      // case 'perspective':
-      //   return (
-      //     <PerspectiveSettings
-      //       value={item.value} />
-      //   )
       case 'text':
         return (
           <TextComponent
@@ -148,9 +157,21 @@ export function renderItem({
           />
         )
       case 'separator':
-        return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
+        return (
+          <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
+        )
       case 'heading':
-        return <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
+        return (
+          <>
+            <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
+            {item.description && (
+              <TextComponent
+                textType="description"
+                label={item.description}
+                key={`heddesc${index}`} />
+            )}
+          </>
+        )
       default:
         return null
     }

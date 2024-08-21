@@ -11,13 +11,9 @@
 // Imports
 //----------------------------------------------------------
 import React from 'react'
-// import { useEffect, useRef, useState, type ElementRef } from 'react'
-// import type { perspectiveSettingDefaults, perspectiveSettingDefinitions } from '../../dashboardSettings.js'
 import { JsonEditor } from 'json-edit-react'
-// import type { TPerspectiveDef } from '../../types'
-// import ComboBox from '../components/ComboBox.jsx'
-// import PerspectiveDefinitionSettings from '../components/PerspectiveDefinitionSettings.jsx'
 import TextComponent from '../components/TextComponent.jsx'
+import InputBox from '../components/InputBox.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import '../css/PerspectiveSettings.css'
@@ -91,21 +87,32 @@ const PerspectiveSettings = ({
         {/* <div className="ui-heading">{heading}</div> */}
         <TextComponent
           textType={'header'}
-          label={'Perspective Definitions'}
+          label={'Perspectives'}
+          description={`A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.`}
+        />
+        <InputBox
+          readOnly={true}
+          label={'Active Perspective'}
+          onChange={() => { }}
+          value={activePerspectiveName}
+          compactDisplay={true}
         />
         <TextComponent
           textType={'description'}
-          label={"A 'Perspective' is a named settings set applied to the Dashboard view."}
+          key={'aPN'}
+          label={"The currently active Perspective. A '*' following indicates that the settings have been changed but not saved. The '-' Perspective is the default when no Perspective is active."}
         />
         <TextComponent
           textType={'description'}
-          label={"The following is the underlying JSON definitions of the Perspective(s):"}
+          key={'json-description'}
+          label={"The underlying JSON definitions of the Perspective(s):"}
         />
 
         {/* TODO: Have a nice Editable Table with Add/Delete/Update buttons. Perhaps from https://codesandbox.io/s/react-table-add-edit-delete-v2-gmhuc */}
         {/* Or the component at https://react-table-library.com/?path=/docs/crud--delete */}
 
         {/* JSON Editor for now to view/udpate. From https://github.com/CarlosNZ/json-edit-react */}
+        {/* TODO: use a dark theme where necessary */}
         <JsonEditor
           data={perspectiveSettings ?? {}}
           rootName={"perspectiveSettings"}

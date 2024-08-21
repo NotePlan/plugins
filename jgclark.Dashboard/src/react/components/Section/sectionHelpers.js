@@ -199,12 +199,11 @@ export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSect
 
 /**
  * Get Section Details for all tags in settings
- * @param {TDashboardSettings} dashboardSettings 
- * @param {TAnyObject} pluginSettings 
+ * @param {TDashboardSettings} dashboardSettings
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}
  */
-export function getTagSectionDetails(dashboardSettings: TDashboardSettings /*, pluginSettings: TAnyObject */): Array<TSectionDetails> {
-  const tags = (dashboardSettings.tagsToShow ?? /* pluginSettings.tagsToShow ?? */ '').split(',').map(t => t.trim()).filter(t => t !== '')
+export function getTagSectionDetails(dashboardSettings: TDashboardSettings): Array<TSectionDetails> {
+  const tags = (dashboardSettings.tagsToShow ?? '').split(',').map(t => t.trim()).filter(t => t !== '')
   return tags.map(t => ({ sectionCode: "TAG", sectionName: t, showSettingName:getShowTagSettingName(t) }))
 }
 

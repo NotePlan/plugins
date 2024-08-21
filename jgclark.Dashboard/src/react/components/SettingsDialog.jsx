@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+// Last updated 2024-08-18 for v2.1.0.a8 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -12,11 +12,11 @@
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
+import { adjustSettingsAndSave } from '../../perspectiveHelpers'
+import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
-import PerspectiveSettings from './PerspectiveSettings.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
-import { clo } from '@helpers/dev.js'
+import { clo, logDebug } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -85,29 +85,37 @@ const SettingsDialog = ({
 		setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
 	}
 
+	// Handle "Save & Close" action
 	const handleSave = () => {
 		if (onSaveChanges) {
 			onSaveChanges(updatedSettings)
 		}
 		const settingsToSave = { ...updatedSettings }
+
 		// perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
-		if (settingsToSave.perspectiveSettings) {
-			setPerspectiveSettings(settingsToSave.perspectiveSettings)
-			delete settingsToSave.perspectiveSettings
-			// setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
-			logDebug('Dashboard', `Perspective Settings changed in Settings Dialog`, settingsToSave)
-		}
-		if (Object.keys(settingsToSave).length > 0) {
-			// there were other (non-perspective) changes made
-			const apn = settingsToSave.activePerspectiveName
-			if (typeof apn === 'string' && apn.length > 0 && apn !== "-") {
-				// $FlowIgnore // we know apn is a string so this concat will work
-				settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
-			}
-			// $FlowFixMe[cannot-spread-indexer]
-			setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
-			logDebug('Dashboard', `Dashboard Settings Panel updates`, settingsToSave)
-		}
+		// v1:
+		// if (settingsToSave.perspectiveSettings) {
+		// 	setPerspectiveSettings(settingsToSave.perspectiveSettings)
+		// 	delete settingsToSave.perspectiveSettings
+		// 	// setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
+		// 	logDebug('Dashboard', `Perspective Settings changed in Settings Dialog`, settingsToSave)
+		// }
+		// if (Object.keys(settingsToSave).length > 0) {
+		// 	// there were other (non-perspective) changes made
+		// 	const apn = settingsToSave.activePerspectiveName
+		// 	if (typeof apn === 'string' && apn.length > 0 && apn !== "-" && apn[-1] !== "*") {
+		// 		// $FlowIgnore // we know apn is a string so this concat will work
+		// 		settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
+		// 	}
+		// 	// $FlowFixMe[cannot-spread-indexer]
+		// 	setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
+		// 	logDebug('Dashboard', `Dashboard Settings Panel updates`, settingsToSave)
+		// }
+
+		// v2: Now Calls back-end function to save these settings
+		// FIXME(@dbw): the following now has to be async; is this a problem?
+		adjustSettingsAndSave(settingsToSave, setDashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
+
 		toggleDialog()
 	}
 
@@ -204,7 +212,7 @@ const SettingsDialog = ({
 							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
 							className: '', // for future use
 						})}
-						{item.description && (
+						{item.type !== 'hidden' && item.description && (
 							<div className="item-description">{item.description}</div>
 						)}
 					</div>

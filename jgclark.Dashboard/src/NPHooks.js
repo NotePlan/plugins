@@ -55,7 +55,6 @@ export function init(): void {
 export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
   const logSettings = await getLogSettings()
-  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
   await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
   return
 }

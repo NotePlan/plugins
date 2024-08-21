@@ -34,6 +34,7 @@ export type PassedData = {
   pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
+  dataMode: 'live' | 'demo' | 'test',
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
@@ -210,7 +211,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact 2 starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
+  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}') ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
   try {
     const startTime = new Date()
     const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
@@ -281,8 +282,8 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
   try {
     const startTime = new Date()
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
-    const perspectiveSettings = await getPerspectiveSettings() // TODO: move from WebView to here
-    // TODO(future): @jgclark: In future this ^^^ could bw where  initialisePerspectiveSettings() will happen?
+    const perspectiveSettings = await getPerspectiveSettings()
+
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -291,8 +292,9 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-      debug: false, // ENV_MODE === 'development' ? true : false,
       ENV_MODE,
+      debug: ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      dataMode: 'live', // or 'demo' or 'test' TODO:
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson["plugin.id"]}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,

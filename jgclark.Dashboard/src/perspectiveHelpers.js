@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+// Last updated 2024-08-21 for v2.1.0.a8 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,15 +14,60 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed } from '@helpers/userInput'
 
-//-----------------------------------------------------------------------------
+
+/* -----------------------------------------------------------------------------
+   Design logic
+ -------------------------------------------------------------------------------
+
+Default perspective = "-", when no others set.
+- persisted as a name, but cannot be deleted
+- it's a save of the last settings you made (before you switched into a named perspective). So the way I implemented it is that it saves your changes to the "-" perspective any time you are not in a perspective and make a change. So if you switch to "Work" and then switch back to "-" it returns you to your last state before you switched to "Work"
+  * [x] ensure `-` cannot be deleted @done(2024-08-20)
+  * [x] ensure `-` cannot be added as a new Perspective @done(2024-08-20)
+- When we make changes to `-` it doesn't become `-*` but stays at `-`.
+
+Named perspectives
+- Created: by user through /save new perspective, or through settings UI.
+  - The activePerspectiveName (in main dashboardSettings) holds the name of the currently-active perspective.  We no longer want the isActive flag.
+    * [x] #jgcDR: remove isActive flag @done(2024-08-20)
+  - Adding a new perspective is working saving-wise, but it doesn't show in the dropdown. Adding a new perspective should update the dropdown selector list and set the dropdown to the new perspective. savePerspectiveSettings() or somewhere else in the flow needs to update the data in the window using `await setPluginData()`  See other examples of where this is used to update the various objects. 
+
+- Read: through helper function getPerspectiveSettings()
+
+- Applied: through calling function switchToPerspective()
+  > JGC new thought: Before changing to any other perspective, I think we should check whether current one isModified, and if it is offer to update/save it first. DBW agrees.
+  > dbw says: it sure would be nice if we had a dialog that opened up inside the window. It's kind of jarring to have the NP main window pop up on you. Are you up for trying to create a dialog?
+  * [ ] #jgcDR ask user whether to update a modified Perspective before changing to a new one -- but try to use a native dialog not NP main window
+
+- Altered: by setting changes(s) made by user or callback.  
+  - all the changes you are making are saved to your dashboardSettings
+  - At this point a "*" is appended to the display name, via an `isModified` flag
+  - However, the default Perspective `-` does not get shown as `-*`
+  * [x] #jgcDR: add isModified flag (to separate logic from display, which might change in the future)
+
+- Saved: by user through /update current perspective
+  - done by calling updateCurrentPerspectiveDef(), which sets isModified to false
+
+- Deleted: through settings UI or /delete current perspective.
+  - TEST: needs to update list of available perspectives
+  - TEST: set active perspective to default
+
+-----------------------------------------------------------------------------*/
 
 const pluginID = pluginJson['plugin.id']
 
 export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
   // $FlowFixMe[prop-missing] rest specified later
   {
+    name: "-",
+    isModified: false,
+    // $FlowFixMe[prop-missing] rest specified later
+    dashboardSettings: {
+    }
+  },
+  {
     name: "Home",
-    isActive: false,
+    isModified: false,
     // $FlowFixMe[prop-missing]
     dashboardSettings: {
       includedFolders: "Home, NotePlan",
@@ -33,7 +78,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
   // $FlowFixMe[prop-missing] rest specified later
   {
     name: "Work",
-    isActive: false,
+    isModified: false,
     // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {
       includedFolders: "Work, CCC, Ministry",
@@ -41,14 +86,10 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
       ignoreItemsWithTerms: "#test, @home",
     }
   },
-  {
-    name: "-",
-    // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: {
-    }
-  }  
 ]
 
+//-----------------------------------------------------------------------------
+// Getters
 //-----------------------------------------------------------------------------
 
 /**
@@ -103,149 +144,13 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       clo(extendedPerspectiveSettings, `extendedPerspectiveSettings =`)
 
       // persist and return
-      savePerspectiveSettings(extendedPerspectiveSettings)
+      saveAllPerspectiveDefs(extendedPerspectiveSettings)
       return extendedPerspectiveSettings
     }
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []
   }
-}
-
-/**
- * Update the current perspective settings (as a TPerspectiveDef)
- * @returns {boolean} success
- */
-export async function updateCurrentPerspectiveDef(): Promise<boolean> {
-  try {
-    // FIXME: doesn't get this OK:
-    const activePerspectiveName = DataStore.settings.dashboardSettings.activePerspectiveName
-    const allDefs = await getPerspectiveSettings()
-    // const activeDefIndex: number = allDefs.findIndex((d) => d.name === activePerspectiveName)
-    const activeDefIndex: number = allDefs.findIndex((d) => d.isActive)
-    if (activeDefIndex === undefined || activeDefIndex === -1) {
-      logWarn('updateCurrentPerspectiveDef', `Couldn't find definition for perspective '${activePerspectiveName}'.`)
-      return false
-    }
-    logDebug('updateCurrentPerspectiveDef', `Will update def '${activePerspectiveName}' (#${String(activeDefIndex)})`)
-    const dashboardSettings = await getDashboardSettings()
-    allDefs[activeDefIndex].dashboardSettings = dashboardSettings
-    const res = await savePerspectiveSettings(allDefs)
-    return true
-  } catch (error) {
-    logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
-    return false
-  }
-}
-
-/**
- * Persist all perspective settings as a stringified array, to suit the forced type of the hidden setting.
- * TODO: from this NP automatically triggers NPHooks::onSettingsUpdated(). This might or might not be desirable.
- * TODO: ideally this should trigger updates in the front end too, but I don't know how.
- * @param {Array<TPerspectiveDef>} allDefs perspective definitions
- * @return {boolean} true if successful
- */
-export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolean {
-  try {
-    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ""
-    const pluginSettings = DataStore.settings
-    pluginSettings.perspectiveSettings = perspectiveSettingsStr
-    DataStore.settings = pluginSettings
-    logDebug('savePerspectiveSettings', `Apparently saved OK.`)
-    return true
-  } catch (error) {
-    logError('savePerspectiveSettings', `Error: ${error.message}`)
-    return false
-  }
-}
-
-/**
- * Clean a Dashboard  settings object of properties we don't want to use
- * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
- * @param {TDashboardSettings} settingsIn 
- * @returns 
- */
-export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboardSettings {
-  // Remove things that make no sense for a perspective to override
-  // and things that will be set based on NP settings not Dashboard settings
-  // FIXME: @jgclark pls add to these so we have a complete list of settings which should *not* be saved
-  const keysToRemove = ['lastChange','activePerspectiveName','timeblockMustContainString','timeblockMustContainString']
-  // $FlowIgnore
-  return Object.keys(settingsIn).reduce((acc, key) => {
-    const isFFlag = key.startsWith('FFlag')
-    if (!keysToRemove.includes(key) && !isFFlag) {
-      // $FlowIgnore
-      acc[key] = settingsIn[key]
-    }
-    return acc
-  }, {})
-}
-
-/**
- * Add a new Perspective setting, through asking user.
- * TODO: @jgclark: (from dbw): My thinking was that a user would add a new perspective by setting all the settings and filters the way they want and then running this command
- * ...which would ask for just a name and that would save all the settings/filters in their new perspective.
- * ...or if it already exists, it would save over it (update it)
- * ...so the only thing they would need to do is name it.
- * ...I know this is temp code, but I thought I would share my thoughts on how it could work just to be totally clear
- * TODO: Extend to allow x-callback
- */
-export async function addNewPerspective(/* nameIn: string, makeActiveIn: boolean, dashboardSettingsIn?: TDashboardSettings */): Promise<void> {
-  const allDefs = await getPerspectiveSettings()
-  logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspective settings ...`)
-
-  // Get user input
-  const name = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
-  if (typeof name === 'boolean') {
-    logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-    return
-  }
-
-
-  // const includedFolders = await getInputTrimmed('Enter list of folders to include (comma-separated):', 'OK', 'Add Perspective', 'TEST')
-  // if (typeof includedFolders === 'boolean') {
-  //   logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-  //   return
-  // }
-  // const excludedFolders = await getInputTrimmed('Enter list of folders to exclude (comma-separated):', 'OK', 'Add Perspective', 'Work, Home, CCC, Ministry')
-  // if (typeof excludedFolders === 'boolean') {
-  //   logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-  //   return
-  // }
-  const newDef: TPerspectiveDef = {
-    name: name,
-    isActive: true, // make it active straight away
-    // $FlowFixMe[prop-missing] gets set later
-    dashboardSettings: {
-      ...cleanDashboardSettings(await getDashboardSettings())
-      // includedFolders: includedFolders || "",
-      // excludedFolders: excludedFolders || "",
-    }
-  }
-  logInfo('addPerspectiveSetting', `... added perspectve #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
-
-  // persist this
-  const res = savePerspectiveSettings([...allDefs, newDef])
-
-  // Refresh dashboard
-  // TODO: without using refreshDashboardData - causes circ dependency (and didn't work when tried)
-  // Though shouldn't React magically do it for us?
-}
-
-/**
- * Delete all Perspective settings
- */
-// eslint-disable-next-line require-await
-export async function deletePerspectiveSettings(): Promise<void> {
-  logDebug('deletePerspectiveSettings', `Attempting to delete all Perspective settings ...`)
-  const pluginSettings = DataStore.settings
-  pluginSettings.perspectiveSettings = "[]"
-  const dSettings = await getDashboardSettings()
-  // $FlowIgnore
-  delete dSettings.perspectiveSettings
-  pluginSettings.dashboardSettings = JSON.stringify(dSettings)
-  clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
-  DataStore.settings = pluginSettings
 }
 
 /**
@@ -264,13 +169,14 @@ export function getActivePerspectiveDef(
     return false
   }
   // Get relevant perspectiveDef
+
   const allDefs = perspectiveSettings ?? []
   if (!allDefs) {
     logWarn('getActivePerspectiveDef', `No perspectives defined.`)
     return false
   }
   // clo(allDefs, `getActivePerspectiveDef: allDefs =`)
-  const activeDef: TPerspectiveDef | null = allDefs.find((d) => d.name === activePerspectiveName) ?? null
+  const activeDef = getPerspectiveNamed(activePerspectiveName, allDefs)
   if (!activeDef) {
     logWarn('getActivePerspectiveDef', `Could not find definition for perspective '${activePerspectiveName}'.`)
     return false
@@ -291,88 +197,33 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPe
 }
 
 /**
- * Delete a Perspective definition from dashboardSettings.
- * @param {string} nameIn
- * TEST: live
- * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Home
- */
-export async function deletePerspective(nameIn: string = ''): Promise<void> {
-  try {
-    let nameToUse = ''
-    const dashboardSettings = (await getDashboardSettings()) || {}
-    const existingDefs = (await getPerspectiveSettings()) || []
-    if (existingDefs.length === 0) {
-      throw new Error(`No perspective settings found. Stopping.`)
-    }
-    logInfo('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
-
-    if (nameIn !== '' && getPerspectiveNamed(nameIn, existingDefs)) {
-      nameToUse = nameIn
-      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
-    } else {
-      logInfo('deletePerspective', `Asking user to pick perspective to delete`)
-      const options = existingDefs.map((p) => {
-        return { label: p.name, value: p.name }
-      })
-      const res = await chooseOption('Please pick the Perspective to delete', options)
-      if (!res) {
-        logInfo('deletePerspective', `User cancelled operation.`)
-        return
-      }
-      nameToUse = String(res)
-      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' selected by user`)
-    }
-
-    // if this is the active perspective, then unset the activePerspectiveName
-    if (nameToUse === dashboardSettings.activePerspectiveName) {
-      dashboardSettings.activePerspectiveName = ''
-    }
-
-    // delete this Def from the list of Perspective Defs
-    const perspectivesWithoutOne = existingDefs.filter(obj => obj.name !== nameToUse)
-    logInfo('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
-
-    // Persist this change 
-    // TODO: is this hitting old string vs object problem?
-    const pluginSettings = DataStore.settings
-    pluginSettings.perspectiveSettings = JSON.stringify(perspectivesWithoutOne)
-    DataStore.settings = pluginSettings
-
-    // FIXME: not updating elsewhere in the interface
-  } catch (error) {
-    logError('deletePerspective', error.message)
-  }
-}
-
-/**
  * Get list of all Perspective names
  * @param {Array<TPerspectiveDef>} allDefs
- * @param {boolean} includeEmptyOption?
+ * @param {boolean} includeDefaultOption? (optional; default = true)
  * @returns {Array<string>}
  */
-export function getListOfPerspectiveNames(
+export function getDisplayListOfPerspectiveNames(
   allDefs: Array<TPerspectiveDef>,
-  includeEmptyOption: boolean,
+  includeDefaultOption: boolean = true
 ): Array<string> {
   try {
-  // Get all perspective names
+    // Get all perspective names
     if (!allDefs || allDefs.length === 0) {
       throw new Error(`No existing Perspective settings found.`)
     }
 
-// Put "-" at the top of the list
-// First, add any def with def.name === "-" to the options array
-const options = allDefs
-  .map(def => def.name)
-  .sort((a, b) => (a === "-" ? -1 : b === "-" ? 1 : 0))
+    // Form list of options, removing "-" from the list if wanted
+    let options = allDefs
+      .map(def => (def.isModified ? `${def.name}*` : def.name))
+      .sort((a, b) => (a === "-" ? -1 : b === "-" ? 1 : 0))
+    if (!includeDefaultOption) {
+      options = options.filter(name => name !== "-")
+    }
 
-    // if (includeEmptyOption) {
-    //   options.unshift("-")
-    // }
-    logDebug('getListOfPerspectiveNames ->', String(options))
+    logDebug('getDisplayListOfPerspectiveNames ->', String(options))
     return options
   } catch (err) {
-    logError('getListOfPerspectiveNames', err.message)
+    logError('getDisplayListOfPerspectiveNames', err.message)
     return ['-']
   }
 }
@@ -404,6 +255,233 @@ export function getAllowedFoldersInCurrentPerspective(
   return folderListToUse
 }
 
+//-----------------------------------------------------------------------------
+// Setters
+//-----------------------------------------------------------------------------
+
+export async function switchToPerspective(name: string): Promise<boolean> {
+  // Check if perspective exists
+  const allDefs = await getPerspectiveSettings()
+  const thisDef = await getPerspectiveNamed(name, allDefs) && await getPerspectiveNamed("-", allDefs)
+  if (!thisDef) {
+    logError('switchToPerspective', `Could not find definition for perspective '${name}'.`)
+    return false
+  }
+  // Now set activePerspectiveName in dashboardSettings
+  const dSettings = await getDashboardSettings()
+  dSettings.activePerspectiveName = thisDef.name
+  return true
+}
+
+/**
+ * Update the current perspective settings (as a TPerspectiveDef) and persist.
+ * Clear the isModified flag for the current perspective.
+ * Note: Always called by user; never an automatic operation.
+ * @returns {boolean} success
+ */
+export async function updateCurrentPerspectiveDef(): Promise<boolean> {
+  try {
+    // FIXME: doesn't get this OK:
+    const activePerspectiveName = DataStore.settings.dashboardSettings.activePerspectiveName
+    const allDefs = await getPerspectiveSettings()
+    const activeDefIndex: number = allDefs.findIndex((d) => d.name === activePerspectiveName)
+    if (activeDefIndex === undefined || activeDefIndex === -1) {
+      logWarn('updateCurrentPerspectiveDef', `Couldn't find definition for perspective '${activePerspectiveName}'.`)
+      return false
+    }
+    logDebug('updateCurrentPerspectiveDef', `Will update def '${activePerspectiveName}' (#${String(activeDefIndex)})`)
+    const dashboardSettings = await getDashboardSettings()
+    allDefs[activeDefIndex].dashboardSettings = dashboardSettings
+    allDefs[activeDefIndex].isModified = false
+    const res = await saveAllPerspectiveDefs(allDefs)
+    return true
+  } catch (error) {
+    logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Save all perspective definitions as a stringified array, to suit the forced type of the hidden setting.
+ * TODO: from this NP automatically triggers NPHooks::onSettingsUpdated(). This might or might not be desirable.
+ * TODO: ideally this should trigger updates in the front end too, but I don't know how.
+ * @param {Array<TPerspectiveDef>} allDefs perspective definitions
+ * @return {boolean} true if successful
+ */
+export function saveAllPerspectiveDefs(allDefs: Array<TPerspectiveDef>): boolean {
+  try {
+    const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ""
+    const pluginSettings = DataStore.settings
+    pluginSettings.perspectiveSettings = perspectiveSettingsStr
+    DataStore.settings = pluginSettings
+    logDebug('saveAllPerspectiveDefs', `Apparently saved OK.`)
+    return true
+  } catch (error) {
+    logError('saveAllPerspectiveDefs', `Error: ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Clean a Dashboard settings object of properties we don't want to use
+ * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
+ * @param {TDashboardSettings} settingsIn 
+ * @returns 
+ */
+export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboardSettings {
+  // Remove things that make no sense for a perspective to override
+  const keysToRemove = ['lastChange', 'activePerspectiveName', 'timeblockMustContainString', 'FFlag_Perspectives', 'FFlag_ForceInitialLoadForBrowserDebugging', 'FFlag_HardRefreshButton', 'updateTagMentionsOnTrigger']
+  // $FlowIgnore[incompatible-call]
+  return Object.keys(settingsIn).reduce((acc, key) => {
+    const isFFlag = key.startsWith('FFlag')
+    if (!keysToRemove.includes(key) && !isFFlag) {
+      // $FlowIgnore
+      acc[key] = settingsIn[key]
+    }
+    return acc
+  }, {})
+}
+
+/**
+ * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
+ */
+export async function addNewPerspective(): Promise<void> {
+  const allDefs = await getPerspectiveSettings()
+  logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspectives ...`)
+
+  // Get user input
+  const name = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
+  if (typeof name === 'boolean') {
+    logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
+    return
+  }
+  if (name === '-') {
+    logWarn('addPerspectiveSetting', `Cannot add default Perspective '-'.`)
+    return
+  }
+
+  const newDef: TPerspectiveDef = {
+    name: name,
+    isModified: false,
+    // $FlowFixMe[prop-missing] gets set later
+    dashboardSettings: {
+      ...cleanDashboardSettings(await getDashboardSettings())
+      // includedFolders: includedFolders || "",
+      // excludedFolders: excludedFolders || "",
+    }
+  }
+  logInfo('addPerspectiveSetting', `... adding Perspective #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
+
+  // persist this
+  const res = saveAllPerspectiveDefs([...allDefs, newDef])
+  // and switch to it
+  const res2 = await switchToPerspective(name)
+  logDebug('addPerspectiveSetting', `Result of switchToPerspective('${name}'): ${String(res2)}`)
+
+  // FIXME: HELP: This writes to the settings file OK, but this doesn't trigger any update in the UI.
+}
+
+/**
+ * Delete all Perspective settings, other than default
+ */
+export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
+  logDebug('deleteAllNamedPerspectiveSettings', `Attempting to delete all Perspective settings (other than edfault) ...`)
+  // v1
+  // const pluginSettings = DataStore.settings
+  // pluginSettings.perspectiveSettings = "[]"
+  // const dSettings = await getDashboardSettings()
+  // $FlowIgnore
+  // delete dSettings.perspectiveSettings
+  // pluginSettings.dashboardSettings = JSON.stringify(dSettings)
+  // clo(pluginSettings.perspectiveSettings, `... leaves: pluginSettings.perspectiveSettings =`)
+  // DataStore.settings = pluginSettings
+
+  // V2
+  let pSettings = await getPerspectiveSettings()
+  for (const p of pSettings) {
+    if (p.name !== '-') {
+      await deletePerspective(p.name)
+    }
+  }
+  logDebug('deleteAllNamedPerspectiveSettings', `Deleted all named perspectives, other than default.`)
+
+  pSettings = await getPerspectiveSettings()
+  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(pSettings)
+  logDebug('deleteAllNamedPerspectiveSettings', `- Test: new list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
+  // Set current perspective to default ("-")
+  const res = await switchToPerspective('-')
+  logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(res)}`)
+}
+
+/**
+ * Delete a Perspective definition from dashboardSettings.
+ * @param {string} nameIn
+ * TEST: live
+ * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Home
+ */
+export async function deletePerspective(nameIn: string = ''): Promise<void> {
+  try {
+    let nameToUse = ''
+    const dashboardSettings = (await getDashboardSettings()) || {}
+    const existingDefs = (await getPerspectiveSettings()) || []
+    if (existingDefs.length === 0) {
+      throw new Error(`No perspective settings found. Stopping.`)
+    }
+    if (nameIn === '-') {
+      logWarn('deletePerspective', `Cannot delete default Perspective '-'.`)
+      return
+    }
+
+    logInfo('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
+
+    if (nameIn !== '' && getPerspectiveNamed(nameIn, existingDefs)) {
+      nameToUse = nameIn
+      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
+    } else {
+      logInfo('deletePerspective', `Asking user to pick perspective to delete (apart from default)`)
+      const displayList = getDisplayListOfPerspectiveNames(existingDefs, false)
+      const options = displayList.map((pn) => {
+        return { label: pn, value: pn }
+      })
+      const res = await chooseOption('Please pick the Perspective to delete', options)
+      if (!res) {
+        logInfo('deletePerspective', `User cancelled operation.`)
+        return
+      }
+      nameToUse = String(res)
+      logInfo('deletePerspective', `Will delete perspective '${nameToUse}' selected by user`)
+    }
+
+    // if this is the active perspective, then set the activePerspectiveName to default
+    if (nameToUse === dashboardSettings.activePerspectiveName) {
+      logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
+      const res = await switchToPerspective('-')
+      logDebug('deletePerspective', `Result of switchToPerspective("-"): ${String(res)}`)
+    }
+
+    // delete this Def from the list of Perspective Defs
+    const perspectivesWithoutOne = existingDefs.filter(obj => obj.name !== nameToUse)
+    logInfo('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
+
+    // Persist this change 
+    // v1:
+    const pluginSettings = DataStore.settings
+    pluginSettings.perspectiveSettings = JSON.stringify(perspectivesWithoutOne)
+    DataStore.settings = pluginSettings
+    // FIXME: ^^^^ not updating elsewhere in the interface.
+    // v2:
+    // So I want to try the following, but I don't have the function defs to call:
+    // await adjustSettingsAndSave(perspectivesWithoutOne, setDashboardSettings, setPerspectiveSettings, `deletePerspective('${nameToUse}')`)
+
+  } catch (error) {
+    logError('deletePerspective', error.message)
+  }
+}
+
+//-----------------------------------------------------------------------------
+// Other Helpers
+//-----------------------------------------------------------------------------
+
 /**
  * Is the filename from the given list of folders?
  * @param {TNote} note
@@ -423,33 +501,6 @@ export function isNoteInAllowedFolderList(
 }
 
 /**
- * Note: NOT CURRENTLY USED
- * Test to see if the current filename is in a folder that is allowed in the current Perspective definition
- * @param {string} filename 
- * @param {TDashboardSettings} dashboardSettings 
- * @returns {boolean}
- */
-// export function isFilenameAllowedInCurrentPerspective(
-//   filename: string,
-//   dashboardSettings: TDashboardSettings
-// ): boolean {
-//   const activeDef = getActivePerspectiveDef(dashboardSettings)
-//   if (!activeDef) {
-//     logError('isFilenameIn...CurrentPerspective', `Could not get active Perspective definition. Stopping.`)
-//     return false
-//   }
-//   // Note: can't use simple .split(',') as it does unexpected things with empty strings
-//   const includedFolderArr = stringListOrArrayToArray(activeDef.includedFolders, ',')
-//   const excludedFolderArr = stringListOrArrayToArray(activeDef.excludedFolders, ',')
-//   // logDebug('isFilenameIn...CurrentPerspective', `using ${String(includedFolderArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedFolderArr.length)} exclusions [${excludedFolderArr.toString()}]`)
-//   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
-
-//   const matchFound = folderListToUse.some((f) => filename.includes(f))
-//   logDebug('isFilenameIn...CurrentPerspective', `- Did ${matchFound ? 'find ' : 'NOT find'} matching folders amongst ${String(folderListToUse)}`)
-//   return matchFound
-// }
-
-/**
  * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention)
  * @param {string} lineContent
  * @param {string} ignoreItemsWithTerms
@@ -464,8 +515,50 @@ export function isLineDisallowedByExcludedTerms(
   // logDebug('isLineDisallowedByExcludedTerms', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
 
   const matchFound = excludedTagArr.some((t) => lineContent.includes(t))
-  logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
+  // logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
   return matchFound
 }
 
-export const endsWithStar = (input:string) => /\*$/.test(input)
+export const endsWithStar = (input: string): boolean => /\*$/.test(input)
+
+/**
+ * TEST: this is new
+ * Make a change to the current dashboard settings and save.
+ * Note: this does *not* update a current named persectiveDef, but does update the default one ("-").
+ * @param {TDashboardSettings} settingsToSave 
+ * @param {Function} setDashboardSettings 
+ * @param {Function} setPerspectiveSettings 
+ * @param {string} logMessage 
+ */
+export async function adjustSettingsAndSave(
+  settingsToSave: any /*TDashboardSettings*/, // TODO: improve type
+  setDashboardSettings: Function,
+  setPerspectiveSettings: Function,
+  logMessage: string
+): Promise<void> {
+  try {
+    logDebug('adjustSettingsAndSave', `starting reason "${logMessage}"`)
+    // perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
+    // TODO: following discussions on 19/20 August, I'm not sure if this is the right thing to do. We want to update default ("-") not named perspective, right?
+    if (settingsToSave.perspectiveSettings) {
+      setPerspectiveSettings(settingsToSave.perspectiveSettings)
+      delete settingsToSave.perspectiveSettings
+      // setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
+      clo(settingsToSave, `- after updating perspectiveSettings:`)
+    }
+
+    if (Object.keys(settingsToSave).length > 0) {
+      // there were other (non-perspective) changes made
+      const apn = settingsToSave.activePerspectiveName
+      if (typeof apn === 'string' && apn.length > 0 && apn !== "-") {
+        // $FlowIgnore // we know apn is a string so this concat will work
+        settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
+      }
+      const dashboardSettings = (await getDashboardSettings()) || {}
+      setDashboardSettings({ ...dashboardSettings, ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
+      logDebug('adjustSettingsAndSave', `- after updating dashboardSettings, with aPN=${apn}`)
+    }
+  } catch (err) {
+    logError('adjustSettingsAndSave', err.message)
+  }
+}

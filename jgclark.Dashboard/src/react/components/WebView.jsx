@@ -28,7 +28,6 @@ import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
-import { perspectiveSettingDefaults } from '../../perspectiveHelpers.js'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
@@ -37,7 +36,7 @@ import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 /**
  * Reduces an array of dashboard settings or filter items into an object with keys and values
  * Sets to the value of the item or the checked value if it is a boolean field or an empty string if none of the above
- * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
+ * @param {Array<TSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
 function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
@@ -62,7 +61,7 @@ type Props = {
   setReactSettings: Function,
 }
 
-// FIXME: @dwertheimer: move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders.
+// FIXME(@dbw): move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders.
 // (Really needed: this is firing for every key press in the settings dialog, for example.)
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
 
@@ -87,8 +86,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // Note: previously set perspectiveSettings here, but now moved to backend.
   // Note: the big issue here had been that because its a hidden settings (in plugin.json) then it has to be a string type, not an object or array. So it has to be stringified.
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
-  // logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
-  // TODO: check with @DBW that this is still needed here?
+  logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+  // TODO(@dbw): please check that this is still needed here
   const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************

@@ -28,7 +28,7 @@ export {
 export {
   addNewPerspective,
   deletePerspective,
-  deletePerspectiveSettings,
+  deleteAllNamedPerspectiveSettings,
   updateCurrentPerspectiveDef,
 } from './perspectiveHelpers.js'
 

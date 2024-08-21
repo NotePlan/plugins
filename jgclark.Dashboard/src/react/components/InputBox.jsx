@@ -1,13 +1,14 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show an HTML Input control, with various possible settings.
-// Last updated 2024-07-29 for v2.0.5 by @jgclark
+// Last updated 2024-08-15 for v2.1.0.a8 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useState, useEffect } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
 
 type InputBoxProps = {
+  readOnly?: boolean,
   label: string,
   value: string,
   onChange: (e: any) => void,
@@ -18,7 +19,7 @@ type InputBoxProps = {
   className?: string,
 };
 
-const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '' }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '', readOnly = false }: InputBoxProps): React$Node => {
   // logDebug('InputBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
@@ -57,6 +58,7 @@ const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = 
       <div className="input-box-wrapper">
         <input
           type={inputType}
+          readOnly={readOnly}
           className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''}`}
           value={inputValue}
           onChange={handleInputChange}

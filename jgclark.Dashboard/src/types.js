@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
+// Last updated 2024-08-20 for v2.1.0.a8 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -17,7 +17,7 @@ export type TNotePlanSettings = {
 }
 
 export type TDashboardSettings = {
-  FFlag_Perspectives: boolean,
+  FFlag_Perspectives: boolean, // TODO: retire, or keep but make a main setting not a FF
   activePerspectiveName: string,
   // perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
@@ -25,7 +25,7 @@ export type TDashboardSettings = {
   dashboardTheme: string,
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
-  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // TEST: was 'ignoreTasksWithPhrase'
+  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
   ignoreChecklistItems: boolean,
   excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
@@ -35,7 +35,7 @@ export type TDashboardSettings = {
   rescheduleNotMove: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
-  autoAddTrigger: boolean, // TODO: remove me in v2.1
+  // autoAddTrigger: boolean, // Note: removed in v2.1
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
@@ -49,7 +49,6 @@ export type TDashboardSettings = {
   maxItemsToShowInSection: number,
   overdueSortOrder: string,
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
-  // ignoreTagMentionsWithPhrase: string,
   updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
   useTodayDate: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
@@ -75,13 +74,13 @@ export type TDashboardPluginSettings = {
 export type TPerspectiveDef = {
   name: string,
   dashboardSettings: TDashboardSettings,
-  isActive?: boolean, //dbw note: I think we don't need this anymore, so I am making it optional
+  isModified: boolean,
 }
 
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'PRIORITY' | 'OVERDUE' | 'TAG' | 'PROJ' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -285,7 +284,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' // | 'perspective' 
+export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' // | 'perspective' 
 
 export type TSettingItem = {
   type: TSettingItemType,

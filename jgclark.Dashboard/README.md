@@ -169,13 +169,13 @@ For both callbacks, the names of the possible settings (described above), and th
 | hideDuplicates | true / false |
 | ignoreItemsWithTerms | string |
 | ignoreChecklistItems | true / false |
+| includedFolders | comma-separated values |
 | excludedFolders | comma-separated values |
 | includeFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
 | newTaskSectionHeading | string |
 | newTaskSectionHeadingLevel | 1-5 |
-| autoAddTrigger | true / false |
 | excludeChecklistsWithTimeblocks | true / false |
 | excludeTasksWithTimeblocks | true / false |
 | showYesterdaySection | true / false |
@@ -189,7 +189,7 @@ For both callbacks, the names of the possible settings (described above), and th
 | maxItemsToShowInSection | number |
 | overdueSortOrder | string |
 | tagsToShow | string |
-| ignoreTagMentionsWithPhrase | string |
+| ignoreTagMentionsWithPhrase | string (deprecated) |
 | updateTagMentionsOnTrigger | true / false |
 | useTodayDate | true / false |
 | moveSubItems | true / false |

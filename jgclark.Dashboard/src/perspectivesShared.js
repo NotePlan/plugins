@@ -34,7 +34,7 @@ export function isFilenameAllowedInFolderList(
 ): boolean {
   // Is filename in folderList?
   const matchFound = folderList.some((f) => filename.includes(f))
-  logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
+  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
   return matchFound
 }
 
