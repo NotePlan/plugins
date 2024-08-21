@@ -54,7 +54,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData, setPerspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -138,7 +138,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
-              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
+              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
               onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
             }}
             className={'feature-flags'}
@@ -163,7 +163,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
+            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           handleSaveInput={(key, newValue) => {

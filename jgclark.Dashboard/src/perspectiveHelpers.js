@@ -555,7 +555,7 @@ export function adjustSettingsAndSave(
     if (Object.keys(settingsToSave).length > 0) {
       // there were other (non-perspective) changes made
       const apn = settingsToSave.activePerspectiveName
-      if (typeof apn === 'string' && apn.length > 0 && apn !== "-") {
+      if (typeof apn === 'string' && apn.length > 0 && apn !== "-" && !endsWithStar(apn)) {
         // $FlowIgnore // we know apn is a string so this concat will work
         settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
       }
