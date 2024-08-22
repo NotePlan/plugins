@@ -326,21 +326,40 @@ export function saveAllPerspectiveDefs(allDefs: Array<TPerspectiveDef>): boolean
  * Clean a Dashboard settings object of properties we don't want to use
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
  * @param {TDashboardSettings} settingsIn 
- * @returns 
+ * @returns {TDashboardSettings}
  */
 export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboardSettings {
-  // Remove things that make no sense for a perspective to override
-  const keysToRemove = ['lastChange', 'activePerspectiveName', 'timeblockMustContainString', 'FFlag_Perspectives', 'FFlag_ForceInitialLoadForBrowserDebugging', 'FFlag_HardRefreshButton', 'updateTagMentionsOnTrigger']
-  // $FlowIgnore[incompatible-call]
+  // Define keys or patterns to remove from the settings
+  const patternsToRemove = [
+    'lastChange', 
+    'activePerspectiveName', 
+    'timeblockMustContainString', 
+    'updateTagMentionsOnTrigger',
+    'defaultFileExtension',
+    'doneDatesAvailable',
+    'migratedSettingsFromOriginalDashboard',
+    'triggerLogging',
+    'pluginID',
+    /^FFlag_/, 
+    /^separator\d/, 
+    /^heading\d/,
+    /^_logLevel/,
+  ].map(pattern => 
+    typeof pattern === 'string' ? new RegExp(`^${pattern}$`) : pattern
+  )
+
+  // Function to check if a key matches any of the patterns
+  const shouldRemoveKey = (key:string|RegExp) => patternsToRemove.some(pattern => pattern.test(key))
+
+  // Reduce the settings object by excluding keys that match any pattern in patternsToRemove
   return Object.keys(settingsIn).reduce((acc, key) => {
-    const isFFlag = key.startsWith('FFlag')
-    if (!keysToRemove.includes(key) && !isFFlag) {
-      // $FlowIgnore
+    if (!shouldRemoveKey(key)) {
       acc[key] = settingsIn[key]
     }
     return acc
   }, {})
 }
+
 
 /**
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.

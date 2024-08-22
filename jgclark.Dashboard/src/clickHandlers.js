@@ -142,7 +142,7 @@ export async function incrementallyRefreshSections(
 
   const updates:any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
-  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)}`)
+  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (${timer(incrementalStart)})`)
   logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
@@ -192,7 +192,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   // updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
-  await setPluginData(updates, `Finished refresh for sections ${String(sectionCodes)}`)
+  await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
   logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
   return handlerResult(true)
 }
