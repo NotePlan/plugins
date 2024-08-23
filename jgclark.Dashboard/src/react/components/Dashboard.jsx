@@ -95,7 +95,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   let totalSectionItems = countTotalSectionItems(origSections)
   logInfo('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
-  if (sections.length > 1 && dashboardSettings.hideDuplicates) {
+  if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
