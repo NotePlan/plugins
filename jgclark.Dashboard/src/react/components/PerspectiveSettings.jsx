@@ -2,7 +2,7 @@
 //----------------------------------------------------------
 // Dashboard React component to show the Perspectives settings
 // Called by SettingsDialog component.
-// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+// Last updated 2024-08-22 for v2.1.0.a9 by @jgclark
 //----------------------------------------------------------
 
 // TODO: try and use SF Symbols 'perspective' icon
@@ -24,7 +24,8 @@ import '../css/PerspectiveSettings.css'
 // type Settings = { [key: string]: string | boolean };
 
 type PerspectiveSettingsProps = {
-  handleFieldChange: (key: string, value: any)=>void,
+  handleFieldChange: (key: string, value: any) => void,
+  className: string,
 };
 
 // type JsonEditorReturnData = {
@@ -43,11 +44,12 @@ type PerspectiveSettingsProps = {
 
 const PerspectiveSettings = ({
   handleFieldChange,
+  className = ''
 }: PerspectiveSettingsProps): React$Node => {
   try {
     const { dashboardSettings, perspectiveSettings } = useAppContext()
-    // only continue if we have this Feature Flag turned on
-    if (!dashboardSettings.FFlag_Perspectives) return
+    // only continue if we have Perspectives turned on
+    if (!dashboardSettings.showPerspectives) return
 
     //----------------------------------------------------------------------
     // Context
@@ -82,14 +84,14 @@ const PerspectiveSettings = ({
     //----------------------------------------------------------------------
 
     return (
-      <>
+      <div className={className}>
         {/* Add Heading and Description at start of Perspective section */}
         {/* <div className="ui-heading">{heading}</div> */}
-        <TextComponent
+        {/* <TextComponent
           textType={'header'}
           label={'Perspectives'}
           description={`A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.`}
-        />
+        /> */}
         <InputBox
           readOnly={true}
           label={'Active Perspective'}
@@ -100,8 +102,9 @@ const PerspectiveSettings = ({
         <TextComponent
           textType={'description'}
           key={'aPN'}
-          label={"The currently active Perspective. A '*' following indicates that the settings have been changed but not saved. The '-' Perspective is the default when no Perspective is active."}
+          label={"The currently active Perspective (read-only: to change this use the dropdown on the main window). A '*' following indicates that the settings have been changed but not saved. The '-' Perspective is the default when no Perspective is active."}
         />
+        <label className="input-box-label">Perspective Definitions</label>
         <TextComponent
           textType={'description'}
           key={'json-description'}
@@ -126,11 +129,11 @@ const PerspectiveSettings = ({
         />
 
         {/* Finally add a Separator */}
-        <TextComponent
+        {/* <TextComponent
           textType={'separator'}
           label=''
-        />
-      </>
+        /> */}
+      </div>
     )
   } catch (error) {
     logError('PerspectiveSettings', error.message)

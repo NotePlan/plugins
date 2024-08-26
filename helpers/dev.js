@@ -44,7 +44,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
     const propNames = getFilteredProps(obj)
-    const fullObj = propNames.reduce((acc, propName) => {
+    const fullObj = propNames.reduce((acc: Object, propName: string) => {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
           try {
@@ -328,17 +328,41 @@ const _message = (message: any): string => {
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
 const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
 
+/**
+ * Test _logLevel against logType to decide whether to output
+ * @param {string} logType 
+ * @returns {boolean}
+ */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   let userLogLevel = 1
   const thisMessageLevel = LOG_LEVELS.indexOf(logType)
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
-  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+  // Note: Performing a null change against a value that is `undefined` will be true
+  // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+
+  // se _logLevel to decide whether to output
   if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
     userLogLevel = pluginSettings['_logLevel']
   }
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
   return thisMessageLevel >= userLogLevelIndex
+}
+
+/**
+ * Test if _logFunctionRE is set and matches the current log details
+ * @param {any} logType 
+ * @returns 
+ */
+export const shouldOutputForFunctionName = (pluginInfo: string): boolean => {
+  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  // New additional test: if _logFunctionRE is set, allow through 
+  // Original test: use _logLevel to decide whether to output
+  if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
+    const functionRE = new RegExp(pluginSettings['_logFunctionRE'])
+    const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
+    return functionRE.test(infoStr)
+  }
+  return false
 }
 
 /**
@@ -351,7 +375,7 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
   let msg = ''
-  if (shouldOutputForLogLevel(type)) {
+  if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
     const thisMessageLevel = LOG_LEVELS.indexOf(type)
     const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
     let pluginId = ''

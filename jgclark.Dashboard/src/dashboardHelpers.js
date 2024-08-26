@@ -81,15 +81,16 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
 
   }
   if (!pluginSettings.dashboardSettings) {
-    if (pluginSettings.sharedSettings) {
-      logDebug('getDashboardSettings', `no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
-      pluginSettings.dashboardSettings = pluginSettings.sharedSettings
-      delete pluginSettings.sharedSettings
-      logDebug('getDashboardSettings', `now deleted sharedSettings.`)
-      DataStore.settings = pluginSettings
-    } else {
+    // Note: sharedSettings now dropped, so this is removed.
+    // if (pluginSettings.sharedSettings) {
+    //   logDebug('getDashboardSettings', `no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
+    //   pluginSettings.dashboardSettings = pluginSettings.sharedSettings
+    //   delete pluginSettings.sharedSettings
+    //   logDebug('getDashboardSettings', `now deleted sharedSettings.`)
+    //   DataStore.settings = pluginSettings
+    // } else {
       throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
-    }
+    // }
   }
 
   return parseSettings(pluginSettings.dashboardSettings)
@@ -296,6 +297,21 @@ export function getOpenItemParasForCurrentTimePeriod(
         : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
 
+    // Remove items referenced from items in 'excludedFolders'
+    // v1
+    // const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
+    // refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
+    // v2
+    // Get list of allowed folders (using both include and exlcude settings)
+    const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
+    refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
+    logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
+
+    // Remove possible dupes from sync'd lines
+    refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} paras`)
+
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
       const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
@@ -304,25 +320,6 @@ export function getOpenItemParasForCurrentTimePeriod(
     } else {
       // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-
-    // If we are using a Perspective, get list of suitable folders
-    // FIXME: @jgclark: I don't understand why this is here. If someone selects a perspective it overwrites
-    // the settings with the perspective values. Why would we need to do this?
-    // @dbw commenting it out for now
-    // if (dashboardSettings.FFlag_Perspectives && dashboardSettings.activePerspectiveName) {
-    //   const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-    //   refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
-    //   logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
-    // }
-
-    // // Remove items referenced from items in 'excludedFolders'
-    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
-    refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
-    logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
-
-    // Remove possible dupes from sync'd lines
-    refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const refOpenDashboardParas = makeDashboardParas(refOpenParas)

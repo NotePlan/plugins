@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-08-15 for v2.1.0.a8 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -33,6 +33,7 @@ type RenderItemProps = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
   className?: string,
+  disabled?: boolean,
 }
 
 /**
@@ -54,6 +55,7 @@ export function renderItem({
   inputRef, // Destructure inputRef
   indent = false,
   className = '',
+  disabled = false,
 }: RenderItemProps): React$Node {
 
   const element = () => {
@@ -67,6 +69,7 @@ export function renderItem({
             key={`sw${index}`}
             label={thisLabel}
             checked={item.checked || false}
+            disabled={disabled}
             onChange={(e) => {
               if (item.key) {
                 // logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
@@ -76,7 +79,7 @@ export function renderItem({
             }}
             labelPosition={labelPosition}
             description={item.description || ''}
-            className={indent ? 'indent' : ''}
+            className={className}
           />
         )
       case 'input':
@@ -86,6 +89,7 @@ export function renderItem({
             key={`ibx${index}`}
             label={thisLabel}
             value={item.value || ''}
+            disabled={disabled}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
@@ -96,7 +100,7 @@ export function renderItem({
             }}
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
+            className={className}
           />
         )
       case 'input-readonly':
@@ -106,11 +110,12 @@ export function renderItem({
             readOnly={true}
             key={`ibxro${index}`}
             label={thisLabel}
+            disabled={disabled}
             value={item.value || ''}
             onChange={() => { }}
             showSaveButton={false}
             compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
+            className={className}
           />
         )
       case 'number':
@@ -119,6 +124,7 @@ export function renderItem({
             inputType="number"
             key={`ibx${index}`}
             label={thisLabel}
+            disabled={disabled}
             value={item.value || ''}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
@@ -153,7 +159,7 @@ export function renderItem({
             key={`text${index}`}
             textType={item.textType || 'description'}
             label={thisLabel}
-            // className={indent ? 'indent' : ''}
+            // className={className}
           />
         )
       case 'separator':
@@ -172,14 +178,28 @@ export function renderItem({
             )}
           </>
         )
+      case 'perspectiveList':
+        return (
+          <PerspectiveSettings
+            handleFieldChange={handleFieldChange}
+            className={className}
+          />
+        )
       default:
         return null
     }
   }
 
+  let classNameToUse = className
+  if (indent) classNameToUse += " indent"
+  if (disabled) classNameToUse += " disabled"
+
   return (
-    <div className={`ui-item ${className}`} key={`item${index}`} title={item.description || ''}>
+    <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
+      {item.type !== 'hidden' && item.description && (
+        <div className="item-description">{item.description}</div>
+      )}
     </div>
   )
 }

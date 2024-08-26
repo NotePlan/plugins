@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-08-15 for v2.1.0.a8 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from "./types.js"
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -14,7 +14,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
-  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
+  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)" },
   { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: "Whether to show the note link for an open task or checklist" },
   { label: 'Include folder name in note link?', key: 'includeFolderName', type: 'switch', default: true, description: "Whether to include the folder name when showing a note link" },
   { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', type: 'switch', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
@@ -29,11 +29,36 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 // So it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
+    type: 'heading',
+    label: "Perspectives",
+  },
+  {
+    key: "showPerspectives",
+    label: "Show Perspectives",
+    description: "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
+    type: 'switch',
+    default: true,
+    compactDisplay: true,
+    controlsOtherKeys: ["activePerspectiveName", "perspectiveList"]
+  },
+  {
     type: 'hidden',
     key: "activePerspectiveName",
     label: "Name of active Perspective",
     description: "The Perspective that is active.",
     default: "",
+    dependsOnKey: 'showPerspectives',
+  },
+  {
+    type: 'perspectiveList',
+    key: "perspectiveList",
+    label: "Name of active Perspective",
+    description: "The Perspective that is active.",
+    default: "",
+    dependsOnKey: 'showPerspectives',
+  },
+  {
+    type: 'separator',
   },
   {
     type: 'heading',
@@ -198,12 +223,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.",
     type: 'switch',
     default: true,
+    controlsOtherKeys: ["interactiveProcessingHighlightTask", "enableInteractiveProcessingTransitions"]
   },
   {
     key: "interactiveProcessingHighlightTask",
     label: "Open note and highlight task when processing?",
     description: "If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window",
     type: 'switch',
+    dependsOnKey: 'enableInteractiveProcessing',
     default: false,
   },
   {
@@ -211,6 +238,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: "Show interactive processing transitions?",
     description: "By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.",
     type: 'switch',
+    dependsOnKey: 'enableInteractiveProcessing',
     default: true,
   },
   {
@@ -245,6 +273,8 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           key: thisKey,
           checked: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          controlsOtherKeys: setting.controlsOtherKeys,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'input':
         return {
@@ -254,6 +284,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'input-readonly':
         return {
@@ -263,6 +294,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'number':
         return {
@@ -272,6 +304,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'combo':
         return {
@@ -282,6 +315,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           options: setting.options,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'hidden':
         return {
@@ -291,13 +325,19 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
+      case 'perspectiveList':
+        return {
+          type: 'perspectiveList',
+          dependsOnKey: setting.dependsOnKey,
+        }
       default:
         return {
+          type: 'text',
           label: setting.label || '',
           key: thisKey || '',
-          type: 'text',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          dependsOnKey: setting.dependsOnKey,
         }
     }
   })

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-08-13 for v2.1.0.a7 by @dbw
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -83,6 +83,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
+  const isMobile = pluginData.platform !== "macOS"
+  const isNarrowWidth = window.innerWidth <= 650
+  const updatedText = "Updated"
 
   //----------------------------------------------------------------------
   // Handlers
@@ -91,13 +94,17 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  const isDesktop = pluginData.platform === "macOS"
-  const updatedText = "Updated"
-  const timeAgoText = isDesktop ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m")
-  const isNarrowWidth = window.innerWidth <= 600
+  const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m").replace(" hours", "h").replace(" hour", "h")
 
   return (
     <div className="header">
+      {/* Perspective selector */}
+      {dashboardSettings.showPerspectives && (
+        <div className="perspectiveName">
+          <PerspectiveSelector />
+        </div>
+      )}
+
       <div className="refresh">
         <RefreshControl
           refreshing={pluginData.refreshing === true}
@@ -122,13 +129,6 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {pluginData?.totalDoneCounts
           ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
           : ''}
-      </div>
-
-      {/* Perspective selector */}
-      <div className="perspectiveName">
-        {dashboardSettings.FFlag_Perspectives && (
-          <PerspectiveSelector />
-        )}
       </div>
 
       <div id="dropdowns" className="dropdownButtons">

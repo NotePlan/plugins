@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-08-18 for v2.1.0.a8 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,10 +13,10 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { adjustSettingsAndSave } from '../../perspectiveHelpers'
-import PerspectiveSettings from './PerspectiveSettings.jsx'
-import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+// import PerspectiveSettings from './PerspectiveSettings.jsx'
+import '../css/SettingsDialog.css' // Import the CSS file
+import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -47,11 +47,12 @@ const SettingsDialog = ({
 	style, // Destructure style prop
 }: SettingsDialogProps): React$Node => {
 
-	// clo(items, 'items', 2)
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
 	const { dashboardSettings, setDashboardSettings, setPerspectiveSettings } = useAppContext()
+
+	// clo(items, 'items', 2)
 
 	//----------------------------------------------------------------------
 	// State
@@ -61,14 +62,42 @@ const SettingsDialog = ({
   const [changesMade, setChangesMade] = useState(false)
 	const [updatedSettings, setUpdatedSettings] = useState(() => {
 		const initialSettings: Settings = {}
+		logDebug('SettingsDialog/initial state', `Starting`)
 		items.forEach(item => {
-			if (item.key) initialSettings[item.key] = item.value || item.checked || ''
+			if (item.key) {
+				const thisKey = item.key
+				initialSettings[thisKey] = item.value || item.checked || ''
+				if (item.controlsOtherKeys) logDebug('SettingsDialog/initial state', `- ${thisKey} controls [${String(item.controlsOtherKeys)}]`) // ✅
+				if (item.dependsOnKey) {
+					logDebug('SettingsDialog/initial state', `- ${thisKey} depends on ${item.dependsOnKey}, whose initialSettings=${String(initialSettings[item.dependsOnKey])}`) // ✅
+				}
+			}
 		})
 		return initialSettings
 	})
 
 	if (!updatedSettings) return null // Prevent rendering before items are loaded
+	logDebug('SettingsDialog/main', `Starting`)
 
+	// Return whether the controlling setting item is checked or not
+	function stateOfControllingSetting(item: TSettingItem): boolean {
+		const dependsOn = item.dependsOnKey ?? ''
+		if (dependsOn) {
+			const thatKey = items.find(f => f.key === dependsOn)
+			if (!thatKey) {
+				logWarn('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
+				return false
+			}
+			// FIXME: this gets called, but seems to to use the saved, not live state.
+			const isThatKeyChecked = thatKey?.checked ?? false
+			logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}'`)
+			return isThatKeyChecked
+		} else {
+			// shouldn't get here
+			logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)
+			return false
+		}
+	}
 	//----------------------------------------------------------------------
 	// Handlers
 	//----------------------------------------------------------------------
@@ -83,6 +112,18 @@ const SettingsDialog = ({
 	const handleFieldChange = (key: string, value: any) => {
 		setChangesMade(true)
 		setUpdatedSettings(prevSettings => ({ ...prevSettings, [key]: value }))
+
+		// change whether to disable or not the other items listed in this controlsOtherKeys (if any)
+		const thisItem = items.find((item) => item.key === key)
+		logDebug('SettingsDialog/handleFieldChange', `setting '${String(thisItem?.key ?? '?')}' has changed`) // ✅
+		logDebug('SettingsDialog/handleFieldChange', `- will impact controlled items [${String(thisItem?.controlsOtherKeys)}] ...`) // ✅
+		if (thisItem && thisItem.controlsOtherKeys) {
+			const controlledItems = items.filter((item) => thisItem.controlsOtherKeys?.includes(item.key))
+			controlledItems.forEach(item => {
+				logDebug('SettingsDialog/handleFieldChange', `- triggering change to disabled state for setting ${String(item.key)}`) // ✅
+				// TODO: HELP: How to get each controlledItem re-rendered (which should pick up disabled state change)?
+			})
+		}
 	}
 
 	// Handle "Save & Close" action
@@ -136,6 +177,8 @@ const SettingsDialog = ({
 	//----------------------------------------------------------------------
 	// Render
 	//----------------------------------------------------------------------
+	logDebug('SettingsDialog/pre-Render', `before render of ${String(items.length)} settings.`)
+
 	return (
 		<dialog
 			ref={dialogRef}
@@ -161,10 +204,10 @@ const SettingsDialog = ({
 
 			<div className="settings-dialog-content">
 				{/* Include Perspectives after activePerspectiveName, if turned on */}
-				{dashboardSettings.FFlag_Perspectives && (
+				{/* {dashboardSettings.showPerspectives && (
 					<PerspectiveSettings handleFieldChange={handleFieldChange}
 					/>
-				)}
+				)} */}
 
 				{/* Iterate over all the settings */}
 				{items.map((item, index) => (
@@ -183,15 +226,14 @@ const SettingsDialog = ({
 										? updatedSettings[item.key]
 										: false,
 							},
+							disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
 							handleFieldChange,
 							labelPosition,
 							showSaveButton: false, // Do not show save button
 							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+							indent: !!item.dependsOnKey,
 							className: '', // for future use
 						})}
-						{item.type !== 'hidden' && item.description && (
-							<div className="item-description">{item.description}</div>
-						)}
 					</div>
 				))}
 			</div>

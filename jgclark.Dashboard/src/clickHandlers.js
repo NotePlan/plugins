@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2024-07-14 for v2.0.1 by @jgclark
+// Last updated 2024-07-22 for v2.1.0.a9 by @dbw
 //-----------------------------------------------------------------------------
 import {
   addChecklistToNoteHeading,
@@ -142,7 +142,7 @@ export async function incrementallyRefreshSections(
 
   const updates:any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
-  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (${timer(incrementalStart)})`)
+  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
   logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
@@ -677,12 +677,12 @@ export function doSettingsChanged(data: MessageDataObject, settingName: string):
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
-export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
-  logDebug('turnOffPriorityItemsFilter', `starting ...`)
-  const currentSettings = await getDashboardSettings()
-  const updatedDashboardSettings = { ...currentSettings, filterPriorityItems: false }
-  clo(updatedDashboardSettings, 'updatedDashboardSettings=')
-  DataStore.settings.dashboardSettings = updatedDashboardSettings
-  logDebug('turnOffPriorityItemsFilter', `------------ refresh ------------`)
-  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
-}
+// export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
+//   logDebug('turnOffPriorityItemsFilter', `starting ...`)
+//   const currentSettings = await getDashboardSettings()
+//   const updatedDashboardSettings = { ...currentSettings, filterPriorityItems: false }
+//   clo(updatedDashboardSettings, 'updatedDashboardSettings=')
+//   DataStore.settings.dashboardSettings = updatedDashboardSettings
+//   logDebug('turnOffPriorityItemsFilter', `------------ refresh ------------`)
+//   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+// }

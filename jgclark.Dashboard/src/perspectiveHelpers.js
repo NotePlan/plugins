@@ -340,16 +340,20 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
     'pluginID',
-    /^FFlag_/, 
-    /^separator\d/, 
-    /^heading\d/,
-    /^_logLevel/,
+    /FFlag_/,
+    /separator\d/,  // though JGC has never seen this on 'heading/d' in dashboardSettings?
+    /heading\d/,
+    /_logLevel/,
+    /_logTimer/,
+    /_logFunctionRE/,
   ].map(pattern => 
-    typeof pattern === 'string' ? new RegExp(`^${pattern}$`) : pattern
+    typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern
   )
 
   // Function to check if a key matches any of the patterns
-  const shouldRemoveKey = (key:string|RegExp) => patternsToRemove.some(pattern => pattern.test(key))
+  function shouldRemoveKey(key: string): boolean {
+    return patternsToRemove.some(pattern => pattern.test(key))
+  }
 
   // Reduce the settings object by excluding keys that match any pattern in patternsToRemove
   return Object.keys(settingsIn).reduce((acc, key) => {

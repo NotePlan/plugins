@@ -1,7 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- - TODO: as a result improved filtering of future tasks in tag section -->
+## [Perspectives.a9] @jgc, 2024-08-???
+- migrated FFlag_Perspectives to a main, visible, setting showPerspectives, defaulting to true.
+- new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown. TODO: not finished
+- clicking on 'there are X items hidden' message lines now turns off filtering in all sections (started in a7)
+- more layout improvements in Header, including moving Perspective selector back to the left-hand side.
+- Fixed project progress 'pie charts'  layout issues, and added them in to the project dialog header.
 
 ## [Perspectives.a8] @jgc, 2024-08-21
 - Fixed full generation sometimes having Project rather than Priority section
@@ -39,7 +44,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: removed pulling of perspectives in the backend. changing a perspective changes all the settings, so the back-end doesn't need to know or do anything different than before
 - dbw: fixed a bug in the partially-implemented include/exclude folders bit that was keeping code from running. This code still needs to be completed
 - dbw: started trying to fix the dialog-window-needs-repositioning-when-calendar-is-open issue but ran out of time and did not get it to work. I'm confident it's 90% right...just some small edit needed to make it work.
-- dbw: reduced some logging
 
 ## [Perspectives.a6] @jgc, 2024-08-10 WIP for @dbw
 - fixed perspectiveSetting initialisation in WebView (I think) and how to persist it in Dashboard::useEffects (I think)
@@ -59,10 +63,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - dbw: removed HTML loading of that CSS file because it is now loaded in React/Rollup
 - dbw: TooltipOnModifier: you were correct that the empty div issue was fixed. Removed the FIXME
 - dbw: Per your question/comment, changed "getSettingsDefaults()" to "getSettingsObjectFromArray()"
-- dbw: Fixed a logdebug that was failing on empty lastFullRefresh
+- dbw: Fixed a logDebug that was failing on empty lastFullRefresh
 - @jgclark: Pls look at ThemedComboBox - I left you some FIXME questions
 - @jgclark: Pls look at my FIXME question in dataGeneration/getAllSectionsData()
-- @jgclark: Pls look at initialisePerpsectiveSettings() -- I partially fixed it but didn't know how to fix it because I didn't know what it was supposed to do. I really need some direction on the intention so I can suggest how it should work. I think we should go straight to having a perspectives context and this seems to be mixing the two in ways I don't follow. Some line-by-line comments with your intentions would help me.
+- @jgclark: Pls look at initialisePerspectiveSettings() -- I partially fixed it but didn't know how to fix it because I didn't know what it was supposed to do. I really need some direction on the intention so I can suggest how it should work. I think we should go straight to having a perspectives context and this seems to be mixing the two in ways I don't follow. Some line-by-line comments with your intentions would help me.
 
 ## [Perspectives.a4] -- all WIP not fully working, @jgc,  2024-08-06
 - separated out PerspectiveSelector

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-07-14 for v2.1.0.a7 by @dbw
+// Last updated 2024-07-22 for v2.1.0.a9 by @dbw
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -78,7 +78,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
     { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
     { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
-    { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
+    { label: 'Complete Then', controlStr: 'commpletethen', handlingFunction: 'completeTaskThen' },
     { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
   ].filter((button) => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)) // don't show these buttons on mobile
 

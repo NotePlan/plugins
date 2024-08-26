@@ -30,7 +30,7 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
-  turnOffPriorityItemsFilter
+  // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddProgressUpdate,
@@ -284,10 +284,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data)
         break
       }
-      case 'turnOffPriorityItemsFilter': {
-        result = await turnOffPriorityItemsFilter()
-        break
-      }
+      // case 'turnOffPriorityItemsFilter': {
+      //   result = await turnOffPriorityItemsFilter()
+      //   break
+      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }

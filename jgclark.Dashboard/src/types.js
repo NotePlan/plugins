@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-08-20 for v2.1.0.a8 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -17,7 +17,7 @@ export type TNotePlanSettings = {
 }
 
 export type TDashboardSettings = {
-  FFlag_Perspectives: boolean, // TODO: retire, or keep but make a main setting not a FF
+  showPerspectives: boolean,
   activePerspectiveName: string,
   // perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
@@ -186,7 +186,7 @@ export type TActionType =
   // | 'setSpecificDate'
   | 'startReviews'
   | '(not yet set)'
-  | 'turnOffPriorityItemsFilter'
+  // | 'turnOffPriorityItemsFilter'
   | 'toggleType'
   | 'togglePauseProject'
   | 'unknown'
@@ -212,7 +212,7 @@ export type TControlString =
   | 'priup'
   | 'pridown'
   | 'tog'
-  | 'ct' // TODO(@dbw): what's this? Please disambiguate with 'canceltask' above, which could shortened to 'ct'
+  | 'commpletethen'
   | 'unsched'
   | 'finish'
   | 'nr+1w'
@@ -284,7 +284,7 @@ export type TPluginData = {
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' // | 'perspective' 
+export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' 
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -298,6 +298,8 @@ export type TSettingItem = {
   default?: any,
   refreshAllOnChange?: boolean,
   compactDisplay?: boolean,
+  controlsOtherKeys?: Array<string>,
+  dependsOnKey?: string,
 }
 
 export type TPluginCommandSimplified = {

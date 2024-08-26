@@ -2,14 +2,14 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show an Indicator that a Filter has been applied and so some item(s) have been hidden.
 // Called by ItemRow component
-// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
-// TODO: turn the filter off if the line is clicked on. Need to add an Event Handler.
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 import { type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 type Props = {
   item: TSectionItem,
@@ -19,15 +19,23 @@ type Props = {
  * Component for displaying a filter indicator.
  */
 const TasksFiltered = ({ item }: Props): Node => {
-  const { sendActionToPlugin } = useAppContext()
+  const { /*sendActionToPlugin, */ setDashboardSettings } = useAppContext()
+
   function handleLineClick(e: MouseEvent) {
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
-    const dataObjectToPassToFunction = {
-      actionType: 'turnOffPriorityItemsFilter',
-      modifierKey: modifierName,
-      item,
-    }
-    sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Filter indicator clicked', true)
+
+    // V1 attempt-- not working
+    // logDebug('TasksFiltered/handleLineClick', `Trying to use sendActionToPlugin with actionType turnOffPriorityItemsFilter`)
+    // const dataObjectToPassToFunction = {
+    //   actionType: 'turnOffPriorityItemsFilter',
+    //   modifierKey: modifierName,
+    //   item,
+    // }
+    // sendActionToPlugin(dataObjectToPassToFunction.actionType, dataObjectToPassToFunction, 'Filter indicator clicked', true)
+
+    // v2
+    logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
+    setDashboardSettings(prevSettings => ({ ...prevSettings, ['filterPriorityItems']: false }))
   }
 
   return (

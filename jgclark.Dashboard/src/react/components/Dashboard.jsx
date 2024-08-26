@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated 2024-08-15 for v2.1.0.a8 by @dbw
+// Last updated 2024-08-22 for v2.1.0.a9 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -15,7 +15,7 @@ import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
-// import { type TActionButton } from '../../types.js'
+// import type { TDashboardSettings } from '../../types.js'
 import Header from './Header'
 import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
@@ -72,11 +72,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   /**
    * If a perspective is not set, then save current settings to the default "-" perspective because we always
    * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
-   * @param {*} perspectiveSettings 
-   * @param {*} newDashboardSettings 
-   * @param {*} setPerspectiveSettings 
+   * @param {any} perspectiveSettings 
+   * @param {any} newDashboardSettings 
+   * @param {Function} setPerspectiveSettings 
    */
-  function saveDefaultPerspectiveData(perspectiveSettings, newDashboardSettings, setPerspectiveSettings) {
+  function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: any, setPerspectiveSettings: Function) {
     const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
     if (dashPerspectiveIndex > -1) {
       perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
@@ -93,7 +93,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   let sections = [...origSections]
   let totalSectionItems = countTotalSectionItems(origSections)
-  logInfo('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
+  logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
   if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
@@ -108,12 +108,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
 
   sections = sortSections(sections, sectionDisplayOrder)
-  logDebug('Dashboard', `sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
+  logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
-  // DBW says the 98 was to avoid scrollbars. TEST: removing
+  // DBW says the 98 was to avoid scrollbars.
+  // TODO: JGC use KP's knowledge to have a more universal solution
   const dashboardContainerStyle = {
-    maxWidth: '100vw',  // '98vw',
+    maxWidth: '100vw', // '98vw',
     width: '100vw', // '98vw',
   }
 
@@ -152,7 +153,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // if we did a force reload (DEV only) of the full sections data, no need to load the rest
     // but if we are doing a normal load, then get the rest of the section data incrementally
     // this executes before globalSharedData is saved into state 
-    logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
+    logDebug('Dashboard/useEffect()', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
     if (origSections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
       sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage: 'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)

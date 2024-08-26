@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2.7.2024 for v2.0.0-b17 by @jgclark
+// Last updated 2024-08-25 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -151,6 +151,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       >
         {/* Title area ---------------- */}
         <div className="dialogTitle">
+          <ProjectIcon
+            item={thisItem}
+          />
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}
