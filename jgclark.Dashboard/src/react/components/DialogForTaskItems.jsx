@@ -2,13 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-07-22 for v2.1.0.a9 by @dbw
+// Last updated 2024-08-27 for v2.1.0.a10 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
-// import { allSectionDetails } from "../../constants"
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
@@ -25,6 +24,14 @@ type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
+}
+
+type DialogButtonProps = {
+  label: string,
+  controlStr: string,
+  handlingFunction?: string,
+  description?: string,
+  icons?: Array<{ className: string, position: 'left' | 'right' }>,
 }
 
 const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
@@ -56,7 +63,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   /**
    * Array of buttons to render.
    */
-  const buttons = [
+  const buttons: Array<DialogButtonProps> = [
     { label: 'today', controlStr: 't' },
     { label: '+1d', controlStr: '+1d' },
     { label: '+1b', controlStr: '+1b' },
@@ -72,14 +79,14 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // - Toggle Type icon circle or square
   // Note: Some also cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open
   const buttonsToHideOnMobile = ['Move to']
-  const otherControlButtons = [
+  const otherControlButtons: Array<DialogButtonProps> = [
     { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
-    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
-    { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
-    { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
-    { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
-    { label: 'Complete Then', controlStr: 'commpletethen', handlingFunction: 'completeTaskThen' },
-    { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
+    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', description: 'Move item to a different note', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
+    { label: 'Priority', controlStr: 'priup', description: 'Increase priority of item', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
+    { label: 'Priority', controlStr: 'pridown', description: 'Decrease priority of item', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
+    { label: 'Change to', controlStr: 'tog', description: 'Toggle item type between task and checklist', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
+    { label: 'Complete Then', controlStr: 'commpletethen', description: 'Mark the item as completed on the date it was scheduled for', handlingFunction: 'completeTaskThen' },
+    { label: 'Unschedule', controlStr: 'unsched', description: 'Remove date from this item', handlingFunction: 'unscheduleItem' },
   ].filter((button) => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)) // don't show these buttons on mobile
 
 
@@ -242,7 +249,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
               /> : null}
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" useTextArea={pluginData.platform === 'iOS'} />
-              <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
+              <button className="updateItemContentButton PCButton" title={'Update the content of this item'} onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
                 Update
               </button>
             </div>
@@ -251,7 +258,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
             <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
             <div id="itemControlDialogMoveControls">
               {buttons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
                   {button.label}
                 </button>
               ))}
@@ -264,7 +271,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
             <div className="preText">Other controls:</div>
             <div>
               {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                   ))}

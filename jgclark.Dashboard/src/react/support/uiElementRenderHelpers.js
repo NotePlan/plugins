@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-08-27 for v2.1.a10 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -34,6 +34,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean,
+  showDescAsTooltips?: boolean
 }
 
 /**
@@ -56,6 +57,7 @@ export function renderItem({
   indent = false,
   className = '',
   disabled = false,
+  showDescAsTooltips = false
 }: RenderItemProps): React$Node {
 
   const element = () => {
@@ -197,7 +199,7 @@ export function renderItem({
   return (
     <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
-      {item.type !== 'hidden' && item.description && (
+      {!showDescAsTooltips && item.type !== 'hidden' && item.description && (
         <div className="item-description">{item.description}</div>
       )}
     </div>

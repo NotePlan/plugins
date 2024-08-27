@@ -1,7 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a9] @jgc, 2024-08-???
+## [Perspectives.a10] @jgc, 2024-08-27
+- fix a regression in dropdown menu
+- add tooltips to buttons in Task and Project dialogs
+
+## [Perspectives.a9] @jgc, 2024-08-26
 - migrated FFlag_Perspectives to a main, visible, setting showPerspectives, defaulting to true.
 - new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown. TODO: not finished
 - clicking on 'there are X items hidden' message lines now turns off filtering in all sections (started in a7)
@@ -32,7 +36,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added updateCurrentPerspectiveDef(), and "/Update current Perspective" command for testing. FIXME: is failing to read dashboardSettings properly.
 - added saveAllPerspectiveDefs() to make one place to save changes (at least on the back end). FIXME: need to get this to affect front end too.
 - turned off underlining on the 'take a break' message lines
-- clicking on 'there are X items hidden' message lines now should turn off filtering. FIXME: but it doesn't persist or update the window.
+- clicking on 'there are X items hidden' message lines now should turn off filtering. (Incomplete.)
 - fixed missing 'enableInteractiveProcessingTransitions' setting in types.js
 - dbw: RUN THE /DELETE ALL PERSPECTIVES COMMAND BEFORE YOU TRY ANYTHING BECAUSE THERE WERE LEGACY ISSUES
 - dbw: got perspective switching to work reliably

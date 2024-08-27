@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2024-08-25 for v2.1.0.a9 by @jgclark
+// Last updated 2024-08-27 for v2.1.0.a10 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -25,6 +25,14 @@ type Props = {
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
 
+type DialogButtonProps = {
+  label: string,
+  controlStr: string,
+  handlingFunction?: string,
+  description?: string,
+  icons?: Array<{ className: string, position: 'left' | 'right' }>,
+}
+
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
@@ -43,27 +51,26 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   /**
    * Arrays of buttons to render.
    */
-  const reviewButtons = [
-    { label: 'Finish Review', controlStr: 'finish', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
-    { label: 'Skip 1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+  const reviewButtons: Array<DialogButtonProps> = [
+    { label: 'Finish Review', controlStr: 'finish', description: 'Update the @review(...) date on the project to today', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
+    { label: 'Skip 1w', controlStr: 'nr+1w', description: 'Add a @nextReview(...) date for 1 week to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 2w', controlStr: 'nr+2w', description: 'Add a @nextReview(...) date for 2 weeks to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1m', controlStr: 'nr+1m', description: 'Add a @nextReview(...) date for 1 month to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1q', controlStr: 'nr+1q', description: 'Add a @nextReview(...) date for 1 quarter to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
   ]
 
   // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const projectButtons = [
-    { label: 'Complete', controlStr: 'complete', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
-    { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
-    { label: 'Pause', controlStr: 'cancel', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
+  const projectButtons: Array<DialogButtonProps> = [
+    { label: 'Complete', controlStr: 'complete', description: 'Add @completed(...) date to project metadata and remove from review lists', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
+    { label: 'Cancel', controlStr: 'cancel', description: 'Add @cancelled(...) date to project metadata and remove from review lists', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
+    { label: 'Pause', controlStr: 'pause', 'description': 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
     // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build of icons.
-    // Will it become available if we switch to SVG delivery ?
-    { label: 'New Interval', controlStr: 'newint', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
+    { label: 'New Interval', controlStr: 'newint', description: 'Change the @review(...) interval for this project', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
   ]
 
   // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const progressButtons = [
-    { label: 'Add', controlStr: 'progress', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
+  const progressButtons: Array<DialogButtonProps> = [
+    { label: 'Add', controlStr: 'progress', description: 'Add a progress comment to the project', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
   ]
 
   useEffect(() => {
@@ -177,7 +184,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             <div className="preText">Review:</div>
             <div>
               {reviewButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index}
+                  className="PCButton"
+                  title={button.description}
+                  onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                   ))}
@@ -196,7 +206,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                 <div className="preText">Project:</div>
                 <div>
                   {projectButtons.map((button, index) => (
-                    <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                    <button key={index}
+                      className="PCButton"
+                      title={button.description}
+                      onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                       {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                         <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                       ))}
@@ -214,7 +227,10 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             <div className="preText">Progress:</div>
             <div>
               {progressButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index}
+                  className="PCButton"
+                  title={button.description}
+                  onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
                     <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
                   ))}
