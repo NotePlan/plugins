@@ -124,6 +124,12 @@
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall",
       "hidden": true
+    },
+    {
+      "name": "Update plugin settings",
+      "description": "Settings interface (for iOS)",
+      "jsFunction": "editSettings",
+      "hidden": true
     }
   ],
   "plugin.commands.unused": [
