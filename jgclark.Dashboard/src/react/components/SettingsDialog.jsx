@@ -16,6 +16,7 @@ import { adjustSettingsAndSave } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
 // import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
+import Modal from './Modal'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -180,64 +181,66 @@ const SettingsDialog = ({
 	logDebug('SettingsDialog/pre-Render', `before render of ${String(items.length)} settings.`)
 
 	return (
-		<dialog
-			ref={dialogRef}
-			className={`settings-dialog ${className || ''}`}
-			style={style}
-			onClick={e => e.stopPropagation()}
-		>
-			<div className="settings-dialog-header">
-				<button className="PCButton cancel-button" onClick={toggleDialog}>
-					Cancel
-				</button>
-				<span className="settings-dialog-title">Dashboard Settings</span>
-				{changesMade ? (
-					<button className="PCButton save-button" onClick={handleSave}>
-						Save & Close
+		<Modal onClose={() => { toggleDialog() }} >
+			<div
+				ref={dialogRef}
+				className={`settings-dialog ${className || ''}`}
+				style={style}
+				onClick={e => e.stopPropagation()}
+			>
+				<div className="settings-dialog-header">
+					<button className="PCButton cancel-button" onClick={toggleDialog}>
+						Cancel
 					</button>
-				) : (
-					<button className="PCButton save-button-inactive">
-						Save & Close
-					</button>
-				)}
-			</div>
+					<span className="settings-dialog-title">Dashboard Settings</span>
+					{changesMade ? (
+						<button className="PCButton save-button" onClick={handleSave}>
+							Save & Close
+						</button>
+					) : (
+						<button className="PCButton save-button-inactive">
+							Save & Close
+						</button>
+					)}
+				</div>
 
-			<div className="settings-dialog-content">
-				{/* Include Perspectives after activePerspectiveName, if turned on */}
-				{/* {dashboardSettings.showPerspectives && (
+				<div className="settings-dialog-content">
+					{/* Include Perspectives after activePerspectiveName, if turned on */}
+					{/* {dashboardSettings.showPerspectives && (
 					<PerspectiveSettings handleFieldChange={handleFieldChange}
 					/>
 				)} */}
 
-				{/* Iterate over all the settings */}
-				{items.map((item, index) => (
-					<div key={`sdc${index}`}>
-						{renderItem({
-							index,
-							item: {
-								...item,
-								type: item.type,
-								value: (typeof item.key === "undefined") ? '' :
-									typeof updatedSettings[item.key] === 'boolean'
-										? ''
-										: updatedSettings[item.key],
-								checked: (typeof item.key === "undefined") ? false :
-									typeof updatedSettings[item.key] === 'boolean'
-										? updatedSettings[item.key]
-										: false,
-							},
-							disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
-							handleFieldChange,
-							labelPosition,
-							showSaveButton: false, // Do not show save button
-							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
-							indent: !!item.dependsOnKey,
-							className: '', // for future use
-						})}
-					</div>
-				))}
+					{/* Iterate over all the settings */}
+					{items.map((item, index) => (
+						<div key={`sdc${index}`}>
+							{renderItem({
+								index,
+								item: {
+									...item,
+									type: item.type,
+									value: (typeof item.key === "undefined") ? '' :
+										typeof updatedSettings[item.key] === 'boolean'
+											? ''
+											: updatedSettings[item.key],
+									checked: (typeof item.key === "undefined") ? false :
+										typeof updatedSettings[item.key] === 'boolean'
+											? updatedSettings[item.key]
+											: false,
+								},
+								disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
+								handleFieldChange,
+								labelPosition,
+								showSaveButton: false, // Do not show save button
+								inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+								indent: !!item.dependsOnKey,
+								className: '', // for future use
+							})}
+						</div>
+					))}
+				</div>
 			</div>
-		</dialog>
+		</Modal>
 	)
 }
 
