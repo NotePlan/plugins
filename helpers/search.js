@@ -73,12 +73,15 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch
- * @returns {boolean}
+ * @param {boolean} strictSubset? (default: true)
+ * @returns {boolean} matches?
  * @tests available in jest file
  */
-export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string): boolean {
+export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string, strictSubset: boolean = true): boolean {
   try {
-  const re = new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
+    const re = strictSubset
+      ? new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
+      : new RegExp(`^${searchTerm}`, "i") // = case insensitive 'starts with' regex
     return re.test(textToSearch)
   }
   catch (error) {
@@ -89,7 +92,7 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
 }
 
 /**
- * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
+ * Check if 'hashtagToTest' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
  * @param {string} hashtagToTest
  * @param {$ReadOnlyArray<string>} wantedHashtags
@@ -115,7 +118,7 @@ export function isHashtagWanted(hashtagToTest: string,
 }
 
 /**
- * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
+ * Check if 'mentionToTest' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
  * @param {string} mentionToTest
  * @param {$ReadOnlyArray<string>} wantedMentions

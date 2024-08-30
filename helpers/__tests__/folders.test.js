@@ -55,6 +55,35 @@ describe('helpers/folders', () => {
       const folders = Object.keys(f.getFoldersMatching(inclusions, false))
       expect(folders.length).toBe(6)
     })
+    test('ccc, Level 2 inclusion with @specials -> 6 left (i.e. check case insensitive matching)', () => {
+      const inclusions = ['ccc', 'Level 2']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+      expect(folders.length).toBe(6)
+    })
+  })
+
+  /**
+   * Tests for getSubFolders
+   */
+  describe('getSubFolders tests', () => {
+    // Needs to test for error
+    test.skip('empty string -> error', () => {
+      const subFolders = Object.keys(f.getSubFolders(''))
+      expect(subFolders).toEqual([''])
+    })
+    // Needs to test for error
+    test.skip('root -> root', () => {
+      const subFolders = Object.keys(f.getSubFolders('/'))
+      expect(subFolders).toEqual(['CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '@Archive/CCC Areas/Staff'])
+    })
+    test('a top-level folder -> same', () => {
+      const subFolders = f.getSubFolders('CCC Areas')
+      expect(subFolders).toEqual(['CCC Areas', 'CCC Areas/Staff'])
+    })
+    test('three-level folder', () => {
+      const subFolders = f.getSubFolders('TEST/TEST LEVEL 2')
+      expect(subFolders).toEqual(['TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3'])
+    })
   })
 
   /**
@@ -92,6 +121,11 @@ describe('helpers/folders', () => {
     })
     test('Subfolder exclusion -> 6 left', () => {
       const exclusions = ['TEST/TEST LEVEL 2']
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
+      expect(folders.length).toBe(6)
+    })
+    test('Subfolder exclusion (test for different case) -> 6 left', () => {
+      const exclusions = ['Test/Test level 2']
       const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(6)
     })
