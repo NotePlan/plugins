@@ -35,7 +35,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     for (const f of reducedFolderList) {
       reducedTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
     }
-    logDebug('folders / getFoldersMatching', `- reduced ${reducedTerminatedWithSlash.length} folders:  [${reducedTerminatedWithSlash.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `- reduced ${reducedTerminatedWithSlash.length} folders:  [${reducedTerminatedWithSlash.toString()}]`)
 
     // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list. Note: now case insensitive.
     reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
