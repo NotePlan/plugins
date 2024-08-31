@@ -43,12 +43,16 @@ const setup: {
   addDates: boolean,
   addPriorities: boolean,
   addTags: boolean,
+  teamAccount: boolean,
+  addUnassigned: boolean,
   header: string,
   newFolder: any,
   newToken: any,
+  useTeamAccount: any,
   syncDates: any,
   syncPriorities: any,
   syncTags: any,
+  syncUnassigned: any,
   newHeader: any,
 } = {
   token: '',
@@ -56,6 +60,8 @@ const setup: {
   addDates: false,
   addPriorities: false,
   addTags: false,
+  teamAccount: false,
+  addUnassigned: false,
   header: '',
 
   /**
@@ -87,6 +93,18 @@ const setup: {
    */
   set syncTags(passedSyncTags: boolean) {
     setup.addTags = passedSyncTags
+  },
+  /**
+   * @param {boolean} passedTeamAccount
+   */
+  set teamAccount(passedTeamAccount: boolean) {
+    this.useTeamAccount = passedTeamAccount
+  },
+  /**
+   * @param {boolean} passedSyncUnassigned
+   */
+  set syncUnassigned(passedSyncUnassigned: boolean) {
+    this.addUnassigned = passedSyncUnassigned
   },
   /**
    * @param {string} passedHeader
@@ -175,7 +193,6 @@ export async function syncEverything() {
 // eslint-disable-next-line require-await
 export async function syncProject() {
   setSettings()
-
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
@@ -368,7 +385,15 @@ async function projectSync(note: TNote, id: string): Promise<void> {
  */
 async function pullTodoistTasksByProject(project_id: string): Promise<any> {
   if (project_id !== '') {
-    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}`, getRequestObject())
+    let filter = ''
+    if (setup.useTeamAccount) {
+      if (setup.addUnassigned) {
+        filter = "?filter=!assigned to: others"
+      } else {
+        filter = "?filter=assigned to: me"
+      }
+    }
+    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
     return result
   }
   return null
@@ -380,7 +405,15 @@ async function pullTodoistTasksByProject(project_id: string): Promise<any> {
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
 async function pullTodoistTasksForToday(): Promise<any> {
-  const result = await fetch(`${todo_api}/tasks?filter=today`, getRequestObject())
+  let filter = '?filter=today'
+  if (setup.useTeamAccount) {
+    if (setup.addUnassigned) {
+      filter = `${filter} & !assigned to: others`
+    } else {
+      filter = `${filter} & assigned to: me`
+    }
+  }
+  const result = await fetch(`${todo_api}/tasks${filter}`, getRequestObject())
   if (result) {
     return result
   }
@@ -402,19 +435,20 @@ function checkParagraph(paragraph: TParagraph) {
 
   if (paragraph.type === 'done' || paragraph.type === 'cancelled') {
     const content: string = paragraph.content
-    logDebug(pluginJson, `Task content: ${content}`)
+    logDebug(pluginJson, `Done or Cancelled Task content: ${content}`)
 
     // close these ones in Todoist if they are closed in Noteplan and are todoist tasks
-    const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
+    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
+      logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       closed.push(found[1])
       // add to existing as well so they do not get rewritten if the timing on closing them is slow
       existing.push(found[1])
     }
   } else if (paragraph.type === 'open') {
     const content: string = paragraph.content
-    logDebug(pluginJson, `Task content: ${content}`)
-    const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
+    logDebug(pluginJson, `Open Task content: ${content}`)
+    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       // check to see if it is already closed in Todoist.
@@ -480,7 +514,7 @@ function formatTaskDetails(task: Object): string {
  */
 function setSettings() {
   const settings: Object = DataStore.settings ?? {}
-  //console.log(JSON.stringify(settings))
+  logDebug(pluginJson, JSON.stringify(settings))
 
   if (settings) {
     // required options that should kill the script if not set
@@ -500,12 +534,21 @@ function setSettings() {
     if ('syncDue' in settings) {
       setup.syncDates = settings.syncDue
     }
+
     if ('syncPriorities' in settings) {
       setup.syncPriorities = settings.syncPriorities
     }
 
     if ('syncTags' in settings) {
       setup.syncTags = settings.syncTags
+    }
+
+    if ('teamAccount' in settings) {
+      setup.useTeamAccount = settings.teamAccount
+    }
+
+    if ('syncUnassigned' in settings) {
+      setup.syncUnassigned = settings.syncUnassigned
     }
 
     if ('headerToUse' in settings && settings.headerToUse !== '') {
@@ -523,7 +566,7 @@ function setSettings() {
 async function writeOutTask(note: TNote, task: Object) {
   if (note) {
     //console.log(note.content)
-    //console.log(task.content)
+    logDebug(pluginJson, task)
     const formatted = formatTaskDetails(task)
     if (task.section_id !== null) {
       let section = await fetch(`${todo_api}/sections/${task.section_id}`, getRequestObject())
@@ -669,6 +712,7 @@ async function getTodoistProjects() {
 async function closeTodoistTask(task_id: string) {
   try {
     await fetch(`${todo_api}/tasks/${task_id}/close`, postRequestObject())
+    logInfo(pluginJson, `Closed task (${task_id}) in Todoist`)
   } catch (error) {
     logError(pluginJson, `Unable to close task (${task_id}) ${JSON.stringify(error)}`)
   }
