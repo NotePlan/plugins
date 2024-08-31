@@ -434,8 +434,9 @@ function checkParagraph(paragraph: TParagraph) {
     logDebug(pluginJson, `Done or Cancelled Task content: ${content}`)
 
     // close these ones in Todoist if they are closed in Noteplan and are todoist tasks
-    const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
+    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
+      logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       closed.push(found[1])
       // add to existing as well so they do not get rewritten if the timing on closing them is slow
       existing.push(found[1])
@@ -443,7 +444,7 @@ function checkParagraph(paragraph: TParagraph) {
   } else if (paragraph.type === 'open') {
     const content: string = paragraph.content
     logDebug(pluginJson, `Open Task content: ${content}`)
-    const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
+    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       // check to see if it is already closed in Todoist.
