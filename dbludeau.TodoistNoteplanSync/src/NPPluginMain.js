@@ -34,7 +34,6 @@ import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpe
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
-
 const todo_api: string = 'https://api.todoist.com/rest/v2'
 
 // set some defaults that can be changed in settings
@@ -44,12 +43,16 @@ const setup: {
   addDates: boolean,
   addPriorities: boolean,
   addTags: boolean,
+  teamAccount: boolean,
+  addUnassigned: boolean,
   header: string,
   newFolder: any,
   newToken: any,
+  useTeamAccount: any,
   syncDates: any,
   syncPriorities: any,
   syncTags: any,
+  syncUnassigned: any,
   newHeader: any,
 } = {
   token: '',
@@ -57,6 +60,8 @@ const setup: {
   addDates: false,
   addPriorities: false,
   addTags: false,
+  teamAccount: false,
+  addUnassigned: false,
   header: '',
 
   /**
@@ -88,6 +93,18 @@ const setup: {
    */
   set syncTags(passedSyncTags: boolean) {
     this.addTags = passedSyncTags
+  },
+  /**
+   * @param {boolean} passedTeamAccount
+   */
+  set teamAccount(passedTeamAccount: boolean) {
+    this.useTeamAccount = passedTeamAccount
+  },
+  /**
+   * @param {boolean} passedSyncUnassigned
+   */
+  set syncUnassigned(passedSyncUnassigned: boolean) {
+    this.addUnassigned = passedSyncUnassigned
   },
   /**
    * @param {string} passedHeader
@@ -184,7 +201,6 @@ export async function syncEverything() {
 // eslint-disable-next-line require-await
 export async function syncProject() {
   setSettings()
-
   const note: ?TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
@@ -365,7 +381,15 @@ async function syncTodayTasks() {
  */
 async function pullTodoistTasksByProject(project_id: string): Promise<any> {
   if (project_id !== '') {
-    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}`, getRequestObject())
+    let filter = ''
+    if (setup.useTeamAccount) {
+      if (setup.addUnassigned) {
+        filter = "?filter=!assigned to: others"
+      } else {
+        filter = "?filter=assigned to: me"
+      }
+    }
+    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}${filter}`, getRequestObject())
     return result
   }
   return null
@@ -377,7 +401,15 @@ async function pullTodoistTasksByProject(project_id: string): Promise<any> {
  * @returns {Promise<any>} - promise that resolves into array of task objects or null
  */
 async function pullTodoistTasksForToday(): Promise<any> {
-  const result = await fetch(`${todo_api}/tasks?filter=today`, getRequestObject())
+  let filter = '?filter=today'
+  if (setup.useTeamAccount) {
+    if (setup.addUnassigned) {
+      filter = `${filter} & !assigned to: others`
+    } else {
+      filter = `${filter} & assigned to: me`
+    }
+  }
+  const result = await fetch(`${todo_api}/tasks${filter}`, getRequestObject())
   if (result) {
     return result
   }
@@ -477,7 +509,7 @@ function formatTaskDetails(task: Object): string {
  */
 function setSettings() {
   const settings: Object = DataStore.settings ?? {}
-  //console.log(JSON.stringify(settings))
+  logDebug(pluginJson, JSON.stringify(settings))
 
   if (settings) {
     // required options that should kill the script if not set
@@ -497,12 +529,21 @@ function setSettings() {
     if ('syncDue' in settings) {
       setup.syncDates = settings.syncDue
     }
+
     if ('syncPriorities' in settings) {
       setup.syncPriorities = settings.syncPriorities
     }
 
     if ('syncTags' in settings) {
       setup.syncTags = settings.syncTags
+    }
+
+    if ('teamAccount' in settings) {
+      setup.useTeamAccount = settings.teamAccount
+    }
+
+    if ('syncUnassigned' in settings) {
+      setup.syncUnassigned = settings.syncUnassigned
     }
 
     if ('headerToUse' in settings && settings.headerToUse !== '') {

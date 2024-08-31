@@ -135,11 +135,11 @@
       "required": false
     },
     {
-      "type": "heading",
-      "title": "Task Details"
+      "type": "separator"
     },
     {
-      "type": "separator"
+      "type": "heading",
+      "title": "Task Details"
     },
     {
       "type": "bool",
@@ -157,6 +157,30 @@
       "type": "bool",
       "key": "syncTags",
       "title": "Sync Tags",
+      "default": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "note":"================== TODOIST TEAMS SETTINGS ========================"
+    },
+    {
+      "type": "heading",
+      "title": "Todoist Teams Settings"
+    },
+    {
+      "type": "bool",
+      "key": "teamAccount",
+      "title": "Are you part of a Todoist Team account?",
+      "description": "FOR USERS OF TODOIST TEAMS PLANS ONLY.  Check this box if you use Todoist Teams accounts and tasks are assigned to you. Leave unchecked if you only use a personal Todoist account.",
+      "default": false
+    },
+    {
+      "type": "bool",
+      "key": "syncUnassigned",
+      "title": "Sync unassigned tasks",
+      "description": "By default the sync will pull only tasks assigned to you.  If you want to sync all unassigned tasks as well, check this box.",
       "default": false
     },
     {
