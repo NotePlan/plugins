@@ -1,7 +1,10 @@
-// shared functions that can be imported and used in helpers without creating circular dependencies
 // @flow
+// shared functions that can be imported and used in helpers without creating circular dependencies
+
 import { RE_IS_SCHEDULED } from './dateTime'
 import { RE_ARROW_DATES_G } from './regex'
+
+// TODO: following short functions should really live in helpers/paragraph.js
 
 /**
  * Test whether a para is open or not (type: 'open' or 'checklist') and not blank
@@ -24,6 +27,15 @@ export const isOpenTask = (t: TParagraph): boolean => t.type === 'open' && t.con
  */
 export function isOpenNotScheduled(t: TParagraph): boolean {
   return (t.type === 'open' || t.type === 'checklist') && !hasScheduledDate(t.content) && t.content.trim() !== ''
+}
+
+/**
+ * Test whether a para is open and has a scheduled date (type: 'open'/ 'checklist'/'scheduled'/'checklistScheduled').
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} result
+ */
+export function isOpenAndScheduled(t: TParagraph): boolean {
+  return (t.type === 'open' || t.type === 'checklist' || t.type === 'scheduled' || t.type === 'checklistScheduled') && hasScheduledDate(t.content)
 }
 
 /**
