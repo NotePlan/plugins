@@ -15,8 +15,11 @@ dist/
 lcov*
 coverage/
 .history/**/*
+**/.history/**/*
 .hyperlayout
 .eslintignore
 docs/assets/
 docs/index.html
 Documentation-Helpers
+**/*.bundle.dev.js
+**/*.bundle.min.js

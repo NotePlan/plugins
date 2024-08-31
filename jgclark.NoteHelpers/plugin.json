@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.18.1",
-  "plugin.lastUpdateInfo": "0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
+  "plugin.version": "0.20.0",
+  "plugin.lastUpdateInfo": "0.20.0: new commands \"unlinked note finder\" and \"delete note\". Bug fix to \"rename note filename\" command.\n0.19.2: fix edge cases with \"add trigger to note\".\n0.19.1: \"add trigger to note\" command can now be run from template. Added migration message about 'open note' commands.\n0.19.0: fix to '/rename inconsistent filename' command. Moved 'open note' functions to WindowTools plugin. Updated the display of the 'index folders' command. Removed 'Show month/quarter/year' commands as they are now in the main NP menus.\n0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -29,7 +29,10 @@
         "add"
       ],
       "description": "Select from a list of available triggers to add to the current note",
-      "jsFunction": "addTriggerToNote"
+      "jsFunction": "addTriggerToNote",
+      "parameters": [
+        "trigger string (e.g. 'onEditorWillSave => jgclark.DashboardReact.decideWhetherToUpdateDashboard')"
+      ]
     },
     {
       "name": "convert to frontmatter",
@@ -40,6 +43,15 @@
       "jsFunction": "addFrontmatterToNote"
     },
     {
+      "name": "delete note",
+      "alias": [
+        "dn"
+      ],
+      "description": "Delete the current note (moves to Trash)",
+      "jsFunction": "trashNote",
+      "parameters": []
+    },
+    {
       "name": "enable heading links",
       "alias": [
         "local links",
@@ -48,6 +60,22 @@
       ],
       "description": "Look for Links to headings and make them work by converting them to plugin command calls",
       "jsFunction": "convertLocalLinksToPluginLinks"
+    },
+    {
+      "name": "find and link unlinked notes in current note",
+      "alias": [
+        "unlinked"
+      ],
+      "description": "Find and create links to unlinked notes",
+      "jsFunction": "findUnlinkedNotesInCurrentNote"
+    },
+    {
+      "name": "find and link unlinked notes in all notes",
+      "alias": [
+        "allunlinked"
+      ],
+      "description": "Find and create links to all unlinked notes",
+      "jsFunction": "findUnlinkedNotesInAllNotes"
     },
     {
       "name": "jump to heading",
@@ -101,42 +129,8 @@
       "jsFunction": "indexFolders",
       "parameters": [
         "folder",
-        "displayOrder",
-        "dateDisplayType",
-        "includeSubfolders"
+        "string: displayOrder=(key);dateDisplayType=(key);includeSubfolders=(key)"
       ]
-    },
-    {
-      "name": "open note new window",
-      "alias": [
-        "onw",
-        "onnw",
-        "window"
-      ],
-      "description": "Open a user-selected note in a new window.",
-      "jsFunction": "openNoteNewWindow"
-    },
-    {
-      "name": "open note new split",
-      "alias": [
-        "ons",
-        "onns",
-        "window",
-        "split"
-      ],
-      "description": "Open a user-selected note in a new split of the main window",
-      "jsFunction": "openNoteNewSplit"
-    },
-    {
-      "name": "open current note new split",
-      "alias": [
-        "ocns",
-        "open",
-        "window",
-        "split"
-      ],
-      "description": "Open the current note again in a new split of the main window",
-      "jsFunction": "openCurrentNoteNewSplit"
     },
     {
       "name": "open URL from a note",
@@ -147,14 +141,6 @@
       ],
       "description": "Open a chosen URL from a chosen note",
       "jsFunction": "openURLFromANote"
-    },
-    {
-      "name": "rename note filename",
-      "alias": [
-        "rename"
-      ],
-      "description": "Rename the current note's filename",
-      "jsFunction": "renameNoteFile"
     },
     {
       "name": "reset caches",
@@ -182,6 +168,22 @@
       "jsFunction": "titleToFilename"
     },
     {
+      "name": "rename note filename",
+      "alias": [
+        "rename"
+      ],
+      "description": "Rename the current note's filename to one you specify.",
+      "jsFunction": "renameNoteFile"
+    },
+    {
+      "name": "reset title to match filename",
+      "alias": [
+        "filenameToTitle"
+      ],
+      "description": "Resets the current note title to match its filename.",
+      "jsFunction": "filenameToTitle"
+    },
+    {
       "name": "rename inconsistent note filenames",
       "alias": [
         "renameInconsistentNames"
@@ -189,6 +191,38 @@
       "description": "Renames the files of notes whose filenames are inconsistent with their titles.",
       "jsFunction": "renameInconsistentNames"
     },
+    {
+      "name": "update all indexes",
+      "alias": [
+        "uai",
+        "index"
+      ],
+      "description": "Update all folder index notes",
+      "jsFunction": "updateAllIndexes"
+    },
+    {
+      "name": "NoteHelpers: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    },
+    {
+      "name": "triggerFindUnlinkedNotes",
+      "description": "onEditorWillSave",
+      "jsFunction": "triggerFindUnlinkedNotes",
+      "hidden": true
+    },
+    {
+      "name": "test: NoteHelpers onUpdateOrInstall",
+      "description": "Test onUpdateOrInstall()",
+      "jsFunction": "onUpdateOrInstall"
+    }
+  ],
+  "offerToDownloadPlugin": {
+    "id": "jgclark.WindowTools",
+    "minVersion": "1.0.0"
+  },
+  "commandMigrationMessage": "Note: the 'open ... note in new ...' commands have been migrated to the WindowTools plugin.",
+  "plugin.disabled_commands": [
     {
       "name": "Show This Month",
       "alias": [
@@ -215,20 +249,6 @@
       ],
       "description": "Open the current Year note",
       "jsFunction": "showYear"
-    },
-    {
-      "name": "update all indexes",
-      "alias": [
-        "uai",
-        "index"
-      ],
-      "description": "Update all folder index notes",
-      "jsFunction": "updateAllIndexes"
-    },
-    {
-      "name": "NoteHelpers: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [
@@ -283,6 +303,7 @@
     {
       "key": "includeSubfolders",
       "title": "Include Subfolders when making an index?",
+      "description": "If set, then all subfolders will be indexed in the same name as the folder.",
       "type": "bool",
       "default": true,
       "required": true
@@ -290,7 +311,7 @@
     {
       "key": "indexTitle",
       "title": "Title to use for Index notes",
-      "description": "This can include a placeholder `{{folder}}` which will be replaced by the folder's name.",
+      "description": "This can include a placeholder `{{folder}}` or `{{full_folder_path}}` which will be replaced by the folder's name or full path.",
       "type": "string",
       "default": "_{{folder}} index",
       "required": true

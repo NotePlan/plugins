@@ -7,8 +7,14 @@ assignees: ''
 
 ---
 
+**Checks**
+- [ ] I confirm I have restarted NotePlan and this problem still persists.
+- [ ] Is this a repeatable problem?
+
 **Describe the bug**
 A clear and concise description of what the bug is.
+
+What do you expect it to do instead?
 
 **To Reproduce**
 Steps to reproduce the behavior:
@@ -16,9 +22,6 @@ Steps to reproduce the behavior:
 2. Click on '....'
 3. Scroll down to '....'
 4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
@@ -35,7 +38,7 @@ Add any other context about the problem here.
 **Plugin Console Log**
 To provide us with more clues about where the bug/error is occurring...
 1. Open the Plugin's Preferences by going to `NotePlan's menu > Preferences > Plugins` and clicking the settings "cog" icon next to the plugin in question. Scroll to the bottom and set the logging level to "DEBUG" and click "Save & Close"
-3. Now open the Plugin Console by going to `Noteplan > Help > Plugin Console`
+3. Now open the Plugin Console by going to `Noteplan > Help > Plugin Console` (_not_ the macOS Console app).
 4. Run the plugin command you're reporting
 5. Copy the output from the Plugin Console and paste it below
 6. Delete any output that has personal information you don't want in there

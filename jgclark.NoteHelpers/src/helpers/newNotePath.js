@@ -6,14 +6,20 @@ import { logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 
-// author @Leo, extended by @jgclark
-// now copes with notes that use front matter, and substituting for '/' characters in filename(otherwise treated as a new folder in path)
-export function newNotePath(note: Note): string {
+/**
+ * Takes a Note returns a new path for a note.
+ * Now copes with notes that use front matter, and substituting for '/' characters in filename (otherwise treated as a new folder in path)
+ * @author @Leo, extended by @jgclark
+ * @param {note: TNote} note 
+ * @returns {string} filepath
+ */
+export function newFilepathForNote(note: TNote): string {
   const { defaultFileExtension } = DataStore
 
-  // Get new title for note, though with any '/' replaced
+  // Get new title for note, though with any '/' or ':' replaced
   const title = displayTitle(note)
     .replace('/', '_')
+    .replace(':', '_')
   if (title !== '') {
     const currentFullPath = note.filename
     const pathWithoutTitle = getFolderFromFilename(currentFullPath)
@@ -21,7 +27,7 @@ export function newNotePath(note: Note): string {
 
     return newName
   } else {
-    logWarn(pluginJson, `newNotePath(): No title found in note ${note.filename}. Returning empty string.`)
+    logWarn(pluginJson, `newFilepathForNote(): No title found in note ${note.filename}. Returning empty string.`)
     return ''
   }
 }

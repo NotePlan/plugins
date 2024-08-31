@@ -2,17 +2,18 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
-import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
+import { moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
 import { getReferencedParagraphs, getTodaysReferences } from '../../helpers/NPnote'
+import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } from '../../helpers/userInput'
 import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 import { filenameDateString } from './dateHelpers'
+import { updateLastUsedChoices } from './lastUsedChoices'
+import { changePriority } from '@helpers/paragraph'
 import { isOpen } from '@helpers/utils'
 import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated, isWeeklyNote, isScheduled } from '@helpers/dateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { sortListBy } from '@helpers/sorting'
 
@@ -32,29 +33,56 @@ export type OverdueSearchOptions = {
 
 type RescheduleUserAction =
   | '__today__'
-  | '__mark__'
+  | '__done__'
   | '__canceled__'
   | '__remove__'
   | '__skip__'
   | '__xcl__'
   | '__list__'
+  | '__listMove__'
+  | '__checklist__'
+  | '__checklistMove__'
   | '__mdhere__'
   | '__mdfuture__'
   | '__newTask__'
   | '__opentask__'
+  | '__p0__'
+  | '__p1__'
+  | '__p2__'
+  | '__p3__'
+  | '__p4__'
+  | '__>>__'
   | string /* >dateOptions */
   | number /* lineIndex of item to pop open */
 
+// When reviewing Overdue Tasks, we increment through tasks in a note from the bottom/end of the note upwards
+export const CONTINUE = 1
+export const CANCEL = -2
+export const SEE_TASK_AGAIN = 0
+
 /**
- * An individual task command was selected with a modifier key pressed
- * @param {*} para
- * @param {*} keyModifiers
- * @param {*} userChoice
+ * Update a single paragraph in a note
+ * @param {TParagraph} origPara
+ * @returns {void}
+ */
+function updateParagraph(origPara): void {
+  if (!origPara?.note) {
+    logError(pluginJson, `NPTaskAndProcess::updateParagraph: note is null`)
+    return
+  }
+  origPara.note?.updateParagraph(origPara)
+}
+
+/**
+ * An individual task command was selected with the CMD modifier key pressed
+ * So we need to move the task to the note that was specified
+ * @param {TParagraph} para
+ * @param {RescheduleUserAction} userChoice - string user action
  * @return {boolean} true if moved (used to work around API inconsistencies after changes in Editor and Editor.note)
  */
-export async function processModifierKey(para: TParagraph, keyModifiers: Array<string>, userChoice: string = ''): Promise<boolean> {
-  if (userChoice.length && userChoice[0] === '>') {
-    logDebug(pluginJson, `processModifierKey(): is >date command [${keyModifiers.toString()}] + userChoice=${userChoice}`)
+export async function processCmdKey(para: TParagraph, userChoice: RescheduleUserAction = ''): Promise<boolean> {
+  if (userChoice.length && typeof userChoice === 'string' && userChoice[0] === '>') {
+    logDebug(pluginJson, `processCmdKey(): is >date command [CMD] + userChoice=${userChoice}`)
     let date = userChoice?.slice(1)
     if (new RegExp(RE_DATE).test(date)) {
       date = date.replace(/-/g, '') // convert 8601 date to daily note filename
@@ -62,19 +90,17 @@ export async function processModifierKey(para: TParagraph, keyModifiers: Array<s
     let filename = `${date}.${DataStore.defaultFileExtension}`
     const nType = noteType(filename)
     if (nType === 'Calendar' && !new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(filename)) filename = filename.replace(/-/g, '')
-    if (keyModifiers.includes('cmd')) {
-      // MOVE TASK TO SPECIFIED NOTE
-      const note = await DataStore.noteByFilename(filename, nType)
-      if (note) {
-        logDebug(pluginJson, `processModifierKey ready to write task to: ${filename}`)
-        return moveParagraphToNote(para, note)
-      } else {
-        logDebug(pluginJson, `processModifierKey could not open: ${filename}. Leaving task in place (${para.content})`)
-      }
+    // MOVE TASK TO SPECIFIED NOTE
+    const note = await DataStore.noteByFilename(filename, nType)
+    if (note) {
+      logDebug(pluginJson, `processCmdKey ready to write task to: ${filename}`)
+      return moveParagraphToNote(para, note)
+    } else {
+      logDebug(pluginJson, `processCmdKey could not open: ${filename}. Leaving task in place (${para.content})`)
     }
   } else {
     // non-date commands
-    logDebug(pluginJson, `processModifierKey(): not a >date command [${keyModifiers.toString()}] + userChoice=${userChoice}`)
+    logDebug(pluginJson, `processCmdKey(): not a >date command [${keyModifiers.toString()}] + userChoice=${userChoice}. Ignoring CMD press`)
   }
   return false
 }
@@ -85,10 +111,9 @@ export async function processModifierKey(para: TParagraph, keyModifiers: Array<s
  * @param {boolean} isSingleLine
  * @returns {$ReadOnlyArray<{ label: string, value: string }>} the options for feeding to a command bar
  */
-export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null, isSingleLine?: boolean = true): Array<{ label: string, value: string }> {
+export function getGenericTaskActionOptions(origPara?: TParagraph | { note: TNote } | null, isSingleLine?: boolean = true): Array<{ label: string, value: string }> {
   const isGeneric = !origPara || !origPara.note
   const dateOpts = [...getDateOptions(), ...getWeekOptions()]
-  // clo(dateOpts, `getSharedOptions dateOpts`)
   const note = isGeneric ? null : origPara?.note
   const taskText = isSingleLine ? `this task` : `these tasks`
   const contentText = isGeneric ? '' : isSingleLine ? `"${origPara?.content || ''}"` : `tasks in "${note?.title || ''}"`
@@ -103,6 +128,8 @@ export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null,
     { label: `⌫ Remove the >date from the ${taskText}`, value: '__remove__' },
     { label: `⦿ Convert ${taskText} to a bullet/list item`, value: '__list__' },
     { label: `☑︎ Convert ${taskText} to a checklist item`, value: '__checklist__' },
+    { label: `⦿ Convert ${taskText} to a bullet/list item & move to another note`, value: '__listMove__' },
+    { label: `☑︎ Convert ${taskText} to a checklist item & move to another note`, value: '__checklistMove__' },
     { label: '❌ Cancel Review', value: '__xcl__' },
     { label: '------ Set Due Date To: -------', value: '-----' },
     ...dateOpts,
@@ -110,33 +137,240 @@ export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null,
 }
 
 /**
- * Open a note, highlight the task being looked at and prompt user for a choice of what to do with one specific line
- * @param {*} origPara
- * @returns {Promise<RescheduleUserAction | false>} the user choice or false
+ *
+ * @param {TParagraph} origPara
+ * @param {Array<{label:string,value:string}>} todayLines
+ * @returns
  */
-async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TParagraph */): Promise<{ value: RescheduleUserAction, keyModifiers: Array<string> } | false> {
-  logDebug(pluginJson, `promptUserToActOnLine note:"${origPara.note?.title || ''}": task:"${origPara.content || ''}"`)
-  const range = origPara.contentRange
-  if (origPara?.note?.filename) await Editor.openNoteByFilename(origPara.note.filename, false, range?.start || 0, range?.end || 0)
-  const sharedOpts = getSharedOptions(origPara, true)
-  const todayLines = sharedOpts.splice(0, 2) // get the two >today lines and bring to top
-  const content = textWithoutSyncedCopyTag(origPara.content)
+export function getSingleTaskOptions(origPara: TParagraph, todayLines: any, content: string): Array<{ label: string, value: string }> {
   const opts = [
     { label: `➡️ Leave "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
-    { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
-    { label: `✓ Mark task done/complete`, value: '__mark__' },
+    { label: `✏️ Edit this task in note: ("${origPara.note?.title || ''}")`, value: '__edit__' },
+    { label: `✓ Mark done/complete`, value: '__done__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `💡 This reminds me...(create new task then continue)`, value: '__newTask__' },
-    ...sharedOpts,
-    { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
+    { label: `>> Set task as next up`, value: '__>>__' },
+    { label: `! Set priority to p1`, value: '__p1__' },
+    { label: `!! Set priority to p2`, value: '__p2__' },
+    { label: `!!! Set priority to p3`, value: '__p3__' },
+    { label: `!!!! Set priority to p4`, value: '__p4__' },
+    { label: `x! Remove priority from task (p0)`, value: '__p0__' },
   ]
+  if (NotePlan.environment.platform === 'macOS') {
+    // splice in option in 2nd position
+    opts.splice(1, 0, { label: `====== [CMD+click = move task to chosen date; OPT+click = multi-action] ======`, value: '__skip__' })
+  }
+  return opts
+}
+
+/**
+ * Open a note, highlight the task being looked at and prompt user for a choice of what to do with one specific line/task
+ * @param {*} origPara
+ * @returns {Promise<RescheduleUserAction | false>} the user choice or false
+ */
+async function getUserActionForThisTask(origPara: TParagraph /*, updatedPara: TParagraph */): Promise<CommandBarChoice | false> {
+  logDebug(pluginJson, `getUserActionForThisTask note:"${origPara.note?.title || ''}": task:"${origPara.content || ''}"`)
+  if (Editor.filename !== origPara.note?.filename) {
+    await Editor.openNoteByFilename(origPara.note?.filename || '')
+  }
+  Editor.highlight(origPara)
+
+  const sharedOpts = getGenericTaskActionOptions(origPara, true)
+  const todayLines = sharedOpts.splice(0, 2) // get the two >today lines and bring to top
+  const content = textWithoutSyncedCopyTag(origPara.content)
+  let opts = getSingleTaskOptions(origPara, todayLines, content)
+
+  // concatenate sharedOpts to the end of opts array
+  opts = opts.concat(...sharedOpts)
+  opts.push({ label: `␡ Delete this line (be sure!)`, value: '__delete__' }) // add delete option at the very end
+
   const weektext = />\d{4}-W/i.test(origPara.content) ? 'Week ' : ''
-  const res = await chooseOptionWithModifiers(`${weektext}Task: "${content}"`, opts)
-  logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
-  // clo(res, `promptUserToActOnLine after chooseOption res=`)
-  return res
+  const prompt = `${weektext}Task: "${content}"`
+  logDebug(pluginJson, `getUserActionForThisTask calling chooseOptionWithModifiers() - opts.length: ${opts.length}, prompt="${prompt}"`)
+  // opts.forEach((o) => console.log(o.value))
+  // clo(opts, 'getUserActionForThisTask: opts')
+  const choice = await chooseOptionWithModifiers(prompt, opts)
+  choice ? updateLastUsedChoices(choice) : null
+  logDebug(pluginJson, `getUserActionForThisTask user selection: ${JSP(choice)}`)
+  return choice
+}
+
+/**
+ * Change the arrow date in a task to today and update it in in the DataStore
+ * By default, changes the arrow date to today
+ * Optionally blanks the date out
+ * @param {TParagraph} paragraph
+ * @param {boolean} removeDate - whether to blank out the date
+ * @returns {TParagraph} - the updated paragraph (if you need it, but can be ignored since it's saved)
+ */
+export function updateParagraphWithArrowDate(paragraph: TParagraph, removeDate: boolean = false): TParagraph {
+  paragraph.content = replaceArrowDatesInString(paragraph.content, removeDate ? '' : null)
+  updateParagraph(paragraph)
+  return paragraph
+}
+
+/**
+ * Allow for editing of the task
+ * @param {TParagraph} origPara 
+// @returns {number} incrementor to move to next task. CONTINUE to go to next one, CANCEL to cancel, 0 to see this task again
+ */
+export async function handleEditAction(origPara: TParagraph): Promise<number> {
+  logDebug(pluginJson, `handleEditAction: editing task: "${origPara.content}"`)
+  const input = await CommandBar.textPrompt('Edit task contents', `Change text:\n"${origPara.content}" to:\n`, origPara.content)
+  if (input) {
+    origPara.content = input
+    updateParagraph(origPara)
+    return CONTINUE
+  } else {
+    logDebug(pluginJson, `handleEditAction: no input received, canceling`)
+  }
+  return CANCEL
+}
+
+/**
+ * Change the type of the task (e.g. from checklist to list)
+ * @param {TParagraph} origPara 
+// @returns {number} incrementor to move to next task. CONTINUE to go to next one, CANCEL to cancel, 0 to see this task again
+ */
+export async function handleTypeAction(origPara: TParagraph, userChoice: string): Promise<number> {
+  const tMap = {
+    __done__: 'done',
+    __canceled__: 'cancelled',
+    __list__: 'list',
+    __checklist__: 'checklist',
+    __listMove__: 'list',
+    __checklistMove__: 'checklist',
+  }
+  // if userChoice is not inTMap, return CANCEL and log an error
+  if (!tMap[userChoice]) {
+    logError(pluginJson, `handleTypeAction: unknown userChoice: ${userChoice}`)
+    return CANCEL
+  }
+
+  origPara.type = tMap[userChoice]
+
+  if (/Move/.test(userChoice)) {
+    const noteToMoveTo = await chooseNote(true, true, [], 'Note to move to', true, true)
+    if (noteToMoveTo) {
+      const heading = await chooseHeading(noteToMoveTo, true, true, false)
+      if (heading) {
+        noteToMoveTo.addParagraphBelowHeadingTitle(origPara.content, origPara.type, heading, false, true)
+        origPara.note?.removeParagraph(origPara)
+        return CONTINUE
+      } else {
+        logError(pluginJson, `handleTypeAction: could not find heading in note: ${noteToMoveTo.title || ''}`)
+        return SEE_TASK_AGAIN
+      }
+    } else {
+      logError(pluginJson, `handleTypeAction: could not find note to move to`)
+      return SEE_TASK_AGAIN
+    }
+  }
+  updateParagraph(origPara)
+  return CONTINUE
+}
+
+// remove arrow date from the string
+export function handleRemoveAction(origPara: TParagraph): number {
+  origPara.content = replaceArrowDatesInString(origPara.content, '')
+  updateParagraph(origPara)
+  return CONTINUE
+}
+
+// change the priority
+export function handlePriorityAction(origPara: TParagraph, userChoice: string): number {
+  const priorityMap = {
+    __p0__: '',
+    __p1__: '!',
+    __p2__: '!!',
+    __p3__: '!!!',
+    __p4__: '!!!!',
+    '__>>__': '>>',
+  }
+  const prioritySymbol = priorityMap[userChoice] || ''
+  changePriority(origPara, prioritySymbol, true)
+  return SEE_TASK_AGAIN
+}
+
+// delete the task
+export function handleDeleteAction(origPara: TParagraph): number {
+  origPara.note?.removeParagraph(origPara)
+  return CONTINUE
+}
+
+// set the date to >today
+export function handleTodayAction(origPara: TParagraph): number {
+  origPara.content = replaceArrowDatesInString(origPara.content, '>today')
+  updateParagraph(origPara)
+  return CONTINUE
+}
+
+// open the note for this task
+export async function handleOpenTaskAction(origPara: TParagraph): Promise<number> {
+  logDebug(`handleOpenTaskAction: opening Editor to task: ${origPara.content} filename: ${origPara.note?.filename || ''}`)
+  if (origPara.note?.filename) {
+    await Editor.openNoteByFilename(origPara.note.filename, false, origPara.contentRange?.start || 0, origPara.contentRange?.end || 0)
+    return SEE_TASK_AGAIN
+  }
+  return CANCEL
+}
+
+// change the date to the user's choice of >date
+export async function handleArrowDatesAction(origPara: TParagraph, userChoice: string, optionChosen?: CommandBarChoice): Promise<number> {
+  const cmdPressed = optionChosen ? optionChosen.keyModifiers?.length && optionChosen.keyModifiers.includes('cmd') : false
+  origPara.content = replaceArrowDatesInString(origPara.content, cmdPressed ? '' : userChoice)
+  updateParagraph(origPara) // Note: after origPara is updated, the pointer is no longer good in Obj-C
+  if (cmdPressed) {
+    logDebug(pluginJson, `handleArrowDatesAction: keyModifiers: ${optionChosen ? optionChosen.keyModifiers.toString() : ''}`)
+    const updatedPara = origPara.note?.paragraphs[origPara.lineIndex] || origPara // get the updated paragraph
+    await processCmdKey(updatedPara, userChoice)
+  }
+  return CONTINUE
+}
+
+// add a new task ("this reminds me...")
+export async function createNewTask(): Promise<void> {
+  // prompt user for task
+  const task = await CommandBar.textPrompt('New Task', "Create new task in todays's note")
+  if (task) {
+    const note = await DataStore.calendarNoteByDate(new Date())
+    if (note) {
+      note.addParagraphBelowHeadingTitle(task, 'open', 'Tasks', false, true)
+    } else {
+      logError(pluginJson, `createNewTask: could not find note: ${getTodaysDateHyphenated()}`)
+    }
+  } else {
+    logDebug(pluginJson, `createNewTask: did not create new task - no task entered in CommandBar`)
+  }
+}
+
+// handle follow up or create new task
+export async function handleNewTaskAction(origPara: TParagraph, userChoice: string): Promise<number> {
+  Editor.openNoteByFilename(origPara.note?.filename || '')
+  switch (userChoice) {
+    case `__mdhere__`:
+      await followUpSaveHere(origPara)
+      break
+    case `__mdfuture__`: {
+      await followUpInFuture(origPara)
+      break
+    }
+    case '__newTask__': {
+      await createNewTask()
+      // await appendTaskToCalendarNote(getTodaysDateHyphenated())
+      return SEE_TASK_AGAIN
+    }
+  }
+  return CONTINUE
+}
+
+export type CommandBarChoice = {
+  value: string,
+  keyModifiers: Array<string>,
+  label: string,
+  index: number,
 }
 
 /**
@@ -144,298 +378,81 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
  * @param {TParagraph} origPara
  * @param {TParagraph} updatedPara
  * @param {RescheduleUserAction|false} userChoice
- * @returns
+ * @returns {number} incrementor to move to next task. CONTINUE to go to next one, CANCEL to cancel, 0 to see this task again
  * @jest (limited) tests exist
  */
-export async function prepareUserAction(origPara: TParagraph, updatedPara: TParagraph, userChoice: any): Promise<{ action: string, changed?: TParagraph, userChoice?: string }> {
-  // const userChoice = userChoiceObj?.value
-  if (userChoice) {
-    const content = origPara?.content || ''
-    logDebug(pluginJson, `prepareUserAction on content: "${content}" res= "${userChoice}"`)
-    switch (userChoice) {
-      case '__edit__': {
-        const input = await CommandBar.textPrompt('Edit task contents', `Change text:\n"${content}" to:\n`, updatedPara.content)
-        if (input) {
-          origPara.content = input
-          return { action: 'set', changed: origPara }
-        } else {
-          return { action: 'cancel', changed: origPara }
-        }
+export async function processUserAction(origPara: TParagraph, optionChosen: CommandBarChoice): Promise<number> {
+  const userChoice = optionChosen.value
+  switch (userChoice) {
+    case '__edit__':
+      return await handleEditAction(origPara)
+    case '__done__':
+    case '__checklist__':
+    case '__checklistMove__':
+    case '__listMove__':
+    case '__canceled__':
+    case '__list__':
+      return await handleTypeAction(origPara, userChoice)
+    case '__remove__':
+      return handleRemoveAction(origPara)
+    case '__delete__':
+      return handleDeleteAction(origPara)
+    case '__newTask__':
+    case '__mdhere__':
+    case '__mdfuture__':
+      return await handleNewTaskAction(origPara, userChoice)
+    case '__p0__':
+    case '__p1__':
+    case '__p2__':
+    case '__p3__':
+    case '__p4__':
+    case '__>>__':
+      return handlePriorityAction(origPara, userChoice)
+    case '__today__':
+      return await handleTodayAction(origPara)
+    case '__opentask__':
+      return await handleOpenTaskAction(origPara)
+    case '__skip__':
+      return CONTINUE
+    default:
+      if (typeof userChoice === 'string' && userChoice[0] === '>') {
+        return await handleArrowDatesAction(origPara, userChoice, optionChosen)
       }
-      case `__mark__`:
-      case `__checklist__`:
-      case '__canceled__':
-      case '__list__': {
-        const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list', __checklist__: 'checklist' }
-        origPara.type = tMap[userChoice]
-        origPara.content = replaceArrowDatesInString(origPara.content)
-        return { action: 'set', changed: origPara }
-      }
-      case '__remove__':
-        origPara.content = replaceArrowDatesInString(origPara.content, '')
-        return { action: 'set', changed: origPara }
-      case `__delete__`:
-        return { action: 'delete', changed: origPara }
-      case `__newTask__`:
-      case `__mdhere__`:
-      case `__mdfuture__`: {
-        return { action: userChoice, changed: origPara }
-      }
-      case `__today__`: {
-        origPara.content = replaceArrowDatesInString(origPara.content, '>today')
-        return { action: 'set', changed: origPara } // dbw NOTE: this said "updatedPara". Not sure how/why that worked before. changing it for React
-      }
-      case '__opentask__': {
-        if (origPara.note?.filename) {
-          await Editor.openNoteByFilename(origPara.note.filename, false, origPara.contentRange?.start || 0, origPara.contentRange?.end || 0)
-          return { action: 'skip', changed: origPara }
-        }
-        break
-      }
-      case `__no__`: {
-        return { action: 'set', changed: origPara }
-      }
-      case '__skip__':
-        return { action: 'skip', changed: origPara }
-    }
-    if (typeof userChoice === 'string' && userChoice[0] === '>') {
-      origPara.content = replaceArrowDatesInString(origPara.content, userChoice)
-      return { action: 'set', changed: origPara, userChoice }
-    }
-    logDebug(pluginJson, `prepareUserAction chosen: ${userChoice} returning`)
   }
-  return { action: 'cancel' }
+  logError(pluginJson, `processUserAction: unknown userChoice: ${userChoice}`)
+  return CANCEL
 }
 
 /**
- * Helper function to show overdue tasks in note & allow user selection
- * @param {TNote} note
- * @param {*} updates
- * @param {*} index
- * @param {*} totalNotesToUpdate
- * @returns
- */
-async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: number, totalNotesToUpdate: number) {
-  const range = updates[0].contentRange
-  logDebug(pluginJson, `showOverdueNote: openingNote "filename: ${note.filename}" | title:"${note.title || ''}"`)
-  await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0)
-  // const options = updates.map((p) => ({ label: `${note?.paragraphs?[Number(p.lineIndex) || 0]?.content}`, value: `${p.lineIndex}` })) //show the original value
-  // clo(note, `showOverdueNote: note[${index}]=`)
-  logDebug(pluginJson, `showOverdueNote note in Editor, title=${Editor.note?.title || ''}`)
-  const options = updates.map((p, i) => {
-    logDebug(
-      `showOverdueNote updates.map[${i}] note.title=${note.title || ''} note?.paragraphs=${note?.paragraphs.length} p.lineIndex=${p.lineIndex} p.type=${p.type} p.content=${
-        p.content
-      }`,
-    )
-    if (note.paragraphs.length <= p.lineIndex) {
-      //seems like this is an API bug which shouldn't be possible
-      return { label: `Error: LineIndex=${p.lineIndex} > paragraphs=${note.paragraphs.length} in "${note.title || ''}"`, value: `0` }
-    } else {
-      const content = textWithoutSyncedCopyTag(note?.paragraphs[Number(p.lineIndex) || 0]?.content)
-      return { label: `${content}`, value: `${p.lineIndex}` }
-    }
-  }) //show the original value
-  const opts = [
-    { label: '>> SELECT A TASK INDIVIDUALLY OR MARK THEM ALL (below) <<', value: '-----' },
-    ...options,
-    { label: '----------------------------------------------------------------', value: '-----' },
-    { label: `✓ Mark done/complete`, value: '__mark__' },
-    ...getSharedOptions({ note }, false),
-  ]
-  const res = await chooseOptionWithModifiers(`Note (${index + 1}/${totalNotesToUpdate}): "${note?.title || ''}"`, opts)
-  logDebug(`NPnote`, `showOverdueNote note:"${note?.title || ''}" user action: ${JSP(res)}`)
-  return res
-}
-
-/**
- * Review a single note get user input on what to do with it (either the whole note or the tasks on this note)
- * @param {Array<Array<TParagraph>>} notesToUpdate
- * @param {number} noteIndex
+ * Review a single note's overdue tasks and get user input on what to do with them
+ * @param {Array<TParagraph>} notesToUpdate - an array of paragraphs in each note that need to be reviewed/updated
  * @param {OverdueSearchOptions} options
- * @returns {number} the new note index (e.g. to force it to review this note again) by default, just return the index you got. -2 means user canceled. noteIndex-1 means show this note again
+ * @returns {boolean} - true if all went well, false if user canceled
  */
-async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: number, options: OverdueSearchOptions): Promise<number> {
-  // clo(options, `reviewNote: noteIndex=${noteIndex} options=`)
-  // clo(notesToUpdate[noteIndex], `reviewNote: notesToUpdate[${noteIndex}]`)
-  const { showNote, confirm } = options
-  let updates = sortListBy(notesToUpdate[noteIndex], '-lineIndex'), //reverse so we can delete from the end without messing up the lineIndexes and confusing NotePlan
-    currentTaskIndex = showNote ? -1 : 0,
-    currentTaskLineIndex = updates[0].lineIndex,
-    res
-  const note = updates[0].note
-  // clo(updates, `reviewNote: updates after sort=`)
-  logDebug(pluginJson, `reviewNote starting review of note: "${note?.title || ''}" tasksToUpdate=${updates.length}`)
-  // clo(updates, `reviewNote updates`)
-  if (note) {
-    if (updates.length > 0) {
-      let makeChanges = !confirm
-      if (confirm) {
-        do {
-          if (!updates.length) return currentTaskIndex
-          if (showNote) {
-            const { value, keyModifiers } = await showOverdueNote(note, updates, noteIndex, notesToUpdate.length)
-            logDebug(`NPnote`, `reviewNote ${keyModifiers} and value:${value}`)
-            res = value
-          } else {
-            res = currentTaskLineIndex // skip note and process each task as if someone clicked it to edit
-          }
-          if (!isNaN(res)) {
-            // this was an index of a line to edit
-            // clo(note.paragraphs, `reviewNote: note.paragraphs=`)
-            logDebug(`NPnote`, `reviewNote lineIndex of task to work on in note is:${res} "${note.paragraphs[Number(res) || 0].content}"`)
-            // edit a single task item
-            const origPara = note.paragraphs[Number(res) || 0]
-            const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
-            const updatedPara = updates[index]
-            const choice = await promptUserToActOnLine(origPara /*, updatedPara */)
-            logDebug(pluginJson, `reviewNote: back from promptUser, calling prepareUserAction with: ${JSP(res)}`)
-            const result = await prepareUserAction(origPara, updatedPara, choice && choice.value) //FIXME: use modifiers key
-            logDebug(pluginJson, `reviewNote: back from prepareUserAction: result=${JSP(result)}`)
-            // clo(result, 'NPTaskScan::reviewNote result')
-            if (result) {
-              switch (result.action) {
-                case 'set':
-                  logDebug('NPTaskScan::reviewNote', `received set command; index= ${index}`)
-                  if (result?.changed) {
-                    updates[index] = result.changed
-                    logDebug(
-                      'NPTaskScan::reviewNote',
-                      `after set command; updates[index].content="${updates[index].content}" origPara.content="${origPara.content}" | "${
-                        note.paragraphs[Number(res) || 0].content
-                      }"`,
-                    )
-                    if (choice && choice.keyModifiers.length) {
-                      logDebug('NPTaskScan::reviewNote', `received set+cmd key; index= ${index}`)
-                      await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
-                      // TODO: check if this works and delete this code
-                      // I don't think checking success should be necessary now with the DataStore.updateCache implemented
-                      // const success = await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
-                      // if (success) {
-                      //   updates[index]?.note?.removeParagraph(updates[index])
-                      // } else {
-                      //   note.updateParagraph(updates[index]) //have to do this to eliminate race condition on set/delete
-                      // }
-                    } else {
-                      note.updateParagraph(updates[index])
-                    }
-                    updates.splice(index, 1) //remove item which was updated from note's updates
-                    logDebug(
-                      'NPTaskScan::reviewNote',
-                      `after splice/remove this line from updates.length=${updates.length} noteIndex=${noteIndex} ; will return noteIndex=${
-                        updates.length ? noteIndex - 1 : noteIndex
-                      }`,
-                    )
-                  }
-                  // if there are still updates on this note, subtract one so the i++ in the caller function will increment
-                  // it and show this note again for the other tasks to be update
-                  // if there are no updates, do nothing and let the i++ take us to the next note
-                  return updates.length ? noteIndex - 1 : noteIndex
-                case 'cancel': {
-                  const range = note.paragraphs[updates[0].lineIndex].contentRange
-                  await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-                  return -2
-                }
-                case 'delete': {
-                  updates.splice(index, 1) //remove item which was updated from note's updates
-                  if (origPara && origPara.note) {
-                    const before = noteHasContent(origPara.note, origPara.content)
-                    origPara.note?.removeParagraph(origPara)
-                    const after = origPara.note ? noteHasContent(origPara.note, origPara.content) : null
-                    logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
-                  }
-                  return updates.length ? noteIndex - 1 : noteIndex
-                }
-                case 'skip': {
-                  updates.splice(index, 1) //remove item which was updated from note's updates
-                  return updates.length ? noteIndex - 1 : noteIndex
-                }
-                case `__mdhere__`:
-                  updates.splice(index, 1) //remove item which was updated from note's updates
-                  await followUpSaveHere()
-                  return updates.length ? noteIndex - 1 : noteIndex
-                case `__mdfuture__`: {
-                  updates.splice(index, 1) //remove item which was updated from note's updates
-                  await followUpInFuture()
-                  return updates.length ? noteIndex - 1 : noteIndex
-                }
-                case '__newTask__': {
-                  await appendTaskToCalendarNote(getTodaysDateHyphenated())
-                  return updates.length ? noteIndex - 1 : noteIndex
-                }
-              }
-              //user selected an item in the list to come back to later (in splitview)
-              // const range = note.paragraphs[Number(res) || 0].contentRange
-              // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-              // if (range) Editor.select(range.start,range.end-range.start)
-              // makeChanges = false
-            }
-          } else {
-            switch (String(res)) {
-              case '__xcl__': {
-                // const range = note.paragraphs[updates[0].lineIndex].contentRange
-                // await Editor.openNoteByFilename(note.filename, false, range?.start || 0, range?.end || 0, true)
-                return -2
-              }
-              case '__today__':
-                makeChanges = true
-                break
-              case '__mark__':
-              case '__canceled__':
-              case '__list__': {
-                const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list' }
-                updates = updates.map((p) => {
-                  p.type = tMap[res]
-                  p.content = replaceArrowDatesInString(p.content)
-                  return p
-                })
-                makeChanges = true
-                break
-              }
-            }
-            if (typeof res === 'string' && res[0] === '>') {
-              logDebug(pluginJson, `reviewNote changing to a >date : "${res}"`)
-              updates = updates.map((p) => {
-                const origPara = note.paragraphs[p.lineIndex]
-                p.content = replaceArrowDatesInString(origPara.content, String(res))
-                // if (choice.keyModifiers.includes('cmd')) {
-                //   // user selected move //TODO: do something with full notes? let's start with tasks only
-                // }
-                return p
-              })
-              // clo(updates, `reviewNote updates=`)
-              makeChanges = true
-            }
-          }
-          if (currentTaskIndex > -1) {
-            currentTaskIndex = currentTaskIndex < updates.length - 2 ? currentTaskIndex++ : -1
-            currentTaskLineIndex = updates[currentTaskIndex].lineIndex
-          }
-        } while (currentTaskIndex !== -1)
-      }
-      if (makeChanges) {
-        // updatedParas = updatedParas.concat(updates)
-        logDebug(`NPTaskScan::reviewNote`, `about to update ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
-        clo(updates, `\nreviewNote updates`)
-        note?.updateParagraphs(updates)
-        updates.forEach(async (para) => {
-          if (note.paragraphs[para.lineIndex].content !== para.content) {
-            logError(
-              pluginJson,
-              `Checked paragraph after set and results did not match.\nnote's content:"${note.paragraphs[para.lineIndex].content}" !== expected/updated: "${para.content}"`,
-            )
-            await showMessage('Encountered an error. Pls enable logging in settings and check logs when running again.')
-            return
-          }
-        })
-        logDebug(`NPTaskScan::reviewNote`, `...after note.updateParagraphs...`)
-      } else {
-        logDebug(`NPTaskScan::reviewNote`, `No update because makeChanges = ${String(makeChanges)}`)
-      }
-      // clo(updatedParas,`overdue tasks to be updated`)
-    }
-  }
-  return noteIndex
+async function reviewOverdueTasksInNote(paragraphsToConsider: Array<TParagraph>, options: OverdueSearchOptions): Promise<boolean> {
+  // const { showNote, confirm } = options
+  clo(options, 'reviewOverdueTasksInNote options')
+  if (!paragraphsToConsider.length) return false // note had no tasks to review...should never happen
+  const note = paragraphsToConsider[0].note
+  if (!note) return false // should never happen
+  const updates = sortListBy(paragraphsToConsider, '-lineIndex') // sort tasks starting at bottom of page
+  let currentIndex = 0
+  do {
+    if (!updates.length) return false
+    if (currentIndex >= updates.length) return false
+    const paraInUpdates = updates[currentIndex]
+    // After updates are edited, the Editor gets confused about character counts, so let's refresh the paragraph from the underlying note each time
+    const paragraph = paraInUpdates.note?.paragraphs[paraInUpdates.lineIndex] || paraInUpdates
+    logDebug(pluginJson, `reviewOverdueTasksInNote: Reviewing: "${note.title || ''}", currentIndex: ${currentIndex} content:"${paragraph.content}"`)
+    const choice = await getUserActionForThisTask(paragraph) // returns { value: RescheduleUserAction, keyModifiers: Array<string> } | false
+    if (!choice) return false // user hit escape
+    let incrementor = await processUserAction(paragraph, choice)
+    logDebug(pluginJson, `reviewOverdueTasksInNote returned incrementor: ${incrementor}`)
+    if (incrementor === CANCEL) return false // user canceled
+    if (choice.keyModifiers.includes('opt')) incrementor = SEE_TASK_AGAIN // option key pressed so should allow editing after new date is appended
+    currentIndex += incrementor
+  } while (currentIndex < updates.length)
+  return true
 }
 
 /**
@@ -446,10 +463,10 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
  */
 function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Array<TParagraph>> {
   logDebug(pluginJson, `dedupeSyncedLines  notesWithTasks ${notesWithTasks.length}`)
-  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), [])
+  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
-  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks)
+  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks, 'most-recent', true)
   // clo(noDupes, `dedupeSyncedLines  noDupes`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length AFTER deduping ${noDupes.length}`)
   return createArrayOfNotesAndTasks(noDupes)
@@ -485,6 +502,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  * @author @dwertheimer
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
+  const startTime = new Date()
   const { foldersToIgnore = [], overdueAsOf, /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'} Looking in: ${noteFolder || 'all notes'}`)
@@ -528,7 +546,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     logDebug(pluginJson, `getNotesAndTasksToReview using supplied task list: ${noteTaskList.length} tasks`)
     notesToUpdate = noteTaskList
   }
-  logDebug(`NPNote::getNotesAndTasksToReview`, `total notesToUpdate: ${notesToUpdate.length}`)
+  logDebug(`NPNote::getNotesAndTasksToReview took:${timer(startTime)}`, `total notesToUpdate: ${notesToUpdate.length}`)
   return dedupeSyncedLines(notesToUpdate)
 }
 
@@ -537,9 +555,9 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
  * @param {*} notesToUpdate
  * @param {*} options
  */
-export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>, options: OverdueSearchOptions) {
+export async function reviewOverdueTasksByNote(notesToUpdate: Array<Array<TParagraph>>, options: OverdueSearchOptions) {
   const { overdueOnly, confirm } = options
-  logDebug(`NPNote::reviewTasksInNotes`, `total notes with overdue dates: ${notesToUpdate.length}`)
+  logDebug(`NPNote::reviewOverdueTasksByNote`, `total notes with overdue dates: ${notesToUpdate.length}`)
   if (!notesToUpdate.length && confirm) {
     await showMessage(`Did not find any ${overdueOnly ? 'overdue' : 'relevant'} tasks!`, 'OK', 'Task Search', true)
   }
@@ -547,14 +565,17 @@ export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>
   // loop through all notes and process each individually
   for (let i = 0; i < notesToUpdate.length; i++) {
     logDebug(
-      `NPNote::reviewTasksInNotes`,
+      `NPNote::reviewOverdueTasksByNote`,
       `starting note loop:${i} of ${notesToUpdate.length} notes;  number of updates left: notesToUpdate[${i}].length=${notesToUpdate[i].length}`,
     )
     if (notesToUpdate[i].length) {
-      logDebug(`reviewTasksInNotes`, `calling reviewNote on notesToUpdate[${i}]: "${(notesToUpdate && notesToUpdate[i] && String(notesToUpdate[i][0].filename)) || ''}"`)
+      logDebug(
+        `reviewOverdueTasksByNote`,
+        `calling reviewOverdueTasksInNote on notesToUpdate[${i}]: "${(notesToUpdate && notesToUpdate[i] && String(notesToUpdate[i][0].filename)) || ''}"`,
+      )
       // clo(notesToUpdate[i], `notesToUpdate[${i}]`)
-      i = await reviewNote(notesToUpdate, i, options) // result may decrement index to see the note again after one line change
-      if (i === -2) break //user selected cancel
+      const reviewResult = await reviewOverdueTasksInNote(notesToUpdate[i], options) // result may decrement index to see the note again after one line change
+      if (!reviewResult) break //user selected cancel
     }
   }
   if (notesToUpdate.length && confirm) await showMessage(`${overdueOnly ? 'Overdue Task ' : ''}Review Complete!`, 'OK', 'Task Search', true)
@@ -582,6 +603,7 @@ export function getNotesWithOpenTasks(
   const lookInNotes = noteType === 'Notes' || noteType === 'both'
   const endDate = new moment(endingDateString).toDate()
   const todayFileName = `${filenameDateString(endDate)}.${DataStore.defaultFileExtension}`
+  const startTime = new Date()
 
   const { num, unit } = timePeriod
   const afterDate = Calendar.addUnitToDate(endDate, unit, -num)
@@ -614,7 +636,7 @@ export function getNotesWithOpenTasks(
   if (lookInNotes) {
     recentProjNotes = DataStore.projectNotes.filter(isInFolder).filter((note) => note.changedDate >= afterDate)
     logDebug(`getNotesWithOpenTasks`, `Total Project Notes in date range: ${recentProjNotes.length}`)
-    recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore, true)
+    recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore || [], true)
     logDebug(`getNotesWithOpenTasks`, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
   }
 
@@ -632,7 +654,7 @@ export function getNotesWithOpenTasks(
   logDebug(`getNotesWithOpenTasks`, `Project Notes after filtering for open tasks: ${recentProjNotesWithOpens.length}`)
 
   const notesWithOpenTasks: Array<Array<TParagraph>> = [...recentCalNotesWithOpens, ...recentProjNotesWithOpens]
-  logDebug(`getNotesWithOpenTasks`, `Combined Notes after filtering for open tasks: ${notesWithOpenTasks.length}`)
+  logDebug(`getNotesWithOpenTasks took:${timer(startTime)}`, `Combined Notes after filtering for open tasks:${notesWithOpenTasks.length}`)
 
   return notesWithOpenTasks
 }
@@ -656,7 +678,7 @@ export function getOpenTasksByNote(notes: Array<TNote>, sortOrder: string | Arra
     for (let index = 0; index < paras.length; index++) {
       const p = paras[index]
       if (p.type === 'open' && p.content.trim() !== '' && (!ignoreScheduledTasks || !(ignoreScheduledTasks && isScheduled(p.content)))) {
-        logDebug(`getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
+        // logDebug(`getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
         openTasksInThisNote.push(p)
       }
     }

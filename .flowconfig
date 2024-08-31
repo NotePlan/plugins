@@ -16,14 +16,20 @@
 flow-typed
 
 [lints]
+# warn on all sketchy-null checks
+sketchy-null=warn
+sketchy-number=warn
+unnecessary-optional-chain=warn
+# unused-promise=warn  # needs v0.201.0, but is not working for @jgclark
 
 [options]
+autoimports=false
 emoji=true
 exact_by_default=true
 experimental.const_params=true
 module.use_strict=true
 suppress_type=$FlowIgnore
-# suppress_type=$FlowFixMe
+suppress_type=$FlowFixMe
 # suppress_type=$FlowTODO
 module.name_mapper='^@plugins' ->'<PROJECT_ROOT>'
 module.name_mapper='^@helpers' ->'<PROJECT_ROOT>/helpers'

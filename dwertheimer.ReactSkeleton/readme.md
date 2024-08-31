@@ -3,31 +3,140 @@
 See [CHANGELOG](changelog.md) for latest updates/changes to this plugin.
 
 ## About This Code
-This is a basic skeleton of a React app that can be used in a NotePlan plugin. Copy this whole directory and edit as appropriate. 
+
+This is a basic skeleton of a React app that can be used in a NotePlan plugin. 
+1. Copy this whole directory 
+1. Do a global find/replace inside the new plugin directory you created and replace:
+  `dwertheimer.ReactSkeleton` with whatever the ID you want your new plugin to have. 
+> **NOTE:**
+> After the find/replace, you are advised to continue reading this README inside of your new plugin folder, because the commands/paths will have been updated for your new path
+1. Build and test the code as detailed below (confirm everything works)
+1. Then edit `reactMain.js` (the plugin-side code) and `WebView.jsx` (the HTML/React-side code) as you wish (See "Editing the Code" below)
+
 
 > **NOTE:** There are some peculiarities of writing an app that uses React, so make sure to read this whole document
 
 ## Building the Code
 
 There are two parts to this code:
-1. The plugin code in reactMain.js which is built (like every other plugin) by running a command like: `npc plugin:dev -vcw`
-1. The React code, which contains React components in the `src/react` folder, starting with `WebView.jsx` which will be the root of your React application. This code must be rolled up in order for it to be viewable in a NotePlan HTML window. you will roll this code up from the command line by opening up a separate terminal and running the command: 
-  `node ./dwertheimer.ReactSkeleton/src/react/support/performRollup.node.js --watch ` (obviously changing the `dwertheimer.ReactSkeleton` part after you rename it)
+1. The React code, which contains React components in the `src/react` folder, starting with `WebView.jsx` which will be the root of your React application. This code must be rolled up in order for it to be viewable in a NotePlan HTML window. You will roll this code up from the command line by opening up a separate terminal and running the command:
+  `node ./dwertheimer.ReactSkeleton/src/react/support/performRollup.node.js --watch ` 
+1. The plugin code in reactMain.js which is built (like every other plugin) by running a command like:
+  `npc plugin:dev dwertheimer.ReactSkeleton -w`
+1. Once both sides are built, the `/Test React Window` should open a window with interactivity
 
-> **REMEMBER:** If you find yourself wondering why your changes are not being updated in the React window when running the plugin, it may be because you forgot to build the React code (you were just building the plugin code as normal). 
+> **NOTE** 
+> In the supplied example, when you invoke the `/Test React Window` command, you will see in `reactMain.js` that we are setting/passing the variable "debug:true" to the React window. This variable tells our React wrapper to display at the very bottom a log of the changes to the window and the current value of the window's data/variables which are used to draw the page. This section starts with a garish red bar to separate this section from the rest of your React window. This data is very helpful for debugging (to ensure the window has the data you expect). Change `debug` to 'false' prior to plugin release or when you want to see the page clean.
 
-> **NOTE:** The build process will create two versions of the plugin code -- minified (min) and non-minified (dev) in the requiredFiles folder. These files will allow you to release the plugin with those files in the requiredFiles, but they **should not** be committed to the github repo.
+> **WARNING:**
+> If you find yourself wondering why your changes are not being updated in the React window when running the plugin, it may be because you forgot to build the React code (you were just building the plugin code as normal). Always remember that there are two concurrent build processes (plugin & React) which need to be going at all times during your development.
 
-# THE REST OF THIS README HAS NOT BEEN UPDATED YET
-# IT IS OUTDATED AND NOT ACCURATE
+> **NOTE:**
+> The build process will create two versions of the plugin code -- minified (min) and non-minified (dev) in the requiredFiles folder. These files will allow you to release the plugin with those files in the requiredFiles, but they **should not** be committed to the github repo.
 
-## Necessary Edits
+## Editing the code
 
 ## Plugin Code
 The main plugin code that will invoke the React Window is in the file `src/reactMain.js`. This is the entrypoint to your plugin. This is also where the callback function is that will receive the calls back from the React view. Of course, these functions could be moved/renamed in `index.js`.
 
-## Invoking React Window
+## Styling windows using CSS
+### Sizing and Dimensions
+- use `rem` units for most things, as then spacing will adjust as the text size changes up and down
+- use `px` units for small shims between items -- beyond about 6px I suggest you should be using `rem`s.
+- `vw` units relate to the actual current viewport, and can be useful to position items
+- ensure you test at small screen dimensions, and allow layout to change accordingly! The following sort of construction is useful:
 
+```css
+.section {
+  grid-template-columns: [info] minmax(6rem, 11rem) [items] auto;
+  ...
+}
+
+@media screen and (width <= 600px) {
+	.section {
+		grid-template-columns: 1fr;
+	}
+  ...
+}
+```
+
+### Testing and Debugging styling in Safari
+If you save a copy of the generated HTML, then you can play around and test layout and styling more easily in Safari and its Inspector.  To allow this:
+- System Preferences > Privacy & Security > Privacy
+- click Full Disk Access from the left panel
+- click the + icon to add other applications to the list
+- select Safari from the application folders
+- open, quit, and reopen Safari
+
+### Colors
+The better way is to leave definition of colors to the CSS. By default the will have access to the colors translated from the current theme, thanks to the helper `NPThemeToCSS.js` which sets the following CSS variables:
+
+```css
+    /* Generated from theme 'Toothbleach Condensed JGC' by @jgclark's generateCSSFromTheme */
+    :root {
+        --bg-main-color: #FAFAFA;
+        --fg-main-color: #222E33;
+        --body-line-height: 1.20rem;
+        --fg-sidebar-color: #242E32;
+        --bg-sidebar-color: #F6F6F6;
+        --divider-color: #D6D6D6;
+        --h1-color: #C5487A;
+        --h2-color: #AB5699;
+        --h3-color: #7B72B9;
+        --bg-alt-color: #F0F0F0;
+        --tint-color: #C87230;
+        --bg-mid-color: #f5f5f5;
+        --item-icon-color: #CC6666;
+        --hashtag-color: #5A64A2;
+        --attag-color: #5A64A2
+    }
+```
+
+These can be used like this: 
+```css
+.item {
+  background-color: var(--bg-mid-color);
+}
+```
+
+If you _really_ need to have the colors in your React Components' javascript, they will be available to you in the global NP_THEME object which looks like the following. For example, to get the textColor in your current NotePlan theme, you would use NP_THEME.base.textColor.
+
+```json
+/* Basic Theme as JS for CSS-in-JS use in scripts 
+  Created from theme: "Toothpaste DARK Condensed dbw" */
+  const NP_THEME={
+    "editor": {
+        "textColor": "#DAE3E8",
+        "tintColor": "#E9C0A2",
+        "timeBlockColor": "#E9C062",
+        "menuItemColor": "#c5c5c0",
+        "toolbarIconColor": "#c5c5c0",
+        "tintColor2": "#73B3C0",
+        "altColor": "#2E2F30",
+        "backgroundColor": "#1D1E1F",
+        "toolbarBackgroundColor": "#2E2F30"
+    },
+    "name": "Toothpaste DARK Condensed dbw",
+    "style": "Dark",
+    "base": {
+        "backgroundColor": "#1D1E1F",
+        "textColor": "#DAE3E8",
+        "h1": "#CC6666",
+        "h2": "#E9C062",
+        "h3": "#E9C062",
+        "h4": "#E9C062",
+        "tintColor": "#E9C0A2",
+        "altColor": "#2E2F30"
+    }
+}
+```
+
+---
+
+> **NOTE**
+> THE REST OF THIS DOCUMENTATION NEEDS UPDATING. YOU CAN STOP READING HERE FOR NOW
+
+## Invoking React Window
 
 openReactWindow
 This is the plugin function (name/jsFunction) used to create a React window with your data and React components.
@@ -98,8 +207,6 @@ const globalSharedData =  {
 }
 
 await DataStore.invokePluginCommandByName('openReactWindow', 'dwertheimer.React', [globalSharedData,windowOptions])
-
-
 
 <p data-line="96" class="sync-line" style="margin:0;"></p>
 
@@ -203,38 +310,6 @@ style={{ color: `${NP_THEME.base.textColor} !important` }} />
 
 import debounce from 'lodash/debounce'
 import React, { Component } from 'react'
-
-Theme Colors
-In your React Components, if you want to access the theme colors, they will be available to you in the global NP_THEME object which looks like the following. For example, to get the textColor in your current NotePlan theme, you would use NP_THEME.base.textColor.
-
-/* Basic Theme as JS for CSS-in-JS use in scripts 
-  Created from theme: "Toothpaste DARK Condensed dbw" */
-  const NP_THEME={
-    "editor": {
-        "textColor": "#DAE3E8",
-        "tintColor": "#E9C0A2",
-        "timeBlockColor": "#E9C062",
-        "menuItemColor": "#c5c5c0",
-        "toolbarIconColor": "#c5c5c0",
-        "tintColor2": "#73B3C0",
-        "altBackgroundColor": "#2E2F30",
-        "backgroundColor": "#1D1E1F",
-        "toolbarBackgroundColor": "#2E2F30"
-    },
-    "name": "Toothpaste DARK Condensed dbw",
-    "style": "Dark",
-    "base": {
-        "backgroundColor": "#1D1E1F",
-        "textColor": "#DAE3E8",
-        "h1": "#CC6666",
-        "h2": "#E9C062",
-        "h3": "#E9C062",
-        "h4": "#E9C062",
-        "tintColor": "#E9C0A2",
-        "altColor": "#2E2F30"
-    }
-}
-
 
 <p data-line="237" class="sync-line" style="margin:0;"></p>
 

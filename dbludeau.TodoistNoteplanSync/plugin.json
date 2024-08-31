@@ -21,7 +21,7 @@
     {
       "name": "todoist sync everything",
       "alias": ["tose"],
-      "description": "Sync all tasks in Todoist to folder set in settings",
+      "description": "Sync all tasks in Todoist to a Noteplan folder set in settings",
       "jsFunction": "syncEverything",
       "arguments": [""]
     },
@@ -35,21 +35,21 @@
     {
       "name": "todoist sync project",
       "alias": ["tosp"],
-      "description": "Sync Todoist project linked to this note",
+      "description": "Sync Todoist project (list) linked to the current Noteplan note using frontmatter",
       "jsFunction": "syncProject",
       "arguments": [""]
     },
     {
       "name": "todoist sync all linked projects",
       "alias": ["tosa"],
-      "description": "Sync Todoist all noteplan notes linked directly to Todoist lists using Frontmatter",
+      "description": "Sync all Todoist projects (lists) to linked Noteplan notes using frontmatter",
       "jsFunction": "syncAllProjects",
       "arguments": [""]
     },
     {
-      "name": "todoist sync all linked projects and today tasks",
+      "name": "todoist sync all linked projects and today",
       "alias": ["tosat, toast"],
-      "description": "This will sync all linked projects as well as populate Todoist tasks due today to the today note. Will not add today tasks that are already in project notes",
+      "description": "Sync all linked projects as well as populate Todoist tasks due today to the today note. This command avoids duplicating tasks in the daily note",
       "jsFunction": "syncAllProjectsAndToday",
       "arguments": [""]
     },

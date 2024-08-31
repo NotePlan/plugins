@@ -1,33 +1,63 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 6.8.2023 for v0.19.3 by @jgclark
+// Last updated 26.4.2024 for v0.21.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import {
   calcOffsetDateStr,
-  getDateFromUnhyphenatedDateString,
+  // getDateFromUnhyphenatedDateString,
   getDateStringFromCalendarFilename,
+  getISODateStringFromYYYYMMDD,
+  isDailyNote,
+  RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
   unhyphenateString,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
 } from '@helpers/general'
-// import { gatherMatchingLines } from '@helpers/NPParagraph'
 import {
   caseInsensitiveMatch,
   caseInsensitiveStartsWith,
   isHashtagWanted,
   isMentionWanted,
 } from '@helpers/search'
+
+//------------------------------------------------------------------------------
+// Plotly info -- from v2.32.0
+// Documentation: https://plotly.com/javascript/
+
+// ES6 module: import Plotly from 'plotly.js-dist-min'
+
+// HTML Script element:
+// <head>
+//     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+// </head>
+// <body>
+//     <div id="gd"></div>
+// 
+//     <script>
+//         Plotly.newPlot("gd", /* JSON object */ {
+//             "data": [{ "y": [1, 2, 3] }],
+//             "layout": { "width": 600, "height": 400}
+//         })
+//     </script>
+// </body>
+
+// or Native ES6 import:
+// <script type="module">
+//   import "https://cdn.plot.ly/plotly-2.32.0.min.js"
+//   Plotly.newPlot("gd", [{y: [1, 2, 3] }])
+// </script>
 
 //------------------------------------------------------------------------------
 // Get settings
@@ -44,12 +74,15 @@ export type SummariesConfig = {
   hashtagCountsHeading: string,
   mentionCountsHeading: string,
   showAsHashtagOrMention: boolean,
-  weeklyStatsDuration: ?number,
   weeklyStatsItems: Array<string>,
+  weeklyStatsDuration: ?number,
+  weeklyStatsIncludeCurrentWeek: boolean,
   progressPeriod: string,
   progressDestination: string,
   progressHeading: string,
-  progressYesNoChars: string, // for progressUpdate ...
+  progressYesNoChars: string,
+  progressChecklistReferenceNote: string,
+  // for progressUpdate ...
   progressHashtags: Array<string>,
   progressHashtagsAverage: Array<string>,
   progressHashtagsTotal: Array<string>,
@@ -58,7 +91,11 @@ export type SummariesConfig = {
   progressMentionsTotal: Array<string>,
   progressYesNo: Array<string>,
   periodStatsShowSparklines: boolean,
-  periodStatsYesNo: Array<string>, // for periodStats ...
+  // for todayProgress ...
+  todayProgressHeading: string,
+  todayProgressItems: Array<string>,
+  // for periodStats ...
+  periodStatsYesNo: Array<string>,
   includedHashtags: Array<string>,
   excludedHashtags: Array<string>,
   includedMentions: Array<string>,
@@ -68,7 +105,7 @@ export type SummariesConfig = {
 }
 
 // Reduced set of the above designed to carry settings into gatherOccurrences
-export type OccurrencesConfig = {
+export type OccurrencesToLookFor = {
   GOYesNo: Array<string>,
   GOHashtagsCount: Array<string>,
   GOHashtagsAverage: Array<string>,
@@ -78,6 +115,7 @@ export type OccurrencesConfig = {
   GOMentionsAverage: Array<string>,
   GOMentionsTotal: Array<string>,
   GOMentionsExclude: Array<string>,
+  GOChecklistRefNote: string,
 }
 
 /**
@@ -110,7 +148,7 @@ export async function getSummariesSettings(): Promise<any> {
  */
 export class TMOccurrences {
   // the class instance properties
-  term: string
+  term: string // mention, hashtag (with @ or #) or checklist item
   type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
   interval: string // currently only 'day' supported
   dateStr: string // typically YYYY-MM-DD, but also YYYY-Wnn
@@ -120,39 +158,40 @@ export class TMOccurrences {
   count: number
 
   /**
-   * Create a new object, initialising the main valuesMap to the required number of values, as 'NaN', so that we can distinguish zero from no occurrences.
+   * Create a new object, initialising the main valuesMap to the required number of daily date. Sets all values to 'NaN', so that we can distinguish zero from no occurrences.
    * (Unless type 'yesno')
-   * @param {string} term
-   * @param {string} type
-   * @param {string} fromDateStr of type YYYY-MM-DD
-   * @param {string} toDateStr of type YYYY-MM-DD
+   * @param {string} term: mention, hashtag or checklist item
+   * @param {string} type: 'daily-average', 'item-average', 'total', 'yesno', 'count'
+   * @param {string} fromISODateStr of type YYYY-MM-DD
+   * @param {string} toISODateStr of type YYYY-MM-DD
+   * @param {string} interval?: 'day' is currently the only one fully supported
    */
-  constructor(term: string, type: string, fromDateStr: string, toDateStr: string, interval: string = 'day') {
+  constructor(term: string, type: string, fromISODateStr: string, toISODateStr: string, interval: string = 'day') {
     try {
-      if (toDateStr && fromDateStr) {
-        this.term = term
-        this.type = type
-        this.interval = interval
-        this.dateStr = fromDateStr
-        // Calc number of days to cover
-        // (Moment's diff function returns a truncated number by default, not rounded, so work around that, in case we're getting 6.9 days because of timezone issues)
-        const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
-        const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
-        const numDays = Math.round(momToDate.diff(momFromDate, 'days', true)) + 1
-        this.numDays = numDays
-        this.valuesMap = new Map < string, number > ()
-        this.total = 0
-        this.count = 0
-        // Initialise all values to NaN, unless type 'yesno'
-        for (let i = 0; i < numDays; i++) {
-          let thisDateStr = unhyphenateString(calcOffsetDateStr(fromDateStr, `${i}d`))
-          // logDebug('TMOcc:constructor', `- +${i}d -> date ${thisDateStr}`)
-          this.valuesMap.set(thisDateStr, (this.type == 'yesno') ? 0 : NaN)
-        }
-        // logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromDateStr} - ${toDateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
-      } else {
-        logError('TMOcc:constructor', `Couldn't construct as passed date(s) were empty`)
+      if (!toISODateStr || !fromISODateStr) {
+        throw new Error('toISODateStr and fromISODateStr must both be specified')
       }
+
+      this.term = term
+      this.type = type
+      this.interval = interval
+      this.dateStr = fromISODateStr
+      // Calc number of days to cover
+      // (Moment's diff function returns a truncated number by default, not rounded, so work around that, in case we're getting 6.9 days because of timezone issues)
+      const momFromDate = new moment(fromISODateStr, 'YYYY-MM-DD')
+      const momToDate = new moment(toISODateStr, 'YYYY-MM-DD')
+      const numDays = Math.round(momToDate.diff(momFromDate, 'days', true)) + 1
+      this.numDays = numDays
+      this.valuesMap = new Map < string, number > ()
+      this.total = 0
+      this.count = 0
+      // Initialise all values to NaN, unless type 'yesno'
+      for (let i = 0; i < numDays; i++) {
+        const thisDateStr = calcOffsetDateStr(fromISODateStr, `${i}d`)
+        // logDebug('TMOcc:constructor', `- +${i}d -> date ${thisDateStr}`)
+        this.valuesMap.set(thisDateStr, (this.type === 'yesno') ? 0 : NaN)
+      }
+      // logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromISODateStr} - ${toISODateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
     }
     catch (error) {
       logError('TMOcc:constructor', error.message)
@@ -162,52 +201,58 @@ export class TMOccurrences {
   /**
    * Add a found hashtag/mention occurrence to its instance, updating stats accordingly
    * @param {string} occurrenceStr of a found hashtag/mention
-   * @param {string} dateStr format YYYYMMDD
+   * @param {string} dateStr format YYYYMMDD or YYYY-MM-DD
    */
-  addOccurrence(occurrenceStr: string, dateStr: string): void {
+  addOccurrence(occurrenceStr: string, dateStrArg: string): void {
     try {
-      if (dateStr == null) {
+      let isoDateStr = ''
+      if (dateStrArg == null) {
         throw new Error(`Passed null date string`)
       }
-      if (!dateStr.match(RE_YYYYMMDD_DATE)) {
-        throw new Error(`Passed invalid date string '${dateStr}'`)
+      if (!(dateStrArg.match(RE_YYYYMMDD_DATE) || dateStrArg.match(RE_ISO_DATE))) {
+        throw new Error(`Passed invalid date string '${isoDateStr}'`)
       }
-      // logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${dateStr}`)
+      if (dateStrArg.match(RE_YYYYMMDD_DATE)) {
+        isoDateStr = getISODateStringFromYYYYMMDD(dateStrArg)
+      } else {
+        isoDateStr = dateStrArg
+      }
+      // logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on ${isoDateStr}`)
 
       // isolate the value
-      let key = occurrenceStr
+      const _key = occurrenceStr
       let value = NaN
       // if this tag that finishes '/integer', then break into its two parts, ready to sum the numbers as well
       // Note: testing includes decimal part of a number, but the API .hashtags drops them
       if (occurrenceStr.match(/\/-?\d+(\.\d+)?$/)) {
         const tagParts = occurrenceStr.split('/')
-        key = tagParts[0]
+        // key = tagParts[0]
         value = Number(tagParts[1])
-        logDebug('TMOcc:addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found tagParts ${_key} / ${value.toString()}`)
       }
       // if this is a mention that finishes '(float)', then break into separate parts first
       else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
         const mentionParts = occurrenceStr.split('(')
-        key = mentionParts[0]
+        // key = mentionParts[0]
         value = Number.parseFloat(mentionParts[1].slice(0, -1)) // chop off final ')' character
-        // logDebug('TMOcc:addOccurrence', `- found mentionParts ${key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found mentionParts ${_key} / ${value.toString()}`)
       }
 
       // if this has a numeric value add to total, taking into account that the day may have several values.
       // $FlowFixMe[incompatible-type]
-      const prevValue: number = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
+      const prevValue: number = isNaN(this.valuesMap.get(isoDateStr)) ? 0 : this.valuesMap.get(isoDateStr)
       if (!isNaN(value)) {
-        this.valuesMap.set(dateStr, prevValue + value)
-        this.count++ // FIXME: why is this firing twice after the first time?
+        this.valuesMap.set(isoDateStr, prevValue + value)
+        this.count++
         this.total += value
-        logDebug('TMOcc:addOccurrence', `- ${key} / ${value} -> ${this.total} from ${this.count} on ${dateStr}`)
+        // logDebug('TMOcc:addOccurrence', `- ${key} / ${value} -> ${this.total} from ${this.count} on ${isoDateStr}`)
       }
       // else just update the count
       else {
-        this.valuesMap.set(dateStr, prevValue + 1)
+        this.valuesMap.set(isoDateStr, prevValue + 1)
         this.count++
         this.total++
-        // logDebug('TMOcc:addOccurrence', `- ${key} increment -> ${this.total} from ${this.count} on ${dateStr}`)
+        // logDebug('TMOcc:addOccurrence', `- ${key} increment -> ${this.total} from ${this.count} on ${isoDateStr}`)
       }
     }
     catch (err) {
@@ -216,41 +261,43 @@ export class TMOccurrences {
   }
 
   /**
-   * Summarise this TMOcc into a larger time interval.
-   * Used by forCharting::weeklyStats2().
+   * Produce text summary of this TMOcc for a longer time interval.
+   * Used by forCharts::weeklyStatsCSV().
    * Note: dates are inclusive and need to be in YYYY-MM-DD form.
-   * @param {string} fromDateStr YYYY-MM-DD
-   * @param {string} toDateStr YYYY-MM-DD
+   * @param {string} fromDateISOStr YYYY-MM-DD
+   * @param {string} toDateISOStr YYYY-MM-DD
    * @param {string} interval to summarise to, e.g. 'week'
-   * @returns {string} CSV output, including term
+   * @param {string} style to output (currently 'CSV' or 'text')
+   * @returns {string} CSV output: term, startDateStr, count, total, average
    */
-  summariseToInterval(fromDateStr: string, toDateStr: string, interval: string): string {
+  summaryTextForInterval(fromDateISOStr: string, toDateISOStr: string, interval: string, style: string): string {
     // Create new empty TMOccurrences object
-    let summaryOcc = new TMOccurrences(this.term, this.type, fromDateStr, toDateStr, interval)
-    const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
-    const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
+    const summaryOcc = new TMOccurrences(this.term, this.type, fromDateISOStr, toDateISOStr, interval)
+    const momFromDate = new moment(fromDateISOStr, 'YYYY-MM-DD')
+    const momToDate = new moment(toDateISOStr, 'YYYY-MM-DD')
     this.numDays = momToDate.diff(momFromDate, 'days')
-    logDebug('summariseToInterval', `For ${fromDateStr} - ${toDateStr} = ${this.numDays} days`)
+    // logDebug('summaryTextForInterval', `For ${fromDateISOStr} - ${toDateISOStr} = ${this.numDays} days`)
     // Now calculate summary from this (existing) object
     let count = 0
     let total = 0
-    this.valuesMap.forEach((v, k, m) => {
-      // logDebug('summariseToInterval', `- ${k}`)
-      if (withinDateRange(k, unhyphenateString(fromDateStr), unhyphenateString(toDateStr))) {
-        // logDebug('summariseToInterval', `- ${k} in date range`)
+    this.valuesMap.forEach((v, k, _m) => {
+      // logDebug('summaryTextForInterval', `- k=${k}, v=${v}`)
+      if (withinDateRange(k, fromDateISOStr, toDateISOStr)) {
+        // logDebug('summaryTextForInterval', `- ${k} in date range`)
         if (!isNaN(v)) {
           count++
           total += v
-          // logDebug('summariseToInterval', `  - added ${v}`)
+          // logDebug('summaryTextForInterval', `  - added ${v}`)
         }
       }
     })
     // Add this to the summaryOcc object
     summaryOcc.total = total
     summaryOcc.count = count
+    // clo(summaryOcc, '', ' ')
 
     // NOTE: tested and looks ok for @mention(...)
-    return summaryOcc.getStats('CSV')
+    return summaryOcc.getSummaryForPeriod(style)
   }
 
   /**
@@ -267,20 +314,24 @@ export class TMOccurrences {
    * Return just the values (not keys) from the valuesMap
    */
   getValues(): Array<number> {
-    let outArr = []
-    for (let f of this.valuesMap.values()) {
+    const outArr = []
+    for (const f of this.valuesMap.values()) {
       outArr.push(f)
     }
     // logDebug('TMOcc:getValues', `for ${this.term} = ${outArr.length} items: ${outArr.toString()}`)
     return outArr
   }
 
+  getNumberItems(): number {
+    return this.valuesMap.size
+  }
+
   /**
    * Log all the details in the main valuesMap
    */
   logValuesMap(): void {
-    logDebug('TMOcc:logValuesMap', `- valuesMap for ${this.term}:`)
-    this.valuesMap.forEach((v, k, m) => {
+    logDebug('TMOcc:logValuesMap', `- valuesMap for ${this.term} with ${this.getNumberItems()} entries:`)
+    this.valuesMap.forEach((v, k, _m) => {
       logDebug('TMOcc:logValuesMap', `  - ${k}: ${v}`)
     })
   }
@@ -289,7 +340,7 @@ export class TMOccurrences {
    * Get a 'sparkline' (an inline bar or line chart) for a particular term for the current period, in a specified style.
    * Currently the only style available is 'ascii'.
    */
-  getSparkline(style: string = 'ascii'): string {
+  getSparklineForPeriod(style: string = 'ascii', config: any): string {
     let output = ''
     switch (style) {
       case 'ascii': {
@@ -297,7 +348,7 @@ export class TMOccurrences {
           const options = { min: 0, divider: '|', missingDataChar: '·' }
           output = makeSparkline(this.getValues(), options)
         } else {
-          const options = { divider: '|', yesNoChars: '✓·' }
+          const options = { divider: '|', yesNoChars: config.progressYesNoChars }
           output = makeYesNoLine(this.getValues(), options)
         }
         break
@@ -314,23 +365,46 @@ export class TMOccurrences {
    * Get stats for a particular term, over the current period, in a specified style.
    * Currently the only available styles are:
    * - 'text' => varies depending on the 'type' of the 'term'
+   * - 'single' => varies depending on the 'type' of the 'term'
    * - 'CSV' => term, startDateStr, count, total, average
    * Currently the only available interval is 'day'.
    */
-  getStats(style: string): string {
+  getSummaryForPeriod(style: string): string {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
-    // $FlowFixMe - @DW says the !== '' check is needed but flow doesn't like it
+    // $FlowFixMe[incompatible-type] - @DW says the !== '' check is needed but flow doesn't like it
     const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
-    // $FlowFixMe - as above
+    // $FlowFixMe[incompatible-type] - as above
     const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    // $FlowFixMe - as above
+    // $FlowFixMe[incompatible-type] - as above
     const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 3 }) : ''
 
     switch (style) {
       case 'CSV': {
         output = `${this.term},${this.dateStr},${this.count},${this.total},${itemAvgStr}`
+        break
+      }
+      case 'single': {
+        // Single text output depends on the type
+        switch (this.type) {
+          case 'yesno': {
+            output = countStr
+            break
+          }
+          case 'total': {
+            output = totalStr.replace('total ', '')
+            break
+          }
+          case 'average': {
+            output = itemAvgStr
+            break
+          }
+          default: { // treat as 'count'
+            output = (countStr !== 'none') ? countStr : ''
+            break
+          }
+        }
         break
       }
       default: { // style 'text'
@@ -351,14 +425,12 @@ export class TMOccurrences {
             }
             case 'average': {
               if (itemAvgStr !== '') output += "avg " + itemAvgStr
-              // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
               output += ` (from ${countStr})`
               break
             }
             default: { // 'all'
               if (totalStr !== '') output += totalStr
               if (itemAvgStr !== '') output += ", avg " + itemAvgStr
-              // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
               output += ` (from ${countStr})`
               break
             }
@@ -372,14 +444,14 @@ export class TMOccurrences {
 }
 
 /**
- * Gather all occurrences of requested hashtags and mentions for a given period.
- * Now also looks for requested 'progressYesNo', 'mentionTotal' and 'mentionAverage' items too.
+ * Gather all occurrences of requested hashtags and mentions for a given period, including 'progressYesNo', 'mentionTotal' and 'mentionAverage' variations.
+ * It only inspects the daily calendar notes for the period.
  * Returns a list of TMOccurrences instances:
     term: string
     type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
     period: string
     numDays: number
-    valuesMap: Map<string, number> // map of <YYYYMMDD, count>
+    valuesMap: Map<string, number> // map of <YYYY-MM-DD, count>
     total: number
     count: number
  *
@@ -387,19 +459,20 @@ export class TMOccurrences {
  * @param {string} periodString
  * @param {string} fromDateStr (YYYY-MM-DD)
  * @param {string} toDateStr (YYYY-MM-DD)
- * @param {OccurrencesConfig} config containing the various settings of which occurrences to gather
+ * @param {OccurrencesToLookFor} occToLookFor containing the various settings of which occurrences to gather
  * @returns {Array<TMOccurrences>}
  */
-export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, config: OccurrencesConfig): Array<TMOccurrences> {
+export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, occToLookFor: OccurrencesToLookFor): Array<TMOccurrences> {
   try {
-    // clo(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr}) with config:`)
     const calendarNotesInPeriod = DataStore.calendarNotes.filter(
-      (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
+      (n) =>
+        isDailyNote(n) && withinDateRange(getDateStringFromCalendarFilename(n.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
     if (calendarNotesInPeriod.length === 0) {
       logWarn('gatherOccurrences', `- no matching calendar notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness
     }
-    logInfo('gatherOccurrences', `starting with ${calendarNotesInPeriod.length} calendar notes for '${periodString}' (${fromDateStr} - ${toDateStr})`)
+
+    logInfo('gatherOccurrences', `starting with ${calendarNotesInPeriod.length} calendar notes (including week/month notes) for '${periodString}' (${fromDateStr} - ${toDateStr})`)
     let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find
 
     // Note: in the following is a workaround to an API 'feature' in note.hashtags
@@ -409,14 +482,14 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     //------------------------------
     // Review each wanted YesNo type
     let startTime = new Date()
-    const YesNoListArr = (typeof config.GOYesNo === 'string') ? config.GOYesNo.split(',') : config.GOYesNo // make sure this is an array first
-    for (let wantedItem of YesNoListArr) {
+    const YesNoListArr = (typeof occToLookFor.GOYesNo === 'string') ? occToLookFor.GOYesNo.split(',') : occToLookFor.GOYesNo // make sure this is an array first
+    for (const wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
       const thisOcc = new TMOccurrences(wantedItem, 'yesno', fromDateStr, toDateStr)
 
       // For each daily note in the period
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
 
         // Look at hashtags first ...
         const seenTags = n.hashtags.slice().reverse()
@@ -440,18 +513,18 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
         // Then mentions ...
         const seenMentions = n.mentions.slice().reverse()
-        let lastMention = ''
+        // const lastMention = ''
         for (const mention of seenMentions) {
           // First need to add a check for a bug: `@repeat(1/7)` is returned as `@repeat(1/7), @repeat(1`. Skip the incomplete one.
           // Also skip where there are mis-matched brackets in this single mention e.g. `@run(12 @distance(6.5)`
           if (mention.match(/\(([^\)]+$|[^\)]+\s@.*\(.*\))/)) {
-            logWarn('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
+            logDebug('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
             continue // skip this mention
           }
 
           // check this is one of the ones we're after, then add
           if (caseInsensitiveMatch(mention, wantedItem)) {
-            // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
+            logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
             thisOcc.addOccurrence(mention, thisDateStr)
           } else {
             // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
@@ -460,7 +533,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered YesNoList in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered YesNoList in ${timer(startTime)}`)
 
     //------------------------------
     // Review each wanted hashtag
@@ -469,15 +542,14 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allHashtagsArr = stringListOrArrayToArray(config.GOHashtagsCount, ',')
-    const averageHashtagsArr = stringListOrArrayToArray(config.GOHashtagsAverage, ',')
-    const totalHashtagsArr = stringListOrArrayToArray(config.GOHashtagsTotal, ',')
+    const allHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsCount, ',')
+    const averageHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsAverage, ',')
+    const totalHashtagsArr = stringListOrArrayToArray(occToLookFor.GOHashtagsTotal, ',')
     const combinedHashtags = []
     allHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'all']) })
     averageHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'average']) })
     totalHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'total']) })
     combinedHashtags.sort()
-
     logDebug('gatherOccurrences', `sorted combinedHashtags: ${String(combinedHashtags)}`)
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
@@ -489,19 +561,16 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
       // For each daily note in the period, look at each tag in reverse order to make subset checking work
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
           // logDebug('gatherOccurrences', `orig: ${tag} ...`)
-          // const RE_HASHTAG_CAPTURE_NAME_AND_FLOAT = /(\#[\w\/]+)\/(-?\d+(\.\d+)?)$/
-          // const reMatches = tag.match(RE_HASHTAG_CAPTURE_NAME_AND_FLOAT) ?? []
-          // const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
           const RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT = /\/(-?\d+(\.\d+)?)$/
           const tagWithoutClosingNumber = tag.replace(RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT, '')
           // logDebug('gatherOccurrences', `  ... this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-          if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
+          if (caseInsensitiveStartsWith(tag, lastTag)) {
             // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
             continue // skip this tag
           }
@@ -519,7 +588,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered combinedHashtags in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered combinedHashtags in ${timer(startTime)}`)
 
     //------------------------------
     // Now repeat for @mentions
@@ -528,9 +597,9 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allMentionsArr = stringListOrArrayToArray(config.GOMentionsCount, ',')
-    const averageMentionsArr = stringListOrArrayToArray(config.GOMentionsAverage, ',')
-    const totalMentionsArr = stringListOrArrayToArray(config.GOMentionsTotal, ',')
+    const allMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsCount, ',')
+    const averageMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsAverage, ',')
+    const totalMentionsArr = stringListOrArrayToArray(occToLookFor.GOMentionsTotal, ',')
     const combinedMentions = []
     allMentionsArr.forEach((m) => { combinedMentions.push([m, 'all']) })
     averageMentionsArr.forEach((m) => { combinedMentions.push([m, 'average']) })
@@ -540,20 +609,19 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     logDebug('gatherOccurrences', `sorted combinedMentions: ${String(combinedMentions)}`)
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
-    for (let thisMention of combinedMentions) {
+    for (const thisMention of combinedMentions) {
       // initialise a new TMOccurence for this mention
       const [thisName, thisType] = thisMention
       const thisOcc = new TMOccurrences(thisName, thisType, fromDateStr, toDateStr)
 
       // For each daily note in the period, look at each mention in reverse order to make subset checking work
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
         const seenMentions = n.mentions.slice().reverse()
         let lastMention = ''
         for (const mention of seenMentions) {
-          // First need to add a check for a bug: '@repeat(1/7)' is returned as [@repeat(1/7), @repeat(1]. Skip the incomplete one.
+          // First need to add a check for an API bug: '@repeat(1/7)' is returned as [@repeat(1/7), @repeat(1]. Skip the incomplete one.
           if (mention.match(/\([^\)]+$/)) { // opening bracket not followed by closing bracket
-            logInfo('gatherOccurrences', `- Skipping ill-formed '${mention}'`)
             continue // skip this mention
           }
 
@@ -578,7 +646,15 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered combinedMentions data in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered combinedMentions data in ${timer(startTime)}`)
+
+    // Now compute Completed Checklist items, if Reference note is set
+    if (occToLookFor.GOChecklistRefNote !== '') {
+      startTime = new Date()
+      const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
+      tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
+      logInfo('gatherOccurrences', `Gathered CompletedChecklistItems data in ${timer(startTime)}`)
+    }
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr
@@ -590,8 +666,74 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 }
 
 /**
- * Generate output lines for each term, according to the specified style, starting with a heading.
- * Currently the only style available is 'markdown'.
+ * Gather all occurrences of requested checklist items for a given period.
+ * It only inspects the daily calendar notes for the period.
+ * Returns a list of TMOccurrences instances:
+    term: string
+    type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
+    period: string
+    numDays: number
+    valuesMap: Map<string, number> // map of <YYYY-MM-DD, count>
+    total: number
+    count: number
+  * @author @aaronpoweruser
+  * @param {string} calendarNotesInPeriod containing the daily notes for the period
+  * @param {string} fromDateStr (YYYY-MM-DD)
+  * @param {string} toDateStr (YYYY-MM-DD)
+  * @param {OccurrencesToLookFor} occToLookFor containing the various settings of which occurrences to gather. Needs to include .GOChecklistRefNote (from setting 'progressChecklistReferenceNote')
+  * @returns {Array<TMOccurrences>}
+  */
+function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, fromDateStr: string, toDateStr: string, occToLookFor: OccurrencesToLookFor): Array<TMOccurrences> {
+  try {
+    if (occToLookFor.GOChecklistRefNote === '') throw new Error("Reference note for checklists is not set -- please check setting 'Name of reference note for checklist items'. Stopping.")
+
+    const tmOccurrencesArr: Array<TMOccurrences> = []
+    const completedTypes = ['checklistDone', 'checklistScheduled']
+
+    let referenceNote: TNote
+    const foundNotes = DataStore.projectNoteByTitle(occToLookFor.GOChecklistRefNote, true, true)
+    if (foundNotes && foundNotes.length > 0) {
+      referenceNote = foundNotes[0]
+    } else {
+      throw new Error(`Couldn't find note with title '${occToLookFor.GOChecklistRefNote}'. Stopping.`)
+    }
+
+    // Get all the checklist items from the reference note
+    const refNoteParas = referenceNote?.paragraphs ?? []
+    for (const para of refNoteParas) {
+      if (para.type === 'checklist') {
+        logDebug('gatherCompletedChecklistItems', `Found checklist in reference note ${para.content}`)
+        // pad the term with a space to fix emojis being clobered by sparklines
+        const thisOcc = new TMOccurrences(` ${para.content}`, 'yesno', fromDateStr, toDateStr)
+        tmOccurrencesArr.push(thisOcc)
+      }
+    }
+
+    // For each daily note in the period check for occurrences of the checklist items
+    for (const currentNote of calendarNotesInPeriod) {
+      const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(currentNote.filename))
+      for (const para of currentNote.paragraphs) {
+        if (completedTypes.includes(para.type)) {
+          for (const checklistTMO of tmOccurrencesArr) {
+            // pad the term with a space to fix emojis being clobered
+            if (checklistTMO.term === ` ${para.content}`) {
+              logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} in note ${currentNote.filename}`)
+              checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
+            }
+          }
+        }
+      }
+    }
+    return tmOccurrencesArr
+  }
+  catch (error) {
+    logError('gatherCompletedChecklistItems', error.message)
+    return []
+  }
+}
+
+/**
+ * Generate output lines for each term, according to the specified style (currently only supports style 'markdown').
  * @param {Array<TMOccurrences>} occObjs
  * @param {string} periodString
  * @param {string} fromDateStr
@@ -601,9 +743,13 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
  * @param {boolean} sortOutput
  * @returns Array<string>
  */
-export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, requestToShowSparklines: boolean, sortOutput: boolean): Array<string> {
+export async function generateProgressUpdate(
+  occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, requestToShowSparklines: boolean, sortOutput: boolean
+): Promise<Array<string>> {
   try {
     logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr} - ${toDateStr}) with ${occObjs.length} occObjs and sparklines? ${String(requestToShowSparklines)}`)
+
+    const config = await getSummariesSettings()
 
     const toDateMom = moment(toDateStr, "YYYY-MM-DD")
     const fromDateMom = moment(fromDateStr, "YYYY-MM-DD")
@@ -613,18 +759,18 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
     // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
 
-    let outputArray: Array<string> = []
-    for (let occObj of occObjs) {
+    const outputArray: Array<string> = []
+    for (const occObj of occObjs) {
       // occObj.logValuesMap()
       let thisOutput = ''
       switch (style) {
         case 'markdown': {
           if (showSparklines) {
-            thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
+            thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparklineForPeriod('ascii', config) + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "
           }
-          thisOutput += " " + occObj.getStats('text')
+          thisOutput += " " + occObj.getSummaryForPeriod('text')
           break
         }
         default: {
@@ -653,7 +799,7 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
 }
 
 /**
- * NOTE: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
+ * WARNING: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
  *
  * Calculate hashtag statistics for daily notes of a given time period
  * - Map of { tag, count } for all tags included or not excluded
@@ -672,7 +818,7 @@ export function calcHashtagStatsPeriod(
   includedTerms: $ReadOnlyArray<string>,
   excludedTerms: $ReadOnlyArray<string>,
 ): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
-// ): ?[Map<string, number>, Map<string, number>] {
+  // ): ?[Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
   const calendarNotesInPeriod = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
@@ -760,7 +906,7 @@ export function calcHashtagStatsPeriod(
 }
 
 /**
- * NOTE: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
+ * WARNING: THIS IS NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
  *
  * Calculate mention statistics for daily notes of a given time period.
  * If an 'include' list is set, only include things from that list.
@@ -882,7 +1028,7 @@ export function calcMentionStatsPeriod(
  * @param {Object} options
  * @returns {string} output
  */
-function makeSparkline(data: Array<number>, options: Object = {}): string {
+export function makeSparkline(data: Array<number>, options: Object = {}): string {
   const spark_line_chars = "▁▂▃▄▅▆▇█".split('')
   const divider = options.divider ?? '|'
   const missingDataChar = options.missingDataChar ?? '.'
@@ -894,27 +1040,26 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
   max -= min
 
   values = values.map(v => v - min)
-  const sum = realNumberValues.reduce((x, y) => x + y, 0)
-  const avg = sum / realNumberValues.length
+  // const sum = realNumberValues.reduce((x, y) => x + y, 0)
+  // const avg = sum / realNumberValues.length
   // clo(values, 'values to sparkline')
   // logDebug('makeSparkline', `-> ${min} - ${max} / ${sum} from ${values.length}`)
 
-  const value_mapper = (value: number, i: number) => {
+  const value_mapper = (value: number, _i: number) => {
     if (isNaN(value)) {
       return missingDataChar
     } else if (value === 0) {
       return ' '
     } else {
       let fraction = value / max
-      fraction = Math.max(Math.min(1, fraction), 0); // clamp 0..1
-
+      fraction = Math.max(Math.min(1, fraction), 0) // clamp 0..1
       const index = Math.round(fraction * spark_line_chars.length) - 1
       return spark_line_chars[index > 0 ? index : 0]
     }
   }
 
   const chart = values.map(value_mapper).join('')
-  let output = `${divider}${chart}${divider}`
+  const output = `${divider}${chart}${divider}`
   return output
 }
 
@@ -931,19 +1076,19 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
  * @param {Object} options
  * @returns {string} output
  */
-function makeYesNoLine(data: Array<number>, options: Object = {}): string {
+export function makeYesNoLine(data: Array<number>, options: Object = {}): string {
   const yesChar = options.yesNoChars[0]
   const noChar = options.yesNoChars[1]
   const divider = options.divider ?? '|'
 
-  let values = data
+  const values = data
   // clo(values, 'values to yesNoLine')
 
-  const value_mapper = (value: number, i: number) => {
+  const value_mapper = (value: number, _i: number) => {
     return (value > 0) ? yesChar : noChar
   }
 
   const chart = values.map(value_mapper).join('')
-  let output = `${divider}${chart}${divider}`
+  const output = `${divider}${chart}${divider}`
   return output
 }

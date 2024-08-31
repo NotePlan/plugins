@@ -791,7 +791,8 @@ export default class NPTemplating {
     // process include, template, calendar, and note separately
     for (let tag of tags) {
       if (isCommentTag(tag)) {
-        newTemplateData = newTemplateData.replace(tag, '')
+        const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
+        newTemplateData = newTemplateData.replace(regex, '')
         tag = '' // clear tag as it has been removed from process
       }
 
@@ -1034,15 +1035,40 @@ export default class NPTemplating {
     }
   }
 
-  // preRender will render frontmatter attribute tags, return final attributes and body
-  static async preRender(templateData: string = '', userData: any = {}): Promise<any> {
-    await this.setup()
+  /**
+   * Extracts the title from a markdown string if it starts with a markdown title pattern.
+   * Otherwise, sets the title to a default value.
+   * @param {string} markdown - The markdown string to process.
+   * @returns {{ updatedMarkdown: string, title: string }} An object containing the updated markdown without the title line (if applicable) and the extracted or default title.
+   */
+  static extractTitleFromMarkdown(markdown: string): { updatedMarkdown: string, title: string } {
+    let title = 'foo' // Default title
+    let updatedMarkdown = markdown
+    const lines = markdown.split('\n')
 
+    // Check if the first line is a title
+    if (lines[0].startsWith('# ')) {
+      title = lines[0].substring(2) // Extract title, removing "# "
+      lines.shift() // Remove the title line
+      updatedMarkdown = lines.join('\n')
+    }
+
+    return { updatedMarkdown, title }
+  }
+
+  // preRender will render frontmatter attribute tags, return final attributes and body
+  static async preRender(_templateData: string = '', userData: any = {}): Promise<any> {
+    await this.setup()
+    let templateData = _templateData
     let sectionData = { ...userData }
     if (!new FrontmatterModule().isFrontmatterTemplate(templateData)) {
-      let msg = '**Invalid Template Format**\n\nThe selected template is not in supported format.\n'
-      msg += helpInfo('Template Anatomy: Frontmatter')
-      return { frontmatterBody: msg, frontmatterAttributes: {} }
+      const extractedData = this.extractTitleFromMarkdown(templateData)
+      if (!extractedData.title) extractedData.title = 'Untitled (no title found in template)'
+      templateData = `---\ntitle: ${extractedData.title}\n---\n${extractedData.updatedMarkdown}`
+      logDebug(pluginJson, `Template is not frontmatter, adding extracted title:"${extractedData.title}" to content:${extractedData.updatedMarkdown}`)
+      // let msg = '**Invalid Template Format**\n\nThe selected template is not in supported format.\n'
+      // msg += helpInfo('Template Anatomy: Frontmatter')
+      // return { frontmatterBody: msg, frontmatterAttributes: {} }
     }
 
     const frontmatterData = new FrontmatterModule().parse(templateData)

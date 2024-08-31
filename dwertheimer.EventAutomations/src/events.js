@@ -32,11 +32,11 @@ export async function createNoteForCalendarItem(useQuickTemplate: boolean = true
   const date = getTodaysDateUnhyphenated()
   logDebug(pluginJson, `Creating note for today's date: ${date}`)
   const allDaysEvents = await getEventsForDay(date)
-  logDebug(pluginJson, `Found ${allDaysEvents.length} events for today`)
+  logDebug(pluginJson, `Found ${allDaysEvents?.length || 0} events for today`)
   const nowIshEvents = await getEventsForDay(date, [], getTimeOffset({ h: -1, m: 0 }), getTimeOffset({ h: +1, m: 0 })) // second param now implies consider all calendars
-  logDebug(pluginJson, `Found ${nowIshEvents.length} events for nowIsh`)
+  logDebug(pluginJson, `Found ${nowIshEvents?.length || 0} events for nowIsh`)
   // const events = allDaysEvents
-  if (nowIshEvents.length > 0) {
+  if (nowIshEvents && nowIshEvents.length > 0) {
     // events = [...nowIshEvents, ...[{ title: '---' }], ...allDaysEvents]
   }
   // $FlowIgnore

@@ -7,10 +7,10 @@
  */
 
 import pluginJson from '../plugin.json'
-import { makeRequest } from './support/networking'
+// import { makeRequest } from './support/networking'
 import { calculateCost, chooseModel, modelOptions } from './support/helpers' // FIXME: Is there something better than this growth? // FIXME: Is there something better than this growth?
 import { intro, learningOptions, openAILearningWizard, modelsInformation, externalReading } from './support/introwizard'
-import { type CompletionsRequest, type ResearchListResult } from './support/AIFlowTypes'
+// import { type CompletionsRequest, type ResearchListResult } from './support/AIFlowTypes'
 import { chooseOption, showMessage } from '@helpers/userInput'
 import { logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
@@ -33,7 +33,7 @@ import { logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
  * Allow user to decide how to proceed with info gathered from Quick Search
  * @returns {string|null} the model ID chosen
  */
-export async function chooseQuickSearchOption(query: string, summary: string): Promise<string | null> {
+export async function chooseQuickSearchOption(_query: string, _summary: string): Promise<string | null> {
   logDebug(pluginJson, `chooseQuickSearchOption starting selection`)
   const quickSearchOptions = [
     { label: 'Append this summary to the current note.', value: 'append' },
@@ -42,7 +42,7 @@ export async function chooseQuickSearchOption(query: string, summary: string): P
   const mappedOptions = quickSearchOptions.map((option) => ({ label: option.label, value: option.value }))
   clo(mappedOptions, 'Mapped options')
 
-  const selection = await chooseOption('How would you like to proceed?', mappedOptions)
+  const selection = await chooseOption<string>('How would you like to proceed?', mappedOptions)
   logDebug(pluginJson, `chooseQuickSearchOption ${selection} selected.`)
   return selection
 }
@@ -84,7 +84,7 @@ export async function testConnection(model: string | null = null) {
     if (!model) {
       chosenModel = await chooseModel()
     }
-    if (model == 'Choose Model') {
+    if (model === 'Choose Model') {
       chosenModel = await chooseModel()
     }
     if (chosenModel) {
@@ -109,7 +109,7 @@ export async function testConnection(model: string | null = null) {
  * Currently under construction.
  */
 export async function introWizard() {
-  if ((await CommandBar.prompt(intro.title, intro.prompt, intro.buttons)) == 0) {
+  if ((await CommandBar.prompt(intro.title, intro.prompt, intro.buttons)) === 0) {
     console.log('Fill this in shortly.')
   }
 }
@@ -122,7 +122,7 @@ export async function introWizard() {
 export async function helpWizard() {
   const options = learningOptions.map((option) => ({ label: option, value: option }))
 
-  const topic = await chooseOption('Select a topic to learn more...', options)
+  const topic = await chooseOption<string>('Select a topic to learn more...', options)
   console.log(topic)
   const wizard = openAILearningWizard[topic]
   console.log(wizard)
@@ -138,21 +138,23 @@ export async function helpWizard() {
 export async function learnMore(learningTopic: Object) {
   const wizard = learningTopic
 
-  if (wizard == openAILearningWizard.Models) {
+  if (wizard === openAILearningWizard.Models) {
     const options = wizard.options.map((option) => ({ label: option, value: option }))
-    const externalReadingLinks = []
+    const externalReadingLinks: Array<string> = []
     externalReading.models.forEach((model) => {
       externalReadingLinks.unshift(model.link)
       options.unshift({ label: model.title, value: model.link })
     })
 
-    const selection = await chooseOption(learningTopic.prompt2, options)
+    // $FlowFixMe
+    const selection: string = await chooseOption(learningTopic.prompt2, options)
 
     if (externalReadingLinks.includes(selection)) {
       NotePlan.openURL(selection)
     }
 
     const selectedModel = modelsInformation[selection]
+    // $FlowFixMe
     const infolog = formatModelInformation(selectedModel)
     const nextSelection = await showMessage(infolog, 'Okay', selectedModel.title)
     console.log(nextSelection)

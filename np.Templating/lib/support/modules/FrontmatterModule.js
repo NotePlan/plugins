@@ -6,20 +6,8 @@
  * -----------------------------------------------------------------------------------------*/
 
 import fm from 'front-matter'
-
-export function getAttributes(templateData: string = ''): any {
-  const fmData = fm(templateData, { allowUnsafe: true })
-  Object.keys(fmData?.attributes).forEach((key) => {
-    fmData.attributes[key] || typeof fmData.attributes[key] === 'boolean' ? fmData.attributes[key] : (fmData.attributes[key] = '')
-  })
-  return fmData && fmData?.attributes ? fmData.attributes : {}
-}
-
-export function getBody(templateData: string = ''): string {
-  const fmData = fm(templateData, { allowUnsafe: true })
-
-  return fmData && fmData?.body ? fmData.body : ''
-}
+import { JSP, logError } from '@helpers/dev'
+import { getSanitizedFmParts } from '@helpers/NPFrontMatter'
 
 export default class FrontmatterModule {
   // $FlowIgnore
@@ -31,7 +19,8 @@ export default class FrontmatterModule {
   }
 
   isFrontmatterTemplate(templateData: string): boolean {
-    return fm.test(templateData)
+    const parts = getSanitizedFmParts(templateData)
+    return parts?.attributes && Object.keys(parts.attributes).length ? true : false
   }
 
   getFrontmatterBlock(templateData: string): string {
@@ -52,7 +41,7 @@ export default class FrontmatterModule {
 
   parse(template: string = ''): any {
     if (this.isFrontmatterTemplate(template)) {
-      const fmData = fm(template)
+      const fmData = getSanitizedFmParts(template)
       Object.keys(fmData?.attributes).forEach((key) => {
         fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
       })
@@ -66,7 +55,7 @@ export default class FrontmatterModule {
 
   attributes(templateData: string = ''): any {
     try {
-      const fmData = fm(templateData, { allowUnsafe: true })
+      const fmData = getSanitizedFmParts(templateData)
       Object.keys(fmData?.attributes).forEach((key) => {
         fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
       })
@@ -79,7 +68,7 @@ export default class FrontmatterModule {
   }
 
   body(templateData: string = ''): string {
-    const fmData = fm(templateData, { allowUnsafe: true })
+    const fmData = getSanitizedFmParts(templateData)
 
     return fmData && fmData?.body ? fmData.body : ''
   }

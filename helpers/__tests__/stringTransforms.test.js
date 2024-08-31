@@ -1,8 +1,9 @@
 /* globals describe, expect, test */
 
-// Last updated: 2.2.2023 by @jgclark
+// Last updated: 11.6.2024 by @jgclark
 
 import colors from 'chalk'
+import { getNPWeekStr, getTodaysDateHyphenated } from '../dateTime'
 import * as st from '../stringTransforms'
 
 // TODO: Get following working if its important:
@@ -43,12 +44,12 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1 with icon', () => {
       const input = 'this has [text](brackets) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="brackets"><i class="fa-regular fa-globe"></i>text</a> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="brackets"><i class="fa-regular fa-globe pad-right"></i>text</a> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>title with spaces</a> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link')
     })
   })
 
@@ -70,22 +71,33 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual('this has [a valid MD link](https://www.something.com/with?various&chars%20ok)')
     })
-    test('should produce HTML link 1 with icon', () => {
-      const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input)
+    test('should produce HTML link 1 with icon and no truncation', () => {
+      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link')
+    })
+    test('should produce HTML link 1 with icon and truncation', () => {
+      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
+      const result = st.changeBareLinksToHTMLLink(input, true, true)
+      expect(result).toEqual(
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/...</a> valid bare link')
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, false)
+      const result = st.changeBareLinksToHTMLLink(input, false, false)
       expect(result).toEqual(
         'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
     })
     test('should produce HTML link when a link takes up the whole line', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
-      const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a>')
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
+    })
+    test('should produce HTML link when a link takes up the whole line', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
     })
   })
 
@@ -157,6 +169,16 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.stripBlockIDsFromString(input)
       expect(result).toEqual('- this has one blockID')
     })
+    test('should strip 1 blockID at end of line', () => {
+      const input = '+ Offset 0d {0d} ^135931'
+      const result = st.stripBlockIDsFromString(input)
+      expect(result).toEqual('+ Offset 0d {0d}')
+    })
+    test('should strip 1 blockID at end of line', () => {
+      const input = '+ Offset 0d >2024-02-06 ^135931'
+      const result = st.stripBlockIDsFromString(input)
+      expect(result).toEqual('+ Offset 0d >2024-02-06')
+    })
     test('should strip 2 blockIDs', () => {
       const input = '- this has two ^123def blockIDs for some reason ^abc890'
       const result = st.stripBlockIDsFromString(input)
@@ -212,6 +234,74 @@ describe(`${PLUGIN_NAME}`, () => {
         const before = 'baz >2022-01 >2022-Q1 test >2022-Q2 foo >2022 >2022-01-01'
         const expected = `baz test foo`
         const result = st.stripDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /* 
+     * stripTodaysDateRefsFromString() 
+     */
+    describe('stripTodaysDateRefsFromString()' /* function */, () => {
+      test('should not strip anything', () => {
+        const before = 'this has no date refs'
+        const expected = before
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip >today', () => {
+        const before = 'test >today stuff'
+        const expected = `test stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip todays date as scheduled ISO', () => {
+        const today_ISO = getTodaysDateHyphenated()
+        const before = `test >${today_ISO} stuff`
+        const expected = `test stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip a different ISO date', () => {
+        const before = `test >2020-01-01 stuff`
+        const expected = `test >2020-01-01 stuff`
+        const result = st.stripTodaysDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /* 
+     * stripThisWeeksDateRefsFromString() 
+     */
+    describe('stripThisWeeksDateRefsFromString()' /* function */, () => {
+      test('should not strip anything', () => {
+        const before = 'this has no date refs'
+        const expected = before
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip >today', () => {
+        const before = 'test >today stuff'
+        const expected = 'test >today stuff'
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip an ISO date', () => {
+        const before = `test >2020-01-01 stuff`
+        const expected = `test >2020-01-01 stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should strip todays date as scheduled ISO', () => {
+        const thisWeekStr = getNPWeekStr(new Date())
+        const before = `test >${thisWeekStr} stuff`
+        const expected = `test stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
+        expect(result).toEqual(expected)
+      })
+      test('should not strip a different week ref', () => {
+        const before = `test >2020-13 stuff`
+        const expected = `test >2020-13 stuff`
+        const result = st.stripThisWeeksDateRefsFromString(before)
         expect(result).toEqual(expected)
       })
     })

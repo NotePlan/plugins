@@ -1,0 +1,370 @@
+/* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
+/* Last updated 2024-07-19 for v2.0.2 by @jgclark */
+
+/* Style for the settings dialog */
+.settings-dialog {
+    font-family: system-ui;
+    /* background-color: var(--bg-main-color); */
+    background-color: var(--bg-mid-color);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 600px;
+    border: none;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    /* z-index: 1000; */
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    overflow: hidden;
+}
+
+/* Ensure the settings dialog content is hidden when closed */
+.settings-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: var(--bg-mid-color);
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    overflow-y: auto;
+    max-height: 80vh;
+}
+
+/* Show the settings dialog with transition */
+.settings-dialog[open] {
+    opacity: 1;
+}
+
+/* Style for the dialog buttons container */
+.settings-dialog-header {
+    background-color: var(--bg-alt-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem;
+    border-bottom: 1px solid #ddd;
+    position: relative;
+    /* Needed to center the header */
+    /* Adjusted height for better visibility */
+    /* height: 40px; */
+}
+
+/* Style for the centered header */
+.settings-dialog-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: large;
+    font-weight: 600;
+    color: var(--tint-color);
+    text-align: center;
+    line-height: 40px;
+    /* Match the height of the buttons container */
+}
+
+/* Style for the buttons */
+.settings-dialog .PCButton {
+    font-family: system-ui;
+    padding: 2px 4px;
+    border: none;
+    border-radius: 4px;
+    /* font-size: 14px; */
+    transition: background-color 0.2s, box-shadow 0.2s;
+    /* height: 30px; */
+    /* Ensure buttons are centered vertically */
+    align-self: center;
+    cursor: pointer;
+}
+
+/* Style for the Cancel button */
+.settings-dialog .cancel-button {
+    background-color: var(--bg-main-color);
+    color: var(--fg-main-color);
+    border: 1px solid #ddd;
+    outline: none;
+    max-height: unset;
+}
+
+/* Darken Cancel button slightly on Hover */
+.settings-dialog .cancel-button:hover {
+    /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
+    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+}
+
+/* Style for the inactive Save & Close button */
+.settings-dialog .save-button-inactive {
+    background-color: var(--tint-color);
+    color: var(--bg-main-color);
+    max-height: unset;
+    opacity: 0.3;
+    cursor: unset;
+}
+
+/* Style for the active Save & Close button */
+.settings-dialog .save-button {
+    background-color: var(--tint-color);
+    color: var(--bg-main-color);
+    max-height: unset;
+}
+
+/* Darken Save & Close button slightly on Hover */
+.settings-dialog .save-button:hover {
+    /* following is a bit of a hack from https://stackoverflow.com/a/31005080/3238281 */
+    box-shadow: inset 0 0 0 50px rgba(0, 0, 0, 0.15);
+}
+
+/* Style for switch-line */
+.settings-dialog .switch-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    /* Left justify */
+}
+
+/* Style for switch-input */
+.settings-dialog .switch-input {
+    margin: 0;
+}
+
+/* Style for switch-label */
+.settings-dialog .switch-label {
+    font-weight: 500;
+    color: var(--fg-alt-color);
+    /* flex-shrink: 0; */
+}
+
+/* Style for input-box-container */
+.settings-dialog .input-box-container {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    /* width: 98%; */
+}
+
+/* Style for input-box-container (compact version) */
+.settings-dialog .input-box-container-compact {
+    display: flex;
+    flex-direction: row;
+    align-items: end;
+    gap: 0.5rem;
+    /* width: 98%; */
+}
+
+/* Style for input-box-wrapper - TODO: remove later */
+.settings-dialog .input-box-wrapper {
+    display: flex;
+    align-items: end;
+    /* gap: 10px; */
+}
+
+/* Style for input-box-label */
+.settings-dialog .input-box-label {
+    font-weight: 500;
+    color: var(--fg-alt-color);
+    /* margin-bottom: 0.3rem; */
+    margin-bottom: 0.5rem;
+}
+
+/* Style for input-box-input */
+.settings-dialog .input-box-input {
+    flex: 1;
+    padding: 4px 8px;
+    /* border: 1px solid #ddd; */
+    border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+    background-color: var(--bg-main-color);
+    border-radius: 4px;
+    font-family: system-ui;
+    font-size: 0.85rem;
+    /* vertical spacing above and below */
+    margin: 0.3rem 0rem;
+}
+
+/* Make number boxes a little narrower */
+.settings-dialog .input-box-input-number {
+    width: 6rem;
+}
+
+/* Style for input box with invalid input */
+.settings-dialog .input-box-input:invalid {
+  border: 1px solid #faa;
+}
+
+/* Focus style for input-box-input */
+.settings-dialog .input-box-input:focus {
+    /* border-color: #007BFF; */
+    border-color: var(--hashtag-color);
+    outline: none;
+    box-shadow: 0 0 3px var(--hashtag-color);
+}
+
+/* For optional 'save' button on Input Box */
+.settings-dialog .input-box-save {
+    padding: 6px 12px;
+    /* Reduce height to 75% */
+    border: none;
+    border-radius: 4px;
+    background-color: var(--tint-color);
+    color: var(--bg-main-color);
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, box-shadow 0.3s;
+    height: 30px;
+    /* Set height to 75% of the container height */
+    align-self: center;
+    /* Ensure buttons are centered vertically */
+}
+
+/* Disabled style for input-box-save */
+.settings-dialog .input-box-save:disabled {
+    background-color: #ccc;
+    color: #aaa;
+    cursor: not-allowed;
+    box-shadow: none;
+    display: none;
+}
+
+/* Hover style for enabled input-box-save */
+.settings-dialog .input-box-save:not(:disabled):hover {
+    background-color: #0056b3;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Style for combobox-container */
+.settings-dialog .combobox-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Style for combobox-container (compact version) */
+.settings-dialog .combobox-container-compact {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+/* Style for combobox-wrapper */
+.settings-dialog .combobox-wrapper {
+    display: flex;
+    align-items: end;
+    gap: 10px;
+    position: relative;
+    width: fit-content;
+}
+
+/* Style for combobox-label */
+.settings-dialog .combobox-label {
+    font-weight: 500;
+    color: var(--fg-alt-color);
+    margin-right: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+/* Style for combobox-input */
+.settings-dialog .combobox-input {
+    flex: 1;
+    padding: 4px 8px;
+    background-color: var(--bg-main-color);
+    border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+    border-radius: 4px;
+    font-family: system-ui;
+    font-size: 0.9rem;
+    /* width: 100%; */
+    /* box-sizing: border-box; */
+}
+
+/* Focus style for combobox-input */
+.settings-dialog .combobox-input:focus {
+    border-color: var(--hashtag-color);
+    outline: none;
+    box-shadow: 0 0 3px var(--hashtag-color);
+}
+
+/* Style for combobox-arrow */
+.settings-dialog .combobox-arrow {
+    position: absolute;
+    right: 0.8rem;
+    pointer-events: none;
+    font-size: x-large;
+    color: var(--tint-color);
+    align-self: center;
+}
+
+/* Style for combobox-dropdown */
+.settings-dialog .combobox-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: var(--bg-main-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 5;
+}
+
+/* Style for combobox-option */
+.settings-dialog .combobox-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--fg-main-color);
+    /* transition: background-color 0.2s; */
+}
+
+/* Hover style for combobox option */
+.settings-dialog .combobox-option:hover {
+    background-color: var(--bg-alt-color);
+    color: var(--fg-alt-color);
+}
+
+/* Heading style for settings dialog */
+.settings-dialog-heading {
+    font-size: large;
+    font-weight: 500;
+    color: var(--tint-color);
+    padding-top: 0.3rem;
+    padding-bottom: 0.2rem;
+}
+
+/* Header style for settings dialog */
+.settings-dialog .settings-dialog-header {
+    font-size: large;
+    font-weight: 600;
+    color: var(--tint-color);
+    margin: 0;
+    background: none;
+    line-height: 40px;
+    /* Match the height of the buttons container */
+}
+
+.iOS .settings-dialog .settings-dialog-header {
+    font-size: 1rem;
+    line-height: 1rem;
+}
+
+/* Style for item description */
+.settings-dialog .item-description {
+    font-size: small;
+    color: var(--fg-alt-color);
+    margin-top: 0.3rem;
+    opacity: 0.8;
+}
+
+/* Style for Section headings */
+.settings-dialog .ui-heading {
+    font-size: 130%;
+    color: var(--tint-color);
+    /* padding-bottom: 0.3rem; */
+    font-weight: 600;
+    text-align: start;
+    line-height: 140%;
+}
+
+.settings-dialog hr {
+    color: var(--divider-color);
+    border-width: 0.3px;
+    width: 100%;
+}

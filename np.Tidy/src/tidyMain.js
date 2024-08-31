@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 24.6.2023 for v0.6.0, @jgclark
+// Last updated 3.7.2023 for v0.6.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { generateRepeatsFromRecentNotes } from './repeats.js'
 import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
@@ -19,14 +20,14 @@ import { removeFrontMatterField, noteHasFrontMatter } from '@helpers/NPFrontMatt
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList, getTodaysReferences } from '@helpers/NPnote'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import { getFolderFromFilename } from '@helpers/folders'
+// import { getFolderFromFilename } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 
 export async function tidyUpAll(): Promise<void> {
   try {
-    logDebug(pluginJson, `tidyUpAll: Starting`)
     const config: TidyConfig = await getSettings()
+    logDebug(pluginJson, `tidyUpAll: Starting, with runSilently=${String(config.runSilently)}`)
 
     // Show spinner dialog
     CommandBar.showLoading(true, `Tidying up ...`, 0)
@@ -59,7 +60,7 @@ export async function tidyUpAll(): Promise<void> {
       await removeDoneMarkers(param)
     }
     if (config.runRemoveDoneTimePartsCommand) {
-      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.6)
+      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.5)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
@@ -76,19 +77,19 @@ export async function tidyUpAll(): Promise<void> {
     // }
 
     if (config.runDuplicateFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.7)
+      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.6)
       logDebug('tidyUpAll', `Starting listConflicts ...`)
       await listConflicts(param)
     }
 
     if (config.runConflictFinderCommand) {
-      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.8)
+      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.7)
       logDebug('tidyUpAll', `Starting listDuplicates ...`)
       await listDuplicates(param)
     }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
-      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
+      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
@@ -96,6 +97,12 @@ export async function tidyUpAll(): Promise<void> {
     if (config.moveTopLevelTasksInEditor) {
       const heading = config.moveTopLevelTasksHeading.length ? config.moveTopLevelTasksHeading : null
       await moveTopLevelTasksInNote(Editor, heading, config.runSilently)
+    }
+
+    if (config.runGenerateRepeatsCommand) {
+      CommandBar.showLoading(true, `Generating any needed new @repeats ...`, 0.9)
+      logDebug('tidyUpAll', `Starting generateRepeatsFromRecentNotes...`)
+      await generateRepeatsFromRecentNotes(param)
     }
 
     // stop spinner
@@ -128,7 +135,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeDoneMarkers', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -140,7 +147,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // (It's twice as quick as doing a more exact regex over all notes in my testing.)
-    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
     let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_OPT_TIME.test(p.content)) ?? []
 
@@ -232,7 +239,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeDoneTimeParts', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -244,7 +251,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // Note: It's twice as quick as doing a more exact regex over all notes in my testing.
-    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // const RE = new RegExp(RE_DONE_DATE_TIME)
     const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_TIME.test(p.content)) ?? []
 
@@ -314,8 +321,8 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 }
 
 /**
- * Remove a given section from recently-changed Notes
- * Can be passed parameters to override default time interval through an x-callback call
+ * Remove a given section (by matching on their section heading) from recently-changed Notes. Note: does not match on note title.
+ * Can be passed parameters to override default time interval through an x-callback call.
  * @author @jgclark
  * @param {?string} params optional JSON string
  */
@@ -334,7 +341,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeSectionFromRecentNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -345,10 +352,11 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     // Decide what matching type to use
     const matchType: string = await getTagParamsFromString(params ?? '', 'matchType', config.matchType)
     logDebug('removeSectionFromRecentNotes', `matchType = ${matchType}`)
+
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from some notes?", 'OK', 'Remove Section from Notes')
+      const res: string | boolean = await getInputTrimmed(`What's the heading of the section you'd like to remove from ${numDays > 0 ? 'some' : 'all'} notes?`, 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
@@ -359,27 +367,25 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
     // Find which notes have such a section to remove
     // Find notes with matching heading (or speed, let's multi-core search the notes to find the notes that contain this string)
-    let allMatchedParas: $ReadOnlyArray<TParagraph> = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.foldersToExclude)
+    let allMatchedParas: $ReadOnlyArray<TParagraph> = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // This returns all the potential matches, but some may not be headings, so now check for those
     switch (matchType) {
-      case 'Exact': {
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content === sectionHeading)
-      }
-      case 'Starts with': {
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.startsWith(sectionHeading))
-      }
-      case 'Contains': {
-        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading))
-      }
+      case 'Exact':
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content === sectionHeading && n.headingLevel !== 1)
+        break
+      case 'Starts with':
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.startsWith(sectionHeading) && n.headingLevel !== 1)
+        break
+      case 'Contains':
+        allMatchedParas = allMatchedParas.filter((n) => n.type === 'title' && n.content.includes(sectionHeading) && n.headingLevel !== 1)
     }
     let numToRemove = allMatchedParas.length
-    // $FlowFixMe[incompatible-call]
     const allMatchedNotes = allMatchedParas.map((p) => p.note)
     logDebug('removeSectionFromRecentNotes', `- ${String(numToRemove)} matches of '${sectionHeading}' as heading from ${String(allMatchedNotes.length)} notes`)
 
     // Now keep only those changed recently (or all if numDays === 0)
     // $FlowFixMe[incompatible-type]
-    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
 
     if (numToRemove > 0) {
@@ -397,13 +403,14 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
       // Actually remove those sections
       for (const note of notesToProcess) {
         logDebug('removeSectionFromRecentNotes', `- Removing section in note '${displayTitle(note)}'`)
-        const lineNum = removeSection(note, sectionHeading)
+        // const lineNum =
+        removeSection(note, sectionHeading)
       }
     } else {
       if (!runSilently) {
         const res = await showMessage(`No sections with heading '${sectionHeading}' were found to remove`)
       }
-      logWarn('removeSectionFromRecentNotes', `No sections with heading '${sectionHeading}' were found to remove`)
+      logInfo('removeSectionFromRecentNotes', `No sections with heading '${sectionHeading}' were found to remove`)
     }
 
     return
@@ -445,22 +452,22 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from all notes?", 'OK', 'Remove Section from Notes')
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from ALL notes?", 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
         sectionHeading = String(res) // to help flow
       }
     }
-    logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
+    logDebug('removeSectionFromAllNotes', `sectionHeading = ${sectionHeading}`)
 
-    // TODO: Ideally work out how many this will remove, and then use this code:
+    // Ideally work out how many this will remove, and then use this code:
     // const numToRemove = 1
     // if (numToRemove > 0) {
     //   if (!runSilently) {
     //     const res = await showMessageYesNo(`Are you sure you want to remove ${numToRemove} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
     //     if (res === 'No') {
-    //       logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
+    //       logInfo('removeSectionFromAllNotes', `User cancelled operation`)
     //       return
     //     }
     //   }
@@ -485,10 +492,10 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
 }
 
 /**
- * Remove Remove one or more triggers from recent (but past) calendar notes.
+ * Remove Remove one or more triggers from recently changed (but past) calendar notes.
  * Can be passed parameters to override default time interval through an x-callback call
  * @author @jgclark
- * @param {string?} params optional JSON string
+ * @param {string?} params optional JSON string that overrides user's normal settings for this plugin
  */
 export async function removeTriggersFromRecentCalendarNotes(params: string = ''): Promise<void> {
   try {
@@ -500,12 +507,12 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
-      // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+      // If no params are passed, then we've been called by a plugin command (and so use defaults from user'sconfig).
       logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with no params`)
     }
 
     // Get num days to process from param, or by asking user if necessary
-    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays ?? 0)
     logDebug('removeTriggersFromRecentCalendarNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -513,18 +520,16 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     // logDebug('removeTriggersFromRecentCalendarNotes', `runSilently = ${String(runSilently)}`)
 
-    // Find past calendar notes changed recently (or all if numDays === 0)
-    // Earlier method:
-    // const calendarParasWithTrigger = DataStore.searchCalendarNotes('triggers:', false)
+    // Find past calendar notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
     const thePastCalendarNotes = pastCalendarNotes()
-    logDebug('removeTriggersFromRecentCalendarNotes', `thePastCalendarNotes.length = ${String(thePastCalendarNotes.length)}`)
+    logDebug('removeTriggersFromRecentCalendarNotes', `there are ${String(thePastCalendarNotes.length)} past calendar notes`)
     const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays) : thePastCalendarNotes
     const numToProcess = notesToProcess.length
 
     if (numToProcess > 0) {
       let countRemoved = 0
-      // logDebug('removeTriggersFromRecentCalendarNotes', `checking ${String(numToProcess)} notes in the right date interval:`)
+      logDebug('removeTriggersFromRecentCalendarNotes', `checking ${String(numToProcess)} notes last changed in the last ${numDays} days:`)
       // For each note, try the removal
       for (const note of notesToProcess) {
         // Only proceed if the note actually has frontmatter
@@ -534,13 +539,13 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
             logDebug('removeTriggersFromRecentCalendarNotes', `removed frontmatter trigger field from ${displayTitle(note)}`)
             countRemoved++
           } else {
-            logWarn('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
+            logDebug('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
           }
-        } else {
-          // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)
         }
       }
-      if (!runSilently) await showMessage(`Removed ${countRemoved} triggers from recent ${numToProcess} calendar notes`)
+      if (!runSilently) await showMessage(`Removed ${countRemoved} triggers from ${numToProcess} recently-changed calendar notes`)
+    } else {
+      if (!runSilently) await showMessage(`There were no recently-changed calendar notes to process`)
     }
 
     return
@@ -551,7 +556,8 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
 }
 
 /**
- * Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
+ * Write a list of notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
+ * TODO: Extend to make a full command, responding to GH request.
  * @author @jgclark
  * @param {string} params as JSON
  */
@@ -569,6 +575,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     }
 
     const numDays = config.numDays
+    if (numDays === 0) { throw new Error('numDays is 0, so stopping, as it is nonsensical to ask for a list of all notes.') }
     const notesList = getNotesChangedInInterval(numDays)
     const titlesList = notesList.map((m) => displayTitle(m))
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)
@@ -597,7 +604,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
       // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
-      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes, config.numDays)
+      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes.filter(Boolean), config.numDays ?? 0)
       const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
       // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
       parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))
@@ -676,14 +683,15 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 }
 
 /**
- * Remove blank (or nearly blank) notes
+ * Remove blank notes
+ * Note: blank means 2 bytes or fewer (which therefore includes ones with only "# ")
  * @author @jgclark
  * @param {boolean} runSilently?
  */
 export async function removeBlankNotes(runSilently: boolean = false): Promise<void> {
   try {
     // Get plugin settings (config)
-    const config: TidyConfig = await getSettings()
+    // const config: TidyConfig = await getSettings()
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
@@ -736,10 +744,9 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     }
 
     // If we get this far, then remove the notes
-    let numRemoved = 0
+    // let numRemoved = 0
     for (const thisNote of blankNotes) {
-      // const filenameForTrash = `@Trash/${thisNote.filename.replace('//', '/')}`
-      const filenameForTrash = `@Trash` // `@Trash/Calendar`
+      const filenameForTrash = `@Trash`
       // Deal with a calendar note
       if (thisNote.type === 'Calendar') {
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
@@ -748,7 +755,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
           const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-            numRemoved++
+            // numRemoved++
           } else {
             logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
           }
@@ -762,7 +769,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}")`)
       if (res) {
         logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
-        numRemoved++
+        // numRemoved++
       } else {
         logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
       }

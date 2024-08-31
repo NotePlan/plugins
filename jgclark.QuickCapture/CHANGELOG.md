@@ -1,6 +1,43 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.16.1] - 2024-05-25 (_unreleased, as hoping that @EduardMe might yet improve the situation_)
+### Changed
+- better handle what when a callback runs /qath, /qalh or /qach and asks for a future calendar note that hasn't yet been created. (But note: API doesn't allow note to be created.)
+
+## [0.16.0] - 2024-02-13
+### Added
+- new **/quick add checklist under heading** command
+- new **/jot** command (full name **/quick add text to inbox**) to quickly 'jot' (add some text) to your chosen Inbox note
+
+### Fixed
+- notes with pairs of `***` separators aren't now sometimes confused with frontmatter sections (thanks to report by @haris-sav)
+- where a new heading needed to be added first, it wasn't always created as a heading (thanks to report by @Colin)
+
+## [0.15.2] - 2023-12-07
+### Fixed
+- '/quick add task under heading' using wrong paragraph type when inserting at top of note (thanks to tip by @laestrella26)
+
+## [0.15.1] - 2023-11-30
+### Added
+- new x-callback argument to set heading level (1-5) on commands "/quick add task under heading" and "/quick add line under heading"
+### Fixed
+- wrong display of number of '#' headings in the 'Choose Heading' dialog
+
+## [0.15.0] - 2023-09-01
+### Added
+- new "/**quick add to this month's journal** and **/quick add to this year's journal** commands
+### Improved
+- speeded up the slower /quick... commands
+### Fixed
+- fixed bug using relative dates with x-callbacks (reported by @phenix)
+
+## [0.14.1] - 2023-08-27
+### Fixed
+- /quick add line under heading: first note in list wouldn't work (thanks to report by @phenix)
+- some relative dates not annotated in command bar lists
+<!-- - re-hide a test command -->
+
 ## [0.14.0] - 2023-08-19
 ### Added
 - _relative dates_ `today`, `yesterday`, `tomorrow`, `this week`, `last week`, `next week`, `this month`, `last month`, `next month`, `this quarter`, `last quarter`, `next quarter` are available when using x-callback-url mechanism to invoke the "/quick add to calendar note", "/quick prepend task to calendar note", "/quick add task under heading" and "/quick add line under heading" commands. Pass in in place of the 'note title' or 'note date' argument (suitably URL encoded, of course).

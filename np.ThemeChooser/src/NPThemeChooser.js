@@ -8,6 +8,7 @@ import { isBuiltInTheme } from './support/themeHelpers'
 import { getThemeObj } from './NPThemeShared'
 import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import { sortListBy } from '@helpers/sorting'
+import { getFrontMatterAttributes, addTrigger, setFrontMatterVars } from '@helpers/NPFrontMatter.js'
 
 /**
  * Get the theme object by name
@@ -85,6 +86,7 @@ export async function chooseTheme(
 /**
  * Ask user to choose a theme, return the name (string) of the chosen theme
  * @param {string} lightOrDark //not currently used
+ * @param {string} message // message to display to user (default: 'Choose a Theme')
  * @returns {string} theme name or default -- BLANK: "Theme Chooser: Set Preset"
  */
 export async function getThemeChoice(lightOrDark: string = '', message: string = 'Choose a Theme'): Promise<string> {
@@ -260,6 +262,61 @@ export async function toggleTheme() {
       await showMessage(`You need to set the default Light and Dark themes first.\nYour current themes are:\nLight: ${String(lightTheme)}\nDark: ${String(darkTheme)}`)
       await setDefaultLightDarkTheme()
       await toggleTheme()
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Change theme from frontmatter:
+ *    triggers: onOpen => np.ThemeChooser.setTheme
+ *    theme: "Theme Name"
+ * Plugin entrypoint for command: "/setTheme" "Change the theme based on frontmatter field 'theme'"
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export async function changeThemeFromFrontmatter() {
+  try {
+    logDebug(pluginJson, `changeThemeFromFrontmatter running`)
+    const frontMatter = getFrontMatterAttributes(Editor)
+    if (frontMatter && frontMatter.theme) {
+      const themeName = frontMatter.theme
+      // validate that a theme of that name exists
+      logDebug(pluginJson, `changeThemeFromFrontmatter: themeName="${themeName}"`)
+      const themeObj = getThemeObjByName(themeName)
+      if (themeObj) {
+        await chooseTheme(themeName)
+      } else {
+        logDebug(pluginJson, `changeThemeFromFrontmatter: 'Theme named: "${themeName}" does not exist. Please check the exact name of the theme'`)
+        await showMessage(`Theme named: "${themeName}" does not exist. Please check the exact name of the theme`)
+      }
+    } else {
+      logDebug(pluginJson, `changeThemeFromFrontmatter: 'There must be frontmatter and a "theme" field in frontmatter.'`)
+      await showMessage('There must be a theme field in frontmatter.')
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Add/Change This Note’s Theme in Frontmatter
+ * Plugin entrypoint for command: "/Add/Change This Note’s Theme"
+ * @author @dwertheimer
+ * @param {string|null} themeName
+ */
+export async function addThemeFrontmatter(themeName?: string | null = null) {
+  try {
+    logDebug(pluginJson, `addThemeFrontmatter running with incoming:${String(themeName)}`)
+    const theme = themeName || (await getThemeChoice())
+    if (theme) {
+      Editor.note ? addTrigger(Editor, 'onOpen', 'np.ThemeChooser', 'setTheme') : ''
+      Editor.note ? setFrontMatterVars(Editor, { theme }) : ''
+      await chooseTheme(theme)
+    } else {
+      logDebug(pluginJson, `addThemeFrontmatter: 'No theme chosen. No changes made.'`)
+      await showMessage(`No theme chosen. No changes made.`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

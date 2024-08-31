@@ -1,9 +1,25 @@
 // @flow
-import {clo,logError} from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 
 export type CodeBlock = { type: string, code: string, paragraphs: Array<TParagraph> }
+
+export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
+  try {
+    logDebug('addCodeBlock', `starting for note ${displayTitle(destNote)}`)
+    const codeBlock = `\`\`\` ${codeBlockType}\n${textToAdd}\n\`\`\`\n`
+    destNote.appendParagraph(codeBlock, 'code')
+    return true
+  } catch (err) {
+    logError('addCodeBlock()', JSP(err))
+    return false
+  }
+}
+
+
 export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
   const paragraphs = note.paragraphs ?? []
+  // logDebug('getCodeBlocks', `Starting with ${String(paragraphs.length)} paragraphs in note '${displayTitle(note)}'`)
 
   let inCodeBlock = false
   const codeBlocks: Array<CodeBlock> = []
@@ -45,7 +61,7 @@ export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<Co
 /**
  * Get all Code Blocks of a given type (or multiple types like ["javascript","js"])
  * Whatever is listed behind the ```nameHere in the code block
- * @param {CoreNoteFields} note 
+ * @param {CoreNoteFields} note
  * @param {Array<string>|string} types -- either a single string type to look for or an array of them
  * @returns {$ReadOnlyArray<$ReadOnly<{ type: string, code: string }>>} an array of {type:string, code:string}
  */

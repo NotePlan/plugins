@@ -1,6 +1,5 @@
 // @flow
 
-import { getSharedOptions } from '../../dwertheimer.TaskAutomations/src/NPTaskScanAndProcess'
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
@@ -20,7 +19,7 @@ function setEnv(globalData: any) {
       globalData.ENV_MODE = 'development'
     }
   }
-  let LOAD_REACT_DEVTOOLS = ENV_MODE === 'development' // for debugging in local browser using react devtools & React Profiler
+  // const LOAD_REACT_DEVTOOLS = ENV_MODE === 'development' // for debugging in local browser using react devtools & React Profiler
   return globalData
 }
 
@@ -41,13 +40,14 @@ const mountAppString = `
  * Plugin entrypoint for "/onMessageFromHTMLView"
  * @author @dwertheimer
  */
-export async function onMessageFromHTMLView(incoming: string) {
+export async function onMessageFromHTMLView(incoming: string): Promise<any> {
   try {
     logDebug(
       pluginJson,
       `onMessageFromHTMLView: incoming: ${incoming}. This is just a comms bridge test. Does not do anything. But at least you know the React window can talk to NotePlan. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
     )
     await sendBannerMessage(
+      pluginJson['plugin.id'],
       `np.Shared successfully received and executed command onMessageFromHTMLView(). This message is coming from NotePlan and confirms bilateral communications are functional. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
     )
     return {} // return blank to keep NotePlan from throwing an error
@@ -87,7 +87,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
 
     // Load all components in the plugin.json file that end in '.jsx
-    const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))
+    // const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))
     // Load all CSS files in the plugin.json file that end in '.css
     // const css = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.css'))
     const css = []
@@ -116,10 +116,10 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       <script type="text/javascript"> const { useState, useEffect, useReducer, createContext, useContext, useRef, useMemo } = React; </script>
     <!-- Load React Components -->`
 
+    // <script> logDebug("HTML JS","Root component loaded. There is no babel, so you cannot use JSX unless it's compiled by rollup."); </script>
     const reactComponents = `     
           ${destructureReact}
           ${componentsStr}
-        <script> console.log("HTML: Components loaded. REMEMBER there is no babel, so you cannot use JSX unless it's compiled by rollup. Alternatively, use React.createElement https://beta.reactjs.org/reference/react/createElement")</script>
         `
 
     const cssTags = css.reduce((acc, cur) => {
@@ -143,8 +143,11 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     // globalSharedData is a global variable in the HTML window
     const globalSharedDataScriptStr = `
       <script type="text/javascript" >
-        console.log('HTML: Updating globalSharedData');
+        console.log('JS baked into page HTML: Setting globalSharedData');
         globalSharedData = ${JSON.stringify(globalSharedData)};
+        if (typeof DataStore === 'undefined') {
+          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        }
       </script>
     `
     // set up bridge to NP
@@ -163,16 +166,20 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     `
 
     const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>`
+    const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
     const generatedOptions = {
-      includeCSSAsJS: true,
+      includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
       headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
       preBodyScript: addStringOrArrayItems(
         [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
-        windowOptions.preBodyScript,
+        preBS,
       ),
       postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
+      customId: windowOptions.customId ?? pluginJson['plugin.id'],
     }
-    showHTMLWindow(globalData.title || 'React Window', bodyHTML, { ...windowOptions, ...generatedOptions })
+    // const title = windowOptions.title ?? windowOptions.windowTitle ?? 'React Window'
+    showHTMLWindow(bodyHTML, { ...windowOptions, ...generatedOptions })
+    // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
     logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
   } catch (error) {

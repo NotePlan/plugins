@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help link lines between notes with Line IDs
 // Jonathan Clark
-// last updated 16.3.2023 for v0.7.0+
+// last updated 9.6.2024 for v0.7.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,7 +10,7 @@ import { addParasAsText, getFilerSettings } from './filerHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
-import { getSelectedParaIndex } from '@helpers/NPParagraph'
+// import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import { parasToText } from '@helpers/paragraph'
 import { chooseHeading } from '@helpers/userInput'
 
@@ -22,7 +22,7 @@ import { chooseHeading } from '@helpers/userInput'
  */
 export async function addIDAndAddToOtherNote(): Promise<void> {
   try {
-    const { note, content, paragraphs, selectedParagraphs } = Editor
+    const { note, content, selectedParagraphs } = Editor
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
       logWarn(pluginJson, 'No note open, so stopping.')
@@ -33,13 +33,16 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     const config = await getFilerSettings()
 
     // Get current paragraph
-    // TODO: why not use selectedParagraphs[0]?
-    const firstSelParaIndex = getSelectedParaIndex()
-    const para = paragraphs[firstSelParaIndex]
+    const firstSelParaIndex = selectedParagraphs[0].lineIndex //getSelectedParaIndex()
+    let para = note.paragraphs[firstSelParaIndex]
 
     // Add Line ID for the first paragraph (known as 'blockID' by API)
-    note.addBlockID(para)
+    note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
     note.updateParagraph(para)
+    if (NotePlan.environment.buildVersion >= 1053) {
+      await Editor.save() // attempt to save this before reading it again (if running NP 3.9.3+)
+    }
+    para = note.paragraphs[firstSelParaIndex] // refresh para
     const newBlockID = para.blockId
     if (newBlockID) {
       logDebug(pluginJson, `- blockId added: '${newBlockID}'`)
@@ -50,14 +53,14 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
 
     // turn into text, for reasons given in moveParas()
     const selectedParasAsText = parasToText([para]) // i.e. turn single para into a single-iterm array
-  
+
     // Decide where to copy the line to
-    const notes = allNotesSortedByChanged()
+    const allNotes = allNotesSortedByChanged()
     const res = await CommandBar.showOptions(
-      notes.map((n) => n.title ?? 'untitled'),
+      allNotes.map((n) => n.title ?? 'untitled'),
       `Select note to copy the line to`,
     )
-    const destNote = notes[res.index]
+    const destNote = allNotes[res.index]
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
 
     // Ask to which heading to add the selectedParas
@@ -65,11 +68,11 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
     logDebug(pluginJson, `- Will add to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
-    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
+    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, true)
 
     // NB: handily, the blockId goes with it as part of the para.content
     // logDebug(pluginJson, `- Inserting 1 para at index ${insertionIndex} into ${displayTitle(destNote)}`)
-    // await destNote.insertParagraph(para.content, insertionIndex, paraType)  
+    // await destNote.insertParagraph(para.content, insertionIndex, paraType)
   }
   catch (error) {
     logError(pluginJson, error.message)

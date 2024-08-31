@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 30.6.2023 for v1.2.0
+// Last updated 7.12.2023 for v1.3.0
 //-----------------------------------------------------------------------------
 
 export {
@@ -14,6 +14,7 @@ export {
   searchOverCalendar
 } from './saveSearch'
 export { searchPeriod } from './saveSearchPeriod'
+export { refreshSavedSearch } from './searchTriggers'
 export {
   closeDialogWindow,
   flexiSearchRequest,

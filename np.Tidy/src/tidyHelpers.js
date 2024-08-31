@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 24.6.2023 for v0.6.0, @jgclark
+// Last updated 7.6.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,14 +17,20 @@ import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 const pluginID = 'np.Tidy'
 
 export type TidyConfig = {
-  duplicateNoteFilename: string,
-  foldersToExclude: Array<string>,
+  rootNotesToIgnore: Array<string>,
+  listFoldersToExclude: Array<string>,
   justRemoveFromChecklists: boolean,
   matchType: string,
   numDays: number,
-  rootNotesToIgnore: Array<string>,
+  conflictedNoteFilename: string,
+  duplicateNoteFilename: string,
+  doubledNoteFilename: string,
+  stubsNoteFilename: string,
+  removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
   runConflictFinderCommand: boolean,
+  runGenerateRepeatsCommand: boolean,
+  savePreviousVersion: boolean,
   runDuplicateFinderCommand: boolean,
   runFileRootNotesCommand: boolean,
   runRemoveOrphansCommand: boolean,
@@ -98,13 +104,13 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
       }
     }
     if (matchCount === 0) {
-      logDebug('repeats', 'No matched paragraphs found')
+      logDebug('returnRegexMatchedParas', 'No matched paragraphs found')
     } else {
-      logDebug('repeats', 'Found ${matchCount} matched paragraphs')
+      logDebug('returnRegexMatchedParas', 'Found ${matchCount} matched paragraphs')
     }
     return matchedParas
   } catch (error) {
-    logError(`${pluginJson}/repeats`, error.message)
+    logError(`${pluginJson}/returnRegexMatchedParas`, error.message)
   }
 }
 

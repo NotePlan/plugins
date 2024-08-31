@@ -1,5 +1,6 @@
 // @flow
 
+import { showMessage } from './userInput'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 import { chooseOption, getInput, getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
@@ -19,9 +20,7 @@ export function logAllEnvironmentSettings(): void {
   }
 }
 
-export async function chooseRunPluginXCallbackURL(
-  showInstalledOnly: boolean = true,
-): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
+export async function chooseRunPluginXCallbackURL(showInstalledOnly: boolean = true): Promise<boolean | { url: string, pluginID: string, command: string, args: Array<string> }> {
   const plugins = showInstalledOnly ? await DataStore.installedPlugins() : await DataStore.listPlugins(true)
 
   let commandMap = []
@@ -67,6 +66,7 @@ export async function chooseRunPluginXCallbackURL(
     }
     while (!finished) {
       res = await getArgumentText(chosenCommand, i)
+      if ('__NO_PLUGIN__' === res) return false
       if (res === '' || res === false) {
         // NOTE: false here could optionally kill the whole wizard
         finished = true
@@ -85,20 +85,28 @@ export async function chooseRunPluginXCallbackURL(
  * Get arg0...argN from the user for for the XCallbackURL
  * @param {string:any} command
  * @param {number} i - index of the argument (e.g. arg0, arg1, etc.)
- * @returns
+ * @returns {string|false} - false if user cancels, otherwise the text entered (or '__NO_PLUGIN__' if plugin not found)
  */
 async function getArgumentText(command: any, i: number): Promise<string | false> {
   const message = `If parameters are required for this plugin, enter one-by-one in the correct order per the plugin's documentation.`
   const stopMessage = `\n\n(Leave the text field empty and hit ENTER/OK to finish argument entry)`
   // TODO: once Eduard adds arguments to the command.arguments object that gets passed through, we can skip the following few lines
   const commandPluginJson = DataStore.loadJSON(`../../${command?.plugin?.id}/plugin.json`)
+  if (!commandPluginJson) {
+    clo(command, 'getArgumentText could not load JSON for command. Will attempt to install it from github. User instructed to download plugin and try again.')
+    await showMessage(
+      `Could not find plugin "${command.plugin.name}". We will try to install it automatically now, but you should check that it's installed and run this command again.`,
+    )
+    const plugin = (await DataStore.listPlugins(true, true, true)).find((p) => p.id === command.plugin.id)
+    if (plugin) {
+      await DataStore.installPlugin(plugin, true)
+    }
+    return '__NO_PLUGIN__'
+  }
   const commandInfo = commandPluginJson['plugin.commands'].find((c) => c.name === command.name)
   const argDescriptions = commandInfo ? commandInfo.arguments : null // eventually = command.arguments
   clo(argDescriptions, 'argDescriptions')
-  const addlInfo =
-    argDescriptions && argDescriptions[i]
-      ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"`
-      : `\n\nWhat should arg${i}'s value be?`
+  const addlInfo = argDescriptions && argDescriptions[i] ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"` : `\n\nWhat should arg${i}'s value be?`
   return await getInput(`${message}${addlInfo}${stopMessage}`, 'OK', `Plugin Arguments for \n"${command.label}"`)
 }
 

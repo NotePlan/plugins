@@ -1,8 +1,8 @@
 // @flow
 
 import pluginJson from '../../plugin.json'
-import { logDebug, logError, JSP, clo } from '@helpers/dev'
 import type { JSONClickData } from './AIFlowTypes'
+import { logDebug, logError, JSP, clo } from '@helpers/dev'
 
 /**
  * For Research Commands:

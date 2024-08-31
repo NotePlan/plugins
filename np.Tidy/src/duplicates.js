@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 20.6.2023 for v0.6.0 by @jgclark
+// Last updated 19.3.2024  for v0.6.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,10 +10,9 @@ import {
   daysBetween,
   relativeDateFromDate,
 } from '@helpers/dateTime'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import {
-  getFilteredFolderList,
+  getFolderListMinusExclusions,
   getFolderFromFilename,
   getJustFilenameFromFullFilename
 } from '@helpers/folders'
@@ -24,8 +23,9 @@ import {
   getTagParamsFromString,
 } from '@helpers/general'
 import { getProjectNotesInFolder } from '@helpers/note'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-import { showMessage } from "../../helpers/userInput";
+import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
 
@@ -41,25 +41,26 @@ type dupeDetails = {
 /**
  * Private function to generate list of potentially duplicate notes
  * @author @jgclark
- *
+ * @param {Array<string>} foldersToExclude
  * @returns {Array<dupeDetails>} array of strings, one for each output line
 */
-function getDuplicateNotes(): Array<dupeDetails> {
+function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDetails> {
   try {
     logDebug(pluginJson, `getDuplicateNotes() starting`)
 
     const outputArray: Array<dupeDetails> = []
-    let folderList = getFilteredFolderList([], true, [], true)
-    logDebug('getDuplicateNotes', `- Found ${folderList.length} folders to check`)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
-    for (const thisFolder of folderList) {
+    for (const thisFolder of relevantFolderList) {
       const theseNotes = getProjectNotesInFolder(thisFolder)
       notes = notes.concat(theseNotes)
     }
 
     // Get all dupes
     const counter = {}
+    // $FlowIgnore[prop-missing]
     const dupes = notes.filter(n => (counter[displayTitle(n)] = counter[displayTitle(n)] + 1 || 1) === 2)
     const dupeTitles = dupes.map(n => n.title ?? '')
 
@@ -73,7 +74,7 @@ function getDuplicateNotes(): Array<dupeDetails> {
     return outputArray
   }
   catch (err) {
-    logError(pluginJson, JSP(err))
+    logError(pluginJson, 'getDuplicateNotes() ' + JSP(err))
     return [] // for completeness
   }
 }
@@ -81,6 +82,7 @@ function getDuplicateNotes(): Array<dupeDetails> {
 /**
  * Command to show details of duplicates in a NP note (replacing any earlier version of the note)
  * @author @jgclark
+ * @params {string?} params
  */
 export async function listDuplicates(params: string = ''): Promise<void> {
   try {
@@ -95,7 +97,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding duplicates`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const dupes: Array<dupeDetails> = getDuplicateNotes()
+    const dupes: Array<dupeDetails> = getDuplicateNotes(config.listFoldersToExclude)
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
@@ -108,7 +110,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
-        logDebug('getConflictedNotes', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
+        logDebug('listDuplicates', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
       }
       return
     } else {
@@ -144,7 +146,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
         outputArray.push(`${String(i)}. ${thisFolder}/${thisJustFilename}: [open note](${openMe}) [❌ delete note](${deleteMe})`)
-        outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
+        outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes, created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
         // For all but the first of the duplicate set, show some comparison stats
         if (i > 1) {

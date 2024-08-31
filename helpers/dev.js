@@ -2,12 +2,12 @@
 // Development-related helper functions
 
 /**
- * Returns ISO formatted date time
- * @author @codedungeon
- * @return {string} formatted date time
+ * NotePlan API properties which should not be traversed when stringifying an object
  */
 
-const dt = (): string => {
+const PARAM_BLACKLIST = ['note', 'referencedBlocks', 'availableThemes', 'currentTheme', 'linkedNoteTitles', 'linkedItems'] // fields not to be traversed (e.g. circular references)
+
+export const dt = (): string => {
   const d = new Date()
 
   const pad = (value: number): string => {
@@ -27,7 +27,6 @@ const dt = (): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
-  const PARAM_BLACKLIST = ['referencedBlocks', 'availableThemes', 'currentTheme'] // fields not to be traversed (e.g. circular references)
   if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {
@@ -80,6 +79,16 @@ export function JSP(obj: any, space: string | number = 2): string {
 }
 
 /**
+ * Returns whether an object is empty
+ * From https://stackoverflow.com/a/679937/3238281
+ * @param {Object} obj
+ * @returns
+ */
+export function isObjectEmpty(obj: Object): boolean {
+  return Object.keys(obj).length === 0
+}
+
+/**
  * Remove quoted and escaped characters from a string
  * @param {*} str
  * @returns
@@ -105,10 +114,50 @@ export function cleanStringifiedResults(str: string): string {
  * @example clo(obj, 'myObj:')
  */
 export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
+  if (!obj) {
+    logDebug(preamble, `null`)
+    return
+  }
   if (typeof obj !== 'object') {
     logDebug(preamble, `${obj}`)
   } else {
     logDebug(preamble, JSP(obj, space))
+  }
+}
+
+/**
+ * CLO + field-limited - Loop through and Console.log only certain names/values of an object to console with text preamble
+ * Like CLO but more concise, only showing certain fields. Useful for large objects with many fields.
+ * Prunes object properties that are not in the list, but continues to look deeper as long as properties match the list.
+ * @param {object} obj - array or object
+ * @param {string} preamble - (optional) text to prepend to the output
+ * @param {Array<string>|string} fields - the field property names to display (default: null - display all fields)
+ * @param {boolean} compactMode - [default: false] if true, will display the fields in a more compact format (less vertical space)
+ * @author @dwertheimer
+ * @example clof(note.paragraphs, 'paragraphs',['content'],true)
+ * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
+ */
+export function clof(obj: any, preamble: string = '', fields: ?Array<string> | string = null, compactMode: ?boolean = false): void {
+  const topLevelIsArray = Array.isArray(obj)
+  const copy = deepCopy(obj, fields?.length ? fields : null, true)
+  const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
+  if (Array.isArray(topLevel)) {
+    if (topLevel.length === 0) {
+      logDebug(`${preamble}: [] (no data)`)
+      return
+    }
+    logDebug(`${preamble}: vvv`)
+    topLevel.forEach((item, i) => {
+      logDebug(`${preamble}: [${i}]: ${typeof item === 'object' && item !== null ? JSON.stringify(item, null, compactMode ? undefined : 2) : String(item)}`)
+    })
+    logDebug(`${preamble}: ^^^`)
+  } else {
+    if (topLevel === {}) {
+      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+      logDebug(`${preamble}: {} (no data${keycheck})`)
+    } else {
+      logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
+    }
   }
 }
 
@@ -157,7 +206,7 @@ export const getFilteredProps = (object: any): Array<string> => {
 }
 
 /**
- * Copy an object and its prototypes as well, return as a normal object
+ * Copy the first level of an object and its prototypes as well, return as a normal object
  * with no prototypes. This is useful for copying objects that have
  * prototypes that are not normally visible in JSON.stringify
  * (e.g. most objects that come from the NotePlan API)
@@ -165,11 +214,70 @@ export const getFilteredProps = (object: any): Array<string> => {
  * @param {any} obj
  */
 export function copyObject(obj: any): any {
-  const props = getAllPropertyNames(obj)
+  const props = getFilteredProps(obj)
   return props.reduce((acc, p) => {
     acc[p] = obj[p]
     return acc
   }, {})
+}
+
+/**
+ * Deeply copies an object including its prototype properties. Optionally filters properties by a given list.
+ * For arrays, can optionally modify their representation in the stringified output to include indices.
+ * Handles objects, arrays, Dates, and primitive types.
+ * Result is JSON-safe, free of recursion, and can be stringified.
+ * Use function clof to display objects with certain properties
+ * NOTE: Does not actually copy prototype (does not work for NP), only the properties.
+ *
+ * @template T The type of the value being copied.
+ * @param {T} value The value to copy.
+ * @param {?Array<string>|string} [propsToInclude=null] Optional single field name or array of property names to include in the copy. As objects are traversed, only these properties will be included in the copy. If null, all properties will be included.
+ * @param {boolean} [showIndices=false] Optional parameter to include indices in array representation during stringification.
+ * @return {T|{ [key: string]: any }} The deep copy of the value.
+ */
+export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string = null, showIndices: boolean = false): T | { [key: string]: any } {
+  const propsToInclude = _propsToInclude === [] ? null : typeof _propsToInclude === 'string' ? [_propsToInclude] : _propsToInclude
+
+  // Handle null, undefined, and primitive types
+  if (value === null || typeof value !== 'object') {
+    return value
+  }
+
+  // Handle Date
+  if (value instanceof Date) {
+    return new Date(value.getTime())
+  }
+
+  // Handle Array
+  if (Array.isArray(value)) {
+    const arrayCopy = value.map((item) => deepCopy(item, propsToInclude, showIndices))
+    if (showIndices) {
+      // Convert array to object with index keys for stringification
+      const objectWithIndices = {}
+      arrayCopy.forEach((item, index) => {
+        objectWithIndices[`[${index}]`] = item
+      })
+      return objectWithIndices
+    } else {
+      return arrayCopy
+    }
+  }
+
+  // Handle Object (including objects with prototype properties)
+  const copy = {}
+  const propNames = propsToInclude || Object.keys(value)
+  for (const key of propNames) {
+    if (propsToInclude ? propsToInclude.includes(key) : true) {
+      const isBlacklisted = PARAM_BLACKLIST.indexOf(key) !== -1
+      const isPrivateVar = /^__/.test(key)
+      const isFunction = typeof value[key] === 'function'
+      if (!isBlacklisted && !isPrivateVar && !isFunction) {
+        copy[key] = deepCopy(value[key], propsToInclude, showIndices)
+      }
+    }
+  }
+
+  return copy
 }
 
 /**
@@ -217,6 +325,22 @@ const _message = (message: any): string => {
   return logMessage
 }
 
+const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
+const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
+
+export const shouldOutputForLogLevel = (logType: string): boolean => {
+  let userLogLevel = 1
+  const thisMessageLevel = LOG_LEVELS.indexOf(logType)
+  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
+  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+  if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+    userLogLevel = pluginSettings['_logLevel']
+  }
+  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
+  return thisMessageLevel >= userLogLevelIndex
+}
+
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
  * @author @codedungeon
@@ -226,39 +350,30 @@ const _message = (message: any): string => {
  * @returns {string}
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
-  const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
-  const thisMessageLevel = LOG_LEVELS.indexOf(type)
   let msg = ''
-  let pluginId = ''
-  let pluginVersion = ''
-  // let msgType = ''
-  const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
+  if (shouldOutputForLogLevel(type)) {
+    const thisMessageLevel = LOG_LEVELS.indexOf(type)
+    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
+    let pluginId = ''
+    let pluginVersion = ''
+    const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
 
-  if (isPluginJson) {
-    pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
-    pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-    msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
-  } else {
-    if (message.length > 0) {
-      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginInfo} :: ${_message(message)}`
+    if (isPluginJson) {
+      pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
+      pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
+      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
     } else {
-      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
+      if (message.length > 0) {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
+      } else {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
+      }
     }
-  }
-  let userLogLevel = 1
-
-  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
-  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
-  if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
-    // eslint-disable-next-line
-    userLogLevel = pluginSettings['_logLevel']
-  }
-
-  const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
-  if (thisMessageLevel >= userLogLevelIndex) {
     console.log(msg)
   }
+
   return msg
 }
 
@@ -282,7 +397,7 @@ export function logError(pluginInfo: any, error?: any): string {
  * @author @codedungeon
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logWarn(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'WARN')
@@ -293,7 +408,7 @@ export function logWarn(pluginInfo: any, message: any = ''): string {
  * @author @codedungeon
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logInfo(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'INFO')
@@ -304,7 +419,7 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
  * @author @dwertheimer
  * @param {any} pluginInfo
  * @param {any} message
- * @returns {void}
+ * @returns {string}
  */
 export function logDebug(pluginInfo: any, message: any = ''): string {
   return log(pluginInfo, message, 'DEBUG')
@@ -323,10 +438,42 @@ export function logDebug(pluginInfo: any, message: any = ''): string {
 export function timer(startTime: Date): string {
   const timeStart = startTime ?? new Date()
   const timeEnd = new Date()
+  // $FlowIgnore[unsafe-arithmetic]
   const difference = timeEnd - timeStart
-  const d = new Date(difference)
-  const diffText = `${d.getMinutes()}m${d.getSeconds()}s.${d.getMilliseconds()}ms`
+  // const d = new Date(difference)
+  // const diffText = `${d.getMinutes()}m${d.getSeconds()}.${d.getMilliseconds()}s`
+  const diffText = `${difference.toLocaleString()}ms`
   return diffText
+}
+
+/**
+ * A special logger that logs the time it takes to execute a function, or a certain stage of a function, that this is called from.
+ * It can be turned on/off independently from _logLevel. And for it to always trigger if a threshold is passed.
+ * Assumes that `const startTime = new Date()` is included earlier in the function.
+ * If separate plugin-level _logTimer setting is true, then it will log, irrespective of the main _logLevel setting.
+ * But if warningTrigger (in milliseconds)is exceeded, then this will log with a warning, irrespective of _logTimer or _logLevel settings.
+ * @author @jgclark
+ * @param {string} functionName - to display after time in log line
+ * @param {Date} startTime - the date object from when timer started (using new Date())
+ * @param {string} explanation - optional text to display after the duration in log line
+ * @param {number} warningThreshold - optional duration in milliseconds: if the timer is more than this it will log with added warning symbol.
+ */
+export function logTimer(functionName: string, startTime: Date, explanation: string = '', warningThreshold?: number): void {
+  // $FlowIgnore[unsafe-arithmetic]
+  const difference = new Date() - startTime
+  const diffTimeText = `${difference.toLocaleString()}ms`
+  const output = `${diffTimeText} ${explanation}`
+  if (warningThreshold && difference > warningThreshold) {
+    const msg = `${dt().padEnd(19)} | ⏱️ ⚠️ ${functionName} | ${output}`
+    console.log(msg)
+  } else {
+    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+    // const timerSetting = pluginSettings['_logTimer'] ?? false
+    if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
+      const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
+      console.log(msg)
+    }
+  }
 }
 
 /**
@@ -343,7 +490,7 @@ export function timer(startTime: Date): string {
  */
 export function overrideSettingsWithStringArgs(config: any, argsAsString: string): any {
   try {
-    // Parse argsAsJSON (if any) into argObj using assuming JSON
+    // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
       const argObj = {}
       argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
@@ -368,23 +515,28 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
           value = value.split(',')
         }
         configOut[key] = value
-        // logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
+        if (configOut[key] !== argObj[key]) {
+          logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
+        }
       }
       return configOut
     } else {
       return config
     }
   } catch (error) {
+    logError('overrideSettingsWithStringArgs', JSP(error))
     console.log(JSP(error))
   }
 }
 
 /**
  * Add or override parameters from args to the supplied config object. This is the **advanced version** that respects more complex typing of the passed arguments, by using JSON.
- * Note: tested with strings, ints, floats, boolean and array of strings.
+ * This has been tested with strings, ints, floats, boolean and array of strings.
+ * Note: on reflection the name '...TypedArgs' is a bit of a misnomer. Perhaps '...JSONArgs' is more accurate.
+ * Note: input `"key":"one,two,three"` will be treated as a string. To treat as an array, need `"key":["one","two","three"]`
  * @author @jgclark
  * @param {any} config object
- * @param {string} argsAsJSON e.g. '{"style":"markdown", "exludedFolders:["one","two","three"]}'
+ * @param {string} argsAsJSON e.g. '{"style":"markdown", "excludedFolders":["one","two","three"]}'
  * @returns {any} configOut
  */
 export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): any {
@@ -400,12 +552,13 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
       return config
     }
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithTypedArgs', JSP(error))
   }
 }
 
 /**
  * A version of overrideSettingsWithTypedArgs that first URL-decodes the args
+ * As above, Note: on reflection the name '...TypedArgs' is a bit of a misnomer. Perhaps '...JSONArgs' is more accurate.
  * @author @jgclark
  * @param {any} config object
  * @param {string} argsAsEncodedJSON e.g. '%7B%22style%22%3A%22markdown%22%2C%20%22exludedFolders%3A%5B%22one%22%2C%22two%22%2C%22three%22%5D%7D'
@@ -415,6 +568,6 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
   try {
     return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
   }
 }

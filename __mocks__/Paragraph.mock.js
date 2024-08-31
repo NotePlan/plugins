@@ -50,7 +50,7 @@ export class Paragraph {
 
   // Methods
   async children() {
-    throw 'Paragraph :: children Not implemented yet'
+    throw 'Paragraph :: children called, but children was not set. You should pass a children function with the paragraph'
   }
   // async duplicate() {
   //   return this

@@ -1,3 +1,4 @@
+/* global onMessageFromPlugin, receivingPluginID */
 /* eslint-disable no-unused-vars */
 /**
  * Generic Plugin<-->HTML communications bridge
@@ -5,6 +6,8 @@
  * @version 1.0.0
  * Last updated 2023-02-18 @dwertheimer
  */
+
+// rewrite that import as a require
 
 /**
  * This file is loaded by the browser via <script> tag in the HTML file
@@ -18,9 +21,6 @@
  */
 
 const consoleStyle = 'background: #222; color: #E14067' //dark pink
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`%c${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
@@ -62,14 +62,15 @@ const sendMessageToPlugin = (type, data) => runPluginCommand('onMessageFromHTMLV
  */
 const onMessageReceived = (event) => {
   const { origin, source, data } = event
-  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$')) || (typeof data.source === 'string' && data.source.startsWith('react-devtools')) || data.iframeSrc)
+  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$')) || (typeof data.source === 'string' && data.source.startsWith('react-devtools')) || data.iframeSrc) {
     return
+  }
   try {
     // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
     if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
-    logDebug(`CommsBridge: onMessageReceived: received a message of type: ${type} with a payload`, payload)
+    logDebug(`CommsBridge`, `onMessageReceived: received a message of type: ${type} with a payload=`, payload)
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
     logDebug(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)

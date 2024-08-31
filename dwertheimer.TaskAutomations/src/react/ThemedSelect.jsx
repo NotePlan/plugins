@@ -153,7 +153,7 @@ const dot = (color = 'transparent') => ({
 const bgColor = chroma(NP_THEME.base.backgroundColor)
 const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black'
 const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css()
-const mixedBG = chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css()
+// const mixedBG = chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css()
 const colourStyles = {
   /* size of the control, but colors don't seem to do anything */
   clearIndicator: (styles) => ({ ...styles, color: '#00FF00' }),
@@ -225,6 +225,7 @@ type Props = {
   onSelect?: Function,
   onChange?: Function,
   defaultValue?: OptionType,
+  id: string,
 }
 export function ThemedSelect(props: Props): any {
   const { options, onSelect, onChange, defaultValue } = props

@@ -1,5 +1,12 @@
-/* globals describe, expect, test */
+/* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
+
 import * as c from '../src/config'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+
+beforeAll(() => {
+  global.DataStore = DataStore
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+})
 
 describe('dwertheimer.EventAutomations AutoTimeBlocking', () => {
   describe('config', () => {

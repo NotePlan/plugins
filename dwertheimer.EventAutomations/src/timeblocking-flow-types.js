@@ -20,11 +20,7 @@ export type TimeBlockDefaults = {
   nowStrOverride?: string /* for testing */,
   mode: string,
   allowEventSplits: boolean,
-  insertIntoEditor: boolean,
   passBackResults: boolean,
-  createCalendarEntries: boolean,
-  eventEnteredOnCalTag: string,
-  deletePreviousCalendarEntries: boolean,
 }
 export type PartialCalendarItem = {
   title: string,
@@ -32,4 +28,21 @@ export type PartialCalendarItem = {
   endDate: Date,
   type: string,
   availability: number,
+}
+
+export interface ParagraphWithDuration extends TParagraph {
+  duration: number;
+}
+
+export type Tags = {
+  [key: string]: Array<string>,
+}
+
+export type MatchedItems = {
+  [key: string]: Array<ParagraphWithDuration>,
+}
+
+export type SplitResult = {
+  matched: MatchedItems,
+  unmatched: Array<ParagraphWithDuration>,
 }

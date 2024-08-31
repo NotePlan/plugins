@@ -1,25 +1,21 @@
 // @flow
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
-// by @jgclark
-// Last updated 8.8.2023 by @jgclark
+// by @jgclark, @dwertheimer
+// Last updated 1.4.2024 by @jgclark
 // ---------------------------------------------------------
 
-import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { getStoredWindowRect, isHTMLWindowOpen, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
+import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
+import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
-import {
-  RE_EVENT_LINK,
-  RE_SYNC_MARKER
-} from '@helpers/regex'
-
+import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
 // Constants and Types
 
 const pluginJson = 'helpers/HTMLView'
-
-let baseFontSize = 14
 
 export type HtmlWindowOptions = {
   windowTitle: string,
@@ -41,679 +37,15 @@ export type HtmlWindowOptions = {
   shouldFocus?: boolean,
 }
 
+// Meta tags to always apply:
+// - to make windows always responsive
+const fixedMetaTags = `
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, viewport-fit=cover">
+
+`
+
 // ---------------------------------------------------------
-
-/**
- * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
- * TODO: be smarter at getting priority task theming
- * @author @jgclark
- * @param {string?} themeNameIn
- * @returns {string} outputCSS
- */
-export function generateCSSFromTheme(themeNameIn: string = ''): string {
-  try {
-    let themeName = ''
-    let themeJSON: Object
-    const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
-    let matchingThemeObjs = []
-
-    // If we havee a supplied themeName, then attempt to use it
-    if (themeNameIn !== '') {
-      // get list of available themes
-      logDebug('generateCSSFromTheme', String(availableThemeNames))
-      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
-      if (matchingThemeObjs.length > 0) {
-        themeName = themeNameIn
-        logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
-        themeJSON = matchingThemeObjs[0].values
-      } else {
-        logWarn('generateCSSFromTheme', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
-      }
-    }
-
-    // If that hasn't worked, then currentTheme
-    if (themeName === '') {
-      themeName = Editor.currentTheme.name ?? ''
-      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
-      logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
-      if (themeName !== '') {
-        themeJSON = Editor.currentTheme.values
-        // let currentThemeMode = Editor.currentTheme.mode ?? 'dark'
-      } else {
-        logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
-      }
-    }
-
-    // If that hasn't worked, try dark theme
-    if (themeName === '') {
-      themeName = String(DataStore.preference('themeDark'))
-      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
-      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
-      if (matchingThemeObjs.length > 0) {
-        logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
-        themeJSON = matchingThemeObjs[0].values
-      } else {
-        logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
-      }
-    }
-
-    // Check we can proceed
-    if (themeJSON == null || themeJSON.length === 0) {
-      logError('generateCSSFromTheme', `themeJSON is empty. Stopping.`)
-      return ''
-    }
-
-    //-----------------------------------------------------
-    // Calculate the CSS properties for various selectors
-    const output: Array<string> = []
-    let tempSel = []
-    const rootSel = [] // for special :root selector which sets variables picked up in several places below
-    let styleObj: Object
-    const isLightTheme = themeJSON.style === 'Light'
-
-    // Set 'html':
-    // - main font size
-    // set global variable
-    baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
-    // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
-    tempSel.push(`background: var(--bg-main-color)`) //`color: ${bgMainColor}`
-    output.push(makeCSSSelector('html', tempSel))
-    // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    rootSel.push(`--bg-main-color: ${bgMainColor}`)
-
-    // Set body:
-    // - main font = styles.body.font
-    const bodyFont = themeJSON.styles.body.font ?? ''
-    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
-    // - main foreground colour (styles.body.color)
-    // - main background colour (editor.backgroundColor)
-    tempSel = []
-    tempSel.push(`font-size: ${baseFontSize}px`)
-    styleObj = themeJSON.styles.body
-    if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
-      tempSel.push(`color: var(--fg-main-color)`) //`color: ${thisColor}`
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('body, .body', tempSel))
-      // tempSel = styleObj.size // TEST:
-      rootSel.push(`--fg-main-color: ${thisColor}`)
-    }
-
-    // Set H1 from styles.title1
-    tempSel = []
-    styleObj = themeJSON.styles.title1
-    if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
-      tempSel.push(`color: ${thisColor}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h1, .h1', tempSel)) // allow this same style to be used as a class too
-      rootSel.push(`--h1-color: ${thisColor}`)
-    }
-    // Set H2 similarly
-    tempSel = []
-    styleObj = themeJSON.styles.title2
-    if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title2.color ?? '#E9C062')
-      tempSel.push(`color: ${thisColor}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h2, .h2', tempSel))
-      rootSel.push(`--h2-color: ${thisColor}`)
-    }
-    // Set H3 similarly
-    tempSel = []
-    styleObj = themeJSON.styles.title3
-    if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title3.color ?? '#E9C062')
-      tempSel.push(`color: ${thisColor}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h3, .h3', tempSel))
-      rootSel.push(`--h3-color: ${thisColor}`)
-    }
-    // Set H4 similarly
-    tempSel = []
-    styleObj = themeJSON.styles.title4
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color ?? '#E9C062')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h4, .h4', tempSel))
-    }
-    // NP doesn't support H5 styling
-
-    // Set core table features from theme
-    const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
-    rootSel.push(`--bg-alt-color: ${altColor}`)
-    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
-    rootSel.push(`--tint-color: ${tintColor}`)
-
-    // Set core button style from macOS based on dark or light:
-    // Similarly for fake-buttons (i.e. from <a href ...>)
-    if (isLightTheme) {
-      output.push(makeCSSSelector('button', [
-        'color: var(--fg-main-color)',
-        'background-color: #FFFFFF',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-        // 'font-size: 1.0rem',
-        'font-weight: 500',
-        'border-radius: 4px',
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'color: var(--fg-main-color)',
-          'background-color: #FFFFFF',
-          // 'font-size: 1.0rem',
-          'font-weight: 500',
-          'text-decoration: none',
-          'border-color: #DFE0E0',
-          'border-radius: 4px',
-          'box-shadow: 0 1px 1px #CBCBCB',
-          'padding: 1px 7px 1px 7px',
-          'margin: 2px 4px',
-          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
-        ]),
-      )
-    } else {
-      // dark theme
-      output.push(makeCSSSelector('button', [
-        'color: var(--fg-main-color)',
-        'background-color: #5E5E5E',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-        // 'font-size: 1.0rem',
-        'font-weight: 500',
-        'border-radius: 4px',
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'color: var(--fg-main-color)',
-          'background-color: #5E5E5E',
-          // 'font-size: 1.0rem',
-          'font-weight: 500',
-          'text-decoration: none',
-          'border-color: #5E5E5E',
-          'border-radius: 4px',
-          'box-shadow: 0 -1px 1px #6F6F6F',
-          'padding: 1px 7px 1px 7px',
-          'margin: 2px 4px',
-          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
-        ]),
-      )
-    }
-
-    // Set italic text if present
-    tempSel = []
-    styleObj = themeJSON.styles.italic
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('p emph', tempSel)) // not 'i' as otherwise it can mess up the fontawesome icons
-    }
-    // Set bold text if present
-    tempSel = []
-    styleObj = themeJSON.styles.bold
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#CC6666')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('p b', tempSel))
-    }
-
-    // Can't easily set bold-italic in CSS ...
-
-    // Set class for open tasks ('todo') if present
-    tempSel = []
-    styleObj = themeJSON.styles.todo
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
-      output.push(makeCSSSelector('.todo', tempSel))
-    }
-
-    // Set class for completed tasks ('checked') if present
-    tempSel = []
-    styleObj = themeJSON.styles.checked
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
-      output.push(makeCSSSelector('.checked', tempSel))
-    }
-
-    // Set class for cancelled tasks ('checked-canceled') if present
-    // following is workaround in object handling as 'checked-canceled' JSON property has a dash in it
-    tempSel = []
-    styleObj = themeJSON.styles['checked-canceled']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
-      output.push(makeCSSSelector('.cancelled', tempSel))
-    }
-
-    // Set class for scheduled tasks ('checked-scheduled') if present
-    // following is workaround in object handling as 'checked-canceled' JSON property has a dash in it
-    tempSel = []
-    styleObj = themeJSON.styles['checked-scheduled']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
-      output.push(makeCSSSelector('.task-scheduled', tempSel))
-    }
-
-    // Set class for hashtags ('hashtag') if present
-    tempSel = []
-    styleObj = themeJSON.styles.hashtag
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.hashtag', tempSel))
-    }
-
-    // Set class for mentions ('attag') if present
-    tempSel = []
-    styleObj = themeJSON.styles.attag
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.attag', tempSel))
-    }
-
-    // Set class for `pre-formatted text` ('code') if present
-    tempSel = []
-    styleObj = themeJSON.styles.code
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.code', tempSel))
-    }
-
-    // Set class for ==highlights== ('highlighted') if present
-    tempSel = []
-    styleObj = themeJSON.styles.highlighted
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.highlighted', tempSel))
-    }
-
-    // Set class for ~underlined~ ('underline') if present
-    tempSel = []
-    styleObj = themeJSON.styles.underline
-    if (styleObj) {
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, true))
-      output.push(makeCSSSelector('.underlined', tempSel))
-    }
-
-    // Set class for 'flagged-1' (priority 1) if present
-    tempSel = []
-    styleObj = themeJSON.styles['flagged-1']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFE5E5')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.priority1', tempSel))
-    }
-
-    // Set class for 'flagged-2' (priority 2) if present
-    tempSel = []
-    styleObj = themeJSON.styles['flagged-2']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFC5C5')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.priority2', tempSel))
-    }
-
-    // Set class for 'flagged-3' (priority 3) if present
-    tempSel = []
-    styleObj = themeJSON.styles['flagged-3']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.priority3', tempSel))
-    }
-
-    // Set class for 'working-on' if present
-    tempSel = []
-    styleObj = themeJSON.styles['working-on']
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
-      tempSel.push('border-radius: 5px')
-      tempSel.push('padding-inline: 3px')
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.priority5', tempSel))
-    }
-
-    // Now put the important info and rootSel at the start of the output
-    output.unshift(makeCSSSelector(':root', rootSel))
-    output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
-
-    // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
-    return output.join('\n')
-  } catch (error) {
-    logError('generateCSSFromTheme', error.message)
-    return '<error>'
-  }
-}
-
-/**
- * Convert NotePlan Theme style information to CSS equivalent(s)
- * Covers attributes within a theme item: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle, underlineColor.
- * @author @jgclark
- * @param {Object} style object from JSON theme
- * @param {boolean} includeFontDetails? (default: false)
- * @returns {Array} CSS elements
- */
-function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean = true): Array<string> {
-  let cssStyleLinesOutput: Array<string> = []
-  if (styleObject?.size) {
-    cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, baseFontSize)}`)
-  }
-  if (includeFontDetails) {
-    if (styleObject?.font) {
-      cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
-    }
-  }
-  if (styleObject?.paragraphSpacingBefore) {
-    cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
-  }
-  if (styleObject?.paragraphSpacing) {
-    cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
-  }
-  if (styleObject?.lineSpacing) {
-    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.4
-    cssStyleLinesOutput.push(`line-height: ${String(lineSpacingRem)}rem`)
-  }
-  if (styleObject?.strikethroughStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
-  }
-  if (styleObject?.underlineStyle) {
-    const themeStyleNumber = Number(styleObject?.underlineStyle)
-    /**
-     * Values from 1-8 increase the thickness.
-     * The next bit values that have an effect are: 1...
-     * + 8: double (= 9)
-     * + 256: patternDot (= 257)
-     * + 512: patternDash (= 513)
-     * + 1024: patternDashDotDot (= 1025)
-     * + 8192: over line (= 8193)
-     * +32768: by Word (= 32769)
-     */
-    if (themeStyleNumber > 0 && themeStyleNumber <= 8) {
-      cssStyleLinesOutput.push('text-decoration: underline')
-      cssStyleLinesOutput.push(`text-decoration-style: solid`)
-      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber)}px`)
-    }
-    if (themeStyleNumber > 8 && themeStyleNumber <= 16) {
-      cssStyleLinesOutput.push('text-decoration: underline')
-      cssStyleLinesOutput.push(`text-decoration-style: double`)
-      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8)}px`)
-    }
-    if (themeStyleNumber > 256 && themeStyleNumber <= 264) {
-      cssStyleLinesOutput.push('text-decoration: underline')
-      cssStyleLinesOutput.push(`text-decoration-style: dotted`)
-      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 256)}px`)
-    }
-    if (themeStyleNumber > 512 && themeStyleNumber <= 520) {
-      cssStyleLinesOutput.push('text-decoration: underline')
-      cssStyleLinesOutput.push(`text-decoration-style: dashed`)
-      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 512)}px`)
-    }
-    if (themeStyleNumber > 8192 && themeStyleNumber <= 8200) {
-      cssStyleLinesOutput.push(`text-decoration-style: overline`)
-      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8192)}px`)
-    }
-  }
-  if (styleObject?.underlineColor) {
-    cssStyleLinesOutput.push(`text-decoration-color: ${RGBColourConvert(styleObject.underlineColor ?? 'var(--fg-main-color)')}`)
-  }
-  return cssStyleLinesOutput
-}
-
-/**
- * Convert NP strikethrough/underline styling to CSS setting (or empty string if none)
- * Full details at https://help.noteplan.co/article/48-strikethrough-underline-styles
- * @author @jgclark
- * @param {string} selector to use from NP
- * @param {number} value to use from NP
- * @returns {string} CSS setting to return
- */
-export function textDecorationFromNP(selector: string, value: number): string {
-  // logDebug('textDecorationFromNP', `starting for ${selector} / ${value}`)
-  if (selector === 'underlineStyle') {
-    switch (value) {
-      case 1: {
-        return 'text-decoration: underline'
-      }
-      case 9: {
-        // double
-        return 'text-decoration: underline double'
-      }
-      case 513: {
-        // dashed
-        return 'text-decoration: underline dashed'
-      }
-      default: {
-        logWarn('textDecorationFromNP', `No matching CSS found for underline style value '${value}'`)
-        return ''
-      }
-    }
-  } else if (selector === 'strikethroughStyle') {
-    switch (value) {
-      case 1: {
-        return 'text-decoration: line-through'
-      }
-      case 9: {
-        // double
-        return 'text-decoration: line-through double'
-      }
-      case 513: {
-        // dashed
-        return 'text-decoration: line-through dashed'
-      }
-      default: {
-        logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-        return ''
-      }
-    }
-  } else {
-    logWarn('textDecorationFromNP', `No matching CSS found for style setting "${selector}"`)
-    return ''
-  }
-}
-
-/**
- * Convert a font size (in px) to rem (as a string).
- * Uses the NP theme's baseFontSize (in px) to be the basis for 1.0rem.
- * @param {number} thisFontSize
- * @param {number} baseFontSize
- * @returns {string} size including 'rem' units
- */
-function pxToRem(thisFontSize: number, baseFontSize: number): string {
-  const output = `${String((thisFontSize / baseFontSize).toPrecision(2))}rem`
-  return output
-}
-
-/**
- * Convert [A]RGB (used by NP) to RGB[A] (CSS)
- * @param {string} #[A]RGB
- * @returns {string} #RGB[A]
- */
-function RGBColourConvert(RGBIn: string): string {
-  try {
-    // default to just passing the colour through, unless
-    // we have ARGB, so need to switch things round
-    let output = RGBIn
-    if (RGBIn != null && RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
-      output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
-    }
-    return output
-  } catch (error) {
-    logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
-    return '#888888' // for completeness
-  }
-}
-
-/**
- * Translate from the font name, as used in the NP Theme file,
- * to the form CSS is expecting.
- * If no translation is defined, try to use the user's own default font.
- * If that fails, use fallback font 'sans'.
- * Further info at https://help.noteplan.co/article/44-customize-themes#fonts
- * @author @jgclark
- * @param {string} fontNameNP
- * @returns {Array<string>} resulting CSS font properties
- */
-export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
-  // logDebug('fontPropertiesFromNP', `for '${fontNameNP}'`)
-  const outputArr = []
-
-  // Deal with special case of Apple's System font
-  // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
-  if (fontNameNP.startsWith(".AppleSystemUIFont")) {
-    outputArr.push(`font-family: "-apple-system"`)
-    outputArr.push(`line-height: 1.2rem`)
-    // logDebug('fontPropertiesFromNP', `special: ${fontNameNP} ->  ${outputArr.toString()}`)
-    return outputArr
-  }
-
-  // Then test to see if this is one of the other specials
-  const specialFontList = new Map()
-  // lookup list of special cases
-  specialFontList.set('System', ['sans', 'regular', 'normal'])
-  specialFontList.set('', ['sans', 'regular', 'normal'])
-  specialFontList.set('noteplanstate', ['noteplanstate', 'regular', 'normal'])
-  const specials = specialFontList.get(fontNameNP) // or undefined if none match
-  if (specials !== undefined) {
-    outputArr.push(`font-family: "${specials[0]}"`)
-    outputArr.push(`font-weight: "${specials[1]}"`)
-    outputArr.push(`font-style: "${specials[2]}"`)
-    // logDebug('fontPropertiesFromNP', `specials: ${fontNameNP} ->  ${outputArr.toString()}`)
-    return outputArr
-  }
-
-  // Not a special. So now split input string into parts either side of '-'
-  // and then insert spaces before capital letters
-  let translatedFamily: string
-  let translatedWeight: string = '400'
-  let translatedStyle: string = 'normal'
-  const splitParts = fontNameNP.split('-')
-  const namePartNoSpaces = splitParts[0]
-  let namePartSpaced = ''
-  const modifierLC = splitParts.length > 0 ? splitParts[1]?.toLowerCase() : ''
-  for (let i = 0; i < namePartNoSpaces.length; i++) {
-    const c = namePartNoSpaces[i]
-    if (c.match(/[A-Z]/)) {
-      namePartSpaced += ` ${c}`
-    } else {
-      namePartSpaced += c
-    }
-  }
-  translatedFamily = namePartSpaced.trim()
-  // logDebug('fontPropertiesFromNP', `family -> ${translatedFamily}`)
-
-  // Using the numeric font-weight system
-  // With info from https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping
-  switch (modifierLC) {
-    case 'thin': {
-      translatedWeight = '100'
-      break
-    }
-    case 'light': {
-      translatedWeight = '300'
-      break
-    }
-    case 'book': {
-      translatedWeight = '500'
-      break
-    }
-    case 'demi-bold': {
-      translatedWeight = '600'
-      break
-    }
-    case 'semi-bold': {
-      translatedWeight = '600'
-      break
-    }
-    case 'bold': {
-      translatedWeight = '700'
-      break
-    }
-    case 'heavy': {
-      translatedWeight = '900'
-      break
-    }
-    case 'black': {
-      translatedWeight = '900'
-      break
-    }
-    case 'italic': {
-      translatedStyle = 'italic'
-      break
-    }
-    case 'bolditalic': {
-      translatedWeight = '700'
-      translatedStyle = 'italic'
-      break
-    }
-    case 'slant': {
-      translatedStyle = 'italic'
-      break
-    }
-    default: {
-      // including '', 'normal' and 'regular'
-      translatedWeight = '400'
-      translatedStyle = 'normal'
-      break
-    }
-  }
-  // logDebug('translateFontNameNPToCSS', `  - ${translatedStyle} / ${translatedWeight}`)
-
-  // Finally if we're still working on default 'Sans', then
-  // at least try to use the user's default font setting.
-  if (translatedFamily === 'Sans') {
-    logDebug('fontPropertiesFromNP', `For '${fontNameNP}' trying user's default font setting`)
-    const userFont: string = String(DataStore.preference('fontFamily')) ?? ''
-    logDebug('fontPropertiesFromNP', `- userFont = '${userFont}'`)
-    translatedFamily = userFont
-  }
-
-  outputArr.push(`font-family: "${translatedFamily}"`)
-  outputArr.push(`font-weight: "${translatedWeight}"`)
-  outputArr.push(`font-style: "${translatedStyle}"`)
-  // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
-  return outputArr
-}
-
-/**
- * Make a CSS selector from an array of parameters
- * @param {string} selector
- * @param {Array<string>} settingsArray
- * @returns {string} CSS selector with its various parameters
- */
-function makeCSSSelector(selector: string, settingsArray: Array<string>): string {
-  const outputArray = []
-  outputArray.push(`\t${selector} {`)
-  outputArray.push(`\t\t${settingsArray.join(';\n\t\t')}`)
-  outputArray.push(`\t}`)
-  return outputArray.join('\n')
-}
 
 /**
  * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
@@ -733,7 +65,7 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
   // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
-  //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
+  // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
     // This is a callback bridge from HTML to the plugin
@@ -832,7 +164,7 @@ const getBasicColors = (themeJSON: any) => {
     h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
     h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
     tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
-    altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
+    altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? (RGBColourConvert(themeJSON.editor?.altColor) || '#2E2F30'),
     baseFontSize: Number(DataStore.preference('fontSize')) ?? 14,
   }
 }
@@ -871,29 +203,34 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
  * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
  * Your script code in pre-body or post-body do not need to be wrapped in <script> tags, and can be either a string or an array of strings or an array of objects with code and type properties (see ScriptObj above)
  * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
+ * @author @dwertheimer
  */
-export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
-  const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
+export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
+  const preBody: Array<Object> = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   if (opts.includeCSSAsJS) {
     const theme = getThemeJS(true, true)
     if (theme.values) {
-      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${theme.name}" */\n  const NP_THEME=${JSON.stringify(theme.values, null, 4)}\n`)
+      const themeName = theme.name ?? '<unknown>'
+      const themeJSONStr = JSON.stringify(theme.values, null, 4) ?? '<empty>'
+      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${themeName}" */\n  const NP_THEME=${themeJSONStr}\n`)
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
     }
   }
-  showHTML(
-    windowTitle,
-    opts.headerTags ?? '',
-    body,
-    opts.generalCSSIn ?? '',
-    opts.specificCSS ?? '',
-    opts.makeModal ?? false,
-    [...preBody],
-    opts.postBodyScript ?? '',
-    opts.savedFilename ?? '',
-    opts.width,
-    opts.height,
-  )
+  opts.preBodyScript = preBody
+  await showHTMLV2(body, opts)
+  // showHTML(
+  //   windowTitle,
+  //   opts.headerTags ?? '',
+  //   body,
+  //   opts.generalCSSIn ?? '',
+  //   opts.specificCSS ?? '',
+  //   opts.makeModal ?? false,
+  //   [...preBody],
+  //   opts.postBodyScript ?? '',
+  //   opts.savedFilename ?? '',
+  //   opts.width,
+  //   opts.height,
+  // )
 }
 
 type ScriptObj = {
@@ -954,17 +291,17 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     fullHTML.push('<html>')
     fullHTML.push('<head>')
     fullHTML.push(`<title>${winOpts.windowTitle}</title>`)
-    fullHTML.push(`<meta charset="utf-8">`)
+    fullHTML.push(fixedMetaTags)
     const preScript = generateScriptTags(winOpts.preBodyScript ?? '')
     if (preScript !== '') {
       fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
     }
-    fullHTML.push(winOpts.headerTags)
-    fullHTML.push('<style type="text/css">')
+    fullHTML.push(winOpts.headerTags ?? '')
+    fullHTML.push('<style type="text/css" title="Original Theme Styles">')
     // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
-    fullHTML.push(winOpts.specificCSS)
+    fullHTML.push(winOpts.specificCSS ?? '')
     fullHTML.push('</style>')
     fullHTML.push('</head>')
     fullHTML.push(winOpts.bodyOptions ? `\n<body ${winOpts.bodyOptions}>` : `\n<body>`)
@@ -984,7 +321,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
 }
 
 /**
- * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead.
+ * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead. This version will also (probably) not allow use of multiple HTML windows from NP3.9.6.
  * Helper function to construct HTML to show in a new window.
  * Note: used up to v3.9.2 before more advanced window handling possible.
  * Note: if customID not passed, it will fall back to using windowTitle
@@ -1014,7 +351,8 @@ export function showHTML(
   filenameForSavedFileVersion: string = '',
   width?: number,
   height?: number,
-  customId: string = '',
+  // eslint-disable-next-line no-unused-vars
+  customId: string = '', // Note: now unused
 ): void {
   try {
     const opts: HtmlWindowOptions = {
@@ -1048,11 +386,11 @@ export function showHTML(
       }
     }
 
+    // TEST: remove from 3.9.6
     // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-    if (NotePlan.environment.buildVersion >= 976) {
-      // FIXME: Currently this is warning 0 HTML Windows
-      setHTMLWindowId(customId ?? windowTitle)
-    }
+    // if (NotePlan.environment.buildVersion >= 976) {
+    //   setHTMLWindowId(customId ?? windowTitle)
+    // }
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
@@ -1085,15 +423,13 @@ export function showHTML(
  * @param {string} body
  * @param {HtmlWindowOptions} opts
  */
-export async function showHTMLV2(
-  body: string,
-  opts: HtmlWindowOptions,
-): Promise<Window | boolean> {
+export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise<Window | boolean> {
   try {
     if (NotePlan.environment.buildVersion < 1037) {
-      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using simpler showHTML() instead ...')
-      await showHTML(opts.windowTitle,
-        opts.headerTags ?? '',
+      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
+      await showHTML(
+        opts.windowTitle,
+        fixedMetaTags + (opts.headerTags ?? ''),
         body,
         opts.generalCSSIn ?? '',
         opts.specificCSS ?? '',
@@ -1103,93 +439,138 @@ export async function showHTMLV2(
         opts.savedFilename ?? '',
         opts.width,
         opts.height,
-        opts.customId)
+        opts.customId,
+      )
       return true // for completeness
+    }
 
+    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'}`)
+
+    // Assemble the parts of the HTML into a single string
+    const fullHTMLStr = assembleHTMLParts(body, opts)
+
+    // Ensure we have a window ID to use
+    const cId = opts.customId ?? opts.windowTitle ?? 'fallback'
+
+    // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
+    if (isHTMLWindowOpen(cId)) {
+      logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
+      storeWindowRect(cId)
+    }
+
+    // Decide which of the appropriate functions to call.
+    if (opts.makeModal) {
+      // if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
+      logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+      // if (opts.width === undefined || opts.height === undefined) {
+      //   HTMLView.showSheet(fullHTMLStr)
+      // } else {
+      HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
+      // }
     } else {
-
-      // clo(opts, 'showHTMLV2 starting with options:')
-      // Assemble the parts of the HTML into a single string
-      const fullHTMLStr = assembleHTMLParts(body, opts)
-      const cId = opts.customId ?? opts.windowTitle ?? ''
-
-      // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
-      if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
-        logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
-        storeWindowRect(cId)
-      }
-
-      // Decide which of the appropriate functions to call.
-      if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
-        logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
-        if (opts.width === undefined || opts.height === undefined) {
-          HTMLView.showSheet(fullHTMLStr)
-        } else {
-          HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
-        }
-      } else {
-        let winOptions = {}
-        // First set to the default values
+      // Make a normal non-modal window
+      let winOptions = {}
+      // First set to the default values
+      if (NotePlan.environment.buildVersion >= 1087) {
+        // From 3.9.6 can set windowId/customId directly through options
         winOptions = {
           x: opts.x,
           y: opts.y,
           width: opts.width,
-          height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
+          height: opts.height,
           shouldFocus: opts.shouldFocus,
-          // Note: can't set customId, but only long UID ('id')
+          id: cId, // don't need both ... but trying to work out which is the current one for the API
+          windowId: cId,
         }
-        // Now override with saved x/y/w/h for this window if wanted, and if available
-        if (opts.reuseUsersWindowRect && cId) {
-          // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
-          const storedRect = getStoredWindowRect(cId)
-          if (storedRect) {
-            winOptions = {
-              x: storedRect.x,
-              y: storedRect.y,
-              width: storedRect.width,
-              height: (storedRect.height > 56) ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
-              shouldFocus: opts.shouldFocus
-            }
-            logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
-          } else {
-            logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
-          }
+      } else {
+        winOptions = {
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          shouldFocus: opts.shouldFocus,
         }
-        clo(winOptions, 'showHTMLV2 using winOptions:')
-        // $FlowIgnore[invalid-compare]
-        if (winOptions.height < 29) {
-          // $FlowIgnore[incompatible-type]
-          logWarn('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
-        }
-
-        // clo(winOptions, 'subset of options for API call:')
-        const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-        // clo(win, '-> win:')
-
-        // If wanted, also write this HTML to a file so we can work on it offline.
-        // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
-        if (opts.savedFilename !== '') {
-          const thisFilename = opts.savedFilename ?? ''
-          const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
-          // Write to specified file in NP sandbox
-          const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
-          if (res) {
-            logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
-          } else {
-            logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
-          }
-        }
-
-        // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-        logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
-        const customIdToUse = opts.customId ?? opts.windowTitle
-        logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
-        win.customId = customIdToUse
-        // Read this back from the window itself
-        // logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
-
-        return win
       }
+      // Now override with saved x/y/w/h for this window if wanted, and if available
+      if (opts.reuseUsersWindowRect && cId) {
+        // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+        const storedRect = getStoredWindowRect(cId)
+        if (storedRect) {
+          winOptions = {
+            x: storedRect.x,
+            y: storedRect.y,
+            width: storedRect.width,
+            height: storedRect.height,
+            shouldFocus: opts.shouldFocus,
+            id: cId, // don't need both ... but trying to work out which is the current one for the API
+            windowId: cId,
+          }
+          logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          // if (NotePlan.environment.platform !== 'macOS') {
+          // const extraInfo = "<p>OS:" + NotePlan.environment.platform +
+          //   " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
+          //   " W: " + opts.width +
+          //   " H: " + opts.height + "</p>\n" +
+          //   " StoredW: " + storedRect.width +
+          //   " StoredH: " + storedRect.height + "</p>\n"
+          // fullHTMLStr = fullHTMLStr.replace("<body>", `<body>\n${extraInfo}\n`)
+          // }
+        } else {
+          logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
+          // if (NotePlan.environment.platform !== 'macOS') {
+          //   const extraInfo = "<p>OS:" + NotePlan.environment.platform +
+          //     " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
+          //     " W: " + opts.width +
+          //     " H: " + opts.height + "</p>\n"
+          //   fullHTMLStr = fullHTMLStr.replace("<body>", `<body>\n${extraInfo}\n`)
+          // }
+        }
+      }
+      // clo(winOptions, 'showHTMLV2 using winOptions:')
+
+      // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
+      // Note: could also check window will be visible on screen and if not, move accordingly
+      if (NotePlan.environment.buildVersion >= 1100) {
+        const screenWidth = NotePlan.environment.screenWidth
+        const screenHeight = NotePlan.environment.screenHeight
+        logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
+        if (winOptions.width > screenWidth) {
+          logDebug('showHTMLV2', `- Constrained width from ${String(winOptions.width)} to ${String(screenWidth)}`)
+          winOptions.width = screenWidth
+        }
+        if (winOptions.height > screenHeight) {
+          logDebug('showHTMLV2', `- Constrained height from ${String(winOptions.height)} to ${String(screenHeight)}`)
+          winOptions.height = screenHeight
+        }
+      }
+
+      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
+      // clo(win, '-> win:')
+
+      // If wanted, also write this HTML to a file so we can work on it offline.
+      // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+      if (opts.savedFilename !== '') {
+        const thisFilename = opts.savedFilename ?? ''
+        const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+        // Write to specified file in NP sandbox
+        const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+        if (res) {
+          logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
+        } else {
+          logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
+        }
+      }
+
+      // Set customId for this window (with fallback to be windowTitle)
+      // Note: only required between NP v3.8.1 + and 3.9.5.After that its built in.
+      if (NotePlan.environment.buildVersion < 1087) {
+        logDebug('showHTMLV2', `- setting the customId to '${cId}'`)
+        win.customId = cId
+      }
+
+      // Double-check: read back from the window itself
+      logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}"`)
+      return win
     }
   } catch (error) {
     logError('HTMLView / showHTMLV2', error.message)
@@ -1259,6 +640,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
  * Convert a Markdown link to HTML
  * @param {string} str
  * @returns {string} the new URL HTML anchor
+ * @tests in jest file
  */
 export function replaceMarkdownLinkWithHTMLLink(str: string): string {
   return str.replace(/\[(.*?)\]\((.*?)\)/gm, `<a href="$2">$1</a>`)
@@ -1267,7 +649,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
 /**
  * Message action types
  * SET_TITLE - update the title of the HTML window (send {title: 'new title'} in the payload)
- * SHOW_BANNER - display a message in the top of the page (use the helper sendBannerMessage('message'))
+ * SHOW_BANNER - display a message in the top of the page (use the helper sendBannerMessage(pluginJson['plugin.id'],'message'))
  * SET_DATA - tell the HTML window to update its state with the data passed
  * RETURN_VALUE - the async return value of a call that came in fron the React Window to the Plugin
  */
@@ -1277,24 +659,37 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * Note: we can (and do) write to globalSharedData directly, but we should try to use this function
  * to do so, because it will allow us to use message passing to update the state in the HTML window
  * which gives us more visibility into what's happening on the HTML side
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {string - see above} actionType - the reducer-type action to be dispatched (tells the app how to act on the data passed)
  * @param {any} data - the data to be passed to the app (and ultimately to be written to globalSharedData)
  * @param {string} updateInfo - the message to be sent to the app
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(actionType: string, data: any = {}, updateInfo: string = ''): any {
+export async function sendToHTMLWindow(windowId: string, actionType: string, data: any = {}, updateInfo: string = ''): any {
   try {
-    const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
+    const windowExists = isHTMLWindowOpen(windowId)
+    if (!windowExists) logWarn(`sendToHTMLWindow`, `Window ${windowId} does not exist; setting NPWindowID = undefined`)
+    const windowIdToSend = windowExists ? windowId : undefined // for iphone/ipad you have to send undefined
+    const dataWithUpdated = {
+      ...data,
+      ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } },
+      NPWindowID: windowExists ? windowId : undefined,
+    }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}"`)
-    const result = await HTMLView.runJavaScript(`window.postMessage(
+    // logDebug(`Bridge::sendToHTMLWindow`, `sending type: "${actionType}" to window: "${windowId}" msg=${dataWithUpdated.lastUpdated.msg}`)
+    // const start = new Date()
+    const result = await HTMLView.runJavaScript(
+      `window.postMessage(
         {
           type: '${actionType}',
           payload: ${JSON.stringify(dataWithUpdated)}
         },
         '*'
-      );`)
+      );`,
+      windowIdToSend,
+    )
+    // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
@@ -1309,11 +704,13 @@ export async function sendToHTMLWindow(actionType: string, data: any = {}, updat
  * NOTE: this function should only be called after the window has fully set up, the global var has been set
  * @author @dwertheimer
  * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @returns {Object} - the current state of globalSharedData
  */
-export async function getGlobalSharedData(varName: string = 'globalSharedData'): any {
+export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
-    const currentValue = await HTMLView.runJavaScript(`${varName};`)
+    // logDebug(pluginJson, `getGlobalSharedData getting var '${varName}' from window ID '${windowId}'`)
+    const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {
@@ -1324,18 +721,19 @@ export async function getGlobalSharedData(varName: string = 'globalSharedData'):
 /**
  * Generally, we will try not to update the global shared object directly, but instead use message passing to let React update the state. But there will be times we need to update the state from here (e.g. when we hit limits of message passing).
  * @author @dwertheimer
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {any} data - the full object to be written to globalSharedData (SHARED DATA MUST BE OBJECTS)
  * @param {boolean} mergeData - if true (default), will merge the new data with the existing data, if false, will fully overwrite
  * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
  * @returns {any} returns the result of the runJavaScript call, which in this case is typically identical to the data passed
  * ...and so can probably be ignored
  */
-export async function updateGlobalSharedData(data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): any {
+export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): Promise<any> {
   let newData
-  const currentData = await getGlobalSharedData(varName)
+  const currentData = await getGlobalSharedData(windowId, varName)
   if (currentData === undefined) {
     logDebug(`updateGlobalSharedData`, `Variable ${varName} was not defined (creating it now)...ignore the WebView error above ^^^`)
-    await HTMLView.runJavaScript(`let ${varName} = {};`) // create the global var if it doesn't exist
+    await HTMLView.runJavaScript(`let ${varName} = {};`, windowId) // create the global var if it doesn't exist
   }
   if (mergeData) {
     newData = { ...currentData, ...data }
@@ -1345,19 +743,19 @@ export async function updateGlobalSharedData(data: any, mergeData: boolean = tru
   // logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
   const code = `${varName} = JSON.parse(${JSON.stringify(newData)});`
   logDebug(pluginJson, `updateGlobalSharedData code=\n${code}\n`)
-  //FIXME: Is this still throwing an error?
   logDebug(pluginJson, `updateGlobalSharedData FIXME: Is this still throwing an error? ^^^`)
-  return await HTMLView.runJavaScript(code)
+  return await HTMLView.runJavaScript(code, windowId)
 }
 
 /**
  * Send a warning message to the HTML window (displays a warning message at the top of page)
- * @param {string} message
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
+ * @param {string} message - the message to be displayed
  * @param {string} color https://www.w3schools.com/w3css/w3css_colors.asp
  * @param {string} border (left vertical stripe border of box) https://www.w3schools.com/w3css/w3css_colors.asp
  */
-export async function sendBannerMessage(message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
-  return await sendToHTMLWindow('SHOW_BANNER', { warn: true, msg: message, color, border })
+export async function sendBannerMessage(windowId: string, message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
+  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border })
 }
 
 // add basic ***bolditalic*** styling
@@ -1365,7 +763,7 @@ export async function sendBannerMessage(message: string, color: string = 'w3-pal
 // add basic *italic* or _italic_ styling
 export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
-  const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, "g")
+  const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, 'g')
   let captures = output.matchAll(RE_BOLD_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -1375,7 +773,7 @@ export function convertBoldAndItalicToHTML(input: string): string {
   }
 
   // add basic **bold** or __bold__ styling
-  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, "g")
+  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, 'g')
   captures = output.matchAll(RE_BOLD_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -1386,7 +784,7 @@ export function convertBoldAndItalicToHTML(input: string): string {
 
   // add basic *italic* or _italic_ styling
   // Note: uses a simplified regex that needs to come after bold above
-  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, "g")
+  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, 'g')
   captures = output.matchAll(RE_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -1417,16 +815,15 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 
 // Simplify embedded images of the form ![image](...) by replacing with an icon.
 // (This also helps remove false positives for ! priority indicator)
-// FIXME: the leading ! is not getting removed from output for some reason
 export function simplifyInlineImagesForHTML(input: string): string {
   let output = input
   const captures = output.match(/!\[image\]\([^\)]+\)/g)
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
-      logInfo(`simplifyInlineImagesForHTML`, capture)
+      logDebug(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      logInfo(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output
@@ -1438,7 +835,7 @@ export function convertHashtagsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
@@ -1451,18 +848,17 @@ export function convertHashtagsToHTML(input: string): string {
   return output
 }
 
-// Display mentions with .attag style
+// Display mentions with .attag style. Now includes also parts in brackets directly after it.
 // Note: need to make only one capture group, and use 'g'lobal flag
 export function convertMentionsToHTML(input: string): string {
-
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60})(\(.*?\))?)/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {
-      const match = capture//[2] // part from @
+      const match = capture //[2] // part from @
       output = output.replace(match, `<span class="attag">${match}</span>`)
     }
   }
@@ -1501,13 +897,28 @@ export function convertHighlightsToHTML(input: string): string {
   return output
 }
 
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// WARNING: can't be used from React, as this calls a DataStore function
+export function convertTimeBlockToHTML(input: string): string {
+  let output = input
+  if (isTimeBlockLine(input)) {
+    const timeBlockPart = getTimeBlockString(input)
+    logDebug(`found time block '${timeBlockPart}'`)
+    output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  }
+  return output
+}
+
 // Display underlined with .underlined style
-// TODO: is regex tight enough?
+// TODO: regex isn't quite right. But can't get original one to work for reasons I can't understand
+// But does cope with lone ~ in URLs
 export function convertUnderlinedToHTML(input: string): string {
   let output = input
-  const captures = output.match(/~.*?~/g)
+  // const captures = output.match(/(?:[\s^])~.*?~(?:[\s$])/g)
+  const captures = output.match(/~[\w\-'"]*?~/g)
   if (captures) {
-    // clo(captures, 'results from underlined matches:')
+    clo(captures, 'results from underlined matches:')
     for (const capture of captures) {
       const match = capture
       output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
@@ -1516,8 +927,22 @@ export function convertUnderlinedToHTML(input: string): string {
   return output
 }
 
-export function convertNPBlockIDToHTML(input: string): string {
+// Display strike text with .strikethrough style
+//
+export function convertStrikethroughToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/~~.*?~~/g)
+  if (captures) {
+    // clo(captures, 'results from strikethrough matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="strikethrough">${match.slice(2, -2)}</span>`)
+    }
+  }
+  return output
+}
 
+export function convertNPBlockIDToHTML(input: string): string {
   // Replace blockID sync indicator with icon
   // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
   let output = input
@@ -1532,34 +957,68 @@ export function convertNPBlockIDToHTML(input: string): string {
 }
 
 /**
- * Truncate visible part of HTML string, without breaking the HTML tags
+ * Truncate visible part of HTML string, without breaking the HTML tags, or markdown links.
  * @param {string} htmlIn
  * @param {number} maxLength of output
  * @param {boolean} dots - add ellipsis to end?
  * @returns {string} truncated HTML
+ * TODO: write tests for this
  */
 export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
-  let holdCounter = false
+  let inHTMLTag = false
+  let inMDLink = false
   let truncatedHTML = ''
-  let limit = maxLength
+  let lengthLeft = maxLength
   for (let index = 0; index < htmlIn.length; index++) {
-    if (!limit || limit === 0) {
+    if (!lengthLeft || lengthLeft === 0) {
+      // no lengthLeft: stop processing
       break
     }
-    if (htmlIn[index] === '<') {
-      holdCounter = true
+    if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
+      // if we've started an HTML tag stop counting
+      // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
+      inHTMLTag = true
     }
-    if (!holdCounter) {
-      limit--
+    if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
+      // if we've started a MD link tag stop counting
+      // logDebug('truncateHTML', `started MD link at ${String(index)}`)
+      inMDLink = true
     }
-    if (htmlIn[index] === '>') {
-      holdCounter = false
+    if (!inHTMLTag && !inMDLink) {
+      lengthLeft--
+    }
+    if (htmlIn[index] === '>' && inHTMLTag) {
+      // logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
+      inHTMLTag = false
+    }
+    if (htmlIn[index] === ')' && inMDLink) {
+      // logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
+      inMDLink = false
     }
     truncatedHTML += htmlIn[index]
   }
   if (dots) {
-    truncatedHTML = truncatedHTML + ' …'
+    truncatedHTML = `${truncatedHTML} …`
   }
   // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
+}
+
+/**
+ * Make HTML for a real button that is used to call a plugin's command, by sending params for a invokePluginCommandByName() call
+ * Note: follows earlier makeRealCallbackButton()
+ * @param {string} buttonText to display on button
+ * @param {string} pluginName of command to call
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string} commandArgs (may be empty)
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const output = tooltipText
+    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(
+        commandArgs,
+      )}">${buttonText}</button>`
+    : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
+  return output
 }

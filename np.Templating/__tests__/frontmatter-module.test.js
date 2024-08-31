@@ -1,8 +1,9 @@
 /* eslint-disable */
+// @flow
 
 import colors from 'chalk'
 import FrontmatterModule from '../lib/support/modules/FrontmatterModule'
-import { getAttributes, getBody } from '../lib/support/modules/FrontmatterModule'
+import { getAttributes, getBody, getSanitizedFmParts } from '@helpers/NPFrontMatter'
 
 import { factory } from './testUtils'
 
@@ -225,28 +226,6 @@ describe(`${PLUGIN_NAME}`, () => {
 
         expect(result).toEqual(newNote)
       })
-    })
-  })
-
-  describe(section('FrontmatterModule Helpers'), () => {
-    it(`should return attributes using ${method('attributes')}`, async () => {
-      const data = await factory('frontmatter-extended.ejs')
-
-      const result = getAttributes(data)
-
-      expect(typeof result).toEqual('object')
-      expect(result?.title).toEqual('Test Sample')
-      expect(result?.name).toEqual('Mike Erickson')
-    })
-
-    it(`should return attributes using ${method('body')}`, async () => {
-      const data = await factory('frontmatter-extended.ejs')
-
-      const result = getBody(data)
-
-      expect(typeof result).toEqual('string')
-      expect(result).toContain('<%= name %>')
-      expect(result).not.toContain('title: Test Sample')
     })
   })
 })

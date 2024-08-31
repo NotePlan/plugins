@@ -4,15 +4,12 @@
 //-----------------------------------------------------------------------------
 
 import { getDateStringFromCalendarFilename } from './dateTime'
-import { clo, logDebug, logError, logWarn } from './dev'
-import {
-  RE_MARKDOWN_LINK_PATH_CAPTURE,
-  RE_NOTELINK_G,
-  RE_SIMPLE_URI_MATCH,
-} from '@helpers/regex'
+import { clo, logDebug, logError, logInfo, logWarn } from './dev'
+import { getElementsFromTask } from './sorting'
+import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
 import { stripLinksFromString } from '@helpers/stringTransforms'
-
 //-----------------------------------------------------------------------------
+
 /**
  * Perform substring match, ignoring case
  * Note: COPY TO AVOID CIRCULAR DEPENDENCY
@@ -35,9 +32,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
 export function isTermInURL(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
   const searchStringWithoutURL = stripLinksFromString(searchString)
-  const success = caseInsensitiveSubstringMatch(term, searchStringWithoutURL)
-    ? false
-    : RE_SIMPLE_URI_MATCH.test(searchString)
+  const success = caseInsensitiveSubstringMatch(term, searchStringWithoutURL) ? false : RE_SIMPLE_URI_MATCH.test(searchString)
 
   // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(success)}`)
   return success
@@ -52,27 +47,26 @@ export function isTermInURL(term: string, searchString: string): boolean {
  */
 export function isTermInNotelinkOrURI(input: string, term: string): boolean {
   if (term === '') {
-    logDebug(`isTermInNotelinkOrURI`, `empty search term`)
+    logWarn(`isTermInNotelinkOrURI`, `empty search term`)
     return false
   }
   if (input === '') {
-    logDebug(`isTermInNotelinkOrURI`, `empty input string to search`)
+    logWarn(`isTermInNotelinkOrURI`, `empty input string to search`)
     return false
   }
   // Where is the term in the input?
   const index = input.indexOf(term)
   if (index < 0) {
-    logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
+    // logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
     return false
   }
   // Find any [[...]] ranges
   const matches = input.matchAll(RE_NOTELINK_G)
   if (matches) {
     for (const match of matches) {
-      clo(match)
       const rangeStart = match.index
       const rangeEnd = match.index + match[0].length
-      logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
+      // logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
       if (index >= rangeStart && index <= rangeEnd) {
         return true
       }
@@ -124,6 +118,18 @@ export function rangeToString(r: TRange): string {
 }
 
 /**
+ * Pretty print range information
+ * Note: This is a copy of what's in general.js to avoid circular dependency.
+ * @author @EduardMe
+ */
+export function contentRangeToString(content: string, r: TRange): string {
+  if (r == null) {
+    return 'Range is undefined!'
+  }
+  return `${content.slice(r.start, r.end + 1)} [${r.start}-${r.end}]`
+}
+
+/**
  * Return title of note useful for display, including for
  * - daily calendar notes (the YYYYMMDD)
  * - weekly notes (the YYYY-Wnn)
@@ -137,12 +143,13 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
- * Convert paragraph(s) to single raw text string
+ * Convert paragraph(s) to single raw text string that can be used to add multiple lines in a single API call,
+ * without losing indents.
  * @author @jgclark
  *
  * @param {[TParagraph]} paras - array of paragraphs
@@ -210,6 +217,7 @@ export function smartAppendPara(note: TNote, paraText: string, paragraphType: Pa
  * Prepends text to a chosen note, but more smartly than usual.
  * I.e. if the note starts with YAML frontmatter
  * or a metadata line (= starts with a hashtag), then add after that.
+ * Note: see smartPrependParas that works on multiple lines
  * @author @jgclark
  *
  * @param {TNote} note - the note to prepend to
@@ -222,9 +230,52 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
 }
 
 /**
+ * TEST:
+ * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
+ * I.e. if the note starts with YAML frontmatter
+ * or a metadata line (= starts with a hashtag), then add after that.
+ * Note: does work on a single line too
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to prepend to
+ * @param {Array<string>} paraTextArr - an array of text to prepend
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
+ */
+export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  // Get the smarter insertion point
+  const firstInsertionLine = findStartOfActivePartOfNote(note)
+  logDebug('paragraph/smartPrependParas', `inserting ${String(paraTextArr.length)} paras; firstInsertionLine = ${firstInsertionLine}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/smartPrependParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], firstInsertionLine + i, paraTypeArr[i])
+  }
+}
+
+/**
+ * TEST: 
+ * Insert multiple lines of text to a chosen note, as separate paragraphs
+ * Note: does work on a single line too
+ * @author @jgclark
+ * @param {TNote} note - the note to prepend to
+ * @param {number} insertionIndex - the line to insert the text at
+ * @param {Array<string>} paraTextArr - an array of text to prepend
+ * @param {Array<ParagraphType>} paragraphTypeArr - a matching array of the type of the paragraphs to prepend
+ */
+export function insertParas(note: TNote, insertionIndex: number, paraTextArr: Array<string>, paraTypeArr: Array<ParagraphType>): void {
+  logDebug('paragraph/insertParas', `inserting ${String(paraTextArr.length)} paras; starting at line = ${insertionIndex}`)
+  // Insert the text as paragraphs from this point
+  for (let i = 0; i < paraTextArr.length; i++) {
+    logDebug('paragraph/insertParas', `- ${String(i)}: "${paraTextArr[i]}" type ${paraTypeArr[i]}`)
+    note.insertParagraph(paraTextArr[i], insertionIndex + i, paraTypeArr[i])
+  }
+}
+
+/**
  * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
+ * A task/checklist item marks the end of the frontmatter-like section.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * Note: Really should live in helpers/NPParagraph.js, but that introduces a circular dependency, so leaving here.
  * @author @jgclark
@@ -239,7 +290,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
-      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      logInfo(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
       note.appendParagraph('', 'empty')
       return 0
     }
@@ -255,42 +306,41 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
         startOfActive = 0
       }
     } else {
-      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
+      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
       startOfActive = endOfFMIndex + 1
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
     if (paras.length === startOfActive) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
       note.appendParagraph('', 'empty')
       paras = note.paragraphs
+      startOfActive = paras.length
     }
 
-    // logDebug('paragraph/findStartOfActivePartOfNote', `allowPreamble? ${String(allowPreamble)}`)
+    // logDebug('paragraph/findStartOfActivePartOfNote', `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'}`)
     // Additionally, skip past any front-matter-like section in a project note,
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
-    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator also stops the search.
-    if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/) || allowPreamble) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, or we want to allow preamble, so trying to find next heading or blank line`)
-      startOfActive += 1
+    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
+    if (allowPreamble || (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
+      // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
+      // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
-        if (p.type === 'separator' || p.type === 'empty') {
+        if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
+          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
+          startOfActive = i
+          break
+        } else if (p.type === 'separator' || p.type === 'empty') {
+          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
           startOfActive = i + 1
           break
         }
-        // if (p.type === 'title' || p.type === 'empty') {
-        if (p.type === 'title') {
-          startOfActive = i
-          break
-        }
-        // logDebug('paragraph/findStartOfActivePartOfNote', `  - no title/separator/empty found`)
       }
-      // logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
     }
     return startOfActive
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -309,10 +359,10 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
  */
 export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   try {
-  const paras = note.paragraphs
-  let lineCount = paras.length
+    const paras = note.paragraphs
+    let lineCount = paras.length
 
-  // If no lines, return 0
+    // If no lines, return 0
     if (lineCount === 0) {
       return 0
     } else {
@@ -341,8 +391,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
       return endOfActive
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -350,6 +399,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 
 /**
  * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
+ * Now
  * TODO: Move to NPFrontMatter.js ?
  * @author @jgclark
  * @param {TNote} note - the note to assess
@@ -357,32 +407,34 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
  */
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   try {
-  const paras = note.paragraphs
-  const lineCount = paras.length
-  // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
-  if (paras.filter((p) => p.type === 'separator').length < 2) {
-    // can't have frontmatter as less than 2 separators
-    return 0
-  }
-  let inFrontMatter: boolean = false
-  let lineIndex = 0
+    const paras = note.paragraphs
+    const lineCount = paras.length
+    // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+    // Can't have frontmatter as less than 2 separators
+    if (paras.filter((p) => p.type === 'separator').length < 2) {
+      return 0
+    }
+    // No frontmatter if first line isn't ---
+    if (note.paragraphs[0].type !== 'separator') {
+      return 0
+    }
+    // No frontmatter if less than 3 lines
+    if (note.paragraphs.length <= 3) {
+      return 0
+    }
+    // Look for second --- line
+    let lineIndex = 1
     while (lineIndex < lineCount) {
       const p = paras[lineIndex]
       if (p.type === 'separator') {
-        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `  - ${String(lineIndex)}: ${String(inFrontMatter)}: ${p.type}`)
-        if (!inFrontMatter) {
-          inFrontMatter = true
-        } else {
-          inFrontMatter = false
-          // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> ${String(lineIndex)}`)
-          return lineIndex
-        }
+        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
+        return lineIndex
       }
       lineIndex++
     }
+    // Shouldn't get here ...
     return 0
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -475,32 +527,97 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
 }
 
 /**
- * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
- * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
+ * Get number of consecutive '!' in 'content' that aren't at the start/end of a word, or preceding a '['
+ * From 3.9.4 there are also `>>` working-on markers at the start of 'content', which are treated as priority 4.
  * @param {string} content
- * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
+ * @returns {string} number of !, or 4 if line is flagged as 'working-on', or -1
  */
 export function getTaskPriority(content: string): number {
   let numExclamations = 0
   if (content.match(/\B\!+\B(?!\[)/)) {
+    // not in middle of word, or starting an image tag
     // $FlowIgnore[incompatible-use]
     numExclamations = content.match(/\B\!+\B/)[0].length
     return numExclamations
   }
   if (content.match(/^>>/)) {
-    return 5
+    return 4
   }
-  return -1
+  return 0
 }
 
 /**
- * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
- * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
+ * Remove task Priority Indicators (!, !!, !!!, >>) from content, though not starting an image tag, or at start/end of a word
  * @param {string} content
  * @returns {string} content minus any priority indicators
  */
 export function removeTaskPriorityIndicators(content: string): string {
-  let output = content.replace(/\B\!+\B(?!\[)/g, '') // anywhere in line, but not starting an image tag
+  let output = content.replace(/\B\!+\B(?!\[)/g, '') // not in middle of word, or starting an image tag
   output = output.replace(/^>>\s?/, '') // start of line only
   return output
+}
+
+/**
+ * Change the priority in a task to '!', '!!', '!!!', '>>' (or remove priority)
+ * @author @dwertheimer updated by @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @param {string} priorityString - the new priority (!,!!,!!! or '' for none)
+ * @param {boolean} - commit the change after the change is made (default false)
+ * @returns {string} the resulting updated paragraph's content
+ * Note: If the third param is missing or false, THE CHANGE HAS NOT BEEN COMMITTED YET. You should use note.updateParagraph(s) to commit the change you receive back.
+ * Note: Ideally lives in NPParagraph.js, but putting it here avoids a circular dependency
+ */
+export function changePriority(inputPara: TParagraph, prioStr: string, commitChange?: boolean = false): string {
+  const outputPara = inputPara
+  outputPara.content = outputPara.content.replace(/!\s*/g, '').replace(/\s+!/g, '').replace(/^>>\s/, '')
+  outputPara.content = `${prioStr ? `${prioStr} ` : ''}${outputPara.content}`.trim()
+  commitChange && outputPara.note ? outputPara.note.updateParagraph(outputPara) : null
+  return outputPara.content
+}
+
+const PRIORITY_LEVELS = ['', '!', '!!', '!!!', '>>']
+
+/**
+ * Cycle the priority level of a task up: none -> ! -> !! -> !!! -> >> -> none
+ * Written originally to suit a single UI window in the Dashboard.
+ * @author @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @returns {string} the resulting updated paragraph's content
+ */
+export function cyclePriorityStateUp(input: TParagraph): string {
+  const currentPriorityLevel = getTaskPriority(input.content)
+  const newPriorityLevel = (currentPriorityLevel + 1) % 5
+  return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
+}
+
+/**
+ * Cycle the priority level of a task down: none -> >> -> !!! -> !! -> ! -> none
+ * Written for the Dashboard.
+ * @author @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @returns {string} the resulting updated paragraph's content
+ */
+export function cyclePriorityStateDown(input: TParagraph): string {
+  const currentPriorityLevel = getTaskPriority(input.content)
+  const newPriorityLevel = (currentPriorityLevel - 1) % 5
+  return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
+}
+
+export type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
+
+// These Regexes are different from the ones in taskHelpers because they include the # or @
+export const HASHTAGS: RegExp = /\B(#[a-zA-Z0-9\/]+\b)/g
+export const MENTIONS: RegExp = /\B(@[a-zA-Z0-9\/]+\b)/g
+
+/**
+ * Takes in a string and returns an object with arrays of #hashtags and @mentions (including the @ and # characters)
+ * @param {string} content : ;
+ * @param {boolean} includeSymbol : if true, includes the @ and # characters in the returned values, if false, it does not [default: true];
+ * @returns {TagsList} {hashtags: [], mentions: []}
+ */
+
+export function getTagsFromString(content: string, includeSymbol: boolean = true): TagsList {
+  const hashtags = getElementsFromTask(content, HASHTAGS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
+  const mentions = getElementsFromTask(content, MENTIONS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
+  return { hashtags, mentions }
 }

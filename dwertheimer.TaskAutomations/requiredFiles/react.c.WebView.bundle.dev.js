@@ -43081,6 +43081,7 @@ var WebViewBundle = (function (exports, React$1) {
 
 	const isDark = bgColor => chroma(bgColor).luminance() < 0.5;
 	const isLight = bgColor => !isDark(bgColor);
+	const sortByDaysOverdue = (a, b) => a.daysOverdue - b.daysOverdue;
 
 	/**
 	 * Calculate a lightly-offset altColor based on the background color
@@ -43185,8 +43186,10 @@ var WebViewBundle = (function (exports, React$1) {
 	    base.push({
 	      name: 'Due in',
 	      selectorName: 'daysOverdue',
-	      selector: row => `${row.daysOverdue.toLocaleString()}d`,
-	      sortable: true
+	      selector: row => typeof row.daysOverdue === 'number' ? `${row.daysOverdue?.toFixed()}d` : '',
+	      sortable: true,
+	      sortFunction: sortByDaysOverdue,
+	      defaultSort: true
 	    });
 	  }
 	  return base;
@@ -43286,7 +43289,7 @@ var WebViewBundle = (function (exports, React$1) {
 	  },
 	  rows: {
 	    style: {
-	      minHeight: '64px',
+	      minHeight: '44px',
 	      // override the row height
 	      backgroundColor: NP_THEME.base.backgroundColor,
 	      color: NP_THEME.base.textColor,
@@ -43484,7 +43487,7 @@ var WebViewBundle = (function (exports, React$1) {
 	const bgColor = chroma(NP_THEME.base.backgroundColor);
 	const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black';
 	const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css();
-	chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css();
+	// const mixedBG = chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css()
 	const colourStyles = {
 	  /* size of the control, but colors don't seem to do anything */
 	  clearIndicator: styles => ({
@@ -43637,33 +43640,6 @@ var WebViewBundle = (function (exports, React$1) {
 	  });
 	}
 
-	function _extends() {
-	  _extends = Object.assign ? Object.assign.bind() : function (target) {
-	    for (var i = 1; i < arguments.length; i++) {
-	      var source = arguments[i];
-	      for (var key in source) {
-	        if (Object.prototype.hasOwnProperty.call(source, key)) {
-	          target[key] = source[key];
-	        }
-	      }
-	    }
-	    return target;
-	  };
-	  return _extends.apply(this, arguments);
-	}
-
-	/**
-	 * Basic button using w3.css
-	 * @param {*} props
-	 * @returns a simple w3 styled button
-	 */
-	function Button(props) {
-	  const className = props.className ?? 'w3-btn w3-white w3-border w3-border-blue w3-round';
-	  return /*#__PURE__*/React.createElement("button", _extends({
-	    className: className
-	  }, props), props.children);
-	}
-
 	function TypeFilter(props) {
 	  const {
 	    options,
@@ -43716,6 +43692,33 @@ var WebViewBundle = (function (exports, React$1) {
 	  return elements;
 	};
 
+	function _extends() {
+	  _extends = Object.assign ? Object.assign.bind() : function (target) {
+	    for (var i = 1; i < arguments.length; i++) {
+	      var source = arguments[i];
+	      for (var key in source) {
+	        if (Object.prototype.hasOwnProperty.call(source, key)) {
+	          target[key] = source[key];
+	        }
+	      }
+	    }
+	    return target;
+	  };
+	  return _extends.apply(this, arguments);
+	}
+
+	/**
+	 * Basic button using w3.css
+	 * @param {*} props
+	 * @returns a simple w3 styled button
+	 */
+	function Button(props) {
+	  const className = props.className ?? 'w3-btn w3-white w3-border w3-border-blue w3-round';
+	  return /*#__PURE__*/React.createElement("button", _extends({
+	    className: className
+	  }, props), props.children);
+	}
+
 	/**
 	 * Context menu bar with buttons and a reschedule component
 	 * @param {*} props (see below)
@@ -43733,7 +43736,7 @@ var WebViewBundle = (function (exports, React$1) {
 	  const buttonContainerStyle = buttonType === 'multi' ? {
 	    flexGrow: 1
 	  } : {
-	    paddingLeft: '85px'
+	    paddingLeft: '3px'
 	  }; // for single, add padding to the left b/c there is no reschedule component
 	  //   useEffect(keyListener, [])
 	  return /*#__PURE__*/React.createElement("div", {
@@ -43814,19 +43817,20 @@ var WebViewBundle = (function (exports, React$1) {
 	   ****************************************************************************************************************************/
 
 	  // destructure all the startup data we expect from the plugin
+	  let {
+	    overdueParas
+	  } = data;
 	  const {
-	    columns,
-	    overdueParas,
 	    title,
 	    dropdownOptionsAll,
 	    dropdownOptionsLine,
 	    contextButtons,
-	    returnPluginCommand,
 	    debug,
 	    autoSelectNext = true,
 	    showDaysTilDueColumn = false
 	  } = data;
-	  const nonOmittedRows = data.overdueParas.filter(row => !row.omit).filter(rowFilter);
+	  overdueParas = overdueParas.sort(sortByDaysOverdue);
+	  const nonOmittedRows = overdueParas.filter(row => !row.omit).filter(rowFilter);
 	  // const displayRows = [...nonOmittedRows.filter((row) => !row.highlight), ...nonOmittedRows.filter((row) => row.highlight)]
 	  const displayRows = nonOmittedRows; // don't highlight rows for now (we will move them to 'Processed' status instead)
 
@@ -43851,7 +43855,7 @@ var WebViewBundle = (function (exports, React$1) {
 	   */
 	  const sendToPlugin = ([command, data, additionalDetails = '']) => {
 	    if (!command) throw new Error('sendToPlugin: command must be called with a string');
-	    logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails);
+	    logDebug(`Webview: sendToPlugin: command:${JSON.stringify(command)} details:${additionalDetails} data:${JSON.stringify(data)}`, command, data, additionalDetails);
 	    if (!data) throw new Error('sendToPlugin: data must be called with an object');
 	    dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`);
 	  };
@@ -43879,7 +43883,7 @@ var WebViewBundle = (function (exports, React$1) {
       return `${String(id)}=>(${JSON.stringify(rest)})`;
     }).join(', ')} ]`;
 	    changes.forEach(change => {
-	      logDebug(`Webview: updateTableData: change:${JSON.stringify(change, null, 2)}`, change, data.overdueParas);
+	      logDebug(`Webview: updateTableData: change:${JSON.stringify(change)}`, change, data.overdueParas);
 	      tableData[change.id] = {
 	        ...tableData[change.id],
 	        ...change
@@ -43892,14 +43896,14 @@ var WebViewBundle = (function (exports, React$1) {
 	  /**
 	   * Set a row's .highlight to true
 	   */
-	  const highlightRow = React__default["default"].useCallback(rowID => {
-	    logDebug(`Webview: highlightRow ${rowID}`);
-	    updateTableData({
+	  const highlightRow = (rowID, shouldHideAfter) => {
+	    logDebug(`Webview: highlightRow ${rowID}; shouldHideAfter=${String(shouldHideAfter)} ${shouldHideAfter ? '(set to Processed & hiding)' : ''}`);
+	    shouldHideAfter ? updateTableData({
 	      id: rowID,
 	      overdueStatus: 'Processed'
-	    });
+	    }) : '';
 	    // updateTableData({ id: rowID, highlight: true })
-	  }, [data]);
+	  };
 
 	  // const resetScrollEffect = ({ element, top }) => {
 	  //   element.current.getScrollableNode().children[0].scrollTop = top
@@ -43930,8 +43934,9 @@ var WebViewBundle = (function (exports, React$1) {
 	   */
 	  React$1.useEffect(() => {
 	    let changes = false;
-	    const tableData = data.overdueParas.map((p, i) => {
+	    const tableData = overdueParas.map((p, i) => {
 	      if (typeof p.id === 'undefined') {
+	        // logDebug(`Webview: add id to data: ${i} ${JSON.stringify(p)}`)
 	        changes = true;
 	        return {
 	          ...p,
@@ -43987,6 +43992,16 @@ var WebViewBundle = (function (exports, React$1) {
 	  }, [data]);
 
 	  /**
+	   * Some actions should not hide the row after the action is processed (e.g. updating priority)
+	   */
+	  const shouldHideAfter = React__default["default"].useCallback(action => {
+	    if (/__p\d__/.test(action)) {
+	      return false;
+	    }
+	    return true;
+	  }, []);
+
+	  /**
 	   * Highlight the rows and send the data to the plugin
 	   * @param {number[]} rowIDs - array of row ids to highlight (and potentially omit)
 	   * @param {string} action - a string action to send to the plugin to identify this type of action, e.g. 'highlight'
@@ -43994,8 +44009,8 @@ var WebViewBundle = (function (exports, React$1) {
 	   * @param {milliseconds|false} omitAfter - whether to omit the rows from view afterwards (false = don't omit, a number = omit after that many milliseconds)
 	   */
 	  const highlightAndSend = React__default["default"].useCallback((rowIDs, action, objectToSend, omitAfter = null) => {
-	    logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend`);
-	    rowIDs.forEach(rowID => highlightRow(rowID)); // highlight the rows immediately
+	    logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend=${JSON.stringify(objectToSend)}`);
+	    rowIDs.forEach(rowID => highlightRow(rowID, shouldHideAfter(objectToSend.choice))); // highlight the rows immediately
 	    // do now
 	    sendToPlugin(['actionDropdown', objectToSend, objectToSend.choice || '']); // send the data to the plugin immediately
 	    // do later - omit/hide the rows after a brief delay
@@ -44013,7 +44028,7 @@ var WebViewBundle = (function (exports, React$1) {
 	   * @param {{label:string,value:string}} dropdownSelected
 	   */
 	  const onDropdownItemSelected = React__default["default"].useCallback((rowID, itemSelected) => {
-	    logDebug(`Webview: onDropdownItemSelected: row:${rowID} itemSelected:`, itemSelected);
+	    logDebug(`Webview: onDropdownItemSelected: row:${rowID} itemSelected: ${JSON.stringify(itemSelected)}`);
 	    if (isNaN(rowID)) throw new Error(`rowID is not a number: ${rowID} (${typeof rowID})`);
 	    if (!itemSelected.value) throw new Error(`itemSelected.value is not defined: ${itemSelected.value} (${typeof itemSelected.value})`);
 	    const action = itemSelected.value;
@@ -44053,7 +44068,7 @@ var WebViewBundle = (function (exports, React$1) {
 	        choice: action,
 	        rows: selectedRows
 	      };
-	      logDebug(`Webview: multiSetHandler dataToSend=${JSON.stringify(dataToSend, null, 2)}`, dataToSend);
+	      logDebug(`Webview: multiSetHandler dataToSend=${JSON.stringify(dataToSend)}`, dataToSend);
 	      highlightAndSend(selectedRows.map(s => s.id), 'actionDropdown', dataToSend, true);
 	      // sendToPlugin(['actionDropdown', dataToSend])
 	      // // set omit to true for all selected rows
@@ -44139,7 +44154,7 @@ var WebViewBundle = (function (exports, React$1) {
 	      // const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
 	      // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus }))) // change the status immediately
 	      if (highlight) {
-	        highlightRow(rowID);
+	        highlightRow(rowID, true);
 	        // set a row to highlighted for a brief time before debounce takes it out (with .omit=true)
 	        // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: false, highlight: true })))
 	      }
@@ -44168,7 +44183,7 @@ var WebViewBundle = (function (exports, React$1) {
 	   * @returns
 	   */
 	  function decodeHTMLEntities(text) {
-	    var textArea = document.createElement('textarea');
+	    const textArea = document.createElement('textarea');
 	    textArea.innerHTML = text;
 	    const decoded = textArea.value;
 	    return decoded;
@@ -44192,9 +44207,9 @@ var WebViewBundle = (function (exports, React$1) {
 	    field,
 	    value
 	  }) => {
-	    logDebug(`Webview: contentUpdated (actual edited paragraph.onInput) id=${id}, field=${field}, value=${value}`);
 	    // updateTableData([{ id, [field]: decodeHTMLEntities(value) }])
 	    const decodedValue = decodeHTMLEntities(value);
+	    logDebug(`Webview: contentUpdated (actual edited paragraph.onInput) id=${id}, field=${field}, value=${decodedValue}`);
 	    data.overdueParas[id][field] = decodedValue;
 	    editableDebounced(id, field, decodedValue);
 	    // updateTableDataAfterDebounce(3000)([{ id, [field]: decodeHTMLEntities(value) }])
@@ -44268,9 +44283,9 @@ var WebViewBundle = (function (exports, React$1) {
 	  const handleTypeFilterChange = React__default["default"].useCallback(({
 	    value
 	  }) => {
-	    filterValue.current = value;
-	    setFilter(value);
 	    logDebug(`WebView:handleTypeFilterChange: ${value}`);
+	    filterValue ? filterValue.current = value : logDebug(`WARNING: WebView:handleTypeFilterChange: filterValue is undefined`);
+	    setFilter(value);
 	  }, []);
 	  // Filter callback for filtering items based on current filterValue
 	  function rowFilter(row) {
@@ -44438,6 +44453,8 @@ var WebViewBundle = (function (exports, React$1) {
 	    allowOverflow: true,
 	    grow: 2
 	  }];
+	  // find the columns item that has defaultSort set to true
+	  const sortIndexCol = mainTableColumns.findIndex(c => c.defaultSort) + 1 || 4; // 1-indexed column number
 
 	  /****************************************************************************************************************************
 	   *                             ABANDONED CODE
@@ -44483,6 +44500,8 @@ var WebViewBundle = (function (exports, React$1) {
 	    highlightOnHover: true,
 	    overflowY: false,
 	    columns: mainTableColumns,
+	    defaultSortFieldId: sortIndexCol // dbw: added defaultSort:true to the column spec
+	    ,
 	    data: displayRows,
 	    selectableRows: true,
 	    onSelectedRowsChange: onSelectionCheck,
@@ -44516,6 +44535,12 @@ var WebViewBundle = (function (exports, React$1) {
 	    */
 	  })));
 	}
+
+	// const Checkbox = (props) => {
+	//   logDebug(`Webview: Checkbox props=`, props)
+	//   const { onChange, onClick } = props
+	//   return <input className="w3-check" onChange={onChange} onClick={onClick} type="checkbox" checked="checked" />
+	// }
 
 	exports.WebView = WebView;
 

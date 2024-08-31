@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// Last updated 7.7.2023 for v0.6.0
+// Last updated 7.6.2024 for v0.7.1
 //-----------------------------------------------------------------------------
 // allow changes in plugin.json to trigger recompilation
 
@@ -10,11 +10,11 @@ import pluginJson from '../plugin.json'
 import { logDebug, logError, logInfo, JSP } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { showMessage } from '@helpers/userInput'
+// import { showMessage } from '@helpers/userInput'
 
 const pluginID = "jgclark.RepeatExtensions"
 
-export { repeats, onEditorWillSave } from './repeatExtensions'
+export { generateRepeats, onEditorWillSave } from './main'
 
 export function init(): void {
   try {

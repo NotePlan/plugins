@@ -1,10 +1,12 @@
 # Readwise Unofficial Noteplan Plugin
 
-## About This Plugin 
+## About This Plugin
 
 A sync engine for readwise
 
 ### Features
+
+- Daily review's via templates
 - Full highlight download
 - Highlight updates
 - Tags
@@ -12,17 +14,20 @@ A sync engine for readwise
 - Set download folder
 - Front matter support
 - NotePlan tags
-### Todo
-* Index note
-* Image support (needs Noteplan API update)
-* Ability to get random note via templates
 
-### Known issues:
+![General features](docs/ReadwiseSync.png)
+
+### Todo
+
+- Index note
+- Image support (needs Noteplan API update)
+
+### Known issues
+
 - Using heading as metadata does not support tag updates
 - Images are not handled gracefully
 
-
-## Comands
+## Commands
 
 ### //Readwise sync
 
@@ -30,14 +35,25 @@ Downloads new highlights since last sync
 
 ### //Readwise rebuild
 
-** Only needs to be used if highlights are deleted) **
-Downloads all highlights (if they already exisit they will be duplicated)
+**Only needs to be used if highlights are deleted**
+Downloads all highlights (if they already exist they will be duplicated)
+
+### //Readwise Daily review
+
+Downloads daily reviews (does not mark as read) with links to note and author.
+Can be added to a note with templates using
+
+``` javascript
+<%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial") %>
+```
+
+![Daily review](docs/dailyReview.png)
 
 ## Settings
 
 These commands require configuration.
 
-### Access Token (*required)
+### Access Token (*required*)
 
 1. Go to the [Readwise](readwise.io/access_token).
 2. Copy and paste that token to plugin settings.
@@ -60,8 +76,14 @@ Group all highlights in under the readwise folder or having them separated by co
 
 ### Group supplemental highlights separately
 
-** Ignored if group by type is disabled **
-Group all highlights together or keep supplemental (readwise generated) highlights seperate.
+**Ignored if group by type is disabled**
+Group all highlights together or keep supplemental (readwise generated) highlights separate.
+
+### Sync log
+
+A note that has all highlights synced during a sync with dated references.
+
+![Sync log](docs/syncLog.png)
 
 ## Latest Updates
 

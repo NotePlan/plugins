@@ -2,7 +2,7 @@
 
 import pluginJson from '../../../plugin.json'
 import { findInconsistentNames } from '../../helpers/findInconsistentNames'
-import { newNotePath } from '../../helpers/newNotePath'
+import { newFilepathForNote } from '../../helpers/newNotePath'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { logDebug, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
@@ -19,7 +19,7 @@ export function listInconsistentNames(): void {
       const notesList = inconsistentNames
         .map((note) => {
           const currentFullPath = note.filename
-          const newPath = newNotePath(note)
+          const newPath = newFilepathForNote(note)
           return `<li><strong>${displayTitle(note)}</strong><br><pre>${currentFullPath}</pre><pre>${newPath}</pre></li>`
         })
         .join('\n')

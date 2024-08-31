@@ -3,30 +3,35 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 9.8.2023 for v0.12.2, @jgclark
+// Last updated 6.4.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
-import { getReviewSettings } from './reviewHelpers'
-import { makeFullReviewList, renderProjectLists } from './reviews'
+import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import {
+  makeFullReviewList,
+  renderProjectLists
+} from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 export {
   logFullReviewList,
   makeFullReviewList,
   startReviews,
-  nextReview,
+  // nextReview,
   finishReview,
+  finishReviewAndStartNextReview,
   skipReview,
   makeProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
   toggleDisplayFinished,
-  toggleDisplayOnlyOverdue
+  toggleDisplayOnlyDue
 } from './reviews'
 export {
   addProgressUpdate,
@@ -36,7 +41,7 @@ export {
 } from './projects'
 export {
   generateCSSFromTheme
-} from '@helpers/HTMLView'
+} from '@helpers/NPThemeToCSS'
 // export {
 //   setHTMLWinHeight,
 // } from '@helpers/NPWindows'
@@ -53,10 +58,11 @@ export {
   testCSSCircle,
   testRedToGreenInterpolation,
 } from './HTMLtests'
+export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 
 const pluginID = 'jgclark.Reviews'
 
-export async function init(): Promise<void> {
+export function init(): void {
   try {
 
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message. Do this in the background.
@@ -71,15 +77,22 @@ export async function init(): Promise<void> {
   }
 }
 
-export async function testUpdated(): Promise<void> {
-  await onUpdateOrInstall(true)
+export async function testSettingsUpdated(): Promise<void> {
+  await onSettingsUpdated()
 }
 
 export async function onSettingsUpdated(): Promise<void> {
   // Update the full - review - list in case there's a change in a relevant setting
-  const config = await getReviewSettings()
+  logDebug(pluginID, 'Have updated settings, so will recalc the review list and display...')
+  const config: ReviewConfig = await getReviewSettings()
   await makeFullReviewList(config, true)
-  await renderProjectLists(config)
+  // If v3.11+, can now refresh Dashboard
+  if (NotePlan.environment.buildVersion >= 1181) {
+    if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+      logDebug(pluginJson, `will refresh Project List as it is open`)
+      await renderProjectLists(config)
+    }
+  }
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

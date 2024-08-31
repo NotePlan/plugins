@@ -2,6 +2,63 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+
+<!-- ## Future
+- TODO: add auto-refresh? -->
+
+## [0.14.0] - 2024-07-13
+### Added
+- edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window
+- after you change settings for this plugin, it will automatically refresh the rich Project List view if its open (requires NP 3.11beta or later)
+
+### Changed
+- sizes of headings and text in the 'rich' style of Project List should better match those of text in the NP editor windows for your chosen theme
+- under the hood changes to suit Dashboard 2.0
+- changed some icons to match newer set used in the projects section of the Dashboard plugin.
+- when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
+- should now offer to install 'Shared' plugin which it depends on, if its not already installed (thanks, @Anton)
+- if there are no tasks at all in a project note, the circle display now doesn't show 0% but just a filled circle. (Edge case for @sush.)
+
+### Fixed
+- fix to edge case with getNextNoteToReview() for Dashboard plugin
+
+## [0.13.2] - 2024-03-19
+- replace the "time" that Project List was updated with a "time since"
+- clarified how the 'Folders to include in reviews' and 'Folders to ignore in reviews' settings work. (If the first is set, the second is ignored.) This also fixes project notes in the root folder being included when they shouldn't. (Reported by @dwertheimer.)
+
+## [0.13.1] - 2024-03-04
+- added new 'Theme to use in rich project lists' setting for @anton.skliar. If this is set to a valid Theme name from among those you have installed, this one will be used instead of your current one.
+- under-the-hood additions so new Dashboard 'action buttons' can work for Projects.
+- under-the-hood fix to problems in the Dashboard if Project notes in the Project List were moved or deleted.
+
+## [0.13.0] - 2023-12-26
+### Added
+- When you complete or cancel a project, and you opt to move it to the Archive, there is a new option that now will move it into the Archive replicating its existing folder structure. (This is the same thing that the Filer plugin's "/archive note using folder structure" command does, though Filer does not need to be installed to use this.)
+- When the project list is refreshed, it will now also refresh the Dashboard if it is open, as it can also show project notes waiting for review. (Requires Dashboard plugin to be installed, naturally.)
+
+### Changed
+- Now smarter about how it writes a 'project metadata line' if one isn't already present in the note.
+
+## [0.12.5] - 2023-12-22
+### Added
+- When you refresh the project list it will now keep the window's scroll position (for @anton.skliar)
+- Support for themes with headings that have coloured backgrounds (for @JohnnyWhoop)
+
+### Fixes
+- now includes relevant files from the root folder too
+
+## [0.12.4] - 2023-08-30
+### Fixes
+- re-write to allow comment lines to work again when running on macOS Big Sur
+- fix regression that meant setting "How to show completed/cancelled projects?" to "hide" didn't work.
+
+## [0.12.3] - 2023-08-22
+### Added
+- ability to run Project List window at the same time as the Dashboard window etc. (Requires NP v3.9.6.)
+### Changes
+- all the review actions (finish, skip, pause, complete and cancel) now properly update the summary list in the window, not just the underlying notes. (It had been _trying_ to do this, but I've now found the way around the problem of stale data being returned by the API 🥳.)
+- now keeps completion at 99% unless absolutely all tasks are done. Previously it rounded to the nearest %. (suggested by @bethv)
+
 ## [0.12.2] - 2023-08-09
 - fix in /start reviews and /next project review commands
 

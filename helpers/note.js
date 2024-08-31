@@ -1,26 +1,28 @@
+/* eslint-disable max-len */
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
 import moment from 'moment/min/moment-with-locales'
 import {
-  RE_PLUS_DATE_G,
   hyphenatedDate,
   hyphenatedDateString,
-  toLocaleDateString,
-  RE_DAILY_NOTE_FILENAME,
-  RE_WEEKLY_NOTE_FILENAME,
-  RE_MONTHLY_NOTE_FILENAME,
-  RE_QUARTERLY_NOTE_FILENAME,
-  RE_YEARLY_NOTE_FILENAME,
+  // toLocaleDateString,
   isDailyNote,
   isWeeklyNote,
   isMonthlyNote,
   isQuarterlyNote,
   isYearlyNote,
+  RE_DAILY_NOTE_FILENAME,
+  RE_PLUS_DATE_G,
+  RE_WEEKLY_NOTE_FILENAME,
+  RE_MONTHLY_NOTE_FILENAME,
+  RE_QUARTERLY_NOTE_FILENAME,
+  RE_YEARLY_NOTE_FILENAME,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
 import { isOpen } from '@helpers/utils'
@@ -50,7 +52,7 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
         ` >${hyphenatedDate(note.date)} `
       : dateStyle === 'date'
       ? // $FlowIgnore(incompatible-call)
-        ` (${toLocaleDateString(note.date)})`
+          ` (${toNPLocaleDateString(note.date)})`
       : dateStyle === 'at'
       ? // $FlowIgnore(incompatible-call)
         ` @${hyphenatedDate(note.date)} `
@@ -89,7 +91,7 @@ export function printNote(note: TNote): void {
 }
 
 /**
- * Open a note using whatever method works (open by title, filename, etc.)
+ * Get a note using whatever method works (open by title, filename, etc.)
  * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
  * Leaving it here for the moment in case any plugins are still using it
  * @author @dwertheimer
@@ -110,9 +112,7 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
 }
 
 /**
- * Open a note using whatever method works (open by title, filename, etc.)
- * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
- * Leaving it here for the moment in case any plugins are still using it
+ * Get a note using whatever method works (open by title, filename, etc.)
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
@@ -126,6 +126,24 @@ export function getNoteByFilename(filename: string): ?TNote {
   } else {
     logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
     return null
+  }
+}
+
+/**
+ * Get the noteType of a note from its filename
+ * @author @jgclark
+ * @param {string} filename of either Calendar or Notes type
+ * @returns {NoteType} Calendar | Notes
+ */
+export function getNoteTypeByFilename(filename: string): ?NoteType {
+  // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
+  if (newNote != null) {
+    // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    return newNote.type
+  } else {
+    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return
   }
 }
 
@@ -213,19 +231,25 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
 
 /**
  * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
+ * Optionally look in sub-folders as well.
  * @author @jgclark
  *
  * @param {string} folder - folder to scan
+ * @param {string} alsoSubFolders? - also look in subfolders under the folder name
  * @return {Array<TNote>} - list of notes
  */
-export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
+export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boolean = false): Array<TNote> {
   try {
     // logDebug('note/notesInFolderSortedByTitle', `Starting for folder '${folder}'`)
     const allNotesInFolder = DataStore.projectNotes.slice()
     let notesInFolder: Array<TNote>
     // If folder given (not empty) then filter using it
     if (folder !== '') {
-      notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      if (alsoSubFolders) {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename).startsWith(folder))
+      } else {
+        notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+      }
     } else {
       // return all project notes
       notesInFolder = allNotesInFolder
@@ -233,8 +257,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
     // Sort alphabetically on note's title
     const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
     return notesSortedByTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return []
   }
@@ -258,8 +281,7 @@ export function getUniqueNoteTitle(title: string): string {
       res = DataStore.projectNoteByTitle(newTitle, true, false)
     }
     return newTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return ''
   }
@@ -270,12 +292,12 @@ export function getUniqueNoteTitle(title: string): string {
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
- * @param {boolean} excludeSpecialFolders
+ * @param {boolean} excludeSpecialFolders?
  * @returns {Array<TNote>} wanted notes
  */
 export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
   // Get list of wanted folders
-  const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
+  const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
 
   // Iterate over all project notes and keep the notes in the wanted folders ...
   const allProjectNotes = DataStore.projectNotes
@@ -295,30 +317,66 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
  * Return list of all notes, sorted by changed date (newest to oldest)
  * @author @jgclark
  * @param {Array<string>} foldersToExclude? (default: [])
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
   const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
+  // $FlowIgnore(unsafe-arithmetic)
   const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
 
 /**
+ * Return list of all notes, first Project notes (sorted by title) then Calendar notes (sorted by increasing date ~ title)
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude? (default: [])
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
+ */
+export function allNotesSortedByTitle(foldersToIgnore: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
+  const projectNotes = projectNotesSortedByTitle(foldersToIgnore, excludeSpecialFolders)
+  const calendarNotes = calendarNotesSortedByDate()
+  const allNotes = projectNotes.concat(calendarNotes)
+  return allNotes
+}
+
+/**
  * Return list of calendar notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
+  // $FlowIgnore(unsafe-arithmetic)
   return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
+}
+
+/**
+ * Return list of calendar notes, sorted by their date (oldest to newest)
+ * @author @jgclark
+ * @return {Array<TNote>} array of notes
+ */
+export function calendarNotesSortedByDate(): Array<TNote> {
+
+  return DataStore.calendarNotes.slice().sort(function (first, second) {
+    const a = first.filename
+    const b = second.filename
+    if (a < b) {
+      return -1 //a comes first
+    }
+    if (a > b) {
+      return 1 // b comes first
+    }
+    return 0 // names must be equal
+  })
 }
 
 /**
  * Return list of past calendar notes, of any duration.
  * Note: the date that's checked is the *start* of the period. I.e. test on 30th June will match 2nd Quarter as being in the past.
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function pastCalendarNotes(): Array<TNote> {
   try {
@@ -335,31 +393,34 @@ export function pastCalendarNotes(): Array<TNote> {
 /**
  * Return list of weekly notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
+  // $FlowIgnore(unsafe-arithmetic)
   return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
 }
 
 /**
  * Return list of project notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
+  // $FlowIgnore(unsafe-arithmetic)
   return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
 /**
- * Return list of project notes, sorted by title (ascending)
+ * Return list of project notes, sorted by title (ascending), optionally first excluding specific folders.
  * @author @jgclark
- *
- * @return {Array<TNote>} - list of notes
+ * @param {Array<string>} foldersToExclude (optional)
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
  */
-export function projectNotesSortedByTitle(): Array<TNote> {
+export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
   try {
-    const projectNotes = DataStore.projectNotes.slice()
+    const projectNotes = projectNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
     const notesSorted = projectNotes.sort(function (first, second) {
       const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
       const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
@@ -374,6 +435,41 @@ export function projectNotesSortedByTitle(): Array<TNote> {
     return notesSorted
   } catch (err) {
     logError('note/projectNotesSortedByTitle', err.message)
+    return []
+  }
+}
+
+/**
+ * Filter out from the supplied list of notes any that are in specific excluded folders, or optionally in all special @folders.
+ * @author @jgclark
+ * @param {$ReadOnlyArray<TNote>} projectNotesIn
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
+ */
+export function filterOutProjectNotesFromExcludedFolders(projectNotesIn: $ReadOnlyArray<TNote>, foldersToExclude: Array<string>, excludeSpecialFolders: boolean = true): Array<TNote> {
+  try {
+    const excludedFolders = foldersToExclude
+    if (excludeSpecialFolders) {
+      excludedFolders.push('@Templates')
+    }
+    const outputList: Array<TNote> = []
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `Starting with ${String(projectNotesIn.length)} notes and excluding ${String(excludedFolders)}`)
+    for (const n of projectNotesIn) {
+      let include = true
+      const thisFolder = getFolderFromFilename(n.filename)
+      for (const ef of excludedFolders) {
+        if (thisFolder.startsWith(ef)) {
+          include = false
+          logDebug('note/filterOutProjectNotesFromExcludedFolders', `- exclued note filename ${n.filename} as starts with an excludedFolder ${ef}`)
+        }
+      }
+      if (include) outputList.push(n)
+    }
+    // logDebug('note/filterOutProjectNotesFromExcludedFolders', `-> ${String(outputList)}`)
+    return outputList
+  } catch (err) {
+    logError('note/filterOutProjectNotesFromExcludedFolders', err.message)
     return []
   }
 }
@@ -437,8 +533,7 @@ export function replaceSection(
  * - Note to use
  * - Section heading line to look for (needs to match from start of line but not necessarily the end)
  * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
+ * and the next heading of that same or higher level, or the end of the file if that's sooner.
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -448,16 +543,20 @@ export function replaceSection(
 export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
   try {
     const paras = note.paragraphs ?? []
+    const startOfActive = findStartOfActivePartOfNote(note)
+    const endOfActive = findEndOfActivePartOfNote(note)
 
     if (paras.length === 0) {
       // We have no paragraphs, so need to return now
       logDebug('note / removeSection', `Note is empty, so there's nothing to do`)
       return 0
     }
+    if (headingOfSectionToRemove === '') {
+      logDebug('note / removeSection', `No heading to remove, so there's nothing to do. Will point to endOfActive (line ${endOfActive})`)
+      return endOfActive
+    }
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
-    const startOfActive = findStartOfActivePartOfNote(note)
-    const endOfActive = findEndOfActivePartOfNote(note)
     let matchedHeadingIndex: number // undefined
     let sectionHeadingLevel = 2
     // Find the title/headingOfSectionToRemove whose start matches 'heading', and is in the active part of the note
@@ -555,7 +654,7 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
 }
 
 /**
- * Filter a list of notes against a list of folders to ignore and return the filtered list
+ * Filter a list of notes against a list of folders to ignore and return the filtered list.
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
@@ -571,7 +670,6 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
         if (note.filename.includes(`${folder.trim()}/`)) {
-          // logDebug('note/filterNotesAgainstExcludeFolders', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })
@@ -583,43 +681,41 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
 }
 
 /**
- * Filter a list of paras against a list of folders to ignore and return the filtered list
+ * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list.
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
- * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
+ * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
  * @returns {Array<TNote>} - array of notes that are not in excluded folders
  */
-export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, excludeNonMarkdownFiles: boolean = false): Array<TParagraph> {
+export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {
     if (!excludedFolders) {
-      logDebug('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+      logInfo('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
       return paras
     }
-    // $FlowIgnore(incompatible-type)
-    const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)
-    if (noteList.length > 0) {
-      const noteListFiltered = filterNotesAgainstExcludeFolders(noteList, excludedFolders, excludeNonMarkdownFiles)
+    const noteFilenameList: Array<string> = paras.map((p) => p.note?.filename ?? '(unknown)')
+    const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
+    // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
-      if (!noteListFiltered) {
-        logInfo('note/filterParasAgainstExcludeFolders', `all notes have been excluded`)
-        return []
-      }
-
+    if (dedupedNoteFilenameList.length > 0) {
+      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)
       // filter out paras not in these notes
       const parasFiltered = paras.filter((p) => {
-        const thisNote = p.note
-        const isInIgnoredFolder = noteListFiltered.includes(thisNote)
-        return !isInIgnoredFolder
+        const thisNoteFilename = p.note?.filename ?? 'error'
+        const thisNoteFolder = getFolderFromFilename(thisNoteFilename)
+        const isInWantedFolder = (includeCalendar && p.noteType === 'Calendar') || wantedFolders.includes(thisNoteFolder)
+        // console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
+        return isInWantedFolder
       })
       return parasFiltered
     } else {
-      logDebug('note/filterParasAgainstExcludeFolders', `found no corresponding notes`)
+      // logDebug('note/filterOutParasInExcludeFolders', `found no corresponding notes`)
       return []
     }
   } catch (err) {
-    logError('note/filterParasAgainstExcludeFolders', err)
+    logError('note/filterOutParasInExcludeFolders', err)
     return []
   }
 }
@@ -644,6 +740,7 @@ export function findOverdueDatesInString(line: string): Array<string> {
  * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
  * to know the type of calendar note, we can use this function
  * we allow note.type to not exist so we can look up the note based just on the filename
+ * @author @dwertheimer
  * @param {TNote} note - the note to look at
  * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
  */

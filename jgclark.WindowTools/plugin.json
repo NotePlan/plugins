@@ -1,0 +1,227 @@
+{
+  "noteplan.minAppVersion": "3.9.8",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.WindowTools",
+  "plugin.name": "🖥️ Window Tools",
+  "plugin.description": "Tools to help manage NotePlan windows on macOS, notably save and restore particular window layouts ('Window Sets').",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "v1.2.0: new command 'swap splits', plus positioning bug fix\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open window set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "open window set",
+      "alias": [
+        "ows"
+      ],
+      "description": "Open a saved set of windows/panes",
+      "jsFunction": "openWindowSet",
+      "arguments": [
+        "Saved Window Set name to open"
+      ]
+    },
+    {
+      "name": "save window set",
+      "alias": [
+        "sws"
+      ],
+      "description": "Save the current windows/panes as a named set",
+      "jsFunction": "saveWindowSet"
+    },
+    {
+      "name": "constrain main window",
+      "alias": [
+        "cmw"
+      ],
+      "description": "Constrain main window, so it actually all shows on the screen",
+      "jsFunction": "constrainMainWindow"
+    },
+    {
+      "name": "move split to main",
+      "alias": [
+        "mstm"
+      ],
+      "description": "Move current split window to be the main window",
+      "jsFunction": "moveCurrentSplitToMain"
+    },
+    {
+      "name": "swap splits",
+      "alias": [
+        "swap"
+      ],
+      "description": "Swap order of split windows",
+      "jsFunction": "swapSplitWindows"
+    },
+    {
+      "name": "open note in new window",
+      "alias": [
+        "onnw",
+        "window"
+      ],
+      "description": "Open a user-selected note in a new window.",
+      "jsFunction": "openNoteNewWindow",
+      "arguments": [
+        "note identifier"
+      ]
+    },
+    {
+      "name": "open note in new split",
+      "alias": [
+        "onns",
+        "split"
+      ],
+      "description": "Open a user-selected note in a new split of the main window",
+      "jsFunction": "openNoteNewSplit",
+      "arguments": [
+        "note identifier"
+      ]
+    },
+    {
+      "name": "open current in new split",
+      "alias": [
+        "ocns",
+        "split"
+      ],
+      "description": "Open the current note again in a new split of the main window",
+      "jsFunction": "openCurrentNoteNewSplit"
+    },
+    {
+      "name": "open current in new window",
+      "alias": [
+        "ocnw",
+        "window"
+      ],
+      "description": "Open the current note again in a new floating window",
+      "jsFunction": "openCurrentNoteNewWindow"
+    },
+    {
+      "name": "delete window set",
+      "alias": [
+        "dws"
+      ],
+      "description": "Delete a saved set of windows/panes",
+      "jsFunction": "deleteWindowSet"
+    },
+    {
+      "name": "write window set note to pref",
+      "alias": [
+        "wnp"
+      ],
+      "description": "Write WS note to local preference",
+      "jsFunction": "writeWSNoteToPrefs"
+    },
+    {
+      "name": "write window set pref to note",
+      "alias": [
+        "wpn"
+      ],
+      "description": "Write WS local preference to note",
+      "jsFunction": "writeWSsToNote"
+    },
+    {
+      "name": "onEditorWillSave",
+      "hidden": true,
+      "description": "Trigger entry point to sync WS note to local WS preference",
+      "jsFunction": "onEditorWillSave"
+    },
+    {
+      "name": "test: log current window sets",
+      "alias": [
+        "lws"
+      ],
+      "description": "Log my available windows sets",
+      "jsFunction": "logWindowSets"
+    },
+    {
+      "name": "test: log current windows list",
+      "alias": [
+        "lwl"
+      ],
+      "description": "Log list of currently-open windows/panes",
+      "jsFunction": "logWindowsList"
+    },
+    {
+      "name": "test: set editor width",
+      "alias": [
+        "sew"
+      ],
+      "description": "Set width of an open editor split, by its index",
+      "jsFunction": "setEditorSplitWidth"
+    },
+    {
+      "name": "test: delete all saved Window Sets",
+      "description": "Delete all saved window sets",
+      "jsFunction": "deleteAllSavedWindowSets"
+    },
+    {
+      "name": "test:log preference",
+      "alias": [
+        "lp"
+      ],
+      "description": "Log local preference",
+      "jsFunction": "logPreferenceAskUser"
+    },
+    {
+      "name": "test:unset preference",
+      "alias": [
+        "up"
+      ],
+      "description": "Unset local preference",
+      "jsFunction": "unsetPreferenceAskUser"
+    },
+    {
+      "name": "test:updatePlugin",
+      "description": "Test migration to newer name",
+      "jsFunction": "testUpdate"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Window Sets settings"
+    },
+    {
+      "key": "noteTitleForDefinitions",
+      "title": "Note title for Window Set definitions",
+      "description": "Note title for where Window Set definitions are visible.",
+      "type": "string",
+      "default": "Window Sets",
+      "required": true
+    },
+    {
+      "key": "folderForDefinitions",
+      "title": "Folder name for Window Set definitions",
+      "description": "Folder where Window Set definitions are visible.",
+      "type": "string",
+      "default": "@Window Sets",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

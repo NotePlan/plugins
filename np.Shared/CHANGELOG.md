@@ -2,6 +2,62 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.6.3] - @dwertheimer
+
+- Reduce logging
+
+## [0.6.2] - @dwertheimer
+
+- Add guard for NP window closed (kills React rendering at Root)
+
+## [0.6.1] - @dwertheimer 
+
+- more logging to setTheme
+
+## [0.6.0] - @dwertheimer
+
+- add theme change route UPDATE_THEME
+
+## [0.5.11] - @dwertheimer
+
+- Fix banners
+
+## [0.5.10] - @dwertheimer
+## [0.5.9] - @dwertheimer
+
+- reduce logging
+
+## [0.5.7] - @dwertheimer
+## [0.5.6] - @dwertheimer
+## [0.5.5] - @dwertheimer
+## [0.5.4] - @dwertheimer
+
+- Further Work on Root React and react settings saved at root level
+
+## [0.5.3] - 2024-04-19 @dwertheimer
+
+- Decrease error logging
+
+## [0.5.2] - 2024-04-12 @dwertheimer
+
+- Improve error logging in React root component
+
+## [0.4.8] - 2024-04-01 @jgclark
+
+- add 'shortcut.js' script
+
+## [0.4.7] - 2023-10-16 @dwertheimer
+
+- minor updates to Root's WebView debug wrapper
+
+## [0.4.6] - 2023-10-16 @dwertheimer
+
+- update to remove CSS from React Windows if wanted
+
+## [0.4.5] - 2023-10-16 @dwertheimer
+
+- updates to React tooling using ShowHTMLV2 etc.
+
 ## [0.4.4] - 2023-07-15 (@jgclark)
 
 - bugfix for 'undefined' message on plugin upgrade

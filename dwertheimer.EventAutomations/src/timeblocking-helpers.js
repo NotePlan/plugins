@@ -1,13 +1,27 @@
 // @flow
 import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
 import type { SortableParagraphSubset } from '../../helpers/sorting'
-import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
+import { escapeRegExp } from '../../helpers/regex'
+import { getTagsFromString } from '../../helpers/paragraph'
+import type {
+  IntervalMap,
+  OpenBlock,
+  TimeBlocksWithMap,
+  BlockData,
+  TimeBlockDefaults,
+  PartialCalendarItem,
+  ParagraphWithDuration,
+  SplitResult,
+  MatchedItems,
+  Tags,
+} from './timeblocking-flow-types'
 import type { AutoTimeBlockingConfig } from './config'
+import { processByTimeBlockTag } from './byTagMode'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday, removeRepeats } from '@helpers/dateTime'
 import { sortListBy } from '@helpers/sorting'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { createPrettyLinkToLine, createWikiLinkToLine } from '@helpers/NPSyncedCopies'
-import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
+import { logError, JSP, copyObject, clo, clof, logDebug, logWarn } from '@helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 
@@ -54,7 +68,7 @@ export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config:
 /**
  * Clean text using an array of regexes or strings to replace
  */
-export function cleanText(text: string, replacements: Array<RegExp | string>) {
+export function cleanText(text: string, replacements: Array<RegExp | string>): string {
   let cleanString = text
   replacements.forEach((r) => {
     cleanString = cleanString.replace(r, ' ')
@@ -64,7 +78,7 @@ export function cleanText(text: string, replacements: Array<RegExp | string>) {
 }
 
 /**
- * Remove all ATB-CREATED formatting from a timeblock line and returj just the content (so we can do comparisons)
+ * Remove all ATB-CREATED formatting from a timeblock line and return just the content (so we can do comparisons)
  * e.g. "00:01-12:22 foo bar baz" -> "foo bar baz"
  * @param {string} line
  * @param {TimeBlockDefaults} config
@@ -75,7 +89,7 @@ export function cleanTimeBlockLine(line: string, config: { [key: string]: any })
   // use .*? for non-greedy (match minimum chars) and make sure to use global flag for all matches
   const cleanerRegexes = [
     new RegExp(`^\\d{2}:\\d{2}-\\d{2}:\\d{2} `, 'g'),
-    new RegExp(` ${timeBlockTag}`, 'g'),
+    new RegExp(` ${escapeRegExp(timeBlockTag)}`, 'g'),
     new RegExp(`\\[\\[.*?\\]\\]`, 'g'),
     new RegExp(`\\[.*?\\]\\(.*?\\)`, 'g'),
   ]
@@ -87,7 +101,7 @@ export function cleanTimeBlockLine(line: string, config: { [key: string]: any })
 }
 
 export function attachTimeblockTag(content: string, timeblockTag: string): string {
-  const regEx = new RegExp(` ${timeblockTag}`, 'g') //replace the existing tag if it's there
+  const regEx = new RegExp(` ${escapeRegExp(timeblockTag)}`, 'g') //replace the existing tag if it's there
   return `${content.replace(regEx, '')} ${timeblockTag}`
 }
 
@@ -151,27 +165,21 @@ export function makeAllItemsTodos(paras: Array<TParagraph>): Array<TParagraph> {
 }
 
 // $FlowIgnore - can't find a Flow type for RegExp
-export const durationRegEx = (durationMarker: string) => new RegExp(`\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg')
+export const durationRegEx = (durationMarker: string) =>
+  new RegExp(`\\s*${durationMarker}((?<hours>[0-9]+\\.?[0-9]*|\\.[0-9]+)(hours|hour|hr|h))?((?<minutes>[0-9]+\\.?[0-9]*|\\.[0-9]+)(minutes|mins|min|m))?`, 'mg')
 
 export const removeDurationParameter = (text: string, durationMarker: string): string => text.replace(durationRegEx(durationMarker), '').trim()
 
-/**
- * Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
- * @author @dwertheimer
- *
- *  @param {*} line - input line
- * @returns { Int } number of minutes in duration (or zero)
- */
 export function getDurationFromLine(line: string, durationMarker: string): number {
   const regex = durationRegEx(durationMarker)
   const match = regex.exec(line)
   let mins = 0
-  // const duration = match ? match[0] : 0
   if (match) {
-    const hours = match[2] ? Number(match[2]) : 0
-    const minutes = match[4] ? Number(match[4]) : 0
+    const hours = match?.groups?.hours ? Number(match.groups.hours) : 0
+    const minutes = match?.groups?.minutes ? Number(match.groups.minutes) : 0
     mins = Math.ceil(hours * 60 + minutes)
   }
+  clo(match, `+++++++ getDurationFromLine match=${String(match)}, so setting mins=${mins} for "${line}"; match groups=`)
   return mins
 }
 
@@ -212,18 +220,18 @@ export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults):
  */
 export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: string]: any }): IntervalMap {
   const nowStr = config.nowStrOverride ?? getTimeStringFromDate(new Date())
+  const byTagMode = config.mode === 'BY_TIMEBLOCK_TAG'
   const retVal = timeMap.filter((t) => {
-    // console.log(t.start >= nowStr, t.start >= config.workDayStart, t.start < config.workDayEnd, !t.busy)
     // should filter to only open slots but will also include slots that are busy but have the timeblock tag - DataStore.preference('timeblockTextMustContainString')
+    const isSet = typeof t.busy === 'string'
     return (
       t.start >= nowStr &&
       t.start >= config.workDayStart &&
       t.start < config.workDayEnd &&
       (!t.busy ||
-        (config.mode === 'BY_TIMEBLOCK_TAG' &&
-          config.timeblockTextMustContainString?.length &&
-          typeof t.busy === 'string' &&
-          t.busy.includes(config.timeblockTextMustContainString)))
+        (byTagMode &&
+          ((isSet && String(t.busy).includes(config.timeBlockTag)) ||
+            (config.timeblockTextMustContainString?.length && isSet && String(t.busy).includes(config.timeblockTextMustContainString)))))
     )
   })
   // logDebug(`\n\nfilterTimeMapToOpenSlots: ${JSP(retVal)}`)
@@ -260,7 +268,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
  * @param {number} intervalMins
  * @returns array of OpenBlock objects
  */
-export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: any }): BlockArray {
+export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: any }): Array<OpenBlock> {
   const blocks: Array<OpenBlock> = []
   if (timeMap?.length) {
     let lastSlot = timeMap[0]
@@ -337,16 +345,6 @@ export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: B
 }
 
 /**
- * Get the timeblocks that have names/titles (e.g. a user set them up "Work" or "Home" or whatever)
- * @param {Array<OpenBlock>} blockList
- * @param {*} config
- * @returns {Array<OpenBlock>} the filtered blockList
- */
-export function getNamedTimeBlocks(blockList: Array<OpenBlock>): Array<OpenBlock> {
-  return blockList.filter((b) => b.title && b.title !== '')
-}
-
-/**
  * Finds a named hashtag or attag in a line of text.
  *
  * @param {string} blockName - The name of the block to search for.
@@ -355,7 +353,9 @@ export function getNamedTimeBlocks(blockList: Array<OpenBlock>): Array<OpenBlock
  * @return {?string} - The matched tag or null if no match is found.
  */
 export function namedTagExistsInLine(blockName: string, line: string): boolean {
-  const regex = new RegExp(blockName, 'gi')
+  // Sanitize blockName to escape RegExp special characters
+  const sanitizedBlockName = escapeRegExp(blockName)
+  const regex = new RegExp(sanitizedBlockName, 'gi')
   const match = regex.exec(line)
   return match ? true : false
 }
@@ -379,6 +379,41 @@ function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, 
     return acc
   }, {})
 }
+
+/**
+ * Splits an array of items into two categories based on matching hashtags.
+ * For items with matching hashtags, it groups them under the matched tag using the tag as the key
+ * NOTE: an item can be matched to multiple tags
+ *
+ * @param {Array<Item>} arrayOfItems - The array of items to split, where each item has a 'hashtags' property.
+ * @param {Tags} tags - An object where each key represents a tag to match against the items' hashtags.
+ * @returns {SplitResult} An object containing a 'matched' object with properties for each tag and their corresponding matching items, and an 'unmatched' array for items without matching tags.
+ */
+export function splitItemsByTags(arrayOfItems: Array<ParagraphWithDuration>, tags: Tags): SplitResult {
+  const matched: MatchedItems = {}
+  const unmatched: Array<ParagraphWithDuration> = []
+
+  arrayOfItems.forEach((item) => {
+    let isMatched = false
+    const hashtags = getTagsFromString(item.content, false).hashtags
+    hashtags.forEach((hashtag) => {
+      if (tags.hasOwnProperty(hashtag)) {
+        if (!matched[hashtag]) {
+          matched[hashtag] = []
+        }
+        matched[hashtag].push(item)
+        isMatched = true
+      }
+    })
+
+    if (!isMatched) {
+      unmatched.push(item)
+    }
+  })
+
+  return { matched, unmatched }
+}
+
 /**
  * Process the tasks that have a named tag in them (e.g. @work or #work)
  * @param {*} sortedTaskList
@@ -386,23 +421,38 @@ function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, 
  * @param {*} config
  * @returns {TimeBlocksWithMap}
  */
-export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
+export function ORIGINALprocessByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
   const { blockList, timeMap } = tmb
   let newBlockList = blockList
   let unprocessedTasks = [...sortedTaskList]
-  let results = []
+  const results = []
   let noTimeForTasks = {}
+  const { matched: timeframeMatches, unmatched: regularTasks } = splitItemsByTags(sortedTaskList, config.timeframes || {})
   const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
-  logDebug(`\n\nprocessByTimeBlockTag namedBlocks:${namedBlocks.reduce((acc, val) => `${acc}, ${val.title || ''}`, '')}`)
+  clo(blockList, `processByTimeBlockTag: blockList`)
+  // const namedBlocksIncludingTimeframes = getTimeframeNameBlocks(namedBlocks, timeframeMatches)
+  clo(namedBlocks, `processByTimeBlockTag: namedBlocks (timeblocks that are not ATB blocks)`)
+
+  // start
+  if (namedBlocks.length === 0) {
+    logWarn(`processByTimeBlockTag we are in TIMEBLOCK_TAG mode but there are no named blocks`)
+  } else {
+    logDebug(`processByTimeBlockTag namedBlocks(${namedBlocks.length}):${namedBlocks.reduce((acc, val) => `${acc}, ${val.title || ''}`, '')}`)
+  }
   namedBlocks.forEach((block) => {
     const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
+    //$FlowIgnore
     const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => (block.title ? namedTagExistsInLine(blockTitle, task.content) : false))
-    logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock)}`)
-    tasksMatchingThisNamedTimeblock.forEach((task) => {
+    logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock.map((p) => p.content || ''))}`)
+    tasksMatchingThisNamedTimeblock.forEach((task, i) => {
       // call matchTasksToSlots for each block as if the block all that's available
       // remove from sortedTaskList
-      // FIXME: need to make sure block list and time map are updated after each call
-      const newTimeBlockWithMap = matchTasksToSlots([task], { blockList: [block], timeMap: timeMap.filter((t) => t.start >= block.start && t.start <= block.end) }, config)
+      // $FlowIgnore
+      logDebug(pluginJson, `Calling matchTasksToSlots for item[${i}]: ${task.content} duration:${task.duration}`)
+      // const filteredTimeMap = timeMap.filter((t) => t.start >= block.start && t.start <= block.end)
+      const filteredTimeMap = timeMap.filter((t) => typeof t.busy === 'string' && t.busy.includes(blockTitle) && t.busy.includes(config.timeblockTextMustContainString))
+      // Acting as if all blocks are just this named block
+      const newTimeBlockWithMap = matchTasksToSlots([task], { blockList: [block], timeMap: filteredTimeMap }, config)
       unprocessedTasks = unprocessedTasks.filter((t) => t !== task) // remove the task from the list
       const foundTimeForTask = newTimeBlockWithMap.timeBlockTextList && newTimeBlockWithMap.timeBlockTextList.length > 0
       if (foundTimeForTask) {
@@ -415,6 +465,7 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
     })
     newBlockList = blockList?.filter((b) => b !== block) // remove the block from the list
   })
+  //stop
   // ["IGNORE_THEM","OUTPUT_FOR_INFO (but don't schedule them)", "SCHEDULE_ELSEWHERE_LAST", "SCHEDULE_ELSEWHERE_FIRST"]
   const noTimeTasks = Object.values(noTimeForTasks || {}).reduce((acc, val) => acc.concat(val), [])
   switch (config.orphanTagggedTasks) {
@@ -434,22 +485,15 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
   newBlockList = blockList?.filter((b) => !b.title || b.title === '') || [] // remove the named blocks from the list
 
   config.mode = 'PRIORITY_FIRST' // now that we've processed the named blocks, we can process the rest of the tasks by priority
+  // $FlowIgnore
   results.push(matchTasksToSlots(unprocessedTasks, { blockList: newBlockList, timeMap }, config))
-  // clo(results, `\n\nprocessByTimeBlockTag results:\n\n`)
 
   return {
     noTimeForTasks: reduceArrayOfObjectsToSingleObject(results, 'noTimeForTasks'),
     timeMap,
     blockList: newBlockList,
-    timeBlockTextList: results
-      .map((r) => r.timeBlockTextList)
-      .flat()
-      .sort(),
+    timeBlockTextList: results.reduce((acc, currentValue) => acc.concat(currentValue.timeBlockTextList), []).sort(),
   }
-}
-
-interface ParagraphWithDuration extends Paragraph {
-  duration: number;
 }
 
 /**
@@ -467,12 +511,14 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
   let timeBlockTextList = []
   const noTimeForTasks = {}
 
+  clof(sortedTaskList, `matchTasksToSlots: sortedTaskList`, null, true)
+
   // sortedTaskList.forEach((task) => {
   for (let t = 0; t < sortedTaskList.length; t++) {
     const task = sortedTaskList[t]
     const taskTitle = removeRepeats(removeDateTagsAndToday(task.content))
     const taskDuration = task.duration || getDurationFromLine(task.content, durationMarker) || config.defaultDuration // default time is 15m
-    // logDebug(`== matchTasksToSlots task="${task.content}" newBlockList.length=${newBlockList.length}`)
+    logDebug(`== matchTasksToSlots task="${t}: ${task.content}" newBlockList.length=${newBlockList?.length || ''}`)
     if (newBlockList && newBlockList.length) {
       let scheduling = true
       let schedulingCount = 0
@@ -516,7 +562,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
         }
       }
       if (scheduling) {
-        logDebug(`matchTasksToSlots task[${t}]="${taskTitle}" scheduling:${String(scheduling)}`)
+        logDebug(`matchTasksToSlots task[${t}]="${taskTitle}" scheduling:${String(scheduling)}. Pushing to noTimeForTasks array`)
         if (!noTimeForTasks['_']) noTimeForTasks['_'] = []
         noTimeForTasks['_'].push(task)
       }
@@ -551,12 +597,10 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
           } else {
             if (config.includeLinks === 'Pretty Links') {
               // link = ` ${createPrettyOpenNoteLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
-              // clo(e, `appendLinkIfNecessary e`) // this will cause tests to fail
               link = ` ${createPrettyLinkToLine(e, config.linkText)}`
-              logDebug(`appendLinkIfNecessary`, ` ${link}`)
             }
           }
-          e.content = `${textWithoutSyncedCopyTag(e.content)}${link}`
+          e.content = `${textWithoutSyncedCopyTag(e.content).replace(link, '')}${link}`
         }
         todosWithLinks.push(e)
       })
@@ -582,7 +626,7 @@ export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config
 export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<SortableParagraphSubset>, config: { [key: string]: any }): TimeBlocksWithMap {
   let newInfo = { timeMap, blockList: [], timeBlockTextList: [], noTimeForTasks: {} }
   // $FlowIgnore
-  const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
+  const availableTimes = filterTimeMapToOpenSlots(timeMap, config) // will be different for BY_TIMEBLOCK_TAG
   if (availableTimes.length === 0) {
     timeMap.forEach((m) => console.log(`getTimeBlockTimesForEvents no more times available: ${JSON.stringify(m)}`))
   }
@@ -607,13 +651,16 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<So
         break
       }
       case 'BY_TIMEBLOCK_TAG': {
-        const sortedTaskList = sortListBy(todosWithDurations, ['-priority', 'duration'])
+        const sortedTaskList = sortListBy(todosWithDurations, ['-priority', 'filename', '-duration'])
         // clo(blocksAvailable, `getTimeBlockTimesForEvents blocksAvailable`)
         // clo(timeMap, `getTimeBlockTimesForEvents timeMap`)
         // clo(sortedTaskList, `getTimeBlockTimesForEvents sortedTaskList`)
         newInfo = processByTimeBlockTag(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
-        // FIXME: HERE WORKING ON THIS
         break
+      }
+      case 'MANUAL_ORDERING': {
+        const sortedTaskList = sortListBy(todosWithDurations, ['lineIndex'])
+        newInfo = matchTasksToSlots(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
       }
     }
   } else {
@@ -698,7 +745,7 @@ export function getFullParagraphsCorrespondingToSortList(paragraphs: Array<TPara
     const sortedParagraphs =
       sortList
         .map((s) => {
-          return paragraphs.find((p) => removeDateTagsAndToday(p.rawContent) === s.raw && p.filename === s.filename)
+          return paragraphs.find((p) => removeDateTagsAndToday(p.rawContent) === removeDateTagsAndToday(s.raw) && p.filename === s.filename)
         })
         // Filter out nulls
         ?.filter(Boolean) ?? []

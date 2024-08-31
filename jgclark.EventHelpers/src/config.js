@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 5.10.2022 for v0.19.1, by @jgclark
+// Last updated 29.9.2023 for v0.21.0, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
@@ -55,8 +55,10 @@ export async function getEventsSettings(): Promise<any> {
         removeTimeBlocksWhenProcessed: true,
         calendarToWriteTo: "",
         defaultEventDuration: 60,
+        alternateDateFormat: "",
         removeDoneDates: true,
         uncompleteTasks: true,
+        removeProcessedTagName: true,
         includeCompletedTasks: true,
         meetingTemplateTitle: ""
       }
@@ -64,7 +66,7 @@ export async function getEventsSettings(): Promise<any> {
     }
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
-    clo(v2Config, `${configKey} settings from V2:`)
+    // clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {
