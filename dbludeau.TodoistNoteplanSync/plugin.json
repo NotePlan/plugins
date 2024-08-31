@@ -8,7 +8,9 @@
   "plugin.lastUpdateInfo": "First release",
   "plugin.description": "Import and sync tasks between Todoist and Noteplan",
   "plugin.author": "dbludeau",
-  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.requiredFiles-EDIT_ME": [
+    "html-plugin-comms.js"
+  ],
   "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -20,38 +22,58 @@
     },
     {
       "name": "todoist sync everything",
-      "alias": ["tose"],
+      "alias": [
+        "tose"
+      ],
       "description": "Sync all tasks in Todoist to a Noteplan folder set in settings",
       "jsFunction": "syncEverything",
-      "arguments": [""]
+      "arguments": [
+        ""
+      ]
     },
     {
       "name": "todoist sync today",
-      "alias": ["tost"],
+      "alias": [
+        "tost"
+      ],
       "description": "Sync Todoist tasks due today to the Noteplan daily note",
       "jsFunction": "syncToday",
-      "arguments": [""]
-    }, 
+      "arguments": [
+        ""
+      ]
+    },
     {
       "name": "todoist sync project",
-      "alias": ["tosp"],
+      "alias": [
+        "tosp"
+      ],
       "description": "Sync Todoist project (list) linked to the current Noteplan note using frontmatter",
       "jsFunction": "syncProject",
-      "arguments": [""]
+      "arguments": [
+        ""
+      ]
     },
     {
       "name": "todoist sync all linked projects",
-      "alias": ["tosa"],
+      "alias": [
+        "tosa"
+      ],
       "description": "Sync all Todoist projects (lists) to linked Noteplan notes using frontmatter",
       "jsFunction": "syncAllProjects",
-      "arguments": [""]
+      "arguments": [
+        ""
+      ]
     },
     {
       "name": "todoist sync all linked projects and today",
-      "alias": ["tosat, toast"],
+      "alias": [
+        "tosat, toast"
+      ],
       "description": "Sync all linked projects as well as populate Todoist tasks due today to the today note. This command avoids duplicating tasks in the daily note",
       "jsFunction": "syncAllProjectsAndToday",
-      "arguments": [""]
+      "arguments": [
+        ""
+      ]
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
@@ -163,7 +185,7 @@
       "type": "separator"
     },
     {
-      "note":"================== TODOIST TEAMS SETTINGS ========================"
+      "note": "================== TODOIST TEAMS SETTINGS ========================"
     },
     {
       "type": "heading",
