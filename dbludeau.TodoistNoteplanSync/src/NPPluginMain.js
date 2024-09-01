@@ -74,6 +74,9 @@ const setup: {
    * @param {string} passedFolder
    */
   set newFolder(passedFolder: string) {
+    // remove leading and tailing slashes
+    passedFolder = passedFolder.replace(/\/+$/, "")
+    passedFolder = passedFolder.replace(/^\/+/, "")
     this.folder = passedFolder
   },
   /**
