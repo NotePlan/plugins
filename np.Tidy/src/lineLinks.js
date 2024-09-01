@@ -1,6 +1,6 @@
 // @flow
-
-
+// Written before 2023-08-27 by @dwertheimer
+// Note: @jgclark sees that this is currently not used by any commands or functions.
 
 type MatchResult = {
   fullMatch: string, // The full matched string.
@@ -10,7 +10,7 @@ type MatchResult = {
 }
 
 /**
- * Finds and returns all matches of a specific format in a multiline string.
+ * Finds and returns all matches of a specific x-callback formats in a multiline string.
  * @author @chatGPT and @dwertheimer
  * @param {string} inputString - The multiline string to be searched.
  * @returns {Array<MatchResult>} An array of objects, each representing a match.
@@ -22,9 +22,13 @@ export function findLineLinks(inputString: string): Array<MatchResult> {
 
   while ((matches = regex.exec(inputString)) !== null) {
     let result: MatchResult = {
+      // $FlowIgnore[incompatible-use]
       fullMatch: matches[0],
+      // $FlowIgnore[incompatible-use]
       linkText: matches[1] || null,
+      // $FlowIgnore[incompatible-use]
       noteTitle: matches[3],
+      // $FlowIgnore[incompatible-use]
       blockID: matches[4]
     }
     results.push(result)

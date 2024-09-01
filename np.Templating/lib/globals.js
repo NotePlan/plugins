@@ -107,7 +107,12 @@ const globals = {
   },
 
   progressUpdate: async (params: any): Promise<string> => {
-    return await invokePluginCommandByName('jgclark.Summaries', 'appendProgressUpdate', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.Summaries', 'progressUpdate', [params])
+    // Note: Previously did JSON.stringify(params), but removing this means we can distinguish between template and callback triggers in the plugin code. 
+  },
+
+  todayProgressFromTemplate: async (params: any): Promise<string> => {
+    return await invokePluginCommandByName('jgclark.Summaries', 'todayProgressFromTemplate', [JSON.stringify(params)])
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {

@@ -8,15 +8,29 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.12.2",
-  "plugin.lastUpdateInfo": "0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.\n0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.",
-  "plugin.requiredFiles": [],
+  "plugin.version": "0.14.0",
+  "plugin.lastUpdateInfo": "0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix",
+  "plugin.dependsOn": [
+    {
+      "id": "np.Shared",
+      "minVersion": "0.4.7"
+    }
+  ],
+  "plugin.requiredFiles": [
+    "projectList.css",
+    "projectListDialog.css",
+    "projectListEvents.js",
+    "HTMLWinCommsSwitchboard.js",
+    "shortcut.js",
+    "showTimeAgo.js"
+  ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
     "fa-regular-400.woff2",
-    "fa-solid-900.woff2"
+    "fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -30,8 +44,15 @@
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
       "jsFunction": "makeProjectLists",
       "arguments": [
-        "comma-separated list of setting keys and their values"
+        "comma-separated list of setting keys and their values (optional)",
+        "position to scroll window to (optional, only for HTML view)"
       ]
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "description": "Projects: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
     },
     {
       "name": "start reviews",
@@ -57,7 +78,7 @@
         "review"
       ],
       "description": "updates this project's @reviewed() date, and jump to next project to review",
-      "jsFunction": "nextReview"
+      "jsFunction": "finishReviewAndStartNextReview"
     },
     {
       "name": "skip project review",
@@ -110,9 +131,9 @@
     },
     {
       "hidden": true,
-      "name": "toggleDisplayOnlyOverdue",
-      "description": "callback entry point for toggleShowOnlyOverdue",
-      "jsFunction": "toggleDisplayOnlyOverdue"
+      "name": "toggleDisplayOnlyDue",
+      "description": "callback entry point for toggleShowOnlyDue",
+      "jsFunction": "toggleDisplayOnlyDue"
     },
     {
       "hidden": true,
@@ -141,9 +162,9 @@
       "jsFunction": "redisplayProjectListHTML"
     },
     {
-      "name": "test:renderProjectLists",
-      "description": "Render project lists (without recalc)",
-      "jsFunction": "renderProjectLists"
+      "name": "test:updateSettings",
+      "description": "Test for update of settings",
+      "jsFunction": "testSettingsUpdated"
     }
   ],
   "plugin.inactiveCommands": [
@@ -201,28 +222,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Project + Reviews main settings"
-    },
-    {
-      "key": "outputStyle",
-      "title": "Output style to use",
-      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
-      "type": "string",
-      "choices": [
-        "Rich",
-        "Markdown",
-        "Rich + Markdown"
-      ],
-      "default": "Rich",
-      "required": true
-    },
-    {
-      "key": "folderToStore",
-      "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary)",
-      "type": "string",
-      "default": "Reviews",
-      "required": true
+      "title": "What do you want to Review?"
     },
     {
       "key": "noteTypeTags",
@@ -238,7 +238,7 @@
     {
       "key": "foldersToInclude",
       "title": "Folders to use in reviews",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNote: if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\nIf empty, all folders will be used apart from those in the next setting.",
       "type": "[string]",
       "default": [
         "Projects"
@@ -248,7 +248,7 @@
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore in reviews",
-      "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "description": "If 'Folders to use in reviews' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty.\nNote: if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\nNote: the special @Trash, @Templates and @Archive folders are always excluded.",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -258,21 +258,26 @@
       "required": false
     },
     {
-      "key": "confirmNextReview",
-      "title": "Confirm next Review?",
-      "description": "When running '/next project review' it asks whether to start the next review.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
       "type": "heading",
       "title": "Display settings for 'project lists' command"
     },
     {
+      "key": "outputStyle",
+      "title": "Output style to use",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
+      "type": "string",
+      "choices": [
+        "Rich",
+        "Markdown",
+        "Rich + Markdown"
+      ],
+      "default": "Rich",
+      "required": true
+    },
+    {
       "key": "displayOrder",
-      "title": "Display order for projects",
-      "description": "The sort options  are by 'due' date, by next 'review' date or 'title'.",
+      "title": "Project Display order",
+      "description": "The ordering options are by 'due' date, by next 'review' date or 'title'.",
       "type": "string",
       "choices": [
         "due",
@@ -291,6 +296,14 @@
       "required": true
     },
     {
+      "key": "hideTopLevelFolder",
+      "title": "Hide top-level folder in output?",
+      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in output.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "displayFinished",
       "title": "How to show completed/cancelled projects?",
       "description": "If you do not want to see completed/cancelled projects in your Rich dashboard, change this setting to something other than Displayed.",
@@ -298,15 +311,15 @@
       "default": "display at end",
       "required": true,
       "choices": [
-        "display at end",
         "display",
+        "display at end",
         "hide"
       ]
     },
     {
-      "key": "displayOnlyOverdue",
-      "title": "Display only overdue projects/areas?",
-      "description": "If not ticked then it will display all project/area notes?",
+      "key": "displayOnlyDue",
+      "title": "Only display due projects/areas?",
+      "description": "If not ticked then it will display all project/area notes, not just due ones.",
       "type": "bool",
       "default": false,
       "required": true
@@ -314,7 +327,7 @@
     {
       "key": "displayDates",
       "title": "Display project dates?",
-      "description": "Whether to display the project's review and due dates (where set)",
+      "description": "Whether to display the project's review and due dates (where set).",
       "type": "bool",
       "default": true,
       "required": true
@@ -328,11 +341,11 @@
       "required": true
     },
     {
-      "key": "hideTopLevelFolder",
-      "title": "Hide top-level folder in output?",
-      "description": "If 'Display projects grouped by folder?' above is set, this hides all but the lowest-level subfolder name in output.",
-      "type": "bool",
-      "default": false,
+      "key": "folderToStore",
+      "title": "Folder to store (markdown) review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "type": "string",
+      "default": "Reviews",
       "required": true
     },
     {
@@ -353,6 +366,18 @@
     },
     {
       "type": "heading",
+      "title": "Setting for 'next project review' command"
+    },
+    {
+      "key": "confirmNextReview",
+      "title": "Confirm next Review?",
+      "description": "When running '/next project review' it asks whether to start the next review.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
       "title": "Settings for 'completeProject' and 'cancelProject' commands"
     },
     {
@@ -361,6 +386,14 @@
       "description": "Heading of list of completed or cancelled projects/areas in the yearly note",
       "type": "string",
       "default": "Finished Projects/Areas",
+      "required": true
+    },
+    {
+      "key": "archiveUsingFolderStructure",
+      "title": "Archive using folder structure?",
+      "description": "When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside the Archive.\n(This is the same thing that the Filer plugin's \"/archive note using folder structure\" command does, though Filer does not need to be installed to use this.)",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
@@ -443,16 +476,6 @@
         "none"
       ],
       "default": "INFO",
-      "required": true
-    }
-  ],
-  "plugin.settings.unused": [
-    {
-      "key": "displayArchivedProjects",
-      "title": "Display archived projects?",
-      "description": "Whether to display project notes marked as #archive.",
-      "type": "bool",
-      "default": true,
       "required": true
     }
   ]

@@ -11,12 +11,12 @@ const rollupReactScript = require('../../../../scripts/rollup.generic.js')
 const { rollupReactFiles, getRollupConfig } = rollupReactScript
 
 ;(async function () {
-  const buildMode = process.argv.includes('--production') ? 'production' : 'development'
+  // const buildMode = process.argv.includes('--production') ? 'production' : 'development'
   const watch = process.argv.includes('--watch')
   const graph = process.argv.includes('--graph')
 
   const rollupConfigs = [
-    /** TaskAutomations WebView app - build both dev and production each time */
+    /** WebView app - build both dev and production each time */
     getRollupConfig({
       entryPointPath: 'dwertheimer.ReactSkeleton/src/react/support/rollup.WebView.entry.js',
       outputFilePath: 'dwertheimer.ReactSkeleton/requiredFiles/react.c.WebView.bundle.REPLACEME.js',
@@ -39,4 +39,6 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
   // console.log(JSON.stringify(config, null, 2))
   await rollupReactFiles(config, watch, 'dwertheimer.ReactSkeleton: development && production')
   // const rollupsProms = rollups.map((obj) => rollupReactFiles({ ...obj, buildMode }, watch, buildMode))
-})()
+})().catch((error) => {
+  console.error('A rollup error occurred:', error)
+})

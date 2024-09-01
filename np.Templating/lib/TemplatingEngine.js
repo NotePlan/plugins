@@ -203,9 +203,9 @@ export default class TemplatingEngine {
     })
 
     try {
-      logDebug(pluginJson, `\n\nrender: BEFORE render`)
+      // logDebug(pluginJson, `\n\nrender: BEFORE render`)
       let result = await ejs.render(processedTemplateData, renderData, options)
-      logDebug(pluginJson, `\n\nrender: AFTER render`)
+      // logDebug(pluginJson, `\n\nrender: AFTER render`)
       result = (result && result?.replace(/undefined/g, '')) || ''
 
       return this._replaceDoubleDashes(result)

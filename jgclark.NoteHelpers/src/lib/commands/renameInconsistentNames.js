@@ -42,7 +42,7 @@ export async function renameInconsistentNames(): Promise<void> {
     `)
 
     const response = await showMessageYesNoCancel(
-      `Would you like to be prompted before renaming each of these notes?
+      `Would you like to be prompted before renaming each of these note filenames?
       (If you choose 'No', the notes will be renamed automatically. 'Cancel' will stop the process.)`,
     )
 
@@ -54,7 +54,11 @@ export async function renameInconsistentNames(): Promise<void> {
     const shouldPromptBeforeRenaming = response === 'Yes'
 
     for (const note of inconsistentNames) {
-      await renameNoteToTitle(note, shouldPromptBeforeRenaming)
+      const shouldContinue = await renameNoteToTitle(note, shouldPromptBeforeRenaming)
+      if (!shouldContinue) {
+        logDebug(pluginJson, 'renameInconsistentNames(): User chose to cancel.')
+        return
+      }
     }
   } catch (error) {
     logError(pluginJson, `renameInconsistentNames() error: ${error.message}`)

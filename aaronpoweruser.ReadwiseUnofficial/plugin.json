@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "Initial public release",
+  "plugin.version": "1.1.4",
+  "plugin.lastUpdateInfo": "Added paragraph type setting. Fixed links to highlights on web.\nFix sync log dates being wrong.\nAdd a sync log note. \nAdd support for daily reviews via templates",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -17,6 +17,11 @@
       "name": "Readwise sync",
       "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSync"
+    },
+    {
+      "name": "Readwise Daily Review",
+      "description": "Sync Readwise highlights",
+      "jsFunction": "readwiseDailyReview"
     },
     {
       "name": "Readwise rebuild",
@@ -81,6 +86,18 @@
       "required": true
     },
     {
+      "title": "Highlight paragraph type",
+      "key": "paragraphType",
+      "type": "string",
+      "description:": "The type of paragraph to use for the highlight. quote: Use a blockquote for the highlight, list: Use a bullet for the highlight",
+      "choices": [
+        "quote",
+        "list"
+      ],
+      "default": "quote",
+      "required": true
+    },
+    {
       "title": "Group by type",
       "key": "groupByType",
       "type": "bool",
@@ -105,7 +122,15 @@
       "required": true
     },
     {
-      "COMMENT": "Enable to force resynching of all highlights",
+      "title": "Create a sync log",
+      "key": "writeSyncLog",
+      "type": "bool",
+      "description": "Include a log of the synced highlights.",
+      "default": false,
+      "required": true
+    },
+    {
+      "COMMENT": "Enable to force a resync of all highlights",
       "title": "Force sync all highlights",
       "key": "forceSync",
       "type": "hidden",

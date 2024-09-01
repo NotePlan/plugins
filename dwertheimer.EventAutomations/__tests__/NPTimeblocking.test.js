@@ -5,6 +5,7 @@
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
 import * as mainFile from '../src/NPTimeblocking'
+import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
@@ -45,21 +46,21 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       //   expect(result).toEqual(true)
       // })
       test('should return default config if getting config fails', () => {
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
       test('should return default config if no settings set', () => {
         const oldSettings = DataStore.settings
         DataStore.settings = undefined
         const spy = jest.spyOn(console, 'log')
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
         expect(Object.keys(result).length).toBeGreaterThan(1)
         spy.mockRestore()
         DataStore.settings = oldSettings
       })
       test('should return default config', () => {
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
       test.skip('should complain about improper config', () => {
@@ -67,7 +68,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const oldSettings = { ...DataStore.settings }
         DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
-        mainFile.getConfig()
+        timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /Running with default settings/)).toBe(true)
         spy.mockRestore()
         DataStore.settings = oldSettings
@@ -75,7 +76,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test('should return a proper config', () => {
         const oldSettings = DataStore.settings
         DataStore.settings = configFile.getTimeBlockingDefaults()
-        const c = mainFile.getConfig()
+        const c = timeBlockingShared.getConfig()
         expect(c).toEqual(DataStore.settings)
         DataStore.settings = oldSettings
       })
@@ -107,124 +108,6 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       })
     })
 
-    /*
-     * deleteParagraphsContainingString()
-     */
-    describe('deleteParagraphsContainingString()' /* function */, () => {
-      /* template:
-      test('should XXX', () => {
-        const result = mainFile.deleteParagraphsContainingString()
-        expect(result).toEqual(true)
-      })
-      */
-      test('should not delete anything if no matches', () => {
-        const paras = [new Paragraph({ content: 'line1', type: 'open' }), new Paragraph({ content: 'line2', type: 'open' })]
-        const note = new Note({ paragraphs: paras })
-        const spy = jest.spyOn(note, 'removeParagraphs')
-        mainFile.deleteParagraphsContainingString(note, 'xxx')
-        expect(spy).not.toHaveBeenCalled()
-        spy.mockRestore()
-      })
-      test('should call delete with matching line', () => {
-        const paras = [new Paragraph({ content: 'line1', type: 'open' }), new Paragraph({ content: 'line2', type: 'open' })]
-        const note = new Note({ paragraphs: paras })
-        const spy = jest.spyOn(note, 'removeParagraphs')
-        mainFile.deleteParagraphsContainingString(note, 'line1')
-        expect(spy).toHaveBeenCalledWith([paras[0]])
-        spy.mockRestore()
-      })
-    })
-    /*
-     * insertItemsIntoNote()
-     */
-    describe('insertItemsIntoNote()' /* function */, () => {
-      /* template:
-      test('should XXX', () => {
-        const result = mainFile.insertItemsIntoNote()
-        expect(result).toEqual(true)
-      })
-      */
-      test('should fail gracefully with missing list', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = null
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
-        expect(spy).not.toHaveBeenCalled() //inserts nothing
-        spy.mockRestore()
-      })
-      test('should fail gracefully with empty list', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = []
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
-        expect(spy).not.toHaveBeenCalled() //inserts nothing
-        spy.mockRestore()
-      })
-      test('should work with null/default params and no title', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = ['line1', 'line2']
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
-        spy.mockRestore()
-      })
-      test('should work with null/default params and a title', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'title1', rawContent: '# title1', headingLevel: 1, type: 'title' })] })
-        const list = ['line1', 'line2']
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
-        spy.mockRestore()
-      })
-      test('should work with empty heading', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = ['line1', 'line2']
-        const heading = ''
-        const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
-        spy.mockRestore()
-      })
-      test('should call insert content under heading', () => {
-        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = ['line1', 'line2']
-        const heading = 'heading'
-        const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        const text = `## ${heading}\n`.concat(list.join('\n')).concat('\n')
-        expect(spy).toHaveBeenCalledWith(text, 0, 'text')
-        spy.mockRestore()
-      })
-      test('should ignore folding if heading is empty', () => {
-        const note = new Note({ paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
-        const list = ['line1', 'line2']
-        const heading = ''
-        const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, true, config)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text') //inserts nothing
-        spy.mockRestore()
-      })
-      //TODO FIXME: stopped working here:
-      test.skip('should find heading and insert under it', () => {
-        const note = new Note({
-          paragraphs: [
-            new Paragraph({ content: 'old1head', type: 'title' }),
-            new Paragraph({ content: 'old1head', type: 'title' }),
-            new Paragraph({ content: 'old2', type: 'open' }),
-          ],
-        })
-        const list = ['new1', 'new2']
-        const heading = 'old1head'
-        const config = configFile.getTimeBlockingDefaults()
-        const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, true, config)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
-        spy.mockRestore()
-      })
-    })
     /*
      * insertTodosAsTimeblocks()
      */

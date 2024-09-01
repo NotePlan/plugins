@@ -59,7 +59,10 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor
-   * "touches".
+   * "touches". NOTE: note all of the paragraph object data is complete, e.g.
+   * "headingLevel", "heading" and other properties may not be set properly.
+   * Use the result and a map to get all the correct data, e.g.:
+   * const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex])
    */
   +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
@@ -93,9 +96,10 @@ declare interface TEditor extends CoreNoteFields {
    */
   replaceSelectionWithText(text: string): void;
   /**
-   * Opens a note using the given filename.
+   * Opens a note using the given filename. Returns the note if it exists or fails, returning null if the file has not been created yet.
    * Note: some parameters introduced in v3.4 and v3.5.2
    * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * Note: if the note doesn't exist, then returns null
    * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
@@ -119,7 +123,7 @@ declare interface TEditor extends CoreNoteFields {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,
-    createIfNeeded: true,
+    createIfNeeded: boolean,
     content?: string,
   ): Promise<TNote>;
   /**
@@ -174,7 +178,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  openNoteByDateString(dateString: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Opens a weekly calendar note by the given year and week number
    * Note: available from v3.6
@@ -231,7 +235,7 @@ declare interface TEditor extends CoreNoteFields {
    * If the range exists in a folded heading, it will be unfolded.
    * @param {Range} range
    */
-  highlightByRange(range: Range): void;
+  highlightByRange(range: TRange): void;
   /**
    * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
    * If the paragraph is folded, it will be unfolded.
@@ -269,7 +273,7 @@ declare interface TEditor extends CoreNoteFields {
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
    *
-   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * Warning: Don't use any user interface calls (including Editor.* calls, other than showLoading) on an asynchronous thread. The app might crash.
    * You need to return to the main thread before you change anything in the window (such as Editor functions do).
    * Use `onMainThread()` to return to the main thread.
    * Note: Available from v3.0.26
@@ -286,6 +290,7 @@ declare interface TEditor extends CoreNoteFields {
   onMainThread(): Promise<void>;
   /**
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
+   * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
    * Note: Available from 3.9.3
    */
   save(): Promise<void>;
@@ -351,18 +356,19 @@ declare interface TEditor extends CoreNoteFields {
   +id: string;
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
+   * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
   customId: string;
   /**
-   * Type of window where the editor is embedded in.
+   * Get the type of window where the editor is embedded in.
    * Possible values: main|split|floating|unsupported
    * It's unsupported on iOS at the moment.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
-  +type: string;
+  +windowType: string;
   /**
    * Get the cursor into a specific editor and send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
@@ -382,7 +388,9 @@ declare interface TEditor extends CoreNoteFields {
    *   rect.height -= 50
    *   Editor.windowRect = rect
    *
-   * Note: for split windows, or any others in the 'main' window, this returns the position and size of the whole window, including any sidebars that are showing.
+   * Note: from JGC: for split & main windows, x/y returns the position and size of the whole window
+   * WARNING: from JGC: for split & main windows, height is reliable, but width doesn't always seem to be consistent.
+   * WARNING: from JGC: for floating Editor windows, setting this doesn't seem reliable
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
@@ -529,7 +537,7 @@ declare class DataStore {
    * @param {string} data to write
    * @param {string} filename to write to
    * @param {boolean} loadAsString?
-   * @return {boolean}
+   * @returns {boolean}
    */
   static saveData(data: string, filename: string, loadAsString: boolean): boolean;
   /**
@@ -541,7 +549,7 @@ declare class DataStore {
    * Note: Available from v3.2.0; loadAsString option only from v3.6.2.
    * @param {string} filename
    * @param {boolean} loadAsString?
-   * @return {string?}
+   * @returns {string?}
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
   /**
@@ -555,9 +563,11 @@ declare class DataStore {
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
    * Note: 'timeframe' available from v3.6.0
+   * WARNING: @jgclark: I think from use in Dashboard, this is unreliable, but I can't yet prove it. Instead use calendarNoteByDateString() below.
+   *
    * @param {Date}
    * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
@@ -568,8 +578,9 @@ declare class DataStore {
    * Monthly: "YYYY-MM", example: "2022-10"
    * Yearly: "YYYY", example: "2022"
    * Note: Some available from v3.7.2
+   * Note: In response to questions about yet-to-exist future dates, @EM says "The file gets created when you assign content to a future, non-existing note." In this situation when this call is made, note.content will be empty.
    * @param {string}
-   * @return {NoteObject}
+   * @returns {NoteObject}
    */
   static calendarNoteByDateString(dateString: string): ?TNote;
   /**
@@ -598,6 +609,8 @@ declare class DataStore {
   static noteByFilename(filename: string, type: NoteType): ?TNote;
   /**
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
+   * Note: Can also move *folders* by specifying its filename (without trailing slash).
+   * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
    * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    */
@@ -638,7 +651,10 @@ declare class DataStore {
   /**
    * Updates the cache, so you can access changes faster.
    * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too.
+   * EM also commented "[and] things like .backlinks".
    * If so, the note has to be reloaded for the updated .mentions to be available.
+   * EM has also said "It doesn't have to be async, because it runs on the same thread and updates the cache directly, but that has nothing to do with the content of the paragraph or note, that's read directly out of the file again".
+   *
    * Note: Available from NotePlan v3.7.1
    * @param {TNote} note to update
    * @param {boolean} shouldUpdateTags?
@@ -648,23 +664,21 @@ declare class DataStore {
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
-   * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
-   * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
-   * Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * Note: Available from NotePlan v3.5.2; 'skipMatchingLocalPlugins' added v3.7.2 build 926
-   * @param {boolean} showLoading?
-   * @param {boolean} showHidden?
-   * @param {boolean} skipMatchingLocalPlugins?
+   * @param {boolean} showLoading? - You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
+   * @param {boolean} showHidden? - Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`
+   * @param {boolean} skipMatchingLocalPlugins? - Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise<Array<PluginObject>>;
+  static listPlugins(showLoading?: boolean, showHidden?: boolean, skipMatchingLocalPlugins?: boolean): Promise<Array<PluginObject>>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
+   * @return {Promise<PluginObject>} the pluginObject of the installed plugin
    */
-  static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>;
+  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<PluginObject>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2
@@ -730,9 +744,9 @@ declare class DataStore {
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
    * @param {Array<string> | null?} typesToInclude ["notes", "calendar"] (by default all, or pass `null`)
-   * @param {Array<string> | null?} list (optional)
-   * @param {Array<string> | null?} list (optional)
-   * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
+   * @param {Array<string> | null?} inFolders list (optional)
+   * @param {Array<string> | null?} notInFolderslist (optional)
+   * @param {boolean?} shouldLoadDatedTodos? (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
   static search(
@@ -761,11 +775,11 @@ declare class DataStore {
    * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Note: Available from v3.6.0
-   * @param {string} = keyword to search for
+   * @param {string?} (optional) keyword to search for
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
+  static searchCalendarNotes(keyword?: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
    * Note: Available from v3.8.1
@@ -900,30 +914,30 @@ declare class CommandBar {
   /**
    * Display an array of choices as a list (only strings) which the user can
    * "fuzzy-search" filter by typing something.
-   *
    * The user selection is returned as a Promise.
    * So use it with `await CommandBar.showOptions(...)`.
-   *
    * The result is a CommandBarResultObject (as Promise success result), which
    * has `.value` and `.index`.
-   *
-   * It only supports a string array as input for the options, so you might
-   * need to map your list first to `Array<string>`.
-   *
    * Use the `.index` attribute to refer back to the selected item in the
    * original array.
+   * Also can optionally set the default option text to show. (from 3.11.1)
+   * @param {$ReadOnlyArray<TOption>} options
+   * @param {string} placeholder
+   * @param {string?} optionTextDefault?
+   * @returns {Promise<{ +index: number, +value: TOption }>}
    */
-  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>;
+  static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string, optionTextDefault?: string): Promise<{ +index: number, +value: TOption }>;
   /**
    * Asks the user to enter something into the CommandBar.
    * Use the "placeholder" value to display a question, like "Type the name of the task".
    * Use the "submitText" to describe what happens with the selection, like "Create task named '%@'".
-   * The "submitText" value supports the variable "%@" in the string, that
-   * NotePlan autofill with the typed text.
+   * The "submitText" value supports the variable "%@" in the string, that NotePlan autofill with the typed text.
+   * Also can optionally set the default search text to show. (from 3.11.1)
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
    * @param {string} placeholder
    * @param {string} submitText
+   * @param {string?} searchTextDefault?
    * @returns {Promise<string>}
    */
   static showInput(placeholder: string, submitText: string): Promise<string>;
@@ -1061,8 +1075,9 @@ declare class Calendar {
    *    Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)")
    * -> [{"index":18,"start":"2023-06-19T17:00:00.000Z","text":"Sun June 19 ","end":"2023-06-19T17:00:00.000Z"}]
    * Under the hood this uses the Chrono library.
-   * IMPORTANT NOTE:
-   * when .parseDate thinks something is an all-day event, it puts it at noon (both start/end at noon).
+   * IMPORTANT NOTES:
+   * This API does not work correctly when the input string is "today at" something (so make sure to remove the word today from your string)
+   * When .parseDate thinks something is an all-day event, it puts it at noon (both start/end at noon).
    * That means that these two (quite different) lines look identical in the return:
    *   - on Friday
    *   - on Friday at 12
@@ -1244,10 +1259,12 @@ declare interface Paragraph {
   +prefix: string;
   /**
    * Get the range of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
-  +contentRange: Range | void;
+  +contentRange: TRange | void;
   /**
    * Get the line index of the paragraph.
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    */
   +lineIndex: number;
   /**
@@ -1262,7 +1279,7 @@ declare interface Paragraph {
    * Get the heading range of the paragraph
    * (looks for a previous heading paragraph).
    */
-  +headingRange: Range | void;
+  +headingRange: TRange | void;
   /**
    * Get the heading level of the paragraph ('# heading' = level 1).
    */
@@ -1284,26 +1301,22 @@ declare interface Paragraph {
    */
   +noteType: ?NoteType;
   /**
-   * Get the linked note titles this paragraph contains,
-   * such as '[[Note Name]]' (will return names without the brackets).
+   * Get the linked note titles this paragraph contains, such as '[[Note Name]]' (will return names without the brackets).
    */
   +linkedNoteTitles: $ReadOnlyArray<string>;
   /**
-   * Creates a duplicate object, so you can change values without affecting the
-   * original object
+   * Creates a duplicate object, so you can change values without affecting the original object
    */
   duplicate(): Paragraph;
   /**
    * Returns indented paragraphs (children) underneath a task
-   * Only tasks can have children, but any paragraph indented underneath a task
-   * can be a child of the task. This includes bullets, tasks, quotes, text.
-   * Children are counted until a blank line, HR, title, or another item at the
-   * same level as the parent task. So for items to be counted as children, they
-   * need to be contiguous vertically.
-   * Important note: .children() for a task paragraph will return every child,
-   * grandchild, greatgrandchild, etc. So a task that has a child task that has
-   * a child task will have 2 children (and the first child will have one)
+   * Only tasks can have children, but any paragraph indented underneath a task can be a child of the task.
+   * This includes bullets, tasks, quotes, text.
+   * Children are counted until a blank line, HR, title, or another item at the same level as the parent task. So for items to be counted as children, they need to be contiguous vertically.
+   * Important note: .children() for a task paragraph will return every child, grandchild, greatgrandchild, etc. 
+   * So a task that has a child task that has a child task will have 2 children (and the first child will have one).
    * Note: Available from v3.3
+   * Note: this can become inaccurate if other content changes in the note; it is not automatically recalculated. Re-fetch paragraphs to avoid this.
    * @return {[TParagraph]}
    */
   children(): $ReadOnlyArray<TParagraph>;
@@ -1368,7 +1381,7 @@ declare interface TRange {
    * @param {number} end
    * @returns {Range}
    */
-  create(start: number, end: number): Range;
+  create(start: number, end: number): TRange;
 }
 
 type CalenderItemType = 'event' | 'reminder'
@@ -1622,6 +1635,7 @@ declare interface CoreNoteFields {
   +hashtags: $ReadOnlyArray<string>;
   /**
    * All @mentions contained in this note.
+   * WARNING: @jgclark experience shows that can be unreliable, sometimes not returning any entries when it should.
    */
   +mentions: $ReadOnlyArray<string>;
   /**
@@ -1632,11 +1646,9 @@ declare interface CoreNoteFields {
   content: string | void;
   /**
    * Get or set the array of paragraphs contained in this note, such as tasks,
-   * bullets, etc. If you set the paragraphs, the content of the note will be
-   * updated.
-   * TODO: Should this really be $ReadOnlyArray?
+   * bullets, etc. If you set the paragraphs, the content of the note will be updated.
    */
-  paragraphs: $ReadOnlyArray<TParagraph>;
+  paragraphs: Array<TParagraph>;
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
@@ -1709,7 +1721,7 @@ declare interface CoreNoteFields {
    * Returns a range object of the full paragraph of the given character
    * position.
    */
-  paragraphRangeAtCharacterIndex(characterPosition: number): Range;
+  paragraphRangeAtCharacterIndex(characterPosition: number): TRange;
 
   /**
    * Inserts a plain paragraph at the given line index
@@ -1860,9 +1872,8 @@ declare interface CoreNoteFields {
   updateParagraph(paragraph: TParagraph): void;
 
   /**
-   * Updates an array paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
+   * Updates an array of paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
    * @param {Array<TParagraph>} paragraphs - Paragraph objects to update, get it from `.paragraphs`
-   * TODO: Should this really be $ReadOnlyArray?
    */
   updateParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void;
 
@@ -1981,7 +1992,7 @@ declare class HTMLView {
   // Impossible constructor.
   constructor(_: empty): empty;
   /**
-   * Show HTML in a NotePlan sheet.
+   * Show HTML in a sheet (e.g. mobile/iPad modal).
    * Note: Available from v3.6.2
    * @param {string} HTML to show
    * @param {number?} width (optional integer)
@@ -2005,14 +2016,15 @@ declare class HTMLView {
   /**
    * Open a non-modal window above the main window with the given html code and window title.
    * It returns a promise with the created window object.
-   * Optionally, supply an object as the 3rd parameter to set window options: { width, height, x, y, shouldFocus }
+   * Optionally, supply an object as the 3rd parameter to set window options: { width, height, x, y, shouldFocus, id }
    * By default, it will focus and bring to front the window on first launch.
    * If you are re-loading an existing HTML window's content, by default the window will not change z-order or focus (if it is in the back, it will stay in the back). You can override this by setting { shouldFocus: true } to bring to front on reload.
+   * Note: from v3.9.6 (build 1087) will open multiple windows if different 'id' is delivered. If set it is assigned as the `customId` to the returning window.
    * Run it with await window = showWindow(...), so you can adjust the window position and height later.
    * Note: Available from v3.9.1 (build 1020)
    * @param {string} HTML to show
    * @param {string} title for HTML window
-   * @param {Object} options { x: integer, y: integer, width: integer, height: integer, shouldFocus: boolean }
+   * @param {Object} options { x: integer, y: integer, width: integer, height: integer, shouldFocus: boolean, id: string }
    * @returns {Window} promise to window
    */
   static showWindowWithOptions(html: string, title: string, options: Object): HTMLView;
@@ -2025,6 +2037,7 @@ declare class HTMLView {
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Example: NotePlan.editors[0].customId = "test"
+   * Generally speaking you should start this string with the plugin's ID, e.g. pluginJson['plugin.id'], and append '.name' if you need to have more than 1 HTML window type in the same plugin.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
@@ -2048,13 +2061,14 @@ declare class HTMLView {
    */
   close(): void;
   /**
-   * After opening an html window, make changes to the contents of the window by running JS code directly inside the opened window.
+   * After opening an HTML window, make changes to the contents of the window by running JS code directly inside the opened window.
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
-   * Note: Available in v3.8
-   * @param { String }
+   * Note: Available in v3.8. Second parameter added in build 1089.
+   * @param { string } code JS to execute
+   * @param { string | undefined } windowId ID of the HTML window to execute it in (undefined for non-desktop platforms)
    * @return { Promise | void }
    */
-  static runJavaScript(code: string): Promise | void;
+  static runJavaScript(code: string, windowId: string | undefined): Promise | void;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
@@ -2071,6 +2085,17 @@ declare class HTMLView {
 
 /** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
 type Window = HTMLView | Editor
+
+// dbw commenting this out because it doesn't work and causes Flow errors
+// type document = {
+//   /**
+//    * Set the title of the HTML window.
+//    * Note: Available From 3.12 b1201.
+//    */
+//   title?: string,
+//   addEventListener?: any,
+//   removeEventListener?: any,
+// }
 
 type FetchOptions = {
   /* all optional */
@@ -2092,4 +2117,6 @@ declare function fetch(url: string, options?: FetchOptions): Promise<string> /* 
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed, document: mixed }
+declare var globalThis: { [string]: () => mixed, document: mixed, [string]: mixed } | null
+
+declare type TAnyObject = { [key: string]: any }

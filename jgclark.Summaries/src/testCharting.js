@@ -2,19 +2,19 @@
 //-----------------------------------------------------------------------------
 // Tests for Heatmap Generation stats + HTML
 // Jonathan Clark, @jgclark
-// Last updated 30.9.2022
+// Last updated 30.9.2022+
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { generateTaskCompletionStats } from './forCharts'
 import { getSummariesSettings } from './summaryHelpers'
 import {
-  getDateObjFromDateString,
-  getWeek,
+  // getDateObjFromDateString,
+  // getWeek,
   withinDateRange
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { showHTML } from '@helpers/HTMLView'
-import { generateTaskCompletionStats } from './forCharting'
 
 //-----------------------------------------------------------------------------
 
@@ -136,7 +136,7 @@ export async function testHeatMapGeneration2(): Promise<void> {
   const title = 'Heatmap Test 2'
   // Get daily data
   const config = await getSummariesSettings()
-  const dayOfYear = moment().format('DDD')
+  // const dayOfYear = moment().format('DDD')
   const dailyStatsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', moment().subtract(1, 'year').format('YYYY-MM-DD'))
   /**
    * Munge data into the form needed:
@@ -145,7 +145,7 @@ export async function testHeatMapGeneration2(): Promise<void> {
       val, where values are set.
    */
   const dataToPass = []
-  for (let item of dailyStatsMap) {
+  for (const item of dailyStatsMap) {
     const isoDate = item[0]
     const count = item[1]
     // logDebug('', `- ${isoDate}: ${count}`) // OK
@@ -231,7 +231,7 @@ export async function testHeatMapGeneration3(): Promise<void> {
    */
   const dataToPass = []
   let total = 0
-  for (let item of dailyStatsMap) {
+  for (const item of dailyStatsMap) {
     const isoDate = item[0]
     const count = item[1]
     // logDebug('', `- ${isoDate}: ${count}`) // OK
@@ -240,7 +240,7 @@ export async function testHeatMapGeneration3(): Promise<void> {
     // Get string for heatmap column title: week number, or year number if week 1
     const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
     const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
-    let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
+    const dataPointObj = { x: weekTitle, y: dayAbbrev, heat: count, isoDate: isoDate }
     if (withinDateRange(isoDate, fromDateStr, toDateStr)) {
       // this test ignores any blanks on the front (though they will be 0 anyway)
       total += item[1] // the count

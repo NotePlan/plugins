@@ -117,13 +117,13 @@ describe(`${FILE}`, () => {
     })
     describe('using blockID (for line link)', () => {
       test('should create a link with a blockID and title', () => {
-        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null, null, false, '^1234')
-        expect(res).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo%5E1234')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null, null, false, '^123456')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo%5E123456')
       })
       // blockid by filename is not supported by NotePlan yet
       test.skip('should create a link with a blockID and filename', () => {
-        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, false, '^1234')
-        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&blockID=%5E1234')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, null, false, '^123456')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&blockID=%5E123456')
       })
     })
   })
@@ -341,6 +341,7 @@ describe(`${FILE}`, () => {
         expect(result).toEqual(true)
       })
     })
+
     /*
      * formatWithFields()
      */
@@ -375,6 +376,45 @@ describe(`${FILE}`, () => {
         const result = g.formatWithFields(template, { foo: 'bar', sam: 'baz', quux: true })
         expect(result).toEqual(template)
       })
+    })
+  })
+
+  /*
+   * getTagParamsFromString()
+   * NB: an async function
+   */
+  describe('getTagParamsFromString()' /* function */, () => {
+    test('should error with empty paramString', async () => {
+      const result = await g.getTagParamsFromString('', 'bob', 'default')
+      expect(result).toEqual('default')
+    })
+    test('should error with empty wantedParam', async () => {
+      const result = await g.getTagParamsFromString('bob', '', 'default')
+      expect(result).toEqual('❗️error')
+    })
+    test('should return default', async () => {
+      const result = await g.getTagParamsFromString('{}', 'uncle', 'default')
+      expect(result).toEqual('default')
+    })
+    test('should return FOO (less strict JSON5)', async () => {
+      const result = await g.getTagParamsFromString('{area:"FOO", template:"BAR"}', 'area', 'default')
+      expect(result).toEqual('FOO')
+    })
+    test('should return FOO (strict JSON)', async () => {
+      const result = await g.getTagParamsFromString('{"area":"FOO", "template":"BAR"}', 'area', 'default')
+      expect(result).toEqual('FOO')
+    })
+    test('should return BAR (strict JSON)', async () => {
+      const result = await g.getTagParamsFromString('{"area":"FOO", "template":"BAR"}', 'template', 'default')
+      expect(result).toEqual('BAR')
+    })
+    test('should return 42.15 (less strict JSON5)', async () => {
+      const result = await g.getTagParamsFromString('{area:42.15, template:"BAR",}', 'area', 'default')
+      expect(result).toEqual(42.15)
+    })
+    test('should return NaN (requires less strict JSON5)', async () => {
+      const result = await g.getTagParamsFromString('{area:NaN, template:"BAR",}', 'area', 'default')
+      expect(result).toEqual(NaN)
     })
   })
 })

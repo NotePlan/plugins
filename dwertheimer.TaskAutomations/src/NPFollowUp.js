@@ -4,12 +4,11 @@ import { selectedLinesIndex } from '../../helpers/NPParagraph'
 import { createPrettyLinkToLine, createWikiLinkToLine } from '../../helpers/NPSyncedCopies'
 import { isTask } from '../../helpers/sorting'
 import pluginJson from '../plugin.json'
+import { getInput, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getDateOptions, unhyphenateString, RE_ISO_DATE, removeDateTagsAndToday } from '@helpers/dateTime'
-import { chooseOptionWithModifiers } from '@helpers/userInput'
 import { getWeekOptions } from '@helpers/NPdateTime'
-import { getInput } from '../../helpers/userInput'
 
 /**
  * Ask user for a future date or week to attach to the follow-up task
@@ -19,7 +18,7 @@ export async function getFutureDate(isMultiple: boolean = false, promptString: s
   const dateOpts = [...skip, ...getDateOptions(), ...getWeekOptions()]
   const prompt = `Attach what due date to the follow-up task${isMultiple ? 's' : ''}?`
   const res = await chooseOptionWithModifiers(promptString || prompt, dateOpts)
-  logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
+  logDebug(pluginJson, `getUserActionForThisTask user selection: ${JSP(res)}`)
   if (res && res.value && res.value !== '__skip__') return res.value
   return ''
 }
@@ -71,7 +70,8 @@ export async function createFollowUps(saveHere: boolean, selectedParagraph: TPar
           endIndex = indexes[1]
         }
         if (endIndex >= startIndex) {
-          const futureDate = await getFutureDate(startIndex !== endIndex, 'Save follow-up task on what date?')
+          const prompt = saveHere ? `Add a due date to the new task?` : `Create follow-up task on what date?`
+          const futureDate = await getFutureDate(startIndex !== endIndex, prompt)
           for (let index = startIndex; index <= endIndex; index++) {
             const para = Editor.note?.paragraphs[index] || null
             if (para) {
@@ -79,6 +79,7 @@ export async function createFollowUps(saveHere: boolean, selectedParagraph: TPar
               const origText = removeDateTagsAndToday(textWithoutSyncedCopyTag(para.content))
                 .replace(/ *>today/gm, '')
                 .replace(/ *\@done\(.*\)/gm, '')
+                .replace(new RegExp(`${followUpText} *`), 'gm')
               if (para && isTask(para)) {
                 clo(para, `createFollowUps: before update paragraph[${index}]`)
                 clo(para.contentRange, `createFollowUps: contentRange for paragraph[${index}]`)

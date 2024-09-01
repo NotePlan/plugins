@@ -18,6 +18,8 @@ Compared with the built-in functionality, it also allows you to easily change th
 ## Configuration
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 
+From plugin v0.8 there's a setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
+
 ## Running it Automatically
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:
 
@@ -32,14 +34,16 @@ triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ```
 Tip: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+Alternatively, the separate [Tidy Up plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) has a **/Generate @repeats in recent notes** command, which runs over all recently-changed notes, generating any new @repeats that are required. It does _not_ require triggers to be in place.
+
 ## Running it Manually
 On the _currently open note_, open the command bar and type the **/generate repeats** command.
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
-- When run on a (daily or weekly) _Calendar note_, it creates the new repeated task on the date of the new repeat.
+- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
 
 ## Specifiying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
-- `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country.)
+- `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country)
 - `d` or `D`: days
 - `w` or `W`: weeks
 - `m` or `M`: months
@@ -47,7 +51,7 @@ The time intervals have two parts: number and then a character. The **character*
 - `y` or `Y`: years
 
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
-When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
+When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. When there is no scheduled date, then for _Calendar notes_ it will duplicate the task for 1 month after the note date, and for _Project notes_ it will duplicate the task for 1 month after the _task was completed_.
 
 From v0.6 you can specify scheduled dates to all the other calendar note types supported by NotePlan:
 - weekly (e.g. `>2023-W28`)
@@ -62,7 +66,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

@@ -13,7 +13,8 @@ import fm from 'front-matter'
 // import { showMessage } from './userInput'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getAttributes } from '@templating/support/modules/FrontmatterModule'
+import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
+
 const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
@@ -21,12 +22,14 @@ export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
- * Frontmatter cannot have colons in the content (specifically ": "), so we need to wrap that in quotes
+ * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
  * @param {string} text
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#/.test(text) || /^@/.test(text) || text === ''
+  // create a regex that looks for a leading "#" char and any non whitespace char
+
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text)
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
@@ -34,11 +37,11 @@ export function quoteText(text: string): string {
 /**
  * Test whether a string contains front matter using the front-matter library which has a bug/limitation
  * Note: underlying library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
+ * Will allow nonstandard YAML (e.g. contain colons, value starts with @) by sanitizing it first
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
-// export const hasFrontMatter = (text: string): boolean => fm.test(text)
-export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.split('\n', 1)[0] === '---'
+export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text, true))
 
 /**
  * Test whether a Note contains front matter
@@ -47,9 +50,12 @@ export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.s
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
-export const noteHasFrontMatter = (note: CoreNoteFields): boolean =>
-  note && hasFrontMatter(note.content || '') && note.paragraphs?.length >= 2 && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
-
+export function noteHasFrontMatter(note: CoreNoteFields): boolean {
+  logDebug('noteHasFrontMatter', `has ${String(note.paragraphs?.length)} lines`)
+  if (note.paragraphs.length > 0) logDebug('noteHasFrontMatter', `- para 0 = ${note.paragraphs?.[0].type} "${note.paragraphs?.[0].content}"`)
+  if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false
+  return note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+}
 /**
  * get the front matter attributes from a note
  * @param {TNote} note
@@ -142,13 +148,13 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
               removed = true
               if (fmParas.length <= 2) {
                 // logDebug('rFMF', `- this was the only field in the FM`)
-                const res = removeFrontMatter(note, removeSeparators)
+                removeFrontMatter(note, removeSeparators)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res)}`)
               } else {
                 // logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
-                const res1 = removeFrontMatter(note, false)
+                removeFrontMatter(note, false)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
-                const res2 = writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
+                writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
                 // logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
               }
             }
@@ -157,7 +163,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
       }
     })
     if (!removed) {
-      logDebug('rFMF', `didn't find '${fieldToRemove}' to remove in note '${displayTitle(note)}'`)
+      logDebug('rFMF', `Note had frontmatter, but didn't find key:'${fieldToRemove}' to remove in note '${displayTitle(note)}'`)
     }
     return removed
   } catch (err) {
@@ -167,18 +173,42 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
 }
 
 /**
+ * Recursive helper function used to write multi-line-indented frontmatter keys/values
+ * @param {any} obj
+ * @param {string} indent - level for recursive indent
+ * @returns
+ */
+function _objectToYaml(obj: any, indent: string = ' ') {
+  let output = ''
+  for (const prop in obj) {
+    output += `\n${indent}${prop}:`
+    if (Array.isArray(obj[prop])) {
+      obj[prop].forEach((el) => {
+        output += `\n${indent} - ${el}`
+      })
+    } else if (typeof obj[prop] === 'object' && obj[prop] !== null && Object.keys(obj[prop]).length) {
+      output += _objectToYaml(obj[prop], `${indent} `)
+    } else {
+      output += ` ${obj[prop]}`
+    }
+  }
+  return output
+}
+
+/**
  * Write the frontmatter vars to a note which already has frontmatter
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
  * You should use setFrontMatterVars instead
  * will add fields for whatever attributes you send in the second argument (could be duplicates)
  * so delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields
  * @param {CoreNoteFields} note
- * @param {*} attributes
- * @param {boolean?} alsoEnsureTitle?
+ * @param {Object} attributes - key/value pairs for frontmatter values
+ * @param {boolean?} alsoEnsureTitle - ensure that the frontmatter has a title (and set it to the note title if not). Default: true.
+ * @param {boolean?} quoteNonStandardYaml - quote any values that are not standard YAML (e.g. contain colons, value starts with @). Default: false.
  * @returns {boolean} was frontmatter written OK?
  * @author @dwertheimer
  */
-export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true): boolean {
+export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
   if (!noteHasFrontMatter(note)) {
     logError(pluginJson, `writeFrontMatter: no frontmatter already found in note, so stopping.`)
     return false
@@ -188,10 +218,19 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
     Object.keys(attributes).forEach((key) => {
       const value = attributes[key]
       if (value !== null) {
-        outputArr.push(`${key}: ${quoteText(value)}`)
+        if (typeof value === 'string') {
+          outputArr.push(quoteNonStandardYaml ? `${key}: ${quoteText(value)}` : `${key}: ${value}`)
+        } else {
+          if (typeof value === 'object') {
+            logDebug(pluginJson, `writeFrontMatter: value for key '${key}' is an object (e.g. multi-level list). Converting to multi-line string.`)
+            const yamlString = _objectToYaml(value)
+            outputArr.push(`${key}:${yamlString}`)
+          }
+        }
       }
     })
     const output = outputArr.join('\n')
+    logDebug(pluginJson, `writeFrontMatter: writing frontmatter to note '${displayTitle(note)}':\n"${output}"`)
     note.insertParagraph(output, 1, 'text')
     return true
   } else {
@@ -199,6 +238,8 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
   }
   return false
 }
+
+export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes('<%')
 
 /**
  * Set/update the front matter attributes for a note.
@@ -215,9 +256,11 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
   try {
     const title = varObj.title || null
-    logDebug(`setFrontMatterVars`, `Note "${title || ''}" BEFORE: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
+    clo(varObj, `Starting for note ${note.filename} with varObj:`)
+    logDebug(`setFrontMatterVars`, `- BEFORE ensureFM: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
     const hasFM = ensureFrontmatter(note, true, title)
-    // clo(note.paragraphs, `setFrontMatterVars: after ensureFrontMatter with ${note.paragraphs.length} lines`)
+    logDebug('note.paragraphs', `- AFTER ensureFM has ${note.paragraphs.length} lines, that starts:`)
+    // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
     if (!hasFM) {
       throw new Error(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
     }
@@ -233,7 +276,8 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
       })
       removeFrontMatter(note)
       writeFrontMatter(note, changedAttributes)
-      logDebug('setFrontMatterVars', `- ending with ${note.paragraphs.length} lines`)
+      logDebug('setFrontMatterVars', `- ENDING with ${note.paragraphs.length} lines, that starts:`)
+      // console.log(note.paragraphs.slice(0, 7).map(p => p.content).join('\n'))
     } else {
       logError('setFrontMatterVars', `- could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
     }
@@ -262,6 +306,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 
 /**
  * Ensure that a note has front matter (and optionally has a title you specify).
+ * WARNING: Failing for @jgclark on calendar notes without existing FM.
  * If the note already has front matter, returns true.
  * If the note does not have front matter, adds it and returns true.
  * If optional title is given, it overrides any existing title in the note for the frontmatter title.
@@ -275,10 +320,10 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   try {
     let retVal = false
+    let front = ''
     if (note == null) {
       // no note - return false
-      logError('ensureFrontmatter', `No note found. Stopping conversion.`)
-      // await showMessage(`No note found to convert to frontmatter.`)
+      throw new Error(`No note found. Stopping conversion.`)
     } else if (hasFrontMatter(note.content || '')) {
       // already has frontmatter
       const attr = getAttributes(note.content)
@@ -294,7 +339,6 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     } else {
       // need to add frontmatter
       let newTitle
-      let front = ''
       if (note.type === 'Notes' && alsoEnsureTitle) {
         // if (!note.title) {
         //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
@@ -313,13 +357,17 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         }
 
         if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        front = `---\ntitle: ${quoteText(newTitle)}\n---\n`
+        front = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
-        front = `---\n---\n`
+        logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
+        front = `---\n---`
       }
-      const newContent = `${front}${note?.content || ''}`
-      note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
-      note.insertParagraph(newContent, 0, 'text')
+      // const newContent = `${front}${note?.content || ''}`
+      // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
+      // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
+      logDebug('ensureFrontmatter', `front to add: ${front}`)
+      // FIXME: this doesn't do anything for @jgclark
+      note.insertParagraph(front, 0, 'text')
       retVal = true
       logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
     }
@@ -405,7 +453,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     if (ensureFrontmatter(note) === false) {
       throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
     }
-    logDebug(pluginJson, `addTrigger() will add ${trigger} / ${pluginID} /  ${commandName} to FM:`)
+    logDebug(pluginJson, `addTrigger() starting to add the ${trigger} / ${pluginID} /  ${commandName} to FM:`)
     const attributes = getFrontMatterAttributes(note)
     // clo(attributes, `addTrigger() attributes =`)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []
@@ -428,4 +476,185 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     logError('NPFrontMatter/addTrigger()', JSP(error))
     return false
   }
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * For pre-processing illegal characters in frontmatter, we must first get the frontmatter text the long way (instead of calling fm() which will error out)
+ * Gets the text that represents frontmatter. The first line must be a "---" separator, and include everything until another "---" separator is reached. Include the separators in the output.
+ * Returns empty string if no frontmatter found
+ * @param {*} text
+ */
+export function _getFMText(text: string): string {
+  const lines = text.split('\n')
+  if (lines.length >= 2 && lines[0] === '---') {
+    let fmText = ''
+    let i = 0
+    while (i < lines.length) {
+      fmText += `${lines[i]}\n`
+      i++
+      if (lines[i] === '---') {
+        return `${fmText}---\n`
+      }
+    }
+  }
+  return ''
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * Fix the frontmatter text by quoting values that need it
+ * Should always be run after _getFMText() because assumes there is frontmatter
+ * @param {string} fmText - the text of the frontmatter (including the separators but not the note text)
+ * @returns {string} - the fixed frontmatter text
+ * @example fixFrontmatter('---\nfoo: bar:\nbaz: @qux\n---\n') => '---\nfoo: "bar:"\nbaz: "@qux"\n---\n'
+ */
+export function _fixFrontmatter(fmText: string): string {
+  const varLines = fmText.trim().split('\n').slice(1, -1)
+  let output = '',
+    isMultiline = false
+  varLines.forEach((line) => {
+    if (line.trim() === '') {
+      output += '\n'
+      return
+    }
+    if (isMultiline && !line.trim().startsWith('-')) {
+      isMultiline = false
+    }
+    if (!isMultiline && line.trim().endsWith(':') && line.split(':').length === 2) {
+      isMultiline = true
+      output += `${line}\n`
+      return
+    }
+    if (isMultiline) {
+      output += `${line.trimEnd()}\n`
+      return
+    }
+    const [varName, ...varValue] = line.split(':')
+    const value = varValue.join(':').trim()
+    const fixedValue = quoteText(value)
+    output += `${varName}: ${fixedValue}\n`
+  })
+  return `---\n${output}---\n`
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * Typically is run after a parse error from the frontmatter library
+ * Sanitizes the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Returns sanitized text as a string
+ * @param {string} originalText
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
+ * @returns
+ */
+export function _sanitizeFrontmatterText(originalText: string, removeTemplateTagsInFM?: boolean = false): string {
+  const unfilteredFmText = _getFMText(originalText)
+  const hasTags = hasTemplateTagsInFM(unfilteredFmText)
+  if (hasTags && !removeTemplateTagsInFM) {
+    // logDebug(
+    //   `FYI: _sanitizeFrontmatterText: getAttributes was called for a template which has template tags in the frontmatter. This is generally only advisable if you send getAttributes with the second param set to true. Ignore this warning if you meant to do this and it's working fine for you. Template text was: "${originalText}"`,
+    // )
+  }
+  // remove any lines in fmText which contain <%
+  const fmTextWithoutTags =
+    removeTemplateTagsInFM && hasTags
+      ? unfilteredFmText
+          .split('\n')
+          .filter((line) => !line.includes('<%'))
+          .join('\n')
+      : unfilteredFmText
+  if (fmTextWithoutTags === '') return originalText
+  // needs to return full note after sanitizing frontmatter
+  // get the text between the separators
+  const fixedText = _fixFrontmatter(fmTextWithoutTags)
+  return originalText.replace(unfilteredFmText, fixedText)
+}
+
+export type FrontMatterDocumentObject = { attributes: { [string]: string }, body: string, frontmatter: string }
+
+/**
+ * Get an object representing the document with or without frontmatter
+ * Do pre-processing to ensure that the most obvious user-entered illegal character sequences in frontmatter are avoided
+ * @param {string} noteText  - full text of note (perhaps starting with frontmatter)
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
+ * @returns {Object} - the frontmatter object (or empty object if none)
+ */
+export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
+  let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
+  // we need to pre-process the text to sanitize it instead of running fm because we need to
+  // preserve #hashtags and fm will blank those lines  out as comments
+  const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
+  try {
+    fmData = fm(sanitizedText, { allowUnsafe: true })
+  } catch (error) {
+    logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
+  }
+  return fmData
+}
+
+/**
+ * Sanitize the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Returns frontmatter object (or empty object if none)
+ * Optionally writes the sanitized (quoted) text back to the note
+ * @param {*} note
+ * @param {*} writeBackToNote - whether to write the sanitized text back to the note
+ * @returns {Object} - the frontmatter object (or empty null if none)
+ */
+export function getSanitizedFrontmatterInNote(note: CoreNoteFields, writeBackToNote: boolean = false): FrontMatterDocumentObject | null {
+  const fmData = getSanitizedFmParts(note.content || '') || null
+  if (writeBackToNote && fmData?.attributes) {
+    if (_getFMText(note.content || '') !== `---\n${fmData.frontmatter}\n---\n`) {
+      writeFrontMatter(note, fmData.attributes)
+    }
+  }
+  return fmData
+}
+
+/**
+ * Get the frontmatter attributes from a note, sanitizing the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Note that templates may include templates (<%) in their frontmatter, which will stop the parser, so if you are trying to getAttributes of a note that could have templates in
+ * the frontmatter, set the second param to true to strip those tags out
+ * (moved from '@templating/support/modules/FrontmatterModule')
+ * // import { getAttributes } from '@templating/support/modules/FrontmatterModule'
+ * @param {string} templateData
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
+ * @returns {Object} - the frontmatter object (or empty object if none)
+ */
+export function getAttributes(templateData: string = '', removeTemplateTagsInFM?: boolean = false): Object {
+  const fmData = getSanitizedFmParts(templateData, removeTemplateTagsInFM)
+  Object.keys(fmData?.attributes).forEach((key) => {
+    fmData.attributes[key] || typeof fmData.attributes[key] === 'boolean' ? fmData.attributes[key] : (fmData.attributes[key] = '')
+  })
+  return fmData && fmData?.attributes ? fmData.attributes : {}
+}
+
+/**
+ *  Get the body of the note (without frontmatter)
+ *  (moved from '@templating/support/modules/FrontmatterModule')
+ * @param {string} templateData
+ * @returns {string} - the body of the note (without frontmatter)
+ */
+export function getBody(templateData: string = ''): string {
+  if (!templateData) return ''
+  const fmData = getSanitizedFmParts(templateData)
+  return fmData && fmData?.body ? fmData.body : ''
+}
+
+/**
+ * Check to see if it has been less than a certain time since the last document write (to avoid infinite loops)
+ * Put the example command below at the top of your trigger code which will stop execution
+ * if the time since the last document write is less than the minimum time required (default: 2000ms)
+ * @param {TNote} note - the note in question - must be a note (e.g. Editor.note) not Editor (Editor has no .versions property)
+ * @param {number} minimumTimeRequired (in ms) - default: 2000ms
+ * @returns {boolean} - true if the time since the last document write is less than the minimum time required
+ * @usage if (Editor?.note && isTriggerLoop(Editor.note)) return // returns/stopping execution if the time since the last document write is less than than 2000ms
+ */
+export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): boolean {
+  if (!note.versions || !note.versions.length) return false
+  const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+  if (timeSinceLastEdit <= minimumTimeRequired) {
+    logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
+    return true
+  }
+  return false
 }

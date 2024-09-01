@@ -1,4 +1,4 @@
-# Preview Plugin
+# 🖥️ Preview Plugin
 This plugin provides the **/preview note** and **/start live preview** commands that renders the current note to HTML including:
 - standard Markdown conversion
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
@@ -19,12 +19,14 @@ Use the **/start live preview** command to open the Preview window, _and enable 
 triggers: onEditorWillSave => np.Preview.updatePreview
 ```
 
+It deliberately updates the Preview window without giving it focus, so that you can continue editing.
+
 ## Mermaid charts
 The markdown-ish definition of these charts is done in one or more fenced code blocks:
 
 ```
 ``` mermaid
-... chart defintion
+... chart definition
 lines  ...
 ```  .
 ```
@@ -52,7 +54,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

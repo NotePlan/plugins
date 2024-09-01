@@ -5,21 +5,16 @@
 // last update 23.11.2022 for v0.15.0 by @jgclark
 //---------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import strftime from 'strftime'
+import pluginJson from '../plugin.json'
+import { getJournalSettings, type JournalConfigType, processJournalQuestions, returnAnsweredQuestion } from './journalHelpers'
 import { getWeek, isDailyNote, isWeeklyNote, isMonthlyNote, isQuarterlyNote, isYearlyNote } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { findHeadingStartsWith } from '@helpers/paragraph'
 import NPTemplating from 'NPTemplating'
-import { getAttributes } from '@templatingModules/FrontMatterModule'
+import { getAttributes } from '@helpers/NPFrontMatter'
 import { getInputTrimmed, isInt, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
-import {
-  getJournalSettings,
-  type JournalConfigType,
-  processJournalQuestions,
-  returnAnsweredQuestion
-} from './journalHelpers'
 
 //---------------------------------------------------------------
 
@@ -42,8 +37,7 @@ export async function monthStart(): Promise<void> {
     if (Editor.note && isMonthlyNote(Editor.note)) {
       // apply monthly template in the currently-open monthly note
       logDebug('monthStart', `Will work on the open monthly note '${displayTitle(Editor.note)}'`)
-    }
-    else {
+    } else {
       // apply monthly template in the current monthly note
       logInfo('monthStart', `Started without a monthly note open, so will open and work in this month's note.`)
       // open today's date in the main window, and read content
@@ -58,7 +52,7 @@ export async function monthStart(): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
@@ -107,8 +101,7 @@ export async function weekStart(): Promise<void> {
     if (Editor.note && isWeeklyNote(Editor.note)) {
       // apply weekly template in the currently-open weekly note
       logDebug('weekStart', `Will work on the open weekly note '${displayTitle(Editor.note)}'`)
-    }
-    else {
+    } else {
       // apply weekly template in the current weekly note
       logInfo('weekStart', `Started without a weekly note open, so will open and work in this week's note.`)
       // open today's date in the main window, and read content
@@ -123,7 +116,7 @@ export async function weekStart(): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
@@ -169,8 +162,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
     if (Editor.note && isDailyNote(Editor.note) && !workToday) {
       // apply daily template in the currently-open daily note
       logDebug('dayStart', `Will work on the open daily note '${displayTitle(Editor.note)}'`)
-    }
-    else {
+    } else {
       // apply daily template in today's daily note
       logInfo('dayStart', `Started without a daily note open, so will open and work in this day's note.`)
       // open today's date in the main window, and read content
@@ -191,7 +183,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
@@ -232,10 +224,14 @@ export async function dailyJournalQuestions(): Promise<void> {
     // Open current daily note if wanted
     const { note } = Editor
     if (!note || !isDailyNote(note)) {
-      const res = await showMessageYesNoCancel(`You don't currently have a daily note open. Would you like me to open the current daily note first?`, ['Yes', 'No', 'Cancel'], 'Daily Journal')
+      const res = await showMessageYesNoCancel(
+        `You don't currently have a daily note open. Would you like me to open the current daily note first?`,
+        ['Yes', 'No', 'Cancel'],
+        'Daily Journal',
+      )
       switch (res) {
         case 'Yes': {
-          Editor.openNoteByDate(new Date(), false, 0, 0, true, "day")
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, 'day')
           break
         }
         case 'No': {
@@ -247,8 +243,7 @@ export async function dailyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('day')
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }
@@ -260,16 +255,20 @@ export async function dailyJournalQuestions(): Promise<void> {
 export async function weeklyJournalQuestions(): Promise<void> {
   try {
     const currentWeekNum = getWeek(new Date())
-    const thisPeriodStr = strftime(`%Y`) + '-W' + currentWeekNum
+    const thisPeriodStr = `${strftime(`%Y`)}-W${currentWeekNum}`
     logDebug(pluginJson, `Starting for week ${thisPeriodStr}`)
 
     // Open current weekly note if wanted
     const { note } = Editor
     if (!note || !isWeeklyNote(note)) {
-      const res = await showMessageYesNoCancel(`You don't currently have a weekly note open. Would you like me to open the current weekly note first?`, ['Yes', 'No', 'Cancel'], 'Weekly Journal')
+      const res = await showMessageYesNoCancel(
+        `You don't currently have a weekly note open. Would you like me to open the current weekly note first?`,
+        ['Yes', 'No', 'Cancel'],
+        'Weekly Journal',
+      )
       switch (res) {
         case 'Yes': {
-          Editor.openNoteByDate(new Date(), false, 0, 0, true, "week")
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, 'week')
           break
         }
         case 'No': {
@@ -281,8 +280,7 @@ export async function weeklyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('week')
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }
@@ -299,10 +297,14 @@ export async function monthlyJournalQuestions(): Promise<void> {
     // Open current monthly note if wanted
     const { note } = Editor
     if (!note || !isMonthlyNote(note)) {
-      const res = await showMessageYesNoCancel(`You don't currently have a monthly note open. Would you like me to open the current monthly note first?`, ['Yes', 'No', 'Cancel'], 'Monthly Journal')
+      const res = await showMessageYesNoCancel(
+        `You don't currently have a monthly note open. Would you like me to open the current monthly note first?`,
+        ['Yes', 'No', 'Cancel'],
+        'Monthly Journal',
+      )
       switch (res) {
         case 'Yes': {
-          Editor.openNoteByDate(new Date(), false, 0, 0, true, "month")
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, 'month')
           break
         }
         case 'No': {
@@ -314,8 +316,7 @@ export async function monthlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('month')
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }
@@ -330,16 +331,20 @@ export async function quarterlyJournalQuestions(): Promise<void> {
     const y = todaysDate.getFullYear()
     const m = todaysDate.getMonth() // counting from 0
     const thisQ = Math.floor(m / 3) + 1
-    const thisPeriodStr = strftime(`%Y`) + 'Q' + String(thisQ)
+    const thisPeriodStr = `${strftime(`%Y`)}Q${String(thisQ)}`
     logDebug(pluginJson, `Starting for quarter ${thisPeriodStr}`)
 
     // Open current quarter note if wanted
     const { note } = Editor
     if (!note || !isQuarterlyNote(note)) {
-      const res = await showMessageYesNoCancel(`You don't currently have a quarterly note open. Would you like me to open the current quarterly note first?`, ['Yes', 'No', 'Cancel'], 'Quarterly Journal')
+      const res = await showMessageYesNoCancel(
+        `You don't currently have a quarterly note open. Would you like me to open the current quarterly note first?`,
+        ['Yes', 'No', 'Cancel'],
+        'Quarterly Journal',
+      )
       switch (res) {
         case 'Yes': {
-          Editor.openNoteByDate(new Date(), false, 0, 0, true, "quarter")
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, 'quarter')
           break
         }
         case 'No': {
@@ -351,8 +356,7 @@ export async function quarterlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('quarter')
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }
@@ -371,10 +375,14 @@ export async function yearlyJournalQuestions(): Promise<void> {
     // Open current yearly note if wanted
     const { note } = Editor
     if (!note || !isYearlyNote(note)) {
-      const res = await showMessageYesNoCancel(`You don't currently have a yearly note open. Would you like me to open the current yearly note first?`, ['Yes', 'No', 'Cancel'], 'Yearly Journal')
+      const res = await showMessageYesNoCancel(
+        `You don't currently have a yearly note open. Would you like me to open the current yearly note first?`,
+        ['Yes', 'No', 'Cancel'],
+        'Yearly Journal',
+      )
       switch (res) {
         case 'Yes': {
-          Editor.openNoteByDate(new Date(), false, 0, 0, true, "year")
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, 'year')
           break
         }
         case 'No': {
@@ -386,8 +394,7 @@ export async function yearlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('year')
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }

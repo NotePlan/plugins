@@ -4,9 +4,67 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.21.0] 2024-05-26 @dwertheimer
+
+- added MANUAL_ORDERING mode (for @Thor)
+
+## [1.20.0] 2024-02-23 @dwertheimer - thx @Werwowolf
+
+- Feature: add named timeframes in settings (e.g. "morning", "early", "afternoon") and a task tagged with #afternoon will get placed there
+- Sort todos by priority then date (oldest to newest), then duration
+- Do not include backlinks which are not todos as todos
+
+## [1.19.1] 2024-02-14 @dwertheimer
+
+- Remove calendar writing in /atb (now that it is included in NP)
+- Allow any character (e.g. emoji) to be your TB char (used to be #hashtag something only)
+- Fix: Remove synced blockId from "No time available" line
+
+## [1.18.3] 2024-02-02 @dwertheimer
+
+- Added ability for BY_TIMEBLOCK_TAG to work for multiple sessions in a day of the same name, e.g. HighEnergy. Thx @Crambeary
+- Fix /atb to work with NP's new auto-writing Timeblocks to Calendar
+
+## [1.18.2] 2024-02-01 @dwertheimer
+
+- Added more logging to help find a bug
+
+## [1.18.1] 2024-01-04 @dwertheimer
+
+- Update language around Synced Copies preference (thanks @dutcheness)
+- Fix bug where synced copies didn't write if the Editor was not saved yet
+
+
+## [1.18.0] 2023-10-16 @dwertheimer
+
+- Add Named Timeblocks Mode (BY_TIMEBLOCK_TAG mode)
+- Minor calendar event improvement to deal with "today" and "tomorrow" text better in event creation
+
+
+## [1.17.3] 2023-10-11 @dwertheimer
+
+- EventBlocks: minor change to xcallback support]
+## [1.17.2] 2023-09-16 @dwertheimer
+
+- EventBlocks - work around NP limitation that doesn't process "today at 5pm" correctly
+
+## [1.17.1] 2023-09-06 @dwertheimer 2023-09-06
+
+- Add argument for heading to put it under
+
+## [1.17.0] 2023-09-06 @dwertheimer 2023-09-06
+
+- Add interactive plugin settings for iOS
+- Added /pevt command for creating a single task using natural language
+
+## [1.16.3] 2023-08-24
+
+- Fix bug where synced lines in today's note were not being timeblocked. Thx @tiffsunbacon
+
 ## [1.16.2] 2023-07-13
 
 - Fix bug in non-ATB timeblocks getting deleted
+- Allow time to be '1hr or '5min instead of just "h" and "m"
 
 ## [1.16.1] 2023-07-05 @dwertheimer
 
@@ -130,7 +188,9 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 - Remove the requirement for Synced lines to run only on today's note (@Stacey's suggestion)
 
 - added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
+
 ## [1.2.0] 2022-07-10 @dwertheimer
+
 - added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
 - changed plugin name to "AutoTimeBlocking & Synced Today Todos"
 

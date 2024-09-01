@@ -68,7 +68,7 @@ const setup: {
    * @param {string} passedToken
    */
   set newToken(passedToken: string) {
-    this.token = passedToken
+    setup.token = passedToken
   },
   /**
    * @param {string} passedFolder
@@ -83,19 +83,19 @@ const setup: {
    * @param {boolean} passedSyncDates
    */
   set syncDates(passedSyncDates: boolean) {
-    this.addDates = passedSyncDates
+    setup.addDates = passedSyncDates
   },
   /**
    * @param {boolean} passedSyncPriorities
    */
   set syncPriorities(passedSyncPriorities: true) {
-    this.addPriorities = passedSyncPriorities
+    setup.addPriorities = passedSyncPriorities
   },
   /**
    * @param {boolean} passedSyncTags
    */
   set syncTags(passedSyncTags: boolean) {
-    this.addTags = passedSyncTags
+    setup.addTags = passedSyncTags
   },
   /**
    * @param {boolean} passedTeamAccount
@@ -113,7 +113,7 @@ const setup: {
    * @param {string} passedHeader
    */
   set newHeader(passedHeader: string) {
-    this.header = passedHeader
+    setup.header = passedHeader
   },
 }
 
@@ -122,14 +122,14 @@ const just_written: Array<any> = []
 const existing: Array<any> = []
 const existingHeader: {
   exists: boolean,
-  headerExists: any,
+  headerExists: string | boolean,
 } = {
   exists: false,
   /**
    * @param {boolean} passedHeaderExists
    */
   set headerExists(passedHeaderExists: string) {
-    this.exists = passedHeaderExists
+    existingHeader.exists = !!passedHeaderExists
   },
 }
 
@@ -174,15 +174,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          //console.log(`-->${id}<--`)
-          const task_result = await pullTodoistTasksByProject(id)
-          //console.log(task_result)
-          const tasks: Array<Object> = JSON.parse(task_result)
-          if (tasks) {
-            for (let j = 0; j < tasks.length; j++) {
-              await writeOutTask(note, tasks[j])
-            }
-          }
+          await projectSync(note, id)
         }
       }
 
@@ -208,6 +200,7 @@ export async function syncProject() {
   if (note) {
     // check to see if this has any frontmatter
     const frontmatter: ?Object = getFrontMatterAttributes(note)
+    clo(frontmatter)
     let check: boolean = true
     if (frontmatter) {
       if ('todoist_id' in frontmatter) {
@@ -220,12 +213,8 @@ export async function syncProject() {
           })
         }
 
-        const results = await pullTodoistTasksByProject(frontmatter.todoist_id)
-        const tasks: Array<Object> = JSON.parse(results)
-        for (let i = 0; i < tasks.length; i++) {
-          //console.log(tasks[i].content)
-          await writeOutTask(note, tasks[i])
-        }
+        await projectSync(note, frontmatter.todoist_id)
+
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
           await closeTodoistTask(t)
@@ -255,9 +244,9 @@ export async function syncAllProjects() {
 }
 
 /**
- * Syncronize all linked projects and today note.  
+ * Syncronize all linked projects and today note.
  * This will check for duplication between the projects and today.
- * 
+ *
  * @returns {Promise<void}
  */
 export async function syncAllProjectsAndToday() {
@@ -266,17 +255,16 @@ export async function syncAllProjectsAndToday() {
   // sync all projects
   await syncThemAll()
 
-  // sync todays tasks 
+  // sync todays tasks
   await syncTodayTasks()
 }
 
 /**
  * do the actual work of syncronizing all linked projects
- * 
+ *
  * @returns {Promise<void>}
  */
 async function syncThemAll() {
-
   const search_string = 'todoist_id:'
   const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
 
@@ -296,13 +284,12 @@ async function syncThemAll() {
           }
 
           // get the ID
-          const id: string = paragraphs[i].content.split(':')[1]
+          let id: string = paragraphs[i].content.split(':')[1]
+          id = id.trim()
+
           logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          const task_result = await pullTodoistTasksByProject(id.trim())
-          const tasks: Array<Object> = JSON.parse(task_result)
-          for (let j = 0; j < tasks.length; j++) {
-            await writeOutTask(note, tasks[j])
-          }
+          await projectSync(note, id)
+
           //close the tasks in Todoist if they are complete in Noteplan`
           closed.forEach(async (t) => {
             await closeTodoistTask(t)
@@ -327,53 +314,70 @@ async function syncThemAll() {
 // eslint-disable-next-line require-await
 export async function syncToday() {
   setSettings()
-  
+
   // sync today tasks
   await syncTodayTasks()
 }
 
 /**
  * Do the actual work of getting and syncing today tasks
- * 
+ *
  * @returns {Promise<void>}
  */
 async function syncTodayTasks() {
   console.log(existing)
- // get todays date in the correct format
- const date: string = getTodaysDateUnhyphenated() ?? ''
- const date_string: string = getTodaysDateAsArrowDate() ?? ''
- logInfo(pluginJson, `Todays date is: ${date_string}`)
+  // get todays date in the correct format
+  const date: string = getTodaysDateUnhyphenated() ?? ''
+  const date_string: string = getTodaysDateAsArrowDate() ?? ''
+  logInfo(pluginJson, `Todays date is: ${date_string}`)
 
- if (date) {
-   const note: ?TNote = DataStore?.calendarNoteByDateString(date)
-   if (note === null) {
-     logError(pluginJson, 'unable to find todays note in Noteplan')
-     HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
-     process.exit(1)
-   }
-   // check to see if that heading already exists and tab what tasks already exist
-   const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
-   if (paragraphs) {
-     paragraphs.forEach((paragraph) => {
-       checkParagraph(paragraph)
-     })
-   }
+  if (date) {
+    const note: ?TNote = DataStore?.calendarNoteByDateString(date)
+    if (note === null) {
+      logError(pluginJson, 'unable to find todays note in Noteplan')
+      HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
+      process.exit(1)
+    }
+    // check to see if that heading already exists and tab what tasks already exist
+    const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
+    if (paragraphs) {
+      paragraphs.forEach((paragraph) => {
+        checkParagraph(paragraph)
+      })
+    }
 
-   logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
-   const response = await pullTodoistTasksForToday()
-   const tasks: Array<Object> = JSON.parse(response)
+    logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
+    const response = await pullTodoistTasksForToday()
+    const tasks: Array<Object> = JSON.parse(response)
 
-   if (tasks.length > 0 && note) {
-     for (let i = 0; i < tasks.length; i++) {
-       await writeOutTask(note, tasks[i])
-     }
+    if (tasks.length > 0 && note) {
+      for (let i = 0; i < tasks.length; i++) {
+        await writeOutTask(note, tasks[i])
+      }
 
-     //close the tasks in Todoist if they are complete in Noteplan`
-     closed.forEach(async (t) => {
-       await closeTodoistTask(t)
-     })
-   }
- } 
+      //close the tasks in Todoist if they are complete in Noteplan`
+      closed.forEach(async (t) => {
+        await closeTodoistTask(t)
+      })
+    }
+  }
+}
+
+/**
+ * Get Todoist project tasks and write them out one by one
+ *
+ * @param {TNote} note - note that will be written to
+ * @param {string} id - Todoist project ID
+ * @returns {Promise<void>}
+ */
+async function projectSync(note: TNote, id: string): Promise<void> {
+  console.log(`ID is ${id}`)
+  const task_result = await pullTodoistTasksByProject(id)
+  console.log(task_result)
+  const tasks: Array<Object> = JSON.parse(task_result)
+  for (let j = 0; j < tasks.length; j++) {
+    await writeOutTask(note, tasks[j])
+  }
 }
 
 /**

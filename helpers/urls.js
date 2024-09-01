@@ -1,8 +1,9 @@
 /* @flow */
 
-import { logError } from '@helpers/dev'
-import { findEndOfActivePartOfNote } from "@helpers/paragraph"
+import { logError, clo } from '@helpers/dev'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
+import { isCalendarNoteFilename } from '@helpers/regex'
 
 export type LinkObject = {
   url: string,
@@ -48,10 +49,7 @@ export function processURL(urlStr: string, name: ?string, lineIndex: number, rem
  * @param {boolean} [removeSubdomain=false] - Whether to remove the subdomain (like www) from the URLs or not.
  * @returns {LinkObject[]} An array of LinkObjects.
  */
-export function findURLsInText(
-  text: string,
-  removeSubdomain: boolean = false,
-): Array<LinkObject> {
+export function findURLsInText(text: string, removeSubdomain: boolean = false): Array<LinkObject> {
   try {
     const markdownURLPattern = /\[([^\]]+)\]\(([^)]+)\)/g // Match markdown URLs with or without 'http(s)://'
     const bareURLPattern = /(\w+:\/\/[^\s]+)/g
@@ -95,22 +93,38 @@ export function findURLsInText(
  * @param {boolean} [ignoreCompletedItems=false] - Whether to ignore URLs in done/cancelled tasks/checklist items.
  * @returns {LinkObject[]} array of LinkObjects
  */
-export function findURLsInNote(
-  note: TNote,
-  removeSubdomain: boolean = false,
-  searchOnlyActivePart: boolean = true,
-  ignoreCompletedItems: boolean = false,
-): Array<LinkObject> {
+export function findURLsInNote(note: TNote, removeSubdomain: boolean = false, searchOnlyActivePart: boolean = true, ignoreCompletedItems: boolean = false): Array<LinkObject> {
   try {
     const lastLineToSearch = searchOnlyActivePart ? findEndOfActivePartOfNote(note) : note.paragraphs.length - 1
-    let parasToSearch = note.paragraphs.filter(p => p.lineIndex <= lastLineToSearch)
+    let parasToSearch = note.paragraphs.filter((p) => p.lineIndex <= lastLineToSearch)
     if (ignoreCompletedItems) {
-      parasToSearch = parasToSearch.filter(p => !isClosed(p))
+      parasToSearch = parasToSearch.filter((p) => !isClosed(p))
     }
-    const textToSearch = parasToSearch.map(p => p.content).join('\n') ?? []
+    const textToSearch = parasToSearch.map((p) => p.content).join('\n') ?? []
     return findURLsInText(textToSearch, removeSubdomain)
   } catch (err) {
     logError('findURLsInNote', err.message)
     return []
   }
+}
+
+/**
+ * Finds a NotePlan Project Note URL in the given text
+ * @param {string} text - The text that may contain the URL.
+ * @param {boolean} allowCalendarNotes - allow calendar notes in the response (default: false)
+ * @returns {string} The first URL found, or an empty string if none is found.
+ */
+export function findProjectNoteUrlInText(text: string, allowCalendarNotes: boolean = false): string {
+  const urlPattern = /(noteplan:\/\/x-callback-url\/openNote\?noteTitle=[^\s]+)/
+  // Search for the URL in the string
+  const match = text.match(urlPattern)
+  match
+    ? clo(
+        match.map((f) => decodeURIComponent(f)),
+        `findProjectNoteUrlInText: URL in notes`,
+      )
+    : null
+  // Return the found URL or an empty string
+  const noteMatches = allowCalendarNotes ? match : match ? match.filter((m) => !isCalendarNoteFilename(m)) : null
+  return match ? match[0] : ''
 }

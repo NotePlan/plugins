@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 23.3.23 for v0.13.0, @jgclark
+// Last updated 10.2.24 for v0.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -13,14 +13,17 @@ import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
-export { addTaskToInbox } from './inbox'
+export { addJotToInbox, addTaskToInbox } from './inbox'
 export {
+  addChecklistToNoteHeading,
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToCalendarNote,
   appendTaskToWeeklyNote,
   appendTextToDailyJournal,
   appendTextToWeeklyJournal,
+  appendTextToMonthlyJournal,
+  appendTextToYearlyJournal,
   prependTaskToCalendarNote,
   appendTaskToNote,
   prependTaskToNote
@@ -42,7 +45,7 @@ export function init(): void {
   }
 }
 
-export function onSettingsUpdated(): void {
+export async function onSettingsUpdated(): Promise<void> {
   // Placeholder only to stop error in logs
 }
 
@@ -78,9 +81,9 @@ export async function updateSettings() {
  */
 export function tempAddParaTest(): void {
   // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture qalh TEST', false, false)[0]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
   note.addParagraphBelowHeadingTitle(
-    "test_text_addeed_below_heading",
+    "test_text_addeed_below_heading by tempAddParaTest()",
     'text',
     'Head C',
     true,

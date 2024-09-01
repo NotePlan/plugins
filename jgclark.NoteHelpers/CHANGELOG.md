@@ -1,7 +1,32 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
-<!-- ### Added
-<!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
+
+## [0.20.0] - 2024-08-16
+### Added
+- new **delete note** command, that makes easier what the current NotePlan UI makes difficult.
+- new **/find unlinked notes** command which finds and creates links to existing notes in the current note (by @aaronpoweruser).
+![Unlinked notes demo](docs/unlinked_note_demo.gif)
+
+### Fixed
+- fixed **rename note filename** when note has frontmatter (thanks for the report, @ariccb)
+
+## [0.19.2] - 2024-04-27
+- **add trigger to note** command is now more resilient to unusual frontmatter, and shouldn't duplicate an existing trigger when run from template
+
+## [0.19.1] - 2024-02-23
+- **add trigger to note** command can now be run from x-callback with parameter of the trigger string to add. This means it can be run from Templates with a command tag.
+- Added a migration message about 'open note' commands.
+
+## [0.19.0] - 2024-01-09
+- moved the "open note in ..." commands to the new "Window Tools" plugin
+- updated the display of the "index folders" command to use heading levels H2 to H4 depending on how deep the sub-folder is. The placeholder in the title `{{folder}}` now just uses the last part of the folder name, or new placeholder `{{full_folder_path}}` which will use the folder's full path. (Requested by @dutchnesss).
+- removed 'Show month/quarter/year' commands as they are now in the main NP menus.
+- fix to '/rename inconsistent filename' command (reported by @anton-sklyar)
+- fix to '/make index' command ignoring parameter 'displayOrder' if given.
+
+## [0.18.2] - 2023-09-18
+- fix edge case with /add trigger command.
+
 ## [0.18.1] - 2023-08-15
 - New commands by @Leo:
   - "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 24.6.2023 for v0.6.0, @jgclark
+// Last updated 7.6.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -12,8 +12,6 @@ import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 
 const pluginID = 'np.Tidy'
-
-export { fileRootNotes } from './fileRoot'
 
 export {
   logNotesChangedInInterval,
@@ -27,11 +25,13 @@ export {
   tidyUpAll,
   removeTodayTagsFromCompletedTodos,
 } from './tidyMain'
-
+export { listConflicts, openConflictSideBySide, resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion } from './conflicts'
 export { listDuplicates } from './duplicates'
-export { resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion, listConflicts } from './conflicts'
-
+export { fileRootNotes } from './fileRoot'
+export { generateRepeatsFromRecentNotes } from './repeats'
+export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
+export { listPotentialDoubles, openCalendarNoteInSplit } from './doubledNotes'
 
 /**
  * Other imports/exports

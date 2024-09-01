@@ -9,7 +9,7 @@ import Button from './Button.jsx'
 export const MultiActionBar = (props) => {
   const { contextButtons, handler, rescheduleComponent, buttonType, keyListener } = props
   const paddingBetweenElements = '5px'
-  const buttonContainerStyle = buttonType === 'multi' ? { flexGrow: 1 } : { paddingLeft: '85px' } // for single, add padding to the left b/c there is no reschedule component
+  const buttonContainerStyle = buttonType === 'multi' ? { flexGrow: 1 } : { paddingLeft: '3px' } // for single, add padding to the left b/c there is no reschedule component
   //   useEffect(keyListener, [])
   return (
     <div

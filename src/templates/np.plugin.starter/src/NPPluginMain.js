@@ -33,6 +33,8 @@ import * as helpers from './support/helpers'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
+// NOTE: Plugin entrypoints (jsFunctions called by NotePlan) must be exported as async functions or you will get a TypeError in the NotePlan plugin console
+// if you do not have an "await" statement inside your function, you can put an eslint-disable line like below so you don't get an error
 // eslint-disable-next-line require-await
 export async function sayHello(incoming: ?string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block

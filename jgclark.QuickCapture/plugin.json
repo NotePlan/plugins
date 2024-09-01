@@ -7,23 +7,35 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.\n0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes.",
+  "plugin.version": "0.16.1",
+  "plugin.lastUpdateInfo": "0.16.0: new \"/jot\" and \"/quick add checklist under heading\" commands. Some bug fixes.\n0.15.2: bug fix.\n0.15.1: new x-callback args when creating headings. Bug fixes.\n0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.\n0.14.1: bug fixes\n0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
+      "name": "quick add text to inbox",
+      "alias": [
+        "jot",
+        "inj"
+      ],
+      "description": "Quickly 'jot' (add some text) to your chosen Inbox note",
+      "jsFunction": "addJotToInbox",
+      "arguments": [
+        "text to add",
+        "title of destination note (or 'Daily' or 'Weekly')"
+      ]
+    },
+    {
       "name": "quick add task to inbox",
       "alias": [
-        "int",
-        "append"
+        "int"
       ],
-      "description": "Quickly add a task to your chosen Inbox location",
+      "description": "Quickly add a task to your chosen Inbox note",
       "jsFunction": "addTaskToInbox",
       "arguments": [
         "text to add",
-        "title of destination note"
+        "title of destination note (or 'Daily' or 'Weekly')"
       ]
     },
     {
@@ -39,17 +51,31 @@
       ]
     },
     {
+      "name": "quick add checklist under heading",
+      "alias": [
+        "qach"
+      ],
+      "description": "Quickly add a checklist to a chosen note's section heading",
+      "jsFunction": "addChecklistToNoteHeading",
+      "arguments": [
+        "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
+        "note section heading to add checklist under",
+        "text to add",
+        "heading level (1-5) (defaults to 2)"
+      ]
+    },
+    {
       "name": "quick add task under heading",
       "alias": [
-        "qath",
-        "append"
+        "qath"
       ],
       "description": "Quickly add a task to a chosen note's section heading",
       "jsFunction": "addTaskToNoteHeading",
       "arguments": [
         "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
-        "note section heading to add text under",
-        "text to add"
+        "note section heading to add task under",
+        "text to add",
+        "heading level (1-5) (defaults to 2)"
       ]
     },
     {
@@ -62,7 +88,8 @@
       "arguments": [
         "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
         "note section heading to add text under",
-        "text to add"
+        "text to add",
+        "heading level (1-5)"
       ]
     },
     {
@@ -80,7 +107,7 @@
       ]
     },
     {
-      "name": "quick add to journal today",
+      "name": "quick add to today's journal",
       "alias": [
         "qajd",
         "add",
@@ -95,12 +122,32 @@
     {
       "name": "quick add to journal this week",
       "alias": [
-        "qajw",
-        "add",
-        "week"
+        "qajw"
       ],
       "description": "Quickly append text to the Journal in this week's note",
       "jsFunction": "appendTextToWeeklyJournal",
+      "arguments": [
+        "text to add"
+      ]
+    },
+    {
+      "name": "quick add to this month's journal",
+      "alias": [
+        "qajm"
+      ],
+      "description": "Quickly append text to the Journal in this month's note",
+      "jsFunction": "appendTextToMonthlyJournal",
+      "arguments": [
+        "text to add"
+      ]
+    },
+    {
+      "name": "quick add to this year's journal",
+      "alias": [
+        "qajm"
+      ],
+      "description": "Quickly append text to the Journal in this year's note",
+      "jsFunction": "appendTextToYearlyJournal",
       "arguments": [
         "text to add"
       ]
@@ -134,11 +181,6 @@
       "name": "QuickCapture: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
-    },
-    {
-      "name": "QuickCapture: tempAddParaTest",
-      "description": "tempAddParaTest",
-      "jsFunction": "tempAddParaTest"
     }
   ],
   "plugin.commands_disabled": [
@@ -155,16 +197,21 @@
         "note week (YYYY-Wnn)",
         "text to add"
       ]
+    },
+    {
+      "name": "test: tempAddParaTest",
+      "description": "tempAddParaTest",
+      "jsFunction": "tempAddParaTest"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Inbox note settings"
+      "title": "Inbox settings"
     },
     {
       "key": "inboxLocation",
-      "title": "Where is your Inbox?",
+      "title": "Where is your Inbox note?",
       "description": "Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note.\nOr  choose 'Fixed' and then add the note title in the next setting.",
       "type": "string",
       "choices": [
@@ -178,16 +225,24 @@
     {
       "key": "inboxTitle",
       "title": "Inbox note title",
-      "description": "If the previous setting is set to 'Fixed', this is wherre you set the Title of that note. Default \"📥 Inbox\"",
+      "description": "If the previous setting is set to 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
       "type": "string",
       "default": "📥 Inbox",
+      "required": false
+    },
+    {
+      "key": "textToAppendToJots",
+      "type": "string",
+      "title": "Text to append to new inbox jots",
+      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new text jots captured to the inbox.",
+      "default": "💡",
       "required": false
     },
     {
       "key": "textToAppendToTasks",
       "type": "string",
       "title": "Text to append to new inbox tasks",
-      "description": "Optional text (that can include hashtags or mentions) that will be appended to all new tasks captured to the inbox.",
+      "description": "Optional text (that can include hashtags, mentions or emojis) that will be appended to all new tasks captured to the inbox.",
       "default": "",
       "required": false
     },
@@ -205,6 +260,14 @@
         "prepend"
       ],
       "default": "prepend",
+      "required": true
+    },
+    {
+      "key": "headingLevel",
+      "title": "Heading level for new Headings",
+      "description": "Heading level (1-5) to use when adding new headings in notes",
+      "type": "number",
+      "default": 2,
       "required": true
     },
     {

@@ -6,7 +6,7 @@ import { makeRequest } from './support/networking'
 import { generateSubjectSummaryPrompt, generateKeyTermsPrompt, generateExplorationPrompt } from './support/prompts'
 import { formatSubtitle, formatBulletSummary, formatTableOfContents } from './support/formatters'
 import { capitalizeFirstLetter, scrollToEntry } from './support/helpers'
-import { initializeData, loadDataFile, saveClickedLink, saveDataFile, updateClickedLinksJsonData } from './support/externalFileInteractions'
+import { initializeData, loadDataFile, saveDataFile, updateClickedLinksJsonData } from './support/externalFileInteractions'
 import { logDebug, logError, logWarn, JSP } from '@helpers/dev'
 import { escapeRegex, createPrettyOpenNoteLink } from '@helpers/general'
 
@@ -141,10 +141,10 @@ export async function bulletsAI(
  * @param {bool} isCustomRemix -
  * Currently under construction.
  */
-async function checkInitialState(promptIn: string, prevSubjectIn: string | null, initialSubject: string | null, isCustomRemix: boolean) {
-  if (isCustomRemix == true) {
+function checkInitialState(_promptIn: string, prevSubjectIn: string | null, _initialSubject: string | null, isCustomRemix: boolean) {
+  if (isCustomRemix === true) {
     return 'remix'
-  } else if (prevSubjectIn && isCustomRemix != true) {
+  } else if (prevSubjectIn && isCustomRemix !== true) {
     return 'followedLink'
   } else {
     return 'initialQuery'

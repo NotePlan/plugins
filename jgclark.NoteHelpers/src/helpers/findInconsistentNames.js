@@ -1,7 +1,7 @@
 // @flow
 
-import pluginJson from '../../plugin.json'
-import { newNotePath } from './newNotePath'
+// import pluginJson from '../../plugin.json'
+import { newFilepathForNote } from './newNotePath'
 import { logDebug } from '@helpers/dev'
 
 export function findInconsistentNames(folder?: string = ''): Array<TNote> {
@@ -25,7 +25,7 @@ export function findInconsistentNames(folder?: string = ''): Array<TNote> {
         }
       }
 
-      const newPath = newNotePath(note)
+      const newPath = newFilepathForNote(note)
 
       return currentFullPath !== newPath
     })

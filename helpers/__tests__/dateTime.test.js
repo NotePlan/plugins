@@ -1,10 +1,11 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 23.7.2023 by @jgclark
+// Last updated: 6.9.2023 by @jgclark
 
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
+// import { filenameIsInFuture } from '../dateTime'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /*, Note, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
@@ -15,7 +16,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
@@ -136,6 +137,10 @@ describe(`${PLUGIN_NAME}`, () => {
    * replaceArrowDatesInString()
    */
   describe('replaceArrowDatesInString()' /* function */, () => {
+    test('should replace today with todays date', () => {
+      const result = dt.replaceArrowDatesInString('test today >today', '')
+      expect(result).toEqual(`test today`)
+    })
     test('should replace today with todays date', () => {
       const result = dt.replaceArrowDatesInString('foo >today bar')
       expect(result).toEqual(`foo bar ${dt.getTodaysDateAsArrowDate()}`)
@@ -439,6 +444,15 @@ describe(`${PLUGIN_NAME}`, () => {
 
   describe('calcOffsetDateStr', () => {
     describe('should pass', () => {
+      test('20220101 +1d', () => {
+        expect(dt.calcOffsetDateStr('20220101', '1d')).toEqual('20220102')
+      })
+      test('20220101 +364d', () => {
+        expect(dt.calcOffsetDateStr('20220101', '364d')).toEqual('20221231')
+      })
+      test('20220101 +4m', () => {
+        expect(dt.calcOffsetDateStr('20220101', '4m')).toEqual('20220501')
+      })
       test('2022-01-01 +1d', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '1d')).toEqual('2022-01-02')
       })
@@ -556,7 +570,10 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     describe('adapting output to offset durations', () => {
       beforeAll(() => {
-        DataStore.settings['_logLevel'] = "DEBUG"
+        // DataStore.settings['_logLevel'] = "DEBUG"
+      })
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'offset')).toEqual('20230102')
       })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
@@ -575,6 +592,9 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     describe('adapting output to shorter durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'shorter')).toEqual('20230102')
+      })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'shorter')).toEqual('2023-07-15')
       })
@@ -589,6 +609,9 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     describe('adapting output to longer durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'longer')).toEqual('20230102')
+      })
       test('2023-07-24 +0w -> 2023-W30', () => {
         expect(dt.calcOffsetDateStr('2023-07-24', '0w', 'longer')).toEqual('2023-W30')
       })
@@ -619,8 +642,12 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('includesScheduledFutureDate()', () => {
-    test('should return false for "a >2022-04-21 date"', () => {
-      expect(dt.includesScheduledFutureDate('a >2022-04-21 date')).toEqual(false)
+    // Note: this date definitely in the past
+    test('should return false for "a >2020-04-21 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2020-04-21 date')).toEqual(false)
+    })
+    test('should return false for "a >2020-W02 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2020-W02 date')).toEqual(false)
     })
     // Note: most have far future dates to avoid having to work out how to mock this with today's date
     test('should find in "a >2122-04-21 date"', () => {
@@ -637,6 +664,58 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should not find in "a 2122-04-21 date"', () => {
       expect(dt.includesScheduledFutureDate('a 2122-04-21 date')).toEqual(false)
+    })
+    test('should find in "a >2122-W04 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2122-W04< date')).toEqual(true)
+    })
+  })
+
+  describe('filenameIsInFuture()', () => {
+    // const today = getTodaysDateUnhyphenated()
+
+    // Daily notes
+    test('should return false for a daily note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/20200101.md')).toEqual(false)
+    })
+
+    test('should return true for a daily note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/21240611.md')).toEqual(true)
+    })
+
+    // Weekly notes
+    test('should return false for a weekly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-W01.md')).toEqual(false)
+    })
+
+    test('should return true for a weekly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-W02.md')).toEqual(true)
+    })
+
+    // Monthly notes
+    test('should return false for a monthly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-01.md')).toEqual(false)
+    })
+
+    test('should return true for a monthly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-06.md')).toEqual(true)
+    })
+
+    // Quarterly notes
+    test('should return false for a quarterly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020-Q1.md')).toEqual(false)
+    })
+
+    test('should return true for a quarterly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124-Q3.md')).toEqual(true)
+    })
+
+    // Yearly notes
+    test('should return false for a yearly note filename in the past', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2020.md')).toEqual(false)
+    })
+
+    test('should return true for a yearly note filename in the future', () => {
+      expect(dt.filenameIsInFuture('/path/to/note/2124.md')).toEqual(true)
     })
   })
 
@@ -845,76 +924,80 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
-   * isValidCalendarNoteDateStr()
+   * isValidCalendarNoteTitleStr()
    */
-  describe('isValidCalendarNoteDateStr()' /* function */, () => {
+  describe('isValidCalendarNoteTitleStr()' /* function */, () => {
     describe('passes', () => {
       test('should work for iso date 01-01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`20200101`)
-        expect(result).toEqual(true)
-      })
-      test('should work for iso date with 12-31', () => {
-        const result = dt.isValidCalendarNoteDateStr(`20201231`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-01-01`)
         expect(result).toEqual(true)
       })
       test('should work for week date W01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W01`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W01`)
         expect(result).toEqual(true)
       })
       test('should work for week date W52', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W52`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W52`)
         expect(result).toEqual(true)
       })
       test('should work for week date W49', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W49`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W49`)
         expect(result).toEqual(true)
       })
       test('should work for week date W53', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W53`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W53`)
         expect(result).toEqual(true)
       })
       test('should work for week 10', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W10`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W10`)
         expect(result).toEqual(true)
       })
       test('should work for week 21', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W21`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W21`)
         expect(result).toEqual(true)
       })
       test('should work for week 39', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W39`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W39`)
         expect(result).toEqual(true)
       })
     })
     describe('fails', () => {
       test('should fail for iso date 01-01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-01-01`)
+        const result = dt.isValidCalendarNoteTitleStr(`20200101`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for iso date with 12-31', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`20201231`)
         expect(result).toEqual(false)
       })
       test('should fail for iso date 01-1', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-01-1`)
-        expect(result).toEqual(false)
-      })
-      test('should fail for iso date with 13-31', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-13-31`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-01-1`)
         expect(result).toEqual(false)
       })
       test('should fail for week date W1', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W1`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W1`)
         expect(result).toEqual(false)
       })
       test('should fail for week date 21-W52', () => {
-        const result = dt.isValidCalendarNoteDateStr(`21-W52`)
+        const result = dt.isValidCalendarNoteTitleStr(`21-W52`)
         expect(result).toEqual(false)
       })
-      // skip as this is a regex-only test, that can't distinguish some edge cases
+      test('should fail for week date 2021-W62', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W62`)
+        expect(result).toEqual(false)
+      })
+
+      // skip following as these are regex-only tests, that can't distinguish some edge cases
+      test.skip('should fail for iso date with 13-31', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`2020-13-31`)
+        expect(result).toEqual(false)
+      })
       test.skip('should fail for week 54', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W54`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W54`)
         expect(result).toEqual(false)
       })
-      // skip as this is a regex-only test, that can't distinguish some edge cases
       test.skip('should fail for week 00', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W00`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W00`)
         expect(result).toEqual(false)
       })
     })
@@ -953,6 +1036,145 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should fail for non-date', () => {
       const result = dt.isValidCalendarNoteFilename('today.md')
       expect(result).toEqual(false)
+    })
+  })
+
+  /* isValidCalendarNoteFilenameWithoutExtension() */
+  describe('isValidCalendarNoteFilenameWithoutExtension()' /* function */, () => {
+    test('should pass for daily note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('20220101')
+      expect(result).toEqual(true)
+    })
+    test('should pass for weekly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-W52')
+      expect(result).toEqual(true)
+    })
+    test('should pass for monthly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-12')
+      expect(result).toEqual(true)
+    })
+    test('should pass for quarterly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-Q2')
+      expect(result).toEqual(true)
+    })
+    test('should pass for yearly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022')
+      expect(result).toEqual(true)
+    })
+    test('should fail for too-short date', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022033')
+      expect(result).toEqual(false)
+    })
+    test('should fail for non-date', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('today')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /* calcOffsetDateStrUsingCalendarType() */
+  describe('calcOffsetDateStrUsingCalendarType()' /* function */, () => {
+    describe('should fail', () => {
+      test('fail blank input param 1', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('', '2023-01-01')
+        expect(result).toEqual('(error)')
+      })
+      test('fail 1e input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1e', '2023-01-01')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD.md input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101.md')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYY-Wnn input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '2023-W01')
+        expect(result).toEqual('(error)')
+      })
+    })
+
+    describe('should pass', () => {
+      test('2023-01-01 +1d -> 2023-01-02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '2023-01-01')
+        expect(result).toEqual('2023-01-02')
+      })
+      // Note 2023-01-01 is actually in week 52 of 2022, so don't use that.
+      test('2023-01-02 +1w -> 2023-W02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1w', '2023-01-02')
+        expect(result).toEqual('2023-W02')
+      })
+      test('2023-01-01 +1m -> 2023-02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1m', '2023-01-01')
+        expect(result).toEqual('2023-02')
+      })
+      test('2023-01-01 +1q -> 2023-Q2', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1q', '2023-01-01')
+        expect(result).toEqual('2023-Q2')
+      })
+      test('2023-01-01 +1y -> 2024', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1y', '2023-01-01')
+        expect(result).toEqual('2024')
+      })
+    })
+  })
+
+  /* splitIntervalToParts() */
+  describe('splitIntervalToParts()' /* function */, () => {
+    test('0d', () => {
+      const result = dt.splitIntervalToParts('0d')
+      expect(result).toEqual({
+        number: 0,
+        type: 'day',
+      })
+    })
+    test('-3d', () => {
+      const result = dt.splitIntervalToParts('-3d')
+      expect(result).toEqual({
+        number: -3,
+        type: 'day',
+      })
+    })
+    test('{10d}', () => {
+      const result = dt.splitIntervalToParts('{10d}')
+      expect(result).toEqual({
+        number: 10,
+        type: 'day',
+      })
+    })
+    test('2w', () => {
+      const result = dt.splitIntervalToParts('2w')
+      expect(result).toEqual({
+        number: 2,
+        type: 'week',
+      })
+    })
+    test('+6m', () => {
+      const result = dt.splitIntervalToParts('+6m')
+      expect(result).toEqual({
+        number: 6,
+        type: 'month',
+      })
+    })
+    test('-1q', () => {
+      const result = dt.splitIntervalToParts('-1q')
+      expect(result).toEqual({
+        number: -1,
+        type: 'quarter',
+      })
+    })
+    test('2y', () => {
+      const result = dt.splitIntervalToParts('2y')
+      expect(result).toEqual({
+        number: 2,
+        type: 'year',
+      })
     })
   })
 })

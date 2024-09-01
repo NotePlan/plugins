@@ -1,8 +1,9 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 3.3.2022 for v0.18.0, @jgclark
+// Last updated 4.6.2024 for v0.22.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,38 +11,53 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  type OccurrencesConfig,
-  TMOccurrences,
+  type OccurrencesToLookFor,
   type SummariesConfig,
 } from './summaryHelpers'
-import { hyphenatedDate, toISODateString, toLocaleDateString, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { hyphenatedDate } from '@helpers/dateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn, timer,
   overrideSettingsWithEncodedTypedArgs
 } from '@helpers/dev'
-import { CaseInsensitiveMap, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, formatWithFields, getTagParamsFromString } from '@helpers/general'
+import {
+  createPrettyRunPluginLink,
+  formatWithFields, getTagParamsFromString
+} from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-import { getSelectedParaIndex } from '@helpers/NPParagraph'
-import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
-import { caseInsensitiveCompare } from '@helpers/sorting'
-import { showMessage } from "../../helpers/userInput";
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
+import { showMessage } from "@helpers/userInput"
 
 //-------------------------------------------------------------------------------
 
 /**
- * This is the entry point for x-callback use of makeProgressUpdate
- * @param {?string} params as JSON string
- * @returns {string} - returns string to Template
+ * There are 3 ways to invoke Progress updates:
+ * 1. "/insertProgressUpdate" command -- uses settings, and writes to current note
+ * 2. callback to progressUpdate&arg0=... -- can give params to override settings if wanted; writes to current note
+ * 3. template call to progressUpdate( { ... JSON ...} ) -- can give params to override settings; doesn't write to a note, but returns text to Templating. Under hood calls progressUpdate()
  */
-export async function progressUpdate(params: string = ''): Promise<string> {
+
+/**
+ * This is the entry point for template or callback use of makeProgressUpdate().
+ * It works out if it's a template (by object passed) or a callback (by string passed).
+ * @param {any?} params as JS object or JSON string
+ * @param {string?} sourceIn 'template' | 'callback' | empty
+ * @returns {string} - returns string
+ */
+export async function progressUpdate(params: any = '', sourceIn: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate for xcb: Starting with params '${params}'`)
-    return await makeProgressUpdate(params, 'xcb') ?? '<error>'
+    logDebug(pluginJson, `progressUpdate (from template or callback): Starting with params '${params}' (type: ${typeof params}) and source '${sourceIn}'`)
+    const source = (sourceIn !== '') ? sourceIn
+      : (typeof params === 'string')
+        ? 'callback'
+        : (typeof params === 'object')
+          ? 'template'
+          : ''
+    logDebug(pluginJson, `- source determined to be '${source}'`)
+    return await makeProgressUpdate(params, source) ?? '<error>'
   }
   catch (err) {
-    logError(pluginJson, 'progressUpdate (for xcb)' + err.message)
-    return '<error>' // for completeness
+    logError(pluginJson, `${err.message} in progressUpdate (for template)`)
+    return '❗️ Error: please open Plugin Console and re-run to see more details.' // for completeness
   }
 }
 
@@ -49,26 +65,32 @@ export async function progressUpdate(params: string = ''): Promise<string> {
  * Work out the progress stats of interest (on hashtags and/or mentions) so far this week or month, and write out to current note.
  * Defaults to looking at week to date ("wtd") but can specify month to date ("mtd") as well, or 'last7d', 'last2w', 'last4w'.
  * If it's week to date, then use the user's first day of week from NP setting.
+ * TODO: fix why a 'refresh' jumps to the end of the note
  * @author @jgclark
  *
- * @param {?string} params - can pass parameter string e.g. "{"period": 'mtd', "progressHeading": 'Progress'}"
- * @param {?string} source of this call (command/xcb/template)
- * @returns {?string} - either return string to Template, or void to plugin
+ * @param {any?} paramsIn - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}' or as a JS object
+ * @param {string?} source of this call: 'callback', 'template' or 'command' (the default)
+ * @returns {string|void} - either return string to Template, or void to plugin
  */
-export async function makeProgressUpdate(params: string = '', source: string = 'command'): Promise<string | void> {
+export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
-    let settingsForGO: OccurrencesConfig
+    let settingsForGO: OccurrencesToLookFor
 
-    // If there are params passed, then we've been called by a template command (and so use those).
-    if (params) {
-      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
+    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' (type: ${typeof paramsIn}) from source '${source}'`)
+    // If an object param has been passed, then we've been called by a template (including refreshes), and so turned into JSON string
+    const params = (paramsIn)
+      ? (typeof paramsIn === 'object')
+        ? JSON.stringify(paramsIn)
+        : paramsIn
+      : ''
+    if (params !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      // clo(config, `config after overriding with params '${params}'`)
+      clo(config, `- config after overriding with params-as-JSON-string '${params}' (from callback)`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with no params`)
+      logDebug('makeProgressUpdate', `- no params`)
     }
 
     // Use configuration setting as default for time period
@@ -82,7 +104,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     if (periodParam !== '') {
       period = periodParam
     }
-    logDebug('makeProgressUpdate', `Starting for period '${period}' titled '${config.progressHeading}' with params '${params}'`)
+    logDebug('makeProgressUpdate', `Starting for period '${period}' with title '${config.progressHeading}' / params '${params}' / source '${source}'`)
 
     // Now deal with any parameters passed that are mentions/hashtags to work on
     const paramProgressYesNo = await getTagParamsFromString(params, 'progressYesNo', '')
@@ -92,9 +114,10 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     const paramProgressMentions = await getTagParamsFromString(params, 'progressMentions', '')
     const paramProgressMentionsTotal = await getTagParamsFromString(params, 'progressMentionsTotal', '')
     const paramProgressMentionsAverage = await getTagParamsFromString(params, 'progressMentionsAverage', '')
+    const paramProgressRefNote = await getTagParamsFromString(params, 'progressChecklistReferenceNote', '')
 
     // If we have any of these params, then override all the mentions/hashtags settings
-    const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
+    const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage || paramProgressRefNote)
     if (useParamTerms) {
       settingsForGO = {
         GOYesNo: paramProgressYesNo,
@@ -106,6 +129,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         GOMentionsTotal: paramProgressMentionsTotal,
         GOMentionsAverage: paramProgressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: paramProgressRefNote,
       }
     } else {
       settingsForGO = {
@@ -118,11 +142,12 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         GOMentionsTotal: config.progressMentionsTotal,
         GOMentionsAverage: config.progressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: config.progressChecklistReferenceNote,
       }
     }
 
     // Get more detailed items for the chosen time period
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
+    const [fromDate, toDate, _periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate period start and end dates`)
     }
@@ -143,28 +168,37 @@ export async function makeProgressUpdate(params: string = '', source: string = '
       toDateStr,
       settingsForGO
     )
-
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false).join('\n')
-
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('makeProgressUpdate', `- created progress update in${timer(startTime)}`)
+    await CommandBar.onMainThread()
 
+    const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false)).join('\n')
+
+    logDebug('makeProgressUpdate', `- created progress update in ${timer(startTime)}`)
+
+    // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.
     // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
-
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
 
-    // Send output to chosen required destination
-    // Now complicated because if we have params it could be either from x-callback or template call.
-    if (params && source !== 'xcb') {
+    // Send output to chosen required destination:
+    // - if it's a template, then return the output text
+    // - if it's an x-callback or command, then write to a note
+    // - if it's from todayProgressUpdate, then write to daily note
+
+    if (source === 'template') {
       // this was a template command call, so simply return the output text
-      logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}: ${periodAndPartStr} for ${periodString}'`)
-      return `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
+      logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}' (${periodAndPartStr} for ${periodString})`)
+      return (config.progressHeading !== '')
+        ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
+        : output
     }
 
-    // Else we were called by a plugin command.
+    if (source === 'todayProgressUpdate') {
+      config.progressDestination = 'daily'
+    }
+
+    // Else we were called by a plugin command or x-callback
     // Now decide whether to write to current note or update the relevant section in the current Daily or Weekly note
     switch (config.progressDestination) {
       case 'daily': {

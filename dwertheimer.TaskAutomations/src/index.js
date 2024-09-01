@@ -10,24 +10,10 @@ import { clo } from '@helpers/dev'
  * Command Exports
  */
 export { editSettings } from '@helpers/NPSettings'
-export {
-  sortTasks,
-  sortTasksByPerson,
-  sortTasksByTag,
-  sortTasksByDue,
-  tasksToTop,
-  openTasksToTop,
-  sortTasksViaTemplate,
-  sortTasksTagMention,
-  sortTasksDefault,
-  sortTasksUnderHeading,
-} from './sortTasks'
-export { default as markTasks } from './markTasks'
+
 export { taskSync } from './taskSync'
-export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export {
   updateDatePlusTags,
-  reviewOverdueTasksByNote,
   reviewOverdueTasksByTask,
   reviewOverdueTasksInNote,
   reviewOverdueTasksInFolder,
@@ -56,4 +42,10 @@ export async function onSettingsUpdated(): Promise<void> {
 export function onUpdateOrInstall(): void {
   // this runs after the plugin is installed or updated. the following command updates the plugin's settings data
   updateSettingData(pluginJson)
+}
+
+export async function testOnUpdateOrInstall(): Promise<void> {
+  // test as after the plugin is installed or updated. the following command updates the plugin's settings data
+  const r = { code: 1 /* updated */, message: 'plugin updated message' }
+  await pluginUpdated(pluginJson, r)
 }

@@ -17,6 +17,11 @@ const blankNote = new Note() // NOTE: try to reference the code in the Note mock
 
 export const Editor = {
   ...{
+    syncEditorWithNote() {
+      this.paragraphs = this.note.paragraphs
+      this.content = this.note.content
+      // add other fields as needed
+    },
     note: blankNote,
     addBlockID(p) {
       return this.note.addBlockID(p)
@@ -50,10 +55,12 @@ export const Editor = {
     // async insertQuote() { return null },
     // async insertScheduledTodo() { return null },
     async insertTextAtCharacterIndex(text = '', length = 0) {
-      return this.note.insertTextAtCharacterIndex(text, length)
+      this.note.insertTextAtCharacterIndex(text, length)
+      this.syncEditorWithNote()
     },
     async insertTextAtCursor(text: string) {
-      return this.note.insertTextAtCursor(text)
+      this.note.insertTextAtCursor(text)
+      this.syncEditorWithNote()
     },
     // async insertTodo() { return null },
     // async insertTodoAfterParagraph() { return null },
@@ -65,7 +72,9 @@ export const Editor = {
       return this.note
     },
     // async openNoteByDateString() { return null },
-    // async openNoteByFilename() { return null },
+    async openNoteByFilename() {
+      return this.note
+    },
     // async openNoteByTitle() { return null },
     // async openNoteByTitleCaseInsensitive() { return null },
     async paragraphRangeAtCharacterIndex() {
@@ -96,10 +105,14 @@ export const Editor = {
     // async removeBlockID() { return null },
 
     async removeParagraph(para) {
-      return note.removeParagraph(para)
+      this.note.removeParagraph(para)
+      this.syncEditorWithNote()
+      return
     },
     async removeParagraphs(paras) {
-      return note.removeParagraphs(paras)
+      this.note.removeParagraphs(paras)
+      this.syncEditorWithNote()
+      return
     },
 
     // async removeParagraphAtIndex() { return null },
@@ -146,10 +159,12 @@ export const Editor = {
     // type: VALUE ,
 
     async updateParagraph(para) {
-      return note.updateParagraph(para)
+      this.note.updateParagraph(para)
+      this.syncEditorWithNote()
     },
     async updateParagraphs(paras) {
-      return note.updateParagraphs(paras)
+      this.note.updateParagraphs(paras)
+      this.syncEditorWithNote()
     },
   },
   ...blankNote,

@@ -22,8 +22,10 @@ import {
   type HourMinObj,
   // printDateRange,
   RE_ISO_DATE,
+  RE_BARE_WEEKLY_DATE,
   removeDateTagsAndToday,
   todaysDateISOString,
+  weekStartDateStr,
 } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { displayTitle } from './general'
@@ -53,8 +55,10 @@ export type EventsConfig = {
   removeTimeBlocksWhenProcessed?: boolean,
   addEventID: boolean,
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
+  alternateDateFormat: string,
   removeDoneDates: boolean,
   uncompleteTasks: boolean,
+  removeProcessedTagName: boolean,
   meetingTemplateTitle: string
 }
 
@@ -131,30 +135,30 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
  */
 export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   try {
-  const { paragraphs } = note
-  if (paragraphs == null || note == null) {
-    logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
-    return
-  }
-  // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
-  const noteTitle = displayTitle(note)
-  logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
-
-  let calendarToWriteTo = '' // NP will then use the default
-  if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
-    // Check that the calendar name we've been given is in the list and is writable
-    const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
-    if (writableCalendars.includes(config.calendarToWriteTo)) {
-      calendarToWriteTo = config.calendarToWriteTo || ''
-      logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)
-    } else {
-      logWarn('NPCalendar / writeTimeBlocksToCalendar', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
+    const { paragraphs } = note
+    if (paragraphs == null || note == null) {
+      logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
+      return
     }
-  }
+    // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+    const noteTitle = displayTitle(note)
+    logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
 
-  // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
-  // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
-  const endOfActive = findEndOfActivePartOfNote(note)
+    let calendarToWriteTo = '' // NP will then use the default
+    if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
+      // Check that the calendar name we've been given is in the list and is writable
+      const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
+      if (writableCalendars.includes(config.calendarToWriteTo)) {
+        calendarToWriteTo = config.calendarToWriteTo || ''
+        logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)
+      } else {
+        logWarn('NPCalendar / writeTimeBlocksToCalendar', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
+      }
+    }
+
+    // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
+    // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+    const endOfActive = findEndOfActivePartOfNote(note)
     const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive && ((p.type !== 'done' && p.type !== 'checklistDone') || config.includeCompletedTasks))
     if (timeblockParas.length > 0) {
       logDebug('NPCalendar / writeTimeBlocksToCalendar', `-   found ${timeblockParas.length} in '${noteTitle}'`)
@@ -165,6 +169,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromYYYYMMDD(note.filename) ?? todaysDateISOString : todaysDateISOString
 
       // Iterate over timeblocks
+      let keepAsking = true
       if (showLoadingProgress && !config.confirmEventCreation) {
         CommandBar.showLoading(true, 'Inserting Calendar Events')
         await CommandBar.onAsyncThread()
@@ -188,15 +193,21 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           let datePart = ''
           // Now add date part (or dateContext if there wasn't one in the paragraph)
           const origTimeBlockString = timeBlockString
-          if (!thisParaContent.match(RE_ISO_DATE)) {
-            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- No date in time block so will add current dateContext (${dateContext})`)
-            datePart = dateContext
-          } else {
+          if (thisParaContent.match(RE_ISO_DATE)) {
             const temp = thisParaContent.match(RE_ISO_DATE) ?? []
             datePart = temp[0]
+          } else if (thisParaContent.match(RE_BARE_WEEKLY_DATE)) {
+            const temp = thisParaContent.match(RE_BARE_WEEKLY_DATE) ?? []
+            const weekPart = temp[0]
+            datePart = getISODateStringFromYYYYMMDD(weekStartDateStr(weekPart))
+          } else {
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- No date in time block so will add current dateContext (${dateContext})`)
+            datePart = dateContext
           }
           timeBlockString = `${datePart} ${timeBlockString}`
+          logDebug('NPCalendar / writeTimeBlocksToCalendar', `- datePart: ${datePart}`)
           // NB: parseDateText returns an array, so we'll use the first one as most likely
+          // eslint-disable-next-line prefer-const
           let timeblockDateRange = { ...Calendar.parseDateText(timeBlockString)[0] }
 
           if (timeblockDateRange) {
@@ -206,7 +217,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             // was specified. If we have a defaultEventDuration then use it.
             if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0) {
               const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
-              timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate }
+              timeblockDateRange.end = newEndDate
             }
 
             // Strip out time + date (if present) from the timeblock line,
@@ -222,14 +233,17 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
             // Do we want to add this particular event?
-            if (config.confirmEventCreation) {
-              const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No', 'Cancel'], 'Make event from time block')
+            if (config.confirmEventCreation && keepAsking) {
+              const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes to all', 'Yes', 'No', 'Cancel'], 'Make event from time block')
               if (res === 'No') {
                 continue // go to next time block
               } else if (res === 'Cancel') {
                 logDebug('NPCalendar / writeTimeBlocksToCalendar', `User cancelled rest of the command.`)
                 i = timeblockParas.length
                 continue // cancel out of all time blocks
+              } else if (res === 'Yes to all') {
+                logDebug('NPCalendar / writeTimeBlocksToCalendar', `User now asks to continue adding without asking each time.`)
+                keepAsking = false
               }
             }
             const eventRange = { start: timeblockDateRange.start, end: timeblockDateRange.end }

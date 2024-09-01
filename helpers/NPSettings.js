@@ -76,8 +76,8 @@ export async function updateSettingType_number(setting: any, currentValue: any):
  * @returns {string}
  */
 export async function updateSettingType_string(setting: any, currentValue: any): Promise<string> {
-  const newVal = await getInput(`Enter a value for '${setting.title}'`, 'OK', `${setting.title}`, currentValue)
-  if (newVal !== false) {
+  const newVal: string | boolean = await getInput(`Enter a value for '${setting.title}'`, 'OK', `${setting.title}`, currentValue)
+  if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return newVal
   } else {
@@ -92,8 +92,8 @@ export async function updateSettingType_string(setting: any, currentValue: any):
  * @returns {Array<string>}
  */
 export async function updateSettingType__string_(setting: any, currentValue: any): Promise<Array<string>> {
-  const newVal = await getInput(`Enter a value for '${setting.title}' as an array of strings separated by commas`, 'OK', `${setting.title}`, currentValue)
-  if (newVal !== false) {
+  const newVal: string | boolean = await getInput(`Enter a value for '${setting.title}' as an array of strings separated by commas`, 'OK', `${setting.title}`, currentValue)
+  if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_[string]: newValue: ${newVal}`)
     return newVal.split(',').map((item) => item.trim())
   } else {
@@ -109,8 +109,8 @@ export async function updateSettingType__string_(setting: any, currentValue: any
  */
 export async function updateSettingType_stringChoices(setting: any, currentValue: any): Promise<string> {
   const choices = setting.choices.map((choice) => ({ label: choice, value: choice.trim() }))
-  const newVal = await chooseOption(`Choose a value for '${setting.title}'`, choices, currentValue)
-  if (newVal !== false) {
+  const newVal: string | boolean = await chooseOption(`Choose a value for '${setting.title}'`, choices, currentValue)
+  if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return newVal
   } else {
@@ -123,8 +123,8 @@ export async function updateSettingType_stringChoices(setting: any, currentValue
  * @param {*} setting
  */
 export async function updateSettingType_date(setting: any, currentValue: any): Promise<Date | null> {
-  const newVal = await getInput(`Enter a value for '${setting.title}' in the form YYYY-MM-DD`, 'OK', `${setting.title}`, currentValue)
-  if (newVal !== false) {
+  const newVal: string | boolean = await getInput(`Enter a value for '${setting.title}' in the form YYYY-MM-DD`, 'OK', `${setting.title}`, currentValue)
+  if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_date: newValue: ${newVal}`)
     return moment(newVal).toDate()
   } else {
@@ -137,13 +137,13 @@ export async function updateSettingType_date(setting: any, currentValue: any): P
  * @param {*} setting
  */
 export async function updateSettingType_json(setting: any, currentValue: any): Promise<string> {
-  const newVal = await getInput(
+  const newVal: string | boolean = await getInput(
     `Enter a value for '${setting.title}'. We know, this small box is awful for writing JSON. So write it somewhere else and paste it here.`,
     'OK',
     `${setting.title}`,
     currentValue,
   )
-  if (newVal !== false) {
+  if (typeof newVal === 'string') {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return JSON.parse(newVal)
   } else {
@@ -233,7 +233,7 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
 
   let editsMade = 0
   if (settings && settings.length) {
-    let chosenSetting = null
+    let chosenSetting: string
     const settingsOptions = await getSettingsOptions(settings)
     while (chosenSetting !== '__done__') {
       logDebug('editSettings', `editSettings: top of while loop: editsMade=${editsMade}`)

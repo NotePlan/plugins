@@ -1,21 +1,38 @@
 // shared functions that can be imported and used in helpers without creating circular dependencies
 // @flow
 import { RE_IS_SCHEDULED } from './dateTime'
+import { RE_ARROW_DATES_G } from './regex'
 
 /**
- * Test whether a task is open or not (type: 'open' or 'checklist')
+ * Test whether a para is open or not (type: 'open' or 'checklist') and not blank
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isOpen = (t: TParagraph): boolean => t.type === 'open' || t.type === 'checklist'
+export const isOpen = (t: TParagraph): boolean => (t.type === 'open' || t.type === 'checklist') && t.content.trim() !== ''
 
 /**
- * Test whether a task is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
+ * Test whether a para is an open task and not blank
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export const isOpenTask = (t: TParagraph): boolean => t.type === 'open' && t.content.trim() !== ''
+
+/**
+ * Test whether a para is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
 export function isOpenNotScheduled(t: TParagraph): boolean {
-  return (t.type === 'open' || t.type === 'checklist') && !hasScheduledDate(t.content)
+  return (t.type === 'open' || t.type === 'checklist') && !hasScheduledDate(t.content) && t.content.trim() !== ''
+}
+
+/**
+ * Test whether a para is open or not (type: 'open') and doesn't have a scheduled date
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export function isOpenTaskNotScheduled(t: TParagraph): boolean {
+  return (t.type === 'open') && !hasScheduledDate(t.content) && t.content.trim() !== ''
 }
 
 /**
@@ -24,7 +41,7 @@ export function isOpenNotScheduled(t: TParagraph): boolean {
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isClosed = (t: TParagraph): boolean => t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled'
+export const isClosed = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled') && t.content.trim() !== ''
 
 /**
  * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
@@ -32,21 +49,21 @@ export const isClosed = (t: TParagraph): boolean => t.type === 'done' || t.type 
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isDone = (t: TParagraph): boolean => t.type === 'done' || t.type === 'checklistDone'
+export const isDone = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'checklistDone') && t.content.trim() !== ''
 
 /**
- * Test whether a string has a scheduled date (e.g. >2020-01-01, >2020-01, >2020, >2020-W1, >2020-Q1)
+ * Test whether a string has a scheduled date (e.g. >2020-01-01, >2020-01, >2020, >2020-W1, >2020-Q1), and not an arrow date (>date<).
  * @param {string} content
  * @returns {boolean} true if has a scheduled date, false if not
  */
-export const hasScheduledDate = (content: string): boolean => RE_IS_SCHEDULED.test(content)
+export const hasScheduledDate = (content: string): boolean => RE_IS_SCHEDULED.test(content) && !RE_ARROW_DATES_G.test(content)
 
 /**
- * Test whether a paragraph/task is scheduled (type: 'scheduled' or open with a scheduled date)
+ * Test whether a paragraph/task is scheduled (type: 'scheduled' or open with a scheduled date), and not an arrow date (>date<).
  * @param {TParagraph} t
  * @returns {boolean} - true if scheduled, false if not
  */
-export const isScheduled = (t: TParagraph): boolean => t.type === 'scheduled' || (t.type === 'open' && hasScheduledDate(t.content))
+export const isScheduled = (t: TParagraph): boolean => t.type === 'scheduled' || (t.type === 'open' && hasScheduledDate(t.content) && !RE_ARROW_DATES_G.test(t.content))
 
 /**
  * This function removes duplicate objects from an array based on specified keys to compare

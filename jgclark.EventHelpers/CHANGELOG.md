@@ -1,6 +1,30 @@
 # What's changed in 🕓 Event Helpers?
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
+
+## [0.21.3] - 2024-06-04 @jgclark
+- fix bug when adding time blocks to calendar
+- better handle template `<%- events() %>`, which has no formatter string
+
+## [0.21.2] - 2024-02-13 @jgclark
+- /shiftDates now shifts dates in brackets and multiples dates on a single line (to suit Project metadata).
+
+## [0.21.1] - 2024-02-06 @jgclark
+### New
+- added 'Yes to all' as an option to the dialog when creating time blocks in "time blocks to calendar" and "process date offsets" commands
+- extended 'shift dates' command to work on week dates (`>YYYY-Wnn`) as well as day dates
+- extended 'process date offsets' and 'shift dates' commands to remove any blockIDs from lines before they change
+
+## [0.21.0] - 2023-09-29 @jgclark
+### New
+- "/shift dates" and "/process date offsets" now unhook sync'd lines (blockIDs) from others before changing them, to preserve the other copies
+- "/shift dates" now deals with checklists as well as tasks, and cancelled items too.
+- "/shift dates" can now remove any 'processed tag name' (as set in the "/time blocks to calendar" command) from tasks or checklists. This is controlled by new setting "Remove any 'processed tag name' on tasks or checklists?"
+- new "/Events: update plugin settings" command to allow updating settings on iOS/iPadOS devices
+### Changed
+- "/time blocks to calendar" now more sensibly handles time blocks that contain a week reference (`>YYYY-Wnn`) as well as day references
+- "/process date offsets" now will only offer to run "/time blocks to calendar" if there are any time blocks in the note
+
 ## [0.20.3] - 2023-06-12 @jgclark
 ### Changed
 - added 'STOPMATCHING' as a possible placeholder for "/insert matching events". If present it will not process a given event further, so only the first match in the "Events match list" list will be used. (This does not stop remaining events in the day being matched.)
@@ -67,43 +91,35 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - the **location** of an event is now available in the output of "/insert day's event as list" and "/insert matching events" commands. It's formatting code is `*|LOCATION|*`.
 
 ### Changed
-
 - the 'Add event ID?' option for "/time blocks to calendar" command now inserts one of the nicely-formatted event links rather than the underlying eventID. The setting has been renamed 'Add event link?' to reflect this.
 
 ## [0.16.6] - 2022-07-22
-
 ### Changed
-
 - updated to newer logging framework. No functional changes.
 
 ## [0.16.5] - 2022-06-17
-
 ### Fixed
-
 - work around a bug in NP's 'Timeblock text must contain string' setting (tracked down with help by @StuW)
 - code tidy up
 
 ## [0.16.4] - 2022-06-12
-
 ### Changed
-
 - now uses NP's 'Timeblock text must contain string' setting (if set) when detecting whether a line has a valid Time block in it.
 - improved user messaging when running '/shift dates'
 
 ## [0.16.3] - 2022-05-26
+### New
+- in /process date offsets, if a controlling date can't be found, then it will now ask the user for one instead
 
 ### Changed
-
 - removed some whitespace stripping which was useful to me, but not to others.
 
 ## [0.16.2] - 2022-05-25
-
 ### Added
 
 - `*|ATTENDEENAMES|*` placeholder, which gives either name or email address of event attendees, but no other details
 
 ### Fixed
-
 - issue with `*|URL|*` placeholder
 
 ## [0.16.1] - 2022-05-20

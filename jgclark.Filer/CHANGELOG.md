@@ -1,6 +1,17 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.5] - 2023-10-20
+### Changed
+- hopefully a fix for "/move paras" sometimes not removing the lines from the original note
+
+## [1.1.4] - 2023-09-01
+### Changed
+- hopefully a fix for "/add sync'd copy to note" sometimes failing to add the sync in one of the two notes, because of a race condition.  Please give feedback if you still find this happens.
+
+## [1.1.3] - 2023-08-29
+- fix bug that prevented moving/filing items to a note in the root folder
+
 ## [1.1.2] - 2023-08-15
 ### Changed
 - improved the Heading selector to allow to add at the top of the note (under the title but before the first heading)

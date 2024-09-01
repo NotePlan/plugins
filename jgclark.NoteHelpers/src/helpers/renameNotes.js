@@ -1,57 +1,83 @@
 // @flow
+// --------------------------------------------------------------
+// Originally by Leo Melo, with bug fixes by @jgclark
+// Last updated 2024-08-16 for v0.19.3 by @jgclark
+// --------------------------------------------------------------
 
 import pluginJson from '../../plugin.json'
-import { newNotePath } from './newNotePath'
+import { newFilepathForNote } from './newNotePath'
 import { logDebug, logWarn } from '@helpers/dev'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 
-export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<void> {
+export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<boolean> {
   if (note == null || note.paragraphs.length < 1) {
     // No note open, so don't do anything.
     logDebug(pluginJson, 'No note open, or no content. Stopping.')
-    return
+    return false
   }
-  if (Editor.type === 'Calendar') {
+  if (note.type === 'Calendar') {
     // Won't work on calendar notes
     await showMessage('This command does not support renaming calendar notes.')
-    return
+    return false
   }
 
-  const currentFullPath = note.filename
-  const newPath = newNotePath(note)
-  const title = note.paragraphs[0]?.content ?? ''
+  const title = note.title
+  const currentFilepath = note.filename
+  const newFilepath = newFilepathForNote(note)
 
-  if (newPath === '') {
+  if (newFilepath === '' || title === '') {
     // No title found, so don't do anything.
     logWarn(pluginJson, 'renameNoteToTitle(): No title found. Stopping.')
-    return
+    return false
   }
 
-  if (currentFullPath === newPath) {
+  if (currentFilepath === newFilepath) {
     // No need to rename
     logDebug(pluginJson, 'renameNoteToTitle(): Current path is the same as the new path. Stopping.')
-    await showMessage('The note name is already consistent with its filename.')
-    return
+    await showMessage('The filename is already consistent with the note name.')
+    return false
+  }
+
+  if (!isValidFilename(newFilepath)) {
+    logWarn(pluginJson, `renameNoteToTitle(): Invalid filename "${newFilepath}". Stopping.`)
+    await showMessage(`The filename "${newFilepath}" is not valid. Please check the title and try again.`)
+    return false
   }
 
   if (!shouldPromptBeforeRenaming) {
-    const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
-    return
+    const newFilename = note.rename(newFilepath)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFilepath} -> ${newFilename}`)
+    return true
   }
 
-  const promptResponse = await showMessageYesNo(`
-  Would you like to rename the note ${title} to match its filename?
+  const currentFilename = currentFilepath.split('/').pop()
+  // $FlowIgnore[incompatible-type]
+  const promptResponse = await showMessageYesNoCancel(`Would you like to rename "${currentFilename}" to match the note title "${title}"?
 
-  Current path: ${currentFullPath}
-  New path: ${newPath}
+  Current path: ${currentFilepath}
+
+  New path: ${newFilepath}
   `)
 
-  if (promptResponse === 'Yes') {
-    const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
+  if (promptResponse === 'Cancel') {
+    logDebug(pluginJson, `renameNoteToTitle(): User cancelled`)
+    return false
+  } else if (promptResponse === 'Yes') {
+    const newFilename = note.rename(newFilepath)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFilepath} -> ${newFilename}`)
+    // $FlowIgnore[incompatible-type]
     await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
     logDebug(pluginJson, 'renameNoteToTitle(): User chose not to rename.')
   }
+  return true
+}
+
+function isValidFilename(path: string): boolean {
+  // Check for invalid characters in filename
+  const invalidChars = /[<>:"/\\|?*]/g
+  if (path.split('/').pop().match(invalidChars)) {
+    return false
+  }
+  return true
 }

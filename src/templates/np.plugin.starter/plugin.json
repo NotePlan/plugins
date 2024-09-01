@@ -10,7 +10,7 @@
   "plugin.author": "{{pluginAuthor}}",
   "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
   "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
-  "plugin.dependencies": [],
+  "plugin.dependsOn": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/CHANGELOG.md",

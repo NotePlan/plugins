@@ -91,9 +91,10 @@ export class Note {
     // .insertParagraph(content, lineIndex, type)
     // if string contains "\n" then split into multiple paragraphs
     const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    if (paras[paras.length - 1].content === '') paras.pop()
     this.paragraphs.splice(lineIndex, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
-    this.content = this.paragraphs.map((p) => p.content).join('\n')
+    this.content = this.paragraphs.map((p) => p.content).join('\n') + '\n'
     return
   }
   async insertParagraphAfterParagraph(content, otherParagraph, paragraphType) {
@@ -148,7 +149,7 @@ export class Note {
     if (p.blockId) delete p.blockId
   }
   async removeParagraph(para) {
-    this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
+    this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
     this.resetLineIndexes()
   }
   async removeParagraphAtIndex() {

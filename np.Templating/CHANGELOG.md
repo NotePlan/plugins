@@ -4,6 +4,39 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.4] 2024-02-19 @dwertheimer
+
+- Allow basic templates without frontmatter
+
+## [1.10.3] 2024-02-14 @dwertheimer
+
+- Fix: Do not look in @trash or @archive etc. for templates when searching
+
+## [1.10.2] 2024-01-30 @jgclark
+
+- fixed issue when using `progressUpdate(...)` in template (from Habits & Summaries plugin)
+
+## [1.10.1] 2024-01-11 @dwertheimer
+
+- Bug fix to remove spaces after comment tags (<%#...)
+
+## [1.10.0] 2023-10-31 @dwertheimer
+
+- Command name changes require NotePlan 3.9.10
+- Change commands to be more descriptive (using @eduardme's new naming scheme)
+- Tweak np:invoke to work correctly with frontmatter
+
+## [1.9.12] 2023-10-24 @dwertheimer
+
+- Changed title to just 'Templating']
+
+## [1.9.11] 2023-10-12 @jgclark
+- add 'todayProgressFromTemplate' template command (from Habits & Summaries v0.20)
+
+## [1.9.10] (aka 2.0.0-bet1.13): 2023-09-11 @dwertheimer
+
+- add folder attribute to np:new for xcallback creation inside a specific folder]
+
 ## [1.9.9] (aka 2.0.0-beta.12): 2023-08-12 @dwertheimer
 
 - Fix templatejs code so it doesn't add extra spaces

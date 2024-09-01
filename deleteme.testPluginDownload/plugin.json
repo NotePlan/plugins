@@ -1,0 +1,70 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "deleteme.testPluginDownload",
+  "plugin.name": "🧩 PLUGIN DOWNLOAD TEST",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "If you are seeing this, the plugin was installed/updated and onInstallOrUpdate is running. You can click 'No' below",
+  "plugin.description": "My Plugin for NotePlan",
+  "plugin.author": "dwertheimer",
+  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/deleteme.testPluginDownload/CHANGELOG.md",
+  "offerToDownloadPlugin": {"id": "dwertheimer.TaskSorting", "minVersion": "1.0.0"},
+  "commandMigrationMessage": "@eduard we are pretending commands from this plugin have been migrated to the Task Sorting plugin. You should click 'Yes' below. The plugin will install, but this script execution will crash, so you won't see anything after you click the 'Yes' button, though you can see the new plugin (Task Sorting) has been installed.",
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "Test onInstallOrUpdate",
+      "description": "",
+      "jsFunction": "runOnInstallOrUpdate"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "PLUGIN DOWNLOAD TEST Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "deleteme.testPluginDownload",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing PLUGIN DOWNLOAD TEST commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "DEBUG",
+      "required": true
+    }
+  ]
+}

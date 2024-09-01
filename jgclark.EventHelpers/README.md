@@ -7,7 +7,7 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
 - **shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
-Most of these commands require configuration, described in the sections below. Click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings.  Also see [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
+Most of these commands require configuration, described in the sections below. On macOS, click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings. Or on on iOS/iPadOS devices, use the **Events: update plugin settings** command instead.
 
 ## "insert day's events as list"  and "insert matching events" commands
 Settings:
@@ -34,7 +34,7 @@ For example:
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
 - **Confirm Event Creation?**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **Remove time blocks when processed?**: in `time blocks...` whether to remove time block after making an event from it
-- **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block.<!--This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)). -->
+- **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block. (This can return rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).)
 - **Processed tag name**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - **Locale**: optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.
 - **Time options**: Optional Time format settings. Default is `{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}`.
@@ -76,8 +76,14 @@ If you wish to see multiple day's output, not just the day for the active calend
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
 ## /shift dates
-- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though.
-- Set any completed tasks to not complete? By default it will.
+This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc.
+
+Its settings are:
+- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. (If you don't remove such dates, then they will also get shifted.)
+- Set any finished (i.e. completed or cancelled) tasks to open? Default: true.
+- Remove any 'processed tag name' on tasks or checklists? Whether to remove any 'processed tag name' (from the settings for "/time blocks to calendar" command above) from tasks or checklists. Default: true.
+
+Note: if the line contains a blockID (link to another line), this will be removed before the date is shifted.
 
 ## /process date offsets
 User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
@@ -109,6 +115,10 @@ In more detail:
 | \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
 | \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
+If a base date can't be found, the command will ask you to supply a date.
+
+Note: any blockIDs (links to another line) are removed before the offset is calculated.
+
 ## Display of Time Blocks
 If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either
 - put brackets around the START and END times
@@ -123,9 +133,7 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
 }
 ```
 
-<!-- TODO: figure out what NP is automatically finding, since about v3.8 -->
-
-<!-- If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
+If you're adding event IDs through the `/time blocks to calendar` command, then you might want to hide the long `event:ID` string until you move the cursor to the ⏰ marker. To do this add the following:
 ```jsonc
 "eventID": {
   "regex": "(event:[A-F0-9-]{36,37})",
@@ -134,12 +142,12 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
   "isHiddenWithoutCursor": true,
   "isRevealOnCursorRange": true
  }
-``` -->
+```
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 ## History

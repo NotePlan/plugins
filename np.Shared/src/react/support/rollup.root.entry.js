@@ -21,5 +21,5 @@ npx rollup -c np.Shared/src/react/support/rollup.root.cfg.js --watch
 // export { StatusButton } from '../_Cmp-StatusButton.jsx'
 // export { ThemedSelect } from '../_Cmp-ThemedSelect.jsx'
 // export { WebView } from '../_Cmp-WebView.jsx'
-
+export { logDebug } from '@helpers/react/reactDev'
 export { Root } from '../Root.jsx'

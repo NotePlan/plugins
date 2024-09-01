@@ -1,24 +1,20 @@
+/* eslint-disable prefer-template */
 // @flow
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 10.4.2023, for v1.1.0
+// last updated 29.6.2024, for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { addParasAsText, getFilerSettings, type FilerConfig } from './filerHelpers'
-import moment from 'moment/min/moment-with-locales'
-import { getSetting } from '@helpers/NPConfiguration'
-import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
-import { displayTitle, rangeToString } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
-import { getNotesChangedInInterval } from '@helpers/NPnote'
-import { findStartOfActivePartOfNote, parasToText } from '@helpers/paragraph'
-import { getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
+import { displayTitle } from '@helpers/general'
+import { getAllNotesOfType, getNotesChangedInInterval } from '@helpers/NPnote'
+import { getParagraphBlock } from '@helpers/NPParagraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { showMessage } from '@helpers/userInput'
 
@@ -46,8 +42,8 @@ export async function copyNoteLinks(): Promise<number> {
 }
 
 /**
- * Entry point for fileRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * @param {?string} params - can pass parameter string e.g. ??? "{"period": 'mtd', "progressHeading": 'Progress'}"
+ * Entry point for copyRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
+ * @param {string?} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @returns {number} number of paragraphs copied
  */
 export async function copyRecentNoteLinks(params: string = ''): Promise<number> {
@@ -90,7 +86,7 @@ export async function moveNoteLinks(): Promise<number> {
 
 /**
  * Entry point for moveRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * @param {?string} params - can pass parameter string e.g. ??? "{"period": 'mtd', "progressHeading": 'Progress'}"
+ * @param {?string} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @returns {number} number of paragraphs moved
  */
 export async function moveRecentNoteLinks(params: string = ''): Promise<number> {
@@ -130,12 +126,14 @@ export async function moveRecentNoteLinks(params: string = ''): Promise<number> 
 async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolean = false): Promise<number> {
   try {
     // Get array of recent calendar notes
-    const recentCalendarNotes = getNotesChangedInInterval(config.recentDays, ['Calendar'])
+    const recentCalendarNotes = (config.recentDays > 0)
+      ? getNotesChangedInInterval(config.recentDays, ['Calendar'])
+      : getAllNotesOfType(['Calendar'])
     logDebug(pluginJson, `fileRecentNoteLinks() starting with ${recentCalendarNotes.length} recent calendar notes from ${String(config.recentDays)} days`)
 
     // Run the filer on each in turn
     let filedItemCount = 0
-    for (let thisNote of recentCalendarNotes) {
+    for (const thisNote of recentCalendarNotes) {
       const res = await fileNoteLinks(thisNote, config, runInteractively)
       if (res) filedItemCount++
     }
@@ -162,7 +160,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
     logDebug('fileNoteLinks', `fileNoteLinks() starting to ${config.copyOrMove} links in ${note.filename}`)
 
     // translate from setting 'typesToFile' to the line types to include in the filing
-    let typesToFile = []
+    let typesToFile: Array<string> = []
     switch (config.typesToFile) {
       case "all lines":
         typesToFile = ['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'quote', 'list', 'empty', 'text', 'code'] // all but 'separator'
@@ -179,7 +177,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       default:
         throw new Error(`Invalid 'typesToFile' setting: ${config.typesToFile}`)
     }
-    // logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
+    logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
 
     // Get array of lines containing note links, filtering by the above types
     let noteLinkParas = note.paragraphs
@@ -194,19 +192,19 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
 
     // Does it make sense to proceed?
     if (noteLinkParas.length === 0) {
-      logInfo('fileNoteLinks', `- no note links found in ${note.filename}`)
+      logDebug('fileNoteLinks', `- no note links found in ${note.filename}`)
       if (runInteractively) {
         await showMessage(`Sorry, no note links found in ${note.filename}.`)
       }
       return NaN
     }
-    logInfo('fileNoteLinks', `- ${noteLinkParas.length} note links found in ${note.filename}`)
+    logDebug('fileNoteLinks', `- ${noteLinkParas.length} note links found in ${note.filename}`)
 
     // Process each such note link line
-    let latestBlockLineIndex = 0
-    let thisParaLineIndex = 0
-    for (let thisPara of noteLinkParas) {
-      thisParaLineIndex = thisPara.lineIndex
+    let latestBlockLineIndex = -1
+    // let thisParaLineIndex = 0
+    for (const thisPara of noteLinkParas) {
+      const thisParaLineIndex = thisPara.lineIndex
       // If we previously had a block, then we need to make sure we're passed the end of the block before we start re-processing.
       if (thisParaLineIndex <= latestBlockLineIndex) {
         logDebug('fileNoteLinks', `- skipping line ${thisParaLineIndex}:<${thisPara.content}> as it is before the latest block line ${latestBlockLineIndex}`)
@@ -230,9 +228,8 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       if (!noteToAddTo || !noteToAddTo.filename) {
         throw new Error(`could not find noteToAddTo.filename for some reason`)
       }
-      logDebug('fileNoteLinks', `- found linked note '${noteLinkTitle}' heading '${noteLinkHeading ?? '-'}' (filename: ${noteToAddTo.filename})`)
+      logDebug('fileNoteLinks', `- found linked note '${noteLinkTitle}' ${noteLinkHeading ? "and heading '" + noteLinkHeading + "'" : "with no heading"} (filename: ${noteToAddTo.filename})`)
 
-      let outputLines = []
       // Remove the [[name]] text by finding first example of the string points
       const thisParaWithoutNotelink = thisPara.content.replace(noteLinkParts[0], '').replace('  ', ' ')
       // logDebug('fileNoteLinks', `-> ${thisParaWithoutNotelink}`)

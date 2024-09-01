@@ -5,11 +5,10 @@ import { JSP, logDebug, logError } from '@helpers/dev'
 
 // Note: Eduard's regex looks for a trailing space or end of line. I can't use that part because it will remove space we need if
 // the sync copy tag is in the middle of the line.
-export const textWithoutSyncedCopyTag = (text: string): string => text.replace(new RegExp('(?:^|\\s)(\\^[a-z0-9]{6})', 'mg'), '').trim()
+export const textWithoutSyncedCopyTag = (text: string): string => text.replace(new RegExp('(?:^|\\s)(\\^[a-z0-9]{6})', 'mg'), '').trim() // removeSyncedCopyTag removeBlockID
 
 /**
- * Eliminate duplicate paragraphs (especially for synced lines)
- * Duplicate content is not allowed if:
+ * Eliminate duplicate paragraphs (especially for synced lines), defined as:
  * - the content is the same
  * - the blockID is the same (multiple notes referencing this one) if 'syncedLinesOnly' is true
  * By default it keeps the first copy it finds ... so this is dependent on the order of paras passed to the function.

@@ -1,6 +1,37 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.22.0] - 2024-06-04 by @aaronpoweruser
+- Add new "checklist progress" option to **appendProgressUpdate** command (by @AaronG). See README for details.
+<!-- - some code tidy up as well -->
+
+## [0.21.0] - 2024-03-03
+- new "Weekly Stats for Mermaid" command. See README for details.
+- added a 'Refresh' button to periodStats outputs (except where the interval cannot be back-computed)
+- fix to 'sparkline' output of 'Yes/No Items' (thanks to report by @thor)
+
+## [0.20.4] - 2024-02-16
+- fix to "Weekly Stats as CSV" command output
+
+## [0.20.3] - 2024-01-30
+- fixed problem when using `periodStats()` tag from a template (thanks to report by @bhan.me). Requires updating Templating plugin to v1.10.2 as well.
+
+## [0.20.2] - 2023-12-30
+- added x-callback options for /periodStats command. See documentation for details.
+
+## [0.20.1] - 2023-11-10
+- fix Refresh button not working after '/append progress update' command
+- turns down logging against an API error
+
+## [0.20.0] - 2023-10-12
+### Added
+- new **today progress** command that summarises tags or mentions _within today's note_. This could be useful for summarising `@calories(...)` noted from different meals, for example. This can also be invoked by an x-callback call, and through template calls. (For @seanokana)
+- new **heatmap for tag** command that displays a 'heatmap' chart of a chosen tag's values for each day (e.g. all `@work(...)` values from daily notes)
+- new **Habits+Summaries:update plugin settings** command, that allows settings to be changed on iOS/iPadOS.
+
+## [0.19.4] - 2023-09-26 unreleased
+### Added
+- Refresh button to output of **periodStats** command, where the time period is "<period> to date"
 ## [0.19.3] - 2023-08-06
 ### Fixed
 - date logic on 'weeklyStatsToCSV' command output

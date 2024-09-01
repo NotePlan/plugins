@@ -199,9 +199,11 @@ module.exports = {
         },
         task: async () => {
           const cmd = await releaseTasks(pluginId, pluginVersion, args)
-          if (cmd.includes(`gh release create "${pluginId}-v${pluginVersion}" -t "${pluginName}" -F`)) {
-            const result = await system.run(cmd, true)
-          }
+          // dbw commenting this out 2024-07-17 because releasing was sometimes failing
+          // not sure if this will have unintended consequences -- we shall see! :)
+          // if (cmd.includes(`gh release create "${pluginId}-v${pluginVersion}" -t "${pluginName}" -F`)) {
+          const result = await system.run(cmd, true)
+          // }
         },
       },
     ])

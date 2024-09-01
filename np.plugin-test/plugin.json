@@ -3,11 +3,17 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.plugin-test",
-  "plugin.name": "🔌 Plugin Information & Tester",
-  "plugin.description": "View Plugin Commands and Test that Plugins are working.",
+  "plugin.name": "🔌 Plugin Information Listing",
+  "plugin.description": "View and Try Plugin Commands",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.2.1",
+  "plugin.version": "1.4.1",
+  "plugin.lastUpdateInfo": "1.4.1: bump",
   "plugin.dependencies": [],
+  "plugin.requiredFiles": [
+    "css.plugin.css",
+    "react.c.WebView.bundle.min.js",
+    "react.c.WebView.bundle.dev.js"
+  ],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.plugin-test/README.md",
   "plugin.commands": [
@@ -21,10 +27,24 @@
       ]
     },
     {
-      "name": "Generate Plugin Command Listing",
-      "description": "View Plugin Commands",
+      "name": "Generate Markdown Plugin Command Listing",
+      "description": "View Plugin Commands as NotePlan Note",
       "jsFunction": "generatePluginCommandList",
-      "alias": ["plugins","list","commands"]
+      "alias": [
+        "plugins",
+        "list",
+        "commands"
+      ]
+    },
+    {
+      "name": "Generate HTML Plugin Command Listing",
+      "description": "View Plugin Commands in Popup Window",
+      "jsFunction": "generatePluginCommandListHTML",
+      "alias": [
+        "plugins",
+        "list",
+        "commands"
+      ]
     },
     {
       "name": "(Test) Write Editor Paragraph Details to Console Log",
@@ -32,12 +52,17 @@
       "jsFunction": "testOutputEditorContents"
     },
     {
-      "name": "Install Plugin and Re-Generate Listing",
+      "name": "  ",
       "description": "Install Plugin and Re-Generate Plugin Listing Page",
       "jsFunction": "installPlugin",
       "hidden": true
+    },
+    {
+      "name": "Do Nothing",
+      "description": "Does Nothing - Can be used to override keystrokes (e.g. CMD-S) you don’t want to do anything",
+      "jsFunction": "doNothing",
+      "alias": [],
+      "arguments": []
     }
-    
-
   ]
 }

@@ -3,23 +3,32 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 16.11.2022 for v0.16.0
+// Last updated 16.2.2024 for v0.21.0
 //-----------------------------------------------------------------------------
 
+// export {
+//   testHeatMapGeneration1,
+//   testHeatMapGeneration2,
+//   testHeatMapGeneration3,
+// } from './testCharting'
 export {
-  testHeatMapGeneration1,
-  testHeatMapGeneration2,
-  testHeatMapGeneration3,
-} from './testCharting'
-export {
+  showTagHeatmap,
   showTaskCompletionHeatmap,
-  testGenStats,
-  weeklyStats
-} from './forCharting'
+  testJGCHeatmaps,
+} from './forHeatmaps'
+export {
+  testTaskGenStats,
+  weeklyStatsMermaid,
+  weeklyStatsCSV
+} from './forCharts'
 export {
   makeProgressUpdate,
   progressUpdate
 } from './progress'
+export {
+  todayProgress,
+  todayProgressFromTemplate
+} from './todayProgress'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation
@@ -30,10 +39,11 @@ import {
   getPluginJson,
   getSettings,
   pluginUpdated,
-  savePluginJson,
-  semverVersionToNumber,
+  // savePluginJson,
+  // semverVersionToNumber,
   updateSettingData
 } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = "jgclark.Summaries"
@@ -119,5 +129,19 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
 
   } catch (error) {
     logError('jgclark.Summaries::onUpdateOrInstall', error.message)
+  }
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

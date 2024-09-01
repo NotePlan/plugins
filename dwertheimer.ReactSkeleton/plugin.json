@@ -2,7 +2,7 @@
   "noteplan.minAppVersion": "3.7",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "dwertheimer.ReactSkeleton",
-  "plugin.name": "React Skeleton",
+  "plugin.name": "dwertheimer.ReactSkeleton (TODO: GIVE THIS PLUGIN A NAME)",
   "plugin.description": "Basic skeleton of a React app that can be used in a NotePlan plugin",
   "plugin.author": "@dwertheimer",
   "plugin.version": "1.0.0",
@@ -17,7 +17,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.ReactSkeleton/readme.md",
   "plugin.commands": [
     {
-      "name": "Test",
+      "name": "Test React Window",
       "description": "React Window",
       "jsFunction": "testReactWindow",
       "hidden": false,
