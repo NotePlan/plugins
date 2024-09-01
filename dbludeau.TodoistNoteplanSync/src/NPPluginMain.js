@@ -601,7 +601,7 @@ async function writeOutTask(note: TNote, task: Object) {
       // if there is a predefined header in settings
       if (setup.header !== '') {
         if (!existing.includes(task.id) && !just_written.includes(task.id)) {
-          logInfo(pluginJson, `Adding task form Todoist to Note`)
+          logInfo(pluginJson, `Adding task from Todoist to Note`)
           note?.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
           // add to just_written so they do not get duplicated in the Today note when updating all projects and today
           just_written.push(task.id)
