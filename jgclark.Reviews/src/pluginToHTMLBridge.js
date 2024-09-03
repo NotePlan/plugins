@@ -85,8 +85,8 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
  */
 export async function runPluginCommand(data: any) {
   try {
-    logDebug(pluginJson, `runPluginCommand: received data: ${JSP(data)}`)
-    clo(data, 'runPluginCommand received data object')
+    logDebug(pluginJson, `runPluginCommand: received command '${data.commandName}' with args [${data.commandArgs}]`)
+    // clo(data, 'runPluginCommand received data object')
     await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -95,12 +95,12 @@ export async function runPluginCommand(data: any) {
 
 /**
  * Somebody clicked on a checkbox in the HTML view
+ * Note: Currently unused so commenting out
  * @param {SettingDataObject} data - setting name
  */
 // eslint-disable-next-line require-await
 export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
-    // Note: Currently unused so commenting out
     // // clo(data, 'bridgeChangeCheckbox received data object')
     // const { settingName, state } = data
     // logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)

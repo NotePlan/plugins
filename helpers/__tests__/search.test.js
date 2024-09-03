@@ -7,7 +7,7 @@ import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.DataStore = DataStore
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 describe('search.js tests', () => {
@@ -38,6 +38,10 @@ describe('search.js tests', () => {
     })
     test('should not match ABC to "oneABCtwo"', () => {
       const result = s.caseInsensitiveIncludes('ABC', ["oneABCtwo"])
+      expect(result).toEqual(false)
+    })
+    test('should not match #project to #project/company', () => {
+      const result = s.caseInsensitiveIncludes('#project', ["#project/company"])
       expect(result).toEqual(false)
     })
   })
@@ -97,6 +101,25 @@ describe('search.js tests', () => {
     test('should not match ABC to <blank>', () => {
       const result = s.caseInsensitiveStartsWith('ABC', '')
       expect(result).toEqual(false)
+    })
+  })
+
+  describe('getDedupedHashtagsFromList', () => {
+    test('should want "#project/management/theory from longer set', () => {
+      const result = s.getDedupedHashtagsFromList(["#project", "#project/management", "#project/management/theory"])
+      expect(result).toEqual(["#project/management/theory"])
+    })
+    test('should want "#project/management/theory from longer set', () => {
+      const result = s.getDedupedHashtagsFromList(["#project", "#project/management", "#project/startup", "#society", "#society/problems"])
+      expect(result).toEqual(["#project/management", "#project/startup", "#society/problems"])
+    })
+    test('should not subset match "#project/management" from "#project/man" as break is in wrong place', () => {
+      const result = s.getDedupedHashtagsFromList(["#project/man", "#project/management"])
+      expect(result).toEqual(["#project/man", "#project/management"])
+    })
+    test('should not subset match "#project/man" from "#project/management" as break is in wrong place', () => {
+      const result = s.getDedupedHashtagsFromList(["#project/management", "#project/man"])
+      expect(result).toEqual(["#project/management", "#project/man"])
     })
   })
 

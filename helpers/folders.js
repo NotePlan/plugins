@@ -3,10 +3,12 @@
 // Folder-level Functions
 
 import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
+import { caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from './search'
 
 /**
  * Return a list of folders that contain one of the strings on the inclusions list (so will include any sub-folders) if given. Note: Root folder can be included by '/'; this doesn't include sub-folders.
  * Optionally exclude all special @... folders as well [this overrides inclusions]
+ * Note: now clarified that this is a case-insensitive match.
  * @author @jgclark
  * @tests in jest file
  * @param {Array<string>} inclusions - if these (sub)strings match then exclude this folder -- can be empty
@@ -33,19 +35,15 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     for (const f of reducedFolderList) {
       reducedTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
     }
-    logDebug('folders / getFoldersMatching', `- reduced ${reducedTerminatedWithSlash.length} folders:  [${reducedTerminatedWithSlash.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `- reduced ${reducedTerminatedWithSlash.length} folders:  [${reducedTerminatedWithSlash.toString()}]`)
 
-    // Note: Now can't remember why this needed to be commented out
-    // const inclusionsTerminatedWithSlash: Array<string> = []
-    // for (const e of inclusions) {
-    //   inclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
-    // }
+    // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list. Note: now case insensitive.
+    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
 
-    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => folder.includes(f)))
-    logDebug(
-      'folders / getFoldersMatching',
-      `- after inclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`,
-    )
+    // logDebug(
+    //   'folders / getFoldersMatching',
+    //   `- after inclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`,
+    // )
 
     // now remove trailing slash characters
     const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
@@ -63,9 +61,8 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
 }
 
 /**
- * Return a list of subfolders of a given folder
- * TEST: this is not yet tested!
- * TODO: @tests in jest file.
+ * Return a list of subfolders of a given folder. Includes the given folder itself.
+ * @tests in jest file.
  * @author @jgclark
  * @param {string} folderpath - e.g. "some/folder". Leading or trailing '/' will be removed.
  * @returns {Array<string>} array of subfolder names
@@ -91,11 +88,12 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
 
 /**
  * Return a list of folders, with those that match the 'exclusions' list (or any of their sub-folders) removed.
- * - include only those that contain one of the strings on the inclusions list (so will include any sub-folders) if given. Note: Root folder can be included by '/'; this doesn't include sub-folders.
- *   OR
- * - exclude those on the 'exclusions' list, and any of their sub-folders (other than root folder ('/') which would then exclude everything).
- * - optionally exclude all special @... folders as well [this overrides inclusions and exclusions]
- * - optionally force exclude root folder. Note: setting this to false does not fore include it.
+ * EITHER
+ *   - include only those that start with one of the strings on the inclusions list (so will include any sub-folders) if given. Note: Root folder can be included by '/'; this doesn't include sub-folders.
+ * OR
+ *   - exclude those that start with those on the 'exclusions' list, and any sub-folders (other than root folder ('/') which would then exclude everything).
+ *   - optionally exclude all special @... folders as well [this overrides inclusions and exclusions]
+ *   - optionally force exclude root folder. Note: setting this to false does not force include it.
  * If given inclusions, then exclusions will be ignored.
  * @author @jgclark
  * @tests in jest file
@@ -136,10 +134,8 @@ export function getFolderListMinusExclusions(exclusions: Array<string>, excludeS
     // logDebug('getFolderListMinusExclusions', `- exclusionsTerminatedWithSlash: ${exclusionsTerminatedWithSlash.toString()}\n`)
 
     // if exclusions list is not empty, filter reducedTerminatedWithSlash to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
-    // reducedTerminatedWithSlash = exclusions.length > 0
-    //   ? reducedTerminatedWithSlash.filter((folder) => !exclusions.some((ff) => folder.includes(ff)))
-    //   : reducedTerminatedWithSlash
-    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
+    // reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
+    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsTerminatedWithSlash.some((ef) => caseInsensitiveStartsWith(ef, folder, false)))
     // logDebug('getFolderListMinusExclusions', `- after exclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`)
 
     // now remove trailing slash characters

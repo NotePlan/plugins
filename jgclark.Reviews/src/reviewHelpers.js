@@ -1,8 +1,8 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
-// @jgclark
-// Last updated 2024-07-13 for v0.14.0, @jgclark
+// by Jonathan Clark
+// Last updated 2024-09-02 for v0.14.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -30,6 +30,7 @@ import {
   redToGreenInterpolation,
 } from '@helpers/HTMLView'
 import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { removeAllDueDates } from '@helpers/NPParagraph'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
@@ -69,7 +70,10 @@ export type ReviewConfig = {
   width: number,
   height: number,
   archiveUsingFolderStructure: boolean,
-  _logLevel: string
+  removeDueDatesOnPause: boolean,
+  _logLevel: string,
+  _logTimer: boolean,
+  _logLevel: string,
 }
 
 /**
@@ -77,7 +81,7 @@ export type ReviewConfig = {
  * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
-export async function getReviewSettings(): Promise<?ReviewConfig> {
+export async function getReviewSettings(): Promise<ReviewConfig> {
   // logDebug(pluginJson, `Start of getReviewSettings()`)
   try {
     // Get settings
@@ -85,6 +89,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
 
     if (config == null || Object.keys(config).length === 0) {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+      // $FlowFixMe[incompatible-return]
       return null
     }
     // clo(config, `Review settings`)
@@ -125,6 +130,7 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
   } catch (err) {
     logError('getReviewSettings', `${err.name}: ${err.message}`)
     await showMessage(err.message)
+    // $FlowFixMe[incompatible-return]
     return null
   }
 }
@@ -551,7 +557,7 @@ export class Project {
   }
 
   /**
-   * From the metadata read in, calculate due/finished durations
+   * From the project metadata read in, calculate due/finished durations
    */
   calcDurations(): void {
     try {
@@ -604,6 +610,19 @@ export class Project {
     try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
       const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+
+      // First check to see if project start is in future: if so set nextReviewDate to project start
+      if (this.startDate) {
+        const momTSD = moment(this.startDate)
+        if (momTSD.isAfter(now)) {
+          this.nextReviewDate = this.startDate
+          this.nextReviewDays = daysBetween(now, momTSD.toDate())
+          logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(this.nextReviewDays)} interval`)
+          return
+        }
+      }
+
+      // Now check to see if we have a specific nextReviewDate
       if (this.nextReviewDateStr != null) {
         this.nextReviewDays = daysBetween(now, this.nextReviewDateStr)
         logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
@@ -741,11 +760,13 @@ export class Project {
       // send update to Editor
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
-      Editor.updateParagraph(this.metadataPara)
-      // logDebug('rH/completeProject', `- before updateCache for ${displayTitle(this.note)}`)
-      // clo(this.note, 'this.note')
-      const res = DataStore.updateCache(this.note)
-      // logDebug('rH/completeProject', `- after updateCache`)
+      if (Editor && Editor.note && Editor.note === this.note) {
+        Editor.updateParagraph(this.metadataPara)
+        const res = DataStore.updateCache(this.note)
+      } else {
+        this.note.updateParagraph(this.metadataPara)
+        DataStore.updateCache(this.note, true)
+      }
 
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
@@ -781,8 +802,13 @@ export class Project {
       // send update to Editor
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
-      Editor.updateParagraph(this.metadataPara)
-      DataStore.updateCache(this.note, true)
+      if (Editor && Editor.note && Editor.note === this.note) {
+        Editor.updateParagraph(this.metadataPara)
+        DataStore.updateCache(this.note, true)
+      } else {
+        this.note.updateParagraph(this.metadataPara)
+        DataStore.updateCache(this.note, true)
+      }
 
       const newMSL = this.machineSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
@@ -814,14 +840,25 @@ export class Project {
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
-
-      // send update to Editor
+      // send update to Editor (if open)
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
-      Editor.updateParagraph(this.metadataPara)
-      // await saveEditorToCache(null)
-      // TEST:
-      DataStore.updateCache(this.note, true)
+      if (Editor && Editor.note && Editor.note === this.note) {
+        Editor.updateParagraph(this.metadataPara)
+        DataStore.updateCache(Editor.note, true)
+      } else {
+        this.note.updateParagraph(this.metadataPara)
+        DataStore.updateCache(this.note, true)
+      }
+
+      // if we want to remove all due dates on pause, then do that
+      if (this.isPaused) {
+        const config = await getReviewSettings()
+        if (config.removeDueDatesOnPause) {
+          logDebug('togglePauseProject', `- project now paused, and we want to remove due dates ...`)
+          const res = removeAllDueDates(this.filename)
+        }
+      }
 
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
@@ -968,7 +1005,7 @@ export class Project {
     const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.completedTasks + this.openTasks > 1) ? 'tasks' : 'task'})`
 
     if (style === 'Rich') {
-      output = '\t<tr>\n\t\t'
+      output = '\t<tr class="projectRow">\n\t\t'
 
       // Column 1: circle indicator
       if (this.isCompleted) {
@@ -1007,14 +1044,14 @@ export class Project {
         // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
         if (displayDates) {
           if (this.lastProgressComment !== '') {
-            output = `${output}<br /><i class="fa-light fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
+            output = `${output}<br /><i class="fa-regular fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
           } else {
             output = `${output}<br />${statsProgress}</td>`
           }
         } else {
           // write progress in next cell instead
           if (this.lastProgressComment !== '') {
-            output += `</td>\n\t\t\t<td><i class="fa-light fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
+            output += `</td>\n\t\t\t<td><i class="fa-regular fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}</td>`
           } else {
             output += `</td>\n\t\t\t<td>${statsProgress}</td>`
           }

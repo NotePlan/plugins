@@ -32,6 +32,9 @@ a, a:visited, a:active {
 th {
   text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color);
 }
+tr.projectRow {
+  height: calc(var(--body-line-height)*2.2); /* seems to function as min-height, which itself doesn't work */
+}
 tr.section-header-row {
   column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 1px solid var(--tint-color);
 }
@@ -40,14 +43,16 @@ tr.section-header-row {
   font-size: 1.0rem;
   font-weight: bold;
   padding-top: 1.0rem;
-  padding-bottom: 0.3rem;
+  /* padding-bottom: 0.3rem; */
 }
 .first-col-indicator {
-  padding-top: 0.4em; /* vertical-align doesn't seem to work, but this is approx right */
+  padding: 0.3em 0.2rem 0 0.2rem;
   text-align: center;
+  align-content: center; /* not sure if this does anything? */
 }
 /* remove L-R borders for now */
 tbody td {
+  /* line-height: 1.6rem; */
   background-color: var(--bg-alt-color);
   padding: 2px 2px;
   border-left: 0px solid var(--tint-color);
@@ -55,7 +60,7 @@ tbody td {
 }
 /* turn on top border for tbody */
 table tbody tr:first-child {
-  border-top: 1px solid var(--tint-color);
+  border-top: 0.5px solid var(--tint-color);
 }
 /* turn on bottom border for tbody */
 table tbody tr:last-child {
@@ -110,18 +115,12 @@ button, .fake-button, .clickTarget {
 	font-size: 0.85rem;
 }
 
-/* .fake-button a {
-  color: var(--fg-main-color);
-  background-color: #FFFFFF; 
-  font-weight: 500;
-  text-decoration: none;
-  border-color: #DFE0E0;
-  border-radius: 4px;
-  margin: 2px 1px;
-  padding: 1px 4px;
-  box-shadow: 0 1px 1px #CBCBCB;
-  white-space: nowrap;
-} */
+.dialogTrigger {
+	color: var(--fg-main-color);
+	opacity: 0.5;
+	cursor: pointer;
+}
+
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
@@ -166,7 +165,7 @@ button, .fake-button, .clickTarget {
 /* make noteTitles bold and coloured */
 .noteTitle {
   color: var(--tint-color);
-  font-weight: 700; 
+  font-weight: 600; 
   text-decoration: none;
 }
 /* make noteTitle links underlined on mouse hover */

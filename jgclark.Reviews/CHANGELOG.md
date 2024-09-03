@@ -3,8 +3,15 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
-<!-- ## Future
-- TODO: add auto-refresh? -->
+## [0.14.1] - 2024-09-03
+### New
+- new "Remove due dates when pausing a project?" option to unschedule all dates in a project when you pause it (for @lbednarski)
+### Changed
+- stop projects with a future `@start(...)` date from showing up in the review lists (for @lbednarski)
+- stop projects with nested hashtags (e.g. `#project/company`) from showing up in review lists also on parent hashtags (e.g. `#project`) (for @lbednarski)
+- folders to include/exclude in the settings are now applied case insensitively (thanks to report by @purpletasker)
+- some layout tweaks to align more with Dashboard's display
+<!-- - added new _logTimer output in some places -->
 
 ## [0.14.0] - 2024-07-13
 ### Added

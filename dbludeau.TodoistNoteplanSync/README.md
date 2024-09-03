@@ -1,4 +1,4 @@
-# Todoist Noteplan Sync Noteplan Plugin
+# Todoist Noteplan Sync Plugin
 
 ## Latest Updates
 
