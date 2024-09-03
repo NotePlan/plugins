@@ -1,4 +1,7 @@
-/* CSS specific to reviewList() from jgclark.Reviews plugin */
+/**
+ * CSS specific to reviewList() from jgclark.Reviews plugin
+ * Last updated 2024-09-03 for v0.14.1, @jgclark 
+ */
 
 body {
   /* a little breathing room around whole content */
@@ -7,7 +10,7 @@ body {
 }
 /* add space below to better balance with spacing around H3 headings */
 table {
-  font-size: 1.0rem; /* had been on 0.9rem to make text a little smaller */
+  /* font-size: 0.9rem; to make text a little smaller - but set elsewhere now */
   border-collapse: collapse; /* always! */
   width: 100%; /* keep wide to avoid different table widths */
   empty-cells: show;
@@ -16,6 +19,10 @@ table {
 /* turn off special colouring and underlining for links -- turn on later when desired */
 p {
   margin-block-start: 0.5rem; margin-block-end: 0.5rem;
+}
+/* de-emphasise bold a little */
+p b {
+  font-weight: 600 !important;
 }
 a, a:visited, a:active {
   color: inherit; text-decoration-line: none
