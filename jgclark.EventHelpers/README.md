@@ -28,7 +28,7 @@ For example:
   }
   ```
   You can also add `*|STOPMATCHING|*` placeholder which will mean only the first match in this list is applied for a given event.
-- **Stop after first match in the list above?**: If true, only the first match in the list above is used for a given event. (Note: this doesn't stop matching the rest of the events in the Calendars.) This is the equivalent of setting 'STOPMATCHING' on every item in the above list. _Unfortunately, the NP plugin settings can change the order of the items in this list without warning. So to use this succesfully, you may need to manually edit the settings file, which is found at_ `<NotePlan root>/Plugins/jgclark.EventHelpers/settings.json`. The default is false.
+- **Stop after first match in the list above?**: If true, only the first match in the list above is used for a given event. (Note: this doesn't stop matching the rest of the events in the Calendars.) This is the equivalent of setting 'STOPMATCHING' on every item in the above list. _Unfortunately, the NP plugin settings can change the order of the items in this list without warning. So to use this successfully, you may need to manually edit the settings file, which is found at_ `<NotePlan root>/Plugins/jgclark.EventHelpers/settings.json`. The default is false.
 - **Include time blocks from completed tasks?**: whether to include time blocks from lines with completed tasks.
 - **Name of Calendar to write to**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used. (Note: you have to specifically set a default calendar in the settings of the macOS Calendar app or in iOS Settings app > Calendar > Default Calendar.)
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
@@ -63,7 +63,7 @@ Other options:
 - If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON)
 - If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false`
 - If you want to include only certain calendars, then add the following parameter `calendarSet:"list,of,calendar,names"`
-- If you want to include calendar name mapping (see disusssion above), then add something like the following parameter `calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"`
+- If you want to include calendar name mapping (see discussion above), then add something like the following parameter `calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"`
 
 For example:
 
@@ -71,7 +71,7 @@ For example:
 <%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)*|\nEVENTLINK|**|with ATTENDEES|**|\nLOCATION|**|\nNOTES|*", allday_format:"### *|TITLE|**|\nEVENTLINK|**|\nNOTES|*", includeHeadings:false, calendars:"home,children"} ) %>
 ```
 
-If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` paramter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
+If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` parameter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
