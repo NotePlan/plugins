@@ -1,20 +1,12 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Sort configuration for commands in the Event Helpers plugin.
-// Last updated 29.9.2023 for v0.21.0, by @jgclark
+// Last updated 2024-09-05 for v0.22.0, by @jgclark
 // @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import {
-  castBooleanFromMixed,
-  castHeadingLevelFromMixed,
-  castNumberFromMixed,
-  castStringArrayFromMixed,
-  castStringFromMixed,
-  trimAnyQuotes,
-} from '@helpers/dataManipulation'
-import { type HourMinObj } from '@helpers/dateTime'
+import { castStringFromMixed } from '@helpers/dataManipulation'
 import { clo, log, logDebug, logWarn, logError } from "@helpers/dev"
 import { type EventsConfig } from '@helpers/NPCalendar'
 import { showMessage } from '@helpers/userInput'
@@ -22,7 +14,7 @@ import { showMessage } from '@helpers/userInput'
 //------------------------------------------------------------------------------
 // Get settings
 
-const configKey = 'events'
+// const configKey = 'events'
 
 /**
  * Get config settings using Config V2 system. (Have now removed support for Config V1.)
@@ -90,7 +82,7 @@ function getLocale(tempConfig: Object): string {
 // or if not available default
 function getTimeOptions(tempConfig: Object): Object {
   const env1224 = NotePlan?.environment ? NotePlan?.environment?.is12hFormat : false
-  let tempTimeOptions = tempConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: env1224 }
+  const tempTimeOptions = tempConfig?.timeOptions ?? { hour: '2-digit', minute: '2-digit', hour12: env1224 }
   clo(tempTimeOptions, `tempTimeOptions: `)
   return tempTimeOptions
 }

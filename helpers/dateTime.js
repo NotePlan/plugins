@@ -155,7 +155,7 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
  * Note: also see getNoteType in note.js to get the type of a note in a more conversational way (e.g. -> 'Monthly')
  * @author @jgclark
  * @param {TNote} note - the note to look at
- * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
+ * @returns false | 'day' | 'week' | 'month' | 'quarter' | 'year'
  */
 export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 'month' | 'quarter' | 'year' {
   if (note.type === 'Calendar') {
