@@ -3,12 +3,11 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 30.3.2024 for v0.14.0, @jgclark
+// Last updated 2024-08-30 for v0.14.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import pluginJson from "../plugin.json"
 import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
 import {
   finishReview,

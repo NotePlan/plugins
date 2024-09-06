@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 2024-07-26 for v2.0.4 by @jgclark
+// Last updated 2024-09-06 for v2.0.4+ by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -51,7 +51,7 @@ function ItemContent({ item, children }: Props): React$Node {
   // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
 
   // compute the things we need later
-  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, dashboardSettings, 140)
+  let mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140)
 
   // get rid of arrowDates if desired by user
   if (mainContent && !dashboardSettings.includeScheduledDates) mainContent = replaceArrowDatesInString(mainContent, '')
@@ -187,9 +187,9 @@ function makeParaContentToLookLikeNPDisplayInReact(
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
 
-    // TODO: turning off for now as it calls DataStore underneath
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
+    // TODO: turning off for now as it calls DataStore underneath
     // let captures = output.match(RE_ARROW_DATES_G)
     // if (captures) {
     //   // clo(captures, 'results from arrow >date< match:')

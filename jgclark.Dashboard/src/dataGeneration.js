@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-07-24 for v2.0.4 by @jgclark
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -99,12 +99,13 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+    // out of display order, but quicker to generate
+    if (forceLoadAll || config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
     if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
     if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
-    sections.push(await getProjectSectionData(config, useDemoData))
 
-    return sections
+    return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
   } catch (error) {
     logError('getAllSectionDetails', error.message)
     return []
@@ -134,8 +135,15 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('TAG') && config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
+    // out of display order, but quicker to generate
+    if (sectionCodesToGet.includes('PROJ') && config.showProjectSection) {
+      const projectSection = await getProjectSectionData(config, useDemoData)
+      if (projectSection) sections.push(projectSection)
+    }
+    if (sectionCodesToGet.includes('TAG') && config.tagsToShow) {
+      const tagSections = getTaggedSections(config, useDemoData).filter((s) => s) //get rid of any nulls
+      sections = tagSections.length ? sections.concat(tagSections) : sections
+    }
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
@@ -1192,6 +1200,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
     sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
+    totalCount: totalCount, // Note: Now not sure how this is used (if it is)
     generatedDate: new Date(),
     actionButtons: [],
   }
@@ -1285,7 +1294,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `{count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `first {count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNum,

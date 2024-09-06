@@ -65,8 +65,8 @@ describe('eventsToNotes.js tests', () => {
   })
 
   describe('smartStringReplace()', () => {
-    // This function's tests use $Shape<...> to use a subset of large objects without causing errors
-    const config: $Shape<EventsConfig> = {
+    // This function's tests use Partial<...> to use a subset of large objects without causing errors
+    const config: Partial<EventsConfig> = {
       calendarNameMappings: [],
       locale: 'se-SE',
       timeOptions: '',
@@ -80,7 +80,8 @@ describe('eventsToNotes.js tests', () => {
     const endDT = new Date(2021, 0, 23, 22, 0, 0)
     const attendeesArray: Array<string> = ['✓ Jonathan Clark', '? James Bond', 'x Martha', '? bob@example.com']
     const attendeeNamesArray: Array<string> = ['Jonathan Clark', 'Martha Clark', 'bob@example.com']
-    const event1: $Shape<TCalendarItem> = {
+    // $FlowFixMe[prop-missing] the Type has functions
+    const event1: Partial<TCalendarItem> = {
       calendar: 'Jonathan',
       title: 'title of event1',
       url: 'https://example.com/easy',
@@ -90,7 +91,8 @@ describe('eventsToNotes.js tests', () => {
       attendees: attendeesArray,
       attendeeNames: attendeeNamesArray,
     } // simple case
-    const event2: $Shape<TCalendarItem> = {
+    // $FlowFixMe[prop-missing] the Type has functions
+    const event2: Partial<TCalendarItem> = {
       calendar: 'Us',
       title: 'title of event2 with <brackets> & more',
       url: 'https://example.com/bothersomeURL/example',
@@ -100,7 +102,9 @@ describe('eventsToNotes.js tests', () => {
       attendees: attendeesArray,
       attendeeNames: attendeeNamesArray,
     } // case with inclusion
+    // $FlowIgnore[incompatible-call] only sending through what we need
     const replacements1 = e.getReplacements(event1, config)
+    // $FlowIgnore[incompatible-call] only sending through what we need
     const replacements2 = e.getReplacements(event2, config)
 
     test('event 1 format 1 easy', () => {

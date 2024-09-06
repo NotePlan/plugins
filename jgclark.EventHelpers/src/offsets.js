@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 13.2.2024 for v0.21.2, by @jgclark
+// Last updated 13.2.2024 for v0.21.2+, by @jgclark
 // ----------------------------------------------------------------------------
 // TODO:
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
@@ -10,14 +10,14 @@
 
 
 import pluginJson from '../plugin.json'
-import { getEventsSettings } from './config'
+import { getEventsSettings } from './eventsHelpers'
 import { timeBlocksToCalendar } from './timeblocks'
 import {
   calcOffsetDateStr,
   RE_BARE_DATE_CAPTURE,
   RE_BARE_DATE,
-  RE_BARE_WEEKLY_DATE,
-  RE_BARE_WEEKLY_DATE_CAPTURE,
+  // RE_BARE_WEEKLY_DATE,
+  // RE_BARE_WEEKLY_DATE_CAPTURE,
   RE_DATE_INTERVAL,
   RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
@@ -25,10 +25,10 @@ import {
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   splitIntervalToParts,
-  toISODateString,
-  toLocaleDateString,
+  // toISODateString,
+  // toLocaleDateString,
 } from '@helpers/dateTime'
-import { getNPWeekData } from '@helpers/NPdateTime'
+// import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -155,8 +155,9 @@ export async function shiftDates(): Promise<void> {
             originalDateStr = thisDate
             // v1: but doesn't handle different start-of-week settings
             // shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+
             // v2: using NPdateTime::getNPWeekData instead
-            const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+            // const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
             // Replace date part with the new shiftedDateStr
             updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
             logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr} from interval ${interval}`)

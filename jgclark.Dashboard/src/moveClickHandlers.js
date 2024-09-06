@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-07-29 for v2.0.5 by @dwertheimer
+// Last updated 2024-09-06 for v2.0.6 by @dwertheimer
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -415,13 +415,13 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
       return { success: false }
     }  
-    logInfo('scheduleAllOverdueOpenToToday', `Found ${totalOverdue} overdue items to ${config.rescheduleNotMove ? 'reschedule' : 'move'} to today (in ${timer(thisStartTime)})`)
+    logInfo('scheduleAllOverdueOpenToToday', `Found ${totalOverdue} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today (in ${timer(thisStartTime)})`)
 
     const todayDateStr = getTodaysDateHyphenated()
 
     // If there are lots, then double check whether to proceed
     if (totalOverdue > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'reschedule' : 'move'} ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`, ['Yes', 'No'], 'Move Overdue to Today', false)
+      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`, ['Yes', 'No'], 'Move Overdue to Today', false)
       if (res !== 'Yes') {
         logDebug('scheduleAllOverdueOpenToToday', 'User cancelled operation.')
         return { success: false }
