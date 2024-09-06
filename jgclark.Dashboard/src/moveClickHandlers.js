@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
+// Last updated 2024-08-29 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -135,7 +135,8 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
-    if (totalToMove > checkThreshold) {
+    // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
+    if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`, ['Yes', 'No'], 'Move Yesterday to Today', false)
       if (res !== 'Yes') {
         logDebug('scheduleAllYesterdayOpenToToday', 'User cancelled operation.')
@@ -275,8 +276,9 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
-    if (totalToMove > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'nove'} ${totalToMove} items to tomorrow?`, ['Yes', 'No'], 'Move Yesterday to Today', false)
+    // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
+    if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
+      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to tomorrow?`, ['Yes', 'No'], 'Move Today to Tomorrow', false)
       if (res !== 'Yes') {
         logDebug('scheduleAllTodayTomorrow', 'User cancelled operation.')
         return { success: false }
@@ -425,7 +427,8 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     const todayDateStr = getTodaysDateHyphenated()
 
     // If there are lots, then double check whether to proceed
-    if (totalOverdue > checkThreshold) {
+    // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
+    if (NotePlan.environment.platform === "macOS" && totalOverdue > checkThreshold) {
       const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'reschedule' : 'move'} ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`, ['Yes', 'No'], 'Move Overdue to Today', false)
       if (res !== 'Yes') {
         logDebug('scheduleAllOverdueOpenToToday', 'User cancelled operation.')

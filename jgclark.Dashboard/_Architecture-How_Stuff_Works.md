@@ -120,6 +120,7 @@ However, in most cases it is more portable to check for screen height or width a
 
 ### Z-index CSS values for window elements
 <!-- - StatusIcon rollover MetaTooltips: 101 -->
+- modal-backdrop > div: 101
 - modal-backdrop: 100
 - sticky banner (from css.plugins.css): 100
 - Dialog: 50

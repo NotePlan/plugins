@@ -181,7 +181,7 @@ const TooltipOnKeyPress = ({
               text={tooltipState.text}
               x={tooltipState.x}
               y={tooltipState.y}
-              visible={tooltipState.visible}
+              visible={false} // {tooltipState.visible}
               onDimensionsChange={handleTooltipDimensionsChange}
             />
           )}

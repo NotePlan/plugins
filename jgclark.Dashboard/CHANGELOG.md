@@ -1,6 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a11] @jgc, 2024-09-???
+- fix typos in "Move all to today" dialog 
+- stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working
+- dbw: brought back the (hidden) plugin settings for ios so that we could tell an iOS or ipad user how to set debug logging by clicking  [Change Dashboard Settings](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Update%20plugin%20settings) TODO: maybe you could include that in a pinned note for dashboard?
+
 ## [Perspectives.a10] @jgc, 2024-08-27
 - fix a regression in dropdown menu
 - add tooltips to buttons in Task and Project dialogs

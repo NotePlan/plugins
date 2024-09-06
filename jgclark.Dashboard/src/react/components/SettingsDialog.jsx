@@ -39,7 +39,7 @@ type SettingsDialogProps = {
 //--------------------------------------------------------------------------
 
 const SettingsDialog = ({
-	items,
+	items, // won't chaange unless its parent changes it
 	onSaveChanges = () => { }, // optional in case Header wants to do something else
 	className,
 	labelPosition = 'right',
@@ -69,6 +69,7 @@ const SettingsDialog = ({
 				const thisKey = item.key
 				initialSettings[thisKey] = item.value || item.checked || ''
 				if (item.controlsOtherKeys) logDebug('SettingsDialog/initial state', `- ${thisKey} controls [${String(item.controlsOtherKeys)}]`) // ✅
+
 				if (item.dependsOnKey) {
 					logDebug('SettingsDialog/initial state', `- ${thisKey} depends on ${item.dependsOnKey}, whose initialSettings=${String(initialSettings[item.dependsOnKey])}`) // ✅
 				}
@@ -84,15 +85,16 @@ const SettingsDialog = ({
 	function stateOfControllingSetting(item: TSettingItem): boolean {
 		const dependsOn = item.dependsOnKey ?? ''
 		if (dependsOn) {
-			const thatKey = items.find(f => f.key === dependsOn)
-			if (!thatKey) {
+			const thatItem = items.find(f => f.key === dependsOn)
+			if (!thatItem) {
 				logWarn('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
 				return false
 			}
 			// FIXME: this gets called, but seems to to use the saved, not live state.
-			const isThatKeyChecked = thatKey?.checked ?? false
-			logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}'`)
-			return isThatKeyChecked
+			// Note: 
+			const isthatItemChecked = updatedSettings[dependsOn] ?? false
+			logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isthatItemChecked=${String(isthatItemChecked)}'`)
+			return typeof isthatItemChecked === 'boolean' && isthatItemChecked
 		} else {
 			// shouldn't get here
 			logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)

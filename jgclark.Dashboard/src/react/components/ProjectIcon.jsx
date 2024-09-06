@@ -5,7 +5,7 @@
 // Last updated 2024-08-25 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type Node } from 'react'
+import React, { type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
 import CircularProgressBar from './CircularProgressBar.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev.js'
@@ -32,7 +32,9 @@ function ProjectIcon({ item }: Props): Node {
       indicatorColor="var(--item-icon-color)"
       indicatorCap="butt"
       label=""
+      labelColor="black" // not used
       spinnerMode={false}
+      spinnerSpeed={0}
     />
   )
 }

@@ -5,7 +5,8 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDashboardSettings } from "./dashboardHelpers.js"
+import { doSettingsChanged } from "./clickHandlers.js"
+import { getDashboardSettings, setPluginData } from "./dashboardHelpers.js"
 // import { refreshDashboardData } from './reactMain'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
@@ -259,10 +260,12 @@ export function getAllowedFoldersInCurrentPerspective(
 // Setters
 //-----------------------------------------------------------------------------
 
-export async function switchToPerspective(name: string): Promise<boolean> {
+export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   // Check if perspective exists
-  const allDefs = await getPerspectiveSettings()
-  const thisDef = await getPerspectiveNamed(name, allDefs) && await getPerspectiveNamed("-", allDefs)
+  logDebug('switchToPerspective', `for name ${name}, with ...`)
+  clo(allDefs, `switchToPerspective: allDefs =`)
+  // FIXME: always results in -
+  const thisDef = await getPerspectiveNamed(name, allDefs) ?? await getPerspectiveNamed("-", allDefs)
   if (!thisDef) {
     logError('switchToPerspective', `Could not find definition for perspective '${name}'.`)
     return false
@@ -270,6 +273,15 @@ export async function switchToPerspective(name: string): Promise<boolean> {
   // Now set activePerspectiveName in dashboardSettings
   const dSettings = await getDashboardSettings()
   dSettings.activePerspectiveName = thisDef.name
+
+  // SAVE IT! Based on clickHandlers::doSettingsChanged()
+  // TODO: Pull this into a separate function
+  const updatedDashboardSettings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dSettings) }
+  DataStore.settings = updatedDashboardSettings
+
+  // Send this to front end
+  await setPluginData({ dashboardSettings: updatedDashboardSettings }, `End of switchToPerspective('${name}')`)
+  // TODO: ^^^^ triggers OK, but not working
   return true
 }
 
@@ -367,6 +379,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
 
 /**
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
+ * TODO: ensure no reuse and no * at end or -
  */
 export async function addNewPerspective(): Promise<void> {
   const allDefs = await getPerspectiveSettings()
@@ -383,25 +396,31 @@ export async function addNewPerspective(): Promise<void> {
     return
   }
 
+  const currentDashboardSettings = await getDashboardSettings()
   const newDef: TPerspectiveDef = {
     name: name,
     isModified: false,
     // $FlowFixMe[prop-missing] gets set later
     dashboardSettings: {
-      ...cleanDashboardSettings(await getDashboardSettings())
+      ...cleanDashboardSettings(currentDashboardSettings)
       // includedFolders: includedFolders || "",
       // excludedFolders: excludedFolders || "",
     }
   }
   logInfo('addPerspectiveSetting', `... adding Perspective #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
 
-  // persist this
-  const res = saveAllPerspectiveDefs([...allDefs, newDef])
-  // and switch to it
-  const res2 = await switchToPerspective(name)
-  logDebug('addPerspectiveSetting', `Result of switchToPerspective('${name}'): ${String(res2)}`)
+  // persist the updated Perpsective settings
+  const updatedPerspectives = [...allDefs, newDef]
+  // save active perspective name into dashboard settings
+  const res = saveAllPerspectiveDefs(updatedPerspectives)
 
-  // FIXME: HELP: This writes to the settings file OK, but this doesn't trigger any update in the UI.
+  // Then update pluginData with new dS that includes new aPN
+  const updatedDashboardSettings = { ...currentDashboardSettings, activePerspectiveName: name }
+  await setPluginData({ dashboardSettings: updatedDashboardSettings }, `Updating dashbaordSettings after adding Perspective ${name}`)
+
+  const res2 = await switchToPerspective(name, updatedPerspectives)
+  logDebug('addPerspectiveSetting', `Result of switchToPerspective('${name}'): ${String(res2)}`)
+  // FIXME: HELP: This writes to the settings file OK, but ^^^ doesn't trigger any update in the UI yet.
 }
 
 /**

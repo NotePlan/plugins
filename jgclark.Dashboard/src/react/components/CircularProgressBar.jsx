@@ -7,7 +7,7 @@
 // Note: based on https://dev.to/jackherizsmith/making-a-progress-circle-in-react-3o65
 //--------------------------------------------------------------------------
 
-import { type Node } from 'react'
+import React, { type Node } from 'react'
 
 type ProgressBarProps = {
   size: number,
