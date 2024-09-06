@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -14,6 +14,7 @@ import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/SettingsDialog.css' // Import the CSS file
 import { useAppContext } from './AppContext.jsx'
+import Modal from './Modal'
 import { logDebug } from '@helpers/react/reactDev.js'
 import { clo } from '@helpers/dev.js'
 
@@ -135,12 +136,13 @@ const SettingsDialog = ({
 	// Render
 	//----------------------------------------------------------------------
 	return (
-		<dialog
-			ref={dialogRef}
-			className={`settings-dialog ${className || ''}`}
-			style={style}
-			onClick={e => e.stopPropagation()}
-		>
+		<Modal onClose={() => { toggleDialog() }} >
+			<div
+				ref={dialogRef}
+				className={`settings-dialog ${className || ''}`}
+				style={style}
+				onClick={e => e.stopPropagation()}
+			>
 			<div className="settings-dialog-header">
 				<button className="PCButton cancel-button" onClick={toggleDialog}>
 					Cancel
@@ -185,7 +187,8 @@ const SettingsDialog = ({
 					</div>
 				))}
 			</div>
-		</dialog>
+			</div>
+		</Modal>
 	)
 }
 

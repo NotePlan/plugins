@@ -1,7 +1,8 @@
 // @flow
 // This component is a simple version of the showModal() backdrop with click handling
 // Creates a backdrop for a modal dialog, and calls onClose() when user clicks outside the dialog
-// Assumes that the modal content is passed as children, with a z-index higher than the backdrop (1000)
+// Assumes that the modal content div is passed as children
+// The children are given an automatic z-index of 101 (to be above the backdrop)
 import React, { type Node } from 'react'
 import './Modal.css'
 
@@ -27,7 +28,7 @@ const Modal = ({ onClose, children }: { onClose: () => void, children: Node }): 
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-        {children}
+      {children}
     </div>
   )
 }

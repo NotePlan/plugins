@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 2.7.2024 for v2.0.0-b17 by @jgclark
+  Last updated: 2024-08-25 for v2.0.6 by @jgclark
   */
 
 dialog {
@@ -27,13 +27,15 @@ dialog:modal {
   padding-block-start: 0.4rem;
   padding-inline-start: 0.6rem;
   padding-inline-end: 0.5rem;
-  padding-block-end: 0.2rem;
+  padding-block-end: 0.3rem;
   border-block-end: 1px solid var(--divider-color);
   /* margin-block-end: 4px; */
   border-radius: 0.5rem 0.5rem 0px 0px; /* mimic the dialog border radius only at the top */
-  grid-template-columns: auto auto;
+  /* grid-template-columns: auto auto; */
+  grid-template-columns: max-content auto max-content;
   /* vertically align content items in center */
   align-items: center; 
+  gap: 0.5rem;
 }
 
 /* icons in title */
@@ -158,8 +160,9 @@ dialog:modal {
   background-color: transparent;
   border: none;
   box-shadow: none;
-  margin-right: 5px;
+  /* margin-right: 5px; */
   outline: none;
+  padding-top: 3px;
 }
 .skip-button {
 	font-size: unset;

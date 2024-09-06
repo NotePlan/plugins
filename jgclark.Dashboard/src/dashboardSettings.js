@@ -32,6 +32,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: false,
   },
   {
+    key: "useRescheduleMarker",
+    label: "When (re)scheduling an item, also show it as a scheduled item in main Editor?",
+    description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
+    type: 'switch',
+    default: true,
+  },
+  {
     key: "ignoreTasksWithPhrase",
     label: "Ignore items in calendar sections with this phrase(s)",
     description: "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting. To include more than one phrase, separate them by commas.",

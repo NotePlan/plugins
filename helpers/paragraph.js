@@ -547,12 +547,13 @@ export function getTaskPriority(content: string): number {
 }
 
 /**
- * Remove task Priority Indicators (!, !!, !!!, >>) from content, though not starting an image tag, or at start/end of a word
+ * Remove task Priority Indicators (!, !!, !!!, >>) from start of content (was: any where in line except starting an image tag, or at start/end of a word).
  * @param {string} content
  * @returns {string} content minus any priority indicators
  */
 export function removeTaskPriorityIndicators(content: string): string {
-  let output = content.replace(/\B\!+\B(?!\[)/g, '') // not in middle of word, or starting an image tag
+  // let output = content.replace(/\B\!+\B(?!\[)/g, '') // not in middle of word, or starting an image tag
+  let output = content.replace(/^!{1,3}\s/, '') // start of line only
   output = output.replace(/^>>\s?/, '') // start of line only
   return output
 }

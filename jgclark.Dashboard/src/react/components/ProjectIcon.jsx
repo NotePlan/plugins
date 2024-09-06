@@ -2,56 +2,38 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's Icon
 // Called by ProjectItem + DialogForProjectItems components
-// Last updated 2024-07-14 for v2.0.1 by @jgclark
+// Last updated 2024-08-25 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
-import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
-import 'react-circular-progressbar/dist/styles.css'
+import React, { type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
+import CircularProgressBar from './CircularProgressBar.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev.js'
+import '../css/ProgressBar.css'
 
 type Props = {
   item: TSectionItem,
 }
 
-function ProjectIcon({ item }: Props): React.Node {
+function ProjectIcon({ item }: Props): Node {
 
   const percentComplete = item.project?.percentComplete ?? 0
 
-  // using https://www.npmjs.com/package/react-circular-progressbar
-  const projectIcon = (
-    <CircularProgressbarWithChildren
-      // background path
-      /*text={`${percentage}%`}*/
-      value={percentComplete}
-      strokeWidth={50}
-      styles={buildStyles({
-        strokeLinecap: "butt",
-        // backgroundColor: "var(--bg-sidebar-color)",
-        backgroundColor: "transparent",
-        pathColor: "var(--item-icon-color)",
-      })}
-    >
-      {/* foreground path */}
-      <CircularProgressbar
-        value={100}
-        strokeWidth={5}
-        styles={buildStyles({
-          strokeLinecap: "butt",
-          // backgroundColor: "var(--bg-sidebar-color)",
-          backgroundColor: "transparent",
-          pathColor: "var(--item-icon-color)",
-        })}
-      ></CircularProgressbar>
-    </CircularProgressbarWithChildren>
-  )
-
+  // using custom component adapted from https://blog.logrocket.com/build-svg-circular-progress-component-react-hooks/
   return (
-    <span>
-      {/* <span className="projectIcon"> */}
-      {projectIcon}
-    </span>
+    <CircularProgressBar
+      size="1.0rem" // TODO: this only works as "1.0rem" despite number being expected
+      progress={percentComplete}
+      backgroundColor="var(--bg-sidebar-color)"
+      trackWidth={8} // outer border width
+      trackColor="var(--item-icon-color)"
+      indicatorRadius={25} // (% of container) of middle of indicator
+      indicatorWidth={50} // (% of container)
+      indicatorColor="var(--item-icon-color)"
+      indicatorCap="butt"
+      label=""
+      spinnerMode={false}
+    />
   )
 }
 

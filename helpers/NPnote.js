@@ -563,7 +563,7 @@ export function findNotesMatchingHashtag(
     if (caseInsensitiveMatch) {
       projectNotesWithTag = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        if (correctedHashtags.length > 0) logInfo('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         if (alsoSearchMentions) {
         // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
           return caseInsensitiveIncludes(tag, correctedHashtags) || caseInsensitiveIncludes(tag, n.mentions)
@@ -574,7 +574,7 @@ export function findNotesMatchingHashtag(
     } else {
       projectNotesWithTag = projectNotesInFolder.filter((n) => {
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
-        if (correctedHashtags.length > 0) logInfo('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
+        // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         if (alsoSearchMentions) {
           return n.mentions.includes(tag) || correctedHashtags.includes(tag)
         } else {

@@ -44,9 +44,9 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
   // Deduce the action to take when this is a date-changed button
   // - Item in calendar note & move -> move to new calendar note for that picked date: use doMoveFromCalToCal()
-  // - All 3 other cases: use doUpdateTaskDate()
+  // - All 3 other cases: use doRescheduleItem()
   const dateChangeFunctionToUse = (noteType === 'Calendar' && !resched)
-    ? 'moveFromCalToCal' : 'updateTaskDate'
+    ? 'moveFromCalToCal' : 'rescheduleItem'
   logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
   const { interactiveProcessing } = reactSettings??{}
@@ -143,7 +143,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)
     }
     // let handlingFunctionToUse = handlingFunction
-    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'updateTaskDate'
+    // const actionType = (noteType === 'Calendar' && !resched) ? 'moveFromCalToCal' : 'rescheduleItem'
     // logDebug(`DialogForTaskItems`, `handleButtonClick - actionType calculated:'${actionType}', resched?:${String(resched)}`)
 
     const dataToSend = {

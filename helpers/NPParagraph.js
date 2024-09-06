@@ -1736,7 +1736,8 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
 }
 
 /**
- * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename
+ * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename.
+ * Now also changes para type to 'open'/'checklist' if it wasn't already.
  * @author @jgclark
  * @param {string} filename of note
  * @param {string} content line to identify and change
@@ -1759,10 +1760,50 @@ export function unscheduleItem(filename: string, content: string): boolean {
     logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
     thisPara.content = replaceArrowDatesInString(thisLine, '')
     logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
+    // And then change type
+    if (thisPara.type === 'checklistScheduled') thisPara.type = 'checklist'
+    if (thisPara.type === 'scheduled') thisPara.type = 'open'
+    // Update to DataStore
     thisNote.updateParagraph(thisPara)
     return true
   } catch (error) {
     logError('unscheduleItem', error.message)
+    return false
+  }
+}
+
+/**
+ * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
+ * It adds the '>' to the start of the date, and appends to the end of the para.
+ * It removes any existing scheduled >dates, and if wanted, 
+ * @author @jgclark
+ * @param {TParagraph} para of open item
+ * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
+ * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
+ * @returns {boolean} success?
+ */
+export function scheduleItem(
+  thisPara: TParagraph,
+  dateStrToAdd: string,
+  changeParaType: boolean = true
+): boolean {
+  try {
+    const thisNote = thisPara.note
+    const thisContent = thisPara.content
+    if (!thisNote) throw new Error(`Could not get note for para '${thisContent}'`)
+
+    // Find and then remove any existing scheduled dates, and add new scheduled date
+    thisPara.content = replaceArrowDatesInString(thisContent, `>${dateStrToAdd}`)
+    logDebug('scheduleItem', `-> '${thisPara.content}'`)
+    // And then change type (if wanted)
+    if (changeParaType && thisPara.type === 'checklist') thisPara.type = 'checklistScheduled'
+    if (changeParaType && thisPara.type === 'open') thisPara.type = 'scheduled'
+    logDebug('scheduleItem', `-> type '${thisPara.type}'`)
+    // Update to DataStore
+    thisNote.updateParagraph(thisPara)
+    return true
+  } catch (error) {
+    logError('scheduleItem', error.message)
     return false
   }
 }

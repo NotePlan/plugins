@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2024-07-11 for v2.0.1 by @jgclark
+// Last updated 2024-08-26 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
 import * as React from 'react'
@@ -30,7 +30,8 @@ function ProjectItem({ item }: Props): React.Node {
   // const percentCompleteStr = isNaN(percentComplete) ? '' : ` ${String(percentComplete)}%`
   const progressText = item.project?.lastProgressComment ?? ''
   const noteTitleWithOpenAction = (
-    <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
+    // <a className="noteTitle sectionItem" onClick={(e) => handleTitleClick(e)}>
+    <a className="noteTitle" onClick={(e) => handleTitleClick(e)}>
       <i className="fa-regular fa-file-lines pad-right"></i>
       {noteTitle}
     </a>
@@ -73,12 +74,13 @@ function ProjectItem({ item }: Props): React.Node {
 
   return (
     <div className="sectionItemRow" id={item.ID}>
-      <div className="ProjectIcon">
+      <div className="projectIcon">
         <ProjectIcon item={item} />
       </div>
 
       <div className="sectionItemContent sectionItem">
-        <span className="pad-left folderName">{folderNamePart}</span>
+        {folderNamePart &&
+          <span className="folderName">{folderNamePart}</span>}
         {noteTitleWithOpenAction}
         <a className="dialogTrigger">
           <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>

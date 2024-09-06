@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-07-29 for v2.0.5 by @jgclark
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -29,6 +29,7 @@ export type TDashboardSettings = {
   includeScheduledDates: boolean,
   includeTaskContext: boolean,
   rescheduleNotMove: boolean,
+  useRescheduleMarker: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
   autoAddTrigger: boolean, // TODO: remove me in v2.1
@@ -179,7 +180,7 @@ export type TActionType =
   | 'unknown'
   | 'unscheduleItem'
   | 'updateItemContent'
-  | 'updateTaskDate'
+  | 'rescheduleItem'
   | 'windowWasResized'
   | 'incrementallyRefreshSections'
   | 'windowReload'

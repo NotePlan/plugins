@@ -164,7 +164,7 @@ export function getSectionsWithoutDuplicateLines(
  * @returns {number} The total number of sectionItems
  */
 export const countTotalSectionItems = (sections: Array<TSection>): number => {
-  sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
+  // sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
   return sections.reduce((total, section) => total + section.sectionItems.length, 0)
 }
 

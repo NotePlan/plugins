@@ -5,9 +5,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: new 'Notes' section ...
 - TODO: add active links to section titles in description area -->
 
+## [2.0.6] 2024-09-06
+### Changes
+- new setting "When (re)scheduling an item, also show it as a scheduled item in main Editor?". If set on then it uses the `[>]` marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI. (requested by @tophee in issue 589)
+
+### Fixed
+- Fixed full generation sometimes having Project rather than Priority section<!-- from 2.1.0.a8 -->
+- Removed double generation of Tag sections in getSomeSectionData()<!-- from 2.1.0.a8 -->
+- tighten up removal of priority indicators, to only happen at the start of a line's content<!-- from 2.1.0.a5 -->
+- now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)<!-- from 2.1.0.a5 -->
+- Fixed project progress 'pie charts'  layout issues, and added them in to the project dialog header.<!-- from 2.1.0.a9 -->
+- multi-part hashtags now display properly (thanks for tip, @lbednarski)
+
 ## [2.0.5] 2024-07-30
 - some layout tweaks in the main Settings dialog
-- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla).
+- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla)
 
 ## [2.0.4] 2024-07-23 unreleased
 - new 'Priority' section for all items with a priority marker (>>, !!!, !! or !) (for @lbednarski). Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
@@ -200,7 +212,7 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - jgc: moved 5 true/false settings from dashboardSettings to dashboardFilters
 - jgc: fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
 - dbw: improve modifier keys filtering functions
-- dbw: add kbd modifers to the open note links so they open in a new window or splitview
+- dbw: add kbd modifiers to the open note links so they open in a new window or splitview
 - dbw: added normal tooltips to the filter settings that have a "description" set in the field definition
 - dbw: fixed bug where rollover on file link could still be seen when dialog was up (mouse position bleeding through) -- there is yet another one to solve with the StatusIcon
 - dbw: fixed bug where #tagged items in a regular note that were scheduled for the future would show up. Now they don't
@@ -228,8 +240,8 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - fix IP dialog close bug (IP not stopping)
 
 ## [2.0.0.a30] 2024-05-31
-- added 'move' (rather than 'reschedule') functionality back in
-- finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'reschedule' accordingly
+- added 'move' (rather than 'rescheduleItem') functionality back in
+- finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'rescheduleItem' accordingly
 - stopped IP button from being shown for Projects section
 - updated display of referenced section names: now start with '>'
 - updated settings CSS to use values from the theme, and to make it look more like the main NP preferences dialog
@@ -239,7 +251,7 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - dbw: add >> to priority calculation in sorting.js so it's priority 5
 
 ## [2.0.0.a29] @dbw 2024-05-30
-- Fixed bug in doUpdateTaskDate (for +1d etc) that was causing it to not update react JSON (doUpdateTaskDate was not passing updatedParagraph)
+- Fixed bug in doRescheduleItem (for +1d etc) that was causing it to not update react JSON (doRescheduleItem was not passing updatedParagraph)
 - Realized this would cause another bug that Reviews would not be passing updatedParagraph either. So fixed this. Reviews are now removed when you click "Review Complete"
 - Added a Projects section refresh after handling a review - do you will always have 6 (unless you don't have)
 - Put in note re: setSpecificDate -- jgclark needs to update the doSetSpecificDate() function to do the right thing with reviews
@@ -332,7 +344,7 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - got click actions to work from the new StatusIcon on the ItemDialog
 - doCancelTask & doCancelChecklist were not deleting the line properly because they were not passing {updatedParagraph} so it could be deleted. Fixed this.
 - Fixed ❗️ERROR❗️ processActionOnReturn :: undefined
-- Got Projects dialog to display (fields are not set and it's not centered in the window...you may need to scroll up/down to find it)
+- Got Projects dialog to display (fields are not set and it's not centred in the window...you may need to scroll up/down to find it)
 
 ## [2.0.0.a20] @jgc
 - Added circle/square back into task dialog box display -- but actions from it not checked
@@ -436,7 +448,7 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - implemented "hide duplicates" switch which keeps items under one heading (TAG first, then today, then others...)
 - created show/hide button for each section in the sections object
 - added reactSettings setting in plugin.json to keep track of your last UI settings. eventually will need to combine with plugin settings depending on what jgclark wants to do
-- added calendar picker to the dialog box and implemented back end to reschedule a task to that date. Though leaving jgclark a note about doUpdateTaskDate()
+- added calendar picker to the dialog box and implemented back end to reschedule a task to that date. Though leaving jgclark a note about doRescheduleItem()
 - fixed flow errors for `onClick` in AddButtons 
 - fixed the lastUpdated in Root (should not have been changed, as lastFullRefresh is only used in this plugin and Root is generic)
 

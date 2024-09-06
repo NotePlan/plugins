@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 27.5.2024 for v2.0.0 by @jgclark
+// Demo data for Dashboard plugin v2
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -300,12 +300,11 @@ export const refWeekParas: Array<TSectionItem> = [
     itemType: 'checklist',
     para: {
       type: 'checklist',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Pastoral.md',
-      title: 'Pastoral',
+      noteType: 'Calendar',
+      filename: thisFilename,
       priority: 0,
-      content: 'Send @Linda a link to welcome presentation >2023-W09',
-      rawContent: 'Send @Linda a link to welcome presentation >2023-W09',
+      content: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
+      rawContent: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
