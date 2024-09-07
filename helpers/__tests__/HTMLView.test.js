@@ -3,7 +3,7 @@
 import colors from 'chalk'
 import * as h from '../HTMLView'
 import * as n from '../NPThemeToCSS'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, /*Note, Paragraph*/ } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -12,7 +12,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
 // import { clo, logDebug, logError, logWarn } from '@helpers/dev'
@@ -207,6 +207,65 @@ describe('replaceMarkdownLinkWithHTMLLink()' /* function */, () => {
     const orig = 'foo [link](http://) bar [link2](http://) baz [link3](noteplan://)'
     const result = h.replaceMarkdownLinkWithHTMLLink(orig)
     const expected = 'foo <a href="http://">link</a> bar <a href="http://">link2</a> baz <a href="noteplan://">link3</a>'
+    expect(result).toEqual(expected)
+  })
+})
+
+/*
+ * convertBoldAndItalicToHTML()
+ */
+describe('convertBoldAndItalicToHTML()' /* function */, () => {
+  test('with no url or bold/italic', () => {
+    const orig = 'foo bar and nothing else'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    expect(result).toEqual(orig)
+  })
+  test('with url', () => {
+    const orig = 'Has a URL [NP Help](http://help.noteplan.co/) and nothing else'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    expect(result).toEqual(orig)
+  })
+  test('with bold-italic and bold', () => {
+    const orig = 'foo **bar** and ***nothing else*** ok?'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <b>bar</b> and <b><em>nothing else</em></b> ok?'
+    expect(result).toEqual(expected)
+  })
+  test('with bold', () => {
+    const orig = 'foo **bar** and __nothing else__ ok?'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <b>bar</b> and <b>nothing else</b> ok?'
+    expect(result).toEqual(expected)
+  })
+  test('with bold and some in a URL', () => {
+    const orig = 'foo **bar** and http://help.noteplan.co/something/this__and__that a more complex URL'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <b>bar</b> and http://help.noteplan.co/something/this__and__that a more complex URL'
+    expect(result).toEqual(expected)
+  })
+  test('with bold and some in a URL', () => {
+    const orig = 'foo **bar** and http://help.noteplan.co/something/this__end with a later__ to ignore'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <b>bar</b> and http://help.noteplan.co/something/this__end with a later__ to ignore'
+    expect(result).toEqual(expected)
+  })
+
+  test('with italic', () => {
+    const orig = 'foo *bar* and _nothing else_ ok?'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <em>bar</em> and <em>nothing else</em> ok?'
+    expect(result).toEqual(expected)
+  })
+  test('with italic and some in a URL', () => {
+    const orig = 'foo *bar* and http://help.noteplan.co/something/this_and_that a more complex URL'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <em>bar</em> and http://help.noteplan.co/something/this_and_that a more complex URL'
+    expect(result).toEqual(expected)
+  })
+  test('with italic and some in a URL', () => {
+    const orig = 'foo *bar* and http://help.noteplan.co/something/this_end with a later_ to ignore'
+    const result = h.convertBoldAndItalicToHTML(orig)
+    const expected = 'foo <em>bar</em> and http://help.noteplan.co/something/this_end with a later_ to ignore'
     expect(result).toEqual(expected)
   })
 })

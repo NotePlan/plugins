@@ -23,7 +23,45 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateManipulation')}`
 // const section = colors.blue
 
 describe(`${PLUGIN_NAME}`, () => {
-  /*
+
+  describe('truncateHTML', () => {
+    test('no change as maxLength is 0', () => {
+      const htmlIn = '<p>This is a <strong>bold</strong> paragraph of text.</p>'
+      const maxLength = 0
+      expect(st.truncateHTML(htmlIn, maxLength)).toBe(htmlIn)
+    })
+    test('no change as maxLength is larger than htmlIn length', () => {
+      const htmlIn = '<p>This is a <strong>bold</strong> paragraph of text.</p>'
+      const maxLength = 100
+      expect(st.truncateHTML(htmlIn, maxLength)).toBe(htmlIn)
+    })
+    test('truncates HTML string to specified length', () => {
+      const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
+      const maxLength = 20
+      const expectedOutput = '<p>This is a long parag…</p>'
+      expect(st.truncateHTML(htmlIn, maxLength)).toBe(expectedOutput)
+    })
+    test('preserves markdown links', () => {
+      const htmlIn = '<p>This is a [link](http://example.com) to a website.</p>'
+      const maxLength = 15
+      const expectedOutput = '<p>This is a [link](http://example.com) to a…</p>'
+      expect(st.truncateHTML(htmlIn, maxLength)).toBe(expectedOutput)
+    })
+    test('adds ellipsis if dots is true', () => {
+      const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
+      const maxLength = 20
+      const expectedOutput = '<p>This is a long parag…</p>'
+      expect(st.truncateHTML(htmlIn, maxLength, true)).toBe(expectedOutput)
+    })
+
+    test('does not add ellipsis if dots is false', () => {
+      const htmlIn = '<p>This is a long paragraph of text that needs to be truncated.</p>'
+      const maxLength = 20
+      const expectedOutput = '<p>This is a long parag</p>'
+      expect(st.truncateHTML(htmlIn, maxLength, false)).toBe(expectedOutput)
+    })
+  })
+        /*
    * changeMarkdownLinksToHTMLLink()
    */
   describe('changeMarkdownLinksToHTMLLink()' /* function */, () => {
@@ -73,31 +111,31 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should produce HTML link 1 with icon and no truncation', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual(
         'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link')
     })
     test('should produce HTML link 1 with icon and truncation', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, true, true)
+      const result = st.changeBareLinksToHTMLLink(input, true, 21)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/...</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something…</a> valid bare link')
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, false, false)
+      const result = st.changeBareLinksToHTMLLink(input, false)
       expect(result).toEqual(
         'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
     })
-    test('should produce HTML link when a link takes up the whole line', () => {
+    test('should produce HTML link when a link takes up the whole line with icon', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
-      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      const result = st.changeBareLinksToHTMLLink(input, true)
       expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
     })
-    test('should produce HTML link when a link takes up the whole line', () => {
-      const input = 'https://www.something.com/with?various&chars%20ok'
-      const result = st.changeBareLinksToHTMLLink(input, true, false)
-      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
+    test('should produce truncated HTML link with a very long bare link', () => {
+      const input = 'https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0'
+      const result = st.changeBareLinksToHTMLLink(input, false, 50)
+      expect(result).toEqual('<a class="externalLink" href="https://validation.poweredbypercent.com/validate/validationinvite_eb574173-f781-4946-b0be-9a06f838289e?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyUHVibGljS2V5IjoicGtfM2YzNzFmMmYtYjQ3MC00M2Q1LTk2MDUtZGMxYTU4YjhjY2IzIiwiaWF0IjoxNzI1NjA5MTkyfQ.GM5ITBbgUHd5Qsyq-d_lkOFIqmTuYJH4Kc4DNIoibE0">https://validation.poweredbypercent.com/validate/v…</a>')
     })
   })
 
@@ -432,4 +470,29 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
   })
+
+  describe('removeDateTagsAndToday', () => {
+    test('should remove ">today at end" ', () => {
+      expect(st.removeDateTagsAndToday(`test >today`)).toEqual('test')
+    })
+    test('should remove ">today at beginning" ', () => {
+      expect(st.removeDateTagsAndToday(`>today test`)).toEqual(' test')
+    })
+    test('should remove ">today in middle" ', () => {
+      expect(st.removeDateTagsAndToday(`this is a >today test`)).toEqual('this is a test')
+    })
+    test('should remove >YYYY-MM-DD date', () => {
+      expect(st.removeDateTagsAndToday(`test >2021-11-09 `)).toEqual('test')
+    })
+    test('should remove nothing if no date tag ', () => {
+      expect(st.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
+    })
+    test('should work for single >week also ', () => {
+      expect(st.removeDateTagsAndToday(`test >2000-W02`, true)).toEqual('test')
+    })
+    test('should work for many items in a line ', () => {
+      expect(st.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
+    })
+})
+
 })

@@ -10,6 +10,7 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import { stringIsWithinURI } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
@@ -758,40 +759,66 @@ export async function sendBannerMessage(windowId: string, message: string, color
   return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border })
 }
 
-// add basic ***bolditalic*** styling
-// add basic **bold** or __bold__ styling
-// add basic *italic* or _italic_ styling
+/**
+ * add basic ***bolditalic*** styling
+ * add basic **bold** or __bold__ styling
+ * add basic *italic* or _italic_ styling
+ * In each of these, if the text is within a URL, don't add the ***bolditalic*** or **bold** or *italic* styling
+ * @param {string} input 
+ * @returns 
+ */
 export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
+  const RE_URL = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/, 'g')
+  const urls = input.match(RE_URL) ?? []
+  clo(urls, 'urls')
+
+  // start with ***bolditalic*** styling
   const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, 'g')
-  let captures = output.matchAll(RE_BOLD_ITALIC_PHRASE)
-  if (captures) {
-    for (const capture of captures) {
-      // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(capture)}]`)
-      output = output.replace(capture[0], `<b><em>${capture[1]}</em></b>`)
+  const BIMatches = output.match(RE_BOLD_ITALIC_PHRASE)
+  if (BIMatches) {
+    clo(BIMatches, 'BIMatches')
+    const filteredMatches = BIMatches.filter(match => {
+      const index = input.indexOf(match)
+      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+    })
+    for (const match of filteredMatches) {
+      logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(match)}]`)
+      output = output.replace(match, `<b><em>${match.slice(3, match.length - 3)}</em></b>`)
     }
   }
 
   // add basic **bold** or __bold__ styling
   const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, 'g')
-  captures = output.matchAll(RE_BOLD_PHRASE)
-  if (captures) {
-    for (const capture of captures) {
-      // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(capture)}]`)
-      output = output.replace(capture[0], `<b>${capture[2]}</b>`)
+  const boldMatches = output.match(RE_BOLD_PHRASE)
+  if (boldMatches) {
+    clo(boldMatches, 'boldMatches')
+    const filteredMatches = boldMatches.filter(match => {
+      const index = input.indexOf(match)
+      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+    })
+    for (const match of filteredMatches) {
+      logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(match)}]`)
+      output = output.replace(match, `<b>${match.slice(2, match.length - 2)}</b>`)
     }
   }
 
   // add basic *italic* or _italic_ styling
   // Note: uses a simplified regex that needs to come after bold above
   const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, 'g')
-  captures = output.matchAll(RE_ITALIC_PHRASE)
-  if (captures) {
-    for (const capture of captures) {
-      // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(capture)}]`)
-      output = output.replace(capture[0], `<em>${capture[2]}</em>`)
+  const italicMatches = output.match(RE_ITALIC_PHRASE)
+  if (italicMatches) {
+    clo(italicMatches, 'italicMatches')
+    const filteredMatches = italicMatches.filter(match => {
+      const index = input.indexOf(match)
+      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+    })
+    for (const match of filteredMatches) {
+      logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(match)}]`)
+      output = output.replace(match, `<em>${match.slice(1, match.length - 1)}</em>`)
     }
   }
+  logDebug('convertBoldAndItalicToHTML', `-> ${output}`)
   return output
 }
 
@@ -954,54 +981,6 @@ export function convertNPBlockIDToHTML(input: string): string {
     }
   }
   return output
-}
-
-/**
- * Truncate visible part of HTML string, without breaking the HTML tags, or markdown links.
- * @param {string} htmlIn
- * @param {number} maxLength of output
- * @param {boolean} dots - add ellipsis to end?
- * @returns {string} truncated HTML
- * TODO: write tests for this
- */
-export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
-  let inHTMLTag = false
-  let inMDLink = false
-  let truncatedHTML = ''
-  let lengthLeft = maxLength
-  for (let index = 0; index < htmlIn.length; index++) {
-    if (!lengthLeft || lengthLeft === 0) {
-      // no lengthLeft: stop processing
-      break
-    }
-    if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
-      // if we've started an HTML tag stop counting
-      // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
-      inHTMLTag = true
-    }
-    if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
-      // if we've started a MD link tag stop counting
-      // logDebug('truncateHTML', `started MD link at ${String(index)}`)
-      inMDLink = true
-    }
-    if (!inHTMLTag && !inMDLink) {
-      lengthLeft--
-    }
-    if (htmlIn[index] === '>' && inHTMLTag) {
-      // logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
-      inHTMLTag = false
-    }
-    if (htmlIn[index] === ')' && inMDLink) {
-      // logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
-      inMDLink = false
-    }
-    truncatedHTML += htmlIn[index]
-  }
-  if (dots) {
-    truncatedHTML = `${truncatedHTML} …`
-  }
-  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
-  return truncatedHTML
 }
 
 /**

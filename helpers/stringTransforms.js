@@ -4,13 +4,71 @@
 // by @jgclark, @dwertheimer
 //-----------------------------------------------------------------------------
 
-import { getNPWeekStr, RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, todaysDateISOString, RE_NP_YEAR_SPEC } from '@helpers/dateTime'
+import {
+  getNPWeekStr,
+  RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, RE_NP_YEAR_SPEC,
+  todaysDateISOString,
+  WEEK_NOTE_LINK, MONTH_NOTE_LINK, QUARTER_NOTE_LINK, YEAR_NOTE_LINK,
+} from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
- * TODO(@dwertheimer): move 'removeDateTagsAndToday' from dateTime.js to here
+ * Truncate visible part of HTML string, without removing any HTML tags, or markdown links.
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} htmlIn
+ * @param {number} maxLength of output (no change if maxLength is 0)
+ * @param {boolean} dots - add ellipsis to end?
+ * @returns {string} truncated HTML
  */
+export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
+  if (maxLength === 0) return htmlIn
+
+  let inHTMLTag = false
+  let inMDLink = false
+  let truncatedHTML = ''
+  let lengthLeft = maxLength
+  // Walk through the htmlIn string a character at a time
+  for (let index = 0; index < htmlIn.length; index++) {
+    // if (!lengthLeft || lengthLeft <= 0) {
+    //   // no lengthLeft: stop processing
+    //   continue
+    // }
+    if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
+      // if we've started an HTML tag (i.e. has a > later) stop counting
+      // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
+      inHTMLTag = true
+    }
+    if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
+      // if we've started a MD link tag stop counting
+      // logDebug('truncateHTML', `started MD link at ${String(index)}`)
+      inMDLink = true
+    }
+    if (!inHTMLTag && !inMDLink) {
+      lengthLeft--
+    }
+    // Includes this character if its a tag or we still have length left
+    if (lengthLeft >= 0 || inHTMLTag || inMDLink) {
+      truncatedHTML += htmlIn[index]
+    }
+    if (dots && lengthLeft === 0) {
+      truncatedHTML += '…'
+    }
+    if (htmlIn[index] === '>' && inHTMLTag) {
+      // Have we closed a tag?
+      // logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
+      inHTMLTag = false
+    }
+    if (htmlIn[index] === ')' && inMDLink) {
+      // Have we closed an MD link?
+      // logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
+      inMDLink = false
+    }
+  }
+  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
+  return truncatedHTML
+}
 
 /**
  * Convert any type of URL in the strimg -- [md](url) or https://bareurl to HTML links
@@ -25,24 +83,28 @@ export function convertAllLinksToHTMLLinks(original: string): string {
 }
 
 /**
- * Convert bare URLs to display as HTML links
+ * Convert bare URLs to display as HTML links. Truncate beyond N characters if 'truncateLength' given.
  * @author @jgclark
  * @tests in jest file
  * @param {string} original string
  * @param {boolean?} addWebIcon before the link? (default: true)
- * @param {boolean?} truncateIfNecessary the display of the link? (default: true)
+ * @param {number?} truncateLength the display of the link? (default: 0 = off)
  */
-export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true, truncateIfNecessary: boolean = true): string {
+export function changeBareLinksToHTMLLink(
+  original: string,
+  addWebIcon: boolean = true,
+  truncateLength: number = 0,
+): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
-    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
+    logDebug('changeBareLinksToHTMLLink', `Found link in '${original}' with truncateLength ${String(truncateLength)}${addWebIcon ? ' and addWebIcon' : ''}`)
+    clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
-      const URLForDisplay = (truncateIfNecessary && linkURL.length > 20)
-        ? linkURL.slice(0, 50) + '...'
+      const URLForDisplay = (truncateLength > 0 && linkURL.length > truncateLength)
+        ? truncateHTML(linkURL, truncateLength, true)
         : linkURL
-      // logDebug('changeBareLinksToHTMLLink', `${linkURL} / ${URLForDisplay}`)
       if (addWebIcon) {
         // not displaying icon
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${URLForDisplay}</a>`)
@@ -50,6 +112,7 @@ export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean 
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${URLForDisplay}</a>`)
       }
     }
+    logDebug('changeBareLinksToHTMLLink', `=> ${output}`)
   }
   return output
 }
@@ -105,7 +168,7 @@ export function stripLinksFromString(original: string, leaveLinkText: boolean = 
 }
 
 /**
- * Strip ALL date references from a string <|>ANY_TYPE
+ * Strip ALL date references from a string
  * @author @jgclark & @dwertheimer
  * @tests in jest file
  * @param {string} original
@@ -382,4 +445,58 @@ export function decodeRFC3986URIComponent(input: string): string {
     .replace(/%29/g, ')')
     .replace(/%2A/g, '*')
   return decodeURIComponent(decodedSpecials)
+}
+
+/**
+ * Remove >date and <date from a string
+ * Note: this was originally in dateTime.js
+ * @author @nmn
+ * @param {string} input
+ * @returns {string} output
+ */
+export function removeDateTags(content: string): string {
+  return content
+    .replace(/<\d{4}-\d{2}-\d{2}/g, '')
+    .replace(/>\d{4}-\d{2}-\d{2}/g, '')
+    .trimEnd()
+}
+
+/**
+ * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
+ * Note: this was originally in dateTime.js
+ * @author @dwertheimer
+ * @param {string} tag - the incoming text
+ * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
+ * @returns
+ */
+export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
+  let newString = tag,
+    lastPass = tag
+  do {
+    lastPass = newString
+    newString = removeDateTags(tag)
+      .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
+      .replace(/>today/, '')
+      .replace(/\s{2,}/g, ' ')
+      .trimEnd()
+  } while (newString !== lastPass)
+  return newString
+}
+
+/**
+ * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
+ * because NP complains when you try to rewrite them (delete them).
+ * Note: this was originally in dateTime.js
+ * @author @dwertheimer
+ * @param {string} content
+ * @returns {string} content with repeats removed
+ */
+export function removeRepeats(content: string): string {
+  return content
+    .replace(/\@repeat\(\d{1,}\/\d{1,}\)/g, '')
+    .replace(/ {2,}/g, ' ')
+    .trim()
 }

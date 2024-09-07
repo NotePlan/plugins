@@ -23,13 +23,13 @@ import {
   // printDateRange,
   RE_ISO_DATE,
   RE_BARE_WEEKLY_DATE,
-  removeDateTagsAndToday,
   todaysDateISOString,
   weekStartDateStr,
 } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { displayTitle } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
+import { removeDateTagsAndToday } from './stringTransforms'
 import {
   RE_TIMEBLOCK,
   isTimeBlockPara,
