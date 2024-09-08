@@ -2,8 +2,8 @@
 
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
-// Jonathan Clark
-// Last updated 6.4.2024 for v0.14.0, @jgclark
+// by Jonathan Clark
+// Last updated 2024-08-30 for v0.14.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -33,6 +33,7 @@ export {
   toggleDisplayFinished,
   toggleDisplayOnlyDue
 } from './reviews'
+export { removeAllDueDates } from '@helpers/NPParagraph'
 export {
   addProgressUpdate,
   completeProject,
@@ -50,7 +51,6 @@ export {
 
 // Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'
-
 export {
   testGenerateCSSFromTheme,
   testButtonTriggerCommand,

@@ -2,10 +2,10 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's item
 // Called by ItemRow component
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-08-26 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type Node } from 'react'
+import React, { type Node } from 'react'
 // import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 // import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'

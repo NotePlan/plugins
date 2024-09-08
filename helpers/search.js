@@ -73,12 +73,15 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
  * @author @jgclark
  * @param {string} searchTerm
  * @param {string} textToSearch
- * @returns {boolean}
+ * @param {boolean} strictSubset? (default: true)
+ * @returns {boolean} matches?
  * @tests available in jest file
  */
-export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string): boolean {
+export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string, strictSubset: boolean = true): boolean {
   try {
-  const re = new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
+    const re = strictSubset
+      ? new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
+      : new RegExp(`^${searchTerm}`, "i") // = case insensitive 'starts with' regex
     return re.test(textToSearch)
   }
   catch (error) {
@@ -89,7 +92,59 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
 }
 
 /**
- * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
+ * Dedupe the shorter versions of longer hashtags, to cope with API bug.
+ * @example ["#project", "#project/management", "#project/management/theory"] => ["#project/management/theory"]
+ * @tests available in jest file
+ * @param {Array<string>} hashtagsFromAPI 
+ * @returns {Array<string>}
+ */
+export function getDedupedHashtagsFromList(hashtagsIn: Array<string>): Array<string> {
+  const dedupedHashtags: Array<string> = []
+  const hashtagsToUse = [...hashtagsIn, ''] // add an empty string to the end to avoid index errors
+  // Dedupe the shorter versions of longer hashtags
+  // Walk through array and remove earlier ones which are a strict subset of the next one
+  for (let i = 0; i < hashtagsToUse.length - 1; i++) {
+    const lenThisTag = hashtagsToUse[i].length
+    const lenNextTag = hashtagsToUse[i + 1].length ?? 0
+    if (!(caseInsensitiveStartsWith(hashtagsToUse[i], hashtagsToUse[i + 1], true) && lenNextTag > lenThisTag && hashtagsToUse[i + 1][lenThisTag] === '/')) {
+      dedupedHashtags.push(hashtagsToUse[i])
+    }
+  }
+  return dedupedHashtags
+}
+
+/**
+ * Version of note.hashtags to use. Deals with the API bug 
+ * where #one/two/three gets reported as '#one', '#one/two', and '#one/two/three'. Instead this reports just as '#one/two/three'.
+ * @param {TNote} note
+ * @returns {Array<string>}
+ */
+export function getCorrectedHashtagsFromNote(note: TNote): Array<string> {
+  // First get the hashtags from the note (using the API)
+  // $FlowFixMe[incompatible-type] note.hashtags is read-only
+  const reportedHashtags: Array<string> = note.hashtags ?? []
+  // Then dedupe the shorter versions of longer ones
+  const dedupedHashtags = getDedupedHashtagsFromList(reportedHashtags)
+  return dedupedHashtags
+}
+
+/**
+ * Returns the matching hashtag(s) from the ones present in the given note.
+ * Note: case sensitive.
+ * @param {string} hashtag including leading #
+ * @param {Array<string>} list 
+ * @returns {string} matching hashtag(s) if any
+ */
+export function hashtagAwareIncludes(tagToFind: string, note: TNote): string {
+  // First remove shorter parts of a multi-level hashtag, leaving the longest match
+  const hashtags = getCorrectedHashtagsFromNote(note)
+  logDebug('search/hashtagAwareIncludes', `tagToFind: ${tagToFind} from hashtags [${String(hashtags)}] in note '${note.title ?? note.filename ?? 'unknown'}'`)
+  // Then match this set to the list
+  return hashtags.filter(item => item.includes(tagToFind)).sort((a, b) => b.length - a.length)[0]
+}
+
+/**
+ * Check if 'hashtagToTest' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
  * @param {string} hashtagToTest
  * @param {$ReadOnlyArray<string>} wantedHashtags
@@ -115,7 +170,7 @@ export function isHashtagWanted(hashtagToTest: string,
 }
 
 /**
- * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
+ * Check if 'mentionToTest' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
  * @param {string} mentionToTest
  * @param {$ReadOnlyArray<string>} wantedMentions

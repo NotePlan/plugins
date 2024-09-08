@@ -146,6 +146,11 @@ describe('helpers/folders', () => {
       const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(6)
     })
+    test('Subfolder exclusion (test for different case) -> 6 left', () => {
+      const exclusions = ['Test/Test level 2']
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
+      expect(folders.length).toBe(6)
+    })
     test('Subfolder exclusion not matching -> 8 left', () => {
       const exclusions = ['TEST/NOT IN LIST']
       const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Project's Icon
 // Called by ProjectItem + DialogForProjectItems components
-// Last updated 2024-08-25 for v2.1.0.a9 by @jgclark
+// Last updated 2024-08-25 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
@@ -22,7 +22,7 @@ function ProjectIcon({ item }: Props): Node {
   // using custom component adapted from https://blog.logrocket.com/build-svg-circular-progress-component-react-hooks/
   return (
     <CircularProgressBar
-      size="1.0rem"
+      size="1.0rem" // TODO: this only works as "1.0rem" despite number being expected
       progress={percentComplete}
       backgroundColor="var(--bg-sidebar-color)"
       trackWidth={8} // outer border width
@@ -32,9 +32,7 @@ function ProjectIcon({ item }: Props): Node {
       indicatorColor="var(--item-icon-color)"
       indicatorCap="butt"
       label=""
-      labelColor="black" // not used
       spinnerMode={false}
-      spinnerSpeed={0}
     />
   )
 }

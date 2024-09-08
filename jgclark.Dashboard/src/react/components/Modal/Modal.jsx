@@ -28,7 +28,7 @@ const Modal = ({ onClose, children }: { onClose: () => void, children: Node }): 
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-        {children}
+      {children}
     </div>
   )
 }

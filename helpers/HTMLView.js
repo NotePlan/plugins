@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 1.4.2024 by @jgclark
+// Last updated 2024-09-06 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -829,13 +829,13 @@ export function simplifyInlineImagesForHTML(input: string): string {
   return output
 }
 
-// Display hashtags with .hashtag style
+// Display hashtags with .hashtag style. Now includes multi-part hashtags (e.g. #one/two/three)
 // Note: need to make only one capture group, and use 'g'lobal flag
 export function convertHashtagsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B(?:#|＃)((?![\p{N}_/]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_/]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
@@ -849,7 +849,7 @@ export function convertHashtagsToHTML(input: string): string {
 }
 
 // Display mentions with .attag style. Now includes also parts in brackets directly after it.
-// Note: need to make only one capture group, and use 'g'lobal flag
+// Note: need to make only one capture group, and use 'g'lobal flag.
 export function convertMentionsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file

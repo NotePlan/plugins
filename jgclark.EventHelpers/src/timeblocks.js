@@ -6,7 +6,7 @@
 // Last updated 5.2.2022 for v0.11.4, by @jgclark
 // ------------------------------------------------------------------------------------
 
-import { getEventsSettings } from './config'
+import { getEventsSettings } from './eventsHelpers'
 import { writeTimeBlocksToCalendar } from '@helpers/NPCalendar'
 
 /**

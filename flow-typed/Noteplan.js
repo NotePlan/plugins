@@ -598,8 +598,8 @@ declare class DataStore {
    */
   static projectNoteByTitleCaseInsensitive(title: string): ?$ReadOnlyArray<TNote>;
   /**
-   * Returns the regular note with the given filename with file-extension
-   * Returns the regular note for the given filename with file-extension, the filename has to include the relative folder such as `folder/filename.txt`. Use no folder if it's in the root (means without leading slash).
+   * Returns the regular note with the given filename (including file-extension).
+   * The filename has to include the relative folder such as folder/filename.txt` but without leading slash. Use no leading slash if it's in the root folder.
    */
   static projectNoteByFilename(filename: string): ?TNote;
   /**

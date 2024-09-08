@@ -734,7 +734,7 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
 
     // This might be run from React side, where Calendar.* is not available.
     // If this happens, then instead offer the ISO week number.
-    if (typeof Calendar !== 'function') {
+    if (!Calendar || typeof Calendar !== 'object') {
       logInfo('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
       const weekNumber = newMom.week() // uses moment locale
       const startDate = newMom.startOf('week').toDate()
@@ -952,7 +952,7 @@ export function getRelativeDates(): Array<Object> {
     const relativeDates = []
     const todayMom = moment()
 
-    if (typeof DataStore !== 'function') {
+    if (!DataStore || typeof DataStore !== 'object') {
       logDebug('NPdateTime::getRelativeDates', `NP DataStore functions are not available, so returning an empty set.`)
       return [{}]
     }

@@ -57,12 +57,12 @@ export function renderItem({
   indent = false,
   className = '',
   disabled = false,
-  showDescAsTooltips = false
+  showDescAsTooltips = false // if true, then don't show the description as text, but only tooltip
 }: RenderItemProps): React$Node {
 
   const element = () => {
     const thisLabel = item.label || '?'
-    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
+    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)
 
     switch (item.type) {
       case 'switch':
@@ -80,7 +80,7 @@ export function renderItem({
               }
             }}
             labelPosition={labelPosition}
-            description={item.description || ''}
+            description={showDescAsTooltips ? item.description || '' : ''} // Only send the description if showDescAsTooltips is true, to show as a tooltip
             className={className}
           />
         )

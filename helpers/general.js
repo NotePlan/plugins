@@ -494,8 +494,9 @@ export function inFolderList(filenameStr: string, folderListArr: Array<string>, 
 }
 
 /**
- * Super simple template string replace function (merge field replacement)
- * Generally for user formatting of output in their preferences
+ * Super simple template string replace function (merge field replacement).
+ * Generally for user formatting of output in their preferences.
+ * @author @dwertheimer
  * @param {string} templateString - the template string with mustache fields for replacement (e.g. {{field1}})
  * @param {{[string]:string}} fieldValues - a map of field names to values to replace in the template string
  * Note: if you do not want a string to show, set the field to null in the fieldValues map
@@ -516,7 +517,8 @@ export function formatWithFields(templateString: string, fieldValues: { [string]
 }
 
 /**
- * Get a random GUID/UUID
+ * Get a random GUID/UUID.
+ * @author @dwertheimer
  * @param { number } - string length of the GUID to return (default, all 36 chars)
  * @returns {string} - the GUID, e.g. "95d92b5c-f19b-45d9-bbd1-759e4f2206ea"
  */
@@ -533,6 +535,7 @@ export function CreateUUID(howManyChars: number = 37): string {
 /**
  * Escape a string for use in a regex (call this before sending a string you don't know to RegExp)
  * You can send it any type of variable. Will escape a string and otherwise send back what you sent
+ * @author @dwertheimer
  * @param {string} string
  * @returns {string} escaped string
  */

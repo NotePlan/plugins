@@ -2,6 +2,10 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.22.0] - 2024-09-06 @jgclark
+- can now use `events()` and `matchingEvents()` calls from Templates running on Weekly notes and other non-daily Calendar notes (for @gdrn).
+- refactored documentation.
+
 ## [0.21.3] - 2024-06-04 @jgclark
 - fix bug when adding time blocks to calendar
 - better handle template `<%- events() %>`, which has no formatter string

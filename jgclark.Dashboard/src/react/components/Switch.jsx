@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show a simple Switch control (based on <input>, with various possible settings.
-// Last updated 2024-08-22 for v2.1.0.a9 by @jgclark
+// Last updated 2024-09-07 for v2.1.0.a10 by @jgclark
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -18,6 +18,8 @@ type SwitchProps = {
 };
 
 const Switch = ({ label, checked, onChange, disabled = false, labelPosition = 'right', description = '', className = '' }: SwitchProps): React$Node => {
+  logDebug('Switch', `'${label}' / '${description}'`)
+  // FIXME: Why is a tooltip still appearing when description is null?
   return (
     <div className={`switch-line ${className} ${disabled ? 'disabled' : ''} ${labelPosition === 'right' ? 'label-right' : 'label-left'}`} title={description || null}>
       {labelPosition === 'left' && <label className="switch-label" htmlFor={label}>{label}</label>}

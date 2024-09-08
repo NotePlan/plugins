@@ -33,6 +33,7 @@ export type TDashboardSettings = {
   includeScheduledDates: boolean, // TODO(later): ideally rename to show...
   includeTaskContext: boolean, // TODO(later): ideally rename to show...
   rescheduleNotMove: boolean,
+  useRescheduleMarker: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
   // autoAddTrigger: boolean, // Note: removed in v2.1
@@ -192,7 +193,7 @@ export type TActionType =
   | 'unknown'
   | 'unscheduleItem'
   | 'updateItemContent'
-  | 'updateTaskDate'
+  | 'rescheduleItem'
   | 'windowWasResized'
   | 'windowReload'
   | 'windowResized'

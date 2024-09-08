@@ -1,6 +1,8 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- - TODO: add active links to section titles in description area -->
+
 ## [Perspectives.a11] @jgc, 2024-09-???
 - fix typos in "Move all to today" dialog 
 - stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working
@@ -102,13 +104,21 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
 - started to add settings to define Perspectives
 
-<!-- ## Placeholder for 2.1.0
-- TODO: new 'Notes' section ...
-- TODO: add active links to section titles in description area -->
+## [2.0.6] 2024-09-06
+### Changes
+- new setting "When (re)scheduling an item, also show it as a scheduled item in main Editor?". If set on then it uses the `[>]` marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI. (requested by @tophee in issue 589)
+
+### Fixed
+- Fixed full generation sometimes having Project rather than Priority section<!-- from 2.1.0.a8 -->
+- Removed double generation of Tag sections in getSomeSectionData()<!-- from 2.1.0.a8 -->
+- tighten up removal of priority indicators, to only happen at the start of a line's content<!-- from 2.1.0.a5 -->
+- now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)<!-- from 2.1.0.a5 -->
+- Fixed project progress 'pie charts'  layout issues, and added them in to the project dialog header.<!-- from 2.1.0.a9 -->
+- multi-part hashtags now display properly (thanks for tip, @lbednarski)
 
 ## [2.0.5] 2024-07-30
 - some layout tweaks in the main Settings dialog
-- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla).
+- fix to 'All -> Today' button action in Overdue section (thanks, @Oldielajolla)
 
 ## [2.0.4] 2024-07-23 unreleased
 - new 'Priority' section for all items with a priority marker (>>, !!!, !! or !) (for @lbednarski). Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.

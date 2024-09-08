@@ -7,7 +7,7 @@
   "plugin.author": "@jgclark",
   "plugin.version": "2.1.0.a10",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.1.0: Add Perspectives.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
+  "plugin.lastUpdateInfo": "2.1.0: Add Perspectives.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.min.js",

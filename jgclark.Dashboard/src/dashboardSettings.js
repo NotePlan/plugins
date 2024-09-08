@@ -10,7 +10,7 @@ import { clo, clof, logDebug } from '@helpers/react/reactDev'
 // Note that filters are automatically created for each section in the dashboard.
 // The filters below are non-section switches that display in the filters menu.
 export const dashboardFilterDefs: Array<TSettingItem> = [
-  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false, description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.' },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
@@ -111,6 +111,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: false,
     compactDisplay: true,
+    controlsOtherKeys: ["useRescheduleMarker"]
+  },
+  {
+    key: "useRescheduleMarker",
+    label: "When (re)scheduling an item, also show it as a scheduled item in main Editor?",
+    description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
+    type: 'switch',
+    default: true,
+    dependsOnKey: 'rescheduleNotMove',
   },
   {
     key: "moveSubItems",
@@ -246,7 +255,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Logging: Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings."
+    label: "Logging",
+    description: "Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings."
   },
 ]
 

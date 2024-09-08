@@ -205,15 +205,7 @@ const SettingsDialog = ({
 						</button>
 					)}
 				</div>
-
 				<div className="settings-dialog-content">
-					{/* Include Perspectives after activePerspectiveName, if turned on */}
-					{/* {dashboardSettings.showPerspectives && (
-					<PerspectiveSettings handleFieldChange={handleFieldChange}
-					/>
-				)} */}
-
-					{/* Iterate over all the settings */}
 					{items.map((item, index) => (
 						<div key={`sdc${index}`}>
 							{renderItem({
@@ -230,16 +222,17 @@ const SettingsDialog = ({
 											? updatedSettings[item.key]
 											: false,
 								},
-								disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
-								handleFieldChange,
-								labelPosition,
-								showSaveButton: false, // Do not show save button
-								inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
-								indent: !!item.dependsOnKey,
-								className: '', // for future use
-							})}
-						</div>
-					))}
+							handleFieldChange,
+							labelPosition,
+							showSaveButton: false, // Do not show save button
+							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+							showDescAsTooltips: false
+						})}
+						{/* {item.description && (
+							<div className="item-description">{item.description}</div>
+						)} */}
+					</div>
+				))}
 				</div>
 			</div>
 		</Modal>

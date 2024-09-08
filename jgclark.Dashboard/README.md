@@ -104,6 +104,7 @@ Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog
 
 These settings change some of how it displays:
 - Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
+- When (re)scheduling an item, also show it as a scheduled item in main Editor?: If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI.
 - Ignore items in calendar sections with these term(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting (below).
 - Folders to ignore when finding items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. Default: "@Archive, Saved Searches"
 - Folders to include when finding items: ???
@@ -174,6 +175,7 @@ For both callbacks, the names of the possible settings (described above), and th
 | includeFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
+| useRescheduleMarker | true / false |
 | newTaskSectionHeading | string |
 | newTaskSectionHeadingLevel | 1-5 |
 | excludeChecklistsWithTimeblocks | true / false |
@@ -193,7 +195,9 @@ For both callbacks, the names of the possible settings (described above), and th
 | updateTagMentionsOnTrigger | true / false |
 | useTodayDate | true / false |
 | moveSubItems | true / false |
+| enableInteractiveProcessing | true / false |
 | interactiveProcessingHighlightTask | true / false |
+| enableInteractiveProcessingTransitions | true / false |
 
 As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the callback URL based on your current settings. This is copied to the clipboard.
 

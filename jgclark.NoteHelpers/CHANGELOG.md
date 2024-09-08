@@ -1,6 +1,15 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.20.0] - 2024-08-16
+### Added
+- new **delete note** command, that makes easier what the current NotePlan UI makes difficult.
+- new **/find unlinked notes** command which finds and creates links to existing notes in the current note (by @aaronpoweruser).
+![Unlinked notes demo](docs/unlinked_note_demo.gif)
+
+### Fixed
+- fixed **rename note filename** when note has frontmatter (thanks for the report, @ariccb)
+
 ## [0.19.2] - 2024-04-27
 - **add trigger to note** command is now more resilient to unusual frontmatter, and shouldn't duplicate an existing trigger when run from template
 

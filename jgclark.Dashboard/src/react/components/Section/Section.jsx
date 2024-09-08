@@ -124,6 +124,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Render
   //----------------------------------------------------------------------
 
+  // $FlowFixMe[invalid-computed-prop] new flow error since 202
   const hideSection = !items.length || (dashboardSettings && dashboardSettings[`${section.showSettingName}`] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
@@ -131,6 +132,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
   section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
+
+  // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
+  section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
+
+  // If we have no data items to show (other than a congrats message), don't show most buttons
+  if (section.actionButtons && numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || section.sectionCode === 'PROJ')) {
+    section.actionButtons = section.actionButtons.filter(b => b.actionName.startsWith("add"))
+  }
 
   // If we have no data items to show (other than a congrats message), don't show most buttons
   if (section.actionButtons && numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || section.sectionCode === 'PROJ')) {

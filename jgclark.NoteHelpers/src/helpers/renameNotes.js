@@ -1,7 +1,11 @@
 // @flow
+// --------------------------------------------------------------
+// Originally by Leo Melo, with bug fixes by @jgclark
+// Last updated 2024-08-16 for v0.19.3 by @jgclark
+// --------------------------------------------------------------
 
 import pluginJson from '../../plugin.json'
-import { newNotePath } from './newNotePath'
+import { newFilepathForNote } from './newNotePath'
 import { logDebug, logWarn } from '@helpers/dev'
 import { showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 
@@ -17,50 +21,51 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
     return false
   }
 
-  const currentFullPath = note.filename
-  const newPath = newNotePath(note)
-  const title = note.paragraphs[0]?.content ?? ''
+  const title = note.title
+  const currentFilepath = note.filename
+  const newFilepath = newFilepathForNote(note)
 
-  if (newPath === '') {
+  if (newFilepath === '' || title === '') {
     // No title found, so don't do anything.
     logWarn(pluginJson, 'renameNoteToTitle(): No title found. Stopping.')
     return false
   }
 
-  if (currentFullPath === newPath) {
+  if (currentFilepath === newFilepath) {
     // No need to rename
     logDebug(pluginJson, 'renameNoteToTitle(): Current path is the same as the new path. Stopping.')
     await showMessage('The filename is already consistent with the note name.')
     return false
   }
 
-  if (!isValidFilename(newPath)) {
-    logWarn(pluginJson, `renameNoteToTitle(): Invalid filename "${newPath}". Stopping.`)
-    await showMessage(`The filename "${newPath}" is not valid. Please check the title and try again.`)
+  if (!isValidFilename(newFilepath)) {
+    logWarn(pluginJson, `renameNoteToTitle(): Invalid filename "${newFilepath}". Stopping.`)
+    await showMessage(`The filename "${newFilepath}" is not valid. Please check the title and try again.`)
     return false
   }
 
   if (!shouldPromptBeforeRenaming) {
-    const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
+    const newFilename = note.rename(newFilepath)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFilepath} -> ${newFilename}`)
     return true
   }
 
-  const currentFilename = currentFullPath.split('/').pop()
-  const promptResponse = await showMessageYesNoCancel(`
-  Would you like to rename "${currentFilename}" to match the note title "${title}"?
+  const currentFilename = currentFilepath.split('/').pop()
+  // $FlowIgnore[incompatible-type]
+  const promptResponse = await showMessageYesNoCancel(`Would you like to rename "${currentFilename}" to match the note title "${title}"?
 
-  Current path: ${currentFullPath}
+  Current path: ${currentFilepath}
 
-  New path: ${newPath}
+  New path: ${newFilepath}
   `)
 
   if (promptResponse === 'Cancel') {
     logDebug(pluginJson, `renameNoteToTitle(): User cancelled`)
     return false
   } else if (promptResponse === 'Yes') {
-    const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
+    const newFilename = note.rename(newFilepath)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFilepath} -> ${newFilename}`)
+    // $FlowIgnore[incompatible-type]
     await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
     logDebug(pluginJson, 'renameNoteToTitle(): User chose not to rename.')

@@ -3,7 +3,7 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2024-07-22 for v2.1.0.a9 by @dbw
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //-----------------------------------------------------------------------------
 import {
   addChecklistToNoteHeading,
@@ -25,11 +25,7 @@ import {
   moveItemToRegularNote,
   setPluginData,
 } from "./dashboardHelpers"
-import {
-  type MessageDataObject,
-  type TBridgeClickHandlerResult,
-  type TPluginData,
-} from "./types"
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from "./types"
 import { getAllSectionsData, getSomeSectionsData } from "./dataGeneration"
 import { validateAndFlattenMessageObject } from "./shared"
 import {
@@ -39,7 +35,7 @@ import {
   deleteItem,
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
-  // toggleTaskChecklistParaType,
+  scheduleItem,
   unscheduleItem,
 } from "@helpers/NPParagraph"
 import { getNPWeekData, type NotePlanWeekInfo } from "@helpers/NPdateTime"
@@ -50,7 +46,7 @@ import {
   getTodaysDateHyphenated,
   RE_DATE,
   RE_DATE_INTERVAL,
-  replaceArrowDatesInString,
+  // replaceArrowDatesInString,
 } from "@helpers/dateTime"
 import {
   clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer
@@ -576,17 +572,18 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 }
 
 /**
- * Reschedule (i.e. update the >date) an item in place
+ * Reschedule (i.e. update the >date) an item in place.
  * The new date is indicated by the controlStr ('t' or date interval),
- * or failing that the dateString (an NP date)
+ * or failing that the dateString (an NP date).
+ * Note: now defaults to changing the item to being type 'rescheduled' or 'checklistScheduled', as well as 
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
-export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config = getDashboardSettings()
-  // logDebug('doUpdateTaskDate', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
-  logDebug('doUpdateTaskDate', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
+  const config: TDashboardSettings = await getDashboardSettings()
+  // logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
+  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
   const dateOrInterval = String(controlStr)
   // const dateInterval = controlStr || ''
   let startDateStr = ''
@@ -594,8 +591,8 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
 
   const thePara = findParaFromStringAndFilename(filename, content)
   if (typeof thePara === 'boolean') {
-    logWarn('doUpdateTaskDate', `- note ${filename} doesn't seem to contain {${content}}`)
-    clo(data, `doUpdateTaskDate -> data`)
+    logWarn('doRescheduleItem', `- note ${filename} doesn't seem to contain {${content}}`)
+    clo(data, `doRescheduleItem -> data`)
     await showMessage(`Note ${filename} doesn't seem to contain "{${content}}"`)
     return handlerResult(false)
   }
@@ -603,7 +600,7 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
   if (dateOrInterval === 't') {
     // Special case to change to '>today' (or the actual date equivalent)
     newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-    logDebug('doUpdateTaskDate', `- move task in ${filename} -> 'today'`)
+    logDebug('doRescheduleItem', `- move task in ${filename} -> 'today'`)
   } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
     const dateInterval = dateOrInterval
     const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
@@ -619,35 +616,38 @@ export async function doUpdateTaskDate(data: MessageDataObject): Promise<TBridge
       const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
       // clo(NPWeekData, "NPWeekData:")
       newDateStr = NPWeekData.weekString
-      logDebug('doUpdateTaskDate', `- used NPWeekData instead -> ${newDateStr}`)
+      logDebug('doRescheduleItem', `- used NPWeekData instead -> ${newDateStr}`)
     }
   } else if (dateOrInterval.match(RE_DATE)) {
     newDateStr = controlStr
-    logDebug('doUpdateTaskDate', `- newDateStr ${newDateStr} from controlStr`)
+    logDebug('doRescheduleItem', `- newDateStr ${newDateStr} from controlStr`)
   } else {
-    logError('doUpdateTaskDate', `bad move date/interval: ${dateOrInterval}`)
+    logError('doRescheduleItem', `bad move date/interval: ${dateOrInterval}`)
     return handlerResult(false)
   }
-  logDebug('doUpdateTaskDate', `change due date on task from ${startDateStr} -> ${newDateStr}`)
+  logDebug('doRescheduleItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
 
   // Make the actual change to reschedule the item
-  const theLine = thePara.content
-  const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
-  logDebug('doUpdateTaskDate', `Found line "${theLine}" -> changed line: "${changedLine}"`)
-  thePara.content = changedLine
+  // v1:
+  // const theLine = thePara.content
+  // const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
+  // logDebug('doRescheduleItem', `Found line "${theLine}" -> changed line: "${changedLine}"`)
+  // thePara.content = changedLine
+  // v2:
+  const res = scheduleItem(thePara, newDateStr, config.useRescheduleMarker)
   const thisNote = thePara.note
   if (thisNote) {
     thisNote.updateParagraph(thePara)
-    logDebug('doUpdateTaskDate', `- appeared to update line OK -> {${changedLine}}`)
+    logDebug('doRescheduleItem', `- appeared to update line OK -> {${thePara.content}}`)
 
     // Ask for cache refresh for this note
     DataStore.updateCache(thisNote, false)
 
     // refresh whole display, as we don't know which if any section the moved task might need to be added to
-    // logDebug('doUpdateTaskDate', `------------ refresh ------------`)
+    // logDebug('doRescheduleItem', `------------ refresh ------------`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_SECTIONS'], { updatedParagraph: thePara })
   } else {
-    logWarn('doUpdateTaskDate', `- some other failure`)
+    logWarn('doRescheduleItem', `- some other failure`)
     return handlerResult(false)
   }
 }

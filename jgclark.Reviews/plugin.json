@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix",
+  "plugin.version": "0.14.1",
+  "plugin.lastUpdateInfo": "0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -147,6 +147,15 @@
       "jsFunction": "updateSettings"
     },
     {
+      "name": "removeAllDueDates",
+      "description": "removeAllDueDates callback entry",
+      "jsFunction": "removeAllDueDates",
+      "arguments": [
+        "filename"
+      ],
+      "hidden": true
+    },
+    {
       "name": "test:logFullReviewList",
       "description": "write full-review-list file to log",
       "jsFunction": "logFullReviewList"
@@ -155,16 +164,6 @@
       "name": "test:makeFullReviewList",
       "description": "make/update full review list note",
       "jsFunction": "makeFullReviewList"
-    },
-    {
-      "name": "test:redisplayProjectListHTML",
-      "description": "Redisplay project lists (HTML)",
-      "jsFunction": "redisplayProjectListHTML"
-    },
-    {
-      "name": "test:updateSettings",
-      "description": "Test for update of settings",
-      "jsFunction": "testSettingsUpdated"
     }
   ],
   "plugin.inactiveCommands": [
@@ -197,6 +196,16 @@
       "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "testUpdated"
+    },
+    {
+      "name": "test:redisplayProjectListHTML",
+      "description": "Redisplay project lists (HTML)",
+      "jsFunction": "redisplayProjectListHTML"
+    },
+    {
+      "name": "test:updateSettings",
+      "description": "Test for update of settings",
+      "jsFunction": "testSettingsUpdated"
     },
     {
       "name": "test:CSS-circle",
@@ -297,8 +306,8 @@
     },
     {
       "key": "hideTopLevelFolder",
-      "title": "Hide top-level folder in output?",
-      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in output.",
+      "title": "Hide higher-level folder names in headings?",
+      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.",
       "type": "bool",
       "default": false,
       "required": true
@@ -378,7 +387,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for 'completeProject' and 'cancelProject' commands"
+      "title": "Settings for Complete and Cancel Project commands"
     },
     {
       "key": "finishedListHeading",
@@ -392,6 +401,18 @@
       "key": "archiveUsingFolderStructure",
       "title": "Archive using folder structure?",
       "description": "When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside the Archive.\n(This is the same thing that the Filer plugin's \"/archive note using folder structure\" command does, though Filer does not need to be installed to use this.)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Settings for toggle Pause Project command"
+    },
+    {
+      "key": "removeDueDatesOnPause",
+      "title": "Remove due dates when pausing a project?",
+      "description": "If set this will remove all >dates from open tasks/checklists in this project.",
       "type": "bool",
       "default": true,
       "required": true
@@ -476,6 +497,14 @@
         "none"
       ],
       "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "_logTimer",
+      "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]

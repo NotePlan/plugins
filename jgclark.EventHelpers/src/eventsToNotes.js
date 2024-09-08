@@ -1,21 +1,23 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 4.6.2024 for v0.21.3 by @jgclark
+// Last updated 2024-09-06 for v0.22.0, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getEventsSettings } from './config'
+import { getEventsSettings } from './eventsHelpers'
 import { getEventsForDay, type EventsConfig } from '@helpers/NPCalendar'
 import {
   calcOffsetDateStr,
-  getDateStringFromCalendarFilename,
+  getCalendarNoteTimeframe,
+  // getDateStringFromCalendarFilename,
   getDateFromUnhyphenatedDateString,
-  getISODateStringFromYYYYMMDD,
+  getDateStrForStartofPeriodFromCalendarFilename,
+  // getISODateStringFromYYYYMMDD,
   toLocaleDateString,
   toLocaleTime,
-  unhyphenateString,
+  // unhyphenateString,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
@@ -23,7 +25,7 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { showMessage } from '@helpers/userInput'
 
 /**
- * Return MD list of the current open Calendar note's events
+ * Return markdown list of the current open Calendar note's events (and potentially the days after it)
  * @author @jgclark
  *
  * @param {string} paramString - checked for options
@@ -35,6 +37,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
       return ''
     }
+    const openNote = Editor.note
     // handle getting no parameters passed at all
     let paramString = ''
     if (paramStringIn == null) {
@@ -43,10 +46,11 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
       paramString = paramStringIn
     }
 
-    const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
-    logDebug(pluginJson, `listDaysEvents: starting for date ${baseDateStr} with paramString='${paramString}'`)
-    // Get config settings
     const config = await getEventsSettings()
+    const noteTimeFrame = getCalendarNoteTimeframe(openNote)
+    if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
+    const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
+    logDebug(pluginJson, `listDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / date ${startDayDateString} with paramString='${paramString}'`)
 
     // Get a couple of other suppplied parameters, or use defaults
     // Work out format for output line (from params, or if blank, a default)
@@ -77,14 +81,22 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
     // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
       // Set dateStr to the day in question (YYYYMMDD)
-      const isoBaseDateStr = getISODateStringFromYYYYMMDD(baseDateStr)
-      const dateStr = unhyphenateString(calcOffsetDateStr(isoBaseDateStr, `+${i}d`))
+
+      // const isoStartDayDateStr = getISODateStringFromYYYYMMDD(startDayDateString)
+      // const dateStr = unhyphenateString(calcOffsetDateStr(isoStartDayDateStr, `+${i}d`))
+      const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
+      logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        // $FlowIgnore[incompatible-call]
-        const localisedDateStr = toNPLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
-        outputArray.push(config.eventsHeading !== '' ? `${config.eventsHeading} for ${localisedDateStr}` : `### for ${localisedDateStr}`)
+        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        if (!npDateStr) {
+          throw new Error(`Could not get valid NP date string from ${dateStr}`)
+        }
+        const localisedDateStr = toNPLocaleDateString(npDateStr)
+        // figure out H level to set: calc from config.eventsHeading or default to 2
+        const hLevel = config.eventsHeading !== '' ? config.eventsHeading.split(' ')[0].length : 2
+        outputArray.push(config.eventsHeading !== '' ? `${config.eventsHeading} for ${localisedDateStr}` : `${'#'.repeat(hLevel)} for ${localisedDateStr}`)
       } else {
         if (config.eventsHeading !== '' && includeHeadings) {
           outputArray.push(config.eventsHeading)
@@ -93,14 +105,14 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
 
       // Get all the events for this day, for the given calendarSet
       const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
-      logDebug('listDaysEvents', `- ${eArr.length} events found on ${dateStr} from  ${calendarSet.length} calendars ${String(calendarSet)}`)
+      // logDebug('listDaysEvents', `- ${eArr.length} events found on ${dateStr} from  ${calendarSet.length} calendars ${String(calendarSet)}`)
       const mapForSorting: { cal: string, start: Date, text: string }[] = []
 
       // Process each event
       for (const e of eArr) {
-        logDebug('listDaysEvents', `- Processing event '${e.title}' (${typeof e})`)
+        // logDebug('listDaysEvents', `- Processing event '${e.title}' (${typeof e})`)
         if (!includeAllDayEvents && e.isAllDay) {
-          logDebug('listDaysEvents', `  - skipping as event is all day and includeAllDayEvents is false`)
+          // logDebug('listDaysEvents', `  - skipping as event is all day and includeAllDayEvents is false`)
           continue
         }
 
@@ -163,26 +175,44 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 
 /**
  * Return string of matching events in the current day's note, from list in keys of config.addMatchingEvents, having applied placeholder formatting.
+ * Note: Parameters can be passed in as a JSON string, except for the complex 'format' which only comes from 'config.addMatchingEvents'.
  * @author @jgclark
- * @param {?string} paramString Paramaters to use (for future expansion)
+ * @param {?string} paramStringIn Paramaters to use
  * @return {string} List of matching events, as a multi-line string
  */
 export async function listMatchingDaysEvents(
-  paramString: string = '', // NB: the parameter isn't currently used, but is provided for future expansion.
+  paramStringIn: string = '', // NB: the parameter isn't currently used, but is provided for future expansion.
 ): Promise<string> {
   try {
-    // $FlowIgnore[incompatible-call] - called by a function that checks Editor is valid.
-    const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
-    logDebug(pluginJson, `listMatchingDaysEvents: starting for date ${baseDateStr} with paramString=${paramString}`)
+    if (Editor.note == null || Editor.filename == null || Editor.type !== 'Calendar') {
+      await showMessage(`Please run again with a calendar note open.`, 'OK', 'List Events')
+      return ''
+    }
+    const openNote = Editor.note
 
-    // Get config settings
+    // handle getting no parameters passed at all
+    let paramString = ''
+    if (paramStringIn == null) {
+      logWarn('listMatchingDaysEvents', `No parameters passed (from template), so will use defaults.`)
+    } else {
+      paramString = paramStringIn
+    }
+
     const config = await getEventsSettings()
+    // const baseDateStr = getDateStringFromCalendarFilename(Editor.filename)
+    // logDebug(pluginJson, `listMatchingDaysEvents: starting for date ${baseDateStr} with paramString=${paramString}`)
+    const noteTimeFrame = getCalendarNoteTimeframe(openNote)
+    if (!noteTimeFrame) throw new Error(`No noteTimeFrame found for note ${openNote.filename}. Stopping.`)
+    const startDayDateString = getDateStrForStartofPeriodFromCalendarFilename(Editor.filename)
+    logDebug(pluginJson, `listMatchingDaysEvents: starting for noteTimeFrame=${noteTimeFrame} / date ${startDayDateString} with paramString='${paramString}'`)
+
     if (config.addMatchingEvents == null) {
       await showMessage(`Error: Empty 'addMatchingEvents' setting in Config. Stopping`, 'OK', 'List Matching Events')
       return `**Error: found no 'Add matching events' in plugin settings.**`
     }
-    const textToMatchArr = Object.keys(config.addMatchingEvents)
+
     const formatArr = Object.values(config.addMatchingEvents)
+    const textToMatchArr = Object.keys(config.addMatchingEvents)
     logDebug('listMatchingDaysEvents', `- from settings found ${textToMatchArr.length} match strings to look for`)
 
     // Get a couple of other supplied parameters, or use defaults
@@ -199,13 +229,20 @@ export async function listMatchingDaysEvents(
     // For each day to cover
     for (let i = 0; i < daysToCover; i++) {
       // Set dateStr to the day in question (YYYYMMDD)
-      const dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+      // const dateStr = unhyphenateString(calcOffsetDateStr(getISODateStringFromYYYYMMDD(baseDateStr), `+${i}d`))
+      const dateStr = calcOffsetDateStr(startDayDateString, `+${i}d`)
+      logDebug('listDaysEvents', `${i}: startDayDateString=${startDayDateString}, dateStr=${dateStr}`)
 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
-        // $FlowIgnore[incompatible-call]
-        const localisedDateStr = toNPLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
-        outputArray.push(config.matchingEventsHeading !== '' ? `${config.matchingEventsHeading} for ${localisedDateStr}` : `### for ${localisedDateStr}`)
+        const npDateStr = getDateFromUnhyphenatedDateString(dateStr)
+        if (!npDateStr) {
+          throw new Error(`Could not get valid NP date string from ${dateStr}`)
+        }
+        const localisedDateStr = toNPLocaleDateString(npDateStr)
+        // figure out H level to set: calc from config.eventsHeading or default to 2
+        const hLevel = config.matchingEventsHeading !== '' ? config.matchingEventsHeading.split(' ')[0].length : 2
+        outputArray.push(config.matchingEventsHeading !== '' ? `${config.matchingEventsHeading} for ${localisedDateStr}` : `${'#'.repeat(hLevel)} for ${localisedDateStr}`)
       } else {
         if (config.matchingEventsHeading !== '' && includeHeadings) {
           outputArray.push(config.matchingEventsHeading)
@@ -216,12 +253,15 @@ export async function listMatchingDaysEvents(
       const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
       const mapForSorting: { cal: string, start: Date, text: string }[] = []
 
-      // for each event, check each of the strings we want to match
+      // Process each event
       for (const e of eArr) {
+        logDebug('listMatchingDaysEvents', `- Processing event '${e.title}' (${typeof e})`)
         if (!includeAllDayEvents && e.isAllDay) {
+          logDebug('listMatchingDaysEvents', `  - skipping as event is all day and includeAllDayEvents is false`)
           continue
         }
 
+        // for each event, check each of the strings we want to match
         for (let j = 0; j < textToMatchArr.length; j++) {
           const thisFormat: string = String(formatArr[j])
           const withCalendarName = thisFormat.includes('CAL')
@@ -249,7 +289,7 @@ export async function listMatchingDaysEvents(
         }
       }
 
-      // If there are matching events
+      // Sort the events (if there are matching events)
       if (mapForSorting.length > 0) {
         // Sort the matched events
         if (config.sortOrder === 'calendar') {

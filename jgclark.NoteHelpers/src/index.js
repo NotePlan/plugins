@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 10.1.2024 for v0.19.1, @jgclark
+// Last updated 2024-08-16 for v0.19.3 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,7 +20,14 @@ export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { titleToFilename } from './lib/commands/titleToFilename'
 export { filenameToTitle } from './lib/commands/filenameToTitle'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
-export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, renameNoteFile } from './noteHelpers'
+export {
+  addTriggerToNote,
+  convertLocalLinksToPluginLinks,
+  addFrontmatterToNote,
+  moveNote,
+  renameNoteFile,
+  trashNote
+} from './noteHelpers'
 export {
   jumpToDone,
   jumpToHeading,
@@ -34,6 +41,7 @@ export {
   showQuarter,
   showYear,
 } from './noteNavigation'
+export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
 
 export function resetCaches() {
   NotePlan.resetCaches()

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2024-08-27 for v2.1.0.a10 by @jgclark
+// Last updated 2024-08-25 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-08-11 for v2.1.0.a7 by @jgclark
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,7 +26,7 @@ import {
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
-  doUpdateTaskDate,
+  doRescheduleItem,
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
@@ -233,8 +233,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doMoveFromCalToCal(data)
         break
       }
-      case 'updateTaskDate': {
-        result = await doUpdateTaskDate(data)
+      case 'rescheduleItem': {
+        result = await doRescheduleItem(data)
         break
       }
       // saving this for now 2024-07-11, but delete if it's been more than two weeks :)

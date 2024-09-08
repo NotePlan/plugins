@@ -1,3 +1,4 @@
+/* eslint-disable require-await */
 /* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
@@ -10,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-07-13 for v0.14.0, @jgclark
+// Last updated 2024-09-02 for v0.14.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -35,7 +36,7 @@ import {
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
@@ -501,7 +502,7 @@ export async function renderProjectListsHTML(
         if (config.displayDates) {
           outputArray.push(`<thead>
 <colgroup>
-\t<col style="width: 3rem">
+\t<col style="width: 2.6em">
 \t<col>
 \t<col style="width: 6em">
 \t<col style="width: 6em">
@@ -795,27 +796,20 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
-    let noteCount = 0
-    let due = 0
-    const outputArray: Array<string> = []
-
     // Read each line in full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
-      // Try to make the full-review-list
-      // await makeFullReviewList(config, true)
-      // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-      // if (!reviewListContents) {
-      // If still no luck, throw an error
       throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
-      // }
     }
 
     // Ignore its frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
     const fmObj = fm(reviewListContents)
-    const reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
-
+    const reviewLines = fmObj.body.split('\n')
     let lastFolder = ''
+    let noteCount = 0
+    let due = 0
+    const outputArray: Array<string> = []
+
     // Process each line in the file
     // Note: this logic is ~ repeated in two funcs near the end of this file.
     for (const thisLine of reviewLines) {
@@ -823,12 +817,19 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
       const fields = thisLine.split('\t')
       const title = fields[2]
       const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
+      const tags = fields[4]
+
+      // If the matching tag isn't in this line, go on to next line
+      // Note: has to be a full not partial match to avoid edge case dupes
+      if (!tags.split(' ').includes(noteTag)) {
+        continue // go on to next line
+      }
 
       // If displayOnlyDue, then filter out non-due
       const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
       if (displayOnlyDue && fields[0] > 0) {
         logDebug('generateReviewSummaryLines', `ignoring ${title} as not due`)
-        continue
+        continue // go on to next line
       }
 
       const notes = DataStore.projectNoteByTitle(title) ?? []
@@ -836,8 +837,10 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
         logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
         continue // go on to next line
       }
-      const thisProject = new Project(notes[0])
 
+      // Get the project metadata
+      const thisProject = new Project(notes[0])
+      // Make the summary line
       const out = thisProject.detailedSummaryLine(style, false, config.displayDates, config.displayProgress)
 
       // Add to number of notes to review (if appropriate)
@@ -880,7 +883,6 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
  * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-// eslint-disable-next-line require-await -- stops a logging error
 export async function logFullReviewList(): Promise<void> {
   const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
   console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
@@ -899,7 +901,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
     const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
     if (!config) throw new Error('No config found. Stopping.')
 
-    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags, running in ${runInForeground ? 'foreground' : 'background'}`)
+    logDebug('makeFullReviewList', `Starting for tags [${String(config.noteTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
@@ -912,7 +914,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
       if (!exists) acc.push(f)
       return acc
     }, [])
-    // logDebug('makeFullReviewList', `filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
+    // logDebug('makeFullReviewList', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
     // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
@@ -927,7 +929,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
       // logDebug('makeFullReviewList', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
     }
 
-    logDebug(`makeFullReviewList`, `>> filteredDataStore: ${filteredDataStore.length} potential project notes in ${timer(startTime)}`)
+    logTimer(`makeFullReviewList`, startTime, `- filteredDataStore: ${filteredDataStore.length} potential project notes`)
 
     if (runInForeground) {
       CommandBar.showLoading(true, `Generating Project Review list`)
@@ -944,9 +946,10 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
       // Get notes that include noteTag in this folder, ignoring subfolders
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
+        logDebug('makeFullReviewList', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
         const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
         const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
-        logDebug('makeFullReviewList', `called findNotesMatchingHashtag() for tag '${tag}', folder '${folder}' in ${timer(funcTimer)}`)
+        logTimer('makeFullReviewList', funcTimer, `for findNotesMatchingHashtag() for tag '${tag}' / folder '${folder}'`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
@@ -957,7 +960,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
         }
       }
     }
-    logDebug('makeFullReviewList', `>> Finding notes: ${timer(startTime)}`)
+    logTimer('makeFullReviewList', startTime, `Found all relevant notes`)
     if (runInForeground) {
       // await CommandBar.onMainThread()
       CommandBar.showLoading(false)

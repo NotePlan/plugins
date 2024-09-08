@@ -111,7 +111,7 @@ Other settings:
   - the special @Trash, @Templates and @Archive folders are always excluded.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display projects grouped by folder? Whether to group the projects by their folder.
-- Hide top level folder in output? Whether to suppress higher-level folder names in project list headings.
+- Hide higher-level folder names in headings? If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
 - Only display overdue projects/areas?: If true then it will only display overdue project/area notes (plus paused ones).
 - Display project dates?  Whether to display the project's review and due dates (where set).
@@ -142,6 +142,8 @@ This adds a `@cancelled(date)` to the metadata line of the open project note, ad
 
 ### "/pause project toggle" command
 This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
+
+If the 'Remove due dates when pausing a project?' setting is set, then all open tasks and checklists with a `>date` will have that date removed.
 
 ### "/add progress update" command
 This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:

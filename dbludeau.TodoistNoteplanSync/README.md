@@ -1,4 +1,4 @@
-# Todoist Noteplan Sync Noteplan Plugin
+# Todoist Noteplan Sync Plugin
 
 ## Latest Updates
 
@@ -44,6 +44,7 @@ todoist_id: 2317353827
   - WARNING: if the link is modified or deleted, the ability to sync will be lost.
 - There is no automated clean up of completed tasks in Noteplan.  They are just marked as completed.  We can see what people think is best and enhance clean up in the future.
 - Subtasks in Todoist will show up as first level tasks in Noteplan.  This can probably be fixed in an update if there is enough interest.
+- As of version 0.3.0 this plugin should work if you are on a Todoist Teams plan.  NOTE: this has not been extensively tested.
 
 
 ## Coming Next

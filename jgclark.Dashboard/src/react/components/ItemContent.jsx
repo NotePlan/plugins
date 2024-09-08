@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 2024-08-07 for v2.1.0.a5 by @jgclark
+// Last updated 2024-09-06 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { TSectionItem } from '../../types.js'
@@ -187,9 +187,9 @@ function makeParaContentToLookLikeNPDisplayInReact(
     // Display underline with .underlined style
     output = convertUnderlinedToHTML(output)
 
-    // TODO: turning off for now as it calls DataStore underneath
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
+    // TODO: turning off for now as it calls DataStore underneath
     // let captures = output.match(RE_ARROW_DATES_G)
     // if (captures) {
     //   // clo(captures, 'results from arrow >date< match:')
