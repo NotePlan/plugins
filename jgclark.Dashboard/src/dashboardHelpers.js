@@ -18,7 +18,6 @@ import {
   getAPIDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
-  removeDateTagsAndToday,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -39,6 +38,7 @@ import {
 } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
+import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   getTimeBlockString,

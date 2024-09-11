@@ -418,30 +418,6 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('removeDateTagsAndToday', () => {
-    test('should remove ">today at end" ', () => {
-      expect(dt.removeDateTagsAndToday(`test >today`)).toEqual('test')
-    })
-    test('should remove ">today at beginning" ', () => {
-      expect(dt.removeDateTagsAndToday(`>today test`)).toEqual(' test')
-    })
-    test('should remove ">today in middle" ', () => {
-      expect(dt.removeDateTagsAndToday(`this is a >today test`)).toEqual('this is a test')
-    })
-    test('should remove >YYYY-MM-DD date', () => {
-      expect(dt.removeDateTagsAndToday(`test >2021-11-09 `)).toEqual('test')
-    })
-    test('should remove nothing if no date tag ', () => {
-      expect(dt.removeDateTagsAndToday(`test no date`)).toEqual('test no date')
-    })
-    test('should work for single >week also ', () => {
-      expect(dt.removeDateTagsAndToday(`test >2000-W02`, true)).toEqual('test')
-    })
-    test('should work for many items in a line ', () => {
-      expect(dt.removeDateTagsAndToday(`test >2000-W02 >2020-01-01 <2020-02-02 >2020-09-28`, true)).toEqual('test')
-    })
-  })
-
   describe('calcOffsetDateStr', () => {
     describe('should pass', () => {
       test('20220101 +1d', () => {

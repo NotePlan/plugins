@@ -13,6 +13,7 @@ import {
   stripBackwardsDateRefsFromString,
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString,
+  truncateHTML,
 } from '@helpers/stringTransforms'
 import {
   simplifyNPEventLinksForHTML,
@@ -26,7 +27,6 @@ import {
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
-  truncateHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
 import {
@@ -142,8 +142,8 @@ function makeParaContentToLookLikeNPDisplayInReact(
     // Display markdown links of the form [title](URI) as HTML links
     output = changeMarkdownLinksToHTMLLink(output)
 
-    // Display bare URLs as HTML links
-    output = changeBareLinksToHTMLLink(output)
+    // Display bare URLs as HTML links with web icon
+    output = changeBareLinksToHTMLLink(output, true, truncateLength)
 
     // Display hashtags with .hashtag style
     output = convertHashtagsToHTML(output)

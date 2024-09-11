@@ -488,7 +488,8 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
 }
 
 /**
- * Remove >date and <date from a string
+ * Remove >date and <date from a string.
+ * Note: now lives in stringTransforms.js, but left here for now.
  * @author @nmn
  * @param {string} input
  * @returns {string} output
@@ -502,6 +503,7 @@ export function removeDateTags(content: string): string {
 
 /**
  * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
+ * Note: now lives in stringTransforms.js, but left here for now.
  * @author @dwertheimer
  * @param {string} tag - the incoming text
  * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
@@ -526,9 +528,10 @@ export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: b
 
 /**
  * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
- * Because NP complains when you try to rewrite them (delete them)
+ * Because NP complains when you try to rewrite them (delete them).
+ * Note: now lives in stringTransforms.js, but left here for now.
  * @param {string} content
- * @returns  {string} content with repeats removed
+ * @returns {string} content with repeats removed
  */
 export function removeRepeats(content: string): string {
   return content

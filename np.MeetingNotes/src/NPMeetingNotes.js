@@ -20,9 +20,9 @@ import NPTemplating from 'NPTemplating'
  * @param {string} origFileName -> (optional) Template filename, if not set the user will be asked
  * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
  */
-export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
+export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date, timeframe: string): Promise<void> {
   logDebug(pluginJson, 'insertNoteTemplate')
-  const templateFilename: ?string = await chooseTemplateIfNeeded(origFileName, false)
+  const templateFilename = await chooseTemplateIfNeeded(origFileName, false)
   if (!templateFilename) {
     return
   }
@@ -50,15 +50,31 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 
   if (dailyNoteDate) {
     logDebug(pluginJson, `apply rendered template to daily note with date ${String(dailyNoteDate)}`)
-    const note = DataStore.calendarNoteByDate(dailyNoteDate)
+    const note = DataStore.calendarNoteByDate(dailyNoteDate, timeframe)
     if (note) {
-      note.content = result
+      if (note.content && note.content !== '') {
+        note.content += '\n\n' + result
+      } else {
+        note.content = result
+      }
     }
   } else {
     logDebug(pluginJson, 'apply rendered template to the current editor')
     // Editor.content = result
     Editor.insertTextAtCursor(result)
   }
+}
+
+/**
+ * Insert a template into a daily note or the current editor.
+ * Called from the 'insert template' button of an empty note.
+ * Called from 'insert template' context menu or "/-commands"
+ * @param {string} origFileName -> (optional) Template filename, if not set the user will be asked
+ * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
+ */
+export async function renderNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<string> {
+  logDebug(pluginJson, 'renderNoteTemplate')
+  return 'hello world'
 }
 
 /**
