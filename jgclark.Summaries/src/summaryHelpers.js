@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 26.4.2024 for v0.21.0+ by @jgclark
+// Last updated 2024-09-13 for v0.22.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -20,7 +20,7 @@ import {
   unhyphenateString,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
@@ -482,7 +482,15 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     //------------------------------
     // Review each wanted YesNo type
     let startTime = new Date()
-    const YesNoListArr = (typeof occToLookFor.GOYesNo === 'string') ? occToLookFor.GOYesNo.split(',') : occToLookFor.GOYesNo // make sure this is an array first
+    // make sure this is an array first
+    const YesNoListArr = (typeof occToLookFor.GOYesNo === 'string')
+      // $FlowIgnore[incompatible-type]
+      ? (occToLookFor.GOYesNo !== "")
+        ? occToLookFor.GOYesNo.split(',')
+        : []
+      : occToLookFor.GOYesNo
+    logDebug('gatherOccurrences', `GOYesNo = <${String(occToLookFor.GOYesNo)}> type ${typeof occToLookFor.GOYesNo}`)
+
     for (const wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
       const thisOcc = new TMOccurrences(wantedItem, 'yesno', fromDateStr, toDateStr)
@@ -533,7 +541,8 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrences', `Gathered YesNoList in ${timer(startTime)}`)
+    logTimer('gatherOccurrences', startTime, `Gathered YesNoList`)
+    logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
 
     //------------------------------
     // Review each wanted hashtag
@@ -550,7 +559,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     averageHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'average']) })
     totalHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'total']) })
     combinedHashtags.sort()
-    logDebug('gatherOccurrences', `sorted combinedHashtags: ${String(combinedHashtags)}`)
+    logDebug('gatherOccurrences', `${String(combinedHashtags.length)} sorted combinedHashtags: <${String(combinedHashtags)}>`)
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (const thisTag of combinedHashtags) {
@@ -588,7 +597,8 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrences', `Gathered combinedHashtags in ${timer(startTime)}`)
+    logTimer('gatherOccurrences', startTime, `Gathered ${String(combinedHashtags.length)} combinedHashtags`)
+    logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
 
     //------------------------------
     // Now repeat for @mentions
@@ -606,7 +616,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     totalMentionsArr.forEach((m) => { combinedMentions.push([m, 'total']) })
     combinedMentions.sort()
 
-    logDebug('gatherOccurrences', `sorted combinedMentions: ${String(combinedMentions)}`)
+    logDebug('gatherOccurrences', `sorted combinedMentions: <${String(combinedMentions)}>`)
 
     // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (const thisMention of combinedMentions) {
@@ -646,14 +656,15 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrences', `Gathered combinedMentions data in ${timer(startTime)}`)
+    logTimer('gatherOccurrences', startTime, `Gathered ${String(combinedMentions.length)} combinedMentions`)
+    logDebug('gatherOccurrences', `Now ${tmOccurrencesArr.length} occObjects`)
 
     // Now compute Completed Checklist items, if Reference note is set
     if (occToLookFor.GOChecklistRefNote !== '') {
       startTime = new Date()
       const CompletedChecklistItems = gatherCompletedChecklistItems(calendarNotesInPeriod, fromDateStr, toDateStr, occToLookFor)
       tmOccurrencesArr = tmOccurrencesArr.concat(CompletedChecklistItems)
-      logInfo('gatherOccurrences', `Gathered CompletedChecklistItems data in ${timer(startTime)}`)
+      logTimer('gatherOccurrences', startTime, `Gathered CompletedChecklistItems data`)
     }
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)

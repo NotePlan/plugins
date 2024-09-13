@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.22.1] - 2024-09-13
+- fix empty lines appearing in output of some `progressUpdate(...)` template calls (reported by Madscientist and Kc)
+
 ## [0.22.0] - 2024-06-04 by @aaronpoweruser
 - Add new "checklist progress" option to **appendProgressUpdate** command (by @AaronG). See README for details.
 <!-- - some code tidy up as well -->

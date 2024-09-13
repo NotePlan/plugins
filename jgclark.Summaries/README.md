@@ -156,7 +156,7 @@ You can add many parameters, _which if present override all the main settings de
 
 Each must be a `key:"value"` pair, with string values enclosed in double quotes, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
 
-Note: if you specify any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
+Note: if you specify any of the settings that take **lists** of hashtags or mentions, they overrides the same ones in the plugin settings. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 specific tags.
 
 ### Calling by x-callback
 This is similar to the Template above: create a JSON5 version of `"key":"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`

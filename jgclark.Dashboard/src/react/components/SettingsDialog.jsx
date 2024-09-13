@@ -178,6 +178,8 @@ const SettingsDialog = ({
 							handleFieldChange,
 							labelPosition,
 							showSaveButton: false, // Do not show save button
+							// $FlowFixMe[incompatible-exact]
+							// $FlowFixMe[incompatible-call]
 							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
 							className: '', // for future use
 						})}
