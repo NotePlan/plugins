@@ -2,7 +2,7 @@
 //----------------------------------------------------------------------
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
-// Last updated 2024-06-25 for v2.0.0-b14 by @jgclark
+// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
 //----------------------------------------------------------------------
 
 import React from 'react'
@@ -16,7 +16,6 @@ type Props = {
 /**
  * Conditional rendering based on the `refreshing` state.
  * Displays a spinner icon when data is being refreshed.
- * FIXME: why is it not spinning any more?
  * Otherwise, displays a refresh button.
  *
  * @param {Props} props - The props object containing plugin data and event handlers.
@@ -28,7 +27,8 @@ const RefreshControl = (props: Props): React$Node => {
       <Button
         text={
           <>
-          <i className={refreshing ? "fa fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
+          {/* <i className={refreshing ? "fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i> */}
+          <i className={refreshing ? "fa-regular fa-arrow-rotate-right fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
             <span className="pad-left">{refreshing ? "Refreshing" : "Refresh"}</span>
           </>
         }

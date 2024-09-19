@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 2024-08-16 for v2.1.0.a8 by @jgclark
+// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -34,7 +34,6 @@ export const openTodayItems: Array<TSectionItem> = [
       priority: 0,
       content: 'before bed routine 🛌 22:00-22:30',
       rawContent: 'before bed routine 🛌 22:00-22:30',
-      prefix: '* ',
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -47,7 +46,6 @@ export const openTodayItems: Array<TSectionItem> = [
       priority: 1,
       content: "reconcile bank statement @repeat(1m)",
       rawContent: "reconcile bank statement @repeat(1m)",
-      prefix: "* ",
     }
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -60,7 +58,6 @@ export const openTodayItems: Array<TSectionItem> = [
       priority: 0,
       content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
-      prefix: '* ',
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -73,7 +70,6 @@ export const openTodayItems: Array<TSectionItem> = [
       priority: 0,
       content: "morning @home 🏠 routine 6:30AM",
       rawContent: "morning @home 🏠 routine 6:30AM",
-      prefix: "+ ",
     }
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -86,7 +82,6 @@ export const openTodayItems: Array<TSectionItem> = [
       priority: 0,
       content: "morning #work checklist 7:30AM",
       rawContent: "morning #work checklist 7:30AM",
-      prefix: "+ ",
     }
   },
 ]
@@ -103,7 +98,6 @@ export const refTodayItems: Array<TSectionItem> = [
       content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
       rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
       blockId: '^wazhht',
-      prefix: '* ',
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -117,7 +111,6 @@ export const refTodayItems: Array<TSectionItem> = [
       priority: 0,
       content: 'Update display board 08:00-09:00',
       rawContent: 'Update display board 08:00-09:00',
-      prefix: '* ',
       hasChild: true,
     },
   },
@@ -130,7 +123,6 @@ export const refTodayItems: Array<TSectionItem> = [
       filename: "Ministry Projects/Repair Café operation.md",
       type: "open",
       priority: 0,
-      prefix: "* ",
       content: "Pay in cash from cafe 2:30PM",
       rawContent: "Pay in cash from cafe 2:30PM",
     }
@@ -153,7 +145,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
       priority: 4,
       content: '>> #editvideo from CFL visit @work',
       rawContent: '>> #editvideo from CFL visit @work',
-      prefix: '* ',
       hasChild: true,
     },
   },
@@ -167,7 +158,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
       priority: 0,
       content: 'update contract for [[Staff Induction (SW)]] following review comments',
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
-      prefix: '* ',
       hasChild: true,
     },
   },
@@ -183,9 +173,24 @@ export const refYesterdayParas: Array<TSectionItem> = [
       title: 'Services',
       priority: 1,
       content: 'write 5/3 sermon >2023-03-02',
-      rawContent: 'write 5/3 sermon >2023-03-02',
-      prefix: '* ',
+      rawContent: '* write 5/3 sermon >2023-03-02',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
+    },
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Notes',
+      filename: 'CCC Areas/Services.md',
+      title: 'Services',
+      content: '  create 5/3 sermon presentation >2023-03-02',
+      rawContent: '  * create 5/3 sermon presentation >2023-03-02',
+      changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      priority: 1,
+      hasChild: false,
+      isAChild: true,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -197,26 +202,9 @@ export const refYesterdayParas: Array<TSectionItem> = [
       filename: "Ministry Projects/Repair Café operation.md",
       type: 'open',
       priority: 1,
-      prefix: '* ',
       content: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
-      rawContent: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
+      rawContent: '* ! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       blockId: '^wazhht',
-      hasChild: true,
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
-    itemType: 'open',
-    para: {
-      type: 'open',
-      noteType: 'Notes',
-      filename: 'CCC Areas/Services.md',
-      title: 'Services',
-      content: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
-      rawContent: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      priority: 1,
       hasChild: true,
     },
   },
@@ -236,7 +224,6 @@ export const openTomorrowParas: Array<TSectionItem> = [
       filename: thisFilename,
       content: 'Clear more of prayer room @staff >today ^q9jzj4',
       rawContent: 'Clear more of prayer room @staff >today ^q9jzj4',
-      prefix: '* ',
       priority: 0,
       blockId: '^q9jzj4',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
@@ -259,7 +246,6 @@ export const openWeekParas: Array<TSectionItem> = [
       priority: 0,
       content: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
       rawContent: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
-      prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -274,7 +260,6 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: '@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z',
       blockId: '^bzlp1z',
       priority: 0,
-      prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
       hasChild: true,
     },
@@ -291,7 +276,6 @@ export const refWeekParas: Array<TSectionItem> = [
       priority: 2,
       content: '!! Arrange EV charger repair',
       rawContent: '!! Arrange EV charger repair',
-      prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -305,7 +289,6 @@ export const refWeekParas: Array<TSectionItem> = [
       priority: 0,
       content: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
       rawContent: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
-      prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -320,7 +303,6 @@ export const refWeekParas: Array<TSectionItem> = [
       priority: 0,
       content: 'Re-plant two shrubs in new blue pots @home >2023-W09',
       rawContent: 'Re-plant two shrubs in new blue pots @home >2023-W09',
-      prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -335,7 +317,6 @@ export const refWeekParas: Array<TSectionItem> = [
       priority: 0,
       content: 'Backup Mac - with an arrow date >2023-W09< reference',
       rawContent: 'Backup Mac - with an arrow date >2023-W09< reference',
-      prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
     },
   },
@@ -355,7 +336,6 @@ export const openMonthParas: Array<TSectionItem> = [
       priority: 0,
       content: 'Investigate alternative milkman',
       rawContent: 'Investigate alternative milkman',
-      prefix: '* ',
     },
   },
 ]
@@ -371,7 +351,6 @@ export const refMonthParas: Array<TSectionItem> = [
       priority: 1,
       content: 'Pay tax bill',
       rawContent: 'Pay tax bill',
-      prefix: '* ',
     },
   },
 ]
@@ -400,7 +379,6 @@ export const demoTaggedParas: Array<TParagraph> = [
     filename: 'TEST/DEMOs/Test Project A.md',
     content: 'Open Deliveroo account #next #home',
     rawContent: 'Open Deliveroo account #next  #home',
-    prefix: '+ ',
     priority: 0,
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -410,7 +388,6 @@ export const demoTaggedParas: Array<TParagraph> = [
     filename: 'TEST/DEMOs/Test Project A.md',
     content: '#home Checklist ⛔️ that should be filtered out #waiting #next',
     rawContent: '#home Checklist ⛔️ that should be filtered out #waiting #next',
-    prefix: '+ ',
     priority: 0,
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -420,7 +397,6 @@ export const demoTaggedParas: Array<TParagraph> = [
     filename: 'TEST/DEMOs/Test Project A.md',
     content: '#home Future task ⛔️ that should be filtered out #next >2099-W09',
     rawContent: '#home Future task ⛔️ that should be filtered out #next >2099-W09',
-    prefix: '+ ',
     priority: 0,
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -430,7 +406,6 @@ export const demoTaggedParas: Array<TParagraph> = [
     filename: thisFilename,
     content: '@work Get iPad working on ChurchOffice-staff for printing etc. @church ^bzlp1z',
     rawContent: '@work Get iPad working on ChurchOffice-staff for printing etc. @church ^bzlp1z',
-    prefix: '* ',
     priority: 0,
     blockId: '^bzlp1z',
     hasChild: true,
@@ -442,7 +417,6 @@ export const demoTaggedParas: Array<TParagraph> = [
     filename: 'CCC Areas/Finance.md',
     content: 'Make expenses claim @work',
     rawContent: 'Make expenses claim @work',
-    prefix: '* ',
     priority: 0,
   },
 ]
@@ -475,7 +449,7 @@ export const nextProjectNoteItems: Array<TNote> = [
 
 //-----------------------------------------------------------
 // Overdue Items
-export function makeDummyOverdueItems(extension): Array<TParagraph> {
+export function makeDummyOverdueItems(extension: string): Array<TParagraph> {
   // Note: to make the same processing as the real data, this is done only in terms of extended paras
   const outputParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
   for (let c = 1; c < 61; c++) {
@@ -507,7 +481,7 @@ export function makeDummyOverdueItems(extension): Array<TParagraph> {
 
 //-----------------------------------------------------------
 // Priority Items
-export function makeDummyPriorityItems(extension): Array<TParagraph> {
+export function makeDummyPriorityItems(extension: string): Array<TParagraph> {
   // Note: to make the same processing as the real data, this is done only in terms of extended paras
   const outputParas: Array<any> = [] // can't be typed to TParagraph as the useDemoData code writes to what would be read-only properties
   for (let c = 1; c < 31; c++) {

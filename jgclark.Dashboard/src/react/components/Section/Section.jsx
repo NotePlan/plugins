@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-08-01 for v2.1.0 by @jgclark
+// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -57,6 +57,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       return
     }
 
+    // $FlowIgnore[invalid-computed-prop]
     if (dashboardSettings && section.showSettingName && dashboardSettings[section.showSettingName] === false) {
       return
     }
@@ -125,7 +126,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
 
   // $FlowFixMe[invalid-computed-prop] new flow error since 202
-  const hideSection = !items.length || (dashboardSettings && dashboardSettings[`${section.showSettingName}`] === false)
+  const hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
@@ -133,22 +134,17 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
   section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
 
-  // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
-
-  // If we have no data items to show (other than a congrats message), don't show most buttons
-  if (section.actionButtons && numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || section.sectionCode === 'PROJ')) {
-    section.actionButtons = section.actionButtons.filter(b => b.actionName.startsWith("add"))
-  }
-
   // If we have no data items to show (other than a congrats message), don't show most buttons
   if (section.actionButtons && numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || section.sectionCode === 'PROJ')) {
     section.actionButtons = section.actionButtons.filter(b => b.actionName.startsWith("add"))
   }
 
   // Decrement the number of items to show if the last one is the filterIndicator
-  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
-  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
+  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
+    numItemsToShow--
+    logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
+  }
+  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0 
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -195,9 +191,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
           {numItemsToShow > 1 && itemsToShow[0].itemType !== 'itemCongrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks`}>
-                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+                {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+                {/* wanted to use 'fa-arrow-progress' here but not in our build */}
+                {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
+                <i className="fa-regular fa-angles-right"></i>
+                <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
               </button>
             </>
           )}

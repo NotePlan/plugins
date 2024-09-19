@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2024-08-25 for v2.1.0.a9 by @jgclark */
+/* Last updated 2024-09-18 for v2.1.0.a11 by @jgclark */
 
 :root {	font-size: 16px; /* this works */
 	/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
@@ -168,7 +168,7 @@ dialog::backdrop {
 }
 
 /* The actual item's details (was col4) */
-.sectionItem {
+.sectionItemContent {
 	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
@@ -254,13 +254,13 @@ dialog::backdrop {
 	margin-block-start: 2px;
 }
 
-.dialogTrigger {
+.dialogTriggerIcon {
 	color: var(--fg-main-color);
 	opacity: 0.5;
 	cursor: pointer;
 }
 
-.childMarker {
+.childMarker, .parentMarker {
 	font-size: small;
 	color: var(--fg-main-color);
 	opacity: 0.5;
@@ -580,10 +580,4 @@ input.apple-switch:checked:after {
 } */
 .CircularProgressbar-background {
   fill: var(--bg-sidebar-color) !important;
-}
-
-/* Header waiting spinner */
-.fa-spin {
-	/* color: var(--tint-color); */
-	animation: spin 1s infinite linear;
 }

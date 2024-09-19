@@ -2,9 +2,16 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 <!-- - TODO: add active links to section titles in description area -->
+<!-- TODO: need to fix the `controlsOtherKeys` logic in settings window. -->
 
-## [Perspectives.a11] @jgc, 2024-09-???
+## [Perspectives.a11] @jgc, 2024-09-19
+- added `isAChild` logic, a new marker icon to show children, and a new "Show parent/child markers on items?" setting.
+- the 'All -> Today' and 'All -> Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- complete for 'Overdue -> Today' button as well
+- TODO: update Interactive Processing button to not show child items that have already been moved. (Started but not finished.)
 - fix typos in "Move all to today" dialog 
+- fixed spinner icon not spinning
+- changed Interactive Processing icon to not imply 'refresh'
 - stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working
 - dbw: brought back the (hidden) plugin settings for ios so that we could tell an iOS or ipad user how to set debug logging by clicking  [Change Dashboard Settings](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Update%20plugin%20settings) TODO: maybe you could include that in a pinned note for dashboard?
 
@@ -14,7 +21,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [Perspectives.a9] @jgc, 2024-08-26
 - migrated FFlag_Perspectives to a main, visible, setting showPerspectives, defaulting to true.
-- new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown. TODO: not finished
+- new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown.
 - clicking on 'there are X items hidden' message lines now turns off filtering in all sections (started in a7)
 - more layout improvements in Header, including moving Perspective selector back to the left-hand side.
 - Fixed project progress 'pie charts'  layout issues, and added them in to the project dialog header.

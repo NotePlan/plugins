@@ -176,6 +176,10 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     // JGC doesn't know how to mock this out yet
+    // describe('isAChildPara', () => {
+    // })
+
+    // JGC doesn't know how to mock this out yet
     // describe('getParaAndAllChildren', () => {
     // })
   }) // end of describe(`${FILENAME}`, () => {

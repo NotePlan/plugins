@@ -1,16 +1,16 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-09-06 for v2.0.6 by @dwertheimer
+// Last updated 2024-09-17 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 // import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import {
+  getDashboardSettings,
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
-  getDashboardSettings,
   moveItemBetweenCalendarNotes,
   handlerResult,
 } from './dashboardHelpers'
@@ -117,8 +117,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     // clo(reactWindowData)
 
     // Get paras for all open items in yesterday's note
-    // TODO: get this from reactWindowData.pluginData instead
-    // will be .pluginData.sections.name=Today.sectionItems
+    // Note: this could be taken from pluginData's DY section data, but it's very quick to generate, and guarantees that we're using fresh data
     const yesterdayDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
     const todayDateStr = getTodaysDateHyphenated()
     const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
@@ -130,8 +129,14 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false)
+    let [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false)
+    const prevTotalToMove = combinedSortedParas.length + sortedRefParas.length
+    // Note: now don't process children in daily notes separate from parents
+    combinedSortedParas = combinedSortedParas.filter(p => !p.isAChild)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
+    if (totalToMove !== prevTotalToMove) {
+      logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    }
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
@@ -146,7 +151,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
 
     let c = 0
     if (combinedSortedParas.length > 0) {
-      // TODO: start a progress indicator
+      // start a progress indicator
       reactWindowData.pluginData.refreshing = ['DT', 'DY']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DY'])}`)
 
@@ -257,8 +262,8 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
 
-    // Get paras for all open items in yesterday's note
-    // TODO: get this from reactWindowData.pluginData instead
+    // Get paras for all open items in today's note
+    // Note: this could be taken from pluginData's DT section data, but it's very quick to generate, and guarantees that we're using fresh data
     const todayDateStr = getTodaysDateUnhyphenated()
     const tomorrowDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowISODateStr = new moment().add(1, 'days').format('YYYY-MM-DD')
@@ -271,11 +276,16 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config, false)
+    let [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config, false)
+    const prevTotalToMove = combinedSortedParas.length + sortedRefParas.length
+    // Note: now don't process children in daily notes separate from parents
+    combinedSortedParas = combinedSortedParas.filter(p => !p.isAChild)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
+    if (totalToMove !== prevTotalToMove) {
+      logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    }
 
     // If there are lots, then double check whether to proceed
-    // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to tomorrow?`, ['Yes', 'No'], 'Move Today to Tomorrow', false)
@@ -287,7 +297,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
 
     let c = 0
     if (combinedSortedParas.length > 0) {
-      // TODO: start a progress indicator
+      // start a progress indicator
       reactWindowData.pluginData.refreshing = ['DT', 'DO']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['DT', 'DO'])}`)
 
@@ -387,21 +397,23 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     const config = await getDashboardSettings()
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+    const pluginData = reactWindowData.pluginData
 
-    // Get list of open tasks/checklists from yesterday note
+    // Note: The following now removed. 
+    // There's a deduping function that runs inside Section.jsx that dedupes if a higher section is visible.
+     
+    // Get list of open tasks/checklists from yesterday note to dedupe.
     // Note: we need full TParagraphs, not ReducedParagraphs
-    const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-    const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    if (!yesterdaysNote) {
-      throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
-    }
+    // const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+    // const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
+    // if (!yesterdaysNote) {
+    //   throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
+    // }
+    // // Override one setting so we can work on combined items
+    // config.separateSectionForReferencedNotes = false
+    // const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false)
 
-    // Override one setting so we can work on combined items
-    config.separateSectionForReferencedNotes = false
-    const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false)
-    // const yesterdaysCombinedSortedDashboardParas = yestCombinedSortedParas.concat(sortedRefParas)
-
-    // TEST: Now removing Yesterday data
+    // Now dedupe with Yesterday data
     // Now convert these back to full TParagraph
     // const yesterdaysCombinedSortedParas: Array<TParagraph> = []
     // for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
@@ -414,15 +426,31 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // }
 
     // Get paras for all overdue items in notes
-    // Note: we need full TParagraphs, not ReducedParagraphs
-    // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
-    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, []) // note: does not include open checklist items
+    let overdueParas: Array<TParagraph>
+    // TODO: if available, get from .pluginData.sections.thisSectionCode = 'OVERDUE' instead of recalculating
+    if (pluginData.sections.some(s => s.thisSectionCode === 'OVERDUE')) {
+      logInfo('scheduleAllOverdueOpenToToday', `😀 We already have Overdue calculated, so will try to use that data.`)
+      const theseItems = pluginData.sections.find(s => s.thisSectionCode === 'OVERDUE').sectionItems
+      // TEST:
+      overdueParas = theseItems.map(i => i.para)
+      clo(overdueParas[0], 'overdueParas[0]')
+    } else {
+      logInfo('scheduleAllOverdueOpenToToday', `😩 We don't have Overdue calculated yet, so will calculate it now.`)
+      // Note: we need full TParagraphs, not ReducedParagraphs
+      // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items (API limitation)
+      overdueParas = await getRelevantOverdueTasks(config, []) // note: does not include open checklist items (API limitation)
+    }
+
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
       return { success: false }
     }  
     logInfo('scheduleAllOverdueOpenToToday', `Found ${totalOverdue} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today (in ${timer(thisStartTime)})`)
+
+    // TODO: remove items which are children
+    // TODO: think we don't have .isAcChild available yet
+    // overdueParas = overdueParas.filter((p) => !p.isAChild)
 
     const todayDateStr = getTodaysDateHyphenated()
 

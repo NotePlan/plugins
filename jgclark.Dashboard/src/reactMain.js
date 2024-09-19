@@ -7,14 +7,14 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TPerspectiveDef, TPluginData, } from './types'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from "./constants"
-import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
-import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
+import { rollUpDoneCounts, getTotalDoneCounts, buildListOfDoneTasksToday } from './countDoneTasks'
+import { getDashboardSettings, getLogSettings, getNotePlanSettings, } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import {  getPerspectiveSettings /*, initialisePerspectiveSettings */ } from './perspectiveHelpers'
+import { getPerspectiveSettings } from './perspectiveHelpers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
 import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import {
@@ -207,15 +207,15 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 /**
  * Plugin Entry Point for "Show Dashboard"
  * @author @dwertheimer
- * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) |  CSV of specific sections to load (e.g. from xcallback)
+ * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) | CSV of specific sections to load (e.g. from xcallback)
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
   logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}') ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
   try {
     const startTime = new Date()
-    const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
-    if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
+    // If callMode is a CSV of specific wanted sections, then override section flags for them
+    if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
 
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     // TODO: can this be moved to onInstallOrUpdate?
@@ -275,7 +275,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 }
 
 /**
- * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
+ * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
  * @returns {PassedData} the React Data Window object
  */
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
@@ -288,7 +288,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
-    const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'production' // 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
@@ -306,51 +306,6 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     // $FlowFixMe[prop-missing]
     return {}
   }
-}
-
-/**
- * Gather data you want passed to the React Window (e.g. what you you will use to display)
- * You will likely use this function to pull together your starting window data
- * Must return an object, with any number of properties, however you cannot use the following reserved
- * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
- */
-export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
-  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
-
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)
-
-  // Important Note: If we need to force load everything, it's easy.
-  // But if we don't then 2 things are needed:
-  // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
-
-  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
-    ? await getAllSectionsData(useDemoData, true, true)
-    : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
-
-  const NPSettings = getNotePlanSettings()
-
-  const pluginData: TPluginData =
-  {
-    sections: sections,
-    lastFullRefresh: new Date(),
-    dashboardSettings: dashboardSettings,
-    perspectiveSettings: perspectiveSettings,
-    notePlanSettings: NPSettings,
-    logSettings: await getLogSettings(),
-    demoMode: useDemoData,
-    platform: NotePlan.environment.platform, // used in dialog positioning
-    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
-  }
-
-  // Calculate all done task counts (if the appropriate setting is on)
-  if (NPSettings.doneDatesAvailable) {
-    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
-    pluginData.totalDoneCounts = totalDoneCounts
-  }
-
-  return pluginData
 }
 
 /**
@@ -444,4 +399,46 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
   const index = reactWindowData.pluginData.tableRows.findIndex((row) => row.id === clickedIndex)
   reactWindowData.pluginData.tableRows[index].textValue = `Item ${clickedIndex} was updated by the plugin (see changed data in the debug section below)`
   return reactWindowData //updated data to send back to React Window
+}/**
+ * Gather data you want passed to the React Window (e.g. what you you will use to display).
+ * You will likely use this function to pull together your starting window data.
+ * Must return an object, with any number of properties, however you cannot use the following reserved properties:
+ *   pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
+ * @returns {[string]: mixed} - the data that your React Window will start with
+*/
+
+export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
+  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)
+
+  // Important Note: If we need to force load everything, it's easy.
+  // But if we don't then 2 things are needed:
+  // - the getSomeSectionsData() for just the Today section(s)
+  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
+    ? await getAllSectionsData(useDemoData, true, true)
+    : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+
+  const NPSettings = getNotePlanSettings()
+
+  const pluginData: TPluginData = {
+    sections: sections,
+    lastFullRefresh: new Date(),
+    dashboardSettings: dashboardSettings,
+    perspectiveSettings: perspectiveSettings,
+    notePlanSettings: NPSettings,
+    logSettings: await getLogSettings(),
+    demoMode: useDemoData,
+    platform: NotePlan.environment.platform, // used in dialog positioning
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+  }
+
+  // Calculate all done task counts (if the appropriate setting is on)
+  if (NPSettings.doneDatesAvailable) {
+    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
+    pluginData.totalDoneCounts = totalDoneCounts
+  }
+
+  return pluginData
 }
+

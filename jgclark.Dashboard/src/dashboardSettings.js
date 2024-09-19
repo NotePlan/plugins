@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from "./types.js"
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -24,9 +24,9 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 
 // This section is an array that describes the order and type of the individual settings
 // The current value for each TYPE of setting (or the fallback) is set later in this file in createDashboardSettingsItems()
-// So to add a new setting of an existing type (e.g. heading, input, switch), just add it to this array at the top of this file
+// So to add a new setting of an existing type (e.g. heading, input, switch), just add it to this array.
 // But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
-// So it knows how to render it and set the default value.
+// so it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
@@ -149,6 +149,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'number',
     default: "30",
     compactDisplay: true,
+  },
+  {
+    key: "showParentChildMarkers",
+    label: "Show parent/child markers on items?",
+    description: "Add a small icon on items that either have indented sub-items, or is an indented child a parent item.",
+    type: 'switch',
+    default: true,
   },
   {
     key: "dashboardTheme",

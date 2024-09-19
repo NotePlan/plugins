@@ -438,7 +438,7 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
 }
 
 /**
- * Formats log output as WARN to include timestamp pluginId, pluginVersion
+ * Formats log output as DEBUG to include timestamp pluginId, pluginVersion
  * @author @dwertheimer
  * @param {any} pluginInfo
  * @param {any} message

@@ -3,10 +3,10 @@
 // Represents a row item within a section.
 // Could be: Task, Review Item, Filtered Indicator, No Tasks left or No Projects.
 // Called by ItemGrid component.
-// Last updated 2024-07-28 for v2.1.0.a2 by @jgclark
+// Last updated 2024-09-12 for v2.1.0.a10 by @jgclark
 //--------------------------------------------------------------------------
 
-import {type Node} from 'react'
+import React, { type Node } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'

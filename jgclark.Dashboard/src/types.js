@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-09-13 for v2.1.0.a10 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -25,6 +25,7 @@ export type TDashboardSettings = {
   dashboardTheme: string,
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
+  showParentChildMarkers: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
   ignoreChecklistItems: boolean,
   excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use
@@ -126,11 +127,12 @@ export type TParagraphForDashboard = {
   rawContent: string,
   priority: number,
   blockId?: string,
-  timeStr?: string, // = timeblock. TODO: is this still used?
+  // timeStr?: string, // = timeblock. TEST: commenting this out doesn't break anything I can see
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
+  isAChild?: boolean, // whether it is a child item
 }
 
 // a project item within a section

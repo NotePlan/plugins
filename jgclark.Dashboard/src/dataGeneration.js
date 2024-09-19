@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-08-16 for v2.1.0.a8 by @jgclark
+// Last updated 2024-09-19 for v2.1.0.a8+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -33,8 +33,6 @@ import {
   openMonthParas,
   refMonthParas,
   demoTaggedSectionDetails,
-  // tag1ParasFromNote,
-  // tag2ParasFromNote,
   demoTaggedParas,
   nextProjectNoteItems,
   makeDummyOverdueItems,
@@ -45,11 +43,10 @@ import {
   isNoteInAllowedFolderList,
 } from './perspectiveHelpers'
 import {
-  // isFilenameAllowedInCurrentPerspective,
   isFilenameAllowedInFolderList
 , getCurrentlyAllowedFolders } from './perspectivesShared.js'
 import type {
-  TDashboardSettings, /* TPerspectiveDef, */
+  TDashboardSettings,
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
 } from './types'
 import {
@@ -62,7 +59,6 @@ import {
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-// import { getFolderFromFilename } from '@helpers/folders'
 import {
   toNPLocaleDateString,
 } from '@helpers/NPdateTime'
@@ -92,6 +88,7 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 export async function getAllSectionsData(useDemoData: boolean = false, forceLoadAll: boolean = false, useEditorWherePossible: boolean): Promise<Array<TSection>> {
   try {
     const config: any = await getDashboardSettings()
+    logInfo('getAllSectionsData', `starting ...'`)
     // clo(config, 'getAllSectionsData config is currently',2)
 
     let sections: Array<TSection> = []
@@ -137,7 +134,7 @@ export async function getSomeSectionsData(
     const config: TDashboardSettings = await getDashboardSettings()
     // const perspectiveSettings = await getPerspectiveSettings()
     // const currentPerspectiveDef = getActivePerspectiveDef(config, perspectiveSettings)
-    // logInfo('getSomeSectionsData', `starting with active perspective '${currentPerspectiveDef ? currentPerspectiveDef.name : 'none'}'`)
+    logInfo('getSomeSectionsData', `starting for [${String(sectionCodesToGet)}] ...'`)
 
     let sections: Array<TSection> = []
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))

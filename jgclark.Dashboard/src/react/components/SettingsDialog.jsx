@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9+ by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -222,12 +222,14 @@ const SettingsDialog = ({
 											? updatedSettings[item.key]
 											: false,
 								},
-							handleFieldChange,
-							labelPosition,
-							showSaveButton: false, // Do not show save button
-							inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
-							showDescAsTooltips: false
-						})}
+								handleFieldChange,
+								labelPosition,
+								showSaveButton: false, // Do not show save button
+								// $FlowFixMe[incompatible-exact] reason for suppression
+								// $FlowFixMe[incompatible-call] reason for suppression
+								inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+								showDescAsTooltips: false
+							})}
 						{/* {item.description && (
 							<div className="item-description">{item.description}</div>
 						)} */}

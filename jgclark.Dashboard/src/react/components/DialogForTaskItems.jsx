@@ -216,18 +216,20 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
             {interactiveProcessing && currentIPIndex !== undefined && (
               <>
                 <span className="interactive-processing-status">
-                  <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                  <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
+                    <i className="fa-solid fa-forward"></i>
+                  </button>
+                  {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+                  {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
+                  <span>
                     {currentIPIndex}
                   </span>
                   /
-                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                  {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
+                  <span>
                     {totalTasks}
                   </span>
                 </span>
-                <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
-                  <i className="fa-solid fa-forward"></i>
-                </button>
               </>
             )}
             <button className="closeButton" onClick={() => closeDialog(true)}>

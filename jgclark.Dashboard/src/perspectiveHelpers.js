@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-08-21 for v2.1.0.a8 by @jgclark
+// Last updated 2024-09-19 for v2.1.0.a8+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { doSettingsChanged } from "./clickHandlers.js"
+// import { doSettingsChanged } from "./clickHandlers.js"
 import { getDashboardSettings, setPluginData } from "./dashboardHelpers.js"
 // import { refreshDashboardData } from './reactMain'
 import { parseSettings } from './shared'

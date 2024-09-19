@@ -3,13 +3,12 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-09-17 for v2.0.6+ by @jgclark
 //-----------------------------------------------------------------------------
 import {
   addChecklistToNoteHeading,
   addTaskToNoteHeading,
 } from "../../jgclark.QuickCapture/src/quickCapture"
-// import pluginJson from "../plugin.json"
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
 import {
   buildListOfDoneTasksToday,
@@ -25,8 +24,8 @@ import {
   moveItemToRegularNote,
   setPluginData,
 } from "./dashboardHelpers"
+import { getAllSectionsData, getSomeSectionsData } from "./dataGeneration" // FIXME: causing a circular dependency
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from "./types"
-import { getAllSectionsData, getSomeSectionsData } from "./dataGeneration"
 import { validateAndFlattenMessageObject } from "./shared"
 import {
   cancelItem,
@@ -46,7 +45,6 @@ import {
   getTodaysDateHyphenated,
   RE_DATE,
   RE_DATE_INTERVAL,
-  // replaceArrowDatesInString,
 } from "@helpers/dateTime"
 import {
   clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer

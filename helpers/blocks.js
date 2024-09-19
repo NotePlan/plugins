@@ -132,6 +132,39 @@ export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNo
 }
 
 /**
+ * Return whether this paragraph is a 'child' of a given 'parent' para.
+ * The NP documentation requires a child to be an indented task/checklist of an earlier task/checklist.
+ * (JGC doesn't know enough to make jest tests for this. But is confident this works from lots of logging.)
+ * @author @jgclark
+ * @param {TParagraph} para - the 'parent' paragraph
+ * @returns {Array<TParagraph>} - array of child paragraphs
+ */
+export function isAChildPara(thisPara: TParagraph): boolean {
+  try {
+    const thisLineIndex = thisPara.lineIndex
+    const allParas = thisPara.note?.paragraphs ?? []
+    // First get all paras up to this one which are parents
+    const allParentsUpToHere = allParas
+      .filter((p) => p.children().length > 0)
+      .filter((p) => p.lineIndex < thisLineIndex)
+    for (const parent of allParentsUpToHere) {
+      const theseChildren = parent.children()
+      for (const child of theseChildren) {
+        if (child.lineIndex === thisLineIndex) {
+          // logInfo('blocks/isAChildPara', `✅: ${thisPara.rawContent}`)
+          return true // note: now allowed in forEach but OK in for
+        }
+      }
+    }
+    // logInfo('blocks/isAChildPara', `❌: ${thisPara.rawContent}`)
+    return false
+  } catch (error) {
+    logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)
+    return false
+  }
+}
+
+/**
  * Get the child (indented) paragraphs of a given 'parent' paragraph (including [great]grandchildren).
  * (JGC doesn't know enough to make jest tests for this.)
  * @author @jgclark

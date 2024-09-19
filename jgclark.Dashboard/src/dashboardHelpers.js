@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-08-09 for v2.1.0.a5 by @jgclark
+// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -13,7 +13,7 @@ import {
 , getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
-import { getParaAndAllChildren } from '@helpers/blocks'
+import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
 import {
   getAPIDateStrFromDisplayDateStr,
   getTodaysDateHyphenated,
@@ -147,7 +147,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
  */
 export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
-    const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
+    const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
       // Note: Demo data gives .children not function returning children
@@ -157,12 +157,13 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         ? p.children()
         : p.children
       const hasChild = anyChildren.length > 0
+      const isAChild = isAChildPara(p)
 
-      // TODO(add back in later): debugging why sometimes hasChild is wrong
+      // FIXME: debugging why sometimes hasChild is wrong
       // if (hasChild) {
       //   const pp = note.paragraphs || []
       //   const nextLineIndex = p.lineIndex + 1
-      //   clo(p, `FYI: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+      //   clo(p, `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
       //   clo(p.contentRange, `contentRange for paragraph`)
       //   clo(anyChildren, `Children of paragraph`)
       //   clo(anyChildren[0].contentRange, `contentRange for child[0]`)
@@ -180,7 +181,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
-        hasChild
+        hasChild: hasChild,
+        isAChild: isAChild,
       }
     })
     return dashboardParas
@@ -258,7 +260,6 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
-
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
@@ -519,7 +520,7 @@ export async function getRelevantPriorityTasks(
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     notesToCheck = notesToCheck
       .filter((n) => n.filename.match(/(.txt|.md)$/))
-      .filter((n) => n.content && n.content.length !== 'undefined' && n.content.length >= 1)
+      .filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
 
     // Now find all open items in them which have a priority marker
@@ -605,7 +606,8 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 }
 
 /**
- * TODO: write some tests
+ * Note: Not currently used.
+ * TODO: write tests
  * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times).
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
