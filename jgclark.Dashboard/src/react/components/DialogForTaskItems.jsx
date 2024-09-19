@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-08-27 for v2.1.0.a10 by @jgclark
+// Last updated 2024-09-19 for v2.1.0.a11 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -15,7 +15,7 @@ import CalendarPicker from './CalendarPicker.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -50,13 +50,13 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: dashboardSettings = ${String(dashboardSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.dashboardSettings.rescheduleNotMove)}`)
 
   // Deduce the action to take when this is a date-changed button
-  // - Item in calendar note & move -> move to new calendar note for that picked date: use doMoveFromCalToCal()
-  // - All 3 other cases: use doRescheduleItem()
+  // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
+  // - All 3 other cases: use rescheduleItem()
   const dateChangeFunctionToUse = (noteType === 'Calendar' && !resched)
     ? 'moveFromCalToCal' : 'rescheduleItem'
   logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
-  const { interactiveProcessing } = reactSettings??{}
+  const { interactiveProcessing } = reactSettings ?? {}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
   const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
   const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
@@ -89,6 +89,14 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     { label: 'Unschedule', controlStr: 'unsched', description: 'Remove date from this item', handlingFunction: 'unscheduleItem' },
   ].filter((button) => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)) // don't show these buttons on mobile
 
+  // TEST: extra state ...
+  const [IPIndex, setIPIndex] = useState(currentIPIndex)
+
+  // TEST: ...and extra state
+  useEffect(() => {
+    logInfo('DialogForTaskItems', `currentIPIndex changed to ${String(currentIPIndex)}`)
+    setIPIndex(reactSettings.interactiveProcessing.currentIPIndex)
+  }, [reactSettings.interactiveProcessing.currentIPIndex])
 
   useEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
@@ -222,7 +230,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                   {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
                   {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
                   <span>
-                    {currentIPIndex}
+                    {IPIndex}
                   </span>
                   /
                   {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}

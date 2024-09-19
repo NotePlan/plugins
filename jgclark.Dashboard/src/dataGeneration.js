@@ -1066,7 +1066,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
 export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
   try {
     const tagSections = useDemoData ? demoTaggedSectionDetails : getTagSectionDetails(config)
-    logInfo('getTaggedSections', `------- Gathering ${String(tagSections.length)}${useDemoData ? ' DEMO' : ''} Tags for section 12 --------`)
+    logDebug('getTaggedSections', `------- Gathering ${String(tagSections.length)}${useDemoData ? ' DEMO' : ''} Tags for section 12 --------`)
 
     const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
       const showSettingForTag = config[sectionDetail.showSettingName]
