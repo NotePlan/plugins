@@ -215,7 +215,7 @@ export const getFilteredProps = (object: any): Array<string> => {
  */
 export function copyObject(obj: any): any {
   const props = getFilteredProps(obj)
-  return props.reduce((acc, p) => {
+  return props.reduce((acc, p: any) => {
     acc[p] = obj[p]
     return acc
   }, {})
@@ -250,11 +250,11 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
 
   // Handle Array
   if (Array.isArray(value)) {
-    const arrayCopy = value.map((item) => deepCopy(item, propsToInclude, showIndices))
+    const arrayCopy = value.map((item: any) => deepCopy(item, propsToInclude, showIndices))
     if (showIndices) {
       // Convert array to object with index keys for stringification
       const objectWithIndices = {}
-      arrayCopy.forEach((item, index) => {
+      arrayCopy.forEach((item: any, index: number) => {
         objectWithIndices[`[${index}]`] = item
       })
       return objectWithIndices
@@ -349,14 +349,13 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 }
 
 /**
- * Test if _logFunctionRE is set and matches the current log details
- * @param {any} logType 
+ * Test if _logFunctionRE is set and matches the current log details.
+ * Note: only works if DataStore is available.
+ * @param {any} pluginInfo 
  * @returns 
  */
-export const shouldOutputForFunctionName = (pluginInfo: string): boolean => {
+export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
-  // New additional test: if _logFunctionRE is set, allow through 
-  // Original test: use _logLevel to decide whether to output
   if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
     const functionRE = new RegExp(pluginSettings['_logFunctionRE'])
     const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
@@ -367,7 +366,7 @@ export const shouldOutputForFunctionName = (pluginInfo: string): boolean => {
 
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
- * @author @codedungeon
+ * @author @codedungeon extended by @jgclark
  * @param {any} pluginInfo
  * @param {any} message
  * @param {string} type
