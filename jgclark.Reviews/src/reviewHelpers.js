@@ -1028,7 +1028,7 @@ export class Project {
       }
 
       // Column 2a: Project name / link / edit dialog trigger button
-      const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(this.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+      const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(this.filename)}'})"><i class="fa-light fa-edit pad-left-larger"></i></a>\n`
       if (this.isCompleted || this.isCancelled || this.isPaused) {
         output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
       }
