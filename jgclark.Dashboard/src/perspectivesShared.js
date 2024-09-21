@@ -10,7 +10,6 @@ import { logDebug } from '@helpers/dev'
  * @param {TDashboardSettings} dashboardSettings
  * @returns
  */
-
 export function getCurrentlyAllowedFolders(
   dashboardSettings: TDashboardSettings
 ): Array<string> {
@@ -20,21 +19,4 @@ export function getCurrentlyAllowedFolders(
   const excludedFolderArr = stringListOrArrayToArray(dashboardSettings.excludedFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
-}/**
- * Is the filename from the given list of folders?
- * @param {string} filename
- * @param {Array<string>} folderList
- * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
- * @returns {boolean}
- */
-
-export function isFilenameAllowedInFolderList(
-  filename: string,
-  folderList: Array<string>
-): boolean {
-  // Is filename in folderList?
-  const matchFound = folderList.some((f) => filename.includes(f))
-  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
-  return matchFound
 }
-
