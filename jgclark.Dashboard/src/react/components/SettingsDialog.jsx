@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-08-26 for v2.1.0.a9+ by @jgclark
+// Last updated 2024-09-21 for v2.1.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -51,9 +51,9 @@ const SettingsDialog = ({
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
-	const { dashboardSettings, setDashboardSettings, setPerspectiveSettings } = useAppContext()
+	const { dashboardSettings, setDashboardSettings, setPerspectiveSettings, pluginData } = useAppContext()
 
-	// clo(items, 'items', 2)
+	const pluginDisplayVersion = `v${pluginData.version}`
 
 	//----------------------------------------------------------------------
 	// State
@@ -85,16 +85,15 @@ const SettingsDialog = ({
 	function stateOfControllingSetting(item: TSettingItem): boolean {
 		const dependsOn = item.dependsOnKey ?? ''
 		if (dependsOn) {
-			const thatItem = items.find(f => f.key === dependsOn)
-			if (!thatItem) {
+			const thatKey = items.find(f => f.key === dependsOn)
+			if (!thatKey) {
 				logWarn('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
 				return false
 			}
 			// FIXME: this gets called, but seems to to use the saved, not live state.
-			// Note: 
-			const isthatItemChecked = updatedSettings[dependsOn] ?? false
-			logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isthatItemChecked=${String(isthatItemChecked)}'`)
-			return typeof isthatItemChecked === 'boolean' && isthatItemChecked
+			const isThatKeyChecked = thatKey?.checked ?? false
+			logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}'`)
+			return isThatKeyChecked
 		} else {
 			// shouldn't get here
 			logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)
@@ -206,6 +205,7 @@ const SettingsDialog = ({
 					)}
 				</div>
 				<div className="settings-dialog-content">
+					{/* Iterate over all the settings */}
 					{items.map((item, index) => (
 						<div key={`sdc${index}`}>
 							{renderItem({
@@ -222,12 +222,15 @@ const SettingsDialog = ({
 											? updatedSettings[item.key]
 											: false,
 								},
+								disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
 								handleFieldChange,
 								labelPosition,
 								showSaveButton: false, // Do not show save button
 								// $FlowFixMe[incompatible-exact] reason for suppression
 								// $FlowFixMe[incompatible-call] reason for suppression
 								inputRef: item.type === 'combo' ? dropdownRef : undefined, // Assign ref to the dropdown input
+								indent: !!item.dependsOnKey,
+								className: '', // for future use
 								showDescAsTooltips: false
 							})}
 						{/* {item.description && (
@@ -235,6 +238,7 @@ const SettingsDialog = ({
 						)} */}
 					</div>
 				))}
+					<div className="item-description">{pluginDisplayVersion}</div>
 				</div>
 			</div>
 		</Modal>

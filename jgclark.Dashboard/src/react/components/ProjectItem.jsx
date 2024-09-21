@@ -83,7 +83,7 @@ function ProjectItem({ item }: Props): Node {
           <span className="folderName">{folderNamePart}</span>}
         {noteTitleWithOpenAction}
         <a className="dialogTrigger">
-          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+          <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
         </a>
         {progressContent}
       </div>

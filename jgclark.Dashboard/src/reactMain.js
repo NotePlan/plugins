@@ -179,13 +179,14 @@ export async function makeSettingsAsCallback(): Promise<void> {
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
-  const dashboardSettings = (await getDashboardSettings()) || {}
-  // set everything to off to begin with
+  const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
+  // set everything off to begin with
   const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
     if (key) dashboardSettings[key] = false
   })
+
   // also turn off the specific tag sections (e.g. "showTagSection_@home")
   keys.forEach((key) => dashboardSettings[key] = false)
   const sectionsToShow = limitToSections.split(',')
@@ -288,7 +289,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData) 
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
-    const ENV_MODE = 'production' // 'development' /* 'development' helps during development. set to 'production' when ready to release */
+    const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
@@ -431,6 +432,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    version: pluginJson["plugin.version"],
   }
 
   // Calculate all done task counts (if the appropriate setting is on)

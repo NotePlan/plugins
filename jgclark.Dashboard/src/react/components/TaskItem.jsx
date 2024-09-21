@@ -3,12 +3,12 @@
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end.
 // 
-// Last updated 2024-09-13 for v2.1.0.a10 by @jgclark
+// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useState } from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types'
-import { useAppContext } from './AppContext.jsx'
+// import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 // import ItemNoteLink from './ItemNoteLink.jsx'
 import StatusIcon from './StatusIcon.jsx'
@@ -68,9 +68,14 @@ function TaskItem({ item, thisSection }: Props): Node {
   //   }))
   // }
 
+  const indentLevel = item.para?.indentLevel ?? 0
+
   return (
     visible ? (
-      <div className="sectionItemRow" id={item.ID}>
+      // <div className="sectionItemRow" id={item.ID} style={{padding-left: calc(${item.para?.indentLevel ?? 0} * 1.35rem)}} >
+      <div className="sectionItemRow" id={item.ID} style={{
+        paddingLeft: `calc(${indentLevel} * var(--itemIndentWidth))`
+      }} >
         <StatusIcon
           item={item}
           respondToClicks={true}
@@ -80,7 +85,7 @@ function TaskItem({ item, thisSection }: Props): Node {
         {/* Note: following now moved into ItemContent to make layout easier */}
         {/* {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />} */}
         {/* <a className="dialogTriggerIcon">
-          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+          <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
         </a> */}
         {/* </ItemContent> */}
       </div>

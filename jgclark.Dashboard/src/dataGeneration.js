@@ -2,7 +2,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-09-19 for v2.1.0.a8+ by @jgclark
+// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,9 +42,7 @@ import {
   isLineDisallowedByExcludedTerms,
   isNoteInAllowedFolderList,
 } from './perspectiveHelpers'
-import {
-  isFilenameAllowedInFolderList
-, getCurrentlyAllowedFolders } from './perspectivesShared.js'
+import { getCurrentlyAllowedFolders } from './perspectivesShared.js'
 import type {
   TDashboardSettings,
   TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
@@ -62,9 +60,8 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import {
   toNPLocaleDateString,
 } from '@helpers/NPdateTime'
-import {
-  findNotesMatchingHashtagOrMention,
-} from '@helpers/NPnote'
+import { isNoteFromAllowedFolder } from '@helpers/note.js'
+import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
@@ -1067,7 +1064,6 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
   try {
     const tagSections = useDemoData ? demoTaggedSectionDetails : getTagSectionDetails(config)
     logDebug('getTaggedSections', `------- Gathering ${String(tagSections.length)}${useDemoData ? ' DEMO' : ''} Tags for section 12 --------`)
-
     const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
       const showSettingForTag = config[sectionDetail.showSettingName]
       if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
@@ -1134,7 +1130,7 @@ export function getTaggedSectionData(dashboardSettings: TDashboardSettings, useD
 
       for (const n of notesWithTag) {
         // Only continue if this is an allowed folder
-        if (currentlyAllowedFolders !== [] && n.type === 'Notes' && !isFilenameAllowedInFolderList(n.filename, currentlyAllowedFolders)) {
+        if (currentlyAllowedFolders !== [] && n.type === 'Notes' && !isNoteFromAllowedFolder(n, currentlyAllowedFolders)) {
           // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is not in allowed list`)
           ignoredNotes++
           continue
@@ -1492,12 +1488,15 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
           project: {
             title: n.title ?? '(error)',
             filename: thisFilename,
+            // These are all overloaded for ease
             // $FlowIgnore[prop-missing]
             reviewInterval: n.reviewInterval ?? '',
             // $FlowIgnore[prop-missing]
             percentComplete: n.percentComplete ?? NaN,
             // $FlowIgnore[prop-missing]
             lastProgressComment: n.lastProgressComment ?? '',
+            // $FlowIgnore[prop-missing]
+            nextReviewDays: n.nextReviewDays ?? 0
           },
         })
         itemCount++
@@ -1528,11 +1527,9 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
           // If we already have enough projects to show, return early
           if (itemCount >= maxProjectsToShow) { return }
 
-          const thisFilename = n.filename
-
           // Only continue if this is an allowed folder
           // FIXME: continuing when it shouldn't?
-          if (currentlyAllowedFolders !== [] && isFilenameAllowedInFolderList(thisFilename, currentlyAllowedFolders)) {
+          if (currentlyAllowedFolders !== [] && isNoteFromAllowedFolder(n, currentlyAllowedFolders)) {
             // Make a project instance for this note, as a quick way of getting its metadata
             // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
             const projectInstance = new Project(n, '', false)
@@ -1542,10 +1539,11 @@ export async function getProjectSectionData(dashboardSettings: TDashboardSetting
               itemType: 'project',
               project: {
                 title: n.title ?? '(error)',
-                filename: thisFilename,
+                filename: n.filename,
                 reviewInterval: projectInstance.reviewInterval,
                 percentComplete: projectInstance.percentComplete,
                 lastProgressComment: projectInstance.lastProgressComment,
+                nextReviewDays: projectInstance.nextReviewDays
               },
             })
             itemCount++

@@ -1,16 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
+// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import {
-  isFilenameAllowedInFolderList
-, getCurrentlyAllowedFolders } from './perspectivesShared'
+import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
@@ -19,13 +17,13 @@ import {
   getTodaysDateHyphenated,
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   sendToHTMLWindow,
   getGlobalSharedData,
 } from '@helpers/HTMLView'
-import { filterOutParasInExcludeFolders, getNoteByFilename, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import { filterOutParasInExcludeFolders, getNoteByFilename, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
@@ -178,11 +176,12 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         content: p.content,
         rawContent: p.rawContent,
         priority: getNumericPriorityFromPara(p),
-        timeStr: getStartTimeFromPara(p), // TODO: does this do anything now?
+        timeStr: getStartTimeFromPara(p),
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
         hasChild: hasChild,
         isAChild: isAChild,
+        indentLevel: p.indents
       }
     })
     return dashboardParas
@@ -297,27 +296,29 @@ export function getOpenItemParasForCurrentTimePeriod(
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
+    // logTimer('getOpenItemPFCTP', startTime, `- after getReferencedParagraphs(): ${refOpenParas.length} para(s)`)
 
     // Remove items referenced from items in 'excludedFolders'
     // v1
     // const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
     // refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} paras`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} para(s)`)
     // v2
     // Get list of allowed folders (using both include and exlcude settings)
     const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
-    refOpenParas = refOpenParas.filter((p) => isFilenameAllowedInFolderList(p.note?.filename ?? '', allowedFoldersInCurrentPerspective))
-    logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} paras`)
+    // $FlowIgnore[incompatible-call]
+    refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
+    // logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} para(s)`)
 
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} paras`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'dedupe' filter: ${refOpenParas.length} para(s)`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
       const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
       refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
-      logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} paras`)
+      // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
     } else {
       // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
@@ -335,12 +336,12 @@ export function getOpenItemParasForCurrentTimePeriod(
       const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
       // come back to main thread
       // await CommandBar.onMainThread()
-      // logDebug('getOpenItemPFCTP', `- sorted after ${timer(startTime)}`)
+      // logTimer('getOpenItemPFCTP', startTime, `- sorted`)
       return [sortedOpenParas, sortedRefOpenParas]
     } else {
       const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      // logDebug('getOpenItemPFCTP', `- sorted after ${timer(startTime)}`)
+      // logTimer('getOpenItemPFCTP', startTime, `- sorted`)
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]

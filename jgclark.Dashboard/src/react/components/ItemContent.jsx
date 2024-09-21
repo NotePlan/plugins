@@ -88,10 +88,13 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   // console.log(`-> ${mainContent}`)
 
-  // if isAChild, then set parent icon
+  // if hasChild, then set suitable icon
   // another version had 'fa-arrow-down-from-line' icon for parent
   const possParentIcon = dashboardSettings.showParentChildMarkers && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
-  const possChildIcon = dashboardSettings.showParentChildMarkers && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
+  // if isAChild, then set suitable icon
+  // Note: now handled by flex layout and indent on ItemRow
+  // const possChildIcon = dashboardSettings.showParentChildMarkers && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
+  const possChildIcon = ''
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
     // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
@@ -110,7 +113,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   return (
     <div className="sectionItemContent">{possChildIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{possParentIcon}
       <a className="dialogTriggerIcon">
-        <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+        <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
       </a>
       {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
     </div>

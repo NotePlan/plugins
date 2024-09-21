@@ -1379,20 +1379,21 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
+ * Removes '>date' (including '>today') if present.
  * TODO: Cope with non-daily scheduled dates.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
- * @returns {boolean|TParagraph} success? - returns the paragraph updated if successful (for use in updateCache)
+ * @returns {TParagraph|false} success? - returns the paragraph updated if successful (for use in updateCache) or false
  */
-export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean | TParagraph {
+export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): false | TParagraph {
   if (para) {
     // Default to using current date/time
     // TEST: this should return in user locale time format (up to a point)
-    // FIXME: this call (which uses Noteplan.environment.is12hr) makes Dashbaord fail. The previous call without Noteplan.environment doesn't fail.
-    let dateString = nowDoneDateTimeString()
+    let dateTimeString = nowDoneDateTimeString()
     if (useScheduledDateAsCompletionDate) {
+      let dateString = ''
       // But use scheduled date instead if found
       if (hasScheduledDate(para.content)) {
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
@@ -1406,8 +1407,13 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
           logDebug('markComplete', `will use date of note ${dateString} as completion date`)
         }
       }
+      // add time on to give same structure
+      const timeString = NotePlan?.environment.is12hFormat ? '00:00 AM' : '00:00'
+      dateTimeString = `${dateString} ${timeString}`
+    } else {
+      logDebug('markComplete', `will add ${dateTimeString} as completion date`)
     }
-    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
+    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateTimeString})` : ''
 
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
@@ -1416,12 +1422,12 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para "{para.content}"`)
+      logDebug('markComplete', `updated para "${para.content}"`)
       return para
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para "{para.content}"`)
+      logDebug('markComplete', `updated para "${para.content}"`)
       return para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)

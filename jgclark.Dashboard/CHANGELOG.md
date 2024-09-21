@@ -1,8 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- - TODO: add active links to section titles in description area -->
-<!-- TODO: need to fix the `controlsOtherKeys` logic in settings window. -->
+
+## [Perspectives.a12] @jgc, 2024-09-???
+- add time to @done(...) when "completing then"
+- fixed some items not being found when referenced to weekly notes
+- child items are now indented like in the NP Editor
+- in the item dialog box, there's now a note if an item has children
+- updated demo data to update data structures for children
+- tidy up vertical spacing in Settings dialog
+- added version number to end of Settings dialog
+- improved details in title of project dialogs
+- got the linkage between settings items partly working again -- FIXME: though its not updating live
 
 ## [Perspectives.a11] @jgc, 2024-09-19
 - added `isAChild` logic, a new marker icon to show children, and a new "Show parent/child markers on items?" setting.
@@ -11,8 +20,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO: update Interactive Processing button to not show child items that have already been moved. (Started but not finished.)
 - fix typos in "Move all to today" dialog 
 - fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
 - changed Interactive Processing icon to not imply 'refresh'
 - stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
 - dbw: brought back the (hidden) plugin settings for ios so that we could tell an iOS or ipad user how to set debug logging by clicking  [Change Dashboard Settings](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Update%20plugin%20settings) TODO: maybe you could include that in a pinned note for dashboard?
 
 ## [Perspectives.a10] @jgc, 2024-08-27

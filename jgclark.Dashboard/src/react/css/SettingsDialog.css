@@ -23,23 +23,24 @@
     .ui-heading {
         font-size: 130%;
         color: var(--tint-color);
-        /* padding-bottom: 0.3rem; */
         font-weight: 600;
         text-align: start;
         line-height: 140%;
-        padding: 0.3rem 0 0.5rem 0;
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
     }
 
     /* Style for container for Items in a section */
     .ui-item {
-        padding: 0.3rem 0 0 0;
+        /* turning all off (had been top:0.3rem) to give flexibility elsewhere */
+        padding: 0 0 0 0; 
     }
 
     /* Style for Item descriptions that follow the item */
     .item-description {
         font-size: small;
         color: var(--fg-alt-color);
-        margin: 0 0 0.4rem 0;
+        /* margin-bottom: 0.4rem; */
         /* opacity: 0.8; */
     }
 
@@ -107,7 +108,6 @@
         align-items: center;
         gap: 0.5rem;
         /* Left justify */
-        gap: 0.5rem;
         justify-content: flex-start;
         /* little space above/below */
         padding: 0.1rem 0rem 0.3rem 0rem;
@@ -138,9 +138,9 @@
         /* Show all label in one row, and rest of line to input box */
         grid-template-columns: [label] auto [input] 1fr;
         flex-direction: row;
+        column-gap: 0.5rem;
         justify-content: start;
         align-items: center;
-        gap: 0.5rem;
     }
 
     /* Turn off compact mode in narrower screens */
@@ -329,7 +329,7 @@
 .settings-dialog-content {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem; /* down from 1rem to give more control elsewhere */
+    gap: 0.5rem; /* down from 1rem to give more control elsewhere */
     background-color: var(--bg-mid-color);
     padding: 0.75rem 1.25rem;
     border-radius: 8px;

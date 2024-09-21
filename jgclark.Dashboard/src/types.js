@@ -127,12 +127,13 @@ export type TParagraphForDashboard = {
   rawContent: string,
   priority: number,
   blockId?: string,
-  // timeStr?: string, // = timeblock. TEST: commenting this out doesn't break anything I can see
+  timeStr?: string, // = used to order extended paragraphs. TODO: Can it be consolidated with .startTime?
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
+  indentLevel: number, // indent level (i.e. children will be 1+)
 }
 
 // a project item within a section
@@ -142,6 +143,7 @@ export type TProjectForDashboard = {
   reviewInterval: string, /* from the Project instance */
   percentComplete: number, /* from the Project instance */
   lastProgressComment: string, /* from the Project instance */
+  nextReviewDays: number, /* from the Project instance */
 }
 
 // details for a UI button
@@ -285,6 +287,7 @@ export type TPluginData = {
   demoMode: boolean, /* use fake content for demo purposes */
   totalDoneCounts?: TDoneCount,
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
+  version: string,
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' 

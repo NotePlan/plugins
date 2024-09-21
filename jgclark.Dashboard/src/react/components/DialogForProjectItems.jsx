@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2024-08-25 for v2.0.6 by @jgclark
+// Last updated 2024-09-21 for v2.1.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -12,7 +12,7 @@ import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ProjectIcon from './ProjectIcon'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
-import { hyphenatedDateString } from '@helpers/dateTime'
+import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -46,7 +46,13 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const { sendActionToPlugin, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
-  const reviewDetails = (thisItem.project?.reviewInterval) ? ` (review: ${thisItem.project.reviewInterval})` : ''
+  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `reviews: ${thisItem.project.reviewInterval}` : ''
+  const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
+  const reviewDetails = (reviewIntervalStr && reviewDaysStr)
+    ? `(${reviewIntervalStr}; ${reviewDaysStr})`
+    : (!reviewIntervalStr && !reviewDaysStr)
+      ? ''
+      : `(${reviewIntervalStr}${reviewDaysStr})`
 
   /**
    * Arrays of buttons to render.
@@ -158,15 +164,17 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       >
         {/* Title area ---------------- */}
         <div className="dialogTitle">
+          <div className="projectIcon">
           <ProjectIcon
             item={thisItem}
-          />
+            />
+          </div>
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}
             label={`Task Item Dialog for ${title}`}
           >
-            <span className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
+            <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
               <span className="dialogItemNote" >{title}</span>
             </span>
             {reviewDetails}
@@ -189,11 +197,11 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   title={button.description}
                   onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-right`}></i>
                   ))}
                   {button.label}
                   {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-left`}></i>
                   ))}
                 </button>
               ))}
@@ -211,11 +219,11 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                       title={button.description}
                       onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                       {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                        <i key={icon.className} className={`${icon.className} pad-right`}></i>
                       ))}
                       {button.label}
                       {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                        <i key={icon.className} className={`${icon.className} pad-left`}></i>
                       ))}
                     </button>
                   ))}
@@ -232,11 +240,11 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   title={button.description}
                   onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-right`}></i>
                   ))}
                   {button.label}
                   {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-left`}></i>
                   ))}
                 </button>
               ))}
