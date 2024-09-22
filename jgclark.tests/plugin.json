@@ -1,0 +1,37 @@
+{
+  "noteplan.minAppVersion": "3.3.2",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.tests",
+  "plugin.name": "❓API Tests",
+  "plugin.description": "(Unpublished) API Tests by JGC",
+  "plugin.icon": "",
+  "plugin.author": "jgclark",
+  "plugin.url": "",
+  "plugin.version": "0.1.1",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "test:invokePluginCommandByName",
+      "description": "invokePluginCommandByName",
+      "jsFunction": "invokePluginCommandByName"
+    },
+    {
+      "name": "test:note info",
+      "description": "log details of a note the user requests",
+      "jsFunction": "logNoteInfo"
+    },
+    {
+      "name": "test:current note info",
+      "description": "log details of the currently open note",
+      "jsFunction": "logCurrentNoteInfo"
+    },
+    {
+      "name": "test:show start active",
+      "description": "show first active line in the editor",
+      "jsFunction": "showStartActive"
+    }
+  ],
+  "plugin.settings": []
+}

@@ -669,43 +669,52 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
   allowNewNoteCreation?: boolean = false,
 ): Promise<TNote | null> {
-  let noteList = []
-  const projectNotes = DataStore.projectNotes
-  const calendarNotes = DataStore.calendarNotes
-  if (includeProjectNotes) {
-    noteList = noteList.concat(projectNotes)
-  }
-  if (includeCalendarNotes) {
-    noteList = noteList.concat(calendarNotes)
-  }
-  const noteListFiltered = noteList.filter((note) => {
-    // filter out notes that are in folders to ignore
-    let isInIgnoredFolder = false
-    foldersToIgnore.forEach((folder) => {
-      if (note.filename.includes(`${folder}/`)) {
-        isInIgnoredFolder = true
-      }
+  try {
+    let noteList: Array<TNote> = []
+    const projectNotes = DataStore.projectNotes
+    const calendarNotes = DataStore.calendarNotes
+    if (includeProjectNotes) {
+      noteList = noteList.concat(projectNotes)
+    }
+    if (includeCalendarNotes) {
+      noteList = noteList.concat(calendarNotes)
+    }
+    const noteListFiltered = noteList.filter((note) => {
+      // filter out notes that are in folders to ignore
+      let isInIgnoredFolder = false
+      foldersToIgnore.forEach((folder) => {
+        if (note.filename.includes(`${folder}/`)) {
+          isInIgnoredFolder = true
+        }
+      })
+      isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
+      return !isInIgnoredFolder
     })
-    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
-    return !isInIgnoredFolder
-  })
-  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
-  const opts = sortedNoteListFiltered.map((note) => {
-    return displayTitleWithRelDate(note)
-  })
-  const { note } = Editor
-  if (allowNewNoteCreation) {
-    opts.unshift('[New note]')
-    sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
+    // $FlowIgnore[unsafe-arithmetic]
+    const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+    const opts = sortedNoteListFiltered.map((note) => {
+      return displayTitleWithRelDate(note)
+    })
+    const { note } = Editor
+    if (allowNewNoteCreation) {
+      opts.unshift('[New note]')
+    }
+    if (currentNoteFirst && note) {
+      sortedNoteListFiltered.unshift(note)
+      opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
+    }
+    const { index, value } = await CommandBar.showOptions(opts, promptText)
+    if (allowNewNoteCreation) {
+      if (index === 0) {
+        return await createNewNote()
+      } else {
+        return sortedNoteListFiltered[index - 1]
+      }
+    } else {
+      return sortedNoteListFiltered[index]
+    }
+  } catch (error) {
+    logError('userInput / chooseNote', error.message)
+    return null
   }
-  if (currentNoteFirst && note) {
-    sortedNoteListFiltered.unshift(note)
-    opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
-  }
-  const { index } = await CommandBar.showOptions(opts, promptText)
-  let noteToReturn = sortedNoteListFiltered[index]
-  if (noteToReturn === '[New note]') {
-    noteToReturn = await createNewNote()
-  }
-  return noteToReturn ?? null
 }
