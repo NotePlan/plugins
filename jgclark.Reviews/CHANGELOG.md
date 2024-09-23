@@ -1,7 +1,8 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
-<!-- - resize action -->
-<!-- checkboxes for only display overdue, and showing finished items -->
+
+## [0.14.2] - 2024-09-23 not released
+- bug fix on calculating % complete on projects with some progress lines
 
 ## [0.14.1] - 2024-09-03
 ### New

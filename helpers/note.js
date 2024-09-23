@@ -66,9 +66,9 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
  * Print summary of note details to log
  * @author @eduardmet
  * @param {TNote} note
- * @param {boolean} alsoShowParagraphs?
+ * @param {boolean} alsoShowParagraphs? (default: false)
  */
-export function printNote(note: TNote, alsoShowParagraphs: boolean = true): void {
+export function printNote(note: TNote, alsoShowParagraphs: boolean = false): void {
   if (note == null) {
     logDebug('note/printNote()', 'No Note found!')
     return

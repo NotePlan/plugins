@@ -226,7 +226,7 @@ export type Progress = {
  * @param {Array<TParagraph>} progressParas
  * @returns {number} lineIndex of the most recent line
  */
-function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
+function processMostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
   try {
     let lastDate = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
     // let lastIndex = 0 // Default to returning first line
@@ -242,7 +242,7 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       // if (progressParaParts.length >= 1) {
       // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
-      // logDebug('mostRecentProgressParagraph', progressLine)
+      // logDebug('processMostRecentProgressParagraph', progressLine)
       const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
         // $FlowIgnore
         ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
@@ -251,18 +251,19 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
           ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
           : new Date('0001-01-01')
       const tempSplitParts = progressLine.split(/[:@]/)
-      // logDebug('mostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
+      // logDebug('processMostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
       const comment = tempSplitParts[3] ?? ''
 
       const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
-      // logDebug('mostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
+      // logDebug('processMostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
       const percent: number = (tempNumberMatches && tempNumberMatches.length > 0)
         ? Number(tempNumberMatches[1])
         : NaN
+      // logDebug('processMostRecentProgressParagraph', `-> ${String(percent)}`)
 
       if (thisDate > lastDate) {
         // lastIndex = i // progressPara.lineIndex
-        // logDebug('Project::mostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
+        // logDebug('Project::processMostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
         outputProgress = {
           lineIndex: progressPara.lineIndex,
           percentComplete: percent,
@@ -275,10 +276,10 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       // }
       // i++
     }
-    // clo(outputProgress, 'mostRecentProgressParagraph ->')
+    // clo(outputProgress, 'processMostRecentProgressParagraph ->')
     return outputProgress
   } catch (e) {
-    logError('Project::mostRecentProgressParagraph', e.message)
+    logError('Project::processMostRecentProgressParagraph', e.message)
     return {
       lineIndex: 1,
       percentComplete: NaN,
@@ -402,7 +403,7 @@ export class Project {
       }
       this.title = note.title
       this.filename = note.filename
-      // logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
+      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -410,12 +411,12 @@ export class Project {
 
       // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
       // (Unless 'checkEditor' false, to avoid triggering 'You are running this on an async thread' warnings.)
-      let paras: $ReadOnlyArray<TParagraph>
+      let paras: Array<TParagraph>
       if (checkEditor && Editor && Editor.note && (Editor.note.filename === note.filename)) {
-        const noteReadOnly: CoreNoteFields = Editor.note
-        paras = noteReadOnly.paragraphs
+        const editorNote: CoreNoteFields = Editor.note
+        paras = editorNote.paragraphs
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
-        const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+        const timeSinceLastEdit: number = Date.now() - editorNote.versions[0].date
         logDebug('Project constructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
@@ -451,7 +452,7 @@ export class Project {
               : ''
       } catch (e) {
         this.noteType = ''
-        logInfo('Project constructor', `- found no noteType for '${this.title}' in folder ${this.folder}`)
+        logWarn('Project constructor', `- found no noteType for '${this.title}' in folder ${this.folder}`)
       }
 
       // read in various metadata fields (if present)
@@ -487,30 +488,11 @@ export class Project {
       }
 
       // count tasks (includes both tasks and checklists)
-      // Note: excludes future tasks -- perhaps this wasnts to be an optional decision?
+      // Note: excludes future tasks
       this.openTasks = paras.filter(isOpen).length
       this.completedTasks = paras.filter(isDone).length
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
-
-      // Track percentComplete: either through calculation or through progress line (done later)
-      const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
-      if (totalTasks > 0) {
-        // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
-        this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
-      } else {
-        this.percentComplete = NaN
-      }
-
-      if (this.title.includes('(TEST)')) {
-        logDebug('Project constructor', `- for '${this.title}' (${this.filename}) in folder ${this.folder}`)
-        logDebug('Project constructor', `  - metadataLine = ${metadataLine}`)
-        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
-        // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
-        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project constructor', `  - % complete = ${String(this.percentComplete)}`)
-      }
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -535,10 +517,31 @@ export class Project {
         this.calcNextReviewDate()
       }
 
-      // logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
-
       // Find progress field lines (if any) and process
       this.processProgressLines()
+
+      // If percentComplete not set via progress line, then calculate
+      const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
+      if (totalTasks > 0) {
+        // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
+        this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
+      } else {
+        this.percentComplete = NaN
+      }
+
+      // logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+
+      if (this.title.includes('(TEST)')) {
+        logDebug('Project constructor', `- for '${this.title}' (${this.filename}) in folder ${this.folder}`)
+        logDebug('Project constructor', `  - metadataLine = ${metadataLine}`)
+        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
+        // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
+        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
+        // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
+        logDebug('Project constructor', `  - open: ${String(this.openTasks)}`)
+        logDebug('Project constructor', `  - completed: ${String(this.completedTasks)}`)
+        logDebug('Project constructor', `  - % complete = ${String(this.percentComplete)}`)
+      }
     }
     catch (error) {
       logError('Project constructor', error.message)
@@ -665,7 +668,7 @@ export class Project {
         insertionIndex = findStartOfActivePartOfNote(this.note, true)
         logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
       } else {
-        // insertionIndex = mostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
+        // insertionIndex = processMostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
         logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
       }
 
@@ -726,13 +729,13 @@ export class Project {
 
     if (progressParas.length > 0) {
       // Get the most recent progressItem from these lines
-      const progressItem: Progress = mostRecentProgressParagraph(progressParas)
+      const progressItem: Progress = processMostRecentProgressParagraph(progressParas)
       this.percentComplete = progressItem.percentComplete
       this.lastProgressComment = progressItem.comment
       this.mostRecentProgressLineIndex = progressItem.lineIndex
       // logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
     } else {
-      // logDebug('Project::processProgressLines', `- no progress fields found`)
+      logDebug('Project::processProgressLines', `- no progress fields found`)
     }
   }
 
