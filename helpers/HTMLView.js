@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-06 by @jgclark
+// Last updated 2024-09-24 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -977,7 +977,7 @@ export function convertNPBlockIDToHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from RE_SYNC_MARKER match:')
     for (const capture of captures) {
-      output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
+      output = output.replace(capture, '<i class="fa-solid fa-asterisk syncMarker"></i>')
     }
   }
   return output

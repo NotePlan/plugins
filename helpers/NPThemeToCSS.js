@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 30.6.2024 by @jgclark
+// Last updated 2024-09-24 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -399,6 +399,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority4', tempSel))
+    }
+
+    // Set class for blockID (sync marker) if present from 
+    styleObj = themeJSON.styles.body
+    if (styleObj) {
+      const thisColor = RGBColourConvert(themeJSON?.editor?.tintColor2 ?? '#71b3c0')
+      tempSel = []
+      tempSel.push(`color: ${RGBColourConvert(thisColor) ?? 'inherit'}`)
+      output.push(makeCSSSelector('.syncMarker', tempSel))
     }
 
     // Set class for Time Blocks if present
