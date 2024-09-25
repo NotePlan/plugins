@@ -37,10 +37,11 @@ export async function fileRootNotes(): Promise<void> {
     logDebug('allRelevantFolders', String(allRelevantFolders))
 
     // Pre-pend some special items
+    allRelevantFolders.unshift(`🆕 Move to a new folder`)
     allRelevantFolders.unshift(`🗑️ Delete this note`)
     allRelevantFolders.unshift(`❌ Stop processing`)
     if (NotePlan.environment.buildVersion >= 1045) { allRelevantFolders.unshift(`➡️ Ignore this note from now on`) } // what this calls fails before 3.9.2b
-    allRelevantFolders.unshift(`➡️ Leave this note in root`)
+    allRelevantFolders.unshift(`◎ Leave this note in root`)
     logDebug('allRelevantFolders', String(allRelevantFolders))
     const options = allRelevantFolders.map((f) => ({
       label: f,
@@ -59,7 +60,7 @@ export async function fileRootNotes(): Promise<void> {
         // open the note we're going to move in the Editor to help user assess what to do
         const res = await Editor.openNoteByFilename(thisFilename)
 
-        const chosenFolder: string = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
+        let chosenFolder: string = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
         switch (chosenFolder) {
           case '❌ Stop processing': {
             logInfo('fileRootNotes', `User cancelled operation.`)
@@ -78,10 +79,12 @@ export async function fileRootNotes(): Promise<void> {
             }
             break
           }
-          case '➡️ Leave this note in root': {
+
+          case '◎ Leave this note in root': {
             logDebug('fileRootNotes', `Leaving '${thisTitle}' note in root`)
             break
           }
+
           case '🗑️ Delete this note': {
             logInfo('fileRootNotes', `User has asked for '${thisTitle}' note (filename '${thisFilename}') to be deleted ...`)
             const res = DataStore.moveNote(n.filename, '@Trash')
@@ -93,6 +96,33 @@ export async function fileRootNotes(): Promise<void> {
             }
             break
           }
+
+          case '🆕 Move to a new folder': {
+            logDebug('fileRootNotes', `Moving '${thisTitle}' note to a 🆕 folder`)
+            const newFolder = await getInputTrimmed(`Name of new folder to create?`)
+            if (!newFolder || typeof newFolder === 'boolean') {
+              logWarn('fileRootNotes', `User cancelled operation.`)
+              break
+            }
+            if (newFolder === '') {
+              logError('fileRootNotes', `No new folder given.`)
+              break
+            }
+            logDebug('fileRootNotes', `Creating new folder '${newFolder}' ...`)
+            let res: any = DataStore.createFolder(newFolder)
+            if (!res) {
+              logError('fileRootNotes', `Couldn't create new folder ' ${newFolder}' for some reason`)
+            }
+            res = DataStore.moveNote(n.filename, newFolder)
+            if (res && res !== '') {
+              logDebug('fileRootNotes', `... filename now '${res}'`)
+              numMoved++
+            } else {
+              logError('fileRootNotes', `... Failed to move it to folder ${newFolder} for some reason. Does this folder name already exist?`)
+            }
+            break
+          }
+
           default: {
             logDebug('fileRootNotes', `Moving '${thisTitle}' note (filename '${thisFilename}') to folder '${chosenFolder}' ...`)
             const res = DataStore.moveNote(n.filename, chosenFolder)
@@ -100,7 +130,7 @@ export async function fileRootNotes(): Promise<void> {
               logDebug('fileRootNotes', `... filename now '${res}'`)
               numMoved++
             } else {
-              logError('fileRootNotes', `... Failed to move it for some reason`)
+              logError('fileRootNotes', `... Failed to move it to folder ${chosenFolder} for some reason`)
             }
           }
         }

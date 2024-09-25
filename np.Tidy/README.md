@@ -2,7 +2,7 @@
 
 This plugin provides commands to help tidy up your notes:
 
-- **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to permanently ignore.)
+- **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to, including the option of creating a new folder. (There's a setting for ones to permanently ignore.)
 - **/Generate @repeats in recent notes** (alias "grrn"): Generates any needed new @repeat() lines in all recently-changed notes. This is only useful for people using the extended @repeat() syntax of the separate [Repeat Extensions plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.RepeatExtensions/README.md).  This means you don't have to add the special trigger on every relevant note: instead you can include this command in your Daily Note template, or run it manually every day or two.
 - **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions, or to open them side-by-side for easier comparison.
     ![](conflicted-notes-v0.13.0.png)
