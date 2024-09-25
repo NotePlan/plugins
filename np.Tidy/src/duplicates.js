@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 19.3.2024  for v0.6.0+ by @jgclark
+// Last updated 2024-09-25 for v0.6.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,7 +10,7 @@ import {
   daysBetween,
   relativeDateFromDate,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
 import {
   getFolderListMinusExclusions,
   getFolderFromFilename,
@@ -33,7 +33,7 @@ const pluginID = 'np.Tidy'
 
 type dupeDetails = {
   title: string,
-  noteArray: Array<TNote>
+  noteArray: $ReadOnlyArray<TNote>
 }
 
 //----------------------------------------------------------------------------
@@ -59,17 +59,16 @@ function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDeta
     }
 
     // Get all dupes
-    const counter = {}
-    // $FlowIgnore[prop-missing]
+    const counter: { [mixed]: number } = {}
     const dupes = notes.filter(n => (counter[displayTitle(n)] = counter[displayTitle(n)] + 1 || 1) === 2)
     const dupeTitles = dupes.map(n => n.title ?? '')
 
     // Log details of each dupe
     for (const dt of dupeTitles) {
-      // $FlowIgnore[incompatible-call]
       const notesForThisTitle = DataStore.projectNoteByTitle(dt)
-      // $FlowIgnore[incompatible-call]
-      outputArray.push({ title: dt, noteArray: notesForThisTitle })
+      if (notesForThisTitle && notesForThisTitle.length > 0) {
+        outputArray.push({ title: dt, noteArray: notesForThisTitle })
+      }
     }
     return outputArray
   }
@@ -103,7 +102,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
 
     // Only continue if there are dupes found
     if (dupes.length === 0) {
-      logDebug('listDuplicates', `No duplicates found (in ${timer(startTime)}).`)
+      logTimer('listDuplicates', startTime, `No duplicates found`)
       if (!runSilently) {
         await showMessage(`No duplicates found! 🥳`)
       }
@@ -114,7 +113,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       }
       return
     } else {
-      logDebug('listDuplicates', `Found ${dupes.length} dupes in ${timer(startTime)}:`)
+      logTimer('listDuplicates', startTime, `Found ${dupes.length} dupes`)
     }
 
     // Form the contents of a note to display the details of dupes
