@@ -247,11 +247,12 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       preBodyScript: ``,
       postBodyScript: `
         <script type="text/javascript" >
-        // Set DataStore.settings so default clo etc. logging works in React
+        // Set DataStore.settings so default logDebug etc. logging works in React
         let DataStore = { settings: {_logLevel: "${logSettings._logLevel}" } };
         </script>
       `,
     }
+    //TODO: add the loglevle to the template and the dialog test
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)

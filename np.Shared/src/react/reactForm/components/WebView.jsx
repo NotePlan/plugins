@@ -7,7 +7,7 @@
 /**
  * IMPORTANT
  * YOU MUST ROLL UP THESE FILES INTO A SINGLE FILE IN ORDER TO USE IT IN THE PLUGIN
- * RUN FROM THE SHELL: node 'dwertheimer.ReactSkeleton/src/react/support/performRollup.node.js' --watch
+ * RUN FROM THE SHELL: node 'np.Shared/src/react/support/performRollup.node.js' --watch
  */
 
 type Props = {
@@ -31,11 +31,13 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
-import { type PassedData } from '../../reactMain.js'
+import { type PassedData } from '../../../NPFormPluginEntrypoint.js'
 import { AppProvider } from './AppContext.jsx'
-import CompositeLineExample from './CompositeLineExample.jsx'
-import Button from './Button.jsx'
-import { clo, logDebug, timer } from '@helpers/react/reactDev.js'
+import { clo, logDebug } from '@helpers/react/reactDev.js'
+
+/****************************************************************************************************************************
+ *                             CONSOLE LOGGING
+ ****************************************************************************************************************************/
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
@@ -60,40 +62,44 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
-  const { tableRows } = pluginData
+  clo(pluginData, 'reactForm WebView: pluginData')
+  const formFields = pluginData.formFields || []
 
   /****************************************************************************************************************************
    *                             HANDLERS
    ****************************************************************************************************************************/
 
-  /**
-   * Submit button on the page was clicked
-   * (sample handler for a button in the react window)
-   * @param {any} e - the event object
-   * @param {number} index - the index of the button that was clicked
-   */
-  const onSubmitClick = (e:any, index:number) => {
-    logDebug(`Webview: onSubmitClick: ${e.type || ''} click on index: ${index}`)
-    sendActionToPlugin('onSubmitClick', { index: index })
+  //
+  // Dynamic Dialog Example
+  //
+  const closeDialog = () => {
+    setReactSettings((prev) => ({ ...prev, dynamicDialog: { isOpen: false } }))
   }
 
-  // A sample function that does something interactive in the window using React
-  // you will delete this
-  const scrambleLines = () => {
-    logDebug(`Webview: scrambleLines: click`)
-    // in this example, we are not going to send any data back to the plugin, everything is local
-    // we are just randomly reordering the lines just for demonstration purposes
-    const newTableRows = [...tableRows]
-    newTableRows.sort(() => Math.random() - 0.5)
-    const newData = { ...data, pluginData: { ...data.pluginData, tableRows: newTableRows } }
-    dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
-    // this will cause this component to re-render with the new data
-    // will never reach anything below this line because the component will re-render
-    dispatch('SHOW_BANNER', {
-      msg: 'FYI: Page automatically re-rendered locally after pluginData was changed at Root component level. Did not call the plugin.',
-      color: 'blue',
-      border: 'blue',
-    })
+  const handleCancel = () => {
+    sendActionToPlugin('onSubmitClick', { type: 'cancel' })
+    closeDialog()
+  }
+
+  const handleSave = (formValues: Object) => {
+    clo(formValues, 'DynamicDialog: handleSave: formValues')
+    sendActionToPlugin('onSubmitClick', { type: 'submit', formValues, receivingTemplateTitle: pluginData['receivingTemplateTitle'] || '' })
+    closeDialog()
+  }
+
+  const openDialog = () => {
+    const allowEmptySubmit = pluginData.allowEmptySubmit ? /true/i.test(pluginData.allowEmptySubmit) : false
+    setReactSettings((prev) => ({
+      ...prev,
+      dynamicDialog: {
+        isOpen: true,
+        title: pluginData?.formTitle || 'Form Entry',
+        items: formFields,
+        allowEmptySubmit: allowEmptySubmit,
+        onSave: handleSave,
+        onCancel: handleCancel,
+      },
+    }))
   }
 
   /****************************************************************************************************************************
@@ -112,6 +118,9 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     }
   }, [data])
 
+  // open the dialog when the page loads
+  useEffect(() => openDialog(), [])
+
   /****************************************************************************************************************************
    *                             FUNCTIONS
    ****************************************************************************************************************************/
@@ -122,7 +131,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @returns {string} cleaned text without HTML entities
    */
   // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text:string):string {
+  function decodeHTMLEntities(text: string): string {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -139,6 +148,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
     if (!newData.passThroughVars) newData.passThroughVars = {}
+    // $FlowIgnore
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -162,6 +172,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
+  // $FlowIgnore
   const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
@@ -177,7 +188,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @throws {Error} Throws an error if newData is not provided or if it does not have more keys than the current pluginData.
    * @return {void}
    */
-  const updatePluginData = (newData, messageForLog?: string) => {
+  const updatePluginData = (newData: any, messageForLog?: string) => {
     if (!newData) {
       throw new Error('updatePluginData: newData must be called with an object')
     }
@@ -206,18 +217,9 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
-          <Button onClick={scrambleLines} className="w3-light-blue">
-            Randomize Lines Locally in React (without calling Plugin)
-          </Button>
-          <div className="w3-container w3-green w3-margin-top">
-            <div className="w3-cell-row" style={{ fontWeight: 'bold' }}>
-              <div className="w3-cell">Text</div>
-              <div className="w3-cell">Submit Change to Plugin</div>
-            </div>
-          </div>
-          {tableRows.map((row) => (
-            <CompositeLineExample index={row.id} onSubmitClick={onSubmitClick} key={row.id} textValue={row.textValue} buttonText={row.buttonText} />
-          ))}
+          <button onClick={openDialog} className="w3-light-pink">
+            Open Dialog
+          </button>
         </div>
         {/* end of replace */}
       </div>

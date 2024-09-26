@@ -20,8 +20,8 @@ export type AppContextType = {
   dispatch: (command: string, dataToSend: any, message?: string) => void, // Used mainly for showing banner at top of page to user
   pluginData: Object, // The data that was sent from the plugin in the field "pluginData"
   reactSettings: Object, // Dynamic key-value pair for reactSettings local to the react window (e.g. filterPriorityItems)
+  setReactSettings: (newSettings: Object) => void, // Update the reactSettings
   updatePluginData: (newData: Object, messageForLog?: string) => void, // Updates the global pluginData, generally not something you should need to do
-  setReactSettings: (newSettings: Object) => void,
 }
 
 // Default context value with initial reactSettings and functions.
@@ -31,8 +31,8 @@ const defaultContextValue: AppContextType = {
   dispatch: () => {},
   pluginData: {},
   reactSettings: {}, // Initial empty reactSettings local
+  setReactSettings: () => {}, // Placeholder function, actual implementation below.
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
-  setReactSettings: () => {},
 }
 
 type Props = {

@@ -1,14 +1,15 @@
 // @flow
 
-import pluginJson from '../plugin.json'
+import pluginJson from '../../np.Shared/plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getWindowFromId } from '@helpers/NPWindows'
+import { getWindowFromId, closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { showMessage } from '@helpers/userInput'
 
-const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
+const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} Form Entry React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
-const REACT_WINDOW_TITLE = 'React View Skeleton Test' // change this to what you want window title to display
+const REACT_WINDOW_TITLE = 'Form View' // change this to what you want window title to display
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -26,20 +27,20 @@ export type PassedData = {
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
-export function getInitialDataForReactWindowObjectForReactView(): PassedData {
+export function getInitialReactWindowData(argObj: Object): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getInitialDataForReactWindow()
+  const pluginData = getPluginData(argObj)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
-    title: REACT_WINDOW_TITLE,
+    title: argObj?.formTitle || REACT_WINDOW_TITLE,
     logProfilingMessage: false,
     debug: ENV_MODE === 'development' ? true : false,
     ENV_MODE,
-    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
+    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormMessageFromHTMLView' },
     /* change the ID below to your plugin ID */
-    componentPath: `../dwertheimer.ReactSkeleton/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+    componentPath: `../np.Shared/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
     startTime,
   }
   return dataToPass
@@ -52,16 +53,9 @@ export function getInitialDataForReactWindowObjectForReactView(): PassedData {
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export function getInitialDataForReactWindow(): { [string]: mixed } {
-  // for demonstration purposes will just fake some data for now,
+export function getPluginData(argObj: Object): { [string]: mixed } {
   // you would want to gather some data from your plugin
-  const data = Array.from(Array(10).keys()).map((i) => ({ textValue: `Item ${i}`, id: i, buttonText: `Submit ${i}` }))
-  return {
-    platform: NotePlan.environment.platform, // used in dialog positioning and CSS
-    tableRows: data,
-  } // this could be any object full of data you want to pass to the window
-  // we return tableRows just as an example, but there's nothing magic about that property name
-  // you could pass any object with any number of fields you want
+  return argObj // this could be any object full of data you want to pass to the window
 }
 
 /**
@@ -81,24 +75,25 @@ export function getInitialDataForReactWindow(): { [string]: mixed } {
  * @param {any} data - the relevant sent from the React Window (could be anything the plugin needs to act on the actionType)
  * @author @dwertheimer
  */
-export async function onMessageFromHTMLView(actionType: string, data: any = null): Promise<any> {
+export async function onFormMessageFromHTMLView(actionType: string, data: any = null): Promise<any> {
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `Plugin onMessageFromHTMLView data=`)
-    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    let returnValue = null
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
       /* you would probably call a different function for each actionType */
       case 'onSubmitClick':
-        reactWindowData = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
+        returnValue = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
         break
       default:
         await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
-    if (reactWindowData) {
+    if (returnValue && returnValue !== reactWindowData) {
       const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
       clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
@@ -127,54 +122,66 @@ export async function updateReactWindowData(actionType: string, data: any = null
 }
 
 /**
- * An example handler function that is called when someone clicks a button in the React Window
  * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
  * which sees the actionType === "onSubmitClick" so it routes to this function for processing
  * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
  * @param {any} reactWindowData - the current data in the React Window
  * @returns {any} - the updated data to send back to the React Window
  */
-async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData> {
-  const { index: clickedIndex } = data //in our example, the button click just sends the index of the row clicked
-  await sendBannerMessage(
-    WEBVIEW_WINDOW_ID,
-    `Plugin received an actionType: "onSubmitClick" command with data:<br/>${JSON.stringify(
-      data,
-    )}.<br/>Plugin then fired this message over the bridge to the React window and changed the data in the React window.`,
-  )
-  clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
-  // change the data in the React window for the row that was clicked (just an example)
-  // find the right row, even though rows could have been scrambled by the user inside the React Window
-  const index = reactWindowData.pluginData.tableRows.findIndex((row) => row.id === clickedIndex)
-  reactWindowData.pluginData.tableRows[index].textValue = `Item ${clickedIndex} was updated by the plugin (see changed data in the debug section below)`
-  return reactWindowData //updated data to send back to React Window
+async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData | null> {
+  const { type, formValues, receivingTemplateTitle } = data //in our example, the button click just sends the index of the row clicked
+  clo(data, `handleSubmitButtonClick: data BEFORE acting on it`)
+  if (type === 'submit') {
+    if (formValues) {
+      formValues['__isJSON__'] = true // include a flag to indicate that the formValues are JSON for use in the Templating plugin later
+      if (!receivingTemplateTitle) {
+        await showMessage('No Template Name was Provided; You should set a receivingTemplateTitle in your template frontmatter. For now, we will prompt you to choose one.')
+        // TODO: prompt for a template name
+        // const template = (await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false }))
+        // receivingTemplateTitle = templateData.title
+        return null
+      }
+      const shouldOpenInEditor = true // TODO: maybe templaterunner should derive this from a frontmatter field. but note that if newNoteTitle is set, it will always open. not set in underlying template
+      const argumentsToSend = [receivingTemplateTitle, shouldOpenInEditor, JSON.stringify(formValues)]
+      clo(argumentsToSend, `handleSubmitButtonClick: DataStore.invokePluginCommandByName('templateRunner', 'np.Templating' with arguments`)
+      //TODO: call directly once this code is moved to inside Templating plugin
+      await DataStore.invokePluginCommandByName('templateRunner', 'np.Templating', argumentsToSend)
+    } else {
+      logError(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
+    }
+  } else {
+    logDebug(pluginJson, `handleSubmitButtonClick: formValues is undefined`)
+  }
+  closeWindowFromCustomId(WEBVIEW_WINDOW_ID)
+  return reactWindowData
 }
 
 /**
- * Plugin Entry Point for "Test React Window"
+ * Plugin Entry Point for "Open Form Window"
  * @author @dwertheimer
  */
-export async function testReactWindow(): Promise<void> {
+export async function openFormWindow(argObj: Object): Promise<void> {
   try {
-    logDebug(pluginJson, `testReactWindow starting up`)
-    // make sure we have the np.Shared plugin which has the core react code and some basic CSS
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    if (!argObj) {
+      logError(pluginJson, `np.Shared openFormWindow: argObj is undefined`)
+      await showMessage('openFormWindow: no form fields were sent. Cannot continue. Make sure your template has a "formfields" codeblock.')
+      return
+    }
+    logDebug(pluginJson, `np.Shared openFormWindow starting up`)
     // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView()
+    const data = await getInitialReactWindowData(argObj)
 
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
-		  <link rel="stylesheet" href="../dwertheimer.ReactSkeleton/css.plugin.css">\n`
+		  <link rel="stylesheet" href="../np.Shared/css.plugin.css">\n`
     const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/saved-output.html` /* for saving a debug version of the html file */,
+      savedFilename: `../../${pluginJson['plugin.id']}/form_output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
-      windowTitle: data.title,
+      windowTitle: 'Form', // Note: data.title holds the form title if you want that,
       customId: WEBVIEW_WINDOW_ID,
-      reuseUsersWindowRect: true,
       shouldFocus: true /* focus window every time (set to false if you want a bg refresh) */,
       generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       postBodyScript: `

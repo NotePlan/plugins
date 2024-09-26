@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.0] @dwertheimer 2024-09-14
+
+- Add DynamicDialog to Root to bring up a dialog
+
 ## [0.6.3] - @dwertheimer
 
 - Reduce logging

@@ -57,6 +57,18 @@
       ]
     },
     {
+      "name": "Open Template Form",
+      "alias": [
+        "form",
+        "dialog"
+      ],
+      "description": "Open form for template data entry which will be sent to a template for processing",
+      "jsFunction": "templateForm",
+      "arguments": [
+        "Template name to execute (optional)"
+      ]
+    },
+    {
       "name": "Create new note using template",
       "alias": [
         "new",
