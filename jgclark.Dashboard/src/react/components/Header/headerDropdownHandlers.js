@@ -2,8 +2,8 @@
 import { allSectionDetails } from "../../../constants.js"
 import type { TDashboardSettings } from "../../../types.js"
 import { dashboardFilterDefs } from "../../../dashboardSettings"
+import { adjustSettingsAndSave } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
-
 
 /**
  * Handles the click event for the refresh button, triggering a plugin refresh action.
@@ -32,7 +32,8 @@ export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean 
 export const handleSwitchChange = (
   dashboardSettings: TDashboardSettings,
   setDashboardSettings: Function,
-  sendActionToPlugin: Function
+  sendActionToPlugin: Function,
+  setPerspectiveSettings: Function
 ): Function => {
   // Return the event handler function
   return (key: string) => (e: any): void => {
@@ -57,7 +58,8 @@ export const handleSwitchChange = (
     // This saves the change in local context, and then it will be picked up and sent to plugin
     if (setDashboardSettings && dashboardSettings && dashboardSettings[key] !== isChecked) {
       logDebug('handleSwitchChange', `Updating dashboardSettings["${key}"]. Previous value: ${dashboardSettings[key]}. New value: ${isChecked}`, dashboardSettings)
-      setDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
+      // was previously: setDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
+      adjustSettingsAndSave({ [key]: isChecked }, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `Dropdown value changed: ${key}=${isChecked}`)
       if (isChecked && isSection && key.startsWith('show')) { // this is a section show/hide setting
         // call for new data for a section just turned on
         const sectionCode = allSectionDetails.find(s => s.showSettingName === key)?.sectionCode ?? null
@@ -76,12 +78,11 @@ export const handleSwitchChange = (
           sendActionToPlugin('refresh', { actionType: 'refresh', logMessage }, `Refreshing all sections`, true)
         }
       }
-  } else {
+    } else {
       logDebug('handleSwitchChange', `No changes detected for key: ${key}. Current value: ${dashboardSettings[key]}, new value: ${isChecked}`)
+    }
   }
 }
-}
-
 
 /**
  * Handles the save input event, updating the shared settings with the new value.
@@ -158,6 +159,7 @@ export const handleOpenMenuEffect = (
 }
 
 /**
+ * TODO(@dbw): Please check this documentation, as it doesn't appear to match the code any more.
  * Causes a refresh when changes were made to a dropdown menu (e.g. Plugin Settings menu)
  * When the menu is closed, a full (incremental) refresh is called
  * 

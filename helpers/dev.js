@@ -44,7 +44,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
     const propNames = getFilteredProps(obj)
-    const fullObj = propNames.reduce((acc, propName) => {
+    const fullObj = propNames.reduce((acc: Object, propName: string) => {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
           try {
@@ -215,7 +215,7 @@ export const getFilteredProps = (object: any): Array<string> => {
  */
 export function copyObject(obj: any): any {
   const props = getFilteredProps(obj)
-  return props.reduce((acc, p) => {
+  return props.reduce((acc, p: any) => {
     acc[p] = obj[p]
     return acc
   }, {})
@@ -250,11 +250,11 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
 
   // Handle Array
   if (Array.isArray(value)) {
-    const arrayCopy = value.map((item) => deepCopy(item, propsToInclude, showIndices))
+    const arrayCopy = value.map((item: any) => deepCopy(item, propsToInclude, showIndices))
     if (showIndices) {
       // Convert array to object with index keys for stringification
       const objectWithIndices = {}
-      arrayCopy.forEach((item, index) => {
+      arrayCopy.forEach((item: any, index: number) => {
         objectWithIndices[`[${index}]`] = item
       })
       return objectWithIndices
@@ -328,12 +328,19 @@ const _message = (message: any): string => {
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
 const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
 
+/**
+ * Test _logLevel against logType to decide whether to output
+ * @param {string} logType 
+ * @returns {boolean}
+ */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   let userLogLevel = 1
   const thisMessageLevel = LOG_LEVELS.indexOf(logType)
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
-  // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-  // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+  // Note: Performing a null change against a value that is `undefined` will be true
+  // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+
+  // se _logLevel to decide whether to output
   if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
     userLogLevel = pluginSettings['_logLevel']
   }
@@ -342,8 +349,24 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 }
 
 /**
+ * Test if _logFunctionRE is set and matches the current log details.
+ * Note: only works if DataStore is available.
+ * @param {any} pluginInfo 
+ * @returns 
+ */
+export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
+  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
+  if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
+    const functionRE = new RegExp(pluginSettings['_logFunctionRE'])
+    const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
+    return functionRE.test(infoStr)
+  }
+  return false
+}
+
+/**
  * Formats log output to include timestamp pluginId, pluginVersion
- * @author @codedungeon
+ * @author @codedungeon extended by @jgclark
  * @param {any} pluginInfo
  * @param {any} message
  * @param {string} type
@@ -351,7 +374,7 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
   let msg = ''
-  if (shouldOutputForLogLevel(type)) {
+  if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
     const thisMessageLevel = LOG_LEVELS.indexOf(type)
     const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
     let pluginId = ''
@@ -415,7 +438,7 @@ export function logInfo(pluginInfo: any, message: any = ''): string {
 }
 
 /**
- * Formats log output as WARN to include timestamp pluginId, pluginVersion
+ * Formats log output as DEBUG to include timestamp pluginId, pluginVersion
  * @author @dwertheimer
  * @param {any} pluginInfo
  * @param {any} message

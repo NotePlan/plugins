@@ -54,7 +54,6 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      logDebug('Dialog', `Event.key: ${event.key}`)
       if (event.key === 'Escape') {
         onDialogClose(true)
       }

@@ -1533,12 +1533,7 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
   }))
   return options
 }
-// @flow
-// Show relative time
-// TODO: use MOMENT moment.duration(-1, "minutes").humanize(true);
-// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
-// or https://theprogrammingexpert.com/javascript-count-up-timer/
-// import { logDebug } from '@helpers/react/reactDev.js'
+
 /**
  * Calculates how long ago a given timestamp occurred.
  * @param {Date} pastDate - date of the past time to evaluate.

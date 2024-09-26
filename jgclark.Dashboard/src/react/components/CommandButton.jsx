@@ -16,7 +16,7 @@ type ButtonProps = {
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
-  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
+  const { sendActionToPlugin } = useAppContext()
   const { button, onClick } = inputObj
 
   // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)

@@ -1,21 +1,20 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-07-20 for v2.0.3 by @jgclark
+// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
-
 import type { TSettingItem } from "./types.js"
-import { clo } from '@helpers/react/reactDev'
+import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
-// Note that filters are automatically created for each section in the dashboard
-// The filters below are non-section switches that display in the filters menu
+// Note that filters are automatically created for each section in the dashboard.
+// The filters below are non-section switches that display in the filters menu.
 export const dashboardFilterDefs: Array<TSettingItem> = [
-  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false },
+  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false, description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.' },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
-  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (assuming your theme shows them visually)" },
+  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)" },
   { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: "Whether to show the note link for an open task or checklist" },
   { label: 'Include folder name in note link?', key: 'includeFolderName', type: 'switch', default: true, description: "Whether to include the folder name when showing a note link" },
   { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', type: 'switch', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
@@ -23,42 +22,71 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
   { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
 ]
 
+// This section is an array that describes the order and type of the individual settings
+// The current value for each TYPE of setting (or the fallback) is set later in this file in createDashboardSettingsItems()
+// So to add a new setting of an existing type (e.g. heading, input, switch), just add it to this array.
+// But to add a new TYPE of setting, add it here, and update the switch statement in createDashboardSettingsItems()
+// so it knows how to render it and set the default value.
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
-    key: "rescheduleNotMove",
-    label: "Reschedule items in place, rather than move?",
-    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
-    type: 'switch',
-    default: false,
+    type: 'heading',
+    label: "Perspectives",
   },
   {
-    key: "useRescheduleMarker",
-    label: "When (re)scheduling an item, also show it as a scheduled item in main Editor?",
-    description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
+    key: "showPerspectives",
+    label: "Show Perspectives",
+    description: "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
     type: 'switch',
     default: true,
+    compactDisplay: true,
+    controlsOtherKeys: ["activePerspectiveName", "perspectiveList"]
   },
   {
-    key: "ignoreTasksWithPhrase",
-    label: "Ignore items in calendar sections with this phrase(s)",
-    description: "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting. To include more than one phrase, separate them by commas.",
+    type: 'hidden',
+    key: "activePerspectiveName",
+    label: "Name of active Perspective",
+    description: "The Perspective that is active.",
+    default: "",
+    dependsOnKey: 'showPerspectives',
+  },
+  {
+    type: 'perspectiveList',
+    key: "perspectiveList",
+    label: "Name of active Perspective",
+    description: "The Perspective that is active.",
+    default: "",
+    dependsOnKey: 'showPerspectives',
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "General Settings",
+  },
+  {
+    key: "includedFolders",
+    label: "Folders to include when finding items",
+    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
+    type: 'input',
+    default: "@Archive, @Templates, Saved Searches",
+    compactDisplay: true,
+  },
+  {
+    key: "excludedFolders",
+    label: "Folders to ignore when finding items",
+    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
+    type: 'input',
+    default: "@Archive, @Templates, Saved Searches",
+    compactDisplay: false,
+  },
+  {
+    // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
+    key: "ignoreItemsWithTerms",
+    label: "Ignore items in calendar sections with phrase(s)",
+    description: "If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.",
     type: 'input',
     default: "#waiting",
-  },
-  {
-    key: "ignoreFolders",
-    label: "Folders to ignore when finding items",
-    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
-    type: 'input',
-    default: "@Archive, Saved Searches",
-  },
-  {
-    key: "maxItemsToShowInSection",
-    label: "Max number of items to show in a section?",
-    description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
-    type: 'number',
-    default: "30",
-    compactDisplay: true,
   },
   {
     key: "newTaskSectionHeading",
@@ -66,6 +94,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note.",
     type: 'input',
     default: "Tasks",
+    compactDisplay: true,
   },
   {
     key: "newTaskSectionHeadingLevel",
@@ -74,6 +103,23 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'number',
     default: "2",
     compactDisplay: true,
+  },
+  {
+    key: "rescheduleNotMove",
+    label: "Reschedule items in place, rather than move?",
+    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
+    type: 'switch',
+    default: false,
+    compactDisplay: true,
+    controlsOtherKeys: ["useRescheduleMarker"]
+  },
+  {
+    key: "useRescheduleMarker",
+    label: "When (re)scheduling an item, also show it as a scheduled item in main Editor?",
+    description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
+    type: 'switch',
+    default: true,
+    dependsOnKey: 'rescheduleNotMove',
   },
   {
     key: "moveSubItems",
@@ -86,6 +132,28 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: "useTodayDate",
     label: "Use 'today' to schedule tasks for today?",
     description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
+    type: 'switch',
+    default: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: "Display settings",
+  },
+  {
+    key: "maxItemsToShowInSection",
+    label: "Max number of items to show in a section?",
+    description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
+    type: 'number',
+    default: "30",
+    compactDisplay: true,
+  },
+  {
+    key: "showParentChildMarkers",
+    label: "Show parent/child markers on items?",
+    description: "Add a small icon on items that either have indented sub-items, or is an indented child a parent item.",
     type: 'switch',
     default: true,
   },
@@ -135,20 +203,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: "",
   },
-  {
-    key: "ignoreTagMentionsWithPhrase",
-    label: "Ignore items in this section with this phrase",
-    description: "Open tasks/checklists in this section will be ignored if they include this phrase.",
-    type: 'input',
-    default: "",
-  },
+  // Note: now effectively made Dashboard-wide, aka "ignoreItemsWithTerms"
   // {
-  //   key: "updateTagMentionsOnTrigger",
-  //   hidden: true,
-  //   label: "Update items in this section when triggered?",
-  //   description: "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-  //   type: 'switch',
-  //   default: true,
+  //   key: "ignoreTagMentionsWithPhrase",
+  //   label: "Ignore items in this section with this phrase",
+  //   description: "Open tasks/checklists in this section will be ignored if they include this phrase.",
+  //   type: 'input',
+  //   default: "",
   // },
   {
     type: 'separator',
@@ -156,14 +217,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: "Automatic Refresh"
-  },
-  // TODO: remove this in v2.1
-  {
-    key: "autoAddTrigger",
-    label: "Add dashboard auto-update trigger when dashboard opened?",
-    description: "Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened. This will ensure an immediate Dashboard refresh is triggered when the note is changed.",
-    type: 'switch',
-    default: false,
   },
   {
     key: "autoUpdateAfterIdleTime", // aka "autoRefresh"
@@ -186,12 +239,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: "If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.",
     type: 'switch',
     default: true,
+    controlsOtherKeys: ["interactiveProcessingHighlightTask", "enableInteractiveProcessingTransitions"]
   },
   {
     key: "interactiveProcessingHighlightTask",
     label: "Open note and highlight task when processing?",
     description: "If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window",
     type: 'switch',
+    dependsOnKey: 'enableInteractiveProcessing',
     default: false,
   },
   {
@@ -199,6 +254,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: "Show interactive processing transitions?",
     description: "By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.",
     type: 'switch',
+    dependsOnKey: 'enableInteractiveProcessing',
     default: true,
   },
   {
@@ -206,11 +262,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Logging: Can be turned on in the NotePlan Preferences Pane for the Dashboard Plugin"
+    label: "Logging",
+    description: "Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings."
   },
 ]
+
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
   return dashboardSettingDefs.map(setting => {
+    // clof(setting, 'createDashboardSettingsItems: setting',true)
     const thisKey = setting.key ?? ''
     switch (setting.type) {
       case 'separator':
@@ -220,52 +279,82 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
       case 'heading':
       case 'header':
         return {
-          label: setting.label || '',
           type: 'heading',
+          label: setting.label || '',
+          description: setting.description || '',
         }
       case 'switch':
         return {
+          type: 'switch',
           label: setting.label || '',
           key: thisKey,
-          type: 'switch',
           checked: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          controlsOtherKeys: setting.controlsOtherKeys,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'input':
         return {
+          type: 'input',
           label: setting.label || '',
           key: thisKey,
-          type: 'input',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
+        }
+      case 'input-readonly':
+        return {
+          type: 'input-readonly',
+          label: setting.label || '',
+          key: thisKey,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
+          compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'number':
         return {
+          type: 'number',
           label: setting.label || '',
           key: thisKey,
-          type: 'number',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
         }
       case 'combo':
         return {
+          type: 'combo',
           label: setting.label || '',
           key: thisKey,
-          type: 'combo',
           value: allSettings[thisKey] ?? setting.default,
           options: setting.options,
           description: setting.description,
           compactDisplay: setting.compactDisplay ?? false,
+          dependsOnKey: setting.dependsOnKey,
+        }
+      case 'hidden':
+        return {
+          type: 'hidden',
+          label: setting.label || '',
+          key: thisKey,
+          value: allSettings[thisKey] ?? setting.default,
+          description: setting.description,
+        }
+      case 'perspectiveList':
+        return {
+          type: 'perspectiveList',
+          dependsOnKey: setting.dependsOnKey,
         }
       default:
         return {
+          type: 'text',
           label: setting.label || '',
           key: thisKey || '',
-          type: 'text',
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
+          dependsOnKey: setting.dependsOnKey,
         }
     }
   })

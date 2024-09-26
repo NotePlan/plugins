@@ -68,9 +68,10 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
   const b = Math.floor(Math.min(255, _b + brightnessFactor * 255))
   return { r, g, b }
 }
+
 /**
  * Logs information to the console.
- *
+ * If this is in a browser, use colors
  * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
  * @param {string} componentName - The name of the component.
  * @param {string} [detail] - Additional detail about the log.
@@ -86,6 +87,7 @@ const log = (logType: string, componentName: string, detail?: string, ...args: a
       arg2 = ``
       logType === 'DEBUG' ? ogLogDebug(arg1, arg2, ...args) : logType === 'ERROR' ? ogLogError(arg1, arg2, ...args) : ogLogInfo(arg1, arg2, ...args)
     } else {
+      // We are in the browser, so can use colors
       arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`
       arg2 = `color: #000; background: ${stringToColor(componentName)}`
       console[logType.toLowerCase()](arg1, arg2, ...args)
@@ -128,6 +130,18 @@ export const logError = (componentName: string, detail?: string, ...args: any[])
  */
 export const logInfo = (componentName: string, detail?: string, ...args: any[]): void => {
   log('INFO', componentName, detail, ...args)
+}
+
+/**
+ * Logs an error message to the console.
+ * Similar to logDebug.
+ * @param {string} componentName - The name of the component.
+ * @param {string} detail - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
+ */
+export const logWarn = (componentName: string, detail?: string, ...args: any[]): void => {
+  log('WARN', componentName, detail, ...args)
 }
 
 /**

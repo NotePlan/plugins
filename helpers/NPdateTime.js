@@ -87,9 +87,12 @@ export function nowLocaleShortTime(): string {
   return moment().format('LT')
 }
 
-// return datetime suitable for use in @done(), in local time (i.e. 12hr format adds AM/PM)
+/**
+ * Returns datetime suitable for use in @done(), in local time (i.e. 12hr format adds AM/PM)
+ * Note: If NotePlan object not available, default to 24hr time format
+ */
 export function nowDoneDateTimeString(): string {
-  return (NotePlan.environment.is12hFormat)
+  return (NotePlan?.environment.is12hFormat ?? false)
     ? moment().format('YYYY-MM-DD HH:mm A')
     : moment().format('YYYY-MM-DD HH:mm')
 }
@@ -108,11 +111,12 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
    */
   return dateObj.toLocaleString(locale, options)
 }
+
 export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 
 export function localeDateStr(dateIn: Date): string {
   setMomentLocaleFromEnvironment()
-  return moment(dateIn).format('l') // format('L')
+  return moment(dateIn).format('l')
 }
 
 // TODO: Finish moving references to this file from dateTime.js

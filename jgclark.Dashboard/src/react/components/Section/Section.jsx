@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -57,20 +57,30 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       return
     }
 
+    // $FlowIgnore[invalid-computed-prop]
     if (dashboardSettings && section.showSettingName && dashboardSettings[section.showSettingName] === false) {
       return
     }
 
     let sectionItems = section.sectionItems
     if (!sectionItems || sectionItems.length === 0) {
-      if (section.ID !== '0') {
-        sectionItems = []
-      } else {
-        logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
-        sectionItems = [{
-          ID: '0-Congrats',
-          itemType: 'congrats',
-        }]
+      switch (section.ID) {
+        case '0':
+          logDebug('Section', `Section 0 (DT) doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [{
+            ID: '0-Congrats',
+            itemType: 'itemCongrats',
+          }]
+          break
+        case '14':
+          logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
+          sectionItems = [{
+            ID: '14-Congrats',
+            itemType: 'projectCongrats',
+          }]
+          break
+        default:
+          sectionItems = []
       }
     }
 
@@ -115,11 +125,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Render
   //----------------------------------------------------------------------
 
-  const hideSection = !items.length || (dashboardSettings && dashboardSettings[`${section.showSettingName}`] === false)
+  // $FlowFixMe[invalid-computed-prop] new flow error since 202
+  const hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
-  // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  section.actionButtons = isDesktop ? section.actionButtons : (section.actionButtons?.filter(b => b.actionName.startsWith("move") || b.actionName.startsWith("scheduleAllOverdue")) || [])
   let numItemsToShow = itemsToShow.length
 
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
@@ -131,16 +140,23 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }
 
   // Decrement the number of items to show if the last one is the filterIndicator
-  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
-  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'congrats') numItemsToShow = 0
+  if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
+    numItemsToShow--
+    logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
+  }
+  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0 
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
   if (descriptionToUse.includes('{count}')) {
     const totalNumItems = items.length
     if (numFilteredOut > 0) {
+      if (descriptionToUse.includes('first')) {
+        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+      } else {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${(numItemsToShow > 0) ? 'first ' : ''
-        }${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
+        }${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+      }
     } else if (limitApplied) {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)
     } else {
@@ -153,7 +169,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Pluralise item in description if neccesary
   if (descriptionToUse.includes('{s}')) {
-    if (numItemsToShow >= 2) {
+    if (numItemsToShow !== 1) {
       descriptionToUse = descriptionToUse.replace('{s}', `s`)
     } else {
       descriptionToUse = descriptionToUse.replace('{s}', ``)
@@ -173,11 +189,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
-          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'itemCongrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks`}>
-                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+                {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+                {/* wanted to use 'fa-arrow-progress' here but not in our build */}
+                {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
+                <i className="fa-regular fa-angles-right"></i>
+                <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
               </button>
             </>
           )}

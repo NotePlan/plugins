@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-07-12 for v2.0.1, @jgclark
+// last updated 2024-08-13 for v2.1.0.a7, @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -21,8 +21,16 @@ export { editSettings } from '@helpers/NPSettings'
 
 export {
   decideWhetherToUpdateDashboard,
-  refreshProjectSection
+  refreshProjectSection, // called by Project & Reviews plugin
+  refreshSectionByCode,
 } from './dashboardHooks.js'
+
+export {
+  addNewPerspective,
+  deletePerspective,
+  deleteAllNamedPerspectiveSettings,
+  updateCurrentPerspectiveDef,
+} from './perspectiveHelpers.js'
 
 export {
   showDashboardReact,

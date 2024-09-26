@@ -9,8 +9,8 @@
  ****************************************************************************************************************************/
 // @flow
 
-import React, { createContext, useContext, useEffect, type Node } from 'react'
-import type { TDashboardSettings, TReactSettings, TPluginData } from '../../types'
+import { createContext, useContext, useEffect, type Node } from 'react'
+import type { TDashboardSettings, TReactSettings, TPerspectiveDef, TPluginData } from '../../types'
 import { logDebug } from '@helpers/react/reactDev'
 
 
@@ -27,7 +27,9 @@ export type AppContextType = {
   setReactSettings: (any) => void,
   updatePluginData: (newData: TPluginData, messageForLog?: string) => void,
   dashboardSettings: TDashboardSettings,
-  setDashboardSettings: (any) => void
+  setDashboardSettings: (any) => void,
+  perspectiveSettings: Array<TPerspectiveDef>,
+  setPerspectiveSettings: (any) => void,
 }
 
 type Props = {
@@ -35,17 +37,18 @@ type Props = {
 } & AppContextType;
 
 // Default context value with initial reactSettings and functions.
-// FIXME(@dwertheimer): should we have 2 uses of dashboardSettings here?
 const defaultContextValue: AppContextType = {
   sendActionToPlugin: () => {},
   sendToPlugin: () => {},
   dispatch: () => {},
-  pluginData: { dashboardSettings: {} },
+  pluginData: {}, // TEST: removal of settings in here
   reactSettings: {}, // Initial empty reactSettings local
   setReactSettings: () => {},
   updatePluginData: () => {}, // Placeholder function, actual implementation below.
   dashboardSettings: {},
   setDashboardSettings: () => { },
+  perspectiveSettings: [],
+  setPerspectiveSettings: () => { },
 }
 
 /****************************************************************************************************************************
@@ -59,7 +62,7 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
  ****************************************************************************************************************************/
 
 // eslint-disable-next-line max-len
-export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, setReactSettings, updatePluginData, dashboardSettings, setDashboardSettings }: Props): Node => {
+export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, reactSettings, setReactSettings, updatePluginData, dashboardSettings, setDashboardSettings, perspectiveSettings, setPerspectiveSettings, }: Props): Node => {
   // logDebug(`AppProvider`, `inside component code`)
 
   const contextValue: AppContextType = {
@@ -72,6 +75,8 @@ export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispat
     updatePluginData,
     dashboardSettings,
     setDashboardSettings,
+    perspectiveSettings,
+    setPerspectiveSettings,
   }
 
   useEffect(() => {

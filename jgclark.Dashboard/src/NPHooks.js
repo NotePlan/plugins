@@ -49,12 +49,12 @@ export function init(): void {
 
 /**
  * Log settings have been updated in the Preferences panel.
- * Note: It's only changes to the log settings that the front-end won't notice, and so re-render.
+ * Note: It's only changes to the log settings that the front-end won't notice, so no need to re-render.
+ * FIXME: this ^^^ is now not valid, as I didn't realise at the time we had hidden settings.
  */
 export async function onSettingsUpdated(): Promise<void> {
   logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
   const logSettings = await getLogSettings()
-  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
   await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
   return
 }

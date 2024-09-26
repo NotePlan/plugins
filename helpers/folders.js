@@ -3,29 +3,49 @@
 // Folder-level Functions
 
 import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
+import { forceLeadingSlash } from '@helpers/general'
 import { caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from './search'
 
 /**
- * Return a list of folders that contain one of the strings on the inclusions list (so will include any sub-folders) if given. Note: Root folder can be included by '/'; this doesn't include sub-folders.
+ * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given). Note: Root folder can be included by '/'; this doesn't include sub-folders.
+ * Also excludes those items that are on the exclusions list.
+ * Where there is a conflict exclusions will take precedence over inclusions.
+ * Note: these are partial matches ("contains" not "equals").
  * Optionally exclude all special @... folders as well [this overrides inclusions]
  * Note: now clarified that this is a case-insensitive match.
  * @author @jgclark
  * @tests in jest file
  * @param {Array<string>} inclusions - if these (sub)strings match then exclude this folder -- can be empty
  * @param {boolean} excludeSpecialFolders?
+ * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
  * @returns {Array<string>} array of folder names
  */
-export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean): Array<string> {
+export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean, exclusions: Array<string> = []): Array<string> {
   try {
-    if (!inclusions && inclusions.length) {
-      throw new Error('No inclusions given.')
-    }
-    // Get all folders as array of strings (other than @Trash). Also remove root as a special case
+    // Get all folders as array of strings (other than @Trash).
     const fullFolderList = DataStore.folders
 
-    const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
+    // Need some inclusions or exclusions!
+    if (inclusions.length === 0 && exclusions.length === 0) {
+      logError('getFoldersMatching', 'Neither inclusions or exclusions given. Returning no items.')
+      return []
+    }
 
-    logDebug('folders / getFoldersMatching', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusionsWithoutRoot.toString()}]`)
+    logDebug('getFoldersMatching', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(excludeSpecialFolders)}`)
+
+    // Remove root as a special case
+    const rootIncluded = inclusions.some((f) => f === '/')
+    const rootExcluded = exclusions.some((f) => f === '/')
+    // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
+    const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
+    // const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
+    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}, exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
+
+    // Deal with special case of inclusions just '/'
+    if (inclusions.length === 1 && inclusions[0] === '/') {
+      logDebug('getFoldersMatching', 'Special Case: Inclusions just /')
+      return rootExcluded ? [] : ['/']
+    }
 
     // if necessary filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
@@ -48,14 +68,14 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     // now remove trailing slash characters
     const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
 
-    // add '/' back in if it was there originally
-    if (inclusions.includes('/')) {
+    // add '/' back in if it was there originally in inclusions AND NOT exclusions
+    if (rootIncluded && !rootExcluded) {
       outputList.unshift('/')
     }
-    logDebug('folders / getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
-    logError('folders / getFoldersMatching', error.message)
+    logError('getFoldersMatching', error.message)
     return ['(error)']
   }
 }
@@ -84,7 +104,6 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
     return ['(error)']
   }
 }
-
 
 /**
  * Return a list of folders, with those that match the 'exclusions' list (or any of their sub-folders) removed.

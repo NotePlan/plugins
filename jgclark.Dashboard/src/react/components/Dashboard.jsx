@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
-// Called by parent component.
-// Last updated 2024-07-25 for v2.0.4 by @jgclark
+// Called by WebView component.
+// Last updated 2024-08-22 for v2.1.0.a9 by @dbw
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,8 +13,9 @@ import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGenerati
 import { allSectionDetails, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
+import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
-// import { type TActionButton } from '../../types.js'
+// import type { TDashboardSettings } from '../../types.js'
 import Header from './Header'
 import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
@@ -33,7 +34,7 @@ declare var globalSharedData: {
 };
 
 type Props = {
-  pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
+  pluginData: Object, // the data that was sent from the plugin in the field "pluginData"
 }
 
 //--------------------------------------------------------------------------
@@ -43,7 +44,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, setPerspectiveSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -65,15 +66,36 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
 
+  //
+  // Functions
+  //
+  /**
+   * If a perspective is not set, then save current settings to the default "-" perspective because we always
+   * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
+   * @param {any} perspectiveSettings 
+   * @param {any} newDashboardSettings 
+   * @param {Function} setPerspectiveSettings 
+   */
+  function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: any, setPerspectiveSettings: Function) {
+    const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
+    if (dashPerspectiveIndex > -1) {
+      perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
+    } else {
+      logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${newDashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
+      perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) })
+    }
+    setPerspectiveSettings(perspectiveSettings)
+  }
+
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
 
   let sections = [...origSections]
   let totalSectionItems = countTotalSectionItems(origSections)
-  logInfo('Dashboard', `origSections: ${origSections.length} sections with ${String(totalSectionItems)} items`)
+  logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
-  if (sections.length > 1 && dashboardSettings.hideDuplicates) {
+  if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
@@ -86,13 +108,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
 
   sections = sortSections(sections, sectionDisplayOrder)
-  logDebug('Dashboard', `sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
+  logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
-  // FIXME: seems to be OK up to here. But then I get confused.
 
-  // DBW says the 98 was to avoid scrollbars. TEST: removing
+  // DBW says the 98 was to avoid scrollbars.
+  // TODO: JGC use KP's knowledge to have a more universal solution
   const dashboardContainerStyle = {
-    maxWidth: '100vw',  // '98vw',
+    maxWidth: '100vw', // '98vw',
     width: '100vw', // '98vw',
   }
 
@@ -111,11 +133,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (!dashboardSettings) {
       // Fallback or initialization logic for dashboardSettings
       logError('Dashboard', 'dashboardSettings is undefined')
-    } 
+    }
   }, [dashboardSettings])
-  
+
   // temporary code to output variable changes to Chrome DevTools console
-  const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length===0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
+  const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length === 0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
     (dashboardSettings && Object.keys(dashboardSettings).length > 0) ? logChanges('dashboardSettings', dashboardSettings) : null
   }, [dashboardSettings])
@@ -131,10 +153,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // if we did a force reload (DEV only) of the full sections data, no need to load the rest
     // but if we are doing a normal load, then get the rest of the section data incrementally
     // this executes before globalSharedData is saved into state 
-    logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
+    logDebug('Dashboard/useEffect()', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
     if (origSections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
-      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage:'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
+      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage: 'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
     }
   }, [])
 
@@ -148,40 +170,58 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.sections])
 
-  // when reactSettings changes anywhere, send it to the plugin to save in settings
-  // if you don't want the info sent, use a _ for the first char of lastChange
-  // TEST: removing effect according to @dbw comment below
-  // useEffect(() => {
-  //   if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
-  //     const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
-  //     const strReactSettings = JSON.stringify(trimmedReactSettings)
-  //     // TODO: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
-  //     // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
-  //   }
-  // }, [reactSettings])
-
   // when dashboardSettings changes anywhere, send it to the plugin to save in settings
   // if you don't want the info sent, use a _ for the first char of lastChange
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
   useEffect(() => {
     const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
-    if (settingsNeedFirstTimeMigration || dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0 && dashboardSettings.lastChange[0] !== '_') {
-      settingsNeedFirstTimeMigration && logDebug('Dashboard(component)', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
-      logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
+    const lastChangeText = (dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0) ?? ''
+    const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
+    if (settingsNeedFirstTimeMigration || shouldSendToPlugin) {
+      settingsNeedFirstTimeMigration && logDebug('Dashboard/useEffect(dashboardSettings)', `- Settings need first time migration sending to plugin to be saved or otherwise shouldSendToPlugin`, dashboardSettings)
+      logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
       const sharedSets = { ...dashboardSettings }
-      if (settingsNeedFirstTimeMigration) { 
+      if (settingsNeedFirstTimeMigration) {
         sharedSets.settingsMigrated = true
         sharedSets.lastChange = 'Saving first time migration'
       }
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
+      // TODO: DELETE this log line after perspective testing is completed
+      /perspective/i.test(typeof lastChangeText === "string" ? lastChangeText : '') && logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${sharedSets.activePerspectiveName}"; excludedFolders:${sharedSets.excludedFolders}`, sharedSets)
+
+      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: sharedSets.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
+
+      if (sharedSets.activePerspectiveName === "-" || !(sharedSets.activePerspectiveName)) {
+        // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspective
+        // when any settings are changed
+        // Note: default perspective is never shown with a "*" on the end.        saveDefaultPerspectiveData(perspectiveSettings, sharedSets, setPerspectiveSettings)
+      }
+      // FIXME: (@jgclark) dbw commenting out this @jgclark code which I didn't understand what it was doing
+      // } else {
+      //   const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === sharedSets.activePerspectiveName) ?? 0
+      //   logDebug('Dashboard/useEffect(dashboardSettings)', `- Will now need to update perspective "${sharedSets.activePerspectiveName}" to isModified`)
+      //   // FIXME: Gets here but vvvvv doesn't seem to work
+      //   perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) }
+      // }
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
-      // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
+      !shouldSendToPlugin && logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated in React, but not sending to plugin because lastChange="${dashboardSettings.lastChange}"`)
     }
   }, [dashboardSettings])
 
-  // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
+  // When perspectiveSettings changes anywhere, send it to the plugin to save in settings
   useEffect(() => {
-    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
+    if (perspectiveSettings && perspectiveSettings.length > 0) {
+      if (JSON.stringify(perspectiveSettings) !== JSON.stringify(pluginData.perspectiveSettings)) {
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated`, perspectiveSettings)
+        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+      } else {
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. Settings match. Maybe this was the initialization?`)
+      }
+    }
+  }, [perspectiveSettings])
+
+  // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
+  useEffect(() => {
+    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen) || !reactSettings.dialogData.isTask) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData
     if (!dialogData.isOpen || !dialogItemDetails) return
@@ -211,7 +251,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
             dialogData: {
               ...prev.dialogData,
               details: {
-                ...prev.dialogData.details /* to save the clickPosition */, 
+                ...prev.dialogData.details, // to save the clickPosition
                 item: newSectionItem
               }
             },
@@ -224,18 +264,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         const newPluginData = { ...pluginData, sections: updatedSections }
         updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
-        // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
         // logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
 
-  // 
+  // Catch startDelayedRefreshTimer from plugin
   useEffect(() => {
     if (pluginData.startDelayedRefreshTimer) {
       logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
-      updatePluginData({...pluginData, startRefreshTimer: false},'Got message from plugin; resetting refresh timer')
+      updatePluginData({ ...pluginData, startRefreshTimer: false }, 'Got message from plugin; resetting refresh timer')
       !(reactSettings?.interactiveProcessing) && refreshTimer() // start the cache-busting timer if !interactiveProcessing 
     }
   }, [pluginData.startDelayedRefreshTimer])
@@ -251,11 +289,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
 
   // Deal with the delayed refresh when a button was clicked
-  // Because sections and buttons could be destroyed after a click, we need to
-  // refresh from here
+  // Because sections and buttons could be destroyed after a click, we need to refresh from here
   const handleCommandButtonClick = (/*  button: TActionButton */) => {
     // logDebug('Dashboard', `handleCommandButtonClick was called for button: ${button.display}; setting up delayed timer.`)
-    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective
+    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective // TODO(dbw): review this
   }
 
   const autoRefresh = () => {
@@ -273,10 +310,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0") > 0
 
   return (
-    <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
+    <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
         <IdleTimer
-          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
+          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000}
           onIdleTimeout={autoRefresh}
         />
       )}
@@ -299,3 +336,4 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 }
 
 export default Dashboard
+

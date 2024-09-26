@@ -4,9 +4,6 @@
 // Used by many other components.
 // Last updated 4.6.2024 for v2.0.0 by @dbw
 //--------------------------------------------------------------------------
-// @jgclark wrote: (@dwertheimer): please talk to JGC about this, because the (more-or-less) empty <div>...</div> introduced below is breaking layout in StatusIcon
-// FIXME(@jgclark): Is this solved now? I think it is.
-
 import React, { useState, useEffect, useRef, useCallback, type ElementRef } from 'react'
 import ReactDOM from 'react-dom'
 import Tooltip from './Tooltip' // Import the Tooltip component
@@ -184,7 +181,7 @@ const TooltipOnKeyPress = ({
               text={tooltipState.text}
               x={tooltipState.x}
               y={tooltipState.y}
-              visible={tooltipState.visible}
+              visible={false} // {tooltipState.visible}
               onDimensionsChange={handleTooltipDimensionsChange}
             />
           )}

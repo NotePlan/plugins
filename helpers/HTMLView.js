@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-06 by @jgclark
+// Last updated 2024-09-12 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -10,7 +10,6 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
-import { stringIsWithinURI } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
@@ -771,19 +770,19 @@ export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
   const RE_URL = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/, 'g')
   const urls = input.match(RE_URL) ?? []
-  clo(urls, 'urls')
+  // clo(urls, 'urls')
 
   // start with ***bolditalic*** styling
   const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, 'g')
   const BIMatches = output.match(RE_BOLD_ITALIC_PHRASE)
   if (BIMatches) {
-    clo(BIMatches, 'BIMatches')
+    // clo(BIMatches, 'BIMatches')
     const filteredMatches = BIMatches.filter(match => {
       const index = input.indexOf(match)
       return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
-      logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(match)}]`)
+      // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(match)}]`)
       output = output.replace(match, `<b><em>${match.slice(3, match.length - 3)}</em></b>`)
     }
   }
@@ -792,13 +791,13 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, 'g')
   const boldMatches = output.match(RE_BOLD_PHRASE)
   if (boldMatches) {
-    clo(boldMatches, 'boldMatches')
+    // clo(boldMatches, 'boldMatches')
     const filteredMatches = boldMatches.filter(match => {
       const index = input.indexOf(match)
       return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
-      logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(match)}]`)
+      // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(match)}]`)
       output = output.replace(match, `<b>${match.slice(2, match.length - 2)}</b>`)
     }
   }
@@ -808,17 +807,17 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, 'g')
   const italicMatches = output.match(RE_ITALIC_PHRASE)
   if (italicMatches) {
-    clo(italicMatches, 'italicMatches')
+    // clo(italicMatches, 'italicMatches')
     const filteredMatches = italicMatches.filter(match => {
       const index = input.indexOf(match)
       return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
-      logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(match)}]`)
+      // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(match)}]`)
       output = output.replace(match, `<em>${match.slice(1, match.length - 1)}</em>`)
     }
   }
-  logDebug('convertBoldAndItalicToHTML', `-> ${output}`)
+  // logDebug('convertBoldAndItalicToHTML', `-> ${output}`)
   return output
 }
 
@@ -848,9 +847,9 @@ export function simplifyInlineImagesForHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
-      logDebug(`simplifyInlineImagesForHTML`, capture)
+      // logDebug(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output

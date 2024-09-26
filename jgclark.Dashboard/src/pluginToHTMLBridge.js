@@ -30,6 +30,7 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
+  // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddProgressUpdate,
@@ -98,7 +99,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
+    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -119,12 +120,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        // await refreshAllSections()
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
         break
       }
       case 'windowReload': {
-        showDashboardReact()
+        const useDemoData = data.settings?.useDemoData ?? false
+        await showDashboardReact('full', useDemoData) // FIXME: cause of circular dependency // TODO: x-callback instead!
         return
       }
       case 'completeTask': {
@@ -244,7 +245,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       //   break
       // }
       case 'dashboardSettingsChanged': {
-       result = await doSettingsChanged(data, 'dashboardSettings')
+        result = await doSettingsChanged(data, 'dashboardSettings')
+        break
+      }
+      case 'perspectiveSettingsChanged': {
+        result = await doSettingsChanged(data, 'perspectiveSettings')
         break
       }
       // case 'setSpecificDate': {
@@ -279,6 +284,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data)
         break
       }
+      // case 'turnOffPriorityItemsFilter': {
+      //   result = await turnOffPriorityItemsFilter()
+      //   break
+      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }

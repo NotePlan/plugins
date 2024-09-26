@@ -669,13 +669,20 @@ export function getBody(templateData: string = ''): string {
  * @param {number} minimumTimeRequired (in ms) - default: 2000ms
  * @returns {boolean} - true if the time since the last document write is less than the minimum time required
  * @usage if (Editor?.note && isTriggerLoop(Editor.note)) return // returns/stopping execution if the time since the last document write is less than than 2000ms
+ * @author @dwertheimer extended by @jgclark
  */
 export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): boolean {
-  if (!note.versions || !note.versions.length) return false
-  const timeSinceLastEdit: number = Date.now() - note.versions[0].date
-  if (timeSinceLastEdit <= minimumTimeRequired) {
-    logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
-    return true
+  try {
+    if (!note.versions || !note.versions.length || note.versions[0]) return false // no note version, so no recent update
+
+    const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+    if (timeSinceLastEdit <= minimumTimeRequired) {
+      logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
+      return true
+    }
+    return false
+  } catch (error) {
+    logError(pluginJson, 'isTriggerLoop error: ${error.message}')
+    return false
   }
-  return false
 }

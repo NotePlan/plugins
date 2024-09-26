@@ -5,7 +5,7 @@
 // Last updated 2024-08-26 for v2.0.6 by @jgclark
 //--------------------------------------------------------------------------
 
-import * as React from 'react'
+import React, { type Node } from 'react'
 // import { CircularProgressbar, CircularProgressbarWithChildren, buildStyles } from 'react-circular-progressbar'
 // import 'react-circular-progressbar/dist/styles.css'
 import type { TSectionItem } from '../../types.js'
@@ -19,7 +19,7 @@ type Props = {
   item: TSectionItem,
 }
 
-function ProjectItem({ item }: Props): React.Node {
+function ProjectItem({ item }: Props): Node {
   const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
 
   const itemFilename = item.project?.filename ?? '<no filename>'
@@ -83,7 +83,7 @@ function ProjectItem({ item }: Props): React.Node {
           <span className="folderName">{folderNamePart}</span>}
         {noteTitleWithOpenAction}
         <a className="dialogTrigger">
-          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
+          <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
         </a>
         {progressContent}
       </div>

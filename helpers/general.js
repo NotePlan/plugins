@@ -477,14 +477,15 @@ export const forceLeadingSlash = (str: string): string => (str[0] === '/' ? str 
 
 /**
  * Check if a filename is in a list of folders (negate the result to get *not in folder*)
- * Folders should not have slashes at the end
- * @param {string} filename
- * @param {Array<string>} folderList
- * @param {boolean} caseSensitive - whether to do a case sensitive check (defaults to false)
+ * Folders should not have slashes at the end.
+ * Note: there's a newer version in folders.js with an extra parameter.
+ * @param {string} filenameStr
+ * @param {Array<string>} folderListArr
+ * @param {boolean} caseSensitive? - whether to do a case sensitive check (defaults to false)
  * @example filteredTasks = allTasks.filter((f) => inFolderList(f.filename, inFolders)) // filename in one of these folders
  * @example filteredTasks = allTasks.filter((f) => !inFolderList(f.filename, notInFolders)) // filename not in any of these folders
  * @author @dwertheimer
- * @returns
+ * @returns {boolean}
  */
 export function inFolderList(filenameStr: string, folderListArr: Array<string>, caseSensitive: boolean = false): boolean {
   const filename = caseSensitive ? forceLeadingSlash(filenameStr) : forceLeadingSlash(filenameStr.toLowerCase())

@@ -53,7 +53,6 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
 
 // Explicitly annotate the return type of AppProvider as a React element
 export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispatch, pluginData, updatePluginData, reactSettings, setReactSettings }: Props): Node => {
-
   // Provide the context value with all functions and state.
   const contextValue: AppContextType = {
     sendActionToPlugin,

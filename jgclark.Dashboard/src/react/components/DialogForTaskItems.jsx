@@ -2,21 +2,20 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-07-08 for v2.0.1 by @jgclark
+// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
 //
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
-// import { allSectionDetails } from "../../constants"
 import { validateAndFlattenMessageObject } from '../../shared'
 import { type MessageDataObject } from "../../types"
 import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
-import StatusIcon from './StatusIcon.jsx'
+// import StatusIcon from './StatusIcon.jsx'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { clo, clof, JSP, logDebug } from '@helpers/react/reactDev'
+import { clo, clof, JSP, logDebug, logInfo } from '@helpers/react/reactDev'
 import EditableInput from '@helpers/react/EditableInput.jsx'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -25,6 +24,14 @@ type Props = {
   onClose: (xWasClicked: boolean) => void,
   details: MessageDataObject,
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
+}
+
+type DialogButtonProps = {
+  label: string,
+  controlStr: string,
+  handlingFunction?: string,
+  description?: string,
+  icons?: Array<{ className: string, position: 'left' | 'right' }>,
 }
 
 const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
@@ -43,20 +50,20 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // logDebug('DialogForTaskItems', `- rescheduleNotMove: dashboardSettings = ${String(dashboardSettings?.rescheduleNotMove)} / settings = ${String(pluginData?.dashboardSettings.rescheduleNotMove)}`)
 
   // Deduce the action to take when this is a date-changed button
-  // - Item in calendar note & move -> move to new calendar note for that picked date: use doMoveFromCalToCal()
-  // - All 3 other cases: use doRescheduleItem()
+  // - Item in calendar note & move to new calendar note for that picked date: use moveFromCalToCal()
+  // - All 3 other cases: use rescheduleItem()
   const dateChangeFunctionToUse = (noteType === 'Calendar' && !resched)
     ? 'moveFromCalToCal' : 'rescheduleItem'
   logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
-  const { interactiveProcessing } = reactSettings??{}
+  const { interactiveProcessing } = reactSettings ?? {}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
   const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
   const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
   /**
    * Array of buttons to render.
    */
-  const buttons = [
+  const buttons: Array<DialogButtonProps> = [
     { label: 'today', controlStr: 't' },
     { label: '+1d', controlStr: '+1d' },
     { label: '+1b', controlStr: '+1b' },
@@ -72,20 +79,29 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // - Toggle Type icon circle or square
   // Note: Some also cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open
   const buttonsToHideOnMobile = ['Move to']
-  const otherControlButtons = [
-    { label: 'Cancel', controlStr: 'canceltask', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
-    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
-    { label: 'Priority', controlStr: 'priup', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
-    { label: 'Priority', controlStr: 'pridown', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
-    { label: 'Change to', controlStr: 'tog', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
-    { label: 'Complete Then', controlStr: 'ct', handlingFunction: 'completeTaskThen' },
-    { label: 'Unschedule', controlStr: 'unsched', handlingFunction: 'unscheduleItem' },
+  const otherControlButtons: Array<DialogButtonProps> = [
+    { label: '', controlStr: 'completetask', description: 'Complete item', handlingFunction: (itemType === 'checklist') ? 'completeChecklist' : 'completeTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-check' : 'fa-circle-check'}`, position: 'left' }] },
+    { label: '', controlStr: 'canceltask', description: 'Cancel item', handlingFunction: (itemType === 'checklist') ? 'cancelChecklist' : 'cancelTask', icons: [{ className: `fa-regular ${(itemType === 'checklist') ? 'fa-square-xmark' : 'fa-circle-xmark'}`, position: 'left' }] },
+    { label: 'Move to', controlStr: 'movetonote', handlingFunction: 'moveToNote', description: 'Move item to a different note', icons: [{ className: 'fa-regular fa-file-lines', position: 'right' }] },
+    { label: 'Priority', controlStr: 'priup', description: 'Increase priority of item', handlingFunction: 'cyclePriorityStateUp', icons: [{ className: 'fa-regular fa-arrow-up', position: 'left' }] },
+    { label: 'Priority', controlStr: 'pridown', description: 'Decrease priority of item', handlingFunction: 'cyclePriorityStateDown', icons: [{ className: 'fa-regular fa-arrow-down', position: 'left' }] },
+    { label: 'Change to', controlStr: 'tog', description: 'Toggle item type between task and checklist', handlingFunction: 'toggleType', icons: [{ className: (itemType === 'checklist') ? 'fa-regular fa-circle' : 'fa-regular fa-square', position: 'right' }] },
+    { label: 'Complete Then', controlStr: 'commpletethen', description: 'Mark the item as completed on the date it was scheduled for', handlingFunction: 'completeTaskThen' },
+    { label: 'Unschedule', controlStr: 'unsched', description: 'Remove date from this item', handlingFunction: 'unscheduleItem' },
   ].filter((button) => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)) // don't show these buttons on mobile
 
+  // TEST: extra state ...
+  // const [IPIndex, setIPIndex] = useState(currentIPIndex)
+
+  // TEST: ...and extra state
+  // useEffect(() => {
+  //   logInfo('DialogForTaskItems', `currentIPIndex changed to ${String(currentIPIndex)}`)
+  //   setIPIndex(reactSettings.interactiveProcessing.currentIPIndex)
+  // }, [reactSettings.interactiveProcessing.currentIPIndex])
 
   useEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
-    // $FlowIgnore
+    // $FlowIgnore[incompatible-call]
     positionDialog(dialogRef)
     // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
@@ -200,27 +216,29 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
           >
             <div onClick={handleTitleClick} style={{ cursor: 'pointer' }}>
               <span className="preText">From:</span>
-              <i className="pad-left pad-right fa-regular fa-file-lines"></i>
-              <span className="dialogItemNote">{title}</span>
-              {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar Note)</span> : null}
+              <i className="pad-left-larger pad-right fa-regular fa-file-lines"></i>
+              <span className="dialogItemNote pad-right">{title}</span>
+              {noteType === 'Calendar' ? <span className="dialogItemNoteType"> (Calendar note)</span> : null}
             </div>
           </TooltipOnKeyPress>
           <div className="dialog-top-right">
             {interactiveProcessing && currentIPIndex !== undefined && (
               <>
                 <span className="interactive-processing-status">
-                  <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                  <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
+                    <i className="fa-solid fa-forward"></i>
+                  </button>
+                  {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+                  {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
+                  <span>
                     {currentIPIndex}
                   </span>
                   /
-                  <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}>
+                  {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
+                  <span>
                     {totalTasks}
                   </span>
                 </span>
-                <button className="skip-button" onClick={handleSkipClick} title="Skip this item">
-                  <i className="fa-solid fa-forward"></i>
-                </button>
               </>
             )}
             <button className="closeButton" onClick={() => closeDialog(true)}>
@@ -231,45 +249,54 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
 
         <div className="dialogBody">
           <div className="buttonGrid taskButtonGrid">
-            {/* line1 ---------------- */}
+            {/* Item content line ---------------- */}
             <div className="preText">For:</div>
             <div id="taskControlLine1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              {detailsMessageObject?.item ? <StatusIcon
+              {/* {detailsMessageObject?.item ? <StatusIcon
                 location={"dialog"}
                 item={detailsMessageObject?.item}
                 respondToClicks={true}
                 onIconClick={handleIconClick}
-              /> : null}
+              /> : null} */}
               {/* $FlowIgnore - Flow doesn't like the ref */}
               <EditableInput ref={inputRef} initialValue={content} className="fullTextInput dialogItemContent" useTextArea={pluginData.platform === 'iOS'} />
-              <button className="updateItemContentButton PCButton" onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
+              <button className="updateItemContentButton PCButton" title={'Update the content of this item'} onClick={(e) => handleButtonClick(e, 'updateItemContent', 'updateItemContent')}>
                 Update
               </button>
             </div>
 
-            {/* line2 ---------------- */}
+            {para.hasChild ?
+              <>
+                {/* Child indicator line */}
+                <div></div>
+                <div className="childDetails">(Has children)</div>
+              </>
+              : null}
+
+            {/* Move controls line ---------------- */}
             <div className="preText">{resched ? 'Reschedule to' : 'Move to'}:</div>
             <div id="itemControlDialogMoveControls">
               {buttons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, dateChangeFunctionToUse)}>
                   {button.label}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} />
+              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={() => positionDialog(dialogRef)} /> {/* FIXME: this positioning doesn't work */}
+              {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
             {/* </div> */}
 
-            {/* line3 ---------------- */}
-            <div className="preText">Other controls:</div>
+            {/* Other actions line ---------------- */}
+            <div className="preText">Other actions:</div>
             <div>
               {otherControlButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index} className="PCButton" title={button.description ?? ''} onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                    <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-right' : ''}`}></i>
                   ))}
                   {button.label}
                   {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    <i key={icon.className} className={`${icon.className} ${button.label !== '' ? 'pad-left' : ''}`}></i>
                   ))}
                 </button>
               ))}

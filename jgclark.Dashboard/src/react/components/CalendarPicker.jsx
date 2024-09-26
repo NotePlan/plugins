@@ -1,5 +1,9 @@
-// CalendarPicker.jsx
 // @flow
+//----------------------------------------------------------
+// Calendar Picker component.
+// Used in DialogFor*Items components.
+// Last updated 2024-08-14 for v2.1.0.a7 by @dbw
+//----------------------------------------------------------
 import React, { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
 // Import styles directly into component
@@ -11,9 +15,10 @@ type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected
   numberOfMonths?: number, // Number of months to show in the calendar
   startingSelectedDate?: Date, // Date to start with selected
+  positionFunction?: ()=>{} // Function to call to reposition the dialog because it will be taller when calendar is open
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate }: Props): React$Node => {
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction }: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(startingSelectedDate||new Date())
   const [isOpen, setIsOpen] = useState(false)
 
@@ -23,29 +28,36 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     onSelectDate(date) // Propagate the change up to the parent component
   }
 
+  const callRepositionFunctionAfterOpening = () => positionFunction ? window.setTimeout(() => positionFunction(), 100) : null
+
   const toggleDatePicker = () => {
+    if (!isOpen && positionFunction) callRepositionFunctionAfterOpening()
     setIsOpen(!isOpen)
   }
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
 
-  const calendarStyles = { /* note: the non-color styles are set in CalendarPicker.css */
-    container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
-    caption: { color: 'var(--tint-color)' },
-    navButtonPrev: { color: 'var(--tint-color)' },
-    navButtonNext: { color: 'var(--tint-color)' },
-    weekdays: { backgroundColor: 'var(--bg-main-color)' },
-    weekday: { fontWeight: 'bold' },
-    weekend: { backgroundColor: 'var(--bg-alt-color)' },
-    week: { color: '#333' },
-    day: { color: 'var(--fg-main-color)' },
-    today: { color: 'var(--hashtag-color)', backgroundColor: 'var(--bg-alt-color)' },
-    selected: { color: 'var(--tint-color)', backgroundColor: 'var(--bg-alt-color)' },
-  }
+  // TODO: looks like these could all move to CalendarPicker.css?
+  /* note: the non-color styles are set in CalendarPicker.css */
+  // const calendarStyles = {
+  //   container: { border: '1px solid #ccc', marginTop: '0px', paddingTop: '0px' },
+  //   caption: { color: 'var(--tint-color)' },
+  //   navButtonPrev: { color: 'var(--tint-color)' },
+  //   navButtonNext: { color: 'var(--tint-color)' },
+  //   weekdays: { backgroundColor: 'var(--bg-main-color)' },
+  //   weekday: { fontWeight: 'bold' },
+  //   weekend: { backgroundColor: 'var(--bg-alt-color)' },
+  //   week: { color: '#333' },
+  //   day: { color: 'var(--fg-main-color)' },
+  //   today: { color: 'var(--hashtag-color)', backgroundColor: 'var(--bg-alt-color)' },
+  //   selected: { color: 'var(--tint-color)', backgroundColor: 'var(--bg-alt-color)' },
+  // }
 
   return (
     <>
-      <button className="PCButton" onClick={toggleDatePicker}>
-        <i className="fa-solid fa-calendar-alt pad-left pad-right" /*style={{ color: 'var(--fg-main-color)', paddingLeft: '5px', paddingRight: '5px' }}*/></i>
+      <button className="PCButton"
+        title="Open calendar to pick a specific day"
+        onClick={toggleDatePicker}>
+        <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
       </button>
       {isOpen && (
         <div className="dayPicker-container">
@@ -56,7 +68,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
             numberOfMonths={numberOfMonths}
             required
             fixedHeight
-            styles={calendarStyles}
+            // styles={calendarStyles}
             className="calendarPickerCustom"
           />
         </div>

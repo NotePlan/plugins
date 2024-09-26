@@ -24,9 +24,9 @@
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, useLayoutEffect, type Node } from 'react'
+import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
-import { type TReactSettings, type TSettingItem } from '../../types'
+import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
@@ -34,12 +34,12 @@ import { AppProvider } from './AppContext.jsx'
 import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
- * Reduces an array of dashboard settings items into an object including default values.
- * FIXME(@dwertheimer): I don't see anything about defaults in the code: is this more like getSettingItemValues()?
- * @param {Array<DashboardSettingItem>} items - The array of dashboard settings items.
+ * Reduces an array of dashboard settings or filter items into an object with keys and values
+ * Sets to the value of the item or the checked value if it is a boolean field or an empty string if none of the above
+ * @param {Array<TSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
-function getSettingsDefaults(items: Array<TSettingItem>): { [key: string]: any } {
+function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
   return items.reduce((acc: { [key: string]: any }, item) => {
     if (item.key) {
       acc[item.key] = item.value || item.checked || ''
@@ -61,21 +61,31 @@ type Props = {
   setReactSettings: Function,
 }
 
+// FIXME(@dbw): move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders.
+// (Really needed: this is firing for every key press in the settings dialog, for example.)
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
 
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
 
+  // Note: DBW says this initialisation code could be brought back into the plugin side; it only lives here as this was where we was first needing the data.
+
   // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
   const dSettings = data.pluginData.dashboardSettings || {}
+  // logDebug('WebView', `found ${String(dSettings.length)} dSettings: ${JSON.stringify(dSettings, null, 2)}`)
   const dSettingsItems = createDashboardSettingsItems(dSettings)
-  const settingsDefaults = getSettingsDefaults(dSettingsItems)
+  const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
   const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
-  const filterSettingsDefaults = getSettingsDefaults(sectionToggles)
-  const otherSettingsDefaults = getSettingsDefaults(_otherToggles)
-  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DefaultSettings` }
-  const [dashboardSettings, setDashboardSettings] = React.useState(dashboardSettingsOrDefaults)
+  const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
+  const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
+  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
+  const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
+  // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
+
+  const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
+  logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+  const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -102,52 +112,13 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             EFFECTS
    ****************************************************************************************************************************/
 
-  type Settings = {
-    setter: (prev: any) => void,
-    currentSettings: ?Object,
-    settingsKey: string,
-    defaultSettings: Object,
-    effectName: string
-  };
-
-  /**
-   * @typedef {Object} Settings
-   * @property {Function} setter - Function to set settings state.
-   * @property {Object|null} currentSettings - Current settings state.
-   * @property {string} settingsKey - Key to access the right settings from plugin data.
-   * @property {Object} defaultSettings - Default settings to apply.
-   * @property {string} effectName - Name of the effect for debugging purposes.
-   */
-  /**
-   * Helper function to initialize settings (used for reactSettings and dashboardSettings)
-   * TODO: (@dwertheimer): This was general purpose but after dashboardSettings refactor I'm not sure it's needed anymore
-   * @param {Settings} settings
-   */
-  // function initializeSettings({ setter, currentSettings, settingsKey, defaultSettings, effectName }: Settings) {
-  //   if (!setter) return
-  //   const pluginSettingsPassed = pluginData.dashboardSettings || {}
-
-  //   let parsedSettings = currentSettings
-  //   if (pluginSettingsPassed) {
-  //     try {
-  //       logDebug(`Webview`, `${effectName} effect: loading initial data from pluginData.dashboardSettings.${settingsKey}`)
-  //       // parsedSettings = parseSettings(pluginData.dashboardSettings[settingsKey])
-  //       parsedSettings = { ...defaultSettings, ...pluginSettingsPassed }
-  //     } catch (error) {
-  //       logDebug(`Webview`, `${effectName} effect: could not parse settings. ${error} pluginData.dashboardSettings.${settingsKey}: ${pluginData.dashboardSettings[settingsKey]}`)
-  //     }
-  //   }
-
-  //   setter((prev) => ({ ...prev, ...parsedSettings, lastChange: `_Webview_firstLoad` }))
-  // }
-
   /**
    * Set up the initial React Settings (runs only on load)
    */
   useEffect(() => {
+    // logDebug('WebView', `useEffect -> setReactSettings() for '_Webview_firstLoad'`)
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
   }, [setReactSettings])
-
 
   /**
    * When the data changes, console.log it so we know and scroll the window
@@ -249,6 +220,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       setReactSettings={setReactSettings}
       dashboardSettings={dashboardSettings}
       setDashboardSettings={setDashboardSettings}
+      perspectiveSettings={perspectiveSettings}
+      setPerspectiveSettings={setPerspectiveSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>

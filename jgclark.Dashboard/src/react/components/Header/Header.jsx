@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -19,6 +19,7 @@ import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
+import PerspectiveSelector  from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import {
   handleSwitchChange,
@@ -27,7 +28,7 @@ import {
   handleDropdownFieldChange,
   onDropdownMenuChangesMade
 } from './headerDropdownHandlers.js'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug } from '@helpers/react/reactDev.js'
 import './Header.css'
 
 //--------------------------------------------------------------------------
@@ -53,7 +54,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData, setPerspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -74,7 +75,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  const { /*dashboardSettings: pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
+  const {/* pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
 
   const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
@@ -82,19 +83,27 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
+  const isMobile = pluginData.platform !== "macOS"
+  const isNarrowWidth = window.innerWidth <= 650
+  const updatedText = "Updated"
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
 
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  const isDesktop = pluginData.platform === "macOS"
-  const updatedText = "Updated"
-  const timeAgoText = isDesktop ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m")
+  const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m").replace(" hours", "h").replace(" hour", "h")
 
   return (
     <div className="header">
-      <div className="lastFullRefresh">
-        {updatedText}: <span id="timer">{timeAgoText}</span>
-      </div>
+      {/* Perspective selector */}
+      {dashboardSettings.showPerspectives && (
+        <div className="perspectiveName">
+          <PerspectiveSelector />
+        </div>
+      )}
 
       <div className="refresh">
         <RefreshControl
@@ -107,9 +116,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             className="HAButton hardRefreshButton"
           >
             <i className={"fa-regular fa-arrows-retweet"}></i>
-            <span className="pad-left">{isDesktop ? "Hard Refresh" : " HR "}</span>
+            <span className="pad-left">{isNarrowWidth ? "HR" : "Hard Refresh"}</span>
           </button>
         )}
+      </div>
+
+      <div className="lastFullRefresh">
+        {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 
       <div className="totalCounts">
@@ -125,7 +138,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
-              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
+              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
               onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
             }}
             className={'feature-flags'}
@@ -150,7 +163,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin)(key)(e)
+            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           handleSaveInput={(key, newValue) => {
@@ -169,7 +182,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <i
             className="fa-solid fa-gear"
             onClick={handleToggleDialog}
-            style={{ cursor: 'pointer' }}
+            // style={{ cursor: 'pointer' }}
           ></i>
         </div>
       </div>

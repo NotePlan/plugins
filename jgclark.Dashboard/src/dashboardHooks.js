@@ -2,15 +2,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated 2024-07-26 for v2.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { incrementallyRefreshSections, refreshSomeSections } from './clickHandlers'
 import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import { getSomeSectionsData } from './dataGeneration'
-import { type MessageDataObject, type TSectionCode } from './types'
+// import { getSomeSectionsData } from './dataGeneration'
+import type { MessageDataObject, TSectionCode } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getNPMonthStr,
@@ -201,4 +201,20 @@ export async function refreshProjectSection(): Promise<void> {
   }
   const res = await refreshSomeSections(data, true)
   // logDebug('refreshProjectSection', `done.`)
+}
+
+/**
+ * Refresh a section given by its code -- if the Dashboard is open already.
+ */
+export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<void> {
+  if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+    logDebug('refreshSectionByCode', `Dashboard not open, so won't proceed ...`)
+    return
+  }
+  logDebug('refreshSectionByCode', `Dashboard is open, so starting ...`)
+  const data: MessageDataObject = {
+    sectionCodes: [sectionCode],
+    actionType: 'refreshSomeSections',
+  }
+  const res = await refreshSomeSections(data, true)
 }

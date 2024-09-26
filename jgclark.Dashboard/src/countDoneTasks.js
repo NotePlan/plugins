@@ -46,7 +46,8 @@ export function getTotalDoneCounts(sections: Array<TSection>): TDoneCount {
 export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWherePossible?: boolean): TDoneCount {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
-    const startTime = new Date()
+    // Note: This is a quick operation, so no longer needing to time
+    // const startTime = new Date()
 
     //------------------------------------------------
     // Get paras from the note
@@ -75,8 +76,6 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
       // completedChecklists: numCompletedChecklists,
       lastUpdated: new Date(),
     }
-    // This is a quick operation, so no longer needing to time
-    // logTimer('getNumCompletedTasksTodayFromNote', startTime, `for ${String(numCompletedTasks)} completed tasks in '${filename}'`)
     return outputObject
   } catch (error) {
     logError('getNumCompletedTasksTodayFromNote', error.message)
@@ -89,14 +88,14 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
 }
 
 /**
- * Build a list of notes that have tasks completed today
+ * Build a list of ordinary (non-calendar) notes that have tasks completed today
  * @returns {Array<TDoneTodayNotes>}
  */
 export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
   try {
     const startTime = new Date()
     const outputArr: Array<TDoneTodayNotes> = []
-    logDebug('buildListOfDoneTasksToday', `Starting at ${String(startTime)}`)
+    // logDebug('buildListOfDoneTasksToday', `Starting at ${String(startTime)}`)
 
     // Get list of non-calendar notes _updated today_ to check
     const notesChangedToday: Array<TNote> = getNotesChangedInInterval(0, ['Notes'])
@@ -106,7 +105,7 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
     for (const note of notesChangedToday) {
       const doneCounts = getNumCompletedTasksTodayFromNote(note.filename, false)
       const numDoneToday = doneCounts.completedTasks
-      logTimer('buildListOfDoneTasksToday', startTime, `- found ${String(numDoneToday)} done in '${note.filename}' changed ${toLocaleDateTimeString(note.changedDate)}`)
+      // logTimer('buildListOfDoneTasksToday', startTime, `- found ${String(numDoneToday)} done in '${note.filename}' changed ${toLocaleDateTimeString(note.changedDate)}`)
       if (numDoneToday > 0) {
         total += numDoneToday
         outputArr.push({
@@ -118,8 +117,7 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
         })
       }
     }
-    logTimer('buildListOfDoneTasksToday', startTime, `to find ${total} done tasks today in ordinary notes`)
-    // clo(outputArr, 'buildListOfDoneTasksToday output', 2)
+    logTimer('buildListOfDoneTasksToday', startTime, `=> to find ${total} done tasks today in ordinary notes`)
     return outputArr
   }
   catch (err) {
@@ -127,6 +125,7 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
     return []
   }
 }
+
 /**
  * Summarise (roll up) the doneCounts, from both available Types of done count, into a single TDoneCount.
  * Note: we're not yet using the 'lastUpdated' information, but I was planning to.
