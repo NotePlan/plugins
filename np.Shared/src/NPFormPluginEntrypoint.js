@@ -30,7 +30,7 @@ export type PassedData = {
 export function getInitialReactWindowData(argObj: Object): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getPluginData(argObj)
+  const pluginData = { platform: NotePlan.environment.platform } // or call getPluginData(argObj) if more is needed
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
