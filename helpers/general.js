@@ -210,6 +210,7 @@ export function createOpenOrDeleteNoteCallbackUrl(
   const head = heading && heading.length ? encodePlusParens(heading.replace('#', '')) : ''
   // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encodedTitleOrFilename = encodePlusParens(titleOrFilename)
+  logDebug('createOpenOrDeleteNoteCallbackUrl', `encodePlusParens -> '${encodedTitleOrFilename}'`)
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   let retVal = ''
   if (isLineLink) {
