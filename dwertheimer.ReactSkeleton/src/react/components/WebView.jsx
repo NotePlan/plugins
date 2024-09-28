@@ -33,15 +33,7 @@ import { type PassedData } from '../../reactMain.js'
 import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
-
-/****************************************************************************************************************************
- *                             CONSOLE LOGGING
- ****************************************************************************************************************************/
-// color this component's output differently in the console
-const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+import { logDebug } from '@helpers/react/reactDev'
 
 /**
  * Root element for the Plugin's React Tree
@@ -79,7 +71,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} e - the event object
    * @param {number} index - the index of the button that was clicked
    */
-  const onSubmitClick = (e, index) => {
+  const onSubmitClick = (e:any, index:number) => {
     logDebug(`Webview: onSubmitClick: ${e.type || ''} click on index: ${index}`)
     sendActionToPlugin('onSubmitClick', { index: index })
   }
@@ -129,7 +121,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @returns {string} cleaned text without HTML entities
    */
   // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text) {
+  function decodeHTMLEntities(text:string):string {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -145,7 +137,7 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
+    if (!newData.passThroughVars) newData.passThroughVars = {lastWindowScrollTop:0}
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }

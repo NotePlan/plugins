@@ -265,7 +265,7 @@ export type TDialogData = {
   isOpen: boolean,
   isTask?: boolean,
   clickPosition?: TClickPosition,
-  details?: MessageDataObject
+  details?: MessageDataObject,
 }
 
 export type TReactSettings = {
@@ -320,6 +320,7 @@ export type TInteractiveProcessing = {
   totalTasks: number,
   clickPosition: TClickPosition,
   startingUp?: boolean,
+  visibleItems?: Array<TSectionItem>,
 } | false
 
 export type TDoneCount = {

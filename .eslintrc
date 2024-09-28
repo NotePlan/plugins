@@ -71,7 +71,7 @@
     "no-console": "off",
     "no-floating-promise/no-floating-promise": 2,
     "no-prototype-builtins": "off",
-    "no-return-in-foreach": "error",
+    // "no-return-in-foreach": "error",
     "no-useless-escape": "off",
     "no-var": "error",
     "prefer-const": "warn",

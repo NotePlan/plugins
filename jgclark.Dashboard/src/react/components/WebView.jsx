@@ -116,9 +116,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * Set up the initial React Settings (runs only on load)
    */
   useEffect(() => {
-    // logDebug('WebView', `useEffect -> setReactSettings() for '_Webview_firstLoad'`)
+    logDebug('WebView', `useEffect -> setReactSettings() for '_Webview_firstLoad'`)
+    clo(reactSettings, 'WebView useEffect -> reactSettings')
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
-  }, [setReactSettings])
+  }, [])
 
   /**
    * When the data changes, console.log it so we know and scroll the window

@@ -34,7 +34,7 @@ type DialogButtonProps = {
   icons?: Array<{ className: string, position: 'left' | 'right' }>,
 }
 
-const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
+const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
   // const [detailsMessageObject,setDetailsMessageObject] = useState(details) // was thinking this needed to change, but maybe not
   const inputRef = useRef <? ElementRef < 'dialog' >> (null)
@@ -43,7 +43,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
 
-  const { sendActionToPlugin, reactSettings, dashboardSettings, pluginData } = useAppContext()
+  const { sendActionToPlugin, reactSettings, setReactSettings, dashboardSettings, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
   const resched = dashboardSettings?.rescheduleNotMove || pluginData?.dashboardSettings.rescheduleNotMove || false
@@ -106,27 +106,42 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     // logDebug(`DialogForTaskItems`, `AFTER POSITION dialogRef.current.style.top=${String(dialogRef.current?.style.top || '') || ""}`)
   }, [])
 
-  function handleTitleClick(e:MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
+  function handleTitleClick(e: MouseEvent) { // MouseEvent will contain the shiftKey, ctrlKey, altKey, and metaKey properties 
     const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed
     detailsMessageObject.actionType = 'showLineInEditorFromFilename'
-    detailsMessageObject.modifierKey = modifierName 
+    detailsMessageObject.modifierKey = modifierName
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
   // Handle the shared closing functionality
   const closeDialog = (forceClose: boolean = false) => {
-    // Start the zoom-out animation
-    showAnimations ? setAnimationClass('zoom-out') : null
-    scheduleClose(300, forceClose)  // Match the duration of the animation
+    console.log('DialogForTaskItems 🥸 closeDialog() reactSettings; looking for interactiveProcessing',reactSettings)
+    if (reactSettings?.interactiveProcessing) {
+      handleIPItemProcessed(false)
+    } else {
+      // Start the zoom-out animation
+      console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
+      showAnimations ? setAnimationClass('zoom-out') : null
+      scheduleClose(300, forceClose)  // Match the duration of the animation
+    }
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    setTimeout(() => onClose(forceClose), delay)
+    console.log('DialogForTaskItems 🥸 scheduleClose() at top reactSettings; looking for interactiveProcessing',reactSettings)
+    setTimeout(() => {
+      console.log('DialogForTaskItems 🥸 scheduleClose() after timout reactSettings; looking for interactiveProcessing',reactSettings)
+      // $FlowIgnore 
+      logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
+      reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
+      onClose(forceClose)
+    }, delay)
   }
 
   // during overduecycle, user wants to skip this item (leave it overdue)
   const handleSkipClick = () => {
-    closeDialog()
+    // closeDialog()
+    logDebug('DialogForTaskItems', `handleSkipClick calling handleIPItemProcessed`)
+    reactSettings?.interactiveProcessing ? handleIPItemProcessed(true) : null
   }
 
   // Handle the date selected from CalendarPicker
@@ -137,6 +152,50 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
     sendActionToPlugin(dateChangeFunctionToUse, { ...detailsMessageObject, actionType: dateChangeFunctionToUse, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
     closeDialog()
+  }
+
+  // FIXME: A single button click causes dialog to go away
+  // handle a single item being processed in interactive processing
+  const handleIPItemProcessed = (skippedItem?: boolean) => {
+    console.log('DialogForTaskItems 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings:', reactSettings)
+    const { visibleItems } = (reactSettings?.interactiveProcessing || {})
+    console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleIPItemProcessed function',reactSettings)
+    if (!visibleItems) return
+    const currentIPIndex: number = Number(reactSettings?.interactiveProcessing?.currentIPIndex || 0)
+    logDebug('Section', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
+    let removeCount = 1
+    // check if there are children to skip over
+    if (!skippedItem && visibleItems[currentIPIndex].para?.hasChild && visibleItems.length > currentIPIndex) {
+      // also remove any children of the first item
+      for (let i = 1; i < visibleItems.length; i++) {
+        const item = visibleItems[i]
+        logDebug('useInteractiveProcessing', `- checking for children of '${item?.para?.content ?? 'n/a'}'`)
+        if (item?.para?.isAChild) {
+          logDebug('useInteractiveProcessing', `  - found child '${item.para?.content}'`)
+          removeCount++
+        } else {
+          break // stop looking
+        }
+      }
+    }
+    const newIPIndex = currentIPIndex + removeCount
+    if (newIPIndex < visibleItems.length) {
+      logDebug('Section', `newIPIndex=${String(newIPIndex)}; visibleItems.length=${String(visibleItems.length)}; about to save to reactSettings`)
+      setReactSettings(prevSettings => ({
+        ...prevSettings,
+        interactiveProcessing: { ...prevSettings.interactiveProcessing, currentIPIndex: newIPIndex },
+        dialogData: { ...prevSettings.dialogData, details: { ...prevSettings.dialogData.details, item: visibleItems[newIPIndex] } },
+        lastChange: `_Dashboard-handleIPItemProcessed more IP items to process`,
+      }))
+    } else {
+      logDebug('Section', `newIPIndex=${String(newIPIndex)}>${visibleItems.length}; about to save to reactSettings`)
+      setReactSettings(prevSettings => ({
+        ...prevSettings,
+        interactiveProcessing: null,
+        dialogData: { isOpen: false },
+        lastChange: `_Dashboard-handleIPItemProcessed no more IP items to process`,
+      }))
+    }
   }
 
   // Following handleIconClick() at the lower StatusIcon component, all we need to do now is close the dialog.
@@ -150,8 +209,8 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     // clo(detailsMessageObject, 'handleButtonClick detailsMessageObject')
     const currentContent = para.content
     logDebug(`DialogForTaskItems handleButtonClick`, `Button clicked on ID: ${ID} for controlStr: ${controlStr}, handlingFunction: ${handlingFunction}, itemType: ${itemType}, filename: ${filename}, metaKey: ${String(metaKey)} altKey: ${String(
-        altKey,
-      )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
+      altKey,
+    )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
     )
     // $FlowIgnore
     const updatedContent = inputRef?.current?.getValue() || ''
@@ -174,17 +233,17 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
     if (controlStr === 'openNote' || controlStr.startsWith("pri") || controlStr === "update") return //don't close dialog yet
 
     // Start the zoom/flip-out animation
-    setAnimationClass('zoom-out') //flip-out
+    reactSettings?.interactiveProcessing ? null : setAnimationClass('zoom-out') //flip-out
 
     // Dismiss dialog, unless meta key pressed
     if (!metaKey) {
       // Wait for zoom animation animation to finish before actually closing
       setTimeout(() => {
-        onClose(false)
+        closeDialog(false)
       }, 300) // Match the duration of the animation
     } else {
       console.log(`Option key pressed. Closing without animation.`)
-      onClose(false)
+      closeDialog(false)
     }
   }
 
@@ -231,7 +290,7 @@ const DialogForTaskItems = ({ details:detailsMessageObject, onClose, positionDia
                   {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
                   {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
                   <span>
-                    {currentIPIndex}
+                    {currentIPIndex + 1}
                   </span>
                   /
                   {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
