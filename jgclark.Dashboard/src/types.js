@@ -314,13 +314,18 @@ export type TPluginCommandSimplified = {
   commandArgs: $ReadOnlyArray<mixed>,
 }
 
+export type TItemToProcess = {
+  ...TSectionItem,
+  processed?: boolean,
+}
+
 export type TInteractiveProcessing = {
   sectionName: string,
   currentIPIndex: number,
   totalTasks: number,
   clickPosition: TClickPosition,
   startingUp?: boolean,
-  visibleItems?: Array<TSectionItem>,
+  visibleItems?: Array<TItemToProcess>,
 } | false
 
 export type TDoneCount = {

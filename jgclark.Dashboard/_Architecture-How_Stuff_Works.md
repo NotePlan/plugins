@@ -76,19 +76,13 @@ At 2.1, sharedSettings has been dropped.
 - Dashboard also has a watcher looking for changes in Dashboard settings generally, and inside that watcher/effect, we check to see if the perspective is set to "-", because in that case, we need to update the perspective data for "-" automatically since dashboardSettings has been updated.
 
 
-## Custom Hooks (src/react/customHooks)
+## Interactive Processing
 
-### useInteractiveProcessing (process all tasks)
-This is the hook that handles interactive processing of all items in a section
-- Section.jsx: 
-    - Every section with items gets the button 
-    - clicking the button calls handleInteractiveProcessingClick() which sets reactSettings.interactiveProcessing to an object with details (type TInteractiveProcessing)
-    - useInteractiveProcessing is loaded by Section.jsx
-- useInteractiveProcessing
-    - Has effects that monitor reactSettings looking for reactSettings.interactiveProcessing having been set
-    - when it's first set, the items to process array is saved
-    - the first item is loaded
-    - each time a user action on an item closes the dialog, traverses to the next item in the list and opens the dialog 
+- The interactive processing is initiated by clicking the button on the Task dialog.
+- It is triggered in Section.jsx, which sets reactSettings.interactiveProcessing to an object with details.
+- The incrementing of the interactive processing is handled in DialogForTaskItems.jsx::handleIPItemProcessed()
+
+## Custom Hooks (src/react/customHooks)
 
 ### useRefreshTimer (Refresh Timer, for calling for refresh after N secs - e.g. after NP cache is updated)
 This is a single component that is used in several places to force refreshes after a certain amount of time. It is imported into the Dashboard component and then called in these circumstances:
