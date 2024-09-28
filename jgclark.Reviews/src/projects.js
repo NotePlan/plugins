@@ -3,22 +3,25 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2024-08-30 for v0.14.1, @jgclark
+// Last updated 2024-09-27 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
+import { Project } from './projectClass'
 import {
   finishReview,
   renderProjectLists,
-  updateReviewListAfterChange
+  // updateProjectsListAfterChange,
 } from './reviews'
 import {
   getReviewSettings,
-  Project,
   type ReviewConfig
 } from './reviewHelpers'
+import {
+  updateProjectsListAfterChange
+} from './reviewListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -93,17 +96,18 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
 
         if (willArchive) {
           // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+          await updateProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
-          // update the full-review-list, using the machineSummaryLine
-          await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+          // update the full-review-list, using the TSVSummaryLine
+          // FIXME: remove newMSL implication
+          await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
         }
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('list', true)
+        const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/completeProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -189,17 +193,18 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 
         if (willArchive) {
           // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+          await updateProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
-          // update the full-review-list, using the machineSummaryLine
-          await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+          // update the full-review-list, using the TSVSummaryLine
+          // FIXME: remove newMSL implication
+          await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
         }
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('list', true)
+        const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/cancelProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -272,9 +277,10 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
         await Editor.openNoteByFilename(note.filename)
       // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-        // update the full-review-list, using the machineSummaryLine
+        // update the full-review-list, using the TSVSummaryLine
         // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+        // FIXME: remove newMSL implication
+        await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)

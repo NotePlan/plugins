@@ -1,8 +1,20 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-## [0.14.2] - 2024-09-23 not released
-- bug fix on calculating % complete on projects with some progress lines
+## [1.0.0.b1] - 2024-09-???
+### New
+- can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List (although this can be turned off if desired).
+
+### Fixed
+- calculating % complete with some progress lines <!-- committed  as 0.14.2 -->
+- 'Refresh' button sometimes not working on Markdown output
+
+### Changes (under the hood)
+- split out Project class definition from reviewHelpers.js
+- start transition from tab-separate text file that holds a few details on matching project notes, to a JSON-formatted file, holding all details on all project notes
+
+### Changes
+- significant speed up of some parts of the plugin
 
 ## [0.14.1] - 2024-09-03
 ### New

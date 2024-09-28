@@ -1,6 +1,6 @@
 /**
  * CSS specific to reviewList() from jgclark.Reviews plugin
- * Last updated 2024-09-03 for v0.14.1, @jgclark 
+ * Last updated 2024-09-29 for v1.0.0.b1, @jgclark 
  */
 
 body {
@@ -25,7 +25,7 @@ p b {
   font-weight: 600 !important;
 }
 a, a:visited, a:active {
-  color: inherit; text-decoration-line: none
+  color: inherit; text-decoration-line: none;
 }
 /* Keep a header stuck to top middle of window */
 .sticky-box-top-middle {
@@ -40,7 +40,7 @@ th {
   text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color);
 }
 tr.projectRow {
-  height: calc(var(--body-line-height)*2.2); /* seems to function as min-height, which itself doesn't work */
+  height: calc(var(--body-line-height)*2.4); /* seems to function as min-height, which itself doesn't work */
 }
 tr.section-header-row {
   column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 1px solid var(--tint-color);
@@ -84,6 +84,14 @@ table tr th:first-child {
 /* turn off outer table right borders */
 table tr td:last-child, table tr th:last-child {
   border-right: 0px;
+}
+/* tweak color of every other row slightly */
+table tr:nth-child(even) {
+  background-color: var(--bg-mid-color); /* FIXME: not working as hoped */
+}
+/* as ^^^ is not working do this instead ... */
+table tr.projectRow {
+  border-bottom: 0.25px solid rgba(120,120,120,0.3);
 }
 
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */

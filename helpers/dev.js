@@ -541,6 +541,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
  */
 export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): any {
   try {
+    logDebug('devoverrideSettingsWithTypedArgs', `argsAsJSON:${argsAsJSON}`)
     // Parse argsAsJSON (if any) into argObj using assuming JSON
     if (argsAsJSON) {
       let argObj = {}

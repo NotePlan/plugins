@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.9.1",
+  "noteplan.minAppVersion": "3.9.3",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
   "plugin.name": "🔬 Projects + Reviews",
@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.14.2",
-  "plugin.lastUpdateInfo": "0.14.2: bug fix.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.",
+  "plugin.version": "1.0.0.b1",
+  "plugin.lastUpdateInfo": "1.0.0: new 'next action' functionality. Bug fix. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -156,9 +156,31 @@
       "hidden": true
     },
     {
+      "name": "test:generateAllProjectsList",
+      "description": "make/update allProjects list JSON file",
+      "jsFunction": "generateAllProjectsList"
+    },
+    {
+      "name": "test:getNextNoteToReview",
+      "description": "log next note to review",
+      "jsFunction": "getNextNoteToReview",
+      "comment": "TODO: remove me in time"
+    },
+    {
+      "name": "test:getNextProjectsToReview",
+      "description": "log next notes to review",
+      "jsFunction": "getNextProjectsToReview",
+      "comment": "TODO: remove me in time"
+    },
+    {
       "name": "test:logFullReviewList",
       "description": "write full-review-list file to log",
       "jsFunction": "logFullReviewList"
+    },
+    {
+      "name": "test:logAllProjectsList",
+      "description": "write allProjects JSON to log",
+      "jsFunction": "logAllProjectsList"
     },
     {
       "name": "test:makeFullReviewList",
@@ -284,6 +306,30 @@
       "required": true
     },
     {
+      "key": "folderToStore",
+      "title": "Folder to store (markdown) review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "type": "string",
+      "default": "Reviews",
+      "required": true
+    },
+    {
+      "key": "nextActionTag",
+      "title": "Next action #hashtag",
+      "description": "#hashtag to use to indicate item is the next action in this project (optional; default '#next')",
+      "type": "string",
+      "default": "#next",
+      "required": false
+    },
+    {
+      "key": "displayNextActions",
+      "title": "Display next actions in output?",
+      "description": "Whether to display the next action in the output? (If there are multiple items with the next action tag, only the first is shown.)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "displayOrder",
       "title": "Project Display order",
       "description": "The ordering options are by 'due' date, by next 'review' date or 'title'.",
@@ -347,14 +393,6 @@
       "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
       "type": "bool",
       "default": true,
-      "required": true
-    },
-    {
-      "key": "folderToStore",
-      "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary)",
-      "type": "string",
-      "default": "Reviews",
       "required": true
     },
     {

@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-02 for v0.14.1, @jgclark
+// Last updated 2024-09-27 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -22,13 +22,21 @@ import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
   getReviewSettings,
-  Project,
   type ReviewConfig,
   saveEditorToCache,
   updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
+import {
+  filterAndSortProjectsList,
+  // filterAndSortReviewList,
+  getNextNoteToReview,
+  // makeFullReviewList,
+  generateAllProjectsList,
+  updateProjectsListAfterChange
+} from './reviewListHelpers'
+import { Project } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import {
   calcOffsetDateStr, getDateObjFromDateString,
@@ -36,19 +44,18 @@ import {
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
-import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, overrideSettingsWithEncodedTypedArgs } from '@helpers/dev'
+import {
+  createRunPluginCallbackUrl, displayTitle,
+} from '@helpers/general'
 import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { filterOutProjectNotesFromExcludedFolders, getOrMakeNote } from '@helpers/note'
+import { getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { findNotesMatchingHashtag } from '@helpers/NPnote'
-import {
-  sortListBy
-} from '@helpers/sorting'
+// import { findNotesMatchingHashtag } from '@helpers/NPnote'
+// import { sortListBy } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
@@ -59,6 +66,7 @@ import {
 // Settings
 const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+// const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
@@ -285,7 +293,8 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
     }
 
     // Re-calculate the full-review-list (in foreground)
-    await makeFullReviewList(config, true)
+    // await makeFullReviewList(config, true)
+    await generateAllProjectsList(config, true)
 
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
@@ -364,7 +373,7 @@ export async function renderProjectListsHTML(
       }
     }
 
-    logDebug('renderProjectListsHTML', `>> after checkForWantedResources and before possible makeFullReviewList: ${timer(funcTimer)}`)
+    logTimer('renderProjectListsHTML', funcTimer, `>> after checkForWantedResources and before possible makeFullReviewList`)
 
     // Ensure noteTypeTags is an array before proceeding
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
@@ -450,7 +459,7 @@ export async function renderProjectListsHTML(
 
     // Add a sticky area for buttons
     const controlButtons = `<span class="sticky-box-header">Reviews</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
-    // TODO: remove test lines to see scroll position:
+    // Note: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
@@ -464,28 +473,18 @@ export async function renderProjectListsHTML(
     // v1: simple text
     outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
 
-    // v2: TODO: working on HTML checkbox toggles
-    // // Note: capitalised start of checkbox names: to make it possible to simply prepend 'toggle' to get to name of controlling function.
-    // outputArray.push(`<ul>`)
-    // outputArray.push(`  <li>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span></li>`)
-    // // Proper checkboxes don't work at all easily ...
-    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayOnlyDue" ${displayOnlyDue ? "checked" : "unchecked"}><label for="DisplayOnlyDue">Show only due items?</label></input></span></li>\n`)
-    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayFinished" ${displayFinished ? "checked" : "unchecked"}><label for="DisplayFinished">Also show finished items?</label></input></span></li>\n`)
-    // // ... so will use fake ones
-    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayOnlyDue" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayOnlyDue">Show only due items? (${displayOnlyDue ? "checked" : "unchecked"})</a></li>\n`)
-    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayFinished" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayFinished">??? Show finished items? (${displayFinished ? "checked" : "unchecked"})</a></li>\n`)
-    // outputArray.push(`</ul>`)
+    // v2: TODO: add checkbox toggles
 
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
 
-    logDebug('renderProjectListsHTML', `>> before main loop: ${timer(funcTimer)}`)
+    logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
 
     // Make the Summary list, for each noteTag in turn
     // let tagCount = 0
     for (const thisTag of config.noteTypeTags) {
       // Get the summary line for each revelant project
-      const [thisSummaryLines, noteCount, due] = await generateReviewSummaryLines(thisTag, 'Rich', config)
+      const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
       outputArray.push('')
@@ -529,7 +528,7 @@ export async function renderProjectListsHTML(
         outputArray.push('</table>')
       }
       // tagCount++
-      logDebug('renderProjectListsHTML', `>> end of loop for ${thisTag}: ${timer(funcTimer)}`)
+      logTimer('renderProjectListsHTML', funcTimer, `end of loop for ${thisTag}`)
     }
     outputArray.push(`</div>`)
 
@@ -567,7 +566,7 @@ export async function renderProjectListsHTML(
     outputArray.push(projectControlDialogHTML)
 
     const body = outputArray.join('\n')
-    logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
+    logTimer('renderProjectListsHTML', funcTimer, `end of main loop`)
 
     const setScrollPosJS: string = `
 <script type="text/javascript">
@@ -649,11 +648,11 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Do the main work
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
-          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`noteTypeTags=${tag}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
+          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"noteTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
 
           // Get the summary line for each revelant project
-          const [outputArray, noteCount, due] = await generateReviewSummaryLines(tag, 'Markdown', config)
-          logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(due)} projects: ${timer(funcTimer)}`)
+          const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
+          logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
 
           // print header info just the once (if any notes)
           const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
@@ -695,9 +694,9 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const [outputArray, noteCount, due] = await generateReviewSummaryLines('', 'Markdown', config)
+        const [outputArray, noteCount, due] = await generateReviewOutputLines('', 'Markdown', config)
         const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
-        logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines: ${timer(funcTimer)}`)
+        logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines`)
 
         const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', '') //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
         const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
@@ -729,7 +728,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         return
       }
     }
-    logDebug('renderProjectListsMarkdown', `>> end at ${timer(funcTimer)}`)
+    logTimer('renderProjectListsMarkdown', funcTimer, `end`)
   } catch (error) {
     logError('renderProjectListsMarkdown', error.message)
   }
@@ -783,6 +782,8 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * Return summary of notes that contain a specified tag, for all relevant folders, in 'Markdown' or 'Rich' style.
  * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
  * V3: Now doesn't handle output before the main list(s) start. That is now done in the calling function.
+ * v4: Changed to read from the allProjects JSON file.
+ *     Also added nextAction outputs.
  * @author @jgclark
  *
  * @param {string} noteTag - hashtag to look for
@@ -792,56 +793,55 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * @returns {number} number of notes
  * @returns {number} number of due notes (ready to review)
  */
-function generateReviewSummaryLines(noteTag: string, style: string, config: any): [Array<string>, number, number] {
+export async function generateReviewOutputLines(noteTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
-    logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
+    logDebug('generateReviewOutputLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
     // Read each line in full-review-list
-    const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (!reviewListContents) {
-      throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
-    }
+    // const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    // if (!reviewListContents) {
+    //   throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
+    // }
 
-    // Ignore its frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
-    const fmObj = fm(reviewListContents)
-    const reviewLines = fmObj.body.split('\n')
+    // Ignore its frontmatter
+    // const fmObj = fm(reviewListContents)
+    // sort rest by days before next review(first column), ignoring those for a different noteTag than we're after.
+    // const reviewLines = fmObj.body.split('\n')
+
+    // Get all wanted projects (in useful order and filtered)
+    const projectsToReview = await filterAndSortProjectsList(config)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
 
-    // Process each line in the file
+    // Process each project
     // Note: this logic is ~ repeated in two funcs near the end of this file.
-    for (const thisLine of reviewLines) {
+    // for (const thisLine of reviewLines) {
       // Split each TSV line into its parts
-      const fields = thisLine.split('\t')
-      const title = fields[2]
-      const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
-      const tags = fields[4]
+    // const fields = thisLine.split('\t')
+    // const title = fields[2]
+    // const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
+    // const tags = fields[4]
 
-      // If the matching tag isn't in this line, go on to next line
-      // Note: has to be a full not partial match to avoid edge case dupes
-      if (!tags.split(' ').includes(noteTag)) {
-        continue // go on to next line
+    // TEST: have I used this logic in the re-write?
+    // // Note: has to be a full not partial match to avoid edge case dupes
+    // if (!tags.split(' ').includes(noteTag)) {
+    //   continue // go on to next line
+    // }
+
+    // Process each project
+    for (const thisP of projectsToReview) {
+      const thisNote = DataStore.projectNoteByFilename(thisP.filename)
+      if (!thisNote) {
+        logWarn('generateReviewOutputLines', `Can't find note for filename ${thisP.filename}`)
+        continue
       }
-
-      // If displayOnlyDue, then filter out non-due
-      const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
-      if (displayOnlyDue && fields[0] > 0) {
-        logDebug('generateReviewSummaryLines', `ignoring ${title} as not due`)
-        continue // go on to next line
-      }
-
-      const notes = DataStore.projectNoteByTitle(title) ?? []
-      if (notes.length === 0) {
-        logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
-        continue // go on to next line
-      }
-
-      // Get the project metadata
-      const thisProject = new Project(notes[0])
+      // Build the Project object again
+      // TODO: be smarter: re-write generateProjectOutputLine to avoid this
+      const thisProject = new Project(thisNote, noteTag, false, config.nextActionTag)
       // Make the summary line
-      const out = thisProject.detailedSummaryLine(style, false, config.displayDates, config.displayProgress)
+      const out = thisProject.generateProjectOutputLine(style, false, config.displayDates, config.displayProgress, config.displayNextActions)
 
       // Add to number of notes to review (if appropriate)
       if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
@@ -849,6 +849,7 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
       }
 
       // Write new folder header (if change of folder)
+      const folder = thisProject.folder
       if (config.displayGroupedByFolder && lastFolder !== folder) {
         let folderPart = config.hideTopLevelFolder
           ? String(folder.split('/').slice(-1)) // just last part. String(...) to satisfy flow
@@ -858,8 +859,12 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
           outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
             outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
+          } else if (config.displayProgress && config.displayNextActions) {
+            outputArray.push(`  <td>Progress and/or Next Action</td>`)
           } else if (config.displayProgress) {
             outputArray.push(`  <td>Progress</td>`)
+          } else if (config.displayNextActions) {
+            outputArray.push(`  <td>Next Action</td>`)
           }
           outputArray.push(` </tr>\n</thead>\n\n<tbody>`)
         } else if (style.match(/markdown/i)) {
@@ -874,211 +879,8 @@ function generateReviewSummaryLines(noteTag: string, style: string, config: any)
     }
     return [outputArray, noteCount, due]
   } catch (error) {
-    logError('generateReviewSummaryLines', `${error.message}`)
+    logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
-  }
-}
-
-/**
- * Log the machine-readable list of project-type notes
- * @author @jgclark
- */
-export async function logFullReviewList(): Promise<void> {
-  const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
-  console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
-}
-
-/**
- * Generate machine-readable list of all project-type notes,
- * ordered by the setting 'displayOrder', optionally also pre-ordered by 'folder'.
- * This is V3, which uses Plugins/data/jgclark.Reviews/full-review-list.md to store the list
- * @author @jgclark
- * @param {any} configIn
- * @param {boolean} runInForeground?
- */
-export async function makeFullReviewList(configIn: any, runInForeground: boolean = false): Promise<void> {
-  try {
-    const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
-    if (!config) throw new Error('No config found. Stopping.')
-
-    logDebug('makeFullReviewList', `Starting for tags [${String(config.noteTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
-    let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-
-    // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
-    const filteredFolderList = (config.foldersToInclude.length > 0)
-      ? getFoldersMatching(config.foldersToInclude, true).sort()
-      : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
-    // For filtering DataStore, no need to look at folders which are in other folders on the list already
-    const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
-      const exists = acc.some((s) => f.startsWith(s))
-      if (!exists) acc.push(f)
-      return acc
-    }, [])
-    // logDebug('makeFullReviewList', `- filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
-
-    // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
-    // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
-    // TODO: make the excludes an includes not startsWith
-    let filteredDataStore = DataStore.projectNotes.filter(
-      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
-    )
-    // Above ignores root notes, so now need to add them (if we have '/' folder)
-    if (filteredFolderListWithoutSubdirs.includes('/')) {
-      const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
-      filteredDataStore = filteredDataStore.concat(rootNotes)
-      // logDebug('makeFullReviewList', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
-    }
-
-    logTimer(`makeFullReviewList`, startTime, `- filteredDataStore: ${filteredDataStore.length} potential project notes`)
-
-    if (runInForeground) {
-      CommandBar.showLoading(true, `Generating Project Review list`)
-      // TODO: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
-      // await CommandBar.onAsyncThread()
-    }
-
-    // Iterate over the folders, using settings from config.foldersToProcess and config.foldersToIgnore list
-    const projectInstances = []
-    for (const folder of filteredFolderList) {
-      // Either we have defined tag(s) to filter and group by, or just use []
-      const tags = config.noteTypeTags != null && config.noteTypeTags.length > 0 ? config.noteTypeTags : []
-
-      // Get notes that include noteTag in this folder, ignoring subfolders
-      // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
-      for (const tag of tags) {
-        logDebug('makeFullReviewList', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
-        const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
-        logTimer('makeFullReviewList', funcTimer, `for findNotesMatchingHashtag() for tag '${tag}' / folder '${folder}'`)
-        if (projectNotesArr.length > 0) {
-          // Get Project class representation of each note.
-          // Save those which are ready for review in projectsReadyToReview array
-          for (const n of projectNotesArr) {
-            const np = new Project(n, tag) // specifying tag in case the note has more than 1 tag
-            projectInstances.push(np)
-          }
-        }
-      }
-    }
-    logTimer('makeFullReviewList', startTime, `Found all relevant notes`)
-    if (runInForeground) {
-      // await CommandBar.onMainThread()
-      CommandBar.showLoading(false)
-    }
-
-    // Get machineSummaryLine for each of the projectInstances
-    const reviewLines: Array<string> = []
-    // let lineArrayObjs = []
-    for (const p of projectInstances) {
-      const mSL = p.machineSummaryLine()
-      reviewLines.push(mSL)
-    }
-
-    // sort the output list by the fields we want, and add frontmatter
-    startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    const outputArray = filterAndSortReviewList(reviewLines, config)
-
-    // write summary to full-review-list file
-    DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
-
-    logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
-
-    // Finally, refresh Dashboard if open
-    updateDashboardIfOpen()
-  } catch (error) {
-    logError(pluginJson, `makeFullReviewList: ${error.message}`)
-  }
-}
-
-/**
- * Take a set of machineSummaryLines, filter if required by 'displayFinished' setting, sort them according to config, and then add frontmatter
- * TODO: this isn't a very sensible way of operating: in/out of TSV.
- * @param {Array<string>} linesIn
- * @param {any} config
- * @returns {Array<string>} outputArray
- */
-function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<string> {
-  try {
-    logDebug('filterAndSortReviewList', `Starting with ${linesIn.length} lines`)
-    const outputArray = []
-    let lineArrayObjs = []
-
-    // turn each TSV string into an object
-    for (const line of linesIn) {
-      const fields = line.split('\t')
-      lineArrayObjs.push({
-        reviewDays: fields[0],
-        dueDays: fields[1],
-        title: fields[2],
-        folder: fields[3],
-        tags: fields[4],
-        state: fields[5],
-      })
-    }
-
-    // Filter out finished projects if required
-    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
-    if (displayFinished === 'hide') {
-      lineArrayObjs = lineArrayObjs.filter((lineObj) => !lineObj.state.match('finished'))
-    }
-
-    // Sort projects
-    // Method 3: use DW fieldSorter() function
-    // Requires turning each TSV line into an Object (above)
-    const sortingSpecification = []
-    if (config.displayGroupedByFolder) {
-      sortingSpecification.push('folder')
-    }
-    switch (config.displayOrder) {
-      case 'review': {
-        sortingSpecification.push('reviewDays')
-        break
-      }
-      case 'due': {
-        sortingSpecification.push('dueDays')
-        break
-      }
-      case 'title': {
-        sortingSpecification.push('title')
-        break
-      }
-    }
-    if (displayFinished === 'display at end') {
-      sortingSpecification.push('state') // i.e. 'active' before 'finished'
-    }
-
-    // Method 2: use lodash _.orderBy() function
-    // Requires turning each TSV line into an Object (above)
-    // Note: Crashes for some reason neither DW or I can understand.
-    // clo(lineArrayObjs, "Before orderBy")
-    // if (lineArrayObjs) {
-    //   lineArrayObjs = orderBy(lineArrayObjs, ['folder', 'reviewDays'], ['asc', 'asc'])
-    //   clo(lineArrayObjs, "After orderBy")
-    // }
-    // // turn lineArrayObjs back to a TSV string
-    // for (let lineObj of lineArrayObjs) {
-    //   outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
-    // }
-
-    logDebug('filterAndSortReviewList', `- sorting by ${String(sortingSpecification)} ...`)
-    const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
-
-    // turn each lineArrayObj back to a TSV string
-    for (const lineObj of sortedlineArrayObjs) {
-      outputArray.push(`${lineObj.reviewDays}\t${lineObj.dueDays}\t${lineObj.title}\t${lineObj.folder}\t${lineObj.tags}\t${lineObj.state}`)
-    }
-
-    // Write some metadata to start
-    outputArray.unshift('---')
-    outputArray.unshift(`key: reviewDays\tdueDays\ttitle\tfolder\ttags\tstate`)
-    outputArray.unshift(`date: ${moment().format()}`)
-    outputArray.unshift('title: full-review-list')
-    outputArray.unshift('---')
-
-    return outputArray
-  } catch (error) {
-    logError('filterAndSortReviewList', error.message)
-    return [] // for completeness
   }
 }
 
@@ -1097,7 +899,8 @@ export async function startReviews(): Promise<void> {
     if (!config) throw new Error('No config found. Stopping.')
 
     // Make/update list of projects ready for review
-    await makeFullReviewList(config, true)
+    // await makeFullReviewList(config, true)
+    await generateAllProjectsList(config, true)
 
     // Now offer first review
     const noteToReview = await getNextNoteToReview()
@@ -1123,6 +926,7 @@ export async function startReviews(): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Complete the current review
+ * TEST: following change to allProjects
  * @author @jgclark
  */
 export async function finishReview(): Promise<void> {
@@ -1155,10 +959,10 @@ export async function finishReview(): Promise<void> {
       // Then update the Project instance
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       thisNoteAsProject.calcNextReviewDate()
-      logDebug('finishReview', `- mSL='${thisNoteAsProject.machineSummaryLine()}'`)
+      logDebug('finishReview', `- mSL='${thisNoteAsProject.TSVSummaryLine()}'`)
 
       // Also update the full-review-list
-      await updateReviewListAfterChange(currentNote.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
+      await updateProjectsListAfterChange(currentNote.filename, false, config)
 
       // Update list for user (but don't focus)
       await renderProjectLists(config, false)
@@ -1173,6 +977,7 @@ export async function finishReview(): Promise<void> {
 /**
  * Complete review of the given note
  * Note: Used by Dashboard
+ * * TEST: following change to allProjects
  * @author @jgclark
  * @param {TNote} noteIn
  */
@@ -1203,10 +1008,10 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
       // Then update the Project instance
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       thisNoteAsProject.calcNextReviewDate()
-      logDebug('finishReviewForNote', `- mSL='${thisNoteAsProject.machineSummaryLine()}'`)
+      logDebug('finishReviewForNote', `- mSL='${thisNoteAsProject.TSVSummaryLine()}'`)
 
       // Also update the full-review-list
-      await updateReviewListAfterChange(noteToUse.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
+      await updateProjectsListAfterChange(noteToUse.filename, false, config)
 
       // Update list for user (but don't focus)
       await renderProjectLists(config, false)
@@ -1221,6 +1026,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Complete current review, then open the next one to review in the Editor.
+ * * TEST: following change to allProjects
  * @author @jgclark
  */
 export async function finishReviewAndStartNextReview(): Promise<void> {
@@ -1232,7 +1038,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
     // Finish review
     await finishReview()
     // This also:
-    // updates the full-review-list = updateReviewListAfterChange(...)
+    // updates the full-review-list = updateProjectsListAfterChange(...)
     // Update list for user (but don't focus) = renderProjectLists(...)
 
     // Read review list to work out what's the next one to review
@@ -1259,6 +1065,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Skip the next review for the note open in the Editor, asking when to delay to, add that as a @nextReview() date, and jump to next project to review.
+ * * TEST: following change to allProjects
  * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
  */
@@ -1308,9 +1115,9 @@ export async function skipReview(): Promise<void> {
     thisNoteAsProject.calcDurations()
     thisNoteAsProject.calcNextReviewDate()
     logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    const newMSL = thisNoteAsProject.machineSummaryLine()
-    logDebug('skipReview', `- updatedMachineSummaryLine => '${newMSL}'`)
-    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+    const newMSL = thisNoteAsProject.TSVSummaryLine()
+    logDebug('skipReview', `- updatedTSVSummaryLine => '${newMSL}'`)
+    await updateProjectsListAfterChange(currentNote.filename, false, config, newMSL)
     // Update list for user
     await renderProjectLists(config)
 
@@ -1338,6 +1145,7 @@ export async function skipReview(): Promise<void> {
 
 /**
  * Skip the next review for the given note, to the date/interval specified.
+ * * TEST: following change to allProjects
  * Note: skipReview() is an interactive version of this for Editor.note
  * @author @jgclark
  */
@@ -1378,9 +1186,9 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
     thisNoteAsProject.calcDurations()
     thisNoteAsProject.calcNextReviewDate()
     logDebug('skipReviewForNote', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    const newMSL = thisNoteAsProject.machineSummaryLine()
-    logDebug('skipReviewForNote', `- updatedMachineSummaryLine => '${newMSL}'`)
-    await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
+    const newMSL = thisNoteAsProject.TSVSummaryLine()
+    logDebug('skipReviewForNote', `- updatedTSVSummaryLine => '${newMSL}'`)
+    await updateProjectsListAfterChange(note.filename, false, config, newMSL)
 
     // Update list window for user (if already open)
     await renderProjectLists(config, false)
@@ -1392,6 +1200,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
 //-------------------------------------------------------------------------------
 /**
  * Set a new review interval the note open in the Editor, by asking user.
+ * * TEST: following change to allProjects
  * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
  * @param {TNote?} noteArg 
@@ -1439,9 +1248,10 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     thisNoteAsProject.calcDurations()
     thisNoteAsProject.calcNextReviewDate()
     logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    const newMSL = thisNoteAsProject.machineSummaryLine()
-    logDebug('setNewReviewInterval', `- updatedMachineSummaryLine => '${newMSL}'`)
-    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+    // FIXME: check implication of removing newMSL
+    const newMSL = thisNoteAsProject.TSVSummaryLine()
+    logDebug('setNewReviewInterval', `- updatedTSVSummaryLine => '${newMSL}'`)
+    await updateProjectsListAfterChange(currentNote.filename, false, config)
 
     // Update list for user (if open)
     await renderProjectLists(config, false)
@@ -1451,224 +1261,10 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
-/**
- * Update the full-review-list after completing a review or completing/cancelling a whole project.
- * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject.
- * @author @jgclark
- * @param {string} title of note that has been reviewed
- * @param {boolean} simplyDelete the project line?
- * @param {any} config
- * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
- */
-export async function updateReviewListAfterChange(
-  reviewedTitle: string,
-  simplyDelete: boolean,
-  configIn: any,
-  updatedMachineSummaryLine: string = '',
-): Promise<void> {
-  try {
-    if (reviewedTitle === '') {
-      throw new Error('Empty title passed')
-    }
-    logInfo('updateReviewListAfterChange', `----------------------- Updating full-review-list\nfor '${reviewedTitle}' -> ${simplyDelete ? 'simplyDelete' : 'update'} with '${updatedMachineSummaryLine}'`)
 
-    // Get contents of full-review-list
-    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (!reviewListContents) {
-      // Try to make the full-review-list
-      await makeFullReviewList(configIn, true)
-      reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-      if (!reviewListContents) {
-        // If still no luck, throw an error
-        throw new Error('full-review-list note empty or missing')
-      }
-    }
-    // const fileLines = reviewListContents.split('\n')
-
-    // Use front-matter library to get past frontmatter
-    const fmObj = fm(reviewListContents)
-    const reviewLines = fmObj.body.split('\n')
-    // const firstLineAfterFrontmatter = fmObj.bodyBegin - 1
-
-    // Find right line to update
-    let thisLineNum: number = NaN
-    // let thisTitle = ''
-    // for (let i = firstLineAfterFrontmatter; i < fileLines.length; i++) {
-    for (let i = 0; i < reviewLines.length; i++) {
-      // const line = fileLines[i]
-      const line = reviewLines[i]
-      // check for title match just using field 3
-      const titleField = line.split('\t')[2] ?? ''
-      if (titleField === reviewedTitle) {
-        thisLineNum = i
-        // thisTitle = reviewedTitle
-        logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${String(thisLineNum)}`)
-        break
-      }
-    }
-
-    // update (or delete) the note's summary in the full-review-list
-    if (isNaN(thisLineNum)) {
-      logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list, so will regenerate whole list.`)
-      await makeFullReviewList(configIn, false)
-      return
-    } else {
-      if (simplyDelete) {
-        // delete line 'thisLineNum'
-        reviewLines.splice(thisLineNum, 1)
-        logDebug('updateReviewListAfterChange', `- Deleted line number ${thisLineNum}: '${reviewedTitle}'`)
-      } else {
-        // update this line in the full-review-list
-        reviewLines[thisLineNum] = updatedMachineSummaryLine
-        logDebug('updateReviewListAfterChange', `- Updated line number ${thisLineNum}: '${reviewedTitle}'`)
-      }
-      // re-form the file
-      const outputLines = filterAndSortReviewList(reviewLines, configIn)
-      const saveRes = DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
-      if (saveRes) {
-        logInfo('updateReviewListAfterChange', `- Saved updated full-review-list OK`)
-      } else {
-        logWarn('updateReviewListAfterChange', `- problem when updating ${fullReviewListFilename}`)
-      }
-      // logFullReviewList()
-
-      // Finally, refresh Dashboard
-      updateDashboardIfOpen()
-    }
-
-  } catch (error) {
-    logError('updateReviewListAfterChange', error.message)
-  }
-}
-
-//-------------------------------------------------------------------------------
-/**
- * Work out the next note to review (if any).
- * It assumes the full-review-list is sorted by nextReviewDate (earliest to latest).
- * Note: there is now a multi-note variant of this in jgclark.Dashboard/src/dataGeneration.js
- * @author @jgclark
- * @return { ?TNote } next note to review
- */
-async function getNextNoteToReview(): Promise<?TNote> {
-  try {
-    logDebug('getNextNoteToReview', `Started`)
-    const config: ?ReviewConfig = await getReviewSettings()
-
-    // Get contents of full-review-list
-    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (!reviewListContents) {
-      // Try to make the full-review-list
-      await makeFullReviewList(config, true)
-      reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-      if (!reviewListContents) {
-        // If still no luck, throw an error
-        throw new Error('full-review-list note empty or missing')
-      }
-    }
-    // const fileLines = reviewListContents.split('\n')
-
-    // Use front-matter library to get past frontmatter
-    const fmObj = fm(reviewListContents)
-    const reviewLines = fmObj.body.split('\n')
-
-    // FIXME: cope better with valid case of no lines to return
-    // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays)
-    for (let i = 0; i < reviewLines.length; i++) {
-      const thisLine = reviewLines[i]
-      const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
-      const nextNoteTitle = thisLine.split('\t')[2] // get third field = title
-
-      if (nextReviewDays <= 0) { // = before today, or today
-        logDebug('getNextNoteToReview', `- Next to review -> '${nextNoteTitle}'`)
-        const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
-        if (nextNotes.length > 0) {
-          return nextNotes[0] // return first matching note
-        } else {
-          logWarn('getNextNoteToReview', `Couldn't find note with title '${nextNoteTitle}' -- suggest you should re-run Project Lists to ensure this is up to date`)
-          return
-        }
-      }
-    }
-
-    // If we get here then there are no projects needed for review
-    logInfo('getNextNoteToReview', `- No notes left ready for review 🎉`)
-    return
-  } catch (error) {
-    logError(pluginJson, `getNextNoteToReview: ${error.message}`)
-    return
-  }
-}
-
-/**
- * Get list of the next note(s) to review (if any).
- * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
- * Note: This is a variant of the original singular version above
- * @author @jgclark
- * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
- * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
- */
-export async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
-  try {
-    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
-    // $FlowFixMe[incompatible-type] reason for suppression
-    const config: ReviewConfig = await getReviewSettings()
-    // Get contents of full-review-list
-    const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (!reviewListContents) {
-      // If we get here, give a warning, as the file should exist and not be empty
-      throw new Error(`full-review-list note empty or missing`)
-    } else {
-      // const fileLines = reviewListContents.split('\n')
-
-      // Use front-matter library to get past frontmatter
-      const fmObj = fm(reviewListContents)
-      const reviewLines = fmObj.body.split('\n')
-
-      // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays),
-      // and not complete (has a tag of 'finished'),
-      // and not the same as the previous line (which can legitimately happen).
-      // Continue until we have found up to numToReturn such notes.
-      // FIXME: cope better with valid case of no lines to return
-      const notesToReview: Array<TNote> = []
-      let lastTitle = ''
-      for (let i = 0; i < reviewLines.length; i++) {
-        const thisLine = reviewLines[i]
-        const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
-        const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
-        const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
-
-        // Get items with review due before today, or today etc.
-        if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
-          const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          if (nextNotes.length > 0) {
-            const noteToUse: TNote = filterOutProjectNotesFromExcludedFolders(nextNotes, config.foldersToIgnore, true)[0]
-            logDebug('reviews/getNextNotesToReview', `- Next to review = '${displayTitle(noteToUse)}' with ${nextNotes.length} matches`)
-            notesToReview.push(noteToUse) // add first matching note
-            if ((numToReturn > 0) && (notesToReview.length >= numToReturn)) {
-              break // stop processing the loop
-            }
-          } else {
-            logWarn('reviews/getNextNotesToReview', `Couldn't find note with title '${thisNoteTitle}' -- suggest you should re-run Project Lists to ensure this is up to date`)
-          }
-        }
-        lastTitle = thisNoteTitle
-      }
-
-      if (notesToReview.length === 0) {
-        // If we get here then there are no projects needed for review
-        logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
-        logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
-      }
-      return notesToReview
-    }
-  } catch (error) {
-    logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
-    logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
-    return []
-  }
-}
-
-
+/** 
+ * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+*/
 export async function toggleDisplayFinished(): Promise<void> {
   try {
     logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-DisplayFinished') ?? '(not set))')}' ...`)
@@ -1688,6 +1284,9 @@ export async function toggleDisplayFinished(): Promise<void> {
   }
 }
 
+/** 
+ * Toggle displayFinished setting, held as a NP preference, as it is shared between frontend and backend
+*/
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
     logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))')}' ...`)

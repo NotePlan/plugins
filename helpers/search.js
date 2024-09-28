@@ -200,6 +200,7 @@ export function isMentionWanted(mentionToTest: string,
  * after any starting metadata markers for open/closed/cancelled/sched tasks,
  * quotes, lists, headings.
  * Note: this is not quite the same as .content
+ * TODO: move to paragraph.js
  * @author @jgclark
  * @param {string} input
  * @returns {number} first main position
@@ -226,13 +227,14 @@ export function getLineMainContentPos(input: string): number {
 
 /**
  * Take a line and simplify by removing blockIDs, and trim start/end.
- * Note: a different function deals with start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
+ * TODO: move to paragraph.js
+ * Note: simplifyRawContent() first also removes start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
  * @author @jgclark
  * @param {string} input
  * @returns {string} simplified output
  * @tests in jest file
  */
-export function simplifyRawContent(input: string): string {
+export function simplifyParaContent(input: string): string {
   try {
     let output = input
     // Remove blockIDs (which otherwise can mess up the other sync'd copies)
@@ -241,7 +243,7 @@ export function simplifyRawContent(input: string): string {
     output = output.trim()
     return output
   } catch (error) {
-    logError('simplifyRawContent', error.message)
+    logError('simplifyParaContent', error.message)
     return '<error>' // for completeness
   }
 }
@@ -289,8 +291,8 @@ export function trimAndHighlightTermInLine(
     // Simplify line display (if using Simplified style)
     if (simplifyLine) {
       // Trimming and remove any block IDs
-      mainPart = simplifyRawContent(mainPart)
-      // logDebug('trimAndHighlight', `- after simplifyRawContent, mainPart = <${mainPart}>`)
+      mainPart = simplifyParaContent(mainPart)
+      // logDebug('trimAndHighlight', `- after simplifyParaContent, mainPart = <${mainPart}>`)
 
       // Now trim the line content if necessary
       if (maxChars > 0 && mainPart.length > maxChars && nonEmptyTerms) {

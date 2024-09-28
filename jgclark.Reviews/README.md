@@ -1,15 +1,15 @@
 # 🔬 Projects + Reviews plugin
 Unlike many task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.
 
-This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. The approach will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
+This plugin provides commands to help **review** Project notes, and it helps me manage at times over 100 such projects. The approach will be familiar to people who use David Allen's **Getting Things Done** methodology, or any other where **regular reviews** are important.
 
-Command **/project lists** command generates the Project Review List screen, showing the projects due for review from various different NotePlan folders:
+The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
 ![Project Lists: example in 'Rich' style](review-list-rich-0.14@2x.png)
 
-If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
+If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 60 of these.
 
-After each project is a edit icon, which when clicked opens a dialog with helpful controls for that particular project:
+After each project name (the title of the note) is an edit icon, which when clicked opens a dialog with helpful controls for that particular project:
 
 ![Edit dialog](edit-dialog-0.14.png)
 
@@ -21,19 +21,21 @@ User George (@george65) has recorded two video walkthroughs that show most of wh
 - [Walk-through of Reviews in NotePlan with Project + Reviews Plugin](https://youtu.be/R-3qn6wdDLk) (Note: this was using v0.10, and the buttons have changed a little since then.)
     [![thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
-You might also like [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
+You might also like:
+- [my description of using PARA in NotePlan at scale](https://noteplan.co/n/BCC8CAFA-273F-4513-9A88-53CA811F3C8D)
+- [Antony's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
 
-## Using NotePlan for Project-like work
+## Using NotePlan for Projects (or Project-like work)
 Each **Project** is described by a separate note, and has a lifecycle something like this:
 
 ![project lifecycle](project-flowchart_bordered.jpg)
 
-Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which come after the title).  For example:
+Each such project contains the `#project` hashtag, `@review(...)` and some other **metadata** fields (see below for where to put them).  For example:
 
 ```markdown
 # Secret Undertaking
 #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
-Aim: Do this amazing secret thing
+Aim: Stop SPECTRE from world domination
 
 ## Details
 * [x] Get briefing from 'M' at HQ
@@ -52,7 +54,7 @@ The fields I use are:
 - `@due(YYY-MM-DD)`: project's due date
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
 - `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
-- `Aim: free text`: optional, and not used by this plugin
+- `Aim: free text`: optional line, and not used by this plugin
 - `Progress: N:YYYY-MM-DD: one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not, the % completion is calculated as the number of open and closed tasks.
 
 Similarly, if you follow the **PARA method**, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have start/end/completed dates, but they also need reviewing.  For example:
@@ -60,21 +62,32 @@ Similarly, if you follow the **PARA method**, then you will also have "**Areas**
 ```markdown
 # Car maintenance
 #area @review(1m) @reviewed(2021-06-25)
-Aim: Make sure car continues to run well, is legal etc.
+Aim: Make sure 007's Aston Martin continues to run well, is legal etc.
 
+## One-off tasks
+* [x] patch up bullet holes after last mission @done(2021-06-20)
+
+## Regular tasks
 * check tyres @repeat(+1m) >2021-07-23
-* pay car/road tax @repeat(1y) >2021-10-11
-* book yearly service @repeat(1y) >2022-02-01
+* pay road tax @repeat(1y) >2021-10-11
+* do yearly service @repeat(1y) >2022-02-01
 ...
 ```
-
-The first hashtag on the line defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
-
 (Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
+## Where you can put the metadata fields
+The plugin tries to be as flexible as possible about where project metadata can go. It looks in order for:
+- the first line starting 'project:' or 'medadata:'
+- the first line containing a @review() or @reviewed() mention
+- the first line starting with a #hashtag.
+
+If these can't be found, then the plugin creates a new line after the title, or if the note has frontmatter, a 'metadata:' line in the frontmatter.
+
+The first hashtag in the note defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. 
+
 Other notes:
-- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
-- These 'metadata fields' can appear anywhere in the note, not just on the second line. If there are multiple copies of a field, only the first one is used.
+- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but can show up in the lists.
+- If there are multiple copies of a metadata field, only the first one is used.
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
 ## Reviewing Projects and/or Areas
