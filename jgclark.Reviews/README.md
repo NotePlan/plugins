@@ -126,7 +126,7 @@ Other settings:
 - Display projects grouped by folder? Whether to group the projects by their folder.
 - Hide higher-level folder names in headings? If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
-- Only display overdue projects/areas?: If true then it will only display overdue project/area notes (plus paused ones).
+- Only display projects/areas ready for review?: If true then it will only display project/area notes ready for review (plus paused ones).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
 - Confirm next Review?: When running '/next project review' it asks whether to start the next review.

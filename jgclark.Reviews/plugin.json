@@ -314,22 +314,6 @@
       "required": true
     },
     {
-      "key": "nextActionTag",
-      "title": "Next action #hashtag",
-      "description": "#hashtag to use to indicate item is the next action in this project (optional; default '#next')",
-      "type": "string",
-      "default": "#next",
-      "required": false
-    },
-    {
-      "key": "displayNextActions",
-      "title": "Display next actions in output?",
-      "description": "Whether to display the next action in the output? (If there are multiple items with the next action tag, only the first is shown.)",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "displayOrder",
       "title": "Project Display order",
       "description": "The ordering options are by 'due' date, by next 'review' date or 'title'.",
@@ -360,6 +344,7 @@
     },
     {
       "key": "displayFinished",
+      "comment": "TODO: does this conflict with following one?",
       "title": "How to show completed/cancelled projects?",
       "description": "If you do not want to see completed/cancelled projects in your Rich dashboard, change this setting to something other than Displayed.",
       "type": "string",
@@ -373,8 +358,8 @@
     },
     {
       "key": "displayOnlyDue",
-      "title": "Only display due projects/areas?",
-      "description": "If not ticked then it will display all project/area notes, not just due ones.",
+      "title": "Only display projects/areas ready for review?",
+      "description": "If not ticked then it will display all project/area notes, not just ones ready for review.  (Paused ones are always shown.)",
       "type": "bool",
       "default": false,
       "required": true
@@ -394,6 +379,22 @@
       "type": "bool",
       "default": true,
       "required": true
+    },
+    {
+      "key": "displayNextActions",
+      "title": "Display next actions in output?",
+      "description": "Whether to display the next action in the output? Note: If there are multiple items with the next action tag, only the first is shown.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "nextActionTag",
+      "title": "Next action #hashtag",
+      "description": "#hashtag to include in a task/checklist to indicate its the next action in this project (optional; default '#next')",
+      "type": "string",
+      "default": "#next",
+      "required": false
     },
     {
       "key": "width",

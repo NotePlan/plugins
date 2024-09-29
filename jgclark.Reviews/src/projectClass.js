@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-09-28 for v1.0.0.b1, @jgclark
+// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -26,7 +26,7 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import {
@@ -95,12 +95,13 @@ export class Project {
 
   constructor(note: TNote, noteTypeTag: string = '', checkEditor: boolean = true, nextActionTag: string = '') {
     try {
+      const startTime = new Date()
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for type ${noteTypeTag}, ${this.filename}`)
+      // logDebug('Project', `Starting for type ${noteTypeTag}, ${this.filename}`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -114,12 +115,12 @@ export class Project {
         paras = editorNote.paragraphs
         this.note = Editor.note // Note: not plain Editor, as otherwise it isn't the right type and will throw app run-time errors later.
         const timeSinceLastEdit: number = Date.now() - editorNote.versions[0].date
-        logDebug('Project constructor', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('Project', `- using EDITOR for (${Editor.filename}), last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
         this.note = note
-        // logDebug('Project constructor', `- read note from datastore `)
+        // logDebug('Project', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLine(note)
@@ -129,7 +130,7 @@ export class Project {
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       const metadataLine = paras[metadataLineIndex].content
       if (mentions.length === 0) {
-        logDebug('Project constructor', `- Grr: .mentions empty: will use metadata line instead`)
+        logDebug('Project', `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataline
         mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
@@ -150,7 +151,7 @@ export class Project {
               : ''
       } catch (e) {
         this.noteType = ''
-        logWarn('Project constructor', `- found no noteType for '${this.title}' in folder ${this.folder}`)
+        logWarn('Project', `- found no noteType for '${this.title}' in folder ${this.folder}`)
       }
 
       // read in various metadata fields (if present)
@@ -179,9 +180,9 @@ export class Project {
         this.nextReviewDate = getDateObjFromDateString(tempStr)
         if (this.nextReviewDate) {
           this.nextReviewDateStr = toISODateString(this.nextReviewDate)
-          logDebug('Project constructor', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
+          logDebug('Project', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
         } else {
-          logWarn('Project constructor', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
+          logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
         }
       }
 
@@ -231,34 +232,33 @@ export class Project {
       if (nextActionTag !== '') {
         const nextActionParas = paras.filter(isOpen).filter((p) => p.content.match(nextActionTag))
 
-        console.log(`  - nextActionParas = ${String(nextActionParas)}`)
-
         if (nextActionParas.length > 0) {
           this.nextActionRawContent = simplifyRawContent(nextActionParas[0].rawContent)
-          // logDebug('Project constructor', `  - found nextActionRawContent = ${this.nextActionRawContent}`)
+          // logDebug('Project', `  - found nextActionRawContent = ${this.nextActionRawContent}`)
         }
       }
 
-      // logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
-
       if (this.title.includes('(TEST)')) {
-        logDebug('Project constructor', `- for '${this.title}' (${this.filename}) in folder ${this.folder}`)
-        logDebug('Project constructor', `  - metadataLine = ${metadataLine}`)
-        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
-        // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
-        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project constructor', `  - open: ${String(this.openTasks)}`)
-        logDebug('Project constructor', `  - completed: ${String(this.completedTasks)}`)
-        logDebug('Project constructor', `  - % complete = ${String(this.percentComplete)}`)
-        logDebug('Project constructor', `  - nextAction = <${this.nextActionRawContent}>`)
+        logDebug('Project', `Constructed ${this.noteType} ${this.filename}:`)
+        logDebug('Project', `  - folder = ${this.folder}`)
+        logDebug('Project', `  - metadataLine = ${metadataLine}`)
+        logDebug('Project', `  - mentions: ${String(mentions)}`)
+        // logDebug('Project', `  - altMentions: ${String(altMentions)}`)
+        logDebug('Project', `  - hashtags: ${String(hashtags)}`)
+        // logDebug('Project', `  - altHashtags: ${String(altHashtags)}`)
+        logDebug('Project', `  - open: ${String(this.openTasks)}`)
+        if (this.mostRecentProgressLineIndex >= 0) logDebug('Project', `  - progress: #${String(this.mostRecentProgressLineIndex)} = ${this.lastProgressComment}`)
+        logDebug('Project', `  - completed: ${String(this.completedTasks)}`)
+        logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
+        logDebug('Project', `  - nextAction = <${this.nextActionRawContent}>`)
+      } else {
+        logTimer('Project', startTime, `Constructed ${this.noteType} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
-      logError('Project constructor', error.message)
+      logError('Project', error.message)
     }
   }
-
   /**
    * Is this project ready for review?
    * Return true if review is due and not archived or completed
@@ -727,16 +727,16 @@ export class Project {
 
       // Column 1: circle indicator
       if (this.isCompleted) {
-        output += `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check')}</td>` // ('checked' gives colour)
+        output += `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>` // ('checked' gives colour)
       }
       else if (this.isCancelled) {
-        output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark')}</td>` // ('cancelled' gives colour)
+        output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>` // ('cancelled' gives colour)
       }
       else if (this.isPaused) {
-        output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause", "#888888")}</td>`
+        output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "#888888")}</td>`
       }
       else if (isNaN(this.percentComplete)) {
-        output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle', '#888888')}</td>`
+        output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', '#888888')}</td>`
       }
       else if (this.percentComplete === 0) {
         output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`

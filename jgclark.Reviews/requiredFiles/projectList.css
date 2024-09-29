@@ -59,7 +59,7 @@ tr.section-header-row {
 }
 /* remove L-R borders for now */
 tbody td {
-  /* line-height: 1.6rem; */
+  line-height: 1.35rem;
   background-color: var(--bg-alt-color);
   padding: 2px 2px;
   border-left: 0px solid var(--tint-color);
@@ -188,23 +188,21 @@ button, .fake-button, .clickTarget {
   text-decoration: underline;
 }
 
-/* set fa icon colour to tint color */
-i.fa-solid, i.fa-regular {
-  color: var(--tint-color);
-}
 /* a top-right fixed position */
 .fix-top-right {
   position: absolute; top: 1.7rem; right: 1rem;
+}
+
+/* ---- ICONS etc. ----------------------------------------- */
+/* set all FA icons to default to tint color */
+i.fa-solid, i.fa-regular {
+  color: var(--tint-color);
 }
 /* make checkbox display larger, and like in the app. */
 .checkbox {
   font-family: "noteplanstate"; font-size: 1.4rem;
 }
-/* use special 'noteplanstate' font */
-.np-task-state {
-  font-family: "noteplanstate";
-}
-/* Set size of percent-display rings */
+/* Set size of percent-display rings in first col */
 .percent-ring {
   width: 2rem; height: 2rem;
 }
@@ -216,7 +214,7 @@ i.fa-solid, i.fa-regular {
 .circle-percent-text {
   font-family: "Avenir Next"; font-size: 2.4rem; font-weight: 500; color: var(--fg-main-color);
 }
-/* details for icon that can be set in CSS, including font size */
+/* set size of FA icon used in place of percent-display rings in first col */
 .circle-icon {
   font-size: 1.8rem;
 }
@@ -228,7 +226,7 @@ i.fa-solid, i.fa-regular {
 	padding-right: 0.2em;
 }
 
-/* -------------------------------------------------------- */
+/* ---- TOOLTIPs ------------------------------------------- */
 /* Tooltip block */
 .tooltip { position: relative; display: inline-block; }
 /* Tooltip text */

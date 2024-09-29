@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-27 for v1.0.0.b1, @jgclark
+// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -292,8 +292,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
       // clo(config, 'Review settings with no args:')
     }
 
-    // Re-calculate the full-review-list (in foreground)
-    // await makeFullReviewList(config, true)
+    // Re-calculate the allProjects list (in foreground)
     await generateAllProjectsList(config, true)
 
     // Call the relevant rendering function with the updated config
@@ -317,8 +316,9 @@ export async function renderProjectLists(
   scrollPos: number = 0
 ): Promise<void> {
   try {
+    // const funcTimer = new Date()
     // clo(config, 'config at start of renderProjectLists:')
-    logDebug('renderProjectLists', `Started with displayOnlyDue? ${String(config.displayOnlyDue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
+    logDebug('renderProjectLists', `Starting with displayOnlyDue? ${String(config.displayOnlyDue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -373,7 +373,7 @@ export async function renderProjectListsHTML(
       }
     }
 
-    logTimer('renderProjectListsHTML', funcTimer, `>> after checkForWantedResources and before possible makeFullReviewList`)
+    logTimer('renderProjectListsHTML', funcTimer, `after checkForWantedResources`)
 
     // Ensure noteTypeTags is an array before proceeding
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
@@ -473,7 +473,7 @@ export async function renderProjectListsHTML(
     // v1: simple text
     outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
 
-    // v2: TODO: add checkbox toggles
+    // TODO(later): v2 add checkbox toggles
 
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
@@ -597,7 +597,7 @@ export async function renderProjectListsHTML(
     }
     const thisWindow = await showHTMLV2(body, winOptions)
     if (thisWindow) {
-      logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
+      logTimer('renderProjectListsHTML', funcTimer, `end (written results to HTML window and file)`)
     } else {
       logError('renderProjectListsHTML', `- didn't get back a valid HTML Window`)
     }
@@ -795,18 +795,8 @@ export async function redisplayProjectListHTML(): Promise<void> {
  */
 export async function generateReviewOutputLines(noteTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
-    logDebug('generateReviewOutputLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
-
-    // Read each line in full-review-list
-    // const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    // if (!reviewListContents) {
-    //   throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
-    // }
-
-    // Ignore its frontmatter
-    // const fmObj = fm(reviewListContents)
-    // sort rest by days before next review(first column), ignoring those for a different noteTag than we're after.
-    // const reviewLines = fmObj.body.split('\n')
+    const startTime = new Date()
+    logInfo('generateReviewOutputLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
     const projectsToReview = await filterAndSortProjectsList(config)
@@ -814,15 +804,6 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
-
-    // Process each project
-    // Note: this logic is ~ repeated in two funcs near the end of this file.
-    // for (const thisLine of reviewLines) {
-      // Split each TSV line into its parts
-    // const fields = thisLine.split('\t')
-    // const title = fields[2]
-    // const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
-    // const tags = fields[4]
 
     // TEST: have I used this logic in the re-write?
     // // Note: has to be a full not partial match to avoid edge case dupes
@@ -838,7 +819,7 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
         continue
       }
       // Build the Project object again
-      // TODO: be smarter: re-write generateProjectOutputLine to avoid this
+      // FIXME: be smarter: re-write generateProjectOutputLine to avoid this
       const thisProject = new Project(thisNote, noteTag, false, config.nextActionTag)
       // Make the summary line
       const out = thisProject.generateProjectOutputLine(style, false, config.displayDates, config.displayProgress, config.displayNextActions)
@@ -877,6 +858,7 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
 
       lastFolder = folder
     }
+    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${noteTag}' in ${style} style`)
     return [outputArray, noteCount, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
@@ -936,13 +918,12 @@ export async function finishReview(): Promise<void> {
 
     const currentNote = Editor // note: not Editor.note
     if (currentNote && currentNote.type === 'Notes') {
-      logInfo(pluginJson, `finishReview: Starting with Editor ${displayTitle(currentNote)}`)
+      logInfo('finishReview', `Starting with Editor ${displayTitle(currentNote)}`)
+      // TODO: try without the new Project instance
       const thisNoteAsProject = new Project(currentNote)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      // const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
       const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
-      // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
       let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
@@ -951,15 +932,13 @@ export async function finishReview(): Promise<void> {
       // logDebug('finishReview', `- after metadata updates`)
 
       // Save Editor, so the latest changes can be picked up elsewhere
-      // Putting the Editor.save() or equivalent here, rather than in the above functions, seems to work
+      // Note: Putting the Editor.save() here, rather than in the above functions, seems to work
       await saveEditorToCache(null)
-
-      // Note: I haven't tried loading a new Project instance here
 
       // Then update the Project instance
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       thisNoteAsProject.calcNextReviewDate()
-      logDebug('finishReview', `- mSL='${thisNoteAsProject.TSVSummaryLine()}'`)
+      logInfo('finishReview', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
 
       // Also update the full-review-list
       await updateProjectsListAfterChange(currentNote.filename, false, config)
@@ -987,13 +966,12 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
     if (!config) throw new Error('No config found. Stopping.')
 
     if (noteToUse && noteToUse.type === 'Notes') {
-      logInfo(pluginJson, `finishReviewForNote: Starting for passed note '${displayTitle(noteToUse)}'`)
+      logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
+      // TODO: try without the new Project instance
       const thisNoteAsProject = new Project(noteToUse)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      // const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
       const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
-      // logDebug('finishReviewForNote', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
       await updateMetadataInNote(noteToUse, [reviewedTodayString])
@@ -1002,13 +980,10 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
       // logDebug('finishReviewForNote', `- after metadata updates`)
 
       // Save changes
-
-      // Note: I haven't tried loading a new Project instance here
-
       // Then update the Project instance
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       thisNoteAsProject.calcNextReviewDate()
-      logDebug('finishReviewForNote', `- mSL='${thisNoteAsProject.TSVSummaryLine()}'`)
+      logInfo('finishReview', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
 
       // Also update the full-review-list
       await updateProjectsListAfterChange(noteToUse.filename, false, config)

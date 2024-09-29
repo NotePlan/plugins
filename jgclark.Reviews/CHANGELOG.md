@@ -6,12 +6,15 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List (although this can be turned off if desired).
 
 ### Fixed
-- calculating % complete with some progress lines <!-- committed  as 0.14.2 -->
+- calculating % complete where progress line didn't contain a percentage <!-- committed  as 0.14.2 -->
 - 'Refresh' button sometimes not working on Markdown output
+- height of some circle icons in first column
 
 ### Changes (under the hood)
 - split out Project class definition from reviewHelpers.js
 - start transition from tab-separate text file that holds a few details on matching project notes, to a JSON-formatted file, holding all details on all project notes
+- tweaked Rich layout slightly to suit adding 'next action' feature
+- setting name 'Only display due projects/areas?' is now 'Only display projects/areas ready for review?'
 
 ### Changes
 - significant speed up of some parts of the plugin
@@ -138,7 +141,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ### Fixed
 - 'start reviews' button not working
 - % completion stat for tasks with scheduled dates
-- now should only open a new window for 'Markdown' style results when the results aren't already open (requiers NP v3.8.1 to operate)
+- now should only open a new window for 'Markdown' style results when the results aren't already open (requires NP v3.8.1 to operate)
 
 ## [0.9.3] - 2023-03-28
 ### Fixed
@@ -168,7 +171,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - can now show more than one review #type in the HTML view.
 
 ### Changed
-- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after tht title.
+- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after the title.
 - now writes to the yearly note on project completion or cancellation (if wanted), rather than a note in the Summaries folder.
 - now uses plugin "Shared Resources" to deliver font resources for "Rich" style
 - can now write both 'Markdown' and 'Rich' style outputs each time.
@@ -185,7 +188,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [0.9.0-beta7] - 2023-02-12
 ### Changed
 - tidied up the "Rich" (HTML) display type, which now includes possibility of multiple columns of output if your window is wide enough.
-- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after tht title.
+- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after the title.
 - removed the "Toggle Pause" button for now, as there are issues with it. The "/pause project toggle" still works.
 - now writes to the yearly note on project completion or cancellation (if wanted), rather than a note in the Summaries folder.
 - disabled some older test commands
@@ -260,7 +263,7 @@ This is a major new version of the **/project lists** command:
 
 ## [0.6.0] - 2022-01-27
 ### Added
-- new  `/cancel project` command that works analagously to the `/complete project` command
+- new  `/cancel project` command that works analogously to the `/complete project` command
 - added new 'finishedListHeading' string setting for these two commands. See README for details.
 ### Changed
 - improved output of `/complete project` and `/cancel project` commands

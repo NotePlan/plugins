@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-28 for v1.0.0.b1, @jgclark
+// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -236,7 +236,7 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
         projectInstances = await generateAllProjectsList()
       } else {
         // Otherwise we can read from the list
-        logDebug('getAllProjectsFromList', `Reading from allProjectsList (as only ${String(fileAge / (1000 * 60 * 60))} hours old)`)
+        logDebug('getAllProjectsFromList', `Reading from allProjectsList (as only ${(fileAge / (1000 * 60 * 60)).toFixed(2)} hours old)`)
         const content = DataStore.loadData(allProjectsListFilename, true) ?? `<error reading ${allProjectsListFilename}>`
         // Make objects from this (except .note)
         projectInstances = JSON.parse(content)
@@ -300,21 +300,29 @@ export async function makeFullReviewList(configIn: ReviewConfig, runInForeground
  */
 export async function filterAndSortProjectsList(config: ReviewConfig): Promise<Array<Project>> {
   try {
+    // const startTime = new Date()
     let projectInstances = await getAllProjectsFromList()
-    logDebug('filterAndSortProjectsList', `Starting with ${projectInstances.length} projects ...`)
+    logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects ...`)
 
     // Filter out finished projects if required
     const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
     if (displayFinished === 'hide') {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted)
-      logDebug('filterAndSortProjectsList', `- after filtering, ${projectInstances.length} projects`)
+      logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
+    }
+
+    // Filter out non-due projects if required
+    const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+    if (displayOnlyDue) {
+      projectInstances = projectInstances.filter((pi) => pi.nextReviewDays <= 0)
+      logDebug('filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
     }
 
     // Sort projects by folder > nextReviewDays > dueDays > title
     const sortingSpecification = []
-    // if (config.displayGroupedByFolder) {
-    //   sortingSpecification.push('folder')
-    // }
+    if (config.displayGroupedByFolder) {
+      sortingSpecification.push('folder')
+    }
     switch (config.displayOrder) {
       case 'review': {
         sortingSpecification.push('nextReviewDays')
@@ -335,6 +343,8 @@ export async function filterAndSortProjectsList(config: ReviewConfig): Promise<A
     logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)
     // sortedProjectInstances.forEach(pi => logDebug('', `${pi.nextReviewDays}\t${pi.dueDays}\t${pi.filename}`))
+
+    // logTimer(`filterAndSortProjectsList`, startTime, `Sorted ${sortedProjectInstances.length} projects`) // 2ms
     return sortedProjectInstances
   }
   catch (error) {
@@ -484,7 +494,9 @@ export async function updateProjectsListAfterChange(
         logWarn('updateProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
         return
       }
+      // FIXME: stale data here
       const updatedProject = new Project(reviewedNote, reviewedProject.noteType, true, config.nextActionTag)
+      clo(updatedProject, '🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
