@@ -1,13 +1,11 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-// TODO: Add flow in here
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 4.4.2024 for v0.14.0 by @jgclark
-
+// Last updated: 2024-10-01 for v1.0.0.b1 by @jgclark
 //--------------------------------------------------------------------------------------
-// Add event handlers
 
+// Add event handlers
 // Note: // Not yet used
 // addIconClickEventListeners()
 // addContentEventListeners()
@@ -54,6 +52,7 @@ function showProjectControlDialog(dataObject) {
     { controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate' },
     { controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate' },
+    { controlStr: 'newrevint', handlingFunction: 'setNewReviewInterval' },
     { controlStr: 'progress', handlingFunction: 'addProgress' },
     { controlStr: 'pause', handlingFunction: 'togglePause' },
     { controlStr: 'complete', handlingFunction: 'completeProject' },
@@ -105,8 +104,8 @@ function showProjectControlDialog(dataObject) {
   dialog.showModal()
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = 490 // TODO: can we do better than this?
-  const approxDialogHeight = 140
+  const approxDialogWidth = 505 // TODO: can we do better than this?
+  const approxDialogHeight = 120
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // For clicking on dialog buttons

@@ -9,7 +9,7 @@
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
-import { Project } from './projectClass'
+import { Project, generateProjectOutputLine } from './projectClass'
 import {
   finishReview,
   renderProjectLists,
@@ -107,7 +107,8 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        // const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        const lineToAdd = generateProjectOutputLine(thisProject, config, 'list')
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/completeProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -204,7 +205,8 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        // const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        const lineToAdd = generateProjectOutputLine(thisProject, config, 'list')
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/cancelProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)

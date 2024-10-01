@@ -66,16 +66,26 @@
       "name": "finish project review",
       "alias": [
         "gtd",
-        "reviewed"
+        "fin"
       ],
       "description": "updates the currently open project's @reviewed() date",
       "jsFunction": "finishReview"
     },
     {
+      "name": "finish project review and start next",
+      "alias": [
+        "gtd",
+        "fsnr"
+      ],
+      "description": "updates the currently open project's @reviewed() date",
+      "jsFunction": "finishReviewAndStartNextReview"
+    },
+    {
       "name": "next project review",
       "alias": [
         "gtd",
-        "review"
+        "review",
+        "nr"
       ],
       "description": "updates this project's @reviewed() date, and jump to next project to review",
       "jsFunction": "finishReviewAndStartNextReview"
@@ -88,6 +98,16 @@
       ],
       "description": "skip this review, add a @nextReview() date, and jump to next project to review",
       "jsFunction": "skipReview"
+    },
+    {
+      "name": "set new review interval",
+      "alias": [
+        "snri",
+        "review",
+        "interval"
+      ],
+      "description": "set a new @review() interval",
+      "jsFunction": "setNewReviewInterval"
     },
     {
       "name": "pause project toggle",
@@ -164,13 +184,13 @@
       "name": "test:getNextNoteToReview",
       "description": "log next note to review",
       "jsFunction": "getNextNoteToReview",
-      "comment": "TODO: remove me in time"
+      "hidden": true
     },
     {
       "name": "test:getNextProjectsToReview",
       "description": "log next notes to review",
       "jsFunction": "getNextProjectsToReview",
-      "comment": "TODO: remove me in time"
+      "hidden": true
     },
     {
       "name": "test:logFullReviewList",

@@ -197,7 +197,7 @@ export function writeAllProjectsList(projectInstances: Array<Project>): void {
     const res = DataStore.saveData(stringifyProjectObjects(projectInstances), allProjectsListFilename, true)
 
     // If this appears to have worked:
-    // - update the datestamp of a Reviews preference
+    // - update the datestamp of the Reviews preference
     // - refresh Dashboard if open
     if (res) {
       const reviewListDate = Date.now()
@@ -208,6 +208,29 @@ export function writeAllProjectsList(projectInstances: Array<Project>): void {
     }
   } catch (error) {
     logError('writeAllProjectsList', JSP(error))
+  }
+}
+
+/**
+ * Update the Project object in allProjects list with matching filename
+ * @author @jgclark
+ * @param {Project} projectToUpdate
+ */
+export async function updateProjectInAllProjectsList(projectToUpdate: Project): Promise<void> {
+  try {
+    const allProjects = await getAllProjectsFromList()
+    logDebug('updateProjectInAllProjectsList', `starting with ${allProjects.length} projectInstances`)
+
+    // find the Project with matching filename
+    const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
+    allProjects[projectIndex] = projectToUpdate
+    logDebug('updateProjectInAllProjectsList', `- will update project #${projectIndex} filename ${projectToUpdate.filename}`)
+
+    // write to allProjects JSON file
+    logDebug('updateProjectInAllProjectsList', `Writing ${allProjects.length} projects to ${allProjectsListFilename}`)
+    writeAllProjectsList(allProjects)
+  } catch (error) {
+    logError('updateProjectInAllProjectsList', JSP(error))
   }
 }
 
@@ -257,39 +280,26 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
 }
 
 /**
- * Generate machine-readable list of all project-type notes,
- * ordered by the setting 'displayOrder', optionally also pre-ordered by 'folder'.
- * This is V3, which writes in TSV format to location set by `fullReviewListFilename`
+ * Get the Project object instance from JSON list that matches by filename.
+ * TEST:
  * @author @jgclark
- * @param {any} configIn
- * @param {boolean} runInForeground?
+ * @param {string} filename
+ * @returns {Project}
  */
-export async function makeFullReviewList(configIn: ReviewConfig, runInForeground: boolean = false): Promise<void> {
+export async function getSpecificProjectFromList(filename: string): Promise<Project | null> {
   try {
-    // Get all project notes as Project instances
-    const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
+    const allProjects = await getAllProjectsFromList() ?? []
+    logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
 
-    // Get TSVSummaryLine for each of the projectInstances
-    const reviewLines: Array<string> = []
-    // let lineArrayObjs = []
-    for (const p of projectInstances) {
-      const mSL = p.TSVSummaryLine()
-      reviewLines.push(mSL)
-    }
-
-    // sort the output list by the fields we want, and add frontmatter
-    const startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    const outputArray = filterAndSortReviewList(reviewLines, configIn)
-
-    // write summary to full-review-list file
-    DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
-
-    logTimer(`makeFullReviewList`, startTime, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
-
-    // Finally, refresh Dashboard if open
-    updateDashboardIfOpen()
-  } catch (error) {
-    logError(pluginJson, `makeFullReviewList: ${error.message}`)
+    // find the Project with matching filename
+    const projectInstance: ?Project = allProjects.find((project) => project.filename === filename)
+    logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
+    // $FlowFixMe[incompatible-return]
+    return projectInstance
+  }
+  catch (error) {
+    logError(pluginJson, `getSpecificProjectFromList: ${error.message}`)
+    return null
   }
 }
 
@@ -305,14 +315,16 @@ export async function filterAndSortProjectsList(config: ReviewConfig): Promise<A
     logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects ...`)
 
     // Filter out finished projects if required
-    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
+    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
+    const displayFinished = config.displayFinished ?? 'display at end'
     if (displayFinished === 'hide') {
       projectInstances = projectInstances.filter((pi) => !pi.isCompleted)
       logDebug('filterAndSortProjectsList', `- after filtering out finished, ${projectInstances.length} projects`)
     }
 
     // Filter out non-due projects if required
-    const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+    // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+    const displayOnlyDue = config.displayOnlyDue ?? false
     if (displayOnlyDue) {
       projectInstances = projectInstances.filter((pi) => pi.nextReviewDays <= 0)
       logDebug('filterAndSortProjectsList', `- after filtering out non-due, ${projectInstances.length} projects`)
@@ -380,7 +392,8 @@ export function filterAndSortReviewList(linesIn: Array<string>, config: any): Ar
     }
 
     // Filter out finished projects if required
-    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
+    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
+    const displayFinished = config.displayFinished ?? 'display at end'
     if (displayFinished === 'hide') {
       lineArrayObjs = lineArrayObjs.filter((lineObj) => !lineObj.state.match('finished'))
     }
@@ -631,7 +644,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
       const thisProject = allProjectsSorted[i]
       const thisNoteFilename = thisProject.filename ?? 'error'
       const nextReviewDays = thisProject.nextReviewDays ?? NaN
-      if (nextReviewDays <= 0) { // = before today, or today
+      if (nextReviewDays <= 0 && !thisProject.isCompleted && !thisProject.isPaused) { // = before today, or today, and not completed/paused
         logDebug('getNextNoteToReview', `- Next to review -> '${thisNoteFilename}'`)
         const nextNote = DataStore.projectNoteByFilename(thisNoteFilename)
         if (!nextNote) {
@@ -687,7 +700,7 @@ export async function getNextProjectsToReview(numToReturn: number = 6): Promise<
       const nextReviewDays = thisProject.nextReviewDays ?? NaN
 
       // Get items with review due before today, or today etc.
-      if (nextReviewDays <= 0 && !thisProject.isCompleted && thisNoteFilename !== lastFilename) {
+      if (nextReviewDays <= 0 && !thisProject.isCompleted && !thisProject.isPaused && thisNoteFilename !== lastFilename) {
         const thisNote = DataStore.projectNoteByFilename(thisNoteFilename)
         if (!thisNote) {
           logWarn('getNextNoteToReview', `Couldn't find note '${thisNoteFilename}' -- suggest you should re-run Project Lists to ensure this is up to date`)

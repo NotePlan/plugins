@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
+// Last updated 2024-09-30 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -177,13 +177,17 @@ export class Project {
       // read in nextReview date (if present)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
-        this.nextReviewDate = getDateObjFromDateString(tempStr)
-        if (this.nextReviewDate) {
-          this.nextReviewDateStr = toISODateString(this.nextReviewDate)
-          logDebug('Project', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
-        } else {
-          logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
-        }
+        // v2:
+        this.nextReviewDateStr = tempStr.slice(12, 22)
+        this.nextReviewDate = moment(this.nextReviewDateStr, "YYYY-MM-DD").toDate()
+        // v1:
+        // this.nextReviewDate = getDateObjFromDateString(tempStr)
+        // if (this.nextReviewDate) {
+        //   this.nextReviewDateStr = toISODateString(this.nextReviewDate)
+        //   logDebug('Project', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
+        // } else {
+        //   logWarn('Project', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
+        // }
       }
 
       // count tasks (includes both tasks and checklists)
@@ -220,12 +224,14 @@ export class Project {
       this.processProgressLines()
 
       // If percentComplete not set via progress line, then calculate
-      const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
-      if (totalTasks > 0) {
-        // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
-        this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
-      } else {
-        this.percentComplete = NaN
+      if (this.lastProgressComment === '') {
+        const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
+        if (totalTasks > 0) {
+          // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
+          this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
+        } else {
+          this.percentComplete = NaN
+        }
       }
 
       // If we want to track next actions, find the first one (if any)
@@ -320,7 +326,7 @@ export class Project {
     }
   }
 
-  calcNextReviewDate(): void {
+  calcNextReviewDate(): ?Date {
     try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
       const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -332,7 +338,7 @@ export class Project {
           this.nextReviewDate = this.startDate
           this.nextReviewDays = daysBetween(now, momTSD.toDate())
           logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(this.nextReviewDays)} interval`)
-          return
+          return this.startDate
         }
       }
 
@@ -358,8 +364,10 @@ export class Project {
         }
       }
       // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      return this.nextReviewDate
     } catch (error) {
       logError('calcNextReviewDate', error.message)
+      return null
     }
   }
 
@@ -642,257 +650,370 @@ export class Project {
       return '<error>' // for completeness
     }
   }
+}
 
-  /**
-   * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
-   * Supports 'Markdown' or 'HTML' styling or simpler 'list' styling
-   * @param {string} style 'Markdown' or 'HTML' or 'list'
-   * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
-   * @return {string} - title as wikilink
-   */
-  decoratedProjectTitle(style: string, includeFolderName: boolean): string {
-    const folderNamePart = includeFolderName ? `${this.folder} / ` : ''
-    const titlePart = this.title ?? '(error, not available)'
-    // const titlePartEncoded = encodeURIComponent(this.title) ?? '(error, not available)'
-    switch (style) {
-      case 'Rich': {
-        // Method 1: make [[notelinks]] via x-callbacks
-        // Method 1a: x-callback using note title
-        // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
-        // Method 1b: x-callback using filename
-        const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.filename, "filename", "", null, false)
-        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
-        // TODO: if possible change to use internal links: see method in Dashboard
-        // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
-        // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
+//-----------------------------------------------------------------
+// Non-Class versions of the same functions
+//-----------------------------------------------------------------
 
-        if (this.isCompleted) {
-          return `<span class="checked">${noteTitleWithOpenAction}</span>`
-        } else if (this.isCancelled) {
-          return `<span class="cancelled">${noteTitleWithOpenAction}</span>`
-        } else if (this.isPaused) {
-          return `<span class="paused">Paused: ${noteTitleWithOpenAction}</span>`
-        } else {
-          return `${noteTitleWithOpenAction}`
-        }
+/**
+ * From a Project metadata object read in, calculate updated due/finished durations, and return the updated Project object
+ * @author @jgclark
+ * @param {Project} thisProject
+ * @returns {Project}
+*/
+export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project> {
+  try {
+    const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+    const thisProject = { ...thisProjectIn }
+    // Calculate # days until due
+    thisProject.dueDays =
+      thisProject.dueDate != null
+        ? daysBetween(now, thisProject.dueDate)
+        : NaN
+
+    // Calculate durations or time since cancel/complete
+    logDebug('calcDurations', String(thisProject.startDate ?? 'no startDate'))
+    if (thisProject.startDate) {
+      const momTSD = moment(thisProject.startDate)
+      if (thisProject.completedDate != null) {
+        thisProject.completedDuration = `after ${momTSD.to(moment(thisProject.completedDate), true)}`
+        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration}`)
       }
-
-      case 'Markdown': {
-        if (this.isCompleted) {
-          return `[x] ${folderNamePart}[[${titlePart}]]`
-        } else if (this.isCancelled) {
-          return `[-] ${folderNamePart}[[${titlePart}]]`
-        } else if (this.isPaused) {
-          return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
-        } else {
-          return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
-        }
+      else if (thisProject.cancelledDate != null) {
+        thisProject.cancelledDuration = `after ${momTSD.to(moment(thisProject.cancelledDate), true)}`
+        logDebug('calcDurations', `-> cancelledDuration = ${thisProject.cancelledDuration}`)
       }
-
-      case 'list': {
-        if (this.isCompleted) {
-          return `${folderNamePart}[[${titlePart}]]`
-        } else if (this.isCancelled) {
-          return `~~${folderNamePart}[[${titlePart}]]~~`
-        } else if (this.isPaused) {
-          return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
-        } else {
-          return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
-        }
-      }
-
-      default:
-        logWarn('Project::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
-        return ''
     }
-  }
-
-  /**
-   * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
-   * Now uses fontawesome icons for some indicators.
-   * @param {string} style
-   * @param {boolean} includeFolderName
-   * @param {boolean?} displayDates
-   * @param {boolean?} displayProgress
-   * @returns {string}
-   */
-  generateProjectOutputLine(style: string, includeFolderName: boolean, displayDates: boolean = true, displayProgress: boolean = true, displayNextActions: boolean = true): string {
-    let output = ''
-    const thisPercent = (isNaN(this.percentComplete)) ? '0%' : ` ${this.percentComplete}%`
-    const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
-    const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.completedTasks + this.openTasks > 1) ? 'tasks' : 'task'})`
-
-    if (style === 'Rich') {
-      output = '\t<tr class="projectRow">\n\t\t'
-
-      // Column 1: circle indicator
-      if (this.isCompleted) {
-        output += `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>` // ('checked' gives colour)
+    else {
+      if (thisProject.completedDate != null) {
+        thisProject.completedDuration = moment(thisProject.completedDate).fromNow() // ...ago
+        if (thisProject.completedDuration.includes('hours')) {
+          thisProject.completedDuration = 'today' // edge case
+        }
+        logDebug('calcDurations', `-> completedDuration = ${thisProject.completedDuration ?? '?'}`)
       }
-      else if (this.isCancelled) {
-        output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>` // ('cancelled' gives colour)
-      }
-      else if (this.isPaused) {
-        output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "#888888")}</td>`
-      }
-      else if (isNaN(this.percentComplete)) {
-        output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', '#888888')}</td>`
-      }
-      else if (this.percentComplete === 0) {
-        output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`
+      else if (thisProject.cancelledDate != null) {
+        thisProject.cancelledDuration = moment(thisProject.cancelledDate).fromNow() // ...ago
+        if (thisProject.cancelledDuration.includes('hours')) {
+          thisProject.cancelledDuration = 'today' // edge case
+        }
+        logDebug('calcDurations', `-> completedDuration = ${thisProject.cancelledDuration ?? '?'}`)
       }
       else {
-        output += `<td class="first-col-indicator">${this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete))}</td>`
+        // Nothing to do
+        logDebug('calcDurations', `No completed or cancelled dates.`)
       }
-
-      // Column 2a: Project name / link / edit dialog trigger button
-      const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(this.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
-      if (this.isCompleted || this.isCancelled || this.isPaused) {
-        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
-      }
-      else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
-        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
-      } else {
-        output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
-      }
-
-      if (!this.isCompleted && !this.isCancelled) {
-        const nextActionContent = this.nextActionRawContent ? this.nextActionRawContent.slice(getLineMainContentPos(this.nextActionRawContent)) : ''
-        // TODO: also add .replace(config.nextActionTag, '')
-
-        if (displayDates) {
-          // Write column 2b/2c under title
-          // Column 2b: progress information (if it exists)
-          if (displayProgress) {
-            if (this.lastProgressComment !== '') {
-              output += `<br /><i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}`
-            } else {
-              output += `<br />${statsProgress}`
-            }
-          }
-
-          // Column 2c: next action (if present)
-          if (displayNextActions && nextActionContent !== '') {
-            output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
-          }
-          output += `</td>`
-        } else {
-          // write progress in next cell instead
-          output += `</td>\n\t\t\t<td>`
-          if (displayProgress) {
-            if (this.lastProgressComment !== '') {
-              output += `<i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${this.lastProgressComment}`
-            } else {
-              output += `${statsProgress}`
-            }
-          }
-          if (displayNextActions && nextActionContent !== '') {
-            if (displayProgress) output += '<br />'
-            output += `<i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
-          }
-          output += `</td>`
-        }
-      }
-
-      // Columns 3/4: date information
-      if (displayDates && !this.isPaused) {
-        if (this.isCompleted) {
-          // "completed after X"
-          const completionRef = (this.completedDuration)
-            ? this.completedDuration
-            : "completed"
-          output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
-        } else if (this.isCancelled) {
-          // "cancelled X ago"
-          const cancellationRef = (this.cancelledDuration)
-            ? this.cancelledDuration
-            : "cancelled"
-          output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
-        }
-        if (!this.isCompleted && !this.isCancelled) {
-          output = (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
-            ? (this.nextReviewDays > 0)
-              ? `${output}<td>${localeRelativeDateFromNumber(this.nextReviewDays)}</td>`
-              : `${output}<td><p><b>${localeRelativeDateFromNumber(this.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-            : `${output}<td></td>`
-          output = (this.dueDays != null && !isNaN(this.dueDays))
-            ? (this.dueDays > 0)
-              ? `${output}<td>${localeRelativeDateFromNumber(this.dueDays)}</td>`
-              : `${output}<td><p><b>${localeRelativeDateFromNumber(this.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-            : `${output}<td></td>`
-        }
-      } else {
-        output += '<td></td><td></td>' // to avoid layout inconsistencies
-      }
-      output += '\n\t</tr>'
+      return thisProject
     }
-    else if (style === 'Markdown' || style === 'list') {
-      output = '- '
-      output += `${this.decoratedProjectTitle(style, includeFolderName)}`
-      // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
-      if (displayDates && !this.isPaused) {
-        if (this.isCompleted) {
-          // completed after X or cancelled X ago, depending
-          const completionRef = (this.completedDuration)
-            ? this.completedDuration
-            : "completed"
-          output += `\t(Completed ${completionRef})`
-        } else if (this.isCancelled) {
-          // completed after X or cancelled X ago, depending
-          const cancellationRef = (this.cancelledDuration)
-            ? this.cancelledDuration
-            : "cancelled"
-          output += `\t(Cancelled ${cancellationRef})`
-        }
+  } catch (error) {
+    logError('calcDurations', error.message)
+    // $FlowFixMe[incompatible-return] reason for suppression
+    return null
+  }
+}
+
+export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Project> {
+  try {
+    // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
+    const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const thisProject = { ...thisProjectIn }
+
+    // First check to see if project start is in future: if so set nextReviewDate to project start
+    if (thisProject.startDate) {
+      const momTSD = moment(thisProject.startDate)
+      if (momTSD.isAfter(now)) {
+        thisProject.nextReviewDate = thisProject.startDate
+        thisProject.nextReviewDays = daysBetween(now, momTSD.toDate())
+        logDebug('calcNextReviewDate', `project start is in future (${momTSD.format('YYYY-MM-DD')}) -> ${String(thisProject.nextReviewDays)} interval`)
+        return thisProject
       }
-      if (displayProgress && !this.isCompleted && !this.isCancelled) {
-        // Show progress comment if available ...
-        if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
-          output += `\t${thisPercent} done: ${this.lastProgressComment}`
+    }
+
+    // Now check to see if we have a specific nextReviewDate
+    if (thisProject.nextReviewDateStr != null) {
+      thisProject.nextReviewDays = daysBetween(now, thisProject.nextReviewDateStr)
+      logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${thisProject.nextReviewDateStr ?? '?'} -> ${String(thisProject.nextReviewDays)} interval`)
+    }
+    else if (thisProject.reviewInterval != null) {
+      if (thisProject.reviewedDate != null) {
+        thisProject.nextReviewDate = calcNextReviewDate(thisProject.reviewedDate, thisProject.reviewInterval)
+        if (thisProject.nextReviewDate != null) {
+          // this now uses moment and truncated (not rounded) date diffs in number of days
+          thisProject.nextReviewDays = daysBetween(now, thisProject.nextReviewDate)
+    // logDebug('calcNextReviewDate', `${String(thisProject.reviewedDate)} + ${thisProject.reviewInterval ?? ''} -> nextReviewDate: ${thisProject.nextReviewDateStr ?? ''} = ${String(thisProject.nextReviewDays) ?? '-'}`)
+        } else {
+          throw new Error(`nextReviewDate is null; reviewedDate = ${String(thisProject.reviewedDate)}`)
         }
-        // ... else show stats
-        else {
-          output += `\t${statsProgress}`
+      } else {
+        // no next review date, so set at today
+        thisProject.nextReviewDate = now
+        thisProject.nextReviewDays = 0
+      }
+    }
+    // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
+    return thisProject
+  } catch (error) {
+    logError('calcNextReviewDate', error.message)
+    return null
+  }
+}
+
+/**
+   * Returns line showing more detailed summary of the project, for output in Rich (HTML) or Markdown formats or simple list format.
+   * Now uses fontawesome icons for some indicators.
+   * Note: this is V2, now *not* part of the Project class, so can take config etc.
+   * @param {Project} thisProject
+   * @param {any} config
+   * @param {string} style
+   * @returns {string}
+   */
+export function generateProjectOutputLine(
+  thisProject: Project,
+  config: any,
+  style: string,
+): string {
+  let output = ''
+  const thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
+  const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
+  const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks > 1) ? 'tasks' : 'task'})`
+
+  if (style === 'Rich') {
+    output = '\t<tr class="projectRow">\n\t\t'
+
+    // Column 1: circle indicator
+    if (thisProject.isCompleted) {
+      output += `<td class="first-col-indicator checked">${addFAIcon('fa-solid fa-circle-check circle-icon')}</td>` // ('checked' gives colour)
+    }
+    else if (thisProject.isCancelled) {
+      output += `<td class="first-col-indicator cancelled">${addFAIcon('fa-solid fa-circle-xmark circle-icon')}</td>` // ('cancelled' gives colour)
+    }
+    else if (thisProject.isPaused) {
+      output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "#888888")}</td>`
+    }
+    else if (isNaN(thisProject.percentComplete)) {
+      output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', '#888888')}</td>`
+    }
+    else if (thisProject.percentComplete === 0) {
+      output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, 100, '#FF000088', '0')}</td>`
+    }
+    else {
+      // output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
+      output += `<td class="first-col-indicator">${addSVGPercentRing(thisProject, thisProject.percentComplete, 'multicol', String(thisProject.percentComplete))}</td>`
+    }
+
+    // Column 2a: Project name / link / edit dialog trigger button
+    const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(thisProject.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+    if (thisProject.isCompleted || thisProject.isCancelled || thisProject.isPaused) {
+      output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
+    }
+    else if (thisProject.percentComplete === 0 || isNaN(thisProject.percentComplete)) {
+      output += `<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
+    } else {
+      output += `\n\t\t\t<td>${decoratedProjectTitle(thisProject, style, config)}&nbsp;${editButton}`
+    }
+
+    if (!thisProject.isCompleted && !thisProject.isCancelled) {
+      // tidy up nextActionContent to show only the main content and remove the nextAction tag
+      const nextActionContent = thisProject.nextActionRawContent ? thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '') : ''
+
+      if (config.displayDates) {
+      // Write column 2b/2c under title
+      // Column 2b: progress information (if it exists)
+        if (config.displayProgress) {
+          if (thisProject.lastProgressComment !== '') {
+            output += `<br /><i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
+          } else {
+            output += `<br />${statsProgress}`
+          }
         }
+
+        // Column 2c: next action (if present)
+        if (config.displayNextActions && nextActionContent !== '') {
+          output += `\n\t\t\t<br /><i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        }
+        output += `</td>`
+      } else {
+        // write progress in next cell instead
+        output += `</td>\n\t\t\t<td>`
+        if (config.displayProgress) {
+          if (thisProject.lastProgressComment !== '') {
+            output += `<i class="fa-solid fa-info-circle fa-sm pad-right"></i> ${thisProject.lastProgressComment}`
+          } else {
+            output += `${statsProgress}`
+          }
+        }
+        if (config.displayNextActions && nextActionContent !== '') {
+          if (config.displayProgress) output += '<br />'
+          output += `<i class="fa-solid fa-right-from-line fa-sm pad-right"></i> ${nextActionContent}`
+        }
+        output += `</td>`
       }
-      if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
-        output = (this.dueDays != null && !isNaN(this.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(this.dueDays)}` : output
-        output =
-          (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
-            ? this.nextReviewDays > 0
-              ? `${output}\tReview ${localeRelativeDateFromNumber(this.nextReviewDays)}`
-              : `${output}\tReview due **${localeRelativeDateFromNumber(this.nextReviewDays)}**`
-            : output
+    }
+
+    // Columns 3/4: date information
+    if (config.displayDates && !thisProject.isPaused) {
+      if (thisProject.isCompleted) {
+    // "completed after X"
+        const completionRef = (thisProject.completedDuration)
+          ? thisProject.completedDuration
+          : "completed"
+        output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
+      } else if (thisProject.isCancelled) {
+        // "cancelled X ago"
+        const cancellationRef = (thisProject.cancelledDuration)
+          ? thisProject.cancelledDuration
+          : "cancelled"
+        output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
       }
-      // Add nextAction output if wanted and it exists
-      // logDebug('Project::generateProjectOutputLine', `nextActionRawContent: ${this.nextActionRawContent}`)
-      if (displayNextActions && this.nextActionRawContent !== '' && !this.isCompleted && !this.isCancelled) {
-        const nextActionContent = this.nextActionRawContent.slice(getLineMainContentPos(this.nextActionRawContent))
-        // TODO: also add .replace(config.nextActionTag, '')
-        output += `\n\t- Next action: ${nextActionContent}`
+      if (!thisProject.isCompleted && !thisProject.isCancelled) {
+        output = (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays))
+          ? (thisProject.nextReviewDays > 0)
+            ? `${output}<td>${localeRelativeDateFromNumber(thisProject.nextReviewDays)}</td>`
+            : `${output}<td><p><b>${localeRelativeDateFromNumber(thisProject.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+          : `${output}<td></td>`
+        output = (thisProject.dueDays != null && !isNaN(thisProject.dueDays))
+          ? (thisProject.dueDays > 0)
+            ? `${output}<td>${localeRelativeDateFromNumber(thisProject.dueDays)}</td>`
+            : `${output}<td><p><b>${localeRelativeDateFromNumber(thisProject.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+          : `${output}<td></td>`
       }
     } else {
-      logWarn('Project::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
-      output = ''
+      output += '<td></td><td></td>' // to avoid layout inconsistencies
     }
-    return output
+    output += '\n\t</tr>'
   }
+  else if (style === 'Markdown' || style === 'list') {
+    output = '- '
+    output += `${decoratedProjectTitle(thisProject, style, config)}`
+    // logDebug('', `${decoratedProjectTitle(thisProject, style, config
+    if (config.displayDates && !thisProject.isPaused) {
+      if (thisProject.isCompleted) {
+    // completed after X or cancelled X ago, depending
+        const completionRef = (thisProject.completedDuration)
+          ? thisProject.completedDuration
+          : "completed"
+        output += `\t(Completed ${completionRef})`
+      } else if (thisProject.isCancelled) {
+        // completed after X or cancelled X ago, depending
+        const cancellationRef = (thisProject.cancelledDuration)
+          ? thisProject.cancelledDuration
+          : "cancelled"
+        output += `\t(Cancelled ${cancellationRef})`
+      }
+    }
+    if (config.displayProgress && !thisProject.isCompleted && !thisProject.isCancelled) {
+    // Show progress comment if available ...
+      if (thisProject.lastProgressComment !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
+        output += `\t${thisPercent} done: ${thisProject.lastProgressComment}`
+      }
+      // ... else show stats
+      else {
+        output += `\t${statsProgress}`
+      }
+    }
+    if (config.displayDates && !thisProject.isPaused && !thisProject.isCompleted && !thisProject.isCancelled) {
+      output = (thisProject.dueDays != null && !isNaN(thisProject.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(thisProject.dueDays)}` : output
+      output =
+        (thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays))
+          ? thisProject.nextReviewDays > 0
+            ? `${output}\tReview ${localeRelativeDateFromNumber(thisProject.nextReviewDays)}`
+            : `${output}\tReview due **${localeRelativeDateFromNumber(thisProject.nextReviewDays)}**`
+          : output
+    }
+    // Add nextAction output if wanted and it exists
+    // logDebug('Project::generateProjectOutputLine', `nextActionRawContent: ${thisProject.nextActionRawContent}`)
+    if (config.displayNextActions && thisProject.nextActionRawContent !== '' && !thisProject.isCompleted && !thisProject.isCancelled) {
+      const nextActionContent = thisProject.nextActionRawContent.slice(getLineMainContentPos(thisProject.nextActionRawContent)).replace(config.nextActionTag, '')
+      output += `\n\t- Next action: ${nextActionContent}`
+    }
+  } else {
+    logWarn('Project::generateProjectOutputLine', `Unknown style '${style}'; nothing returned.`)
+    output = ''
+  }
+  return output
+}
 
-  /**
-   * Add SVG ready for percent ring with the number in the middle.
-   * Note: this is kept in this file as it is specific to Review functionality. But it relies on the more generic 'makeSVGPercentRing' helper function.
-   * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
-   * Note: I don't understand why this needs to be in the Class definition, but I get an "missing-this-annot" flow error if I try moving it out.
-   * @param {number} percent 0-100
-   * @param {string?} color for ring and text (as colour name or #RGB), or 'multicol' to mean shading between red and green
-   * @param {string?} textToShow inside ring, which can be different from just the percent, which is used by default
-   * @returns {string} SVG code to insert in HTML
-   */
-  addSVGPercentRing(percent: number, colorIn: string = 'multicol', text: string = ''): string {
-    const textToShow = (text !== '') ? text : String(percent)
-    const colorToUse = (colorIn === 'multicol')
-      ? redToGreenInterpolation(percent)
-      : colorIn
-    return makeSVGPercentRing(percent, colorToUse, textToShow, this.ID)
+/**
+ * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
+ * Supports 'Markdown' or 'HTML' styling or simpler 'list' styling
+ * Note: There is now a non-Class version of the function.
+ * @param {Project} thisProject 'Markdown' or 'HTML' or 'list'
+ * @param {string} style 'Markdown' or 'HTML' or 'list'
+ * @param {any} config
+ * @return {string} - title as wikilink
+ */
+function decoratedProjectTitle(thisProject: Project, style: string, config: any): string {
+  const folderNamePart = config.includeFolderName ? `${thisProject.folder} / ` : ''
+  const titlePart = thisProject.title ?? '(error, not available)'
+  // const titlePartEncoded = encodeURIComponent(thisProject.title) ?? '(error, not available)'
+  switch (style) {
+    case 'Rich': {
+      // Method 1: make [[notelinks]] via x-callbacks
+      // Method 1a: x-callback using note title
+      // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.title, "title", "", "splitView", false)
+      // Method 1b: x-callback using filename
+      const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(thisProject.filename, "filename", "", null, false)
+      const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
+      // TODO: if possible change to use internal links: see method in Dashboard
+      // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
+      // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
+
+      if (thisProject.isCompleted) {
+        return `<span class="checked">${noteTitleWithOpenAction}</span>`
+      } else if (thisProject.isCancelled) {
+        return `<span class="cancelled">${noteTitleWithOpenAction}</span>`
+      } else if (thisProject.isPaused) {
+        return `<span class="paused">Paused: ${noteTitleWithOpenAction}</span>`
+      } else {
+        return `${noteTitleWithOpenAction}`
+      }
+    }
+
+    case 'Markdown': {
+      if (thisProject.isCompleted) {
+        return `[x] ${folderNamePart}[[${titlePart}]]`
+      } else if (thisProject.isCancelled) {
+        return `[-] ${folderNamePart}[[${titlePart}]]`
+      } else if (thisProject.isPaused) {
+        return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
+      } else {
+        return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
+      }
+    }
+
+    case 'list': {
+      if (thisProject.isCompleted) {
+        return `${folderNamePart}[[${titlePart}]]`
+      } else if (thisProject.isCancelled) {
+        return `~~${folderNamePart}[[${titlePart}]]~~`
+      } else if (thisProject.isPaused) {
+        return `⏸ **Paused**: ${folderNamePart}[[${titlePart}]]`
+      } else {
+        return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
+      }
+    }
+
+    default:
+      logWarn('Project::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
+      return ''
   }
+}
+
+/**
+ * Add SVG ready for percent ring with the number in the middle.
+ * Note: this is kept in this file as it is specific to Review functionality. But it relies on the more generic 'makeSVGPercentRing' helper function.
+ * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
+ * Note: This is a non-Class version of the function.
+ * @param {number} percent 0-100
+ * @param {string?} color for ring and text (as colour name or #RGB), or 'multicol' to mean shading between red and green
+ * @param {string?} textToShow inside ring, which can be different from just the percent, which is used by default
+ * @returns {string} SVG code to insert in HTML
+ */
+function addSVGPercentRing(thisProject: Project, percent: number, colorIn: string = 'multicol', text: string = ''): string {
+  const textToShow = (text !== '') ? text : String(percent)
+  const colorToUse = (colorIn === 'multicol')
+    ? redToGreenInterpolation(percent)
+    : colorIn
+  return makeSVGPercentRing(percent, colorToUse, textToShow, thisProject.ID)
 }

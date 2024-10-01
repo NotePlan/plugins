@@ -1,11 +1,7 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 2024-07-12 for v0.14.1 by @jgclark
+  Last updated: 2024-10-01 for v1.0.0.b1 by @jgclark
   */
-dialog:modal {
-  max-width: 90%;
-}
-
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
   margin: 0rem;
@@ -17,14 +13,30 @@ dialog {
   box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
 }
 
+dialog:modal {
+  max-width: 92%;
+}
+
 .dialogTitle {
+  display: grid;
+  grid-template-columns: auto max-content; /* title then close button */
   background: var(--bg-alt-color);
-  padding-block-start: 0.6rem;
+  padding-block-start: 0.7rem;
   padding-inline-start: 1.0rem;
   padding-inline-end: 0.5rem;
   padding-block-end: 0.2rem;
   border-block-end: 1px solid gray;
   /* margin-block-end: 4px; */
+}
+
+.closeButton {
+	font-size: unset;
+  color: var(--tint-color);
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  padding: 0px 5px;
 }
 
 .dialogItemNote {

@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Bridging functions for Projects plugin
-// Last updated 2024-07-12 for v0.14.0 by @jgclark
+// Bridging functions for Projects plugin (to/from HTML window)
+// Last updated 2024-10-01 for v1.0.0.b1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   finishReviewForNote,
   makeProjectLists,
+  setNewReviewInterval,
   skipReviewForNote,
   toggleDisplayOnlyDue,
   toggleDisplayFinished,
@@ -113,7 +114,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 }
 
 /**
- * Somebody clicked on a something in the HTML view
+ * Somebody clicked on something in the HTML view; find out what, and action it.
  * @param {MessageDataObject} data - details of the item clicked
  */
 export async function bridgeClickProjectListItem(data: MessageDataObject) {
@@ -148,7 +149,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / completeProject', `-> completeProject on filename ${filename} (ID ${ID})`)
           await completeProject(note)
         }
-        // The above handles refreshing the full-review-list and display
+        // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -160,7 +161,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / cancelProject', `-> cancelProject on filename ${filename} (ID ${ID})`)
           await cancelProject(note)
         }
-        // The above handles refreshing the full-review-list and display
+        // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -172,7 +173,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           logDebug('bCPLI / toggleProject', `-> togglePauseProject on filename ${filename} (ID ${ID})`)
           await togglePauseProject(note)
         }
-        // The above handles refreshing the full-review-list and display
+        // The above handles refreshing the allProjects list and display
         // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
         // sendToHTMLWindow(windowId, 'updateItem', data)
         break
@@ -186,29 +187,40 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           await finishReviewForNote(note)
           logDebug('bCPLI / reviewFinished', `-> after finishReview`)
 
-          // The above handles refreshing the full-review-list and display
+          // The above handles refreshing the allProjects list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-          // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
           logWarn('bCPLI / reviewFinished', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
         }
         break
       }
-
       case 'setNextReviewDate': {
-        // Mimic the /skip review command.
+        // Mimic the '/skip review' command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           const period = controlStr.replace('nr', '')
           logDebug('bCPLI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename} (ID ${ID})`)
           await skipReviewForNote(note, period)
-          logDebug('bCPLI / review', `-> after setNextReviewDate`)
+          logDebug('bCPLI / setNextReviewDate', `-> after setNextReviewDate`)
 
-          // The above handles refreshing the full-review-list and display
+          // The above handles refreshing the allProjects list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-          // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
           logWarn('bCPLI / setNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
+        }
+        break
+      }
+      case 'setNewReviewInterval': {
+        // Mimic the '/set new review interval' command.
+        const note = await DataStore.projectNoteByFilename(filename)
+        if (note) {
+          await setNewReviewInterval(note)
+          logDebug('bCPLI / setNewReviewInterval', `-> after setNewReviewInterval`)
+
+          // The above handles refreshing the allProjects list and display
+          // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
+        } else {
+          logWarn('bCPLI / setNewReviewInterval', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
         }
         break
       }
@@ -220,9 +232,8 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
           await addProgressUpdate(note)
           logDebug('bCPLI / addProgress', `-> after addProgressUpdate`)
 
-          // The above handles refreshing the full-review-list and display
+          // The above handles refreshing the allProjects list and display
           // TODO(later): Do something more clever in future: send a message for the dashboard to update its display
-          // sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
           logWarn('bCPLI / addProgress', `-> couldn't get filename ${filename} to add progress command.`)
         }

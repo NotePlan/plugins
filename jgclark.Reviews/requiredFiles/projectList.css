@@ -29,28 +29,36 @@ a, a:visited, a:active {
 }
 /* Keep a header stuck to top middle of window */
 .sticky-box-top-middle {
-  position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); border-radius: 6px; line-height: 1.8rem; margin: auto; padding: 4px; text-align: center;
+  position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); border-radius: 6px; line-height: 1.8rem; margin: auto; padding: 0.2rem 0.5rem; text-align: center; width: fit-content;
 }
 /* header text within box */
 .sticky-box-header {
   font-weight: 600;
+  margin-left: 0.5rem;
+}
+p.display-details {
+  text-align: center;
+}
+/* Tweak inherited H2 and H3 font size down */
+.h2 {
+  font-size: 1.25rem !important;
 }
 /* removed L-R borders for now */
 th {
-  text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color);
+  text-align: left; padding-bottom: 0.2rem; font-weight: normal; border: 0px;
 }
 tr.projectRow {
-  height: calc(var(--body-line-height)*2.4); /* seems to function as min-height, which itself doesn't work */
+  height: calc(var(--body-line-height)*2.5); /* seems to function as min-height, which itself doesn't work */
 }
 tr.section-header-row {
-  column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 1px solid var(--tint-color);
+  column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 0.6px solid var(--tint-color);
 }
 .section-header {
   color: var(--h3-color);
-  font-size: 1.0rem;
+  font-size: 1.15rem !important;
   font-weight: bold;
   padding-top: 1.0rem;
-  /* padding-bottom: 0.3rem; */
+  padding-bottom: 0.3rem;
 }
 .first-col-indicator {
   padding: 0.3em 0.2rem 0 0.2rem;
@@ -60,18 +68,18 @@ tr.section-header-row {
 /* remove L-R borders for now */
 tbody td {
   line-height: 1.35rem;
-  background-color: var(--bg-alt-color);
+  /* background-color: var(--bg-alt-color); */
   padding: 2px 2px;
   border-left: 0px solid var(--tint-color);
   border-right: 0px solid var(--tint-color);
 }
 /* turn on top border for tbody */
 table tbody tr:first-child {
-  border-top: 0.5px solid var(--tint-color);
+  border-top: 0.6px solid var(--tint-color);
 }
 /* turn on bottom border for tbody */
 table tbody tr:last-child {
-  border-bottom: 1px solid var(--tint-color);
+  border-bottom: 0.6px solid var(--tint-color);
 }
 /* turn off outer table left border */
 table tr td:first-child {
@@ -85,18 +93,27 @@ table tr th:first-child {
 table tr td:last-child, table tr th:last-child {
   border-right: 0px;
 }
-/* tweak color of every other row slightly */
-table tr:nth-child(even) {
-  background-color: var(--bg-mid-color); /* FIXME: not working as hoped */
-}
-/* as ^^^ is not working do this instead ... */
 table tr.projectRow {
-  border-bottom: 0.25px solid rgba(120,120,120,0.3);
+  /* border-bottom: 0.25px solid rgba(120,120,120,0.3); */
+  background-color: var(--bg-alt-color);
+}
+/* tweak color of every other row slightly */
+table tr.projectRow:nth-child(even) {
+  background-color: var(--bg-mid-color);
 }
 
 /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
 .multi-cols {
   column-count: 3; column-width: 30rem; column-gap: 2rem; column-rule: 1px dotted var(--tint-color);
+}
+
+/* -------------------------------------------------------- */
+
+/* 
+ * Darken background under any dialogs when open (See https://developer.mozilla.org/en-US/docs/Web/CSS/::backdrop)
+ */
+dialog::backdrop {
+  background: rgba(0,0,0,0.4);
 }
 
 /* -------------------------------------------------------- */
@@ -180,6 +197,7 @@ button, .fake-button, .clickTarget {
 /* make noteTitles bold and coloured */
 .noteTitle {
   color: var(--tint-color);
+  font-size: 1.1rem;
   font-weight: 600; 
   text-decoration: none;
 }

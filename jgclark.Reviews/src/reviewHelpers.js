@@ -104,26 +104,22 @@ export async function getReviewSettings(): Promise<ReviewConfig> {
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
 
     // TODO(later): remove this when checkboxes do work
-    DataStore.setPreference('Reviews-DisplayOnlyDue', config.displayOnlyDue)
-    // TODO(later): include this when checkboxes do work
-    // // Set local pref Reviews-DisplayOnlyDue to default false if it doesn't exist already
-    // let savedValue = DataStore.preference('Reviews-DisplayOnlyDue')
+    // DataStore.setPreference('Reviews-displayOnlyDue', config.displayOnlyDue)
+    // let savedValue = DataStore.preference('Reviews-displayOnlyDue')
     // // logDebug('getReviewSettings', `DisplayOnlyDue? savedValue: ${String(savedValue)}`)
     // if (!savedValue) {
-    //   DataStore.setPreference('Reviews-DisplayOnlyDue', false)
+    //   DataStore.setPreference('Reviews-displayOnlyDue', false)
     // }
-    // logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
+    // logDebug('getReviewSettings', `Reviews-displayOnlyDue? = ${String(DataStore.preference('Reviews-displayOnlyDue'))}`)
 
     // TODO(later): remove this when checkboxes do work
-    DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
-    // Set local pref Reviews-DisplayFinished to default true if it doesn't exist already
-    // TODO(later): include this when checkboxes do work
-    // savedValue = DataStore.preference('Reviews-DisplayFinished')
+    // DataStore.setPreference('Reviews-displayFinished', config.displayFinished)
+    // savedValue = DataStore.preference('Reviews-displayFinished')
     // // logDebug('getReviewSettings', `DisplayFinished? savedValue: ${String(savedValue)}`)
     // if (!savedValue) {
-    //   DataStore.setPreference('Reviews-DisplayFinished', true)
+    //   DataStore.setPreference('Reviews-displayFinished', true)
     // }
-    // logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    // logDebug('getReviewSettings', `Reviews-displayFinished? = ${String(DataStore.preference('Reviews-displayFinished'))}`)
 
     return config
   } catch (err) {
@@ -163,6 +159,18 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
   // logDebug(pluginJson, `getMentionFromList for: ${mention}`)
   const res = mentionList.filter((m) => m.startsWith(`${mention}(`))
   return res.length > 0 ? res[0] : ''
+}
+
+/**
+ * Return lineIndex (or NaN) of first matching 'naTag' in 'note'
+ * @param {TNote} note to search
+ * @param {string} naTag to search for
+ * @returns {number}
+ */
+export function getNextActionLineIndex(note: TNote, naTag: string): number {
+  const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
+  const result = (NAParas.length > 0) ? NAParas[0].lineIndex : NaN
+  return result
 }
 
 /**

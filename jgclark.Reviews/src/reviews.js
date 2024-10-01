@@ -11,19 +11,19 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
+// Last updated 2024-09-30 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import fm from 'front-matter'
+// import fm from 'front-matter'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
+  getNextActionLineIndex,
   getReviewSettings,
   type ReviewConfig,
-  saveEditorToCache,
   updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
@@ -33,13 +33,21 @@ import {
   // filterAndSortReviewList,
   getNextNoteToReview,
   // makeFullReviewList,
+  getSpecificProjectFromList,
   generateAllProjectsList,
-  updateProjectsListAfterChange
+  updateProjectInAllProjectsList,
+  // updateProjectsListAfterChange
 } from './reviewListHelpers'
-import { Project } from './projectClass'
+import {
+  // calcDurationsForProject,
+  calcReviewFieldsForProject,
+  generateProjectOutputLine,
+  Project
+} from './projectClass'
 import { checkString } from '@helpers/checkType'
 import {
-  calcOffsetDateStr, getDateObjFromDateString,
+  calcOffsetDateStr,
+  getDateObjFromDateString,
   getTodaysDateHyphenated,
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
@@ -316,9 +324,12 @@ export async function renderProjectLists(
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    // const funcTimer = new Date()
-    // clo(config, 'config at start of renderProjectLists:')
-    logDebug('renderProjectLists', `Starting with displayOnlyDue? ${String(config.displayOnlyDue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
+    logDebug('renderProjectLists', `Starting with prefs displayFinished? ${String(DataStore.preference('Reviews-displayFinished') ?? '(not set)')} displayOnlyDue? ${String(DataStore.preference('Reviews-displayOnlyDue') ?? '(not set)')}`)
+    // Note: following doesn't pick up changes made in toggleDisplay*() functions
+    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'hide')
+    // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+    // const updatedConfig = { displayFinished: displayFinished, displayOnlyDue: displayOnlyDue, ...config }
+    clo(config, 'calcNextReviewDateonfig at start of renderProjectLists:')
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -425,6 +436,11 @@ export async function renderProjectListsHTML(
       'skip project review',
       '',
       'Skip this Project review and select new date')
+    const newIntervalPCButton = makePluginCommandButton(`<i class="fa-solid fa-arrows-left-right"></i>\u00A0New Interval`,
+      'jgclark.Reviews',
+      'set new review interval',
+      '',
+      'Set new review interval for Project')
     const updateProgressPCButton = makePluginCommandButton(
       `\u00A0<i class="fa-solid fa-comment-lines"></i>\u00A0Add Progress`,
       'jgclark.Reviews',
@@ -458,20 +474,21 @@ export async function renderProjectListsHTML(
     // outputArray.push(`<h1>${windowTitle}</h1>`)
 
     // Add a sticky area for buttons
-    const controlButtons = `<span class="sticky-box-header">Reviews</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
+    const controlButtons = `<span class="sticky-box-header">Review:</span> ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n${newIntervalPCButton}\n<br /><span class="sticky-box-header">List</span>: \n${refreshPCButton} \n<span class="sticky-box-header">Project:</span>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
     // Note: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
-    // Show date + display settings
-    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
-    const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
-    // v1: text labels
+    // Show time since generation + display settings
+    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
+    const displayFinished = config.displayFinished ?? 'display at end'
+    // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+    const displayOnlyDue = config.displayOnlyDue ?? false
+    logDebug('renderProjectListsHTML', `displayFinished=${String(displayFinished)}, displayOnlyDue=${String(displayOnlyDue)}`)
     let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
     togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
-    // v1: simple text
-    outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
+    outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
 
     // TODO(later): v2 add checkbox toggles
 
@@ -538,18 +555,24 @@ export async function renderProjectListsHTML(
   <!----------- Dialog to show on Project items ----------->
   <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on projects">
-    <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
+    <div class="dialogTitle">
+      <div>For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
+      <div class="dialog-top-right"><form><button id="closeButton" class="closeButton">
+        <i class="fa-solid fa-square-xmark"></i>
+      </button></form></div>
+    </div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
-        <div>Reviews</div>
+        <div>Review:</div>
         <div id="projectControlDialogProjectControls">
-          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
+          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish</button>
           <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
           <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
           <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
           <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
+          <button data-control-str="newrevint"><i class="fa-solid fa-arrows-left-right"></i> New Interval</button>
         </div>
-        <div>Actions</div>
+        <div>Project:</div>
         <div>
           <button data-control-str="progress"><i class="fa-solid fa-comment-lines"></i> Add Progress</button>
           <button data-control-str="pause">Toggle <i class="fa-solid fa-circle-pause"></i> Pause</button>
@@ -557,7 +580,7 @@ export async function renderProjectListsHTML(
           <button data-control-str="cancel"><i class="fa-solid fa-circle-xmark"></i> Cancel</button>
         </div>
         <div></div>
-        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
+        <!-- <div><form><button id="closeButton" class="mainButton">Close</button></form></div> -->
         </div>
       </div>
     </div>
@@ -622,6 +645,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
     const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
     const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
+    const newIntervalXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'set new review interval', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
     const addProgressXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'add progress update', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project toggle', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
@@ -630,6 +654,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     // style the x-callback URLs into markdown 'button' links
     const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`
     const nextReviewXCallbackButton = `[Finish + Next](${nextReviewXCallbackURL})`
+    const newIntervalXCallbackButton = `[New Review Interval](${nextReviewXCallbackURL})`
     const addProgressXCallbackButton = `[Add progress](${addProgressXCallbackURL})`
     const pauseXCallbackButton = `[toggle Pause](${pauseXCallbackURL})`
     const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
@@ -659,10 +684,12 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
           if (due > 0) {
-            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
-          const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+          // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
+          const displayFinished = config.displayFinished ?? 'display at end'
+          // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+          const displayOnlyDue = config.displayOnlyDue ?? false
           let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           // FIXME:  report that noteCount can be NaN
           togglesValues += (displayFinished === 'hide') ? '' : ' plus finished ones'
@@ -812,17 +839,14 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
     // }
 
     // Process each project
-    for (const thisP of projectsToReview) {
-      const thisNote = DataStore.projectNoteByFilename(thisP.filename)
+    for (const thisProject of projectsToReview) {
+      const thisNote = DataStore.projectNoteByFilename(thisProject.filename)
       if (!thisNote) {
-        logWarn('generateReviewOutputLines', `Can't find note for filename ${thisP.filename}`)
+        logWarn('generateReviewOutputLines', `Can't find note for filename ${thisProject.filename}`)
         continue
       }
-      // Build the Project object again
-      // FIXME: be smarter: re-write generateProjectOutputLine to avoid this
-      const thisProject = new Project(thisNote, noteTag, false, config.nextActionTag)
-      // Make the summary line
-      const out = thisProject.generateProjectOutputLine(style, false, config.displayDates, config.displayProgress, config.displayNextActions)
+      // Make the output line for this project
+      const out = generateProjectOutputLine(thisProject, config, style)
 
       // Add to number of notes to review (if appropriate)
       if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
@@ -837,15 +861,15 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
           : folder
         if (folderPart === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
-          outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
+          outputArray.push(`<thead>\n <tr class="section-header-row">  <th colspan=2 class="h3 section-header">${folderPart}</th>`)
           if (config.displayDates) {
-            outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
+            outputArray.push(`  <th>Next Review</th><th>Due Date</th>`)
           } else if (config.displayProgress && config.displayNextActions) {
-            outputArray.push(`  <td>Progress and/or Next Action</td>`)
+            outputArray.push(`  <th>Progress and/or Next Action</th>`)
           } else if (config.displayProgress) {
-            outputArray.push(`  <td>Progress</td>`)
+            outputArray.push(`  <th>Progress</th>`)
           } else if (config.displayNextActions) {
-            outputArray.push(`  <td>Next Action</td>`)
+            outputArray.push(`  <th>Next Action</th>`)
           }
           outputArray.push(` </tr>\n</thead>\n\n<tbody>`)
         } else if (style.match(/markdown/i)) {
@@ -906,45 +930,88 @@ export async function startReviews(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
+
 /**
- * Complete the current review
- * TEST: following change to allProjects
- * @author @jgclark
+ * Finish a project review -- private core logic used by 2 functions.
+ * @param (CoreNoteFields) note - The note to finish
  */
-export async function finishReview(): Promise<void> {
+async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
-    const currentNote = Editor // note: not Editor.note
-    if (currentNote && currentNote.type === 'Notes') {
-      logInfo('finishReview', `Starting with Editor ${displayTitle(currentNote)}`)
-      // TODO: try without the new Project instance
-      const thisNoteAsProject = new Project(currentNote)
+    const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
+    const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
-      const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
+    // If we're interested in Next Actions, check to see if one is now set
+    if (config.nextActionTag !== '') {
+      const nextActionLineIndex = getNextActionLineIndex(note, config.nextActionTag)
+      if (isNaN(nextActionLineIndex)) {
+        const res = await showMessageYesNo(
+          `There's no Next Action tag '${config.nextActionTag}' in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
+        )
+        if (res === 'No') {
+          return
+        }
+      }
+    }
 
+    if (Editor.filename === note.filename) {
+      logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
       let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
-      // logDebug('finishReview', `- after metadata updates`)
 
-      // Save Editor, so the latest changes can be picked up elsewhere
-      // Note: Putting the Editor.save() here, rather than in the above functions, seems to work
-      await saveEditorToCache(null)
+      // Using Editor, update it in the cache so the latest changes can be picked up elsewhere.
+      // Note: Putting the Editor.save() call here, rather than in the above functions, seems to work
+      await Editor.save()
+    } else {
+      logDebug('finishReviewCoreLogic', `- updating note ...`)
+      // First update @review(date) on the note
+      await updateMetadataInNote(note, [reviewedTodayString])
+      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+      await deleteMetadataMentionInNote(note, [config.nextReviewMentionStr])
+    }
+    logDebug('finishReviewCoreLogic', `- after metadata updates`)
 
-      // Then update the Project instance
+    // Then update the Project instance
+    // v1:
+    // const thisNoteAsProject = new Project(noteToUse)
+    // v2: Try to find this project in allProjects, and update that as well
+    let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
+    if (thisNoteAsProject) {
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      thisNoteAsProject.calcNextReviewDate()
-      logInfo('finishReview', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
+      thisNoteAsProject =
+        calcReviewFieldsForProject(thisNoteAsProject)
+      logDebug('finishReviewCoreLogic', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
 
-      // Also update the full-review-list
-      await updateProjectsListAfterChange(currentNote.filename, false, config)
-
-      // Update list for user (but don't focus)
+      // Save changes to allProjects list
+      await updateProjectInAllProjectsList(thisNoteAsProject)
+      updateDashboardIfOpen()
+      // Update display for user (but don't focus)
       await renderProjectLists(config, false)
+    } else {
+      // Regenerate whole list and display
+      logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
+      await makeProjectLists()
+    }
+  }
+  catch (error) {
+    logError('finishReviewCoreLogic', error.message)
+  }
+}
+
+/**
+ * Complete the current review on the current note in the Editor.
+ * @author @jgclark
+ */
+export async function finishReview(): Promise<void> {
+  try {
+    const currentNote = Editor // note: not Editor.note
+    if (currentNote && currentNote.type === 'Notes') {
+      logInfo('finishReview', `Starting with Editor '${displayTitle(currentNote)}'`)
+      await finishReviewCoreLogic(currentNote)
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
     }
@@ -955,53 +1022,25 @@ export async function finishReview(): Promise<void> {
 
 /**
  * Complete review of the given note
- * Note: Used by Dashboard
- * * TEST: following change to allProjects
+ * Note: Used by Dashboard and Project List dialog
  * @author @jgclark
  * @param {TNote} noteIn
  */
 export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-
-    if (noteToUse && noteToUse.type === 'Notes') {
-      logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
-      // TODO: try without the new Project instance
-      const thisNoteAsProject = new Project(noteToUse)
-
-      const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
-
-      // First update @review(date) on current open note
-      await updateMetadataInNote(noteToUse, [reviewedTodayString])
-      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      await deleteMetadataMentionInNote(noteToUse, [config.nextReviewMentionStr])
-      // logDebug('finishReviewForNote', `- after metadata updates`)
-
-      // Save changes
-      // Then update the Project instance
-      thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-      thisNoteAsProject.calcNextReviewDate()
-      logInfo('finishReview', `- PI now shows next review due in ${String(thisNoteAsProject.nextReviewDays)} days (${String(thisNoteAsProject.nextReviewDate)})`)
-
-      // Also update the full-review-list
-      await updateProjectsListAfterChange(noteToUse.filename, false, config)
-
-      // Update list for user (but don't focus)
-      await renderProjectLists(config, false)
-    } else {
+    if (!noteToUse || noteToUse.type !== 'Notes') {
       logWarn('finishReviewForNote', `- There's no valid project note to finish reviewing.`)
     }
-  } catch (error) {
+    logInfo('finishReviewForNote', `Starting for passed note '${displayTitle(noteToUse)}'`)
+    await finishReviewCoreLogic(noteToUse)
+  }
+  catch (error) {
     logError('finishReviewForNote', error.message)
   }
 }
 
-//-------------------------------------------------------------------------------
 /**
  * Complete current review, then open the next one to review in the Editor.
- * * TEST: following change to allProjects
  * @author @jgclark
  */
 export async function finishReviewAndStartNextReview(): Promise<void> {
@@ -1012,9 +1051,6 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
     // Finish review
     await finishReview()
-    // This also:
-    // updates the full-review-list = updateProjectsListAfterChange(...)
-    // Update list for user (but don't focus) = renderProjectLists(...)
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
@@ -1038,9 +1074,101 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 }
 
 //-------------------------------------------------------------------------------
+
+/**
+ * Skip a project review, moving it forward to a specified date/interval. 
+ * Note: private core logic used by 2 functions.
+ * @param (CoreNoteFields) note
+ * @param (string?) skipIntervalOrDate (optional)
+ */
+async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {
+  try {
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+    logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
+    let newDateStr: string = ''
+
+    // Calculate new date from param 'skipIntervalOrDate' (if given) or ask user
+    if (skipIntervalOrDate !== '') {
+      // Get new date from parameter as date interval or iso date 
+      newDateStr = skipIntervalOrDate.match(RE_DATE_INTERVAL)
+        ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
+        : skipIntervalOrDate.match(RE_DATE)
+          ? skipIntervalOrDate
+          : ''
+      if (newDateStr === '') {
+        logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
+        return
+      }
+    }
+    else {
+      // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)`.
+      const reply = await getInputTrimmed("Next review date (YYYY-MM-DD) or date interval (e.g. '2w' or '3m') to skip until:", 'OK', 'Skip next review')
+      if (!reply || typeof reply === 'boolean') {
+        logDebug('skipReviewCoreLogic', `User cancelled command.`)
+        return
+      }
+      newDateStr = reply.match(RE_DATE)
+        ? reply
+        : reply.match(RE_DATE_INTERVAL)
+          ? calcOffsetDateStr(todaysDateISOString, reply)
+          : ''
+      if (newDateStr === '') {
+        logWarn('skipReviewCoreLogic', `No valid date entered, so will stop.`)
+        return
+      }
+    }
+
+    // create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
+    const nextReviewDate = getDateObjFromDateString(newDateStr)
+    const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
+    logDebug('skipReviewCoreLogic', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
+
+    if (Editor.filename === note.filename) {
+      // Update metadata in the current open note
+      logDebug('skipReviewCoreLogic', `- updating Editor ...`)
+      const res = await updateMetadataInEditor([nextReviewMetadataStr])
+
+      // Save Editor, so the latest changes can be picked up elsewhere
+      // Putting the Editor.save() here, rather than in the above functions, seems to work
+      await Editor.save()
+    } else {
+      // add/update metadata on the note
+      logDebug('skipReviewCoreLogic', `- updating note ...`)
+      await updateMetadataInNote(note, [nextReviewMetadataStr])
+    }
+    logDebug('skipReviewCoreLogic', `- after metadata updates`)
+
+    // Save changes to allProjects list
+    // v1:
+    // const thisNoteAsProject = new Project(note)
+    // const newMSL = thisNoteAsProject.TSVSummaryLine()
+    // logDebug('skipReviewCoreLogic', `- updatedTSVSummaryLine => '${newMSL}'`)
+    // await updateProjectsListAfterChange(currentNote.filename, false, config, newMSL)
+    // v2: Try to find this project in allProjects, and update that as well
+    let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
+    if (thisNoteAsProject) {
+      thisNoteAsProject.nextReviewDateStr = newDateStr
+      thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
+      logDebug('skipReviewCoreLogic', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      // Write changes to allProjects list
+      await updateProjectInAllProjectsList(thisNoteAsProject)
+      // Update display for user (but don't focus)
+      await renderProjectLists(config, false)
+      updateDashboardIfOpen()
+    } else {
+      // Regenerate whole list and display
+      logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
+      await makeProjectLists()
+    }
+  }
+  catch (error) {
+    logError('skipReviewCoreLogic', error.message)
+  }
+}
+
 /**
  * Skip the next review for the note open in the Editor, asking when to delay to, add that as a @nextReview() date, and jump to next project to review.
- * * TEST: following change to allProjects
  * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
  */
@@ -1048,53 +1176,12 @@ export async function skipReview(): Promise<void> {
   try {
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
-
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
-
-    logDebug(pluginJson, `skipReview: Starting for ${displayTitle(currentNote)}`)
-    const thisNoteAsProject = new Project(currentNote)
-
-    // Ask for new date
-    const reply = await getInputTrimmed("Next review date (YYYY-MM-DD) or date interval (e.g. '2w' or '3m') to skip until:", 'OK', 'Skip next review')
-    if (!reply || typeof reply === 'boolean') {
-      logDebug('skipReview', `User cancelled command.`)
-      return
-    }
-    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const newDateStr: string = reply.match(RE_DATE)
-      ? reply
-      : reply.match(RE_DATE_INTERVAL)
-        ? calcOffsetDateStr(todaysDateISOString, reply)
-        : ''
-    if (newDateStr === '') {
-      logWarn('skipReview', `No valid date entered, so will stop.`)
-      return
-    }
-    const nextReviewDate = getDateObjFromDateString(newDateStr)
-    const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
-    logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
-
-    // Update metadata in the current open note
-    const res = await updateMetadataInEditor([nextReviewMetadataStr])
-
-    // Save Editor, so the latest changes can be picked up elsewhere
-    // Putting the Editor.save() here, rather than in the above functions, seems to work
-    await saveEditorToCache(null)
-
-    // Update the full-review-list too
-    thisNoteAsProject.nextReviewDateStr = newDateStr
-    thisNoteAsProject.nextReviewDate = nextReviewDate
-    thisNoteAsProject.calcDurations()
-    thisNoteAsProject.calcNextReviewDate()
-    logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    const newMSL = thisNoteAsProject.TSVSummaryLine()
-    logDebug('skipReview', `- updatedTSVSummaryLine => '${newMSL}'`)
-    await updateProjectsListAfterChange(currentNote.filename, false, config, newMSL)
-    // Update list for user
-    await renderProjectLists(config)
+    logDebug('skipReview', `Starting for Editor '${displayTitle(currentNote)}'`)
+    await skipReviewCoreLogic(currentNote)
 
     // Then move to nextReview
     // Read review list to work out what's the next one to review
@@ -1120,7 +1207,6 @@ export async function skipReview(): Promise<void> {
 
 /**
  * Skip the next review for the given note, to the date/interval specified.
- * * TEST: following change to allProjects
  * Note: skipReview() is an interactive version of this for Editor.note
  * @author @jgclark
  */
@@ -1130,44 +1216,12 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
     if (!config) throw new Error('No config found. Stopping.')
 
     if (!note || note.type !== 'Notes') {
-      logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+      logWarn('skipReviewForNote', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
-    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)} with ${skipIntervalOrDate}`)
-
-    const thisNoteAsProject = new Project(note)
-
-    // Get new date from parameter as date interval or iso date 
-    const newDateStr: string = skipIntervalOrDate.match(RE_DATE_INTERVAL)
-      ? calcOffsetDateStr(todaysDateISOString, skipIntervalOrDate)
-      : skipIntervalOrDate.match(RE_DATE)
-        ? skipIntervalOrDate
-        : ''
-    if (newDateStr === '') {
-      logWarn('skipReviewForNote', `${skipIntervalOrDate} is not a valid interval, so will stop.`)
-      return
-    }
-
-    // create new metadata`@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    const nextReviewDate = getDateObjFromDateString(newDateStr)
-    const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
-    logDebug('skipReviewForNote', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
-
-    // Update metadata in that note
-    await updateMetadataInNote(note, [nextReviewMetadataStr])
-
-    // Update the full-review-list too
-    thisNoteAsProject.nextReviewDateStr = newDateStr
-    thisNoteAsProject.nextReviewDate = nextReviewDate
-    thisNoteAsProject.calcDurations()
-    thisNoteAsProject.calcNextReviewDate()
-    logDebug('skipReviewForNote', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    const newMSL = thisNoteAsProject.TSVSummaryLine()
-    logDebug('skipReviewForNote', `- updatedTSVSummaryLine => '${newMSL}'`)
-    await updateProjectsListAfterChange(note.filename, false, config, newMSL)
-
-    // Update list window for user (if already open)
-    await renderProjectLists(config, false)
-  } catch (error) {
+    logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
+    await skipReviewCoreLogic(note, skipIntervalOrDate)
+  }
+  catch (error) {
     logError('skipReviewForNote', error.message)
   }
 }
@@ -1182,17 +1236,15 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  */
 export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
   try {
-    logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
-    const currentNote: TNote = noteArg ? noteArg : Editor
-    if (!currentNote || currentNote.type !== 'Notes') {
-      throw new Error(`Not in a Project note (at least 2 lines long)`)
-    }
-    const thisNoteAsProject = new Project(currentNote)
-
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
+    logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
+    const note: TNote = noteArg ? noteArg : Editor
+    if (!note || note.type !== 'Notes') {
+      throw new Error(`Not in a Project note (at least 2 lines long)`)
+    }
 
-    // Ask for new date interval
+    // Ask user for new date interval
     const reply = await getInputTrimmed("Next review interval (e.g. '2w' or '3m') to set", 'OK', 'Set new review interval')
     if (!reply || typeof reply === 'boolean') {
       logDebug('setNewReviewInterval', `User cancelled command.`)
@@ -1204,32 +1256,41 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       logError('setNewReviewInterval', `No valid interval entered, so will stop.`)
       return
     }
-    logDebug('setNewReviewInterval', `- intervals: existing = ${thisNoteAsProject.reviewInterval ?? '-'} / new = ${newIntervalStr}`)
+    logDebug('setNewReviewInterval', `- new review interval = ${newIntervalStr}`)
 
-    // Update metadata in the current open note in Editor, or the given note
+    // Update `@review(int)` metadata in the current open note in Editor, or the given note
     if (!noteArg) {
+      // Update metadata in the current open note
       logDebug('setNewReviewInterval', `- updating metadata in Editor`)
       const res = await updateMetadataInEditor([`@review(${newIntervalStr})`])
       // Save Editor, so the latest changes can be picked up elsewhere
       // Putting the Editor.save() here, rather than in the above functions, seems to work
-      await saveEditorToCache(null)
+      await Editor.save()
     } else {
+      // update metadata on the note
       logDebug('setNewReviewInterval', `- updating metadata in note`)
-      const res = await updateMetadataInNote(currentNote, [`@review(${newIntervalStr})`])
+      const res = await updateMetadataInNote(note, [`@review(${newIntervalStr})`])
     }
 
-    // Update the full-review-list too
-    thisNoteAsProject.reviewInterval = newIntervalStr
-    thisNoteAsProject.calcDurations()
-    thisNoteAsProject.calcNextReviewDate()
-    logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-    // FIXME: check implication of removing newMSL
-    const newMSL = thisNoteAsProject.TSVSummaryLine()
-    logDebug('setNewReviewInterval', `- updatedTSVSummaryLine => '${newMSL}'`)
-    await updateProjectsListAfterChange(currentNote.filename, false, config)
-
-    // Update list for user (if open)
-    await renderProjectLists(config, false)
+    // Save changes to allProjects list
+    // v1:
+    // const thisNoteAsProject = new Project(note)
+    // thisNoteAsProject.calcDurations()
+    // thisNoteAsProject.calcNextReviewDate()
+    // const newMSL = thisNoteAsProject.TSVSummaryLine()
+    // await updateProjectsListAfterChange(note.filename, false, config)
+    // v2:
+    let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
+    if (thisNoteAsProject) {
+      thisNoteAsProject.reviewInterval = newIntervalStr
+      thisNoteAsProject = calcReviewFieldsForProject(thisNoteAsProject)
+      logDebug('setNewReviewInterval', `-> reviewInterval = ${String(thisNoteAsProject.reviewInterval)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+      // Write changes to allProjects list
+      await updateProjectInAllProjectsList(thisNoteAsProject)
+      // Update display for user (but don't focus)
+      await renderProjectLists(config, false)
+      updateDashboardIfOpen()
+    }
   } catch (error) {
     logError('setNewReviewInterval', error.message)
   }
@@ -1242,17 +1303,35 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 */
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-DisplayFinished') ?? '(not set))')}' ...`)
-    logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayFinished'))
-    const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
-    const newValue = !savedValue
-    logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
+    // logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-displayFinished') ?? '(not set))')}' ...`)
+    // logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-displayFinished'))
+    // const savedValue = DataStore.preference('Reviews-displayFinished' ?? 'hide')
+    // const newValue = (savedValue === 'display')
+    //   ? 'display at end'
+    //   : (savedValue === 'display at end')
+    // ? 'hide'
+    // : 'display'
+    // Note: this Preference mechanism does not seem to work after this function is left, whatever I try
+    // logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
+    // DataStore.setPreference('Reviews-displayFinished', newValue)
+    // logDebug('toggleDisplayFinished', `displayFinished? now is '${String(newValue)}'`)
 
-    // FIXME: Need to add a settings.json updater here
-    DataStore.setPreference('Reviews-DisplayFinished', newValue)
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-    await renderProjectLists(config, true)
+    // So instead, trying to update settings.json instead
+    const config: ReviewConfig = await getReviewSettings()
+    const savedValue = config.displayFinished ?? 'hide'
+    const newValue = (savedValue === 'display')
+      ? 'display at end'
+      : (savedValue === 'display at end')
+        ? 'hide'
+        : 'display'
+    logDebug('toggleDisplayFinished', `displayFinished? now is '${String(newValue)}'`)
+
+    const updatedConfig = config
+    updatedConfig.displayFinished = newValue
+    logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
+    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    clo(updatedConfig, 'updatedConfig at end of toggle...()')
+    await renderProjectLists(updatedConfig, true)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1264,17 +1343,25 @@ export async function toggleDisplayFinished(): Promise<void> {
 */
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))')}' ...`)
-    logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayOnlyDue'))
-    const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
-    const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `DisplayOnlyDue? toggled to ${String(newValue)}`)
+    // logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-displayOnlyDue') ?? '(not set))')}' ...`)
+    // Note: this Preference mechanism does not seem to work after this function is left, whatever I try
+    // const savedValue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+    // const newValue = !savedValue
+    // logDebug('toggleDisplayOnlyDue', `displayOnlyDue? toggled to '${String(newValue)}'`)
+    // DataStore.setPreference('Reviews-displayOnlyDue', newValue)
+    // logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now is '${String(newValue)}'`)
 
-    // FIXME: Need to add a settings.json updater here
-    DataStore.setPreference('Reviews-DisplayOnlyDue', newValue)
-    const config: ?ReviewConfig = await getReviewSettings()
-    if (!config) throw new Error('No config found. Stopping.')
-    await renderProjectLists(config, true)
+    // So instead, trying to update settings.json instead
+    const config: ReviewConfig = await getReviewSettings()
+    const savedValue = config.displayOnlyDue ?? true
+    const newValue = !savedValue
+    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now is '${String(newValue)}'`)
+    const updatedConfig = config
+    updatedConfig.displayOnlyDue = newValue
+    logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
+    const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
+    clo(updatedConfig, 'updatedConfig at end of toggle...()')
+    await renderProjectLists(updatedConfig, true)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)
