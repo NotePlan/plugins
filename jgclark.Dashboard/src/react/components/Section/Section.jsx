@@ -8,13 +8,13 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
-import useInteractiveProcessing from './useInteractiveProcessing.jsx'
+// import useInteractiveProcessing from './useInteractiveProcessing.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
 import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -40,7 +40,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // State
   //----------------------------------------------------------------------
   const [items, setItems] = useState < Array < TSectionItem >> ([])
-  const [itemsCopy, setItemsCopy] = useState < Array < TSectionItem >> ([])
 
   //----------------------------------------------------------------------
   // Constants
@@ -90,23 +89,32 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  const { filteredItems, itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  const { /* filteredItems, */ itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
 
-  useInteractiveProcessing(filteredItems, section, itemsCopy, setItemsCopy, reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings)
 
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
-  const handleInteractiveProcessingClick = (e: MouseEvent): void => {
+  // handle a click to start interactive processing
+  const handleInteractiveProcessingClick = useCallback((e: MouseEvent): void => {
     logDebug(`Section`, `handleInteractiveProcessingClick x,y=(${e.clientX}, ${e.clientY})`)
+    console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleInteractiveProcessingClick function',reactSettings)
+
     const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
-    setReactSettings(prevSettings => ({
-      ...prevSettings,
-      lastChange: `_InteractiveProcessing Click`,
-      interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: itemsToShow.length, clickPosition, startingUp: true },
-      dialogData: { isOpen: false, isTask: true, details: {}, clickPosition },
-    }))
-  }
+    const itemDetails = { actionType: '', item: itemsToShow[0] }
+    logDebug('Section', `handleInteractiveProcessingClick; setting currentIPIndex=${String(0)} itemDetails=${JSON.stringify(itemDetails)}`)
+    setReactSettings(prevSettings => {
+      const newReactSettings = {
+        ...prevSettings,
+        lastChange: `_InteractiveProcessing Click`,
+        interactiveProcessing: { sectionName: section.name, currentIPIndex: 0, totalTasks: itemsToShow.length, visibleItems: [...itemsToShow], clickPosition }, // called when interactive processing on an item is complete
+        dialogData: { isOpen: true, isTask: true, details: itemDetails, clickPosition },
+      }
+      console.log('Section 🥸 newReactSettings.dialogData.details',newReactSettings)
+      return newReactSettings
+    })
+  }, [section, itemsToShow, reactSettings, setReactSettings])
+
 
   const handleCommandButtonClick = (button: TActionButton): void => {
     logDebug(`Section`, `handleCommandButtonClick was called for section ${section.name} section`)
@@ -144,7 +152,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     numItemsToShow--
     logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
   }
-  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0 
+  if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -154,8 +162,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       if (descriptionToUse.includes('first')) {
         descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
       } else {
-      descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${(numItemsToShow > 0) ? 'first ' : ''
-        }${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
+        descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}Count'>${(numItemsToShow > 0) ? 'first ' : ''
+          }${String(numItemsToShow)} of ${String(totalNumItems)}</span >`)
       }
     } else if (limitApplied) {
       descriptionToUse = descriptionToUse.replace('{count}', `<span id='section${section.ID}TotalCount'}>${String(numItemsToShow)} of ${String(totalNumItems)}</span>`)

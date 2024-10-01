@@ -265,7 +265,7 @@ export type TDialogData = {
   isOpen: boolean,
   isTask?: boolean,
   clickPosition?: TClickPosition,
-  details?: MessageDataObject
+  details?: MessageDataObject,
 }
 
 export type TReactSettings = {
@@ -314,12 +314,18 @@ export type TPluginCommandSimplified = {
   commandArgs: $ReadOnlyArray<mixed>,
 }
 
+export type TItemToProcess = {
+  ...TSectionItem,
+  processed?: boolean,
+}
+
 export type TInteractiveProcessing = {
   sectionName: string,
   currentIPIndex: number,
   totalTasks: number,
   clickPosition: TClickPosition,
   startingUp?: boolean,
+  visibleItems?: Array<TItemToProcess>,
 } | false
 
 export type TDoneCount = {

@@ -19,7 +19,7 @@ export type PassedData = {
   logProfilingMessage: boolean /* whether you want to see profiling messages on React redraws (not super interesting) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
-  passThroughVars?: any /* any data you want to pass through to the React Window */,
+  passThroughVars?: { lastWindowScrollTop: number } /* any data you want to pass through to the React Window */,
 }
 
 /**

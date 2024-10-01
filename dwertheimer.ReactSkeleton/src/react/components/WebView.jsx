@@ -31,11 +31,11 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
+import { clo, logDebug, timer } from '@helpers/react/reactDev'
 import { type PassedData } from '../../reactMain.js'
 import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
-import { clo, logDebug, timer } from '@helpers/react/reactDev.js'
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
@@ -72,7 +72,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {any} e - the event object
    * @param {number} index - the index of the button that was clicked
    */
-  const onSubmitClick = (e:any, index:number) => {
+  const onSubmitClick = (e: any, index: number) => {
     logDebug(`Webview: onSubmitClick: ${e.type || ''} click on index: ${index}`)
     sendActionToPlugin('onSubmitClick', { index: index })
   }
@@ -122,7 +122,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @returns {string} cleaned text without HTML entities
    */
   // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text:string):string {
+  function decodeHTMLEntities(text: string): string {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -138,7 +138,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
+    if (!newData.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }

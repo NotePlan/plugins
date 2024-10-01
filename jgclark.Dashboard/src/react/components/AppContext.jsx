@@ -9,7 +9,7 @@
  ****************************************************************************************************************************/
 // @flow
 
-import { createContext, useContext, useEffect, type Node } from 'react'
+import React, { createContext, useContext, useEffect, type Node } from 'react'
 import type { TDashboardSettings, TReactSettings, TPerspectiveDef, TPluginData } from '../../types'
 import { logDebug } from '@helpers/react/reactDev'
 
@@ -80,7 +80,7 @@ export const AppProvider = ({ children, sendActionToPlugin, sendToPlugin, dispat
   }
 
   useEffect(() => {
-    // logDebug('AppContext', `Just FYI, React settings updated somewhere.`, reactSettings)
+    logDebug('AppContext', `Just FYI, React settings updated somewhere.`, reactSettings)
   }, [reactSettings])
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>

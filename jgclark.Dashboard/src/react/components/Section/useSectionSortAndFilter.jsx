@@ -13,7 +13,7 @@ type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
   itemsToShow: Array<TSectionItem>,
   numFilteredOut: number,
-  limitApplied: boolean,
+  limitApplied: boolean,     
 };
 
 const useSectionSortAndFilter = (
