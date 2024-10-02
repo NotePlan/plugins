@@ -29,7 +29,7 @@ import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading' | 'header'
+export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading';
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -138,8 +138,8 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
-  const dropdownRef = useRef <? { current: null | HTMLInputElement } > (null)
+  const dialogRef = useRef<?ElementRef<'dialog'>>(null)
+  const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
   const [changesMade, setChangesMade] = useState(allowEmptySubmit)
   const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
 
@@ -159,7 +159,7 @@ const DynamicDialog = ({
   const handleFieldChange = (key: string, value: any) => {
     setChangesMade(true)
     setUpdatedSettings((prevSettings) => ({ ...prevSettings, [key]: value }))
-    clo({ ...updatedSettings, [key]: value }, `DynamicDialog/handleFieldChange updatedSettings=`)
+    clo({ ...updatedSettings, [key]: value }, `DynamicDialog/handleFieldChange ${key}=${value} updatedSettings=`)
   }
 
   const handleSave = () => {

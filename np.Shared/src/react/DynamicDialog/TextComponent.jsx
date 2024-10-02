@@ -2,23 +2,14 @@
 import React from 'react'
 
 type TextComponentProps = {
+  textType: 'title' | 'description' | 'separator',
   label: string,
-  textType: 'title' | 'description' | 'separator' | 'header',
-};
+  disabled?: boolean, // Add disabled prop
+}
 
-const TextComponent = ({ label, textType }: TextComponentProps): React$Node => {
-  switch (textType) {
-    case 'title':
-      return <div className="dropdown-title">{label}</div>
-    case 'header':
-      return <div className="dropdown-header">{label}</div>
-    case 'description':
-      return <p>{label}</p>
-    case 'separator':
-      return <hr />
-    default:
-      return null
-  }
+const TextComponent = ({ textType, label, disabled }: TextComponentProps): React$Node => {
+  const className = `text-component ${textType} ${disabled ? 'disabled' : ''}`
+  return <div className={className}>{label}</div>
 }
 
 export default TextComponent

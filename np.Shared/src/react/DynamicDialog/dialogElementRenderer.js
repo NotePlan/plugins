@@ -13,8 +13,8 @@ import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
 import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
-import ComboBox from './ComboBox.jsx'
-import type { TSettingItem } from './DynamicDialog.jsx'
+import ThemedSelect from './ThemedSelect.jsx'
+import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -33,7 +33,7 @@ type RenderItemProps = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
   className?: string,
-  disabled?: boolean,
+  disabled?: boolean, // Add disabled prop
 }
 
 /**
@@ -135,25 +135,21 @@ export function renderItem({
             compactDisplay={item.compactDisplay || false}
           />
         )
-      case 'combo' /* TODO: need to create an actual combo here (this is just a cut/paste of dropdown) */:
+      case 'combo':
         return (
-          <ComboBox
+          <ThemedSelect
             disabled={disabled}
             key={`cmb${index}`}
-            label={thisLabel}
-            options={item.options || []}
-            value={item.value || ''}
+            options={item.options ? item.options.map((option) => ({ label: option, value: option })) : []} // Ensure options is defined
+            value={{ label: item.value || '', value: item.value || '' }} // Ensure value is not undefined
             onChange={(selectedOption) => {
               const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
               item.key && handleFieldChange(item.key, value)
               item.key && handleComboChange(item.key, selectedOption) // Pass the selected option
             }}
-            onSelect={(selectedOption) => {
-              const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
-              item.key && handleFieldChange(item.key, value)
-            }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
+            label={item.label || ''}
           />
         )
       case 'dropdown':

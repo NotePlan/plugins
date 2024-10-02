@@ -795,25 +795,14 @@ var RootBundle = (function (exports, React$1) {
   };
 
   const TextComponent = ({
+    textType,
     label,
-    textType
+    disabled
   }) => {
-    switch (textType) {
-      case 'title':
-        return /*#__PURE__*/React__default["default"].createElement("div", {
-          className: "dropdown-title"
-        }, label);
-      case 'header':
-        return /*#__PURE__*/React__default["default"].createElement("div", {
-          className: "dropdown-header"
-        }, label);
-      case 'description':
-        return /*#__PURE__*/React__default["default"].createElement("p", null, label);
-      case 'separator':
-        return /*#__PURE__*/React__default["default"].createElement("hr", null);
-      default:
-        return null;
-    }
+    const className = `text-component ${textType} ${disabled ? 'disabled' : ''}`;
+    return /*#__PURE__*/React__default["default"].createElement("div", {
+      className: className
+    }, label);
   };
 
   function _typeof(obj) {
@@ -41826,134 +41815,6 @@ var RootBundle = (function (exports, React$1) {
 
   var chroma = chroma$1.exports;
 
-  // TODO: use style classes from @jgclark CSS embedded in the HTML
-
-  /* NOTES:
-    // Styles: https://react-select.com/styles
-    // overriding the whole theme: https://react-select.com/styles#overriding-the-theme
-    chroma: https://gka.github.io/chroma.js/
-  */
-
-  /* NP_THEME
-      "base": {
-          "backgroundColor": "#1D1E1F",
-          "textColor": "#DAE3E8",
-          "h1": "#CC6666",
-          "h2": "#E9C062",
-          "h3": "#E9C062",
-          "h4": "#E9C062",
-          "tintColor": "#E9C0A2",
-          "altColor": "#2E2F30"
-      }
-  */
-  // This worked but was basic so I am replacing it with below. delete this when it all works.
-  // const customStyles = {
-  //     container: (provided) => ({
-  //       ...provided,
-  //       width: '100%',
-  //     }),
-  //     option: (provided) => ({
-  //       ...provided,
-  //       color: 'black',
-  //     }),
-  //     control: (provided) => ({
-  //       ...provided,
-  //       color: 'black',
-  //     }),
-  //     singleValue: (provided) => ({
-  //       ...provided,
-  //       color: 'black',
-  //     }),
-  //   }
-
-  /*
-   *
-   Option styling... simplifying for now, but ultimately we can go back and customize like this:
-    https://react-select.com/styles (see "Customized Styles for a Single Select")
-
-     option: (styles, { data, isDisabled, isFocused, isSelected }) => {
-      const color = chroma(data.color);
-      return {
-        ...styles,
-        backgroundColor: isDisabled
-          ? undefined
-          : isSelected
-          ? data.color
-          : isFocused
-          ? color.alpha(0.1).css()
-          : undefined,
-        color: isDisabled
-          ? '#ccc'
-          : isSelected
-          ? chroma.contrast(color, 'white') > 2
-            ? 'white'
-            : 'black'
-          : data.color,
-        cursor: isDisabled ? 'not-allowed' : 'default',
-
-        ':active': {
-          ...styles[':active'],
-          backgroundColor: !isDisabled
-            ? isSelected
-              ? data.color
-              : color.alpha(0.3).css()
-            : undefined,
-        },
-      };
-
-   */
-
-  // NOTE: This theme calculating is not working by itself, so most of it is ignored and using the specific item overrides below.
-  // Maybe come back to this theme stuff later, but I'm not sure it's worth it.
-  // const primary = { primary: NP_THEME.base.textColor }
-  // const primaries = [25, 50, 75].reduce((acc, opacity) => {
-  //   acc[`primary${opacity}`] = chroma(primary.primary)
-  //     .alpha(opacity / 100)
-  //     .css()
-  //   return acc
-  // }, primary)
-  // const neutralScale = chroma.scale([NP_THEME.base.backgroundColor, NP_THEME.base.altColor]).mode('lch').colors(11)
-  // const neutrals = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90].reduce((acc, scale, i) => {
-  //   acc[`neutral${scale}`] = chroma(neutralScale[i]).css()
-  //   return acc
-  // }, {})
-  // const theme = (theme) => {
-  //   return {
-  //     ...theme,
-  //     borderRadius: '10px',
-  //     colors: {
-  //       ...primaries,
-  //       ...neutrals,
-  //     },
-  //   }
-  // }
-
-  /* React Select's inner components
-      clearIndicator
-      container - size of the control, but colors don't seem to do anything
-      control - color of the entire select box before dropped down
-      dropdownIndicator
-      group
-      groupHeading
-      indicatorsContainer
-      indicatorSeparator
-      input
-      loadingIndicator
-      loadingMessage
-      menu
-      menuList
-      menuPortal
-      multiValue
-      multiValueLabel
-      multiValueRemove
-      noOptionsMessage
-      option -- the options in the dropdown, background and text color
-      placeholder -- just the text and part of the background of the control on load - does not contain the padding
-      singleValue - the selected text and background of part of the control after selection
-      valueContainer  -- the left 7/8 of the selected item in the control 
-  */
-
-  /* the dot is the little coloured circle next to the selected value */
   const dot = (color = 'transparent') => ({
     alignItems: 'center',
     display: 'flex',
@@ -41969,17 +41830,8 @@ var RootBundle = (function (exports, React$1) {
   });
   const isDark = bgColor => chroma(bgColor).luminance() < 0.5;
   const isLight = bgColor => !isDark(bgColor);
-
-  /**
-   * Calculate a lightly-offset altColor based on the background color
-   * Useful for striped rows (default) and highlight on hover
-   * @param {string} bgColor
-   * @param {number} strength - 0-1 (default 0.2)
-   * @returns
-   */
   const getAltColor = (bgColor, strength = 0.2) => {
     const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css();
-    // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
     return calcAltFromBGColor;
   };
   const getMenuStyles = () => {
@@ -42003,15 +41855,11 @@ var RootBundle = (function (exports, React$1) {
   const bgColor = chroma(NP_THEME.base.backgroundColor);
   const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black';
   const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css();
-  // const mixedBG = chroma.mix(NP_THEME.base.backgroundColor, NP_THEME.base.altColor).css()
   const colourStyles = {
-    /* size of the control, but colors don't seem to do anything */
     clearIndicator: styles => ({
       ...styles,
       color: '#00FF00'
     }),
-    // clearIndicator: (styles:any) => ({ ...styles, color: '#00FF00' }),
-
     container: styles => ({
       ...styles,
       width: '100%',
@@ -42019,12 +41867,10 @@ var RootBundle = (function (exports, React$1) {
       color: NP_THEME.base.textColor,
       borderRadius: 5
     }),
-    /* color of the entire select box before dropped down */
     control: styles => ({
       ...styles,
       backgroundColor: NP_THEME.base.backgroundColor ?? 'white',
       color: NP_THEME.base.textColor ?? 'black',
-      /* border around the dropdown */
       borderColor: chroma('white').alpha(0.25).css()
     }),
     dropdownIndicator: styles => ({
@@ -42047,14 +41893,10 @@ var RootBundle = (function (exports, React$1) {
       ...styles,
       color: '#00FF00'
     }),
-    /* seems to be part of the placeholder and also after selection, the following styles are applied */
-    /* strange that sometimes the dot shows up after selection and sometimes it doesn't */
     input: styles => ({
       ...styles,
       color: NP_THEME.base.textColor
     }),
-    /* just the text and part of the background of the control on load - does not contain the padding */
-    // placeholder: (styles:any) => ({ ...styles, ...dot(NP_THEME.base.tintColor), color: NP_THEME.base.textColor, fontSize: '0.8rem' }),
     loadingIndicator: styles => ({
       ...styles,
       color: '#00FF00'
@@ -42097,154 +41939,66 @@ var RootBundle = (function (exports, React$1) {
       fontSize: '0.8rem',
       backgroundColor: NP_THEME.base.backgroundColor
     }),
-    /* singleValue is the selected value */
     singleValue: styles => ({
       ...styles,
       color: NP_THEME.base.textColor,
       ...dot(NP_THEME.base.tintColor)
     }),
-    // singleValue: (styles: any) => ({ ...styles, ...menuStyles.base, ...dot(NP_THEME.base.tintColor) }),
-    // tester: (styles:any) => ({ ...styles, backgroundColor: 'green', color: 'red' }),
-    /* the options in the dropdown, background and text color */
-    // option: (styles:any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
-    // option: (styles, { data, isDisabled, isFocused, isSelected }) => {
-    // $FlowIgnore
     option: (styles, {
       isDisabled,
       isSelected
     }) => {
-      // console.log('option', styles, data, isDisabled, isFocused, isSelected)
       return {
         ...styles,
-        // backgroundColor: isDisabled ? undefined : isSelected ? bgColor.css() : isFocused ? bgColor.alpha(0.1).css() : bgColor.css(),
         ...menuStyles.base,
-        // borderTop: `1px solid ${mixedBG}`,
         fontSize: '0.8rem',
-        // color: isDisabled ? '#ccc' : isSelected ? (chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black') : NP_THEME.base.textColor,
         cursor: isDisabled ? 'not-allowed' : 'default',
         ':hover': {
           ...styles[':hover'],
           ...menuStyles.hover
-          // backgroundColor: !isDisabled ? (isSelected ? bgColor.lighten().css() : bgColor.alpha(0.3).css()) : undefined,
         },
-
         ':active': {
           ...styles[':active'],
           backgroundColor: !isDisabled ? isSelected ? bgColor.css() : bgColor.alpha(0.3).css() : undefined
         }
       };
     }
-    // square box around the text part of the control when closed
-    // valueContainer: (styles:any) => ({ ...styles, backgroundColor: '#FF0000' }),
   };
-
   function ThemedSelect(props) {
     const {
       options,
       onSelect,
       onChange,
-      defaultValue
+      value,
+      compactDisplay,
+      disabled,
+      inputRef,
+      label
     } = props;
-    clo(props, `ThemedSelect props`);
-    return /*#__PURE__*/React__default["default"].createElement(StateManagedSelect$1, {
+    clo({
+      ...props,
+      inputRef: undefined
+    }, `ThemedSelect props`); // Avoid circular structure
+
+    return /*#__PURE__*/React__default["default"].createElement("div", {
+      className: `${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`
+    }, label && /*#__PURE__*/React__default["default"].createElement("label", {
+      className: "input-box-label"
+    }, label), /*#__PURE__*/React__default["default"].createElement("div", {
+      className: "input-box-wrapper"
+    }, /*#__PURE__*/React__default["default"].createElement(StateManagedSelect$1, {
       options: options,
       onSelect: onSelect,
       onChange: onChange,
-      defaultValue: defaultValue
-      /* theme={theme} */
-      /* menuPortalTarget={document.body} */,
+      value: value // Use value instead of defaultValue
+      ,
       styles: colourStyles,
-      autosize: true
-    });
+      autosize: true,
+      isDisabled: disabled // Use disabled prop
+      ,
+      ref: inputRef // Use inputRef prop
+    })));
   }
-
-  //--------------------------------------------------------------------------
-  const ComboBox = ({
-    label,
-    options,
-    value,
-    onChange,
-    disabled,
-    inputRef,
-    compactDisplay = false,
-    key
-  }) => {
-    const [isOpen, setIsOpen] = React$1.useState(false);
-    const [selectedValue, setSelectedValue] = React$1.useState(value);
-    const comboboxRef = React$1.useRef(null);
-    const comboboxInputRef = React$1.useRef(null);
-    const handleOptionClick = option => {
-      setSelectedValue(option);
-      onChange(option); // Call onChange with the selected option
-      setIsOpen(false);
-    };
-    const handleSelectChange = selectedOption => {
-      setSelectedValue(selectedOption.value);
-      onChange(key, selectedOption.value); // Call onChange with the selected value
-    };
-
-    const handleClickOutside = event => {
-      if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    // Scroll combobox fully into view
-    // FIXME(@dbw): please can you help? I've added this but it's not working.
-    const handleComboboxOpen = () => {
-      setTimeout(() => {
-        if (comboboxInputRef.current instanceof HTMLInputElement) {
-          // comboboxInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
-          console.log('Found comboboxInputRef so added scroll handler');
-        } else {
-          console.log('Could not find comboboxInputRef');
-        }
-      }, 100); // Delay to account for rendering/animation
-    };
-
-    //----------------------------------------------------------------------
-    // Effects
-    //----------------------------------------------------------------------
-
-    React$1.useEffect(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }, []);
-    React$1.useEffect(() => {
-      const combobox = comboboxInputRef.current;
-      if (combobox instanceof HTMLInputElement) {
-        console.log('adding event listener for comboboxInputRef');
-        combobox.addEventListener('click', handleComboboxOpen);
-      }
-      return () => {
-        if (combobox instanceof HTMLInputElement) {
-          console.log('removing event listener for comboboxInputRef');
-          combobox.removeEventListener('click', handleComboboxOpen);
-        }
-      };
-    }, []);
-    const opts = options.map(option => ({
-      label: option,
-      value: option
-    }));
-    return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: `${compactDisplay ? 'combobox-container-compact' : 'combobox-container'} ${disabled ? 'disabled' : ''}`
-    }, /*#__PURE__*/React__default["default"].createElement("label", {
-      className: "combobox-label"
-    }, label), /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
-      options: opts,
-      onSelect: handleOptionClick // Pass the option click handler
-      ,
-      onChange: handleSelectChange // Pass the new select change handler
-      ,
-      defaultValue: selectedValue
-    }), /*#__PURE__*/React__default["default"].createElement("div", {
-      className: "combobox-dropdown",
-      ref: comboboxRef
-    }));
-  };
 
   /* eslint-disable no-unused-vars */ //--------------------------------------------------------------------------
 
@@ -42344,26 +42098,30 @@ var RootBundle = (function (exports, React$1) {
             showSaveButton: showSaveButton,
             compactDisplay: item.compactDisplay || false
           });
-        case 'combo' /* TODO: need to create an actual combo here (this is just a cut/paste of dropdown) */:
-          return /*#__PURE__*/React__default["default"].createElement(ComboBox, {
+        case 'combo':
+          return /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
             disabled: disabled,
             key: `cmb${index}`,
-            label: thisLabel,
-            options: item.options || [],
-            value: item.value || '',
+            options: item.options ? item.options.map(option => ({
+              label: option,
+              value: option
+            })) : [] // Ensure options is defined
+            ,
+            value: {
+              label: item.value || '',
+              value: item.value || ''
+            } // Ensure value is not undefined
+            ,
             onChange: selectedOption => {
               const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
               item.key && handleFieldChange(item.key, value);
               item.key && handleComboChange(item.key, selectedOption); // Pass the selected option
             },
 
-            onSelect: selectedOption => {
-              const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
-              item.key && handleFieldChange(item.key, value);
-            },
             inputRef: inputRef // Pass inputRef
             ,
-            compactDisplay: item.compactDisplay || false
+            compactDisplay: item.compactDisplay || false,
+            label: item.label || ''
           });
         case 'dropdown':
           return /*#__PURE__*/React__default["default"].createElement(DropdownSelect, {
@@ -42588,7 +42346,7 @@ var RootBundle = (function (exports, React$1) {
       clo({
         ...updatedSettings,
         [key]: value
-      }, `DynamicDialog/handleFieldChange updatedSettings=`);
+      }, `DynamicDialog/handleFieldChange ${key}=${value} updatedSettings=`);
     };
     const handleSave = () => {
       if (onSave) {
