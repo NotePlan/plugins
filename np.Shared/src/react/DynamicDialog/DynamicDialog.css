@@ -244,6 +244,16 @@
     width: 6rem;
 }
   
+/* Hide increment and decrement buttons for number input */
+.hide-step-buttons::-webkit-outer-spin-button,
+.hide-step-buttons::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hide-step-buttons {
+  -moz-appearance: textfield; /* Firefox */
+}
 
 /* Style for input box with invalid input */
 .dynamic-dialog .input-box-input:invalid {

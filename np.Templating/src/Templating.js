@@ -11,6 +11,7 @@ import { getCodeBlocksOfType } from '@helpers/codeblocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { timestamp } from '@templatingModules/DateModule'
+import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
 import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
@@ -150,31 +151,6 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
   }
 }
 
-/**
- * Safely evaluates a string representation of an array of objects.
- * It assumes the input string is a JavaScript-like array object structure.
- * We use this to read the form data from the template and turn it into an object
- * @param {string} str - The string to evaluate.
- * @returns {Array<Object>} - The evaluated array of objects.
- * @throws {Error} - Throws an error if the string cannot be evaluated.
- */
-function evaluateArrayString(str: string) {
-  try {
-    // Ensure the string is wrapped properly and evaluated in a safe context.
-    const result = new Function(`return ${str}`)()
-
-    // Verify that the result is an array
-    if (!Array.isArray(result)) {
-      throw new Error('The evaluated result is not an array.')
-    }
-
-    return result
-  } catch (error) {
-    console.error('Failed to evaluate the string:', error.message)
-    throw error
-  }
-}
-
 export async function templateForm(templateTitle?: string): Promise<void> {
   try {
     let selectedTemplate // will be a filename
@@ -189,18 +165,22 @@ export async function templateForm(templateTitle?: string): Promise<void> {
       // ask the user for the template
       selectedTemplate = await NPTemplating.chooseTemplate('template-form')
     }
-    clo(selectedTemplate, `🎅🏼 DBWDELETE NPTemplating.templateForm selectedTemplate=`)
     let formFields: Array<Object> = []
     if (selectedTemplate) {
       const note = await getNoteByFilename(selectedTemplate)
       if (note) {
         const codeBlocks = getCodeBlocksOfType(note, 'formfields')
-        clo(codeBlocks, `🎅🏼 DBWDELETE NPTemplating.templateForm codeBlocks=`)
         if (codeBlocks.length > 0) {
           const formFieldsString = codeBlocks[0].code
           if (formFieldsString) {
             try {
-              formFields = evaluateArrayString(formFieldsString)
+              formFields = parseObjectString(formFieldsString)
+              if (!formFields) {
+                const errors = validateObjectString(formFieldsString)
+                logError(pluginJson, `templateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+                logError(pluginJson, `templateForm: errors: ${errors.join('\n')}`)
+                return
+              }
               clo(formFields, `🎅🏼 DBWDELETE NPTemplating.templateForm formFields=`)
             } catch (error) {
               logError(pluginJson, `templateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
@@ -229,8 +209,6 @@ export async function templateForm(templateTitle?: string): Promise<void> {
 
     //TODO: IAMHERE - open the form fields in the editor, passing the data
     DataStore.invokePluginCommandByName('openFormWindow', 'np.Shared', [frontmatterAttributes])
-
-    clo(frontmatterAttributes, `🎅🏼 DBWDELETE NPTemplating.templateForm data=`)
   } catch (error) {
     logError(pluginJson, error)
   }

@@ -18,10 +18,22 @@ type InputBoxProps = {
   compactDisplay?: boolean,
   className?: string,
   disabled?: boolean,
+  step?: number, // Add step prop
 };
 
-const InputBox = ({ label, value, disabled, readOnly,onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '' }: InputBoxProps): React$Node => {
-  logDebug('InputBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
+const InputBox = ({
+  label,
+  value,
+  disabled,
+  readOnly,
+  onChange,
+  onSave,
+  inputType,
+  showSaveButton = true,
+  compactDisplay,
+  className = '',
+  step, // Remove default step value
+}: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
   const isNumberType = inputType === 'number'
@@ -49,10 +61,11 @@ const InputBox = ({ label, value, disabled, readOnly,onChange, onSave, inputType
         <input
           type={inputType}
           readOnly={readOnly}
-          className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''}`}
+          className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}
           value={inputValue}
           onChange={handleInputChange}
           disabled={disabled}
+          step={isNumberType && step !== undefined && step > 0 ? step : undefined} // Conditionally use step attribute
           min="0" // works for 'number' type; ignored for rest.
         />
         {showSaveButton && (

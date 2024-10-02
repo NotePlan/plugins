@@ -100,7 +100,7 @@ const colourStyles = {
 }
 
 type Props = {
-  options: Array<OptionType>,
+  options: Array<OptionType | string>,
   onSelect?: Function,
   onChange?: Function,
   value?: OptionType, // Use value instead of defaultValue
@@ -113,14 +113,18 @@ type Props = {
 
 export function ThemedSelect(props: Props): any {
   const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label } = props
-  clo({ ...props, inputRef: undefined }, `ThemedSelect props`) // Avoid circular structure
+
+  // Normalize options to ensure they are in { label, value } format
+  const normalizedOptions = options.map(option =>
+    typeof option === 'string' ? { label: option, value: option } : option
+  )
 
   return (
     <div className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
       {label && <label className="input-box-label">{label}</label>}
       <div className="input-box-wrapper">
         <Select
-          options={options}
+          options={normalizedOptions}
           onSelect={onSelect}
           onChange={onChange}
           value={value} // Use value instead of defaultValue

@@ -9,6 +9,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React from 'react'
+import { JsonEditor } from 'json-edit-react'
 import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
 import DropdownSelect from './DropdownSelect.jsx'
@@ -16,6 +17,7 @@ import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
+import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -133,6 +135,7 @@ export function renderItem({
             }}
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
+            step={item.step} // Pass the step prop
           />
         )
       case 'combo':
@@ -140,7 +143,7 @@ export function renderItem({
           <ThemedSelect
             disabled={disabled}
             key={`cmb${index}`}
-            options={item.options ? item.options.map((option) => ({ label: option, value: option })) : []} // Ensure options is defined
+            options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
             value={{ label: item.value || '', value: item.value || '' }} // Ensure value is not undefined
             onChange={(selectedOption) => {
               const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
@@ -181,6 +184,57 @@ export function renderItem({
             {item.description && <TextComponent textType="description" label={item.description} key={`heddesc${index}`} />}
           </>
         )
+      case 'json': {
+        const jsonString = item.value || item.default || '{}'
+        const validationErrors = validateObjectString(jsonString)
+        if (validationErrors.length > 0) {
+          logError('JSON Validation Errors:', validationErrors.join('\n'))
+          return (
+            <div key={`json${index}`} className="ui-json-error">
+              <p>Error in JSON data:</p>
+              <ul>
+                {validationErrors.map((error, idx) => (
+                  <li key={idx}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+
+        let dataToUse
+        try {
+          dataToUse = parseObjectString(jsonString)
+          if (typeof dataToUse !== 'object') {
+            throw new Error('Parsed data is not an object or array.')
+          }
+        } catch (error) {
+          logError('Error parsing JSON for field', item.label || 'root', error)
+          return (
+            <div key={`json${index}`} className="ui-json-error">
+              <p>Error parsing JSON data:</p>
+              <p>{error.message}</p>
+            </div>
+          )
+        }
+
+        return (
+          <div key={`json${index}`} className="ui-json-container">
+            <div className="ui-json-label">{thisLabel}</div>
+            <JsonEditor
+              data={dataToUse}
+              setData={(updatedData) => {
+                item.key && handleFieldChange(item.key, updatedData)
+              }}
+              rootFontSize="10pt"
+              collapse={2}
+              className="ui-json-editor"
+              showArrayIndices={true}
+              showStringQuotes={true}
+              showCollectionCount="when-closed"
+            />
+          </div>
+        )
+      }
       default:
         return null
     }

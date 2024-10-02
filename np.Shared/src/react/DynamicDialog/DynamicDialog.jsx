@@ -29,7 +29,17 @@ import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
-export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading';
+export type TSettingItemType = 
+  | 'switch'
+  | 'input'
+  | 'combo' // the react-select version (ThemedSelect)
+  | 'dropdown' // the simple dropdown aka DropdownSelect
+  | 'number'
+  | 'text'
+  | 'separator'
+  | 'heading'
+  | 'input-readonly'
+  | 'json'
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -43,7 +53,8 @@ export type TSettingItem = {
   default?: any,
   refreshAllOnChange?: boolean,
   compactDisplay?: boolean,
-  dependsOnKey?: string,
+  dependsOnKey?: string, // only show/allow this field if the field named in dependsOnKey is true
+  step?: number, // only applies to number type -- the increment/decrement amount
 }
 
 export type TDynamicDialogProps = {

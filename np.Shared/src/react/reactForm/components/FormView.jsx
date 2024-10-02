@@ -64,7 +64,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
   const formFields = pluginData.formFields || []
-  // formFields.length && clo(formFields, 'np.Shared/WebView: formFields found in pluginData')
 
   /****************************************************************************************************************************
    *                             HANDLERS
@@ -92,7 +91,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   const isTrueString = (value: string): boolean => value ? /true/i.test(value) : false
 
   const openDialog = () => {
-    clo(pluginData, 'np.Shared/WebView: pluginData')
     setReactSettings((prev) => ({
       ...prev,
       dynamicDialog: {
@@ -116,9 +114,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
    * Fires after components draw
    */
   useEffect(() => {
-    logDebug(`Webview: useEffect: data changed. data: ${JSON.stringify(data)}`)
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Webview: useEffect: data changed. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     }
   }, [data])

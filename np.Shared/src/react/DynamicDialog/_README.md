@@ -24,10 +24,13 @@ The `DynamicDialog` component is a flexible React component designed to render a
 - **Indentation**: When a field has a `dependsOn` property, it is automatically indented to visually indicate its dependency on another field.
 
 ## Adding a New UI Element
+
+To add a new UI element to the `DynamicDialog` component, follow these steps:
+
 1. **Define the Element Type**: Add a new type to the `TSettingItemType` union in `DynamicDialog.jsx`.
 
    ```javascript
-   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading' | 'newType';
+   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading' | 'json';
    ```
 
 2. **Create the Component**: Implement a new React component for the UI element, ensuring it accepts necessary props such as `label`, `value`, `onChange`, and any specific options.
@@ -57,95 +60,94 @@ The following test data can be used to render the `DynamicDialog` and verify its
 
 ```json
 [
-{
-"type": "heading",
-"label": "heading: This is a heading"
-},
-{
-"type": "separator"
-},
-{
-"key": "textExample",
-"label": "text: This is just some explanatory text",
-"type": "text",
-"textType": "description"
-},
-{
-"key": "inputExample",
-"label": "input: Compact label and field",
-"description": "Display next to each other.",
-"type": "input",
-"default": "Default Value",
-"compactDisplay": true
-},
-{
-"key": "nonCompactInput",
-"label": "input: Non-Compact Section label and field",
-"description": "Display one above the other.",
-"type": "input",
-"default": "Default value"
-},
-{
-"key": "readOnlyExample",
-"label": "input-readonly: This is a read-only field",
-"description": "This displays an input box but is read-only",
-"type": "input-readonly",
-"default": "Default value",
-"compactDisplay": true
-},
-{
-"key": "numberType",
-"label": "number: This is a number input",
-"description": "compact+displays with increment/decrement buttons",
-"type": "number",
-"default": "2",
-"compactDisplay": true
-},
-{
-"key": "switchExample",
-"label": "This is a switch",
-"description": "this is a switch",
-"type": "switch",
-"default": false,
-"compactDisplay": true
-},
-{
-"key": "comboExample",
-"label": "combo: example of combo menu in compactDisplay",
-"description": "this is my desc under the combo",
-"type": "combo",
-"options": ["priority", "earliest", "most recent"],
-"default": "priority",
-"compactDisplay": true
-},
-{
-"key": "dropdownExample",
-"label": "dropdown: example of dropdown box",
-"description": "my desc under dropdown",
-"type": "dropdown",
-"options": ["priority", "earliest", "most recent"],
-"default": "priority"
-},
-{
-"key": "dependencyExample",
-"label": "Show dependent items?",
-"description": "Turning this on shows dependent items.",
-"type": "switch",
-"default": false,
-"compactDisplay": true
-},
-{
-"key": "dependentItem",
-"label": "This field is dependent on the one above.",
-"type": "input",
-"dependsOnKey": "dependencyExample",
-"default": "Should be disabled by default",
-"compactDisplay": true
-}
+  {
+    "type": "heading",
+    "label": "heading: This is a heading"
+  },
+  {
+    "type": "separator"
+  },
+  {
+    "key": "textExample",
+    "label": "text: This is just some explanatory text",
+    "type": "text",
+    "textType": "description"
+  },
+  {
+    "key": "inputExample",
+    "label": "input: Compact label and field",
+    "description": "Display next to each other.",
+    "type": "input",
+    "default": "Default Value",
+    "compactDisplay": true
+  },
+  {
+    "key": "nonCompactInput",
+    "label": "input: Non-Compact Section label and field",
+    "description": "Display one above the other.",
+    "type": "input",
+    "default": "Default value"
+  },
+  {
+    "key": "readOnlyExample",
+    "label": "input-readonly: This is a read-only field",
+    "description": "This displays an input box but is read-only",
+    "type": "input-readonly",
+    "default": "Default value",
+    "compactDisplay": true
+  },
+  {
+    "key": "numberType",
+    "label": "number: This is a number input",
+    "description": "compact+displays with increment/decrement buttons",
+    "type": "number",
+    "default": "2",
+    "compactDisplay": true
+  },
+  {
+    "key": "switchExample",
+    "label": "This is a switch",
+    "description": "this is a switch",
+    "type": "switch",
+    "default": false,
+    "compactDisplay": true
+  },
+  {
+    "key": "comboExample",
+    "label": "combo: example of combo menu in compactDisplay",
+    "description": "this is my desc under the combo",
+    "type": "combo",
+    "options": ["priority", "earliest", "most recent"],
+    "default": "priority",
+    "compactDisplay": true
+  },
+  {
+    "key": "dropdownExample",
+    "label": "dropdown: example of dropdown box",
+    "description": "my desc under dropdown",
+    "type": "dropdown",
+    "options": ["priority", "earliest", "most recent"],
+    "default": "priority"
+  },
+  {
+    "key": "dependencyExample",
+    "label": "Show dependent items?",
+    "description": "Turning this on shows dependent items.",
+    "type": "switch",
+    "default": false,
+    "compactDisplay": true
+  },
+  {
+    "key": "dependentItem",
+    "label": "This field is dependent on the one above.",
+    "type": "input",
+    "dependsOnKey": "dependencyExample",
+    "default": "Should be disabled by default",
+    "compactDisplay": true
+  }
 ]
 ```
 
-
 ---
 
-This README provides a comprehensive overview of the `DynamicDialog` component, its data flow, and instructions for extending its functionality with new UI elements.
+This README provides a comprehensive overview of the `DynamicDialog` component, its data flow, and instructions for extending its functionality with new UI elements, including how dependencies are managed with the `dependsOn` property.
