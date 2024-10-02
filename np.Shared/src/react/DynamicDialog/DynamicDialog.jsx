@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------
 /**
  * TODO:
- * - input-readonly not implemented
+ * - get ThemedSelect to pass onSelect to settings
  * - add "disabled" to all elements
  * - Dropdown always visible is not working
  * - Make dialog draggable?
@@ -159,11 +159,13 @@ const DynamicDialog = ({
   const handleFieldChange = (key: string, value: any) => {
     setChangesMade(true)
     setUpdatedSettings((prevSettings) => ({ ...prevSettings, [key]: value }))
+    clo({ ...updatedSettings, [key]: value }, `DynamicDialog/handleFieldChange updatedSettings=`)
   }
 
   const handleSave = () => {
     if (onSave) {
       onSave(updatedSettings)
+      clo(updatedSettings, `DynamicDialog/handleSave updatedSettings=`)
     }
     // $FlowFixMe[cannot-spread-indexer]
     logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)

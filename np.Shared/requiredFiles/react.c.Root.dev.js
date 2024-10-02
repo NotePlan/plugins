@@ -42098,12 +42098,12 @@ var RootBundle = (function (exports, React$1) {
       backgroundColor: NP_THEME.base.backgroundColor
     }),
     /* singleValue is the selected value */
-    // singleValue: (styles, { data }) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
     singleValue: styles => ({
       ...styles,
-      ...menuStyles.base,
+      color: NP_THEME.base.textColor,
       ...dot(NP_THEME.base.tintColor)
     }),
+    // singleValue: (styles: any) => ({ ...styles, ...menuStyles.base, ...dot(NP_THEME.base.tintColor) }),
     // tester: (styles:any) => ({ ...styles, backgroundColor: 'green', color: 'red' }),
     /* the options in the dropdown, background and text color */
     // option: (styles:any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
@@ -42148,13 +42148,13 @@ var RootBundle = (function (exports, React$1) {
     clo(props, `ThemedSelect props`);
     return /*#__PURE__*/React__default["default"].createElement(StateManagedSelect$1, {
       options: options,
-      onSelect: onSelect
-      /* theme={theme} */,
-      styles: colourStyles,
-      menuPortalTarget: document.body,
-      autosize: true,
+      onSelect: onSelect,
       onChange: onChange,
       defaultValue: defaultValue
+      /* theme={theme} */
+      /* menuPortalTarget={document.body} */,
+      styles: colourStyles,
+      autosize: true
     });
   }
 
@@ -42166,12 +42166,23 @@ var RootBundle = (function (exports, React$1) {
     onChange,
     disabled,
     inputRef,
-    compactDisplay = false
+    compactDisplay = false,
+    key
   }) => {
     const [isOpen, setIsOpen] = React$1.useState(false);
     const [selectedValue, setSelectedValue] = React$1.useState(value);
     const comboboxRef = React$1.useRef(null);
     const comboboxInputRef = React$1.useRef(null);
+    const handleOptionClick = option => {
+      setSelectedValue(option);
+      onChange(option); // Call onChange with the selected option
+      setIsOpen(false);
+    };
+    const handleSelectChange = selectedOption => {
+      setSelectedValue(selectedOption.value);
+      onChange(key, selectedOption.value); // Call onChange with the selected value
+    };
+
     const handleClickOutside = event => {
       if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -42224,8 +42235,10 @@ var RootBundle = (function (exports, React$1) {
       className: "combobox-label"
     }, label), /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
       options: opts,
-      onSelect: () => {},
-      onChange: () => {},
+      onSelect: handleOptionClick // Pass the option click handler
+      ,
+      onChange: handleSelectChange // Pass the new select change handler
+      ,
       defaultValue: selectedValue
     }), /*#__PURE__*/React__default["default"].createElement("div", {
       className: "combobox-dropdown",
@@ -42338,13 +42351,15 @@ var RootBundle = (function (exports, React$1) {
             label: thisLabel,
             options: item.options || [],
             value: item.value || '',
-            onChange: option => {
-              item.key && handleFieldChange(item.key, option);
-              item.key && handleComboChange(item.key, {
-                target: {
-                  value: option
-                }
-              });
+            onChange: selectedOption => {
+              const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
+              item.key && handleFieldChange(item.key, value);
+              item.key && handleComboChange(item.key, selectedOption); // Pass the selected option
+            },
+
+            onSelect: selectedOption => {
+              const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
+              item.key && handleFieldChange(item.key, value);
             },
             inputRef: inputRef // Pass inputRef
             ,
@@ -42570,10 +42585,15 @@ var RootBundle = (function (exports, React$1) {
         ...prevSettings,
         [key]: value
       }));
+      clo({
+        ...updatedSettings,
+        [key]: value
+      }, `DynamicDialog/handleFieldChange updatedSettings=`);
     };
     const handleSave = () => {
       if (onSave) {
         onSave(updatedSettings);
+        clo(updatedSettings, `DynamicDialog/handleSave updatedSettings=`);
       }
       // $FlowFixMe[cannot-spread-indexer]
       logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings);

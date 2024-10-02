@@ -13,9 +13,10 @@ type ComboProps = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   compactDisplay?: boolean,
   disabled?: boolean,
+  key?: string,
 }
 
-const ComboBox = ({ label, options, value, onChange, disabled, inputRef, compactDisplay = false }: ComboProps): React$Node => {
+const ComboBox = ({ label, options, value, onChange, disabled, inputRef, compactDisplay = false, key }: ComboProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const comboboxRef = useRef<?ElementRef<'div'>>(null)
@@ -26,11 +27,18 @@ const ComboBox = ({ label, options, value, onChange, disabled, inputRef, compact
   //----------------------------------------------------------------------
 
   const toggleDropdown = () => setIsOpen(!isOpen)
+
   const handleOptionClick = (option: string) => {
     setSelectedValue(option)
-    onChange(option)
+    onChange(option) // Call onChange with the selected option
     setIsOpen(false)
   }
+
+  const handleSelectChange = (selectedOption: { value: string }) => {
+    setSelectedValue(selectedOption.value)
+    onChange(key, selectedOption.value) // Call onChange with the selected value
+  }
+
 
   const handleClickOutside = (event: any) => {
     if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
@@ -80,10 +88,12 @@ const ComboBox = ({ label, options, value, onChange, disabled, inputRef, compact
   return (
     <div className={`${compactDisplay ? 'combobox-container-compact' : 'combobox-container'} ${disabled ? 'disabled' : ''}`}>
       <label className="combobox-label">{label}</label>
-      {/* TODO: finish wiring up the ThemedSelect */}
-      {/* options, onSelect, onChange, defaultValue */}
-      <ThemedSelect options={opts} onSelect={() => {}} onChange={() => {}} defaultValue={selectedValue}></ThemedSelect>
-      {/* probably get rid of this div below; just keeping in case */}
+      <ThemedSelect 
+        options={opts} 
+        onSelect={handleOptionClick} // Pass the option click handler
+        onChange={handleSelectChange} // Pass the new select change handler
+        defaultValue={selectedValue} 
+      />
       <div className="combobox-dropdown" ref={comboboxRef}></div>
     </div>
   )

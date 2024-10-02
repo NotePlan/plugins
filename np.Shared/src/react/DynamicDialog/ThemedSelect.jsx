@@ -226,8 +226,8 @@ const colourStyles = {
   noOptionsMessage: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
   placeholder: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor, fontSize: '0.8rem', backgroundColor: NP_THEME.base.backgroundColor }),
   /* singleValue is the selected value */
-  // singleValue: (styles, { data }) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
-  singleValue: (styles: any) => ({ ...styles, ...menuStyles.base, ...dot(NP_THEME.base.tintColor) }),
+  singleValue: (styles:any) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
+  // singleValue: (styles: any) => ({ ...styles, ...menuStyles.base, ...dot(NP_THEME.base.tintColor) }),
   // tester: (styles:any) => ({ ...styles, backgroundColor: 'green', color: 'red' }),
   /* the options in the dropdown, background and text color */
   // option: (styles:any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
@@ -272,12 +272,12 @@ export function ThemedSelect(props: Props): any {
     <Select
       options={options}
       onSelect={onSelect}
-      /* theme={theme} */
-      styles={colourStyles}
-      menuPortalTarget={document.body}
-      autosize={true}
       onChange={onChange}
       defaultValue={defaultValue}
+      /* theme={theme} */
+      /* menuPortalTarget={document.body} */
+      styles={colourStyles}
+      autosize={true}
     />
   )
 }

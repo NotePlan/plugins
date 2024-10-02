@@ -143,9 +143,14 @@ export function renderItem({
             label={thisLabel}
             options={item.options || []}
             value={item.value || ''}
-            onChange={(option: string) => {
-              item.key && handleFieldChange(item.key, option)
-              item.key && handleComboChange(item.key, { target: { value: option } })
+            onChange={(selectedOption) => {
+              const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
+              item.key && handleFieldChange(item.key, value)
+              item.key && handleComboChange(item.key, selectedOption) // Pass the selected option
+            }}
+            onSelect={(selectedOption) => {
+              const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
+              item.key && handleFieldChange(item.key, value)
             }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
