@@ -27,8 +27,8 @@
     "react.core.dev.js",
     "react.c.Root.min.js",
     "react.c.Root.dev.js",
-    "react.c.WebView.bundle.min.js",
-    "react.c.WebView.bundle.dev.js",
+    "react.c.FormView.bundle.min.js",
+    "react.c.FormView.bundle.dev.js",
     "noteplanstate-edited.otf",
     "shortcut.js",
     "encodeDecode.js"

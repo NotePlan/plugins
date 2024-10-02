@@ -11,7 +11,7 @@
 import React from 'react'
 import Switch from './Switch.jsx'
 import InputBox from './InputBox.jsx'
-import Dropdown from './Dropdown.jsx'
+import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
 import ComboBox from './ComboBox.jsx'
 import type { TSettingItem } from './DynamicDialog.jsx'
@@ -33,6 +33,7 @@ type RenderItemProps = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
   className?: string,
+  disabled?: boolean,
 }
 
 /**
@@ -52,6 +53,7 @@ export function renderItem({
   handleSaveInput = (key, newValue) => {},
   showSaveButton = true,
   inputRef, // Destructure inputRef
+  disabled,
   indent = false,
   className = '',
 }: RenderItemProps): React$Node {
@@ -65,6 +67,7 @@ export function renderItem({
             key={`sw${index}`}
             label={thisLabel}
             checked={item.checked || false}
+            disabled={disabled}
             onChange={(e) => {
               if (item.key) {
                 logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
@@ -80,6 +83,7 @@ export function renderItem({
       case 'input':
         return (
           <InputBox
+            disabled={disabled}
             inputType="text"
             key={`ibx${index}`}
             label={thisLabel}
@@ -95,6 +99,21 @@ export function renderItem({
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
             className={indent ? 'indent' : ''}
+          />
+        )
+      case 'input-readonly':
+        return (
+          <InputBox
+            inputType="text"
+            readOnly={true}
+            key={`ibxro${index}`}
+            label={thisLabel}
+            disabled={disabled}
+            value={item.value || ''}
+            onChange={() => {}}
+            showSaveButton={false}
+            compactDisplay={item.compactDisplay || false}
+            className={className}
           />
         )
       case 'number':
@@ -119,6 +138,7 @@ export function renderItem({
       case 'combo' /* TODO: need to create an actual combo here (this is just a cut/paste of dropdown) */:
         return (
           <ComboBox
+            disabled={disabled}
             key={`cmb${index}`}
             label={thisLabel}
             options={item.options || []}
@@ -133,7 +153,8 @@ export function renderItem({
         )
       case 'dropdown':
         return (
-          <Dropdown
+          <DropdownSelect
+            disabled={disabled}
             key={`cmb${index}`}
             label={thisLabel}
             options={item.options || []}
@@ -147,22 +168,29 @@ export function renderItem({
           />
         )
       case 'text':
-        return <TextComponent key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
+        return <TextComponent disabled={disabled} key={`text${index}`} textType={item.textType || 'description'} label={thisLabel} />
       case 'separator':
         return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
         return (
-          <div key={`hed${index}`} className="ui-heading">
-            {thisLabel}
-          </div>
+          <>
+            <div key={`hed${index}`} className="ui-heading">
+              {thisLabel}
+            </div>
+            {item.description && <TextComponent textType="description" label={item.description} key={`heddesc${index}`} />}
+          </>
         )
       default:
         return null
     }
   }
 
+  let classNameToUse = className
+  if (indent) classNameToUse += ' indent'
+  if (disabled) classNameToUse += ' disabled'
+
   return (
-    <div className={`ui-item ${className}`} key={`item${index}`} title={item.description || ''}>
+    <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
     </div>
   )

@@ -225,20 +225,33 @@
     /* vertical spacing above and below */
     margin: 0.3rem 0rem;
 }
+/* Apply styles for read-only input fields */
+.dynamic-dialog .input-box-input:read-only {
+    border-color: var(--divider-color); /* Set the border color when readonly */
+    background-color: inherit; /* Maintain the background color */
+    outline: none; /* Remove the focus outline */
+}
 
+/* Ensure the border remains unchanged when the read-only input is focused */
+.dynamic-dialog .input-box-input:read-only:focus {
+    border-color: var(--divider-color); /* Keep the same border color on focus */
+    outline: none; /* Remove any outline on focus */
+    box-shadow: none; /* Remove any potential box-shadow on focus */
+}
+    
 /* Make number boxes a little narrower */
 .dynamic-dialog .input-box-input-number {
     width: 6rem;
 }
+  
 
 /* Style for input box with invalid input */
 .dynamic-dialog .input-box-input:invalid {
     border: 1px solid #faa;
 }
 
-/* Focus style for input-box-input */
-.dynamic-dialog .input-box-input:focus {
-    /* border-color: #007BFF; */
+/* Focus style for non-readonly input-box-input */
+.dynamic-dialog .input-box-input:not(:read-only):focus {
     border-color: var(--hashtag-color);
     outline: none;
     box-shadow: 0 0 3px var(--hashtag-color);
@@ -276,22 +289,22 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Style for combobox-container */
-.dynamic-dialog .combobox-container {
+/* Style for dropdown-container */
+.dynamic-dialog .dropdown-container {
     display: flex;
     flex-direction: column;
 }
 
-/* Style for combobox-container (compact version) */
-.dynamic-dialog .combobox-container-compact {
+/* Style for dropdown-container (compact version) */
+.dynamic-dialog .dropdown-container-compact {
     display: flex;
     flex-direction: row;
     align-items: baseline;
     gap: 0.5rem;
 }
 
-/* Style for combobox-wrapper */
-.dynamic-dialog .combobox-wrapper {
+/* Style for dropdown-wrapper */
+.dynamic-dialog .dropdown-wrapper {
     display: flex;
     align-items: end;
     gap: 10px;
@@ -299,16 +312,16 @@
     width: fit-content;
 }
 
-/* Style for combobox-label */
-.dynamic-dialog .combobox-label {
+/* Style for dropdown-label */
+.dynamic-dialog .dropdown-label {
     font-weight: 500;
     color: var(--fg-alt-color);
     margin-right: 0.1rem;
     margin-bottom: 0.3rem;
 }
 
-/* Style for combobox-input */
-.dynamic-dialog .combobox-input {
+/* Style for dropdown-input */
+.dynamic-dialog .dropdown-input {
     flex: 1;
     padding: 4px 8px;
     background-color: var(--bg-main-color);
@@ -320,15 +333,15 @@
     /* box-sizing: border-box; */
 }
 
-/* Focus style for combobox-input */
-.dynamic-dialog .combobox-input:focus {
+/* Focus style for dropdown-input */
+.dynamic-dialog .dropdown-input:focus {
     border-color: var(--hashtag-color);
     outline: none;
     box-shadow: 0 0 3px var(--hashtag-color);
 }
 
-/* Style for combobox-arrow */
-.dynamic-dialog .combobox-arrow {
+/* Style for dropdown-arrow */
+.dynamic-dialog .dropdown-arrow {
     position: absolute;
     right: 0.8rem;
     pointer-events: none;
@@ -337,8 +350,8 @@
     align-self: center;
 }
 
-/* Style for combobox-dropdown */
-.dynamic-dialog .combobox-dropdown {
+/* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */
+.dropdown-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
@@ -350,16 +363,16 @@
     z-index: 5;
 }
 
-/* Style for combobox-option */
-.dynamic-dialog .combobox-option {
+/* Style for dropdown-option */
+.dropdown-option {
     padding: 8px 12px;
     cursor: pointer;
     color: var(--fg-main-color);
     /* transition: background-color 0.2s; */
 }
 
-/* Hover style for combobox option */
-.dynamic-dialog .combobox-option:hover {
+/* Hover style for dropdown option */
+.dropdown-option:hover {
     background-color: var(--bg-alt-color);
     color: var(--fg-alt-color);
 }
@@ -393,7 +406,7 @@
 .dynamic-dialog .item-description {
     font-size: small;
     color: var(--fg-alt-color);
-    margin-top: 0.3rem;
+    /* margin-top: 0.3rem; */
     opacity: 0.8;
 }
 
@@ -411,4 +424,14 @@
     border: none; /* Remove the default border */
     border-top: 1px solid var(--divider-color); /* Add a top border with the desired color */
     margin: 1em 0; /* Optional: Adjust spacing as needed */  
+}
+
+/* Make disabled settings lower opacity */
+.dynamic-dialog .disabled {
+    opacity: 0.6;
+}
+
+/* Make settings that depend on another slightly indented */
+.dynamic-dialog .indent {
+    margin-left: 1rem;
 }

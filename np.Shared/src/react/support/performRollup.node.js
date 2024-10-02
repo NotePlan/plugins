@@ -54,19 +54,19 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
 
   rollupProms.push(rollupReactFiles(rootConfig, watch, 'np.Shared Root Component development && production'))
 
-  // WebView bundle configs
+  // FormView bundle configs
   const webViewRollupConfigs = [
     getRollupConfig({
-      entryPointPath: 'np.Shared/src/react/reactForm/support/rollup.WebView.entry.js',
-      outputFilePath: 'np.Shared/requiredFiles/react.c.WebView.bundle.REPLACEME.js',
+      entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
+      outputFilePath: 'np.Shared/requiredFiles/react.c.FormView.bundle.REPLACEME.js',
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'development',
       bundleName: 'WebViewBundle',
     }),
     getRollupConfig({
-      entryPointPath: 'np.Shared/src/react/support/rollup.WebView.entry.js',
-      outputFilePath: 'np.Shared/requiredFiles/react.c.WebView.bundle.REPLACEME.js',
+      entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
+      outputFilePath: 'np.Shared/requiredFiles/react.c.FormView.bundle.REPLACEME.js',
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'production',

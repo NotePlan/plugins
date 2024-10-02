@@ -3,7 +3,7 @@
 import pluginJson from '../../np.Shared/plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { getWindowFromId, closeWindowFromCustomId } from '@helpers/NPWindows'
+import { /* getWindowFromId, */ closeWindowFromCustomId } from '@helpers/NPWindows'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { showMessage } from '@helpers/userInput'
 
@@ -30,7 +30,7 @@ export type PassedData = {
 export function getInitialReactWindowData(argObj: Object): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = { platform: NotePlan.environment.platform } // or call getPluginData(argObj) if more is needed
+  const pluginData = getPluginData(argObj)
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
@@ -40,7 +40,7 @@ export function getInitialReactWindowData(argObj: Object): PassedData {
     ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormMessageFromHTMLView' },
     /* change the ID below to your plugin ID */
-    componentPath: `../np.Shared/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+    componentPath: `../np.Shared/react.c.FormView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
     startTime,
   }
   return dataToPass
@@ -55,7 +55,8 @@ export function getInitialReactWindowData(argObj: Object): PassedData {
  */
 export function getPluginData(argObj: Object): { [string]: mixed } {
   // you would want to gather some data from your plugin
-  return argObj // this could be any object full of data you want to pass to the window
+  const pluginData = { platform: NotePlan.environment.platform, ...argObj }
+  return pluginData // this could be any object full of data you want to pass to the window
 }
 
 /**
@@ -113,13 +114,13 @@ export async function onFormMessageFromHTMLView(actionType: string, data: any = 
  * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
  * @returns {Promise<any>} - does not return anything important
  */
-export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
-  if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
-    logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
-    return
-  }
-  return await onMessageFromHTMLView(actionType, data)
-}
+// export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
+//   if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
+//     logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
+//     return
+//   }
+//   return await onMessageFromHTMLView(actionType, data)
+// }
 
 /**
  * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)

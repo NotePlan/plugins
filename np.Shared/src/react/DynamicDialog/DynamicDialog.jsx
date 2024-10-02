@@ -6,12 +6,15 @@
 //--------------------------------------------------------------------------
 /**
  * TODO:
- * - Separator is not visible
+ * - input-readonly not implemented
+ * - add "disabled" to all elements
  * - Dropdown always visible is not working
  * - Make dialog draggable?
  * - Send processing template name to plugin in pluginData
  * - Processing command should be np.Templating,templateRunner
  * - Template-side processing, use: overrideSettingsWithTypedArgs (somehow needs to identify that this is a JSON self-runner, __isJSON__ = true or something)
+ * - implement dependsOnKey (disabled greyed out and indented)
+ * - CSS: Separator padding top/bottom balance
  *
  */
 //--------------------------------------------------------------------------
@@ -21,8 +24,7 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
-import { logDebug } from '@helpers/react/reactDev.js'
-import { clo } from '@helpers/dev.js'
+import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -41,9 +43,10 @@ export type TSettingItem = {
   default?: any,
   refreshAllOnChange?: boolean,
   compactDisplay?: boolean,
+  dependsOnKey?: string,
 }
 
-type SettingsDialogProps = {
+export type TDynamicDialogProps = {
   title: string,
   items: Array<TSettingItem>,
   className?: string,
@@ -54,6 +57,7 @@ type SettingsDialogProps = {
   isModal?: boolean, // default is true, but can be overridden to run full screen
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel: () => void,
+  hideDependentItems?: boolean,
   children: React$Node, // children nodes (primarily for banner message)
 }
 
@@ -73,7 +77,8 @@ const DynamicDialog = ({
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
-}: SettingsDialogProps): React$Node => {
+  hideDependentItems,
+}: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || [
     {
@@ -85,23 +90,58 @@ const DynamicDialog = ({
   ]
 
   //----------------------------------------------------------------------
+  // HELPER FUNCTIONS
+  //----------------------------------------------------------------------
+
+  function getInitialItemStateObject(items: Array<TSettingItem>): { [key: string]: any } {
+    const initialItemValues = {}
+    items.forEach((item) => {
+      // $FlowFixMe[prop-missing]
+      if (item.key) initialItemValues[item.key] = item.value ?? item.checked ?? item.default ?? ''
+      if (item.dependsOnKey) {
+        // logDebug('SettingsDialog/initial state', `- ${item.key || ''} depends on ${item.dependsOnKey} to be true, whose initial state=${String(initialItemValues[item.dependsOnKey])}`) // ✅
+      }
+    })
+    return initialItemValues
+  }
+
+  // Return whether the controlling setting item is checked or not
+  function stateOfControllingSetting(item: TSettingItem): boolean {
+    const dependsOn = item.dependsOnKey ?? ''
+    if (dependsOn) {
+      const isThatKeyChecked = updatedSettings[dependsOn]
+      if (!updatedSettings.hasOwnProperty(dependsOn)) {
+        logError('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
+        return false
+      }
+      logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}`)
+      return isThatKeyChecked
+    } else {
+      // shouldn't get here
+      logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)
+      return false
+    }
+  }
+
+  function shouldRenderItem(item: TSettingItem): boolean {
+    if (!item) return false
+    if (!item.dependsOnKey) return true
+    const yesRender = !item.dependsOnKey || !hideDependentItems || item.dependsOnKey && stateOfControllingSetting(item)
+    // logDebug('SettingsDialog/shouldRenderItem?', `${yesRender} -- item=${item?.key} dependsOnKey=${item.dependsOnKey} hideDependentItems=${hideDependentItems} stateOfControllingSetting=${item.dependsOnKey && stateOfControllingSetting(item) || ''}`)
+    return yesRender
+  }
+
+  //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
 
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const dialogRef = useRef<?ElementRef<'dialog'>>(null)
-  const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
+  const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
+  const dropdownRef = useRef <? { current: null | HTMLInputElement } > (null)
   const [changesMade, setChangesMade] = useState(allowEmptySubmit)
-  const [updatedSettings, setUpdatedSettings] = useState(() => {
-    const initialItemValues = {}
-    items.forEach((item) => {
-      // $FlowFixMe[prop-missing]
-      if (item.key) initialItemValues[item.key] = item.value || item.checked || ''
-    })
-    return initialItemValues
-  })
+  const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
 
@@ -169,6 +209,8 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
+  // clo(items, `DynamicDialog items=`)
+  if (!updatedSettings) return null
   const dialogContents = (
     <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
       <div className="dynamic-dialog-header">
@@ -188,7 +230,7 @@ const DynamicDialog = ({
         {children}
         {items.map((item, index) => (
           <div key={`ddc-${index}`}>
-            {renderItem({
+            {(!item.key || shouldRenderItem(item)) && renderItem({
               index,
               item: {
                 ...item,
@@ -196,6 +238,8 @@ const DynamicDialog = ({
                 value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
                 checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
               },
+              disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
+              indent: Boolean(item.dependsOnKey),
               handleFieldChange,
               labelPosition,
               showSaveButton: false, // Do not show save button

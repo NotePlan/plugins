@@ -12,9 +12,10 @@ type ComboProps = {
   onChange: (value: string) => void,
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   compactDisplay?: boolean,
+  disabled?: boolean,
 }
 
-const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = false }: ComboProps): React$Node => {
+const ComboBox = ({ label, options, value, onChange, disabled, inputRef, compactDisplay = false }: ComboProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const comboboxRef = useRef<?ElementRef<'div'>>(null)
@@ -77,7 +78,7 @@ const ComboBox = ({ label, options, value, onChange, inputRef, compactDisplay = 
 
   const opts = options.map((option: string) => ({ label: option, value: option }))
   return (
-    <div className={compactDisplay ? 'combobox-container-compact' : 'combobox-container'}>
+    <div className={`${compactDisplay ? 'combobox-container-compact' : 'combobox-container'} ${disabled ? 'disabled' : ''}`}>
       <label className="combobox-label">{label}</label>
       {/* TODO: finish wiring up the ThemedSelect */}
       {/* options, onSelect, onChange, defaultValue */}

@@ -42,8 +42,9 @@ import { clo, logDebug } from '@helpers/react/reactDev.js'
  * Root element for the Plugin's React Tree
  * @param {any} data
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
+ * NOTE: Even though we have named this FormView.jsx, it is exported as WebView because that is what Root expects to load dynamically
  */
-export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
+export function FormView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -62,8 +63,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
-  clo(pluginData, 'reactForm WebView: pluginData')
   const formFields = pluginData.formFields || []
+  // formFields.length && clo(formFields, 'np.Shared/WebView: formFields found in pluginData')
 
   /****************************************************************************************************************************
    *                             HANDLERS
@@ -87,17 +88,21 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     closeDialog()
   }
 
+  // Return true if the string is 'true' (case insensitive), otherwise return false (blank or otherwise)
+  const isTrueString = (value: string): boolean => value ? /true/i.test(value) : false
+
   const openDialog = () => {
-    const allowEmptySubmit = pluginData.allowEmptySubmit ? /true/i.test(pluginData.allowEmptySubmit) : false
+    clo(pluginData, 'np.Shared/WebView: pluginData')
     setReactSettings((prev) => ({
       ...prev,
       dynamicDialog: {
         isOpen: true,
         title: pluginData?.formTitle || 'Form Entry',
         items: formFields,
-        allowEmptySubmit: allowEmptySubmit,
         onSave: handleSave,
         onCancel: handleCancel,
+        allowEmptySubmit: isTrueString(pluginData.allowEmptySubmit),
+        hideDependentItems: isTrueString(pluginData.hideDependentItems),
       },
     }))
   }
@@ -217,9 +222,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
-          <button onClick={openDialog} className="w3-light-pink">
-            Open Dialog
-          </button>
         </div>
         {/* end of replace */}
       </div>

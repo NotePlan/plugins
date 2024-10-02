@@ -12,13 +12,15 @@ type InputBoxProps = {
   value: string,
   onChange: (e: any) => void,
   onSave?: (newValue: string) => void,
+  readOnly?: boolean,
   inputType?: string,
   showSaveButton?: boolean,
   compactDisplay?: boolean,
   className?: string,
+  disabled?: boolean,
 };
 
-const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '' }: InputBoxProps): React$Node => {
+const InputBox = ({ label, value, disabled, readOnly,onChange, onSave, inputType, showSaveButton = true, compactDisplay, className = '' }: InputBoxProps): React$Node => {
   logDebug('InputBox', `label='${label}', compactDisplay? ${String(compactDisplay)}`)
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
@@ -41,14 +43,16 @@ const InputBox = ({ label, value, onChange, onSave, inputType, showSaveButton = 
   }
 
   return (
-    <div className={`${className} ${compactDisplay ? "input-box-container-compact" : "input-box-container"}`} >
+    <div className={`${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? "input-box-container-compact" : "input-box-container"}`} >
       <label className="input-box-label">{label}</label>
       <div className="input-box-wrapper">
         <input
           type={inputType}
+          readOnly={readOnly}
           className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''}`}
           value={inputValue}
           onChange={handleInputChange}
+          disabled={disabled}
           min="0" // works for 'number' type; ignored for rest.
         />
         {showSaveButton && (

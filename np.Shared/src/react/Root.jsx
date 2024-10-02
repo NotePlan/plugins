@@ -30,14 +30,6 @@ declare function sendMessageToPlugin(Array<string | any>): void
  *                             TYPES
  ****************************************************************************************************************************/
 
-type TDynamicDialog = {
-  visible: boolean,
-  title?: string,
-  settings?: Array<{ label: string, value: string }>,
-  topRightButton?: { label: string, action: () => void, alwaysVisible: boolean },
-  onCancel?: () => void,
-  onSubmit?: () => void,
-}
 
 /****************************************************************************************************************************
  *                             IMPORTS
@@ -46,10 +38,10 @@ type TDynamicDialog = {
 import React, { useState, useEffect, Profiler, type Node, useRef } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 
-// import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
+// import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import DynamicDialog from './DynamicDialog'
+import DynamicDialog, {type TDynamicDialogProps} from './DynamicDialog'
 import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false

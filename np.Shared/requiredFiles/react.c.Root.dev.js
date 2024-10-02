@@ -180,12 +180,20 @@ var RootBundle = (function (exports, React$1) {
   };
   const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none'];
   const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none'];
+
+  /**
+   * Test _logLevel against logType to decide whether to output
+   * @param {string} logType 
+   * @returns {boolean}
+   */
   const shouldOutputForLogLevel = logType => {
     let userLogLevel = 1;
     const thisMessageLevel = LOG_LEVELS.indexOf(logType);
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
-    // this was the main offender.  Perform a null change against a value that is `undefined` will be true
-    // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+    // Note: Performing a null change against a value that is `undefined` will be true
+    // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+
+    // se _logLevel to decide whether to output
     if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
       userLogLevel = pluginSettings['_logLevel'];
     }
@@ -194,8 +202,24 @@ var RootBundle = (function (exports, React$1) {
   };
 
   /**
+   * Test if _logFunctionRE is set and matches the current log details.
+   * Note: only works if DataStore is available.
+   * @param {any} pluginInfo 
+   * @returns 
+   */
+  const shouldOutputForFunctionName = pluginInfo => {
+    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
+    if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
+      const functionRE = new RegExp(pluginSettings['_logFunctionRE']);
+      const infoStr = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo);
+      return functionRE.test(infoStr);
+    }
+    return false;
+  };
+
+  /**
    * Formats log output to include timestamp pluginId, pluginVersion
-   * @author @codedungeon
+   * @author @codedungeon extended by @jgclark
    * @param {any} pluginInfo
    * @param {any} message
    * @param {string} type
@@ -203,7 +227,7 @@ var RootBundle = (function (exports, React$1) {
    */
   function log$1(pluginInfo, message = '', type = 'INFO') {
     let msg = '';
-    if (shouldOutputForLogLevel(type)) {
+    if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
       const thisMessageLevel = LOG_LEVELS.indexOf(type);
       const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
       let pluginId = '';
@@ -254,7 +278,7 @@ var RootBundle = (function (exports, React$1) {
   }
 
   /**
-   * Formats log output as WARN to include timestamp pluginId, pluginVersion
+   * Formats log output as DEBUG to include timestamp pluginId, pluginVersion
    * @author @dwertheimer
    * @param {any} pluginInfo
    * @param {any} message
@@ -325,9 +349,10 @@ var RootBundle = (function (exports, React$1) {
       b
     };
   }
+
   /**
    * Logs information to the console.
-   *
+   * If this is in a browser, use colors
    * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
    * @param {string} componentName - The name of the component.
    * @param {string} [detail] - Additional detail about the log.
@@ -343,6 +368,7 @@ var RootBundle = (function (exports, React$1) {
         arg2 = ``;
         logType === 'DEBUG' ? logDebug$1(arg1, arg2, ...args) : logType === 'ERROR' ? logError$1(arg1, arg2, ...args) : logInfo(arg1, arg2, ...args);
       } else {
+        // We are in the browser, so can use colors
         arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`;
         arg2 = `color: #000; background: ${stringToColor(componentName)}`;
         console[logType.toLowerCase()](arg1, arg2, ...args);
@@ -373,6 +399,18 @@ var RootBundle = (function (exports, React$1) {
    */
   const logError = (componentName, detail, ...args) => {
     log('ERROR', componentName, detail, ...args);
+  };
+
+  /**
+   * Logs an error message to the console.
+   * Similar to logDebug.
+   * @param {string} componentName - The name of the component.
+   * @param {string} detail - Additional detail about the log.
+   * @param {...any} args - Additional arguments to log.
+   * @returns {void}
+   */
+  const logWarn = (componentName, detail, ...args) => {
+    log('WARN', componentName, detail, ...args);
   };
 
   /**
@@ -534,12 +572,13 @@ var RootBundle = (function (exports, React$1) {
     label,
     checked,
     onChange,
+    disabled = false,
     labelPosition = 'right',
     description = '',
     className = ''
   }) => {
     return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: `switch-line ${className} ${labelPosition === 'right' ? 'label-right' : 'label-left'}`,
+      className: `switch-line ${className} ${labelPosition === 'right' ? 'label-right' : 'label-left'} ${disabled ? 'disabled' : ''} `,
       title: description || null
     }, labelPosition === 'left' && /*#__PURE__*/React__default["default"].createElement("label", {
       className: "switch-label",
@@ -563,6 +602,8 @@ var RootBundle = (function (exports, React$1) {
   const InputBox = ({
     label,
     value,
+    disabled,
+    readOnly,
     onChange,
     onSave,
     inputType,
@@ -588,16 +629,18 @@ var RootBundle = (function (exports, React$1) {
       }
     };
     return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: `${className} ${compactDisplay ? "input-box-container-compact" : "input-box-container"}`
+      className: `${disabled ? 'disabled' : ''} ${className} ${compactDisplay ? "input-box-container-compact" : "input-box-container"}`
     }, /*#__PURE__*/React__default["default"].createElement("label", {
       className: "input-box-label"
     }, label), /*#__PURE__*/React__default["default"].createElement("div", {
       className: "input-box-wrapper"
     }, /*#__PURE__*/React__default["default"].createElement("input", {
       type: inputType,
+      readOnly: readOnly,
       className: `input-box-input ${isNumberType ? 'input-box-input-number' : ''}`,
       value: inputValue,
       onChange: handleInputChange,
+      disabled: disabled,
       min: "0" // works for 'number' type; ignored for rest.
     }), showSaveButton && /*#__PURE__*/React__default["default"].createElement("button", {
       className: "input-box-save",
@@ -607,9 +650,10 @@ var RootBundle = (function (exports, React$1) {
   };
 
   //--------------------------------------------------------------------------
-  const Dropdown = ({
+  const DropdownSelect = ({
     label,
     options,
+    disabled,
     value,
     onChange,
     inputRef,
@@ -617,8 +661,8 @@ var RootBundle = (function (exports, React$1) {
   }) => {
     const [isOpen, setIsOpen] = React$1.useState(false);
     const [selectedValue, setSelectedValue] = React$1.useState(value);
-    const comboboxRef = React$1.useRef(null);
-    const comboboxInputRef = React$1.useRef(null);
+    const dropdownRef = React$1.useRef(null);
+    const optionsRef = React$1.useRef(null);
 
     //----------------------------------------------------------------------
     // Handlers
@@ -631,71 +675,121 @@ var RootBundle = (function (exports, React$1) {
       setIsOpen(false);
     };
     const handleClickOutside = event => {
-      if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
+      const target = event.target;
+      if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
         setIsOpen(false);
       }
-    };
-
-    // Scroll combobox fully into view
-    // FIXME(@dbw): please can you help? I've added this but it's not working.
-    const handleComboboxOpen = () => {
-      setTimeout(() => {
-        if (comboboxInputRef.current instanceof HTMLInputElement) {
-          comboboxInputRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end'
-          });
-          console.log('Found comboboxInputRef so added scroll handler');
-        } else {
-          console.log('Could not find comboboxInputRef');
-        }
-      }, 100); // Delay to account for rendering/animation
     };
 
     //----------------------------------------------------------------------
     // Effects
     //----------------------------------------------------------------------
 
+    // Handle clicks outside the dropdown to close it
     React$1.useEffect(() => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }, []);
-    React$1.useEffect(() => {
-      const combobox = comboboxInputRef.current;
-      if (combobox instanceof HTMLInputElement) {
-        console.log('adding event listener for comboboxInputRef');
-        combobox.addEventListener('click', handleComboboxOpen);
-      }
-      return () => {
-        if (combobox instanceof HTMLInputElement) {
-          console.log('removing event listener for comboboxInputRef');
-          combobox.removeEventListener('click', handleComboboxOpen);
+
+    // Function to find the nearest scrollable ancestor
+    const findScrollableAncestor = el => {
+      console.log('findScrollableAncestor called with el:', el);
+      let currentEl = el; // Allow currentEl to be Element or null
+      while (currentEl && currentEl.parentElement) {
+        currentEl = currentEl.parentElement;
+        // Check if currentEl is an HTMLElement
+        if (currentEl instanceof HTMLElement) {
+          const style = window.getComputedStyle(currentEl);
+          const overflowY = style.overflowY;
+          const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight;
+          console.log('Checking element:', currentEl, 'overflowY:', overflowY, 'isScrollable:', isScrollable);
+          if (isScrollable) {
+            console.log('Found scrollable ancestor:', currentEl);
+            return currentEl; // currentEl is HTMLElement here
+          }
+        } else {
+          console.log('currentEl is not an HTMLElement');
         }
-      };
-    }, []);
+      }
+      console.log('No scrollable ancestor found');
+      return null;
+    };
+
+    // Effect to adjust scroll when the dropdown opens
+    React$1.useEffect(() => {
+      if (isOpen && dropdownRef.current && optionsRef.current) {
+        setTimeout(() => {
+          if (!dropdownRef.current || !optionsRef.current) return;
+          const dropdown = dropdownRef.current;
+          const options = optionsRef.current;
+
+          // Get the bounding rects
+          const dropdownRect = dropdown.getBoundingClientRect();
+          const optionsRect = options.getBoundingClientRect();
+
+          // Combine the rects to get the total area
+          const totalTop = Math.min(dropdownRect.top, optionsRect.top);
+          const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom);
+
+          // Create a totalRect object
+          const totalRect = {
+            top: totalTop,
+            bottom: totalBottom
+          };
+          console.log('Total rect:', totalRect);
+
+          // Find the scrollable container
+          const scrollableContainer = findScrollableAncestor(dropdown);
+          console.log('Scrollable container:', scrollableContainer);
+          if (scrollableContainer) {
+            const containerRect = scrollableContainer.getBoundingClientRect();
+            console.log('Container rect:', containerRect);
+            const isOutOfView = totalRect.bottom > containerRect.bottom || totalRect.top < containerRect.top;
+            console.log('Is dropdown out of view?', isOutOfView);
+            if (isOutOfView) {
+              // Calculate the offset to scroll
+              let offset = scrollableContainer.scrollTop + (totalRect.bottom - containerRect.bottom);
+              if (totalRect.top < containerRect.top) {
+                offset = scrollableContainer.scrollTop - (containerRect.top - totalRect.top);
+              }
+              console.log('Scrolling container to offset:', offset);
+              scrollableContainer.scrollTo({
+                top: offset,
+                behavior: 'smooth'
+              });
+            } else {
+              console.log('Dropdown is already in view.');
+            }
+          } else {
+            console.log('No scrollable container found.');
+          }
+        }, 100); // Adjust the delay as needed
+      }
+    }, [isOpen]);
     return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: compactDisplay ? 'combobox-container-compact' : 'combobox-container'
+      className: `${compactDisplay ? 'dropdown-container-compact' : 'dropdown-container'} ${disabled ? 'disabled' : ''}`,
+      ref: dropdownRef // Attach the ref to the outer container
     }, /*#__PURE__*/React__default["default"].createElement("label", {
-      className: "combobox-label"
+      className: "dropdown-label"
     }, label), /*#__PURE__*/React__default["default"].createElement("div", {
-      className: "combobox-wrapper",
+      className: "dropdown-wrapper",
       onClick: toggleDropdown
     }, /*#__PURE__*/React__default["default"].createElement("input", {
       type: "text",
-      className: "combobox-input",
+      className: "dropdown-input",
       value: selectedValue,
       readOnly: true,
       ref: inputRef // Pass the inputRef to the input element
     }), /*#__PURE__*/React__default["default"].createElement("span", {
-      className: "combobox-arrow"
+      className: "dropdown-arrow"
     }, "\u25BE"), isOpen && /*#__PURE__*/React__default["default"].createElement("div", {
-      className: "combobox-dropdown",
-      ref: comboboxRef
+      className: "dropdown-dropdown",
+      ref: optionsRef
     }, options.map(option => /*#__PURE__*/React__default["default"].createElement("div", {
       key: option,
-      className: "combobox-option",
+      className: "dropdown-option",
       onClick: () => handleOptionClick(option)
     }, option)))));
   };
@@ -42070,6 +42164,7 @@ var RootBundle = (function (exports, React$1) {
     options,
     value,
     onChange,
+    disabled,
     inputRef,
     compactDisplay = false
   }) => {
@@ -42124,7 +42219,7 @@ var RootBundle = (function (exports, React$1) {
       value: option
     }));
     return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: compactDisplay ? 'combobox-container-compact' : 'combobox-container'
+      className: `${compactDisplay ? 'combobox-container-compact' : 'combobox-container'} ${disabled ? 'disabled' : ''}`
     }, /*#__PURE__*/React__default["default"].createElement("label", {
       className: "combobox-label"
     }, label), /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
@@ -42162,6 +42257,7 @@ var RootBundle = (function (exports, React$1) {
     showSaveButton = true,
     inputRef,
     // Destructure inputRef
+    disabled,
     indent = false,
     className = ''
   }) {
@@ -42174,6 +42270,7 @@ var RootBundle = (function (exports, React$1) {
             key: `sw${index}`,
             label: thisLabel,
             checked: item.checked || false,
+            disabled: disabled,
             onChange: e => {
               if (item.key) {
                 logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked);
@@ -42187,6 +42284,7 @@ var RootBundle = (function (exports, React$1) {
           });
         case 'input':
           return /*#__PURE__*/React__default["default"].createElement(InputBox, {
+            disabled: disabled,
             inputType: "text",
             key: `ibx${index}`,
             label: thisLabel,
@@ -42202,6 +42300,19 @@ var RootBundle = (function (exports, React$1) {
             showSaveButton: showSaveButton,
             compactDisplay: item.compactDisplay || false,
             className: indent ? 'indent' : ''
+          });
+        case 'input-readonly':
+          return /*#__PURE__*/React__default["default"].createElement(InputBox, {
+            inputType: "text",
+            readOnly: true,
+            key: `ibxro${index}`,
+            label: thisLabel,
+            disabled: disabled,
+            value: item.value || '',
+            onChange: () => {},
+            showSaveButton: false,
+            compactDisplay: item.compactDisplay || false,
+            className: className
           });
         case 'number':
           return /*#__PURE__*/React__default["default"].createElement(InputBox, {
@@ -42222,6 +42333,7 @@ var RootBundle = (function (exports, React$1) {
           });
         case 'combo' /* TODO: need to create an actual combo here (this is just a cut/paste of dropdown) */:
           return /*#__PURE__*/React__default["default"].createElement(ComboBox, {
+            disabled: disabled,
             key: `cmb${index}`,
             label: thisLabel,
             options: item.options || [],
@@ -42239,7 +42351,8 @@ var RootBundle = (function (exports, React$1) {
             compactDisplay: item.compactDisplay || false
           });
         case 'dropdown':
-          return /*#__PURE__*/React__default["default"].createElement(Dropdown, {
+          return /*#__PURE__*/React__default["default"].createElement(DropdownSelect, {
+            disabled: disabled,
             key: `cmb${index}`,
             label: thisLabel,
             options: item.options || [],
@@ -42258,6 +42371,7 @@ var RootBundle = (function (exports, React$1) {
           });
         case 'text':
           return /*#__PURE__*/React__default["default"].createElement(TextComponent, {
+            disabled: disabled,
             key: `text${index}`,
             textType: item.textType || 'description',
             label: thisLabel
@@ -42268,16 +42382,23 @@ var RootBundle = (function (exports, React$1) {
             className: `ui-separator ${item.key || ''}`
           });
         case 'heading':
-          return /*#__PURE__*/React__default["default"].createElement("div", {
+          return /*#__PURE__*/React__default["default"].createElement(React__default["default"].Fragment, null, /*#__PURE__*/React__default["default"].createElement("div", {
             key: `hed${index}`,
             className: "ui-heading"
-          }, thisLabel);
+          }, thisLabel), item.description && /*#__PURE__*/React__default["default"].createElement(TextComponent, {
+            textType: "description",
+            label: item.description,
+            key: `heddesc${index}`
+          }));
         default:
           return null;
       }
     };
+    let classNameToUse = className;
+    if (indent) classNameToUse += ' indent';
+    if (disabled) classNameToUse += ' disabled';
     return /*#__PURE__*/React__default["default"].createElement("div", {
-      className: `ui-item ${className}`,
+      className: `ui-item ${classNameToUse}`,
       key: `item${index}`,
       title: item.description || ''
     }, element());
@@ -42310,7 +42431,7 @@ var RootBundle = (function (exports, React$1) {
     }
   }
 
-  var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;overflow:hidden;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;overflow-y:auto;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);border-bottom:1px solid #ddd;display:flex;justify-content:space-between;padding:.3rem;position:relative}.dynamic-dialog-title{color:var(--tint-color);font-size:large;font-weight:600;left:50%;line-height:40px;position:absolute;text-align:center;transform:translateX(-50%)}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}}.dynamic-dialog .switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.dynamic-dialog .switch-input{margin:0}.dynamic-dialog .switch-label{color:var(--fg-alt-color);font-weight:500}.dynamic-dialog .input-box-container{align-items:left;display:flex;flex-direction:column}.dynamic-dialog .input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .input-box-wrapper{align-items:end;display:flex}.dynamic-dialog .input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.dynamic-dialog .input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.dynamic-dialog .input-box-input-number{width:6rem}.dynamic-dialog .input-box-input:invalid{border:1px solid #faa}.dynamic-dialog .input-box-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.dynamic-dialog .input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.dynamic-dialog .input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dynamic-dialog .combobox-container{display:flex;flex-direction:column}.dynamic-dialog .combobox-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .combobox-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dynamic-dialog .combobox-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dynamic-dialog .combobox-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dynamic-dialog .combobox-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .combobox-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.dynamic-dialog .combobox-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dynamic-dialog .combobox-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dynamic-dialog .combobox-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.dynamic-dialog-heading{color:var(--tint-color);font-size:large;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog .dynamic-dialog-header{background:none;color:var(--tint-color);font-size:large;font-weight:600;line-height:40px;margin:0}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}.dynamic-dialog .item-description{color:var(--fg-alt-color);font-size:small;margin-top:.3rem;opacity:.8}.dynamic-dialog .ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.dynamic-dialog .ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}";
+  var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;overflow:hidden;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;overflow-y:auto;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);border-bottom:1px solid #ddd;display:flex;justify-content:space-between;padding:.3rem;position:relative}.dynamic-dialog-title{color:var(--tint-color);font-size:large;font-weight:600;left:50%;line-height:40px;position:absolute;text-align:center;transform:translateX(-50%)}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}}.dynamic-dialog .switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.dynamic-dialog .switch-input{margin:0}.dynamic-dialog .switch-label{color:var(--fg-alt-color);font-weight:500}.dynamic-dialog .input-box-container{align-items:left;display:flex;flex-direction:column}.dynamic-dialog .input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .input-box-wrapper{align-items:end;display:flex}.dynamic-dialog .input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.dynamic-dialog .input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.dynamic-dialog .input-box-input:read-only{background-color:inherit;border-color:var(--divider-color);outline:none}.dynamic-dialog .input-box-input:read-only:focus{border-color:var(--divider-color);box-shadow:none;outline:none}.dynamic-dialog .input-box-input-number{width:6rem}.dynamic-dialog .input-box-input:invalid{border:1px solid #faa}.dynamic-dialog .input-box-input:not(:read-only):focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.dynamic-dialog .input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.dynamic-dialog .input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dynamic-dialog .dropdown-container{display:flex;flex-direction:column}.dynamic-dialog .dropdown-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .dropdown-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dynamic-dialog .dropdown-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dynamic-dialog .dropdown-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dynamic-dialog .dropdown-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .dropdown-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.dropdown-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dropdown-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dropdown-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.dynamic-dialog-heading{color:var(--tint-color);font-size:large;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog .dynamic-dialog-header{background:none;color:var(--tint-color);font-size:large;font-weight:600;line-height:40px;margin:0}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}.dynamic-dialog .item-description{color:var(--fg-alt-color);font-size:small;opacity:.8}.dynamic-dialog .ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.dynamic-dialog .ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}.dynamic-dialog .disabled{opacity:.6}.dynamic-dialog .indent{margin-left:1rem}";
   styleInject(css_248z$1);
 
   var css_248z = ".modal-backdrop{align-items:center;background-color:rgba(0,0,0,.5);bottom:0;display:flex;justify-content:center;left:0;position:fixed;right:0;top:0;z-index:100}.modal-backdrop>div{z-index:101}";
@@ -42369,7 +42490,9 @@ var RootBundle = (function (exports, React$1) {
     // by default, it is a modal dialog, but can run full screen
     onSave,
     // caller needs to process the updated settings
-    onCancel // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
+    onCancel,
+    // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
+    hideDependentItems
   }) => {
     if (!isOpen) return null;
     const items = passedItems || [{
@@ -42378,6 +42501,45 @@ var RootBundle = (function (exports, React$1) {
       type: 'text',
       textType: 'description'
     }];
+
+    //----------------------------------------------------------------------
+    // HELPER FUNCTIONS
+    //----------------------------------------------------------------------
+
+    function getInitialItemStateObject(items) {
+      const initialItemValues = {};
+      items.forEach(item => {
+        // $FlowFixMe[prop-missing]
+        if (item.key) initialItemValues[item.key] = item.value ?? item.checked ?? item.default ?? '';
+        if (item.dependsOnKey) ;
+      });
+      return initialItemValues;
+    }
+
+    // Return whether the controlling setting item is checked or not
+    function stateOfControllingSetting(item) {
+      const dependsOn = item.dependsOnKey ?? '';
+      if (dependsOn) {
+        const isThatKeyChecked = updatedSettings[dependsOn];
+        if (!updatedSettings.hasOwnProperty(dependsOn)) {
+          logError('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`);
+          return false;
+        }
+        logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}`);
+        return isThatKeyChecked;
+      } else {
+        // shouldn't get here
+        logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`);
+        return false;
+      }
+    }
+    function shouldRenderItem(item) {
+      if (!item) return false;
+      if (!item.dependsOnKey) return true;
+      const yesRender = !item.dependsOnKey || !hideDependentItems || item.dependsOnKey && stateOfControllingSetting(item);
+      // logDebug('SettingsDialog/shouldRenderItem?', `${yesRender} -- item=${item?.key} dependsOnKey=${item.dependsOnKey} hideDependentItems=${hideDependentItems} stateOfControllingSetting=${item.dependsOnKey && stateOfControllingSetting(item) || ''}`)
+      return yesRender;
+    }
 
     //----------------------------------------------------------------------
     // Context
@@ -42389,14 +42551,7 @@ var RootBundle = (function (exports, React$1) {
     const dialogRef = React$1.useRef(null);
     const dropdownRef = React$1.useRef(null);
     const [changesMade, setChangesMade] = React$1.useState(allowEmptySubmit);
-    const [updatedSettings, setUpdatedSettings] = React$1.useState(() => {
-      const initialItemValues = {};
-      items.forEach(item => {
-        // $FlowFixMe[prop-missing]
-        if (item.key) initialItemValues[item.key] = item.value || item.checked || '';
-      });
-      return initialItemValues;
-    });
+    const [updatedSettings, setUpdatedSettings] = React$1.useState(getInitialItemStateObject(items));
     if (!updatedSettings) return null; // Prevent rendering before items are loaded
 
     //----------------------------------------------------------------------
@@ -42465,6 +42620,8 @@ var RootBundle = (function (exports, React$1) {
     //----------------------------------------------------------------------
     // Render
     //----------------------------------------------------------------------
+    // clo(items, `DynamicDialog items=`)
+    if (!updatedSettings) return null;
     const dialogContents = /*#__PURE__*/React__default["default"].createElement("div", {
       ref: dialogRef,
       className: `dynamic-dialog ${className || ''}`,
@@ -42486,7 +42643,7 @@ var RootBundle = (function (exports, React$1) {
       className: "dynamic-dialog-content"
     }, children, items.map((item, index) => /*#__PURE__*/React__default["default"].createElement("div", {
       key: `ddc-${index}`
-    }, renderItem({
+    }, (!item.key || shouldRenderItem(item)) && renderItem({
       index,
       item: {
         ...item,
@@ -42494,6 +42651,8 @@ var RootBundle = (function (exports, React$1) {
         value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
         checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false
       },
+      disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+      indent: Boolean(item.dependsOnKey),
       handleFieldChange,
       labelPosition,
       showSaveButton: false,
