@@ -380,7 +380,7 @@ function onClickDashboardItem(data) {
  */
 function onChangeCheckbox(settingName, state) {
   const data = { settingName, state }
-  // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
+  console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }
 

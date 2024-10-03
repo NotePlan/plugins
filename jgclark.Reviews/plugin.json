@@ -44,7 +44,7 @@
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
       "jsFunction": "makeProjectLists",
       "arguments": [
-        "comma-separated list of setting keys and their values (optional)",
+        "setting keys and their values in JSON format (optional)",
         "position to scroll window to (optional, only for HTML view)"
       ]
     },
@@ -170,10 +170,10 @@
       "name": "removeAllDueDates",
       "description": "removeAllDueDates callback entry",
       "jsFunction": "removeAllDueDates",
+      "hidden": true,
       "arguments": [
         "filename"
-      ],
-      "hidden": true
+      ]
     },
     {
       "name": "test:generateAllProjectsList",
@@ -203,9 +203,9 @@
       "jsFunction": "logAllProjectsList"
     },
     {
-      "name": "test:makeFullReviewList",
-      "description": "make/update full review list note",
-      "jsFunction": "makeFullReviewList"
+      "name": "test:renderProjectLists",
+      "description": "render current allProjects list in current style(s)",
+      "jsFunction": "renderProjectLists"
     }
   ],
   "plugin.inactiveCommands": [
@@ -364,22 +364,16 @@
     },
     {
       "key": "displayFinished",
-      "comment": "TODO: does this conflict with following one?",
-      "title": "How to show completed/cancelled projects?",
-      "description": "If you do not want to see completed/cancelled projects in your Rich dashboard, change this setting to something other than Displayed.",
-      "type": "string",
-      "default": "display at end",
-      "required": true,
-      "choices": [
-        "display",
-        "display at end",
-        "hide"
-      ]
+      "title": "Show completed/cancelled projects?",
+      "description": "If set, then completed/cancelled projects will be shown at the end of the list of active projects.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "key": "displayOnlyDue",
       "title": "Only display projects/areas ready for review?",
-      "description": "If not ticked then it will display all project/area notes, not just ones ready for review.  (Paused ones are always shown.)",
+      "description": "If not ticked then it will display all project/area notes, not just ones ready for review. (Paused ones are always shown.)",
       "type": "bool",
       "default": false,
       "required": true

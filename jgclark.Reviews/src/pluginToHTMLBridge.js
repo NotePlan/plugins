@@ -50,28 +50,27 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
  * Plugin entrypoint for command: "/onMessageFromHTMLView" (called by plugin via sendMessageToHTMLView command)
  * Do not do the processing in this function, but call a separate function to do the work.
  * @author @dwertheimer
- * @param {string} type - the type of action the HTML view wants the plugin to perform
+ * @param {string} actionType - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export async function onMessageFromHTMLView(type: string, data: any): any {
+export async function onMessageFromHTMLView(actionType: string, data: any): any {
   try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
-    // clo(data, 'onMessageFromHTMLView dispatching data object:')
-    switch (type) {
+    clo(data, `onMessageFromHTMLView dispatching actionType '${actionType}' with data object:`)
+    switch (actionType) {
       case 'onClickProjectListItem':
         await bridgeClickProjectListItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
       case 'onChangeCheckbox':
-        await bridgeChangeCheckbox(data) // data is a string
+        await bridgeChangeCheckbox(data)
         break
       case 'refresh':
-        await makeProjectLists() // no await needed, I think
+        await makeProjectLists()
         break
       case 'runPluginCommand':
-        await runPluginCommand(data) // no await needed, I think
+        await runPluginCommand(data)
         break
       default:
-        logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
+        logError(pluginJson, `onMessageFromHTMLView(): unknown actionType '${actionType}' cannot be dispatched`)
         break
     }
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
@@ -102,14 +101,21 @@ export async function runPluginCommand(data: any) {
 // eslint-disable-next-line require-await
 export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
-    // // clo(data, 'bridgeChangeCheckbox received data object')
-    // const { settingName, state } = data
-    // logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
-    // DataStore.setPreference('Dashboard-filterPriorityItems', state)
-    // // having changed this pref, refresh the window
-    // await makeProjectLists()
+    clo(data, 'bridgeChangeCheckbox received data object')
+    const { settingName, state } = data
+    logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
+    switch (settingName) {
+      case 'displayFinished': {
+        toggleDisplayFinished()
+        break
+      }
+      case 'displayOnlyDue': {
+        toggleDisplayOnlyDue()
+        break
+      }
+    }
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('bridgeChangeCheckbox', error.message)
   }
 }
 
@@ -133,14 +139,6 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
     logInfo('bridgeClickProjectListItem', `itemID: ${ID}, type: ${type}, filename: ${filename}`)
     // clo(data, 'bridgeClickProjectListItem received data object')
     switch (type) {
-      case 'toggleDisplayOnlyDue': {
-        await toggleDisplayOnlyDue()
-        break
-      }
-      case 'toggleDisplayFinished': {
-        await toggleDisplayFinished()
-        break
-      }
       case 'completeProject': {
         // Mimic the /complete project command for the note in question
         const note = await DataStore.projectNoteByFilename(filename)

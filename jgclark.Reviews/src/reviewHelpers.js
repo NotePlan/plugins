@@ -2,22 +2,18 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-09-28 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-03 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-// import pluginJson from '../plugin.json'
 import { type Progress } from './projectClass'
 import {
   calcOffsetDate,
-  // daysBetween,
   getDateFromUnhyphenatedDateString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
-  // includesScheduledFutureDate,
   RE_ISO_DATE, RE_YYYYMMDD_DATE,
-  // todaysDateISOString,
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
@@ -25,17 +21,12 @@ import {
   createRunPluginCallbackUrl, displayTitle,
 } from '@helpers/general'
 import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
-// import { removeAllDueDates } from '@helpers/NPParagraph'
 import {
   findEndOfActivePartOfNote,
-  // findStartOfActivePartOfNote
 } from '@helpers/paragraph'
 import {
-// getInputTrimmed,
-// inputIntegerBounded,
   showMessage
 } from '@helpers/userInput'
-import { isOpen } from '@helpers/utils'
 
 //------------------------------
 // Config setup
@@ -51,7 +42,7 @@ export type ReviewConfig = {
   displayProgress: boolean,
   displayOrder: string,
   displayGroupedByFolder: boolean,
-  displayFinished: string,
+  displayFinished: boolean,
   displayOnlyDue: boolean,
   hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
@@ -102,24 +93,6 @@ export async function getReviewSettings(): Promise<ReviewConfig> {
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
-
-    // TODO(later): remove this when checkboxes do work
-    // DataStore.setPreference('Reviews-displayOnlyDue', config.displayOnlyDue)
-    // let savedValue = DataStore.preference('Reviews-displayOnlyDue')
-    // // logDebug('getReviewSettings', `DisplayOnlyDue? savedValue: ${String(savedValue)}`)
-    // if (!savedValue) {
-    //   DataStore.setPreference('Reviews-displayOnlyDue', false)
-    // }
-    // logDebug('getReviewSettings', `Reviews-displayOnlyDue? = ${String(DataStore.preference('Reviews-displayOnlyDue'))}`)
-
-    // TODO(later): remove this when checkboxes do work
-    // DataStore.setPreference('Reviews-displayFinished', config.displayFinished)
-    // savedValue = DataStore.preference('Reviews-displayFinished')
-    // // logDebug('getReviewSettings', `DisplayFinished? savedValue: ${String(savedValue)}`)
-    // if (!savedValue) {
-    //   DataStore.setPreference('Reviews-displayFinished', true)
-    // }
-    // logDebug('getReviewSettings', `Reviews-displayFinished? = ${String(DataStore.preference('Reviews-displayFinished'))}`)
 
     return config
   } catch (err) {

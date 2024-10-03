@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-30 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-03 for v1.0.0.b1, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -42,7 +42,7 @@ import {
   // calcDurationsForProject,
   calcReviewFieldsForProject,
   generateProjectOutputLine,
-  Project
+  // Project
 } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import {
@@ -62,8 +62,6 @@ import {
 } from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-// import { findNotesMatchingHashtag } from '@helpers/NPnote'
-// import { sortListBy } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
@@ -73,7 +71,7 @@ import {
 
 // Settings
 const pluginID = 'jgclark.Reviews'
-const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+// const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 // const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const windowTitle = `Project Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
@@ -138,32 +136,24 @@ export const scrollPreLoadJSFuncs: string = `
 <script type="text/javascript">
 function getCurrentScrollHeight() {
   let scrollPos;
-  if (typeof window.pageYOffset != 'undefined') {
+  if (typeof window.pageYOffset !== 'undefined') {
     scrollPos = window.pageYOffset;
   }
-  else if (typeof document.compatMode != 'undefined' && document.compatMode != 'BackCompat') {
+  else if (typeof document.compatMode !== 'undefined' && document.compatMode !== 'BackCompat') {
     scrollPos = document.documentElement.scrollTop;
   }
-  else if (typeof document.body != 'undefined') {
+  else if (typeof document.body !== 'undefined') {
     scrollPos = document.body.scrollTop;
   }
   let label = document.getElementById("scrollDisplay");
   label.innerHTML = String(scrollPos);
-  console.log(String(scrollPos));
+  console.log("getCurrentScrollHeight = " + String(scrollPos));
 }
 
 function setScrollPos(h) {
   document.documentElement.scrollTop = h;
   document.body.scrollTop = h;
-  console.log('Set scroll pos to ' + String(h));
-}
-
-// ???
-function setRefreshButtonURL(h) {
-  // TODO:
-  // document.documentElement.scrollTop = h;
-  // document.body.scrollTop = h;
-  console.log('Set refresh button x-callback to ???');
+  console.log('setScrollPos = ' + String(h));
 }
 
 // This works in Safari, but not in NP:
@@ -241,18 +231,6 @@ shortcut.add("meta+f", function() {
 </script>
 `
 
-/**
- * TODO: this would need to go in commsSwitchboard.js. And contents uncommented out.
- * Event handler for the 'change' event on a checkbox
- * @param {string} settingName of checkbox
- * @param {boolean} state that it now has
- */
-// function onChangeCheckbox(settingName: string, state: boolean) {
-  // const data = { settingName, state }
-  // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
-  // sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
-// }
-
 export const setPercentRingJSFunc: string = `
 <script>
 /**
@@ -276,6 +254,33 @@ function setPercentRing(percent, ID) {
 </script>
 `
 
+const addToggleEvents: string = `
+<script>
+  /**
+   * Register click handlers for each checkbox/toggle in the window with details of the items
+   * ? Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+  */
+  allInputs = document.getElementsByTagName("INPUT");
+  let added = 0;
+  for (const input of allInputs) {
+    // Ignore non-checkboxes)
+    if (input.type !== 'checkbox') {
+      continue;
+    }
+    const thisSettingName = input.name;
+    console.log("- adding event for checkbox '"+thisSettingName+"' currently set to state "+input.checked);
+
+    input.addEventListener('change', function (event) {
+      event.preventDefault();
+      sendMessageToPlugin('onChangeCheckbox', { settingName: thisSettingName, state: event.target.checked });
+    }, false)
+    // Set button visible
+    added++;
+  }
+  console.log('- '+ String(added) + ' input ELs added');
+</script>
+`
+
 //-------------------------------------------------------------------
 // Moved following from projectLists.js to avoid circular dependency
 //-------------------------------------------------------------------
@@ -286,7 +291,7 @@ function setPercentRing(percent, ID) {
  * @param {string? | null} argsIn as JSON (optional)
  * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
-export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 1000): Promise<void> {
+export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 0): Promise<void> {
   try {
     let config = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -311,35 +316,31 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
 }
 
 /**
- * Render the project list, according to the chosen output style.
- * Note: this does not re-calculate the data.
+ * Render the project list, according to the chosen output style. Note: this does *not* re-calculate the project list.
  * @author @jgclark
- * @param {any} config
- * @param {boolean} shouldOpen window/note if not already open?
+ * @param {ReviewConfig?} configIn
+ * @param {boolean?} shouldOpen window/note if not already open?
  * @param {number?} scrollPos scroll position to set (pixels) for HTML display (default: 0)
  */
 export async function renderProjectLists(
-  config: ReviewConfig,
+  configIn: ?ReviewConfig = null,
   shouldOpen: boolean = true,
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    logDebug('renderProjectLists', `Starting with prefs displayFinished? ${String(DataStore.preference('Reviews-displayFinished') ?? '(not set)')} displayOnlyDue? ${String(DataStore.preference('Reviews-displayOnlyDue') ?? '(not set)')}`)
-    // Note: following doesn't pick up changes made in toggleDisplay*() functions
-    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'hide')
-    // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
-    // const updatedConfig = { displayFinished: displayFinished, displayOnlyDue: displayOnlyDue, ...config }
-    clo(config, 'calcNextReviewDateonfig at start of renderProjectLists:')
+    logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}`)
+    const config = (configIn) ? configIn : await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
-      await renderProjectListsMarkdown(config, shouldOpen)
+      // eslint-disable-next-line no-floating-promise/no-floating-promise -- no need to wait here
+      renderProjectListsMarkdown(config, shouldOpen)
     }
     if (config.outputStyle.match(/rich/i)) {
       await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
   } catch (error) {
-    clo(config, 'config at start of renderProjectLists:')
+    clo(configIn, 'config at start of renderProjectLists:')
   }
 }
 
@@ -348,7 +349,7 @@ export async function renderProjectLists(
 /**
  * Generate 'Rich' HTML view of project notes for each tag of interest, using the pre-built full-review-list.
  * Note: Requires NP 3.7.0 (build 844) or greater.
- * Note: Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. In time this can hopefully change.
+ * Note: Built when we could only display 1 HTML Window at a time, so need to include all tags in a single view.
  * @author @jgclark
  * @param {any} config
  * @param {boolean} shouldOpen window/note if not already open?
@@ -359,6 +360,8 @@ export async function renderProjectListsHTML(
   scrollPos: number = 0
 ): Promise<void> {
   try {
+    // FIXME: Why isn't this debug line being shown when triggered by toggleDisplayOnlyDue called from HTML window, but not from x-callback?
+    logDebug('renderProjectListsHTML', `--------------------------------------------------------------`)
     if (config.noteTypeTags.length === 0) {
       throw new Error('No noteTypeTags configured to display')
     }
@@ -373,17 +376,26 @@ export async function renderProjectListsHTML(
 
     // Test to see if we have the font resources we want
     if (!(await checkForWantedResources(pluginID))) {
-      logError(pluginJson, `Sorry, I can't find the font resources I need to continue.`)
-      await showMessage(`Sorry, I can't find the font resources I need to continue. Please check you have installed the 'Shared Resources' plugin, and then try again.`)
+      logError(pluginJson, `Sorry, I can't find the file resources I need to continue. Stopping.`)
+      await showMessage(`Sorry, I can't find the file resources I need to continue. Please check you have installed the 'Shared Resources' plugin, and then try again.`)
       return
     } else {
-      const wantedFilenames = ['fontawesome.css', 'regular.min.flat4NP.css', 'solid.min.flat4NP.css', 'fa-regular-400.woff2', 'fa-solid-900.woff2']
-      const numFoundFilenames = await checkForWantedResources(pluginID, wantedFilenames)
-      if (Number(numFoundFilenames) < wantedFilenames.length) {
-        logWarn(pluginJson, `Sorry, I can only find ${String(numFoundFilenames)} of the ${String(wantedFilenames.length)} wanted shared resource files`)
+      const wantedSharedFilenames = ['fontawesome.css', 'regular.min.flat4NP.css', 'solid.min.flat4NP.css', 'fa-regular-400.woff2', 'fa-solid-900.woff2']
+      const numFoundSharedFilenames = await checkForWantedResources(pluginID, wantedSharedFilenames)
+      if (Number(numFoundSharedFilenames) < wantedSharedFilenames.length) {
+        logWarn('renderProjectListsHTML', `I can only find ${String(numFoundSharedFilenames)} of the ${String(wantedSharedFilenames.length)} wanted shared resource files`)
+      }
+      // Check that the projectList.css and projectListEvents.js files are available
+      const wantedLocalFilenames = ['projectList.css', 'projectListEvents.js']
+      for (const lf of wantedLocalFilenames) {
+        const filename = `../../${pluginID}/${lf}`
+        if (DataStore.fileExists(filename)) {
+          logDebug(`renderProjectListsHTML`, `- ${filename} exists`)
+        } else {
+          logWarn(`renderProjectListsHTML`, `- ${filename} not found`)
+        }
       }
     }
-
     logTimer('renderProjectListsHTML', funcTimer, `after checkForWantedResources`)
 
     // Ensure noteTypeTags is an array before proceeding
@@ -391,6 +403,14 @@ export async function renderProjectListsHTML(
 
     // String array to save all output
     const outputArray = []
+
+    // WARNING: This is just a *partial workaround* to the losing-css-file problem
+    // Include whole CSS directly here.
+    // outputArray.push(`<!-- ❗️ COPY OF THE 'projectList.css' FILE ❗️ -->`)
+    // outputArray.push(`<style type="text/css">`)
+    // const mainCSSfileContents = DataStore.loadData(`../../${pluginID}/projectList.css`, true) ?? '(empty!)'
+    // outputArray.push(mainCSSfileContents)
+    // outputArray.push(`</style>\n`)
 
     // Add (pseduo-)buttons for various commands
     // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
@@ -481,16 +501,18 @@ export async function renderProjectListsHTML(
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
     // Show time since generation + display settings
-    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
-    const displayFinished = config.displayFinished ?? 'display at end'
-    // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
+    const displayFinished = config.displayFinished ?? false
     const displayOnlyDue = config.displayOnlyDue ?? false
-    logDebug('renderProjectListsHTML', `displayFinished=${String(displayFinished)}, displayOnlyDue=${String(displayOnlyDue)}`)
-    let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-    togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
-    outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
+    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
+    // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
+    // togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
+    outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> `)
 
-    // TODO(later): v2 add checkbox toggles
+    // add checkbox toggles in place of previous text
+    // outputArray.push(`(${togglesValues})`)
+    outputArray.push(`<input class="apple-switch" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
+    outputArray.push(`<input class="apple-switch" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input/>`)
+    outputArray.push(`</p>`)
 
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
@@ -595,8 +617,6 @@ export async function renderProjectListsHTML(
 <script type="text/javascript">
   console.log('Attemping to set scroll pos to ${scrollPos}');
   setScrollPos(${scrollPos});
-  console.log('Attemping to set scroll pos for refresh button to ${scrollPos}');
-  setRefreshButtonURL(${scrollPos});
 </script>`
 
     const winOptions = {
@@ -611,7 +631,7 @@ export async function renderProjectListsHTML(
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js" ></script>
       <script type="text/javascript" src="./projectListEvents.js"></script>
-      ` + commsBridgeScripts + shortcutsScript, // resizeListenerScript + unloadListenerScript,
+      ` + commsBridgeScripts + shortcutsScript + addToggleEvents, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -678,6 +698,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           // Get the summary line for each revelant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
           logTimer('renderProjectListsHTML', funcTimer, `after generateReviewOutputLines(${tag}) for ${String(due)} projects`)
+          if (isNaN(noteCount)) logWarn('renderProjectListsHTML', `Warning: noteCount is NaN`)
 
           // print header info just the once (if any notes)
           const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
@@ -687,12 +708,13 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
             outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
           // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
-          const displayFinished = config.displayFinished ?? 'display at end'
+          // const displayFinished = config.displayFinished ?? 'display at end'
+          const displayFinished = config.displayFinished ?? false
           // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
           const displayOnlyDue = config.displayOnlyDue ?? false
+          // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
-          // FIXME:  report that noteCount can be NaN
-          togglesValues += (displayFinished === 'hide') ? '' : ' plus finished ones'
+          togglesValues += (displayFinished) ? ' plus finished ones' : ''
           outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : ''} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
           if (!config.displayGroupedByFolder) {
@@ -813,7 +835,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
  *     Also added nextAction outputs.
  * @author @jgclark
  *
- * @param {string} noteTag - hashtag to look for
+ * @param {string} noteTag - the current hashtag (only now used in logging)
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} output summary lines
@@ -1303,35 +1325,24 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
 */
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    // logDebug('toggleDisplayFinished', `starting with pref='${String(DataStore.preference('Reviews-displayFinished') ?? '(not set))')}' ...`)
-    // logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-displayFinished'))
-    // const savedValue = DataStore.preference('Reviews-displayFinished' ?? 'hide')
+    // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
+    // v2 directly update settings.json instead
+    const config: ReviewConfig = await getReviewSettings()
+    const savedValue = config.displayFinished ?? 'hide'
     // const newValue = (savedValue === 'display')
     //   ? 'display at end'
     //   : (savedValue === 'display at end')
-    // ? 'hide'
-    // : 'display'
-    // Note: this Preference mechanism does not seem to work after this function is left, whatever I try
-    // logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
-    // DataStore.setPreference('Reviews-displayFinished', newValue)
-    // logDebug('toggleDisplayFinished', `displayFinished? now is '${String(newValue)}'`)
-
-    // So instead, trying to update settings.json instead
-    const config: ReviewConfig = await getReviewSettings()
-    const savedValue = config.displayFinished ?? 'hide'
-    const newValue = (savedValue === 'display')
-      ? 'display at end'
-      : (savedValue === 'display at end')
-        ? 'hide'
-        : 'display'
-    logDebug('toggleDisplayFinished', `displayFinished? now is '${String(newValue)}'`)
+    //     ? 'hide'
+    //     : 'display'
+    const newValue = !savedValue
+    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
 
     const updatedConfig = config
     updatedConfig.displayFinished = newValue
-    logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
+    // logDebug('toggleDisplayFinished', `updatedConfig.displayFinished? now is '${String(updatedConfig.displayFinished)}'`)
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, true)
+    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
+    await renderProjectLists(updatedConfig, false)
   }
   catch (error) {
     logError('toggleDisplayFinished', error.message)
@@ -1343,25 +1354,18 @@ export async function toggleDisplayFinished(): Promise<void> {
 */
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    // logDebug('toggleDisplayOnlyDue', `starting with pref='${String(DataStore.preference('Reviews-displayOnlyDue') ?? '(not set))')}' ...`)
-    // Note: this Preference mechanism does not seem to work after this function is left, whatever I try
-    // const savedValue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
-    // const newValue = !savedValue
-    // logDebug('toggleDisplayOnlyDue', `displayOnlyDue? toggled to '${String(newValue)}'`)
-    // DataStore.setPreference('Reviews-displayOnlyDue', newValue)
-    // logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now is '${String(newValue)}'`)
-
-    // So instead, trying to update settings.json instead
+    // v1 used NP Preference mechanism, but not ideal as it can't be used from frontend
+    // v2 directly update settings.json instead
     const config: ReviewConfig = await getReviewSettings()
     const savedValue = config.displayOnlyDue ?? true
     const newValue = !savedValue
-    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now is '${String(newValue)}'`)
+    logDebug('toggleDisplayOnlyDue', `displayOnlyDue? now '${String(newValue)}' (was '${String(savedValue)}')`)
     const updatedConfig = config
     updatedConfig.displayOnlyDue = newValue
-    logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
+    // logDebug('toggleDisplayOnlyDue', `updatedConfig.displayOnlyDue? now is '${String(updatedConfig.displayOnlyDue)}'`)
     const res = await DataStore.saveJSON(updatedConfig, '../jgclark.Reviews/settings.json', true)
-    clo(updatedConfig, 'updatedConfig at end of toggle...()')
-    await renderProjectLists(updatedConfig, true)
+    // clo(updatedConfig, 'updatedConfig at end of toggle...()')
+    await renderProjectLists(updatedConfig, false)
   }
   catch (error) {
     logError('toggleDisplayOnlyDue', error.message)

@@ -43,7 +43,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
-    logDebug(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    // logDebug(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    console.log(`bridge::runPluginCommand: Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
   }
 }
 

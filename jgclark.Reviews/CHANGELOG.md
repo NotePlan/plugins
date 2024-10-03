@@ -1,27 +1,31 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-## [1.0.0.b1] - 2024-10-???
+## [1.0.0.b1] - 2024-10-03
 ### New
 - can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List. (This can be turned off if desired.) (Requested by @matt.)
 - if a 'next action' tag is set, then warn user if they're finishing a Review, and no next action tag is found. (Requested by @matt.)
 - added 'New Interval' buttons to the top bar and edit dialogs, to change the `@review(...)` interval.
+- added "Display only due?" and "Display finished?" toggles to window. FIXME: they work but currently trigger a long-standing bug in NP where some files get forgotten and the resulting display loses all its theming and formatting.
+- added ⌘D and ⌘F shortcuts for changing the "Display only due?" and "Display finished?" toggles.
 
 ### Fixed
 - calculating % complete where progress line didn't contain a percentage <!-- committed  as 0.14.2 -->
 - 'Refresh' button sometimes not working on Markdown output
 - height of some circle icons in first column
 
+### Changes
+- doubled speed of generating longer project lists
+- tweaked layout of item edit dialog to more closely match the Dashboard plugin
+- the Dashboard plugin (if open) will refresh its Project section when the a relevant change is made to a Project in this plugin.
+- simplified the "Display finished Projects?" setting to now be just off or on (which displays them after the open projects).
+
 ### Changes (under the hood)
 - split out Project class definition from reviewHelpers.js
 - start transition from tab-separate text file that holds a few details on matching project notes, to a JSON-formatted file, holding all details on all project notes
 - tweaked Rich layout slightly to suit adding 'next action' feature
 - setting name 'Only display due projects/areas?' is now 'Only display projects/areas ready for review?'
-
-### Changes
-- doubled speed of generating longer project lists
-- tweaked layout of item edit dialog to more closely match the Dashboard plugin
-- the Dashboard plugin (if open) will refresh its Project section when the a relevant change is made to a Project in this plugin.
+- stopped using NP Preferences for displayFinished and displayOnlyDue settings; now directly changed in the `settings.json` file
 
 ## [0.14.1] - 2024-09-03
 ### New
