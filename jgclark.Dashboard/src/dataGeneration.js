@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-09-27 for v2.0.6+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
-import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
+import { Project } from '../../jgclark.Reviews/src/projectClass.js'
+import { getNextProjectsToReview } from '../../jgclark.Reviews/src/reviewListHelpers.js' // assumes v0.15+ of Reviews Plugin
 import type {
   TDashboardSettings, TItemType, TParagraphForDashboard,
   TSectionCode, TSection, TSectionItem, TSectionDetails
@@ -1052,9 +1052,9 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
+export function getTaggedSections(config: { [string]: mixed }, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
-  const tagSections = getTagSectionDetails(config, {})
+  const tagSections = getTagSectionDetails(config)
   // clo(tagSections)
   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
 
@@ -1452,66 +1452,47 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   const thisSectionCode = 'PROJ'
   let itemCount = 0
   const maxProjectsToShow = config.maxItemsToShowInSection
-  let nextNotesToReview: Array<TNote> = []
+  let nextProjectsToReview: Array<Project> = []
   const items: Array<TSectionItem> = []
   logDebug('getProjectSectionData', `------- Gathering Project items for section #${String(sectionNum)} --------`)
   const thisStartTime = new Date()
 
   if (useDemoData) {
-    nextNotesToReview = nextProjectNoteItems
-    nextNotesToReview.map((n) => {
+    // Note: still using the earlier TNote-based demo data, not newer Project-based objects
+    nextProjectNoteItems.map((p) => {
       const thisID = `${sectionNum}-${itemCount}`
-      const thisFilename = n.filename ?? '<filename not found>'
+      const thisFilename = p.filename ?? '<filename not found>'
       items.push({
         ID: thisID,
         itemType: 'project',
         project: {
-          title: n.title ?? '(error)',
+          title: p.title ?? '(error)',
           filename: thisFilename,
           // $FlowIgnore[prop-missing]
-          reviewInterval: n.reviewInterval ?? '',
+          reviewInterval: p.reviewInterval ?? '',
           // $FlowIgnore[prop-missing]
-          percentComplete: n.percentComplete ?? NaN,
+          percentComplete: p.percentComplete ?? NaN,
           // $FlowIgnore[prop-missing]
-          lastProgressComment: n.lastProgressComment ?? '',
+          lastProgressComment: p.lastProgressComment ?? '',
         },
       })
       itemCount++
     })
   } else {
-    if (DataStore.fileExists(fullReviewListFilename)) {
-      // But first check to see if it is more than a day old
-      const fullReviewListContent = DataStore.loadData(fullReviewListFilename, true)
-      // Get date of last generation from file contents, lineIndex 2 ('date: 2024-01-04T23:20:08+00:00')
-      const reviewListDateStr = fullReviewListContent?.match(/date: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/)?.[1]
-      const reviewListDate = moment(reviewListDateStr).toDate()
-      const fileAge = Date.now() - reviewListDate
-      // If this note is more than a day old, then regenerate it
-      if (fileAge > 1000 * 60 * 60 * 24) {
-        logDebug('getProjectSectionData', `Regenerating fullReviewList as too old`)
-        // Call plugin command makeFullReviewList
-        await makeFullReviewList()
-      }
+    nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
 
-      nextNotesToReview = await getNextNotesToReview(maxProjectsToShow)
-    }
-
-    if (nextNotesToReview) {
-      nextNotesToReview.map((n) => {
+    if (nextProjectsToReview) {
+      nextProjectsToReview.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        const thisFilename = n.filename ?? '<filename not found>'
-        // Make a project instance for this note, as a quick way of getting its metadata
-        // Note: to avoid getting 'You are running this on an async thread' warnings, ask it not to check Editor.
-        const projectInstance = new Project(n, '', false)
         items.push({
           ID: thisID,
           itemType: 'project',
           project: {
-            title: n.title ?? '(error)',
-            filename: thisFilename,
-            reviewInterval: projectInstance.reviewInterval,
-            percentComplete: projectInstance.percentComplete,
-            lastProgressComment: projectInstance.lastProgressComment,
+            title: p.title,
+            filename: p.filename,
+            reviewInterval: p.reviewInterval,
+            percentComplete: p.percentComplete,
+            lastProgressComment: p.lastProgressComment,
           },
         })
         itemCount++
@@ -1522,7 +1503,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       return null
     }
   }
-  // clo(nextNotesToReview, "nextNotesToReview")
+  // clo(nextProjectsToReview, "nextProjectsToReview")
 
   const section = {
     name: 'Projects',
