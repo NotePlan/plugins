@@ -527,7 +527,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         // write items for first or combined section
         sortedOrCombinedParas.map((p) => {
           const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID,p))
+          items.push(getSectionItemObject(thisID, p))
           itemCount++
         })
         // logDebug('getDataForDashboard', `- finished finding tomorrow's items from ${filenameDateStr} after ${timer(startTime)}`)
@@ -1126,7 +1126,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
 
         // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
         for (const p of filteredTagParasFromNote) {
-          if (!config.ignoreTagMentionsWithPhrase ||config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+          if (!config.ignoreTagMentionsWithPhrase || config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
             filteredTagParas.push(p)
           } else {
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
@@ -1138,9 +1138,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
-      filteredTagParas = filteredTagParas.filter(p=>!filenameIsInFuture(p.filename||'',dateToUseUnhyphenated))
+      filteredTagParas = filteredTagParas.filter(p => !filenameIsInFuture(p.filename || '', dateToUseUnhyphenated))
       const dateToUseHyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYY-MM-DD") : new moment().format("YYYY-MM-DD")
-      filteredTagParas = filteredTagParas.filter(p=>!includesScheduledFutureDate(p.content,dateToUseHyphenated))
+      filteredTagParas = filteredTagParas.filter(p => !includesScheduledFutureDate(p.content, dateToUseHyphenated))
       logTimer('getTaggedSectionData', thisStartTime, `- after filtering for future, ${filteredTagParas.length} paras`)
 
       if (filteredTagParas.length > 0) {
@@ -1164,8 +1164,8 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
           config.overdueSortOrder === 'priority'
             ? ['-priority', '-changedDate']
             : config.overdueSortOrder === 'earliest'
-            ? ['changedDate', 'priority']
-            : ['-changedDate', 'priority'] // 'most recent'
+              ? ['changedDate', 'priority']
+              : ['-changedDate', 'priority'] // 'most recent'
         const sortedTagParas = sortListBy(dashboardParas, sortOrder)
         logTimer('getTaggedSectionData', thisStartTime, `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)}`)
 
@@ -1177,7 +1177,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
           const thisID = `${sectionNum}.${itemCount}`
           // const thisFilename = p.filename ?? ''
           // $FlowIgnore[incompatible-call]
-          items.push(getSectionItemObject(thisID,p))
+          items.push(getSectionItemObject(thisID, p))
           itemCount++
         }
       } else {
@@ -1287,7 +1287,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       logDebug('getOverdueSectionData', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
       overdueTaskParasLimited.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        items.push(getSectionItemObject(thisID,p))
+        items.push(getSectionItemObject(thisID, p))
         itemCount++
       })
     }
@@ -1606,7 +1606,7 @@ export function copyUpdatedSectionItemData(
         setNestedValue(sectionItem, fieldPath, value)
       }
     })
-    sectionItem.updated = true 
+    sectionItem.updated = true
   })
 
   return sections
