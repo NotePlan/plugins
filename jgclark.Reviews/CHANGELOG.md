@@ -1,6 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.0.0.b2] - 2024-10-04
+### Fixed
+- '(Set) New Interval' button not working in top bar (thanks to @drb for spotting it)
+- Added possible workaround for the weird-layout-on-changing-a-toggle problem, for testing further. [Eduard: only change in reviewHelpers.js > updateDashboardIfOpen() ]
+
 ## [1.0.0.b1] - 2024-10-03
 ### New
 - can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List. (This can be turned off if desired.) (Requested by @matt.)

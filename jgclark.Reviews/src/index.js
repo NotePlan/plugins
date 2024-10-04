@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2024-09-30 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-04 for v1.0.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -29,6 +29,7 @@ export {
   // nextReview,
   redisplayProjectListHTML,
   renderProjectLists,
+  setNewReviewInterval,
   skipReview,
   startReviews,
   toggleDisplayFinished,
@@ -40,7 +41,6 @@ export {
   getNextProjectsToReview, //  TODO: remove in time
   logAllProjectsList,
   logFullReviewList,
-  // makeFullReviewList,
 } from './reviewListHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {

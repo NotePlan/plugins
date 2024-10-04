@@ -540,9 +540,16 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
 
 export function updateDashboardIfOpen(): void {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-  const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshProjectSection', '')
-  logDebug('updateDashboardIfOpen', `sent message to refresh 🎛 Dashboard: ${refreshXCallbackURL}`)
-  NotePlan.openURL(refreshXCallbackURL) // no point in having await
+  // v1 (callback)
+  // WARNING: This seems to cause the loss-of-files problem even when it is not called.
+  // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshProjectSection', '')
+  // logInfo('updateDashboardIfOpen', `❗️ about to send message to refresh 🎛 Dashboard ❗️`)
+  // NotePlan.openURL(refreshXCallbackURL) // no point in having await
+
+  // v2 (internal invoke plugin command)
+  // Note: This works
+  logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
+  const result = DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", []) // without await, as its not necessary
 }
 
 /**

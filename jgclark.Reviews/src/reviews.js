@@ -503,7 +503,7 @@ export async function renderProjectListsHTML(
     // Show time since generation + display settings
     const displayFinished = config.displayFinished ?? false
     const displayOnlyDue = config.displayOnlyDue ?? false
-    logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
+    // logDebug('renderProjectListsHTML', `displayOnlyDue=${displayOnlyDue ? '✅' : '❌'}, displayFinished = ${displayFinished ? '✅' : '❌'}`)
     // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
     // togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
     outputArray.push(`<p class="display-details">Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> `)
@@ -674,7 +674,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     // style the x-callback URLs into markdown 'button' links
     const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`
     const nextReviewXCallbackButton = `[Finish + Next](${nextReviewXCallbackURL})`
-    const newIntervalXCallbackButton = `[New Review Interval](${nextReviewXCallbackURL})`
+    const newIntervalXCallbackButton = `[New Review Interval](${newIntervalXCallbackURL})`
     const addProgressXCallbackButton = `[Add progress](${addProgressXCallbackURL})`
     const pauseXCallbackButton = `[toggle Pause](${pauseXCallbackURL})`
     const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
@@ -707,12 +707,9 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           if (due > 0) {
             outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${newIntervalXCallbackButton} Project: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
           // const displayFinished = config.displayFinished ?? 'display at end'
           const displayFinished = config.displayFinished ?? false
-          // const displayOnlyDue = DataStore.preference('Reviews-displayOnlyDue' ?? false)
           const displayOnlyDue = config.displayOnlyDue ?? false
-          // let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
           togglesValues += (displayFinished) ? ' plus finished ones' : ''
           outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : ''} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
