@@ -54,7 +54,7 @@ import {
   cyclePriorityStateDown,
   cyclePriorityStateUp,
 } from "@helpers/paragraph"
-import { showMessage } from "@helpers/userInput"
+import { showMessage, processChosenHeading } from "@helpers/userInput"
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -217,21 +217,21 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     }
 
     const content = text ?? await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
-
+    const note = DataStore.noteByFilename(toFilename, 'Calendar')
+    if (!note) throw new Error(`doAddItem: No note found for ${toFilename}`)
     // Add text to the new location in destination note
-    const newHeadingLevel = config.newTaskSectionHeadingLevel
-    const headingToUse = heading ||config.newTaskSectionHeading
-    // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
-    
-    // FIXME: heading is not being used, need to read it or ask
 
+    const newHeadingLevel = config.newTaskSectionHeadingLevel
+
+    const headingToUse = heading ? (await processChosenHeading(note, newHeadingLevel, heading||'')) : config.newTaskSectionHeading
+    
     if (actionType === 'addTask') {
       addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     } else {
       addChecklistToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     }
     // TEST: update cache
-    DataStore.updateCache(DataStore.noteByFilename(toFilename, 'Calendar'), true)
+    DataStore.updateCache(note, true)
 
     // update just the section we've added to
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })

@@ -272,7 +272,7 @@ export async function chooseHeading(
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
     // Get the underlying heading back by removing added # marks and trimming left. We don't trim right as there can be valid traillng spaces.
     let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '')
-    headingToReturn = await processChosenHeading(note, headingLevel, headingStrings, headingToReturn)
+    headingToReturn = await processChosenHeading(note, headingLevel, headingToReturn)
     return headingToReturn
   } catch (error) {
     logError('userInput / chooseHeading', error.message)
@@ -600,10 +600,10 @@ export async function chooseNote(
   return noteToReturn ?? null
 }
 
-export async function processChosenHeading(note: TNote, headingLevel: number = 2, headingStrings: Array<string>, chosenHeading: string): Promise<string> {
+export async function processChosenHeading(note: TNote, headingLevel: number = 2, chosenHeading: string): Promise<string> {
   let newHeading,
     headingToReturn = chosenHeading
-
+  logDebug('userInput / processChosenHeading', `headingLevel: ${headingLevel} chosenHeading: '${chosenHeading}'`)
   switch (headingToReturn) {
     case `➕#️⃣ (first insert new heading at the start of the note)`:
       // ask for new heading, and insert right at top
@@ -612,7 +612,7 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
         const startPos = 0
         // $FlowIgnore
         note.insertHeading(newHeading, startPos, headingLevel)
-        logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
+        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (calendar note)`)
         headingToReturn = newHeading
       } else {
         throw new Error(`user cancelled operation`)
@@ -626,7 +626,7 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
         const startPos = findStartOfActivePartOfNote(note)
         // $FlowIgnore
         note.insertHeading(newHeading, startPos, headingLevel)
-        logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
+        logDebug('userInput / processChosenHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
         headingToReturn = newHeading
       } else {
         throw new Error(`user cancelled operation`)
@@ -637,9 +637,11 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
       // ask for new heading, and then append it
       newHeading = await getInput(`Enter heading to add at the end of the note`)
       if (newHeading && typeof newHeading === 'string') {
+        const indexEndOfActive = findEndOfActivePartOfNote(note)
         const newLindeIndex = indexEndOfActive + 1
-        note.insertHeading(newHeading, newLindeIndex, headingLevel)
-        logDebug('userInput / chooseHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
+        // $FlowIgnore - headingLevel is a union type, and we've already checked it's a number
+        note.insertHeading(newHeading, newLindeIndex, headingLevel || 2)
+        logDebug('userInput / processChosenHeading', `appended new heading '${newHeading}' at line ${newLindeIndex}`)
         headingToReturn = newHeading
       } else {
         throw new Error(`user cancelled operation`)
@@ -647,12 +649,12 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
       break
 
     case '\u23eb (top of note)':
-      logDebug('userInput / chooseHeading', `selected top of note, rather than a heading`)
+      logDebug('userInput / processChosenHeading', `selected top of note, rather than a heading`)
       headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
       break
 
     case '\u23ec (bottom of note)':
-      logDebug('userInput / chooseHeading', `selected end of note, rather than a heading`)
+      logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
       headingToReturn = ''
       break
 
@@ -660,7 +662,6 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
       // if (headingToReturn.startsWith('➡️')) {
       //   headingToReturn = headingToReturn.slice(1)
       // }
-      logDebug('userInput / chooseHeading', `User picked existing heading number ${result.index + 1} ('${headingToReturn}') from ${headingStrings.length} ..`)
       break
   }
   return headingToReturn
