@@ -68305,7 +68305,6 @@ var RootBundle = (function (exports, React$1) {
   }) {
     const element = () => {
       const thisLabel = item.label || '?';
-      // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
       switch (item.type) {
         case 'switch':
           return /*#__PURE__*/React__default["default"].createElement(Switch, {
@@ -68315,7 +68314,6 @@ var RootBundle = (function (exports, React$1) {
             disabled: disabled,
             onChange: e => {
               if (item.key) {
-                logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked);
                 item.key && handleFieldChange(item.key, e.target.checked);
                 item.key && handleSwitchChange(item.key, e);
               }
@@ -68380,7 +68378,6 @@ var RootBundle = (function (exports, React$1) {
 
         case 'combo':
           {
-            logDebug('combo', `combo ${index} ${thisLabel} ${item.value || ''}`);
             return /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
               disabled: disabled,
               key: `cmb${index}`,
@@ -68581,7 +68578,7 @@ var RootBundle = (function (exports, React$1) {
     className,
     labelPosition = 'right',
     allowEmptySubmit = false,
-    isOpen,
+    isOpen = true,
     style,
     // Destructure style prop
     isModal = true,
@@ -68610,7 +68607,6 @@ var RootBundle = (function (exports, React$1) {
       items.forEach(item => {
         // $FlowFixMe[prop-missing]
         if (item.key) initialItemValues[item.key] = item.value ?? item.checked ?? item.default ?? '';
-        if (item.dependsOnKey) ;
       });
       return initialItemValues;
     }
@@ -68624,7 +68620,6 @@ var RootBundle = (function (exports, React$1) {
           logError('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`);
           return false;
         }
-        logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}`);
         return isThatKeyChecked;
       } else {
         // shouldn't get here
@@ -68636,7 +68631,6 @@ var RootBundle = (function (exports, React$1) {
       if (!item) return false;
       if (!item.dependsOnKey) return true;
       const yesRender = !item.dependsOnKey || !hideDependentItems || item.dependsOnKey && stateOfControllingSetting(item);
-      // logDebug('SettingsDialog/shouldRenderItem?', `${yesRender} -- item=${item?.key} dependsOnKey=${item.dependsOnKey} hideDependentItems=${hideDependentItems} stateOfControllingSetting=${item.dependsOnKey && stateOfControllingSetting(item) || ''}`)
       return yesRender;
     }
 
@@ -68662,9 +68656,8 @@ var RootBundle = (function (exports, React$1) {
     //----------------------------------------------------------------------
 
     const handleEscapeKey = event => {
-      logDebug('SettingsDialog', `Event.key: ${event.key}`);
       if (event.key === 'Escape') {
-        onCancel();
+        onCancel && onCancel();
       }
     };
     const handleEnterKey = event => {
@@ -68686,12 +68679,11 @@ var RootBundle = (function (exports, React$1) {
       });
     };
     const handleSave = () => {
-      clo(updatedSettingsRef.current, 'DynamicDialog/handleSave calling onSave with updatedSettings=');
       if (onSave) {
         onSave(updatedSettingsRef.current); // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
       }
 
-      logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettingsRef.current);
+      logDebug('Dashboard', `DynamicDialog saved updates`, updatedSettingsRef.current);
     };
     const handleDropdownOpen = () => {
       setTimeout(() => {
@@ -68735,12 +68727,10 @@ var RootBundle = (function (exports, React$1) {
     // Submit on Enter (unless submitOnEnter is set to false)
     React$1.useEffect(() => {
       if (isOpen) {
-        logDebug('DynamicDialog', 'Adding enter key event listener');
         document.addEventListener('keydown', handleEnterKey);
         document.addEventListener('keydown', handleEscapeKey);
       }
       return () => {
-        logDebug('DynamicDialog', 'Removing enter key event listener');
         document.removeEventListener('keydown', handleEnterKey);
         document.removeEventListener('keydown', handleEscapeKey);
       };
@@ -68795,7 +68785,7 @@ var RootBundle = (function (exports, React$1) {
     }, item.description)))));
     return isModal ? /*#__PURE__*/React__default["default"].createElement(Modal, {
       onClose: () => {
-        onCancel();
+        onCancel && onCancel();
       }
     }, dialogContents) : dialogContents;
   };

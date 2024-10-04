@@ -61,7 +61,6 @@ export function renderItem({
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
-    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
     switch (item.type) {
       case 'switch':
         return (
@@ -72,7 +71,6 @@ export function renderItem({
             disabled={disabled}
             onChange={(e) => {
               if (item.key) {
-                logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
                 item.key && handleFieldChange(item.key, e.target.checked)
                 item.key && handleSwitchChange(item.key, e)
               }
@@ -142,8 +140,6 @@ export function renderItem({
           />
         )
       case 'combo': {
-        logDebug('combo', `combo ${index} ${thisLabel} ${item.value || ''}`)
-
         return (
           <ThemedSelect
             disabled={disabled}

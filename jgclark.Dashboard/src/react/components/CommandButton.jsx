@@ -7,8 +7,8 @@
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, JSP } from '@helpers/react/reactDev.js'
-
+import { showDialog } from '@helpers/react/userInput'
+import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
 type ButtonProps = {
   button: TActionButton,
   onClick: (button: TActionButton) => void, // send this button info back up
@@ -26,26 +26,6 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
 
-  const closeDialog = () => {
-    setReactSettings((prev) => ({ ...prev, dynamicDialog: { isOpen: false } }))
-  }
-
-  const openDialog = (button: TActionButton) => {
-
-    setReactSettings((prev) => ({
-      ...prev,
-      dynamicDialog: {
-        isOpen: true,
-        title: button.tooltip,
-        items: button.formFields,
-        onSave: (userInputObj) => sendButtonAction(button,userInputObj),
-        onCancel: ()=>closeDialog(),
-        allowEmptySubmit: false,
-        hideDependentItems: true,
-        submitOnEnter: button.submitOnEnter ?? true,
-      },
-    }))
-  }
 
   const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
     sendActionToPlugin(button.actionPluginID, {
@@ -54,14 +34,15 @@ function CommandButton(inputObj: ButtonProps): React$Node {
       sectionCodes: button.postActionRefresh,
       userInputObj: userInputObj,
     })
-    closeDialog()
     onClick(button)
   }
 
-  const handleButtonClick = () => {
-    logDebug(`CommandButton`, `button clicked: ${button.display}`)
-    button.formFields && openDialog(button)
-    return
+  const handleButtonClick = async () => {
+    let userInputObj:TAnyObject = {}
+    if (button.formFields) { // show dialog to get user input if formFields are defined
+       userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter }) || {}
+    } 
+    sendButtonAction(button, userInputObj)
   }
 
   return (

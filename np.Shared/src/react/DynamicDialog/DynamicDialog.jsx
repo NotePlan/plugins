@@ -60,19 +60,21 @@ export type TSettingItem = {
 }
 
 export type TDynamicDialogProps = {
-  title: string,
+  // required props
   items: Array<TSettingItem>,
+  // optional props
+  onSave?: (updatedSettings: { [key: string]: any }) => void,
+  onCancel?: () => void,
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,
-  isOpen: boolean,
+  isOpen?: boolean,
+  title?: string,
   style?: Object, // Add style prop
   isModal?: boolean, // default is true, but can be overridden to run full screen
-  onSave?: (updatedSettings: { [key: string]: any }) => void,
-  onCancel: () => void,
   hideDependentItems?: boolean,
   submitOnEnter?: boolean,
-  children: React$Node, // children nodes (primarily for banner message)
+  children?: React$Node, // children nodes (primarily for banner message)
 }
 
 //--------------------------------------------------------------------------
@@ -86,7 +88,7 @@ const DynamicDialog = ({
   className,
   labelPosition = 'right',
   allowEmptySubmit = false,
-  isOpen,
+  isOpen = true,
   style, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
@@ -113,9 +115,6 @@ const DynamicDialog = ({
     items.forEach((item) => {
       // $FlowFixMe[prop-missing]
       if (item.key) initialItemValues[item.key] = item.value ?? item.checked ?? item.default ?? ''
-      if (item.dependsOnKey) {
-        // logDebug('SettingsDialog/initial state', `- ${item.key || ''} depends on ${item.dependsOnKey} to be true, whose initial state=${String(initialItemValues[item.dependsOnKey])}`) // ✅
-      }
     })
     return initialItemValues
   }
@@ -129,7 +128,6 @@ const DynamicDialog = ({
         logError('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
         return false
       }
-      logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}`)
       return isThatKeyChecked
     } else {
       // shouldn't get here
@@ -142,7 +140,6 @@ const DynamicDialog = ({
     if (!item) return false
     if (!item.dependsOnKey) return true
     const yesRender = !item.dependsOnKey || !hideDependentItems || item.dependsOnKey && stateOfControllingSetting(item)
-    // logDebug('SettingsDialog/shouldRenderItem?', `${yesRender} -- item=${item?.key} dependsOnKey=${item.dependsOnKey} hideDependentItems=${hideDependentItems} stateOfControllingSetting=${item.dependsOnKey && stateOfControllingSetting(item) || ''}`)
     return yesRender
   }
 
@@ -170,9 +167,8 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
 
   const handleEscapeKey = (event: KeyboardEvent) => {
-    logDebug('SettingsDialog', `Event.key: ${event.key}`)
     if (event.key === 'Escape') {
-      onCancel()
+      onCancel && onCancel()
     }
   }
 
@@ -193,11 +189,10 @@ const DynamicDialog = ({
   }
 
   const handleSave = () => {
-    clo(updatedSettingsRef.current, 'DynamicDialog/handleSave calling onSave with updatedSettings=')
     if (onSave) {
       onSave(updatedSettingsRef.current) // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
     }
-    logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettingsRef.current)
+    logDebug('Dashboard', `DynamicDialog saved updates`, updatedSettingsRef.current)
   }
 
   const handleDropdownOpen = () => {
@@ -240,13 +235,11 @@ const DynamicDialog = ({
   // Submit on Enter (unless submitOnEnter is set to false)
   useEffect(() => {
     if (isOpen) {
-      logDebug('DynamicDialog', 'Adding enter key event listener')
       document.addEventListener('keydown', handleEnterKey)
       document.addEventListener('keydown', handleEscapeKey)
     }
 
     return () => {
-      logDebug('DynamicDialog', 'Removing enter key event listener')
       document.removeEventListener('keydown', handleEnterKey)
       document.removeEventListener('keydown', handleEscapeKey)
     }
@@ -302,7 +295,7 @@ const DynamicDialog = ({
   return isModal ? (
     <Modal
       onClose={() => {
-        onCancel()
+        onCancel && onCancel()
       }}
     >
       {dialogContents}
