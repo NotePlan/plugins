@@ -538,7 +538,7 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
   }
 }
 
-export function updateDashboardIfOpen(): void {
+export async function updateDashboardIfOpen(): Promise<void> {
   // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
   // v1 (callback)
   // WARNING: This seems to cause the loss-of-files problem even when it is not called.
@@ -549,7 +549,14 @@ export function updateDashboardIfOpen(): void {
   // v2 (internal invoke plugin command)
   // Note: This works
   logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
-  const result = DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", []) // without await, as its not necessary
+  let result = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
+  // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
+  result = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
+}
+
+export function NOP(): void {
+  // do nothing!
+  logDebug('NOP', `A call to do nothing. Deliberately.`)
 }
 
 /**

@@ -42,6 +42,7 @@ export {
   logAllProjectsList,
   logFullReviewList,
 } from './reviewListHelpers'
+export { NOP } from './reviewHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {
   addProgressUpdate,

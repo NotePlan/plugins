@@ -1007,7 +1007,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      updateDashboardIfOpen()
+      await updateDashboardIfOpen()
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
     } else {
@@ -1174,7 +1174,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
-      updateDashboardIfOpen()
+      await updateDashboardIfOpen()
     } else {
       // Regenerate whole list and display
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
@@ -1308,7 +1308,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
-      updateDashboardIfOpen()
+      await updateDashboardIfOpen()
     }
   } catch (error) {
     logError('setNewReviewInterval', error.message)

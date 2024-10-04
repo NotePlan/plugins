@@ -255,7 +255,8 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
 }
 
 /**
- * Create xcallback link text for running a plugin
+ * Create xcallback link text for running a plugin.
+ * WARNING: Do not use this from a NP HTMLWindow, as it will likely trigger weird issues, as the active plugin's folder gets switched.
  * @author @dwertheimer
  * @param {string} pluginID - ID of the plugin from plugin.json
  * @param {boolean} commandName - the "name" of the command in plugin.json

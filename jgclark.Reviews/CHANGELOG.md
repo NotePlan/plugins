@@ -4,7 +4,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [1.0.0.b2] - 2024-10-04
 ### Fixed
 - '(Set) New Interval' button not working in top bar (thanks to @drb for spotting it)
-- Added possible workaround for the weird-layout-on-changing-a-toggle problem, for testing further. [Eduard: only change in reviewHelpers.js > updateDashboardIfOpen() ]
+- Added what I hope is a workaround for the weird-layout-on-changing-a-toggle problem, **for testing further**. [devs: see reviewHelpers.js > updateDashboardIfOpen()]
 
 ## [1.0.0.b1] - 2024-10-03
 ### New

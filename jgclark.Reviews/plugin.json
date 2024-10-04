@@ -151,6 +151,12 @@
     },
     {
       "hidden": true,
+      "name": "NOP",
+      "description": "no operation - testing way to stop losing plugin context",
+      "jsFunction": "NOP"
+    },
+    {
+      "hidden": true,
       "name": "toggleDisplayOnlyDue",
       "description": "callback entry point for toggleShowOnlyDue",
       "jsFunction": "toggleDisplayOnlyDue"

@@ -177,7 +177,7 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
     // Get all project notes as Project instances
     const projectInstances = await getAllMatchingProjects(configIn, runInForeground)
 
-    writeAllProjectsList(projectInstances)
+    await writeAllProjectsList(projectInstances)
     return projectInstances
   } catch (error) {
     logError('generateAllProjectsList', JSP(error))
@@ -185,7 +185,7 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
   }
 }
 
-export function writeAllProjectsList(projectInstances: Array<Project>): void {
+export async function writeAllProjectsList(projectInstances: Array<Project>): Promise<void> {
   try {
     logDebug('writeAllProjectsList', `starting`)
 
@@ -199,7 +199,7 @@ export function writeAllProjectsList(projectInstances: Array<Project>): void {
     if (res) {
       const reviewListDate = Date.now()
       DataStore.setPreference(generatedDatePrefName, reviewListDate)
-      updateDashboardIfOpen()
+      await updateDashboardIfOpen()
     } else {
       logWarn(`writeAllProjectsList`, `Seems to be a problem saving JSON to '${allProjectsListFilename}'`)
     }
@@ -225,7 +225,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
 
     // write to allProjects JSON file
     logDebug('updateProjectInAllProjectsList', `Writing ${allProjects.length} projects to ${allProjectsListFilename}`)
-    writeAllProjectsList(allProjects)
+    await writeAllProjectsList(allProjects)
   } catch (error) {
     logError('updateProjectInAllProjectsList', JSP(error))
   }
@@ -509,11 +509,11 @@ export async function updateProjectsListAfterChange(
       logInfo('updateProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
-    writeAllProjectsList(allProjects)
+    await writeAllProjectsList(allProjects)
     logInfo('updateProjectsListAfterChange', `- Wrote  ${allProjects.length} items toupdated list`)
 
     // Finally, refresh Dashboard
-    updateDashboardIfOpen()
+    await updateDashboardIfOpen()
   }
   catch (error) {
     logError('updateProjectsListAfterChange', JSP(error))
