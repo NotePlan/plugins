@@ -458,6 +458,7 @@ export function filterAndSortReviewList(linesIn: Array<string>, config: any): Ar
 
 /**
  * Update the allProjects list after completing a review or completing/cancelling a whole project.
+ * Will notify Dashboard to update itself.
  * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject.
  * @author @jgclark
  * @param {string} filename of note that has been reviewed
@@ -465,7 +466,7 @@ export function filterAndSortReviewList(linesIn: Array<string>, config: any): Ar
  * @param {any} config
 list (optional)
  */
-export async function updateProjectsListAfterChange(
+export async function updateAllProjectsListAfterChange(
   // reviewedTitle: string,
   reviewedFilename: string,
   simplyDelete: boolean,
@@ -475,7 +476,7 @@ export async function updateProjectsListAfterChange(
     if (reviewedFilename === '') {
       throw new Error('Empty filename passed')
     }
-    logInfo('updateProjectsListAfterChange', `--------- ${simplyDelete ? 'simplyDelete' : 'update'} for '${reviewedFilename}'`)
+    logInfo('updateAllProjectsListAfterChange', `--------- ${simplyDelete ? 'simplyDelete' : 'update'} for '${reviewedFilename}'`)
 
     // Get contents of full-review-list
     let allProjects = await getAllProjectsFromList()
@@ -483,40 +484,40 @@ export async function updateProjectsListAfterChange(
     // Find right project to update
     const reviewedProject = allProjects.find((project) => project.filename === reviewedFilename)
     if (!reviewedProject) {
-      logWarn('updateProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list, so will regenerate whole list.`)
+      logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list, so will regenerate whole list.`)
       await generateAllProjectsList(config, false)
       return
     }
 
     const reviewedTitle = reviewedProject.title ?? 'error'
-    logInfo('updateProjectsListAfterChange', `- Found '${reviewedTitle}' to update in allProjects list`)
+    logInfo('updateAllProjectsListAfterChange', `- Found '${reviewedTitle}' to update in allProjects list`)
 
     // delete this item from the list
     allProjects = allProjects.filter((project) => project.filename !== reviewedFilename)
-    logInfo('updateProjectsListAfterChange', `- Deleted Project '${reviewedTitle}'`)
+    logInfo('updateAllProjectsListAfterChange', `- Deleted Project '${reviewedTitle}'`)
 
     // unless we simply need to delete, add updated item back into the list
     if (!simplyDelete) {
       const reviewedNote = await DataStore.noteByFilename(reviewedFilename, "Notes")
       if (!reviewedNote) {
-        logWarn('updateProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
+        logWarn('updateAllProjectsListAfterChange', `Couldn't find '${reviewedFilename}' to update in allProjects list`)
         return
       }
-      // FIXME: stale data here
+      // FIXME: stale data here TEST: still a problem?
       const updatedProject = new Project(reviewedNote, reviewedProject.noteType, true, config.nextActionTag)
       clo(updatedProject, '🟡 updatedProject:')
       allProjects.push(updatedProject)
-      logInfo('updateProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
+      logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
     }
     // re-form the file
     await writeAllProjectsList(allProjects)
-    logInfo('updateProjectsListAfterChange', `- Wrote  ${allProjects.length} items toupdated list`)
+    logInfo('updateAllProjectsListAfterChange', `- Wrote  ${allProjects.length} items toupdated list`)
 
     // Finally, refresh Dashboard
     await updateDashboardIfOpen()
   }
   catch (error) {
-    logError('updateProjectsListAfterChange', JSP(error))
+    logError('updateAllProjectsListAfterChange', JSP(error))
   }
 }
 

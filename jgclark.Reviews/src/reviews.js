@@ -36,7 +36,7 @@ import {
   getSpecificProjectFromList,
   generateAllProjectsList,
   updateProjectInAllProjectsList,
-  // updateProjectsListAfterChange
+  // updateAllProjectsListAfterChange
 } from './reviewListHelpers'
 import {
   // calcDurationsForProject,
@@ -1007,7 +1007,6 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      await updateDashboardIfOpen()
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
     } else {
@@ -1163,7 +1162,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
     // const thisNoteAsProject = new Project(note)
     // const newMSL = thisNoteAsProject.TSVSummaryLine()
     // logDebug('skipReviewCoreLogic', `- updatedTSVSummaryLine => '${newMSL}'`)
-    // await updateProjectsListAfterChange(currentNote.filename, false, config, newMSL)
+    // await updateAllProjectsListAfterChange(currentNote.filename, false, config, newMSL)
     // v2: Try to find this project in allProjects, and update that as well
     let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
@@ -1174,7 +1173,6 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
-      await updateDashboardIfOpen()
     } else {
       // Regenerate whole list and display
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
@@ -1297,7 +1295,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
     // thisNoteAsProject.calcDurations()
     // thisNoteAsProject.calcNextReviewDate()
     // const newMSL = thisNoteAsProject.TSVSummaryLine()
-    // await updateProjectsListAfterChange(note.filename, false, config)
+    // await updateAllProjectsListAfterChange(note.filename, false, config)
     // v2:
     let thisNoteAsProject = await getSpecificProjectFromList(note.filename)
     if (thisNoteAsProject) {
@@ -1308,7 +1306,6 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       await updateProjectInAllProjectsList(thisNoteAsProject)
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
-      await updateDashboardIfOpen()
     }
   } catch (error) {
     logError('setNewReviewInterval', error.message)

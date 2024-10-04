@@ -1,6 +1,13 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.0.0.b3] - 2024-10-???
+### Fixed
+- ??? duplicate entries showing if more than one wanted hashtag is configured  (thanks to @drb for spotting it)
+- fix to display of projects with literally no tasks
+### New
+- new setting "???" to allow user to specify the folder to archive completed or cancelled Project notes to. The default remains the built-in Archive location in the sidebar.  (For @dvarlot.)
+
 ## [1.0.0.b2] - 2024-10-04
 ### Fixed
 - '(Set) New Interval' button not working in top bar (thanks to @drb for spotting it)
@@ -11,7 +18,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List. (This can be turned off if desired.) (Requested by @matt.)
 - if a 'next action' tag is set, then warn user if they're finishing a Review, and no next action tag is found. (Requested by @matt.)
 - added 'New Interval' buttons to the top bar and edit dialogs, to change the `@review(...)` interval.
-- added "Display only due?" and "Display finished?" toggles to window. FIXME: they work but currently trigger a long-standing bug in NP where some files get forgotten and the resulting display loses all its theming and formatting.
+- added "Display only due?" and "Display finished?" toggles to window. NB: they work but currently trigger a long-standing bug in NP where some files get forgotten and the resulting display loses all its theming and formatting.
 - added ⌘D and ⌘F shortcuts for changing the "Display only due?" and "Display finished?" toggles.
 
 ### Fixed

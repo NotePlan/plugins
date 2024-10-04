@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-09-30 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-04 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -777,9 +777,14 @@ export function generateProjectOutputLine(
   style: string,
 ): string {
   let output = ''
-  const thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
-  const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
-  const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks > 1) ? 'tasks' : 'task'})`
+  let statsProgress = ''
+  if (thisProject.percentComplete != null) {
+    const thisPercent = (isNaN(thisProject.percentComplete)) ? '0%' : ` ${thisProject.percentComplete}%`
+    const totalTasksStr = (thisProject.completedTasks + thisProject.openTasks).toLocaleString()
+    statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(thisProject.completedTasks + thisProject.openTasks !== 1) ? 'tasks' : 'task'})`
+  } else {
+    statsProgress = '(0 tasks)'
+  }
 
   if (style === 'Rich') {
     output = '\t<tr class="projectRow">\n\t\t'
@@ -794,7 +799,7 @@ export function generateProjectOutputLine(
     else if (thisProject.isPaused) {
       output += `<td class="first-col-indicator">${addFAIcon("fa-solid fa-circle-pause circle-icon", "#888888")}</td>`
     }
-    else if (isNaN(thisProject.percentComplete)) {
+    else if (thisProject.percentComplete == null || isNaN(thisProject.percentComplete)) {
       output += `<td class="first-col-indicator">${addFAIcon('fa-solid fa-circle circle-icon', '#888888')}</td>`
     }
     else if (thisProject.percentComplete === 0) {

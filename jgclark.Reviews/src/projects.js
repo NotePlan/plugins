@@ -13,14 +13,14 @@ import { Project, generateProjectOutputLine } from './projectClass'
 import {
   finishReview,
   renderProjectLists,
-  // updateProjectsListAfterChange,
+  // updateAllProjectsListAfterChange,
 } from './reviews'
 import {
   getReviewSettings,
   type ReviewConfig
 } from './reviewHelpers'
 import {
-  updateProjectsListAfterChange
+  updateAllProjectsListAfterChange
 } from './reviewListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
@@ -96,11 +96,11 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
 
         if (willArchive) {
           // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateProjectsListAfterChange(note.filename ?? '<error>', true, config)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
           // update the full-review-list, using the TSVSummaryLine
           // FIXME: remove newMSL implication
-          await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
         }
 
         // re-render the outputs (but don't focus)
@@ -194,11 +194,11 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
 
         if (willArchive) {
           // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateProjectsListAfterChange(note.filename ?? '<error>', true, config)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
           // update the full-review-list, using the TSVSummaryLine
           // FIXME: remove newMSL implication
-          await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
         }
 
         // re-render the outputs (but don't focus)
@@ -282,7 +282,7 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
         // update the full-review-list, using the TSVSummaryLine
         // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
         // FIXME: remove newMSL implication
-        await updateProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
+        await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)

@@ -2,13 +2,12 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 25.5.2024 for v0.16.0+ by @jgclark
+// last update 2024-10-04 for v0.16.0+ by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { isValidCalendarNoteFilenameWithoutExtension } from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
-// import { displayTitle } from '@helpers/general'
 import { clo, logInfo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
 import {
@@ -34,17 +33,35 @@ export type QCConfigType = {
 const relativeDates = getRelativeDates()
 
 /**
- * Get config settings
+ * Get QuickCapture settings
+ * @param {boolean} useDefaultsIfNecessary?
  * @author @jgclark
  */
-export async function getQuickCaptureSettings(): Promise<any> {
+export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = true): Promise<any> {
   try {
     // Get settings
-    const config: QCConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
+    let config: QCConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
 
     if (config == null || Object.keys(config).length === 0) {
-      await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      return
+      if (useDefaultsIfNecessary) {
+        logInfo('QuickCapture', 'No QuickCapture settings found, but will use defaults instead.')
+        await showMessage(`Cannot find settings for the 'QuickCapture' plugin. I will use defaults instead, but to avoid this, please install it in the Plugin Preferences.`)
+        config = {
+          inboxLocation: 'Inbox',
+          inboxTitle: 'Inbox',
+          textToAppendToTasks: '',
+          textToAppendToJots: '',
+          addInboxPosition: 'append',
+          headingLevel: 2,
+          journalHeading: '',
+          shouldAppend: false,
+          _logLevel: 'info',
+        }
+      } else {
+        logWarn('QuickCapture', 'No QuickCapture settings found')
+        await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it in the Plugin Preferences.`)
+        return
+      }
     } else {
       // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
       config.shouldAppend = (config.addInboxPosition === 'append')
@@ -135,7 +152,6 @@ export async function getNoteFromParamOrUser(
       if (noteTitleArgIsCalendarNote) {
         logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
         throw Error(`I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`)
-        return null
       }
 
       if (noteTitleArg !== '') {
@@ -144,7 +160,7 @@ export async function getNoteFromParamOrUser(
 
       const notesList = allNotesToUse.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
       const result = await CommandBar.showOptions(notesList, `Select note for new ${purpose}`)
-      if (typeof res1 !== 'boolean') {
+      if (typeof result !== 'boolean') {
         note = allNotesToUse[result.index]
       }
     }

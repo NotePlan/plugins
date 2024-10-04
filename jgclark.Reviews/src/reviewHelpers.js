@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-03 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-04 for v1.0.0.b2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -17,9 +17,7 @@ import {
   toISODateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import {
-  createRunPluginCallbackUrl, displayTitle,
-} from '@helpers/general'
+import { displayTitle } from '@helpers/general'
 import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import {
   findEndOfActivePartOfNote,
@@ -326,16 +324,16 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
 }
 
 /**
- * WARNING: DEPRECATED
+ * DEPRECATED -- and now no longer used, so commented out.
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
  * Note: Now declared v3.9.3 as minimum version, so we can use API function for this.
  */
 // eslint-disable-next-line no-unused-vars
-export async function saveEditorToCache(completed: any): Promise<void> {
-  logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-  await Editor.save()
-  logDebug('saveEditorToCache', '... done')
-}
+// export async function saveEditorToCache(completed: any): Promise<void> {
+//   logDebug('saveEditorToCache', 'waiting for Editor.save ...')
+//   await Editor.save()
+//   logDebug('saveEditorToCache', '... done')
+// }
 
 //-------------------------------------------------------------------------------
 /**
