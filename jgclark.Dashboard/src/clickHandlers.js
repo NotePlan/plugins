@@ -200,7 +200,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
     const config = await getDashboardSettings()
-    // clo(data, 'data for doAddItem', 2)
+    clo(data, 'data for doAddItem', 2)
     const { actionType, toFilename, sectionCodes, userInputObj } = data
     const { text, heading } = userInputObj||{}
 

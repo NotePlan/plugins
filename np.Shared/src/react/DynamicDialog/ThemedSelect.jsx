@@ -116,13 +116,23 @@ type Props = {
 export function ThemedSelect(props: Props): any {
   const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions } = props
 
+  const normalizeOption = (option: OptionType | string) => {
+    return typeof option === 'string' ? { label: option, value: option } : option
+  }
+
   // Normalize options to ensure they are in { label, value } format
   const normalizedOptions = options.map(option =>
-    typeof option === 'string' ? { label: option, value: option } : option
+    normalizeOption(option)
   )
 
   const findOption = (option: OptionType | string) => {
     return option ? normalizedOptions.find(opt => opt.value === (typeof option === 'string' ? option : option.value)) : undefined
+  }
+
+  const defaultValue = value ? findOption(value) : undefined
+  if (value && !defaultValue) {
+    const optionToAdd = normalizeOption(value)
+    normalizedOptions.unshift(optionToAdd)
   }
 
   colourStyles.option =  noWrapOptions ? (provided) => ({

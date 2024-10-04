@@ -222,14 +222,15 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         logDebug('getDataForDashboard', `No daily note found using filename '${thisFilename}'`)
       }
     }
-
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
-    const formFields: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
-    const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
-    if (headings.length) {
-      formFields.push({ type: 'combo', label: 'Under Heading:', key: 'heading', options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
-    }
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const todayHeadings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
+    const tomorrowHeadings = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true): []
+    const todayFormFields = formFieldsBase.concat(todayHeadings.length ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }] : [])
+    const tomorrowFormFields = formFieldsBase.concat(tomorrowHeadings.length ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }] : [])
+
     const section: TSection = {
       ID: sectionNum,
       name: 'Today',
@@ -250,7 +251,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
-          formFields: formFields,
+          formFields: todayFormFields,
           submitOnEnter: true,
         },
         {
@@ -258,8 +259,10 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           actionParam: thisFilename,
           actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
-          tooltip: "Add a checklist item to today's note",
+          tooltip: "add a checklist to today's note",
           postActionRefresh: ['DT'],
+          formFields: todayFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addTask',
@@ -268,14 +271,18 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a new task to tomorrow's note",
           postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
           actionParam: nextPeriodFilename,
           actionPluginID: `${pluginJson["plugin.id"]}`,
           display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
-          tooltip: "Add a checklist item to tomorrow's note",
+          tooltip: "add a checklist to tomorrow's note",
           postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'moveAllTodayToTomorrow',
@@ -698,7 +705,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to this week's note",
+          tooltip: "add a checklist to this week's note",
           display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['W'],
@@ -713,7 +720,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to next week's note",
+          tooltip: "add a checklist to next week's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
         },
@@ -847,7 +854,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to this month's note",
+          tooltip: "add a checklist to this month's note",
           display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['M'],
@@ -862,7 +869,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to next month's note",
+          tooltip: "add a checklist to next month's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ',
           actionParam: nextPeriodFilename,
         },
@@ -990,7 +997,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to this quarter's note",
+          tooltip: "add a checklist to this quarter's note",
           display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['Q']
@@ -1005,7 +1012,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         {
           actionName: 'addChecklist',
           actionPluginID: `${pluginJson["plugin.id"]}`,
-          tooltip: "Add a checklist item to next quarter's note",
+          tooltip: "add a checklist to next quarter's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarQuarterly" ></i> ',
           actionParam: nextPeriodFilename,
         },

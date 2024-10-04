@@ -256,7 +256,7 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
  * @param {number} headingLevel - if adding a heading, the H1-H5 level to set (as an integer)
- * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top>>' implies to write to the top (after any preamble or frontmatter).
+ * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top of note>>' implies to write to the top (after any preamble or frontmatter). Also <<bottom of note>>
  */
 export async function chooseHeading(
   note: TNote,
@@ -655,7 +655,7 @@ export async function processChosenHeading(note: TNote, headingLevel: number = 2
 
     case '\u23ec (bottom of note)':
       logDebug('userInput / processChosenHeading', `selected end of note, rather than a heading`)
-      headingToReturn = ''
+      headingToReturn = '<<bottom of note>>'
       break
 
     default:

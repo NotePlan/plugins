@@ -43337,15 +43337,23 @@ var RootBundle = (function (exports, React$1) {
       label,
       noWrapOptions
     } = props;
+    const normalizeOption = option => {
+      return typeof option === 'string' ? {
+        label: option,
+        value: option
+      } : option;
+    };
 
     // Normalize options to ensure they are in { label, value } format
-    const normalizedOptions = options.map(option => typeof option === 'string' ? {
-      label: option,
-      value: option
-    } : option);
+    const normalizedOptions = options.map(option => normalizeOption(option));
     const findOption = option => {
       return option ? normalizedOptions.find(opt => opt.value === (typeof option === 'string' ? option : option.value)) : undefined;
     };
+    const defaultValue = value ? findOption(value) : undefined;
+    if (value && !defaultValue) {
+      const optionToAdd = normalizeOption(value);
+      normalizedOptions.unshift(optionToAdd);
+    }
     colourStyles.option = noWrapOptions ? provided => ({
       ...provided,
       whiteSpace: 'nowrap',
