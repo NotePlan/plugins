@@ -1,18 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin v2
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-09-27 for v2.0.6+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TSection, TSectionItem } from './types'
+import { Project } from '../../jgclark.Reviews/src/projectClass.js'
+import type { TSectionItem } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
   getTodaysDateUnhyphenated,
   // toLocaleDateString,
 } from '@helpers/dateTime'
-// import { toNPLocaleDateString } from '@helpers/NPdateTime'
 
 const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
@@ -423,8 +423,9 @@ export const tagParasFromNote: Array<TSectionItem> = [
 
 //-----------------------------------------------------------
 // Notes to review
-export const nextProjectNoteItems: Array<TNote> = [
-  // $FlowIgnore[prop-missing]
+// Note: uses newer Project-based objects now, not the earlier TNote-based demo data
+export const nextProjectNoteItems: Array<Project> = [
+// $FlowIgnore[incompatible-type]
   {
     filename: 'CCC Projects/Facilities/Hearing Support.md',
     title: 'Hearing Support at CCC',
@@ -432,14 +433,14 @@ export const nextProjectNoteItems: Array<TNote> = [
     percentComplete: 23,
     lastProgressComment: "Checked our equipment and its OK; looking for acoustician"
   },
-  // $FlowIgnore[prop-missing]
+  // $FlowIgnore[incompatible-type]
   {
     filename: 'Home 🏠 Projects/Streamdeck setup.md',
     title: 'Streaming Platform',
     reviewInterval: "1w",
     percentComplete: 82,
   },
-  // $FlowIgnore[prop-missing]
+  // $FlowIgnore[incompatible-type]
   {
     filename: 'CCC Projects/Pastoral Cards.md',
     title: 'Pastoral Cards',
