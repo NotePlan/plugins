@@ -4,7 +4,7 @@
 // Last updated 2024-07-29 for v2.0.5 by @jgclark
 //--------------------------------------------------------------------------
 // InputBox.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { logDebug } from '@helpers/react/reactDev'
 
 type InputBoxProps = {
@@ -18,6 +18,7 @@ type InputBoxProps = {
   compactDisplay?: boolean,
   className?: string,
   disabled?: boolean,
+  focus?: boolean,
   step?: number, // Add step prop
 };
 
@@ -32,15 +33,24 @@ const InputBox = ({
   showSaveButton = true,
   compactDisplay,
   className = '',
-  step, // Remove default step value
+  focus,
+  step,
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
   const isNumberType = inputType === 'number'
+  const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
 
   useEffect(() => {
     setIsSaveEnabled(inputValue !== value)
   }, [inputValue, value])
+
+  useEffect(() => {
+    if (focus && inputRef.current) {
+      inputRef.current.focus() // Focus the input if focus is true
+      inputRef.current?.setSelectionRange(inputValue.length, inputValue.length) // Move cursor to the end
+    }
+  }, [focus, inputValue])
 
   const handleInputChange = (e: any) => {
     setInputValue(e.target.value)
@@ -59,6 +69,7 @@ const InputBox = ({
       <label className="input-box-label">{label}</label>
       <div className="input-box-wrapper">
         <input
+          ref={inputRef} // Attach the ref to the input element
           type={inputType}
           readOnly={readOnly}
           className={`input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`}

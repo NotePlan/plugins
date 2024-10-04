@@ -90,6 +90,7 @@ export function renderItem({
             key={`ibx${index}`}
             label={thisLabel}
             value={item.value || ''}
+            focus={item.focus || false}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
@@ -108,6 +109,7 @@ export function renderItem({
           <InputBox
             inputType="text"
             readOnly={true}
+            focus={item.focus || false}
             key={`ibxro${index}`}
             label={thisLabel}
             disabled={disabled}
@@ -123,6 +125,7 @@ export function renderItem({
           <InputBox
             inputType="number"
             key={`ibx${index}`}
+            focus={item.focus || false}
             label={thisLabel}
             value={item.value || ''}
             onChange={(e) => {
@@ -138,23 +141,27 @@ export function renderItem({
             step={item.step} // Pass the step prop
           />
         )
-      case 'combo':
+      case 'combo': {
+        logDebug('combo', `combo ${index} ${thisLabel} ${item.value || ''}`)
+
         return (
           <ThemedSelect
             disabled={disabled}
             key={`cmb${index}`}
             options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
-            value={{ label: item.value || '', value: item.value || '' }} // Ensure value is not undefined
+            value={item.value || item.default || undefined} // Ensure value is not undefined
             onChange={(selectedOption) => {
               const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
               item.key && handleFieldChange(item.key, value)
-              item.key && handleComboChange(item.key, selectedOption) // Pass the selected option
+              item.key && handleComboChange(item.key, value) // Pass the selected option
             }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
             label={item.label || ''}
+            noWrapOptions={item.noWrapOptions || false}
           />
         )
+      }
       case 'dropdown':
         return (
           <DropdownSelect

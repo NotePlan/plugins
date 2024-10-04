@@ -201,7 +201,8 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
   try {
     const config = await getDashboardSettings()
     // clo(data, 'data for doAddItem', 2)
-    const { actionType, toFilename, sectionCodes } = data
+    const { actionType, toFilename, sectionCodes, userInputObj } = data
+    const { text, heading } = userInputObj||{}
 
     logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCodes)}`)
     if (!toFilename) {
@@ -215,12 +216,14 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
       throw new Error(`calNoteDateStr isn't defined for ${toFilename}`)
     }
 
-    const content = await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
+    const content = text ?? await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
 
     // Add text to the new location in destination note
     const newHeadingLevel = config.newTaskSectionHeadingLevel
-    const headingToUse = config.newTaskSectionHeading
+    const headingToUse = heading ||config.newTaskSectionHeading
     // logDebug('doAddItem', `newHeadingLevel: ${newHeadingLevel}`)
+    
+    // FIXME: heading is not being used, need to read it or ask
 
     if (actionType === 'addTask') {
       addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)

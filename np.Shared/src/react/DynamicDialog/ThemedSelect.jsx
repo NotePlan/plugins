@@ -72,8 +72,8 @@ const colourStyles = {
   input: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor }),
   loadingIndicator: (styles: any) => ({ ...styles, color: '#00FF00' }),
   loadingMessage: (styles: any) => ({ ...styles, color: '#00FF00' }),
-  menu: (styles: any) => ({ ...styles, backgroundColor: lighterBG }),
-  menuList: (styles: any) => ({ ...styles, backgroundColor: lighterBG }),
+  menu: (styles: any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor ?? 'white' }),
+  menuList: (styles: any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor ?? 'white' }),
   menuPortal: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
   multiValue: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
   multiValueLabel: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
@@ -82,9 +82,10 @@ const colourStyles = {
   placeholder: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor, fontSize: '0.8rem', backgroundColor: NP_THEME.base.backgroundColor }),
   singleValue: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
   option: (styles: any, { isDisabled, isSelected }: { isDisabled: boolean, isSelected: boolean }) => {
+    // note wrapping the option will be updated later in the component
     return {
       ...styles,
-      ...menuStyles.base,
+      ...menuStyles,
       fontSize: '0.8rem',
       cursor: isDisabled ? 'not-allowed' : 'default',
       ':hover': {
@@ -103,21 +104,33 @@ type Props = {
   options: Array<OptionType | string>,
   onSelect?: Function,
   onChange?: Function,
-  value?: OptionType, // Use value instead of defaultValue
+  value?: OptionType | string, // Use value instead of defaultValue
   id?: string,
   compactDisplay?: boolean, // Add compactDisplay prop
   disabled?: boolean, // Add disabled prop
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop
   label?: string, // Add label prop
+  noWrapOptions?: boolean, // truncate, do not wrap the label
 }
 
 export function ThemedSelect(props: Props): any {
-  const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label } = props
+  const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions } = props
 
   // Normalize options to ensure they are in { label, value } format
   const normalizedOptions = options.map(option =>
     typeof option === 'string' ? { label: option, value: option } : option
   )
+
+  const findOption = (option: OptionType | string) => {
+    return option ? normalizedOptions.find(opt => opt.value === (typeof option === 'string' ? option : option.value)) : undefined
+  }
+
+  colourStyles.option =  noWrapOptions ? (provided) => ({
+      ...provided,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }) : colourStyles.option
 
   return (
     <div className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
@@ -127,7 +140,8 @@ export function ThemedSelect(props: Props): any {
           options={normalizedOptions}
           onSelect={onSelect}
           onChange={onChange}
-          value={value} // Use value instead of defaultValue
+          value={value ? findOption(value) : undefined} // Use value instead of defaultValue
+          defaultValue={value ? findOption(value) : undefined} // Just to be sure
           styles={colourStyles}
           autosize={true}
           isDisabled={disabled} // Use disabled prop

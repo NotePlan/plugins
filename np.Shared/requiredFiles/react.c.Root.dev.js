@@ -1961,14 +1961,23 @@ var RootBundle = (function (exports, React$1) {
     showSaveButton = true,
     compactDisplay,
     className = '',
-    step // Remove default step value
+    focus,
+    step
   }) => {
     const [inputValue, setInputValue] = React$1.useState(value);
     const [isSaveEnabled, setIsSaveEnabled] = React$1.useState(false);
     const isNumberType = inputType === 'number';
+    const inputRef = React$1.useRef(null); // Create a ref for the input element
+
     React$1.useEffect(() => {
       setIsSaveEnabled(inputValue !== value);
     }, [inputValue, value]);
+    React$1.useEffect(() => {
+      if (focus && inputRef.current) {
+        inputRef.current.focus(); // Focus the input if focus is true
+        inputRef.current?.setSelectionRange(inputValue.length, inputValue.length); // Move cursor to the end
+      }
+    }, [focus, inputValue]);
     const handleInputChange = e => {
       setInputValue(e.target.value);
       onChange(e);
@@ -1986,6 +1995,8 @@ var RootBundle = (function (exports, React$1) {
     }, label), /*#__PURE__*/React__default["default"].createElement("div", {
       className: "input-box-wrapper"
     }, /*#__PURE__*/React__default["default"].createElement("input", {
+      ref: inputRef // Attach the ref to the input element
+      ,
       type: inputType,
       readOnly: readOnly,
       className: `input-box-input ${isNumberType ? 'input-box-input-number' : ''} ${isNumberType && (step === undefined || step === 0) ? 'hide-step-buttons' : ''}`,
@@ -2057,15 +2068,13 @@ var RootBundle = (function (exports, React$1) {
           const style = window.getComputedStyle(currentEl);
           const overflowY = style.overflowY;
           const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight;
-          console.log('Checking element:', currentEl, 'overflowY:', overflowY, 'isScrollable:', isScrollable);
           if (isScrollable) {
             console.log('Found scrollable ancestor:', currentEl);
             return currentEl; // currentEl is HTMLElement here
           }
-        } else {
-          console.log('currentEl is not an HTMLElement');
         }
       }
+
       console.log('No scrollable ancestor found');
       return null;
     };
@@ -43205,7 +43214,7 @@ var RootBundle = (function (exports, React$1) {
   const menuStyles = getMenuStyles();
   const bgColor = chroma(NP_THEME.base.backgroundColor);
   const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black';
-  const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css();
+  chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css();
   const colourStyles = {
     clearIndicator: styles => ({
       ...styles,
@@ -43258,11 +43267,11 @@ var RootBundle = (function (exports, React$1) {
     }),
     menu: styles => ({
       ...styles,
-      backgroundColor: lighterBG
+      backgroundColor: NP_THEME.base.backgroundColor ?? 'white'
     }),
     menuList: styles => ({
       ...styles,
-      backgroundColor: lighterBG
+      backgroundColor: NP_THEME.base.backgroundColor ?? 'white'
     }),
     menuPortal: styles => ({
       ...styles,
@@ -43299,9 +43308,10 @@ var RootBundle = (function (exports, React$1) {
       isDisabled,
       isSelected
     }) => {
+      // note wrapping the option will be updated later in the component
       return {
         ...styles,
-        ...menuStyles.base,
+        ...menuStyles,
         fontSize: '0.8rem',
         cursor: isDisabled ? 'not-allowed' : 'default',
         ':hover': {
@@ -43324,7 +43334,8 @@ var RootBundle = (function (exports, React$1) {
       compactDisplay,
       disabled,
       inputRef,
-      label
+      label,
+      noWrapOptions
     } = props;
 
     // Normalize options to ensure they are in { label, value } format
@@ -43332,6 +43343,15 @@ var RootBundle = (function (exports, React$1) {
       label: option,
       value: option
     } : option);
+    const findOption = option => {
+      return option ? normalizedOptions.find(opt => opt.value === (typeof option === 'string' ? option : option.value)) : undefined;
+    };
+    colourStyles.option = noWrapOptions ? provided => ({
+      ...provided,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }) : colourStyles.option;
     return /*#__PURE__*/React__default["default"].createElement("div", {
       className: `${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`
     }, label && /*#__PURE__*/React__default["default"].createElement("label", {
@@ -43342,7 +43362,9 @@ var RootBundle = (function (exports, React$1) {
       options: normalizedOptions,
       onSelect: onSelect,
       onChange: onChange,
-      value: value // Use value instead of defaultValue
+      value: value ? findOption(value) : undefined // Use value instead of defaultValue
+      ,
+      defaultValue: value ? findOption(value) : undefined // Just to be sure
       ,
       styles: colourStyles,
       autosize: true,
@@ -68309,6 +68331,7 @@ var RootBundle = (function (exports, React$1) {
             key: `ibx${index}`,
             label: thisLabel,
             value: item.value || '',
+            focus: item.focus || false,
             onChange: e => {
               item.key && handleFieldChange(item.key, e.currentTarget.value);
               item.key && handleInputChange(item.key, e);
@@ -68325,6 +68348,7 @@ var RootBundle = (function (exports, React$1) {
           return /*#__PURE__*/React__default["default"].createElement(InputBox, {
             inputType: "text",
             readOnly: true,
+            focus: item.focus || false,
             key: `ibxro${index}`,
             label: thisLabel,
             disabled: disabled,
@@ -68338,6 +68362,7 @@ var RootBundle = (function (exports, React$1) {
           return /*#__PURE__*/React__default["default"].createElement(InputBox, {
             inputType: "number",
             key: `ibx${index}`,
+            focus: item.focus || false,
             label: thisLabel,
             value: item.value || '',
             onChange: e => {
@@ -68354,30 +68379,31 @@ var RootBundle = (function (exports, React$1) {
           });
 
         case 'combo':
-          return /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
-            disabled: disabled,
-            key: `cmb${index}`,
-            options: item.options ? item.options.map(option => typeof option === 'string' ? {
-              label: option,
-              value: option
-            } : option) : [] // Normalize options to ensure they are in { label, value } format
-            ,
-            value: {
-              label: item.value || '',
-              value: item.value || ''
-            } // Ensure value is not undefined
-            ,
-            onChange: selectedOption => {
-              const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
-              item.key && handleFieldChange(item.key, value);
-              item.key && handleComboChange(item.key, selectedOption); // Pass the selected option
-            },
+          {
+            logDebug('combo', `combo ${index} ${thisLabel} ${item.value || ''}`);
+            return /*#__PURE__*/React__default["default"].createElement(ThemedSelect, {
+              disabled: disabled,
+              key: `cmb${index}`,
+              options: item.options ? item.options.map(option => typeof option === 'string' ? {
+                label: option,
+                value: option
+              } : option) : [] // Normalize options to ensure they are in { label, value } format
+              ,
+              value: item.value || item.default || undefined // Ensure value is not undefined
+              ,
+              onChange: selectedOption => {
+                const value = selectedOption ? selectedOption.value : null; // Get the value from the selected option
+                item.key && handleFieldChange(item.key, value);
+                item.key && handleComboChange(item.key, value); // Pass the selected option
+              },
 
-            inputRef: inputRef // Pass inputRef
-            ,
-            compactDisplay: item.compactDisplay || false,
-            label: item.label || ''
-          });
+              inputRef: inputRef // Pass inputRef
+              ,
+              compactDisplay: item.compactDisplay || false,
+              label: item.label || '',
+              noWrapOptions: item.noWrapOptions || false
+            });
+          }
         case 'dropdown':
           return /*#__PURE__*/React__default["default"].createElement(DropdownSelect, {
             disabled: disabled,
@@ -68503,7 +68529,7 @@ var RootBundle = (function (exports, React$1) {
     }
   }
 
-  var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;overflow:hidden;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;overflow-y:auto;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);border-bottom:1px solid #ddd;display:flex;justify-content:space-between;padding:.3rem;position:relative}.dynamic-dialog-title{color:var(--tint-color);font-size:large;font-weight:600;left:50%;line-height:40px;position:absolute;text-align:center;transform:translateX(-50%)}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}}.dynamic-dialog .switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.dynamic-dialog .switch-input{margin:0}.dynamic-dialog .switch-label{color:var(--fg-alt-color);font-weight:500}.dynamic-dialog .input-box-container{align-items:left;display:flex;flex-direction:column}.dynamic-dialog .input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .input-box-wrapper{align-items:end;display:flex}.dynamic-dialog .input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.dynamic-dialog .input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.dynamic-dialog .input-box-input:read-only{background-color:inherit;border-color:var(--divider-color);outline:none}.dynamic-dialog .input-box-input:read-only:focus{border-color:var(--divider-color);box-shadow:none;outline:none}.dynamic-dialog .input-box-input-number{width:6rem}.hide-step-buttons::-webkit-inner-spin-button,.hide-step-buttons::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.hide-step-buttons{-moz-appearance:textfield}.dynamic-dialog .input-box-input:invalid{border:1px solid #faa}.dynamic-dialog .input-box-input:not(:read-only):focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.dynamic-dialog .input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.dynamic-dialog .input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dynamic-dialog .dropdown-container{display:flex;flex-direction:column}.dynamic-dialog .dropdown-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .dropdown-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dynamic-dialog .dropdown-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dynamic-dialog .dropdown-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dynamic-dialog .dropdown-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .dropdown-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.dropdown-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dropdown-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dropdown-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.dynamic-dialog-heading{color:var(--tint-color);font-size:large;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog .dynamic-dialog-header{background:none;color:var(--tint-color);font-size:large;font-weight:600;line-height:40px;margin:0}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}.dynamic-dialog .item-description{color:var(--fg-alt-color);font-size:small;opacity:.8}.dynamic-dialog .ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.dynamic-dialog .ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}.dynamic-dialog .disabled{opacity:.6}.dynamic-dialog .indent{margin-left:1rem}";
+  var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);border-bottom:1px solid #ddd;display:flex;justify-content:space-between;padding:.3rem;position:relative}.dynamic-dialog-title{color:var(--tint-color);font-size:large;font-weight:600;left:50%;line-height:40px;position:absolute;text-align:center;transform:translateX(-50%)}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}}.dynamic-dialog .switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.dynamic-dialog .switch-input{margin:0}.dynamic-dialog .switch-label{color:var(--fg-alt-color);font-weight:500}.dynamic-dialog .input-box-container{align-items:left;display:flex;flex-direction:column}.dynamic-dialog .input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .input-box-wrapper{align-items:end;display:flex}.dynamic-dialog .input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.dynamic-dialog .input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.dynamic-dialog .input-box-input:read-only{background-color:inherit;border-color:var(--divider-color);outline:none}.dynamic-dialog .input-box-input:read-only:focus{border-color:var(--divider-color);box-shadow:none;outline:none}.dynamic-dialog .input-box-input-number{width:6rem}.hide-step-buttons::-webkit-inner-spin-button,.hide-step-buttons::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.hide-step-buttons{-moz-appearance:textfield}.dynamic-dialog .input-box-input:invalid{border:1px solid #faa}.dynamic-dialog .input-box-input:not(:read-only):focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.dynamic-dialog .input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.dynamic-dialog .input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dynamic-dialog .dropdown-container{display:flex;flex-direction:column}.dynamic-dialog .dropdown-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .dropdown-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dynamic-dialog .dropdown-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dynamic-dialog .dropdown-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dynamic-dialog .dropdown-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .dropdown-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.dropdown-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dropdown-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dropdown-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.dynamic-dialog-heading{color:var(--tint-color);font-size:large;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog .dynamic-dialog-header{background:none;color:var(--tint-color);font-size:large;font-weight:600;line-height:40px;margin:0}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}.dynamic-dialog .item-description{color:var(--fg-alt-color);font-size:small;opacity:.8}.dynamic-dialog .ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.dynamic-dialog .ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}.dynamic-dialog .disabled{opacity:.6}.dynamic-dialog .indent{margin-left:1rem}";
   styleInject(css_248z$1);
 
   var css_248z = ".modal-backdrop{align-items:center;background-color:rgba(0,0,0,.5);bottom:0;display:flex;justify-content:center;left:0;position:fixed;right:0;top:0;z-index:100}.modal-backdrop>div{z-index:101}";
@@ -68564,7 +68590,8 @@ var RootBundle = (function (exports, React$1) {
     // caller needs to process the updated settings
     onCancel,
     // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
-    hideDependentItems
+    hideDependentItems,
+    submitOnEnter = true
   }) => {
     if (!isOpen) return null;
     const items = passedItems || [{
@@ -68624,6 +68651,10 @@ var RootBundle = (function (exports, React$1) {
     const dropdownRef = React$1.useRef(null);
     const [changesMade, setChangesMade] = React$1.useState(allowEmptySubmit);
     const [updatedSettings, setUpdatedSettings] = React$1.useState(getInitialItemStateObject(items));
+    const updatedSettingsRef = React$1.useRef(updatedSettings);
+    React$1.useEffect(() => {
+      updatedSettingsRef.current = updatedSettings;
+    }, [updatedSettings]);
     if (!updatedSettings) return null; // Prevent rendering before items are loaded
 
     //----------------------------------------------------------------------
@@ -68636,24 +68667,31 @@ var RootBundle = (function (exports, React$1) {
         onCancel();
       }
     };
+    const handleEnterKey = event => {
+      if (event.key === 'Enter' && submitOnEnter) {
+        event.preventDefault(); // Prevent default action if needed
+        handleSave(); // see the note below about why we use the ref inside of handleSave
+      }
+    };
+
     const handleFieldChange = (key, value) => {
       setChangesMade(true);
-      setUpdatedSettings(prevSettings => ({
-        ...prevSettings,
-        [key]: value
-      }));
-      clo({
-        ...updatedSettings,
-        [key]: value
-      }, `DynamicDialog/handleFieldChange ${key}=${value} updatedSettings=`);
+      setUpdatedSettings(prevSettings => {
+        const newSettings = {
+          ...prevSettings,
+          [key]: value
+        };
+        updatedSettingsRef.current = newSettings;
+        return newSettings;
+      });
     };
     const handleSave = () => {
+      clo(updatedSettingsRef.current, 'DynamicDialog/handleSave calling onSave with updatedSettings=');
       if (onSave) {
-        onSave(updatedSettings);
-        clo(updatedSettings, `DynamicDialog/handleSave updatedSettings=`);
+        onSave(updatedSettingsRef.current); // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
       }
-      // $FlowFixMe[cannot-spread-indexer]
-      logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings);
+
+      logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettingsRef.current);
     };
     const handleDropdownOpen = () => {
       setTimeout(() => {
@@ -68694,6 +68732,20 @@ var RootBundle = (function (exports, React$1) {
       };
     }, []);
 
+    // Submit on Enter (unless submitOnEnter is set to false)
+    React$1.useEffect(() => {
+      if (isOpen) {
+        logDebug('DynamicDialog', 'Adding enter key event listener');
+        document.addEventListener('keydown', handleEnterKey);
+        document.addEventListener('keydown', handleEscapeKey);
+      }
+      return () => {
+        logDebug('DynamicDialog', 'Removing enter key event listener');
+        document.removeEventListener('keydown', handleEnterKey);
+        document.removeEventListener('keydown', handleEscapeKey);
+      };
+    }, [isOpen, submitOnEnter]);
+
     //----------------------------------------------------------------------
     // Render
     //----------------------------------------------------------------------
@@ -68725,8 +68777,8 @@ var RootBundle = (function (exports, React$1) {
       item: {
         ...item,
         type: item.type,
-        value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
-        checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false
+        value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
+        checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true
       },
       disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
       indent: Boolean(item.dependsOnKey),

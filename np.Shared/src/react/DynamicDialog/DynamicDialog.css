@@ -16,7 +16,7 @@
     /* z-index: 1000; */
     opacity: 1;
     transition: opacity 0.2s ease-out;
-    overflow: hidden;
+    /* overflow: hidden; commented out to allow for dropdowns to show */
 }
 
 /* Ensure the settings dialog content is hidden when closed */
@@ -27,7 +27,7 @@
     background-color: var(--bg-mid-color);
     padding: 0.75rem 1.25rem;
     border-radius: 8px;
-    overflow-y: auto;
+    /* overflow-y: auto; commented out to allow for dropdowns to show*/
     max-height: 80vh;
 }
 

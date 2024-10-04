@@ -9,6 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
 import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
+import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
@@ -61,7 +62,7 @@ import {
   toNPLocaleDateString,
 } from '@helpers/NPdateTime'
 import { isNoteFromAllowedFolder } from '@helpers/note.js'
-import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
+import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
@@ -224,7 +225,11 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
-
+    const formFields: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
+    if (headings.length) {
+      formFields.push({ type: 'combo', label: 'Under Heading:', key: 'heading', options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
+    }
     const section: TSection = {
       ID: sectionNum,
       name: 'Today',
@@ -245,6 +250,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
+          formFields: formFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',

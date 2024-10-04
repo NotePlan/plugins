@@ -6,7 +6,7 @@
 //--------------------------------------------------------------------------
 /**
  * TODO:
- * - get ThemedSelect to pass onSelect to settings
+ * - get ThemedSelect to pass value if label/value has been set
  * - add "disabled" to all elements
  * - Dropdown always visible is not working
  * - Make dialog draggable?
@@ -55,6 +55,8 @@ export type TSettingItem = {
   compactDisplay?: boolean,
   dependsOnKey?: string, // only show/allow this field if the field named in dependsOnKey is true
   step?: number, // only applies to number type -- the increment/decrement amount
+  noWrapOptions?: boolean, // truncate, do not wrap the label (for combo)
+  focus?: boolean, // for input fields only, set focus to this field when dialog opens
 }
 
 export type TDynamicDialogProps = {
@@ -69,6 +71,7 @@ export type TDynamicDialogProps = {
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel: () => void,
   hideDependentItems?: boolean,
+  submitOnEnter?: boolean,
   children: React$Node, // children nodes (primarily for banner message)
 }
 
@@ -89,6 +92,7 @@ const DynamicDialog = ({
   onSave, // caller needs to process the updated settings
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
   hideDependentItems,
+  submitOnEnter = true,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || [
@@ -153,6 +157,11 @@ const DynamicDialog = ({
   const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
   const [changesMade, setChangesMade] = useState(allowEmptySubmit)
   const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
+  const updatedSettingsRef = useRef(updatedSettings)
+
+  useEffect(() => {
+    updatedSettingsRef.current = updatedSettings
+  }, [updatedSettings])
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
 
@@ -167,19 +176,28 @@ const DynamicDialog = ({
     }
   }
 
+  const handleEnterKey = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && submitOnEnter) {
+      event.preventDefault() // Prevent default action if needed
+      handleSave() // see the note below about why we use the ref inside of handleSave
+    }
+  }
+
   const handleFieldChange = (key: string, value: any) => {
     setChangesMade(true)
-    setUpdatedSettings((prevSettings) => ({ ...prevSettings, [key]: value }))
-    clo({ ...updatedSettings, [key]: value }, `DynamicDialog/handleFieldChange ${key}=${value} updatedSettings=`)
+    setUpdatedSettings((prevSettings) => {
+      const newSettings = { ...prevSettings, [key]: value }
+      updatedSettingsRef.current = newSettings
+      return newSettings
+    })
   }
 
   const handleSave = () => {
+    clo(updatedSettingsRef.current, 'DynamicDialog/handleSave calling onSave with updatedSettings=')
     if (onSave) {
-      onSave(updatedSettings)
-      clo(updatedSettings, `DynamicDialog/handleSave updatedSettings=`)
+      onSave(updatedSettingsRef.current) // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
     }
-    // $FlowFixMe[cannot-spread-indexer]
-    logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettings)
+    logDebug('Dashboard', `Dashboard Settings Panel updates`, updatedSettingsRef.current)
   }
 
   const handleDropdownOpen = () => {
@@ -219,6 +237,21 @@ const DynamicDialog = ({
     }
   }, [])
 
+  // Submit on Enter (unless submitOnEnter is set to false)
+  useEffect(() => {
+    if (isOpen) {
+      logDebug('DynamicDialog', 'Adding enter key event listener')
+      document.addEventListener('keydown', handleEnterKey)
+      document.addEventListener('keydown', handleEscapeKey)
+    }
+
+    return () => {
+      logDebug('DynamicDialog', 'Removing enter key event listener')
+      document.removeEventListener('keydown', handleEnterKey)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isOpen, submitOnEnter])
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -248,8 +281,8 @@ const DynamicDialog = ({
               item: {
                 ...item,
                 type: item.type,
-                value: typeof item.key === 'undefined' ? '' : typeof updatedSettings[item.key] === 'boolean' ? '' : updatedSettings[item.key],
-                checked: typeof item.key === 'undefined' ? false : typeof updatedSettings[item.key] === 'boolean' ? updatedSettings[item.key] : false,
+                value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
+                checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
               },
               disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
               indent: Boolean(item.dependsOnKey),

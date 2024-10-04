@@ -5,6 +5,8 @@
 //-----------------------------------------------------------------------------
 // Types for Settings
 
+import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
+
 export type TDashboardLoggingConfig = {
   _logLevel: string,
   _logTimer: boolean,
@@ -154,6 +156,8 @@ export type TActionButton = {
   actionParam: string /* NB: all have to be passed as a string for simplicity */,
   postActionRefresh?: Array<TSectionCode>,
   tooltip: string,
+  formFields?: Array<TSettingItem>,
+  submitOnEnter?: boolean,
 }
 
 export type TActionType =
@@ -240,6 +244,7 @@ export type MessageDataObject = {
   settings?: TAnyObject,
   filename?: string, /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */
   logMessage?: string,
+  userInputObj?: TAnyObject,
 }
 
 /**
@@ -292,21 +297,21 @@ export type TPluginData = {
 
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' 
 
-export type TSettingItem = {
-  type: TSettingItemType,
-  key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
-  value?: string,
-  label?: string,
-  checked?: boolean,
-  options?: Array<string>,
-  textType?: 'title' | 'description' | 'separator',
-  description?: string,
-  default?: any,
-  refreshAllOnChange?: boolean,
-  compactDisplay?: boolean,
-  controlsOtherKeys?: Array<string>,
-  dependsOnKey?: string,
-}
+// export type TSettingItem = {
+//   type: TSettingItemType,
+//   key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
+//   value?: string,
+//   label?: string,
+//   checked?: boolean,
+//   options?: Array<string>,
+//   textType?: 'title' | 'description' | 'separator',
+//   description?: string,
+//   default?: any,
+//   refreshAllOnChange?: boolean,
+//   compactDisplay?: boolean,
+//   controlsOtherKeys?: Array<string>,
+//   dependsOnKey?: string,
+// }
 
 export type TPluginCommandSimplified = {
   commandName: string,

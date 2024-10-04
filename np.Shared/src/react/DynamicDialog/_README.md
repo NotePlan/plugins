@@ -150,4 +150,71 @@ The following test data can be used to render the `DynamicDialog` and verify its
 
 ---
 
-This README provides a comprehensive overview of the `DynamicDialog` component, its data flow, and instructions for extending its functionality with new UI elements, including how dependencies are managed with the `dependsOn` property.
+## Use in Dashboard
+
+- In `dataGeneration.js`, add formFields to the button definition, like this:
+
+```javascript
+getTodaySectionData()
+...
+    const formFields: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text' }]
+
+    const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
+
+    if (headings.length) {
+      formFields.push({ type: 'combo', label: 'Under Heading:', key: 'heading', options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
+    }
+  ...
+        actionButtons: [
+        {
+          actionName: 'addTask',
+          actionParam: thisFilename,
+          actionPluginID: `${pluginJson["plugin.id"]}`,
+          display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+          tooltip: "Add a new task to today's note",
+          postActionRefresh: ['DT'],
+          formFields: formFields, // <---
+        },
+
+```
+
+Then CommandButton.jsx will use the formFields to create the dialog when clicked:
+```js
+  const handleButtonClick = () => {
+    ...
+     button.formFields && openDialog(button)
+
+```
+this opens the dialog by setting the reactSettings state.
+```js
+  const openDialog = (button: TActionButton) => {
+    setReactSettings((prev) => ({
+      ...prev,
+      dynamicDialog: {
+        isOpen: true,
+        submitOnEnter: button.submitOnEnter ?? true,
+        title: button.tooltip,
+        items: button.formFields,
+        onSave: (userInputObj) => sendButtonAction(button,userInputObj),
+        onCancel: ()=>closeDialog(),
+        allowEmptySubmit: false,
+        hideDependentItems: true,
+      },
+    }))
+  }
+```
+When the user clicks 'Save', the `sendButtonAction` is called with the object from the dialog:
+```js
+  const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
+    sendActionToPlugin(button.actionPluginID, {
+      actionType: button.actionName,
+      toFilename: button.actionParam,
+      sectionCodes: button.postActionRefresh,
+      userInputObj: userInputObj,
+    })
+    closeDialog()
+    onClick(button)
+  }
+```
+And userInputObj is passed to the plugin action.
+The keys/props in userInputObj are the keys in the formFields array.

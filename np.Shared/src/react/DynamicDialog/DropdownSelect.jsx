@@ -77,21 +77,11 @@ const DropdownSelect = ({
         const isScrollable =
           (overflowY === 'auto' || overflowY === 'scroll') &&
           currentEl.scrollHeight > currentEl.clientHeight
-        console.log(
-          'Checking element:',
-          currentEl,
-          'overflowY:',
-          overflowY,
-          'isScrollable:',
-          isScrollable
-        )
         if (isScrollable) {
           console.log('Found scrollable ancestor:', currentEl)
           return currentEl // currentEl is HTMLElement here
         }
-      } else {
-        console.log('currentEl is not an HTMLElement')
-      }
+      } 
     }
     console.log('No scrollable ancestor found')
     return null

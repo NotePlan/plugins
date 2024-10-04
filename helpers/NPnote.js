@@ -20,7 +20,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
-import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
 import { showMessage } from '@helpers/userInput'
@@ -565,7 +565,7 @@ export function findNotesMatchingHashtag(
         const correctedHashtags = getCorrectedHashtagsFromNote(n)
         // if (correctedHashtags.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `- ${n.filename}: has hashtags [${String(correctedHashtags)}]`)
         if (alsoSearchMentions) {
-        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+          // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
           return caseInsensitiveIncludes(tag, correctedHashtags) || caseInsensitiveIncludes(tag, n.mentions)
         } else {
           return caseInsensitiveIncludes(tag, correctedHashtags)
@@ -582,7 +582,12 @@ export function findNotesMatchingHashtag(
         }
       })
     }
-    if (projectNotesWithTag.length > 0) logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map(a => a.title ?? a.filename ?? '?'))}]`)
+    if (projectNotesWithTag.length > 0) {
+      logDebug(
+        'NPnote/findNotesMatchingHashtag',
+        `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`,
+      )
+    }
 
     // If we care about the excluded tag, then further filter out notes where it is found
     if (tagsToExclude.length > 0) {
@@ -644,4 +649,65 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
     projectNotesWithTags.push(projectNotesWithTag)
   }
   return projectNotesWithTags
+}
+/**
+ * Get list of headings from a note, optionally including markdown markers
+ * @author @dwertheimer (adapted from @jgclark)
+ *
+ * @param {TNote} note - note to get headings from
+ * @param {boolean} includeMarkdown - whether to include markdown markers in the headings
+ * @param {boolean} optionAddATopAndtBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
+ * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at top or bottom of note. Default: false.
+ * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
+ * @return {Array<string>}
+ */
+export function getHeadingsFromNote(
+  note: TNote,
+  includeMarkdown: boolean = false,
+  optionAddATopAndtBottom: boolean = true,
+  optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false,
+): Array<string> {
+  let headingStrings = []
+  const spacer = '#'
+  let headingParas: Array<TParagraph> = []
+  const indexEndOfActive = findEndOfActivePartOfNote(note)
+  if (includeArchive) {
+    headingParas = note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive)
+  } else {
+    headingParas = note.paragraphs.filter((p) => p.type === 'title')
+  }
+  if (headingParas.length > 0) {
+    if (headingParas[0].content === note.title) {
+      headingParas = headingParas.slice(1)
+    }
+  }
+  if (headingParas.length > 0) {
+    headingStrings = headingParas.map((p) => {
+      let prefix = ''
+      for (let i = 0; i < p.headingLevel; i++) {
+        prefix += spacer
+      }
+      return `${prefix} ${p.content}`
+    })
+  }
+  if (optionCreateNewHeading) {
+    if (note.type === 'Calendar') {
+      headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)')
+    } else {
+      headingStrings.unshift(`➕#️⃣ (first insert new heading under the title)`)
+    }
+    headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
+  }
+  if (optionAddATopAndtBottom) {
+    headingStrings.unshift('⏫ (top of note)')
+    headingStrings.push('⏬ (bottom of note)')
+  }
+  if (headingStrings.length === 0) {
+    return ['']
+  }
+  if (!includeMarkdown) {
+    headingStrings = headingStrings.map((h) => h.replace(/^#{1,5}\s*/, '')) // remove any markdown heading markers
+  }
+  return headingStrings
 }
