@@ -16,7 +16,7 @@ type ButtonProps = {
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
-  const { sendActionToPlugin, setReactSettings } = useAppContext()
+  const { sendActionToPlugin } = useAppContext()
   const { button, onClick } = inputObj
 
   // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
@@ -38,11 +38,13 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   }
 
   const handleButtonClick = async () => {
-    let userInputObj:TAnyObject = {}
+    let userInputObj:TAnyObject|null
     if (button.formFields) { // show dialog to get user input if formFields are defined
-       userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter }) || {}
-    } 
-    sendButtonAction(button, userInputObj)
+       userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter })
+       userInputObj ? sendButtonAction(button, userInputObj) : null
+    } else {
+      sendButtonAction(button, null)
+    }
   }
 
   return (

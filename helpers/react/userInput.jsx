@@ -11,7 +11,7 @@ import DynamicDialog, { type TDynamicDialogProps } from '../../np.Shared/src/rea
  * @param {TDynamicDialogProps} dialogProps - The properties to pass to the DynamicDialog component.
  * @returns {Promise<Object|null>} The user input object or null if canceled.
  */
-export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject> {
+export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject|null> {
     return new Promise((resolve) => {
         const container = document.createElement('div')
         if (document.body) {
@@ -29,7 +29,7 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
 
         const handleClose = () => {
             closeDialog()
-            resolve({})
+            resolve(null)
         }
 
         const handleSave = (userInputObj: Object) => {

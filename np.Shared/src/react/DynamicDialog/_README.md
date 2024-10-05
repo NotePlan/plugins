@@ -2,7 +2,61 @@
 
 ## Overview
 
-The `DynamicDialog` component is a flexible React component designed to render a dialog with various UI elements based on dynamic field definitions. It supports a variety of input types, including text, input, number, switch, combo, and dropdown, and allows for customization of display properties such as compactness and dependencies between fields.
+The `DynamicDialog` component is a flexible React component designed to render a modal dialog with various UI elements based on dynamic field definitions. It supports a variety of input types, including text, input, number, switch, combo, and dropdown, and allows for customization of display properties such as compactness and dependencies between fields. It can be used with "await" to get user input and returns a promise that resolves to the userInputObj, or null if the dialog is closed without saving, or it can be invoked in an asynchronous way without "await" using setReactSettings.
+
+## Using DynamicDialog
+
+There are two methods of invoking DynamicDialog:
+
+1. `showDialog()` (in @helpers/react/userInput.jsx)
+
+```js
+export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject|null> {
+```
+
+This pops up a dialog with the items defined in dialogProps.
+It returns a promise that resolves to the userInputObj, or null if the dialog is closed without saving. In this regard, it works somewhat like NotePlan's `CommandBar.showInput()`, but more flexible. The goal is eventually to use showDialog to build all the same types of dialogs that are used in the native NotePlan Command Bar.
+
+The simplest dialog:
+
+```js
+  const formFields = [{ type: 'input', label: 'Task:', key: 'text' }]
+  const userInputObj = await showDialog({ items: formFields, title: "Dialog Title" })
+```
+
+This would display a dialog with a single input field for a task with "Save" and "Cancel" buttons. Hitting cancel would return null. Hitting 'Save' would return an object like:
+
+```js
+  { text: 'A task' }
+```
+
+1. The other method to invoke DynamicDialog is using reactSettings to open a dialog in a more asynchronous way (not await). It assumes you have access to setReactSettings via useAppContext. [Note: this was the original way to open a dialog, but I think you will find showDialog() easier to use and understand/debug.]
+
+```js
+  const formFields = [{ type: 'input', label: 'Task:', key: 'text' }]
+    setReactSettings((prev) => ({
+      ...prev,
+      dynamicDialog: {
+        isOpen: true,
+        items: formFields,
+        title: "Dialog Title",
+        onSave: (userInputObj) => {
+          // handle the userInputObj
+        },
+        onCancel: () => {
+          // handle cancel (e.g. close dialog)
+          setReactSettings((prev) => ({
+            ...prev,
+            dynamicDialog: {
+              isOpen: false,
+            },
+          }))
+        }
+      }
+    }))
+```
+
+> **NOTE:** See all the fields in TDynamicDialogProps in DynamicDialog.jsx. These can be used to customize the dialog in both methods.
 
 ## Data Flow
 
@@ -23,7 +77,7 @@ The `DynamicDialog` component is a flexible React component designed to render a
 - **`dependsOn` Property**: The `dependsOn` property allows for conditional rendering of UI elements based on the state of another field. If a field has a `dependsOn` key, it will only be enabled and visible when the field it depends on is in a specific state (e.g., a switch is turned on).
 - **Indentation**: When a field has a `dependsOn` property, it is automatically indented to visually indicate its dependency on another field.
 
-## Adding a New UI Element
+## Adding a New UI Element to DynamicDialog
 
 To add a new UI element to the `DynamicDialog` component, follow these steps:
 
@@ -179,13 +233,16 @@ getTodaySectionData()
 ```
 
 Then CommandButton.jsx will use the formFields to create the dialog when clicked:
+
 ```js
   const handleButtonClick = () => {
     ...
      button.formFields && openDialog(button)
 
 ```
+
 this opens the dialog by setting the reactSettings state.
+
 ```js
   const openDialog = (button: TActionButton) => {
     setReactSettings((prev) => ({
@@ -203,7 +260,9 @@ this opens the dialog by setting the reactSettings state.
     }))
   }
 ```
+
 When the user clicks 'Save', the `sendButtonAction` is called with the object from the dialog:
+
 ```js
   const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
     sendActionToPlugin(button.actionPluginID, {
@@ -216,5 +275,6 @@ When the user clicks 'Save', the `sendButtonAction` is called with the object fr
     onClick(button)
   }
 ```
+
 And userInputObj is passed to the plugin action.
 The keys/props in userInputObj are the keys in the formFields array.
