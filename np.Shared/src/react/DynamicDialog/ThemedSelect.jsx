@@ -1,5 +1,5 @@
 // @flow
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import chroma from 'chroma-js'
 import { logDebug, clo } from '@helpers/react/reactDev'
@@ -52,8 +52,8 @@ const getMenuStyles = () => {
 const menuStyles = getMenuStyles()
 
 const bgColor = chroma(NP_THEME.base.backgroundColor)
-const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black'
-const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css()
+// const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black'
+// const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css()
 
 const colourStyles = {
   clearIndicator: (styles: any) => ({ ...styles, color: '#00FF00' }),
@@ -111,10 +111,13 @@ type Props = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop
   label?: string, // Add label prop
   noWrapOptions?: boolean, // truncate, do not wrap the label
+  focus?: boolean, // Add focus prop
 }
 
 export function ThemedSelect(props: Props): any {
-  const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions } = props
+  const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions, focus } = props
+
+  const [wasFocused, setWasFocused] = useState(false)
 
   const normalizeOption = (option: OptionType | string) => {
     return typeof option === 'string' ? { label: option, value: option } : option
@@ -141,6 +144,14 @@ export function ThemedSelect(props: Props): any {
       overflow: 'hidden',
       textOverflow: 'ellipsis'
     }) : colourStyles.option
+
+  // Focus the input when the component mounts if focus is true
+  useEffect(() => {
+    if (focus && !wasFocused && inputRef?.current) {
+      inputRef.current.focus()
+      setWasFocused(true)
+    }
+  }, [focus, inputRef])
 
   return (
     <div className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>

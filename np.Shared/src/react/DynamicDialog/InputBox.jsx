@@ -38,6 +38,7 @@ const InputBox = ({
 }: InputBoxProps): React$Node => {
   const [inputValue, setInputValue] = useState(value)
   const [isSaveEnabled, setIsSaveEnabled] = useState(false)
+  const [wasFocused, setWasFocused] = useState(false)
   const isNumberType = inputType === 'number'
   const inputRef = useRef<?HTMLInputElement>(null) // Create a ref for the input element
 
@@ -46,9 +47,10 @@ const InputBox = ({
   }, [inputValue, value])
 
   useEffect(() => {
-    if (focus && inputRef.current) {
+    if (focus && !wasFocused && inputRef.current) {
       inputRef.current.focus() // Focus the input if focus is true
       inputRef.current?.setSelectionRange(inputValue.length, inputValue.length) // Move cursor to the end
+      setWasFocused(true)
     }
   }, [focus, inputValue])
 
