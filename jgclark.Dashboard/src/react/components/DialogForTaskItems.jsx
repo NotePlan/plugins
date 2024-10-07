@@ -166,7 +166,15 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const closeDialog = (forceClose: boolean = false) => {
     console.log('DialogForTaskItems 🥸 closeDialog() reactSettings; looking for interactiveProcessing', reactSettings)
     if (reactSettings?.interactiveProcessing) {
-      handleIPItemProcessed(false)
+      if (forceClose) {
+        setReactSettings(prevSettings => ({
+          ...prevSettings,
+          interactiveProcessing: null,
+          dialogData: { isOpen: false, isTask: true },
+        }))
+      } else {
+        handleIPItemProcessed(false)
+      }
     } else {
       // Start the zoom-out animation
       console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
@@ -372,10 +380,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                   {itemsHaveBeenSkipped() && (<button className="skip-button" onClick={() => handleSkipClick(false)} title="Skip this item">
                     <i className="fa-solid fa-backward"></i>
                   </button>)}
-
-                  <button className="skip-button" onClick={() => handleSkipClick(true)} title="Skip this item">
-                    <i className="fa-solid fa-forward"></i>
-                  </button>
                   {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
                   {/* <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: "3px" }}> */}
                   <span>
@@ -386,6 +390,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                   <span>
                     {totalTasks}
                   </span>
+                  <button className="skip-button" onClick={() => handleSkipClick(true)} title="Skip this item">
+                    <i className="fa-solid fa-forward"></i>
+                  </button>
                 </span>
               </>
             )}

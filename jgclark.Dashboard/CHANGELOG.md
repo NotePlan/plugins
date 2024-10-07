@@ -12,6 +12,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - added version number to end of Settings dialog
 - improved details in title of project dialogs
 - got the linkage between settings items partly working again -- FIXME: though its not updating live
+- fixed Interactive Processing bug on close dialog-click
+- change button order of skip buttons in Interactive Processing dialog
 
 ## [Perspectives.a11] @jgc, 2024-09-19
 - added `isAChild` logic, a new marker icon to show children, and a new "Show parent/child markers on items?" setting.
