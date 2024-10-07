@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-09-29 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-06 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -39,7 +39,7 @@ import { sortListBy } from '@helpers/sorting'
 
 // Settings
 const pluginID = 'jgclark.Reviews'
-const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
+// const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
@@ -83,7 +83,7 @@ export async function logAllProjectsList(): Promise<void> {
 }
 
 /**
- * Return all projects as Project instances, that match config items 'noteTypeTags'.
+ * Return all projects as Project instances, that match config items 'projectTypeTags'.
  * @author @jgclark
  * @param {any} configIn
  * @param {boolean} runInForeground?
@@ -94,7 +94,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
   if (!config) throw new Error('No config found. Stopping.')
 
-  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.noteTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
+  logDebug('getAllMatchingProjects', `Starting for tags [${String(config.projectTypeTags)}], running in ${runInForeground ? 'foreground' : 'background'}`)
   const startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
   // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
@@ -134,9 +134,9 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
   const projectInstances = []
   for (const folder of filteredFolderList) {
     // Either we have defined tag(s) to filter and group by, or just use []
-    const tags = config.noteTypeTags != null && config.noteTypeTags.length > 0 ? config.noteTypeTags : []
+    const tags = config.projectTypeTags != null && config.projectTypeTags.length > 0 ? config.projectTypeTags : []
 
-    // Get notes that include noteTag in this folder, ignoring subfolders
+    // Get notes that include projectTag in this folder, ignoring subfolders
     // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
     for (const tag of tags) {
       logDebug('getAllMatchingProjects', `looking for tag '${tag}' in project notes in folder '${folder}'...`)
@@ -161,7 +161,7 @@ async function getAllMatchingProjects(configIn: any, runInForeground: boolean = 
 }
 
 /**
- * Generate JSON representation of all project notes as Project objects that match the main folder and 'noteTypeTags' settings.
+ * Generate JSON representation of all project notes as Project objects that match the main folder and 'projectTypeTags' settings.
  * Not ordered in any particular way.
  * Output is written to file location set by `allProjectsListFilename`.
  * Note: This is V1 for JSON, borrowing from makeFullReviewList v3
@@ -300,15 +300,21 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 }
 
 /**
- * Filter and sort the list of Projects. Used by renderProjectLists()
+ * Filter and sort the list of Projects. Used by renderProjectLists().
  * @param {ReviewConfig} config 
+ * @param {string?} projectTag to filter by (optional)
  * @returns 
  */
-export async function filterAndSortProjectsList(config: ReviewConfig): Promise<Array<Project>> {
+export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
   try {
     // const startTime = new Date()
     let projectInstances = await getAllProjectsFromList()
-    logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects ...`)
+    logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects with tag '${projectTag}' ...`)
+
+    // Filter out projects that are not tagged with the projectTag
+    if (projectTag !== '') {
+      projectInstances = projectInstances.filter((pi) => pi.projectTag === projectTag)
+    }
 
     // Filter out finished projects if required
     const displayFinished = config.displayFinished ?? false
@@ -358,99 +364,6 @@ export async function filterAndSortProjectsList(config: ReviewConfig): Promise<A
   catch (error) {
     logError('filterAndSortProjectsList', `error: ${error.message}`)
     return []
-  }
-}
-
-/**
- * Take a set of TSVSummaryLines, filter if required by 'displayFinished' setting, sort them according to config, and then add frontmatter
- * Note: this isn't a very sensible way of operating: in/out of TSV.
- * @param {Array<string>} linesIn
- * @param {any} config
- * @returns {Array<string>} outputArray
- */
-export function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<string> {
-  try {
-    logDebug('filterAndSortReviewList', `Starting with ${linesIn.length} lines`)
-    const outputArray = []
-    let lineArrayObjs = []
-
-    // turn each TSV string into an object
-    for (const line of linesIn) {
-      const fields = line.split('\t')
-      lineArrayObjs.push({
-        reviewDays: fields[0],
-        dueDays: fields[1],
-        title: fields[2],
-        folder: fields[3],
-        tags: fields[4],
-        state: fields[5],
-      })
-    }
-
-    // Filter out finished projects if required
-    // const displayFinished = DataStore.preference('Reviews-displayFinished' ?? 'display at end')
-    const displayFinished = config.displayFinished ?? 'display at end'
-    if (displayFinished === 'hide') {
-      lineArrayObjs = lineArrayObjs.filter((lineObj) => !lineObj.state.match('finished'))
-    }
-
-    // Sort projects
-    // Method 3: use DW fieldSorter() function
-    // Requires turning each TSV line into an Object (above)
-    const sortingSpecification = []
-    if (config.displayGroupedByFolder) {
-      sortingSpecification.push('folder')
-    }
-    switch (config.displayOrder) {
-      case 'review': {
-        sortingSpecification.push('reviewDays')
-        break
-      }
-      case 'due': {
-        sortingSpecification.push('dueDays')
-        break
-      }
-      case 'title': {
-        sortingSpecification.push('title')
-        break
-      }
-    }
-    if (displayFinished === 'display at end') {
-      sortingSpecification.push('state') // i.e. 'active' before 'finished'
-    }
-
-    // Method 2: use lodash _.orderBy() function
-    // Requires turning each TSV line into an Object (above)
-    // Note: Crashes for some reason neither DW or I can understand.
-    // clo(lineArrayObjs, "Before orderBy")
-    // if (lineArrayObjs) {
-    //   lineArrayObjs = orderBy(lineArrayObjs, ['folder', 'reviewDays'], ['asc', 'asc'])
-    //   clo(lineArrayObjs, "After orderBy")
-    // }
-    // // turn lineArrayObjs back to a TSV string
-    // for (let lineObj of lineArrayObjs) {
-    //   outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
-    // }
-
-    logDebug('filterAndSortReviewList', `- sorting by ${String(sortingSpecification)} ...`)
-    const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
-
-    // turn each lineArrayObj back to a TSV string
-    for (const lineObj of sortedlineArrayObjs) {
-      outputArray.push(`${lineObj.reviewDays}\t${lineObj.dueDays}\t${lineObj.title}\t${lineObj.folder}\t${lineObj.tags}\t${lineObj.state}`)
-    }
-
-    // Write some metadata to start
-    outputArray.unshift('---')
-    outputArray.unshift(`key: reviewDays\tdueDays\ttitle\tfolder\ttags\tstate`)
-    outputArray.unshift(`date: ${moment().format()}`)
-    outputArray.unshift('title: full-review-list')
-    outputArray.unshift('---')
-
-    return outputArray
-  } catch (error) {
-    logError('filterAndSortReviewList', error.message)
-    return [] // for completeness
   }
 }
 
@@ -504,7 +417,7 @@ export async function updateAllProjectsListAfterChange(
         return
       }
       // FIXME: stale data here TEST: still a problem?
-      const updatedProject = new Project(reviewedNote, reviewedProject.noteType, true, config.nextActionTag)
+      const updatedProject = new Project(reviewedNote, reviewedProject.projectTag, true, config.nextActionTag)
       clo(updatedProject, '🟡 updatedProject:')
       allProjects.push(updatedProject)
       logInfo('updateAllProjectsListAfterChange', `- Added Project '${reviewedTitle}'`)
@@ -525,8 +438,7 @@ export async function updateAllProjectsListAfterChange(
 
 /**
  * Work out the next note to review (if any).
- * It assumes the full-review-list is sorted by nextReviewDate (earliest to latest).
- * Note: v2, using the allProjects JSON file (not ordered but detailed)
+ * Note: v2, using the allProjects JSON file (not ordered but detailed), rather than the older full-review-list
  * Note: there is now a multi-note variant of this below
  * @author @jgclark
  * @return { ?TNote } next note to review (if any)
@@ -536,7 +448,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     // logDebug('getNextNoteToReview', `Starting ...`)
     const config: ReviewConfig = await getReviewSettings()
 
-    // Get contents of allProjects list
+    // Get all available Projects -- not filtering by projectTag here
     const allProjectsSorted = await filterAndSortProjectsList(config)
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
@@ -544,7 +456,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
       return null
     }
 
-    // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays), and not complete
+    // Now read from the top until we find an item with 'nextReviewDays' <= 0, and not complete
     for (let i = 0; i < allProjectsSorted.length; i++) {
       const thisProject = allProjectsSorted[i]
       const thisNoteFilename = thisProject.filename ?? 'error'
@@ -585,7 +497,7 @@ export async function getNextProjectsToReview(numToReturn: number = 6): Promise<
     logDebug(pluginJson, `Starting getNextProjectsToReview(${String(numToReturn)})) ...`)
     const config: ReviewConfig = await getReviewSettings()
 
-    // Get contents of allProjects list
+    // Get all available Projects -- not filtering by projectTag here
     const allProjectsSorted = await filterAndSortProjectsList(config)
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
@@ -593,9 +505,8 @@ export async function getNextProjectsToReview(numToReturn: number = 6): Promise<
       return []
     }
 
-    // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays),
-    // and not complete (has a tag of 'finished'),
-    // and not the same as the previous line (which can legitimately happen).
+    // Now read from the top until we find an item with 'nextReviewDays' <= 0, and not complete,
+    // and not the same as the previous item (which used to happen legitimately).
     // Continue until we have found up to numToReturn such notes.
     const projectsToReview: Array<Project> = []
     let lastFilename = ''

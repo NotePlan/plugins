@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 9.6.2024 for v1.1.0+
+// last updated 2024-10-07 for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -13,11 +13,14 @@ import { displayTitle } from '@helpers/general'
 //-----------------------------------------------------------------------------
 
 /**
- * Archive a note using its current folder, replicating the folder structure if needed.
+ * Archive a note using its current folder, replicating the folder structure if needed. If no TNote object is passed in, then archive the note in the open Editor.
+ * Added 'archiveRootFolder', which if supplied, archives under that folder, otherwise defaults to the special @Archive folder.
+ * TODO: As this is used by Filer and Reviews plugins, this should be moved to helpers/NPnote.js
  * @param {TNote?} noteIn (optional)
  * @returns {string | void} newFilename, if success
+ * @returns {string?} archiveRootFolder (optional)
  */
-export function archiveNoteUsingFolder(noteIn?: TNote): string | void {
+export function archiveNoteUsingFolder(noteIn?: TNote, archiveRootFolder?: string): string | void {
   try {
     let note: TNote | null
     if (noteIn && (typeof noteIn === "object")) {
@@ -45,15 +48,13 @@ export function archiveNoteUsingFolder(noteIn?: TNote): string | void {
     const currentFolder = getFolderFromFilename(currentFilename)
     logDebug('archiveNoteUsingFolder', `- currentFolder: ${currentFolder}`)
     // Work out requested archived filename
-    const archiveFolderToMoveTo = `@Archive/${currentFolder}`
+    const archiveFolderToMoveTo = archiveRootFolder ? `${archiveRootFolder}/${currentFolder}` : `@Archive/${currentFolder}`
     logDebug('archiveNoteUsingFolder', `- archiveFolderToMoveTo: ${archiveFolderToMoveTo}`)
 
     // Check if this folder structure is already set up under @Archive
 
-    // Use DataStore.createFolder to create these folders
-
     // Move note to this new location.
-    // (Handily, NP does the work of creating any necessary missing folders.)
+    // (Handily, NP does the work of creating any necessary missing folders. No need to use DataStore.moveFolder here.)
     // Good news: creation date now doesn't change here
     const newFilename = DataStore.moveNote(currentFilename, archiveFolderToMoveTo)
     if (newFilename) {

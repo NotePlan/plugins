@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-04 for v1.0.0.b2, @jgclark
+// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ export type ReviewConfig = {
   folderToStore: string,
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
-  noteTypeTags: Array<string>,
+  projectTypeTags: Array<string>,
   displayDates: boolean,
   displayProgress: boolean,
   displayOrder: string,
@@ -56,12 +56,12 @@ export type ReviewConfig = {
   width: number,
   height: number,
   archiveUsingFolderStructure: boolean,
+  archiveFolder: string,
   removeDueDatesOnPause: boolean,
   nextActionTag: string,
   displayNextActions: boolean,
   _logLevel: string,
   _logTimer: boolean,
-  _logLevel: string,
 }
 
 /**
@@ -548,10 +548,13 @@ export async function updateDashboardIfOpen(): Promise<void> {
   // Note: This works
   logInfo('updateDashboardIfOpen', `about to invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])`)
   let result = await DataStore.invokePluginCommandByName("refreshProjectSection", "jgclark.Dashboard", [])
+
   // Now trying a null call to this plugin, to see if we can switch the window context back to Reviews
+  // Note: commenting out to test the b1265 fix. Seems to work now, but leaving in for a few releases in case.
   result = await DataStore.invokePluginCommandByName("NOP", "jgclark.Reviews", [])
 }
 
+// TODO: Can remove in time
 export function NOP(): void {
   // do nothing!
   logDebug('NOP', `A call to do nothing. Deliberately.`)

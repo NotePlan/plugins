@@ -1,12 +1,12 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-## [1.0.0.b3] - 2024-10-???
+## [1.0.0.b3] - 2024-10-07
 ### Fixed
-- ??? duplicate entries showing if more than one wanted hashtag is configured  (thanks to @drb for spotting it)
+- duplicate entries showing if more than one wanted hashtag is configured  (thanks to @drb for spotting it)
 - fix to display of projects with literally no tasks
 ### New
-- new setting "???" to allow user to specify the folder to archive completed or cancelled Project notes to. The default remains the built-in Archive location in the sidebar.  (For @dvarlot.)
+- new setting "Folder to Archive completed/cancelled project notes to". The default remains the built-in Archive location in the sidebar.  (For @dvarlot.)
 
 ## [1.0.0.b2] - 2024-10-04
 ### Fixed

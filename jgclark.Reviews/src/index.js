@@ -63,7 +63,8 @@ export {
   testCSSCircle,
   testRedToGreenInterpolation,
 } from './HTMLtests'
-export { onMessageFromHTMLView } from './pluginToHTMLBridge' // TODO: is this needed?
+export { onMessageFromHTMLView } from './pluginToHTMLBridge' 
+
 const pluginID = 'jgclark.Reviews'
 
 export function init(): void {

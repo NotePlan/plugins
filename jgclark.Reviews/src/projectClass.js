@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Project class definition for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-04 for v1.0.0.b3, @jgclark
+// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 // Import Helper functions
@@ -66,7 +66,7 @@ export class Project {
   filename: string
   folder: string
   metadataParaLineIndex: number
-  noteType: string // #project, #area, etc.
+  projectTag: string // #project, #area, etc.
   title: string
   startDate: ?Date
   dueDate: ?Date
@@ -93,7 +93,7 @@ export class Project {
   nextActionRawContent: string = ''
   ID: string // required when making HTML views
 
-  constructor(note: TNote, noteTypeTag: string = '', checkEditor: boolean = true, nextActionTag: string = '') {
+  constructor(note: TNote, projectTypeTag: string = '', checkEditor: boolean = true, nextActionTag: string = '') {
     try {
       const startTime = new Date()
       if (note == null || note.title == null) {
@@ -101,7 +101,7 @@ export class Project {
       }
       this.title = note.title
       this.filename = note.filename
-      // logDebug('Project', `Starting for type ${noteTypeTag}, ${this.filename}`)
+      // logDebug('Project', `Starting for type ${projectTypeTag}, ${this.filename}`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -138,20 +138,20 @@ export class Project {
         hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
       }
 
-      // work out noteType:
-      // - if noteTypeTag given, then use that
+      // work out projectTag:
+      // - if projectTypeTag given, then use that
       // - else first or second hashtag in note
       try {
-        this.noteType = (noteTypeTag)
-          ? noteTypeTag
+        this.projectTag = (projectTypeTag)
+          ? projectTypeTag
           : (hashtags[0] !== '#paused')
             ? hashtags[0]
             : (hashtags[1])
               ? hashtags[1]
               : ''
       } catch (e) {
-        this.noteType = ''
-        logWarn('Project', `- found no noteType for '${this.title}' in folder ${this.folder}`)
+        this.projectTag = ''
+        logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
 
       // read in various metadata fields (if present)
@@ -245,7 +245,7 @@ export class Project {
       }
 
       if (this.title.includes('(TEST)')) {
-        logDebug('Project', `Constructed ${this.noteType} ${this.filename}:`)
+        logDebug('Project', `Constructed ${this.projectTag} ${this.filename}:`)
         logDebug('Project', `  - folder = ${this.folder}`)
         logDebug('Project', `  - metadataLine = ${metadataLine}`)
         if (this.isCompleted) logDebug('Project', `  - isCompleted ✔️`)
@@ -261,7 +261,7 @@ export class Project {
         logDebug('Project', `  - % complete = ${String(this.percentComplete)}`)
         logDebug('Project', `  - nextAction = <${this.nextActionRawContent}>`)
       } else {
-        logTimer('Project', startTime, `Constructed ${this.noteType} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+        logTimer('Project', startTime, `Constructed ${this.projectTag} ${this.filename}: ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
       }
     }
     catch (error) {
@@ -603,7 +603,7 @@ export class Project {
    * Generate a one-line tab-sep summary line ready for Markdown note
    */
   generateMetadataOutputLine(): string {
-    let output = this.noteType
+    let output = this.projectTag
     output += ' '
     output += this.isPaused ? '#paused ' : ''
     // $FlowIgnore[incompatible-call]
@@ -638,7 +638,7 @@ export class Project {
       // folder
       output += this.folder && this.folder !== undefined ? `${this.folder}\t` : '\t'
       // note type, then other pseudo-tags
-      output += (this.noteType) ? `${this.noteType} ` : ''
+      output += (this.projectTag) ? `${this.projectTag} ` : ''
       output += this.isPaused ? '#paused' : ''
       output += '\t'
       output += (this.isCompleted)

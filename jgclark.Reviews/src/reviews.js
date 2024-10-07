@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-10-03 for v1.0.0.b1, @jgclark
+// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,7 +24,7 @@ import {
   getNextActionLineIndex,
   getReviewSettings,
   type ReviewConfig,
-  updateDashboardIfOpen,
+  // updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
@@ -360,10 +360,11 @@ export async function renderProjectListsHTML(
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    // FIXME: Why isn't this debug line being shown when triggered by toggleDisplayOnlyDue called from HTML window, but not from x-callback?
+    // Q: Why isn't this debug line being shown when triggered by toggleDisplayOnlyDue called from HTML window, but not from x-callback?
+    // A: Don't know, but workaround for loss of plugin folder seems to have cured it.
     logDebug('renderProjectListsHTML', `--------------------------------------------------------------`)
-    if (config.noteTypeTags.length === 0) {
-      throw new Error('No noteTypeTags configured to display')
+    if (config.projectTypeTags.length === 0) {
+      throw new Error('No projectTypeTags configured to display')
     }
 
     if (!shouldOpen && !isHTMLWindowOpen(customRichWinId)) {
@@ -372,7 +373,7 @@ export async function renderProjectListsHTML(
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    logDebug('renderProjectListsHTML', `starting for ${String(config.noteTypeTags)} tags`)
+    logDebug('renderProjectListsHTML', `starting for ${String(config.projectTypeTags)} tags`)
 
     // Test to see if we have the font resources we want
     if (!(await checkForWantedResources(pluginID))) {
@@ -398,8 +399,8 @@ export async function renderProjectListsHTML(
     }
     logTimer('renderProjectListsHTML', funcTimer, `after checkForWantedResources`)
 
-    // Ensure noteTypeTags is an array before proceeding
-    if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
+    // Ensure projectTypeTags is an array before proceeding
+    if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
 
     // String array to save all output
     const outputArray = []
@@ -519,9 +520,9 @@ export async function renderProjectListsHTML(
 
     logTimer('renderProjectListsHTML', funcTimer, `before main loop`)
 
-    // Make the Summary list, for each noteTag in turn
+    // Make the Summary list, for each projectTag in turn
     // let tagCount = 0
-    for (const thisTag of config.noteTypeTags) {
+    for (const thisTag of config.projectTypeTags) {
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewOutputLines(thisTag, 'Rich', config)
 
@@ -658,7 +659,7 @@ export async function renderProjectListsHTML(
  */
 export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectListsMarkdown', `Starting for ${String(config.noteTypeTags)} tags`)
+    logDebug('renderProjectListsMarkdown', `Starting for ${String(config.projectTypeTags)} tags`)
     const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Set up x-callback URLs for various commands
@@ -681,10 +682,10 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const cancelXCallbackButton = `[Cancel](${cancelXCallbackURL})`
     const nowDateTime = nowLocaleShortDateTime()
 
-    if (config.noteTypeTags.length > 0) {
-      if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
+    if (config.projectTypeTags.length > 0) {
+      if (typeof config.projectTypeTags === 'string') config.projectTypeTags = [config.projectTypeTags]
       // We have defined tag(s) to filter and group by
-      for (const tag of config.noteTypeTags) {
+      for (const tag of config.projectTypeTags) {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
         const tagWithoutHash = tag.replace('#', '')
         const noteTitle = `${tag} Review List`
@@ -693,7 +694,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         // Do the main work
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
-          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"noteTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
+          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`projectTypeTags=${tag}`)
 
           // Get the summary line for each revelant project
           const [outputArray, noteCount, due] = await generateReviewOutputLines(tag, 'Markdown', config)
@@ -789,7 +790,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Re-load the saved HTML if it's available.
     // $FlowIgnore[incompatible-type]
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Try loading HTML saved copy
@@ -825,37 +826,31 @@ export async function redisplayProjectListHTML(): Promise<void> {
 
 //-------------------------------------------------------------------------------
 /**
- * Return summary of notes that contain a specified tag, for all relevant folders, in 'Markdown' or 'Rich' style.
+ * Return summary of notes that contain a specified 'projectTag', for all relevant folders, in 'Markdown' or 'Rich' style.
  * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
  * V3: Now doesn't handle output before the main list(s) start. That is now done in the calling function.
  * v4: Changed to read from the allProjects JSON file.
  *     Also added nextAction outputs.
  * @author @jgclark
  *
- * @param {string} noteTag - the current hashtag (only now used in logging)
+ * @param {string} projectTag - the current hashtag (only now used in logging)
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} output summary lines
  * @returns {number} number of notes
  * @returns {number} number of due notes (ready to review)
  */
-export async function generateReviewOutputLines(noteTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
+export async function generateReviewOutputLines(projectTag: string, style: string, config: ReviewConfig): Promise<[Array<string>, number, number]> {
   try {
     const startTime = new Date()
-    logInfo('generateReviewOutputLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
+    logInfo('generateReviewOutputLines', `Starting for tag(s) '${projectTag}' in ${style} style`)
 
     // Get all wanted projects (in useful order and filtered)
-    const projectsToReview = await filterAndSortProjectsList(config)
+    const projectsToReview = await filterAndSortProjectsList(config, projectTag)
     let lastFolder = ''
     let noteCount = 0
     let due = 0
     const outputArray: Array<string> = []
-
-    // TEST: have I used this logic in the re-write?
-    // // Note: has to be a full not partial match to avoid edge case dupes
-    // if (!tags.split(' ').includes(noteTag)) {
-    //   continue // go on to next line
-    // }
 
     // Process each project
     for (const thisProject of projectsToReview) {
@@ -901,7 +896,7 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
 
       lastFolder = folder
     }
-    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${noteTag}' in ${style} style`)
+    logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${projectTag}' in ${style} style`)
     return [outputArray, noteCount, due]
   } catch (error) {
     logError('generateReviewOutputLines', `${error.message}`)
@@ -920,7 +915,7 @@ export async function generateReviewOutputLines(noteTag: string, style: string, 
  */
 export async function startReviews(): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Make/update list of projects ready for review
@@ -956,7 +951,7 @@ export async function startReviews(): Promise<void> {
  */
 async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
@@ -1064,7 +1059,7 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 export async function finishReviewAndStartNextReview(): Promise<void> {
   try {
     logDebug('finishReviewAndStartNextReview', `Starting`)
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     // Finish review
@@ -1101,7 +1096,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
  */
 async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: string = ''): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug('skipReviewForNote', `Starting for note '${displayTitle(note)}' with ${skipIntervalOrDate}`)
     let newDateStr: string = ''
@@ -1191,7 +1186,7 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
  */
 export async function skipReview(): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
@@ -1229,7 +1224,7 @@ export async function skipReview(): Promise<void> {
  */
 export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
 
     if (!note || note.type !== 'Notes') {
@@ -1253,7 +1248,7 @@ export async function skipReviewForNote(note: TNote, skipIntervalOrDate: string)
  */
 export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
   try {
-    const config: ?ReviewConfig = await getReviewSettings()
+    const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
     logDebug('setNewReviewInterval', `Starting for ${noteArg ? 'passed note (' + noteArg.filename + ')' : 'Editor'}`)
     const note: TNote = noteArg ? noteArg : Editor

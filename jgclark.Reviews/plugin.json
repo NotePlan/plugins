@@ -39,7 +39,8 @@
       "name": "project lists",
       "alias": [
         "gtd",
-        "list"
+        "list",
+        "pl"
       ],
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
       "jsFunction": "makeProjectLists",
@@ -151,6 +152,7 @@
     },
     {
       "hidden": true,
+      "comment": "TODO: remove in time",
       "name": "NOP",
       "description": "no operation - testing way to stop losing plugin context",
       "jsFunction": "NOP"
@@ -197,11 +199,6 @@
       "description": "log next notes to review",
       "jsFunction": "getNextProjectsToReview",
       "hidden": true
-    },
-    {
-      "name": "test:logFullReviewList",
-      "description": "write full-review-list file to log",
-      "jsFunction": "logFullReviewList"
     },
     {
       "name": "test:logAllProjectsList",
@@ -282,7 +279,7 @@
       "title": "What do you want to Review?"
     },
     {
-      "key": "noteTypeTags",
+      "key": "projectTypeTags",
       "title": "Hashtags to review",
       "description": "A comma-separated list of hashtags to indicate notes to include in this review system.\nIf this setting is empty, then it will include all notes for review that include a `@review(...)` string.\nIf it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.",
       "type": "[string]",
@@ -411,10 +408,10 @@
     {
       "key": "nextActionTag",
       "title": "Next action #hashtag",
-      "description": "#hashtag to include in a task/checklist to indicate its the next action in this project (optional; default '#next')",
+      "description": "#hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next')",
       "type": "string",
       "default": "#next",
-      "required": false
+      "required": true
     },
     {
       "key": "width",
@@ -457,9 +454,17 @@
       "required": true
     },
     {
+      "key": "archiveFolder",
+      "title": "Folder to Archive completed/cancelled project notes to",
+      "description": "By default this is the built-in Archive folder (shown in the sidebar) which has the special name '@Archive', but it can be set to any other folder name.",
+      "type": "string",
+      "default": "@Archive",
+      "required": true
+    },
+    {
       "key": "archiveUsingFolderStructure",
       "title": "Archive using folder structure?",
-      "description": "When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside the Archive.\n(This is the same thing that the Filer plugin's \"/archive note using folder structure\" command does, though Filer does not need to be installed to use this.)",
+      "description": "When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside your chosen Archive folder (set above).\n(This is the same thing that the Filer plugin's \"/archive note using folder structure\" command does, though Filer does not need to be installed to use this.)",
       "type": "bool",
       "default": true,
       "required": true
