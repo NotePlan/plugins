@@ -36,9 +36,8 @@ type DialogButtonProps = {
 
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
-  // const [detailsMessageObject,setDetailsMessageObject] = useState(details) // was thinking this needed to change, but maybe not
-  const inputRef: React$RefObject<?HTMLInputElement> = useRef<?HTMLInputElement>(null)
-  const dialogRef: React$RefObject<?HTMLDivElement> = useRef<?HTMLDivElement>(null)
+  const inputRef: React$RefObject<?HTMLInputElement> = useRef <? HTMLInputElement > (null)
+  const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
 
   // clo(detailsMessageObject, `DialogForTaskItems: starting, with details=`, 2)
   const { ID, itemType, para, filename, title, content, noteType, sectionCodes } = validateAndFlattenMessageObject(detailsMessageObject)
@@ -139,14 +138,6 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const otherControlButtons: Array<DialogButtonProps> = initialOtherControlButtons.filter(
     (button): boolean => isDesktop ? true : !buttonsToHideOnMobile.includes(button.label)
   )
-  // TEST: extra state ...
-  // const [IPIndex, setIPIndex] = useState(currentIPIndex)
-
-  // TEST: ...and extra state
-  // useEffect(() => {
-  //   logInfo('DialogForTaskItems', `currentIPIndex changed to ${String(currentIPIndex)}`)
-  //   setIPIndex(reactSettings.interactiveProcessing.currentIPIndex)
-  // }, [reactSettings.interactiveProcessing.currentIPIndex])
 
   useEffect(() => {
     // logDebug(`DialogForTaskItems`, `BEFORE POSITION dialogRef.current.style.topbounds=${String(dialogRef.current?.getBoundingClientRect().top) || ""}`)
@@ -162,9 +153,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'Title clicked in Dialog', true)
   }
 
-  // Handle the shared closing functionality
+  // Handle the close -- start an animation and then schedule the actual close at the end of the animation 
+  // will eventually call onClose() from Dialog.jsx (does nothing special) 
+  // and will pass it on to Dashboard::handleDialogClose which (may) refresh the page
   const closeDialog = (forceClose: boolean = false) => {
-    console.log('DialogForTaskItems 🥸 closeDialog() reactSettings; looking for interactiveProcessing', reactSettings)
+    logDebug('DialogForTaskItems 🥸 closeDialog() reactSettings; looking for interactiveProcessing')
     if (reactSettings?.interactiveProcessing) {
       if (forceClose) {
         setReactSettings(prevSettings => ({
@@ -175,21 +168,19 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       } else {
         handleIPItemProcessed(false)
       }
-    } else {
-      // Start the zoom-out animation
-      console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
-      showAnimations ? setAnimationClass('zoom-out') : null
-      scheduleClose(300, forceClose)  // Match the duration of the animation
     }
+    console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
+    showAnimations ? setAnimationClass('zoom-out') : null
+    scheduleClose(showAnimations ? 300 : 0, forceClose)  // Match the duration of the animation
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    console.log('DialogForTaskItems 🥸 scheduleClose() at top reactSettings; looking for interactiveProcessing', reactSettings)
+    logDebug(`DialogForTaskItems 🥸 scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
       console.log('DialogForTaskItems 🥸 scheduleClose() after timout reactSettings; looking for interactiveProcessing', reactSettings)
       // $FlowIgnore 
-      logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
-      reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
+      // logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
+      // reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
       onClose(forceClose)
     }, delay)
   }
@@ -202,6 +193,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       const { visibleItems, currentIPIndex } = reactSettings?.interactiveProcessing
       if (visibleItems && typeof currentIPIndex === 'number') {
         visibleItems[currentIPIndex].processed = false
+        if (visibleItems[currentIPIndex].para !== para) {
+          clo(para, 'handleSkipClick para had changed and is being updated to')
+          visibleItems[currentIPIndex].para = para // update content in case it has changed but not submitted (e.g. priority change)
+        }
         const interactiveProcessingToSave = { ...reactSettings.interactiveProcessing, visibleItems }
         setReactSettings(prevSettings => ({
           ...prevSettings,
@@ -348,6 +343,11 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       showAnimations ? setAnimationClass('zoom-out') : null
     }
   }, [])
+
+  // dbw note 2024-10-08: Trying to keep an eye out for an edge case where changing priority then skipping an item
+  // might cause hasChild to be set to true, which seems to make no sense. no idea where it's coming from.
+  // but might be the intermittent cache update issue returning children with the para when there are none
+  para.hasChild ? clo(para, `DialogForTaskItems hasChild ${para.hasChild} para=`) : null
 
   return (
     <>

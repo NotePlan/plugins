@@ -44,7 +44,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, setPerspectiveSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, /* setPerspectiveSettings, */ updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -161,7 +161,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }, [])
 
   // Change the title when the section data changes
-  // TODO(@dbw): this doesn't work and I'm not sure it ever can
   useEffect(() => {
     const windowTitle = `Dashboard - ${totalSectionItems} items`
     if (document.title !== windowTitle) {
@@ -242,7 +241,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}\n...incoming data=${JSP(newSectionItem, 2)}`)
       // used to do the JSON.stringify to compare, but now that an .updated field is used, they will be different
       if (newSectionItem && newSectionItem.updated && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
-        // logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
+        // TRYING TO FIGURE OUT WHERE hasChild IS BEING SET TO TRUE WHEN IT SHOULDN'T BE I think it's probably the cache update bug
+        newSectionItem?.para?.hasChild ? logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`) : null
         // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
         newSectionItem.updated = false
         setReactSettings(prev => {
@@ -282,10 +282,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    logDebug('Dashboard', `handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
-    xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later
-    const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : reactSettings?.interactiveProcessing || {}
-    setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isTask: true }, lastChange: `_Dashboard-DialogClosed (xWasClicked=${String(xWasClicked)})`, ...interactiveProcessing }))
+    logDebug('Dashboard', `Dashboard::handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
+    // xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later NOTE: dbw commented this out on 2024-10-08 after changing how interactiveProcessing works
   }
 
   // Deal with the delayed refresh when a button was clicked
