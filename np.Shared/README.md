@@ -30,8 +30,8 @@ This function logs the set of resource files actually available from np.Shared (
 
 ### `checkForWantedResources(fileList?)` function
 This function is provided for your plugin to be able to check resources are available before trying to use them.  It can be called two ways:
-- `checkForWantedResources()`: returns `true` or `false` depending whether np.Shared is loaded
-- `checkForWantedResources(Array<filenames>)`: returns the number of the filenames that are available from np.Shared.
+- `checkForWantedResources(pluginID)`: returns `false` if np.Shared is not loaded, and the number of listed `plugin.sharedRequiredFiles` it can find if it is loaded
+- `checkForWantedResources(pluginID, Array<filenames>)`: returns the number of the listed `filenames` that are available from np.Shared.
 
 Note: You must set `const pluginID = '<your plugin ID>'` in the file(s) where you call this function.
 

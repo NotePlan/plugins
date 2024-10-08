@@ -1,5 +1,5 @@
 // @flow
-
+// TODO: Really should merge checkForWantedResources into here.
 import { checkForWantedResources } from '../np.Shared/src/index.js'
 import { clo, JSP, logDebug, logError, logWarn } from '@helpers/dev'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -20,15 +20,15 @@ export async function checkForRequiredSharedFiles(pluginJson: any): Promise<void
       // plugin np.Shared is loaded, but isn't providing all the wanted resources
       logWarn(
         `thisPluginID`,
-        `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so there might be display issues 😳`,
+        `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so expect issues with display or functionality 😳`,
       )
-    } else if (wantedRes) {
-      // plugin np.Shared is loaded
-      logDebug(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared is loaded 😄; no further checking done`)
+      // } else if (wantedRes) {
+      //   // plugin np.Shared is loaded
+      //   logDebug(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared is loaded 😄; no further checking done`)
     } else {
       // plugin np.Shared is not loaded
       logWarn(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared isn't loaded 🥵, so icons probably won't display`)
-      const res = await showMessageYesNo(`It looks like you haven't installed the '${sharedPluginName}' plugin, which is required for the Dashboard to operate properly. Would you like me to install it for you?`, ['Yes', 'No'], 'Dashboard plugin problem')
+      const res = await showMessageYesNo(`It looks like you haven't installed the '${sharedPluginName}' plugin, which is required for the plugin to operate properly. Would you like me to install it for you?`, ['Yes', 'No'], 'Plugin problem')
       if (res === 'Yes') {
         const pluginObjects = await DataStore.listPlugins(true) ?? []
         const pluginObject = pluginObjects?.find((p) => p.id === sharedPluginID)

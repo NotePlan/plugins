@@ -86,7 +86,7 @@ export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
 
 /**
  * Parse JSON5 string and return object representation.
- * Note: There is a local copy of this fn in helpers/paragraph.js to avoid a circular dependency
+ * Note: There is a local copy of this fn in helpers/userInput.js to avoid a circular dependency
  * @author @nmn
  * @param {string} contents
  * @returns { {Array<string>: ?mixed} }
