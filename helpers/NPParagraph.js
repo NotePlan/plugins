@@ -19,11 +19,7 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import {
-  getNPWeekData, getMonthData, getYearData, getQuarterData,
-  nowDoneDateTimeString,
-  toLocaleDateTimeString,
-} from '@helpers/NPdateTime'
+import { getNPWeekData, getMonthData, getYearData, getQuarterData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
@@ -112,9 +108,11 @@ export function insertContentUnderHeading(destNote: CoreNoteFields, headingToFin
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
   let insertionIndex = startOfNote // top of note by default
+  const trimmedHeadingToFind = headingToFind.trim()
+  logDebug(`NPParagraph/insertContentUnderHeading`, `  startOfNote = ${startOfNote} looking for "${trimmedHeadingToFind}"`)
   for (let i = 0; i < destNote.paragraphs.length; i++) {
     const p = destNote.paragraphs[i]
-    if (p.content.trim().startsWith(headingToFind) && p.type === 'title') {
+    if (p.content.trim().startsWith(trimmedHeadingToFind) && p.type === 'title') {
       insertionIndex = i + 1
       break
     }
@@ -1781,18 +1779,14 @@ export function unscheduleItem(filename: string, content: string): boolean {
 /**
  * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
  * It adds the '>' to the start of the date, and appends to the end of the para.
- * It removes any existing scheduled >dates, and if wanted, 
+ * It removes any existing scheduled >dates, and if wanted,
  * @author @jgclark
  * @param {TParagraph} para of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
  * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
  * @returns {boolean} success?
  */
-export function scheduleItem(
-  thisPara: TParagraph,
-  dateStrToAdd: string,
-  changeParaType: boolean = true
-): boolean {
+export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeParaType: boolean = true): boolean {
   try {
     const thisNote = thisPara.note
     const thisContent = thisPara.content
@@ -1967,8 +1961,7 @@ export function removeAllDueDates(filename: string): boolean {
     note.updateParagraphs(paras)
     logDebug('removeAllDueDates', `- this appears to have worked.`)
     return true
-  }
-  catch (error) {
+  } catch (error) {
     logError('removeAllDueDates', error.message)
     return false
   }
