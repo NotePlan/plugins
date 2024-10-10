@@ -4,7 +4,7 @@
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
   "plugin.version": "1.10.6-notreleased",
-  "plugin.lastUpdateInfo": "1.10.6: Feature: Adding template forms;Fix: Allows letters 'ejs' in text to be left intact",
+  "plugin.lastUpdateInfo": "1.10.6: Fix: Allows letters 'ejs' in text to be left intact",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -62,6 +62,7 @@
         "form",
         "dialog"
       ],
+      "hidden": true,
       "description": "Open form for template data entry which will be sent to a template for processing",
       "jsFunction": "templateForm",
       "arguments": [

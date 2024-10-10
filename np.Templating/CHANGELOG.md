@@ -4,6 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.6] 2024-10-10 @dwertheimer
+
+- Fix: Allows letters 'ejs' in text to be left intact
+- Feature: Adding template forms (hidden command)
+
+## [1.10.5] 2024-02-23 @eduardme
+
+- Update documentation links
+
 ## [1.10.4] 2024-02-19 @dwertheimer
 
 - Allow basic templates without frontmatter
