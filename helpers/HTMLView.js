@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-24 by @jgclark
+// Last updated 2024-09-12 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -10,7 +10,6 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
-// import { stringIsWithinURI } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
@@ -848,9 +847,9 @@ export function simplifyInlineImagesForHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
-      logDebug(`simplifyInlineImagesForHTML`, capture)
+      // logDebug(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      // logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output
@@ -977,7 +976,7 @@ export function convertNPBlockIDToHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from RE_SYNC_MARKER match:')
     for (const capture of captures) {
-      output = output.replace(capture, '<i class="fa-solid fa-asterisk syncMarker"></i>')
+      output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
     }
   }
   return output

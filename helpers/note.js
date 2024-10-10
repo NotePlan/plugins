@@ -25,10 +25,17 @@ import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
-import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
+import { isOpen } from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
 
+/**
+ * Return simply 'Calendar' or 'Notes' from note's filename.
+ * Note: getNoteType() is more detailed.
+ * Note: But use note.type when you have note object available.
+ * @param {string} filename 
+ * @returns {NoteType}
+ */
 export function noteType(filename: string): NoteType {
   return filename.match(RE_DAILY_NOTE_FILENAME) ||
     filename.match(RE_WEEKLY_NOTE_FILENAME) ||
@@ -37,6 +44,29 @@ export function noteType(filename: string): NoteType {
     filename.match(RE_YEARLY_NOTE_FILENAME)
     ? 'Calendar'
     : 'Notes'
+}
+
+/**
+ * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
+ * to know the type of calendar note, we can use this function.
+ * We allow note.type to not exist so we can look up the note based just on the filename
+ * @author @dwertheimer
+ * @param {TNote} note - the note to look at
+ * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
+ */
+export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project' {
+  if (note.type === 'Calendar' || typeof note.type === 'undefined') {
+    return (
+      (isDailyNote(note) && 'Daily') ||
+      (isWeeklyNote(note) && 'Weekly') ||
+      (isMonthlyNote(note) && 'Monthly') ||
+      (isQuarterlyNote(note) && 'Quarterly') ||
+      (isYearlyNote(note) && 'Yearly') ||
+      (typeof note.type === 'undefined' && 'Project')
+    )
+  } else {
+    return 'Project'
+  }
 }
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
@@ -66,9 +96,8 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
  * Print summary of note details to log
  * @author @eduardmet
  * @param {TNote} note
- * @param {boolean} alsoShowParagraphs? (default: false)
  */
-export function printNote(note: TNote, alsoShowParagraphs: boolean = false): void {
+export function printNote(note: TNote): void {
   if (note == null) {
     logDebug('note/printNote()', 'No Note found!')
     return
@@ -77,29 +106,17 @@ export function printNote(note: TNote, alsoShowParagraphs: boolean = false): voi
   if (note.type === 'Notes') {
     logInfo(
       'note/printNote',
-      `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
+      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
         note.paragraphs.length
-      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
   } else {
     logInfo(
       'note/printNote',
-      `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
+      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
         note.paragraphs.length
-      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
     )
-  }
-  if (note.paragraphs.length > 0) {
-    const open = note.paragraphs.filter((p) => isOpen(p)).length
-    const done = note.paragraphs.filter((p) => isDone(p)).length
-    const closed = note.paragraphs.filter((p) => isClosed(p)).length
-    const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
-    console.log(
-      `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
-    )
-    if (alsoShowParagraphs) {
-      note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
-    }
   }
 }
 
@@ -700,7 +717,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
- * @returns {Array<TNote>} - array of notes that are not in excluded folders
+ * @returns {Array<TParagraph>} - array of paragraphs that are not in excluded folders
  */
 export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {
@@ -750,24 +767,40 @@ export function findOverdueDatesInString(line: string): Array<string> {
 }
 
 /**
- * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
- * to know the type of calendar note, we can use this function
- * we allow note.type to not exist so we can look up the note based just on the filename
- * @author @dwertheimer
- * @param {TNote} note - the note to look at
- * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
+ * Is the note from the given list of folders (or allowed by allowAllCalendarNotes)?
+ * @param {string} filename
+ * @param {Array<string>} folderList
+ * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
+ * @returns {boolean}
  */
-export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project' {
-  if (note.type === 'Calendar' || typeof note.type === 'undefined') {
-    return (
-      (isDailyNote(note) && 'Daily') ||
-      (isWeeklyNote(note) && 'Weekly') ||
-      (isMonthlyNote(note) && 'Monthly') ||
-      (isQuarterlyNote(note) && 'Quarterly') ||
-      (isYearlyNote(note) && 'Yearly') ||
-      (typeof note.type === 'undefined' && 'Project')
-    )
-  } else {
-    return 'Project'
-  }
+export function isNoteFromAllowedFolder(
+  note: TNote,
+  folderList: Array<string>,
+  allowAllCalendarNotes: boolean = true
+): boolean {
+  // Calendar note check
+  if (allowAllCalendarNotes && note.type === 'Calendar') return true
+
+  // Is regular note's filename in folderList?
+  const matchFound = folderList.some((f) => note.filename.includes(f))
+  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
+  return matchFound
 }
+
+/**
+ * Is the filename from the given list of folders?
+ * Note: not currently used; newer isNoteFromAllowedFolder() used instead.
+ * @param {string} filename
+ * @param {Array<string>} folderList
+ * @returns {boolean}
+ */
+export function isFilenameAllowedInFolderList(
+  filename: string,
+  folderList: Array<string>
+): boolean {
+  // Is filename in folderList?
+  const matchFound = folderList.some((f) => filename.includes(f))
+  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
+  return matchFound
+}
+

@@ -25,65 +25,87 @@ describe('helpers/folders', () => {
    * - {boolean} excludeSpecialFolders?
    */
   describe('getFoldersMatching tests', () => {
-    test('no inclusions -> error', () => {
+    test('no inclusions or exclusions -> error', () => {
       const inclusions = []
       const folders = Object.keys(f.getFoldersMatching(inclusions, true))
       expect(folders.length).toBe(0)
     })
-    test('just / inclusions -> 1', () => {
-      const inclusions = ['/']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(1)
+    describe('just inclusions', () => {
+      test('just/inclusion -> 1', () => {
+        const inclusions = ['/']
+        const folders = f.getFoldersMatching(inclusions, true)
+        expect(folders.length).toBe(1)
+      })
+      test('CCC inclusion no @specials -> 3 left', () => {
+        const inclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        expect(folders.length).toBe(3)
+      })
+      test('CCC Areas, / inclusion no @specials -> 3 left', () => {
+        const inclusions = ['CCC Areas', '/']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+        expect(folders.length).toBe(3)
+      })
+      test('CCC inclusion with @specials -> 4 left', () => {
+        const inclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+        expect(folders.length).toBe(4)
+      })
+      test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
+        const inclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+        expect(folders.length).toBe(6)
+      })
+      test('CCC, LEVEL 2 inclusion with @specials and explicit empty exclusions -> 6 left', () => {
+        const inclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, []))
+        expect(folders.length).toBe(6)
+      })
     })
-    test('CCC inclusion no @specials -> 3 left', () => {
-      const inclusions = ['CCC']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(3)
+    describe('just exclusions', () => {
+      test('exclude CCC Areas; include @specials -> 7 left', () => {
+        const exclusions = ['CCC Areas']
+        const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
+        expect(folders.length).toBe(7)
+      })
+      test('exclude CCC, LEVEL 2; include @specials -> 4 left', () => {
+        const exclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
+        expect(folders.length).toBe(4)
+      })
+      test('exclude CCC, LEVEL 2; no @specials -> 3 left', () => {
+        const exclusions = ['CCC', 'LEVEL 2']
+        const folders = Object.keys(f.getFoldersMatching([], true, exclusions))
+        expect(folders.length).toBe(3)
+      })
     })
-    test('CCC Areas, / inclusion no @specials -> 3 left', () => {
-      const inclusions = ['CCC Areas', '/']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
-      expect(folders.length).toBe(3)
+    describe('both inclusions + exclusions', () => {
+      test('exclude CCC Areas; include @specials -> 5 left', () => {
+        const inclusions = ['TEST', 'CCC']
+        const exclusions = ['LEVEL']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(5)
+      })
+      test('exclude CCC Areas; exclude @specials -> 4 left', () => {
+        const inclusions = ['TEST', 'CCC']
+        const exclusions = ['LEVEL']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, true, exclusions))
+        expect(folders.length).toBe(4)
+      })
+      test('include CCC; exclude Areas -> 1 left', () => {
+        const inclusions = ['CCC']
+        const exclusions = ['Areas']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(1)
+      })
+      test('include CCC, Home; exclude CCC -> 1 left', () => {
+        const inclusions = ['CCC', 'Home']
+        const exclusions = ['CCC']
+        const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+        expect(folders.length).toBe(1)
+      })
     })
-    test('CCC inclusion with @specials -> 4 left', () => {
-      const inclusions = ['CCC']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
-      expect(folders.length).toBe(4)
-    })
-    test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
-      const inclusions = ['CCC', 'LEVEL 2']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
-      expect(folders.length).toBe(6)
-    })
-    test('ccc, Level 2 inclusion with @specials -> 6 left (i.e. check case insensitive matching)', () => {
-      const inclusions = ['ccc', 'Level 2']
-      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
-      expect(folders.length).toBe(6)
-    })
-  })
-
-  /**
-   * Tests for getSubFolders
-   */
-  describe('getSubFolders tests', () => {
-    // Needs to test for error
-    test.skip('empty string -> error', () => {
-      const subFolders = Object.keys(f.getSubFolders(''))
-      expect(subFolders).toEqual([''])
-    })
-    // Needs to test for error
-    test.skip('root -> root', () => {
-      const subFolders = Object.keys(f.getSubFolders('/'))
-      expect(subFolders).toEqual(['CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '@Archive/CCC Areas/Staff'])
-    })
-    test('a top-level folder -> same', () => {
-      const subFolders = f.getSubFolders('CCC Areas')
-      expect(subFolders).toEqual(['CCC Areas', 'CCC Areas/Staff'])
-    })
-    test('three-level folder', () => {
-      const subFolders = f.getSubFolders('TEST/TEST LEVEL 2')
-      expect(subFolders).toEqual(['TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3'])
-    })
+    // Note: see additional large test at the end of this file!
   })
 
   /**
@@ -180,5 +202,23 @@ describe('helpers/folders', () => {
     test('leading slash', () => {
       expect(f.getLowestLevelFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
     })
+  })
+})
+
+describe('getFoldersMatching: bigger real world test', () => {
+  beforeAll(() => {
+    DataStore.folders =
+      ['/', 'CCC Areas', 'CCC Areas/Facilities', 'CCC Areas/Staff', 'CCC Meetings', 'CCC Meetings/2023', 'CCC Meetings/2023/01', 'CCC Meetings/2023 /02', 'CCC Notes', 'CCC Projects', 'CCC Projects/Facilities',
+        'Home 🏠 Areas', 'Home 🏠 Notes', 'Home 🏠 Projects', 'Ministry Areas', 'Ministry Meetings', 'Ministry Notes', 'Ministry Notes/Gather Movement', 'Ministry Notes/Magic - Conjuring', 'Ministry Projects',
+        'NotePlan Notes', 'NotePlan Projects', 'NotePlan Projects/Plugins',
+        'Readwise 📚', 'Readwise 📚/articles', 'Readwise 📚/books', 'Readwise 📚/podcasts', 'Readwise 📚/tweets', 'Reviews', 'Saved Searches', 'Summaries',
+        'TEST', 'TEST/BUG TEST', 'TEST/BUG TEST/George65', 'TEST/BUG hunting for others', 'TEST/BUG hunting for others/George65', 'TEST/Conflict Testing', 'TEST/DEMOs', 'TEST/Dashboard TESTs',
+        'TEST/Date TESTs', 'TEST/Duplicate Testing', 'TEST/Event TESTs', 'TEST/Filer TESTs', 'TEST/MOC TESTs', 'TEST/Progress Log tests for Jord8on', 'TEST/Repeat TESTs', 'TEST/Review TESTs', 'TEST/Review TESTs/Test Completed Goal.md', 'TEST/Review TESTs/Test Completed Goal.md/Gather Movement', 'TEST/Review TESTs/Test Completed Goal.md/Magic - Conjuring', 'TEST/Search TESTs', 'TEST/Summary TESTs', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', 'TEST/TESTs for DW things', 'TEST/Window TESTs /']
+  })
+  test('real world test -> 6 left', () => {
+    const inclusions = ['Home', 'NotePlan']
+    const exclusions = ['Readwise 📚']
+    const folders = Object.keys(f.getFoldersMatching(inclusions, false, exclusions))
+    expect(folders.length).toBe(6)
   })
 })

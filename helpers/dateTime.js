@@ -568,7 +568,7 @@ export function daysBetween(startDate: string | Date, endDate: string | Date, re
   if (returnFractionalDays) {
     return moment(endDate).diff(moment(startDate), 'days', returnFractionalDays)
   } else {
-    return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days', false)
+    return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days', returnFractionalDays)
   }
 }
 
@@ -651,28 +651,26 @@ export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = 
 /**
  * Turn a string that includes YYYY-MM-DD into a JS Date.
  * The first found date is used; if no dates found a warning is written to the log.
- * V2 using moment.js, to avoid TZ problems
  * @author @jgclark
+ *
  * @param {string} - string that contains a date e.g. @due(2021-03-04)
  * @return {?Date} - JS Date version, if valid date found
  * @test - available in jest file
  */
 export function getDateObjFromDateString(mention: string): ?Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
+
   // logDebug('dateTime / getDateObjFromDateString', `for ${mention}`)
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
     // logDebug('dateTime / getDateObjFromDateString', `- ${res[1]}`)
-    // v1
-    // const date = new Date(
-    //   Number(res[1].slice(0, 4)),
-    //   Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
-    //   Number(res[1].slice(8, 10)),
-    // )
+    const date = new Date(
+      Number(res[1].slice(0, 4)),
+      Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
+      Number(res[1].slice(8, 10)),
+    )
     // logDebug('dateTime / getDateObjFromDateString', `- ${toISOShortDateTimeString(date)}`)
-    // v2: use moment to avoid TZ issues
-    const date = moment(res[1], "YYYY-MM-DD").toDate()
     return date
   } else {
     logDebug('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
@@ -1535,12 +1533,7 @@ export function getDateOptions(): $ReadOnlyArray<{ label: string, value: string 
   }))
   return options
 }
-// @flow
-// Show relative time
-// TODO: use MOMENT moment.duration(-1, "minutes").humanize(true);
-// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
-// or https://theprogrammingexpert.com/javascript-count-up-timer/
-// import { logDebug } from '@helpers/react/reactDev.js'
+
 /**
  * Calculates how long ago a given timestamp occurred.
  * @param {Date} pastDate - date of the past time to evaluate.

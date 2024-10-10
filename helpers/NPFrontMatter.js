@@ -23,15 +23,32 @@ export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
  * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
+ * If a string is wrapped in double quotes and contains additional double quotes, convert the internal quotes to single quotes.
+ * This often happens when people include double quotes in template tags in their frontmatter
  * @param {string} text
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  // create a regex that looks for a leading "#" char and any non whitespace char
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text) || text.includes('>')
+  const isWrappedInQuotes = /^".*"$/.test(text) // Check if already wrapped in quotes
 
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === '' || RE_MARKDOWN_LINKS_CAPTURE_G.test(text)
-  const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
-  return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
+  // Handle the case where text is wrapped in double quotes but contains additional double quotes inside
+  if (isWrappedInQuotes) {
+    // Replace internal double quotes with escaped double quotes
+    return text
+      .replace(/(^")|("$)/g, '') // Remove outer quotes temporarily
+      .replace(/"/g, '\\"') // Escape internal double quotes
+      .replace(/^/, '"') // Re-add starting double quote
+      .replace(/$/, '"') // Re-add ending double quote
+  }
+
+  // If quoting is needed but the text contains double quotes, escape them
+  if (needsQuoting) {
+    return `"${text.replace(/"/g, '\\"')}"` // Escape internal double quotes and wrap in quotes
+  }
+
+  // No need to quote
+  return text
 }
 
 /**
@@ -582,12 +599,16 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
 export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
   // we need to pre-process the text to sanitize it instead of running fm because we need to
-  // preserve #hashtags and fm will blank those lines  out as comments
+  // preserve #hashtags, @mentions etc. and fm will blank those lines  out as comments
   const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
   try {
     fmData = fm(sanitizedText, { allowUnsafe: true })
   } catch (error) {
-    logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
+    // Expected to fail in certain circumstances due to limitations in fm library
+    logWarn(
+      `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
+    )
+    // logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
   }
   return fmData
 }
@@ -648,13 +669,20 @@ export function getBody(templateData: string = ''): string {
  * @param {number} minimumTimeRequired (in ms) - default: 2000ms
  * @returns {boolean} - true if the time since the last document write is less than the minimum time required
  * @usage if (Editor?.note && isTriggerLoop(Editor.note)) return // returns/stopping execution if the time since the last document write is less than than 2000ms
+ * @author @dwertheimer extended by @jgclark
  */
 export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): boolean {
-  if (!note.versions || !note.versions.length) return false
-  const timeSinceLastEdit: number = Date.now() - note.versions[0].date
-  if (timeSinceLastEdit <= minimumTimeRequired) {
-    logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
-    return true
+  try {
+    if (!note.versions || !note.versions.length || note.versions[0]) return false // no note version, so no recent update
+
+    const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+    if (timeSinceLastEdit <= minimumTimeRequired) {
+      logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
+      return true
+    }
+    return false
+  } catch (error) {
+    logError(pluginJson, 'isTriggerLoop error: ${error.message}')
+    return false
   }
-  return false
 }

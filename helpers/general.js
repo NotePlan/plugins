@@ -208,8 +208,8 @@ export function createOpenOrDeleteNoteCallbackUrl(
   const paramStr = isLineLink ? 'noteTitle' : isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
   const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
   const head = heading && heading.length ? encodePlusParens(heading.replace('#', '')) : ''
+  // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encodedTitleOrFilename = encodePlusParens(titleOrFilename)
-  // logDebug('createOpenOrDeleteNoteCallbackUrl', `encodePlusParens -> '${encodedTitleOrFilename}'`)
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
   let retVal = ''
   if (isLineLink) {
@@ -255,8 +255,7 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
 }
 
 /**
- * Create xcallback link text for running a plugin.
- * WARNING: Do not use this from a NP HTMLWindow, as it will likely trigger weird issues, as the active plugin's folder gets switched.
+ * Create xcallback link text for running a plugin
  * @author @dwertheimer
  * @param {string} pluginID - ID of the plugin from plugin.json
  * @param {boolean} commandName - the "name" of the command in plugin.json
@@ -478,14 +477,15 @@ export const forceLeadingSlash = (str: string): string => (str[0] === '/' ? str 
 
 /**
  * Check if a filename is in a list of folders (negate the result to get *not in folder*)
- * Folders should not have slashes at the end
- * @param {string} filename
- * @param {Array<string>} folderList
- * @param {boolean} caseSensitive - whether to do a case sensitive check (defaults to false)
+ * Folders should not have slashes at the end.
+ * Note: there's a newer version in folders.js with an extra parameter.
+ * @param {string} filenameStr
+ * @param {Array<string>} folderListArr
+ * @param {boolean} caseSensitive? - whether to do a case sensitive check (defaults to false)
  * @example filteredTasks = allTasks.filter((f) => inFolderList(f.filename, inFolders)) // filename in one of these folders
  * @example filteredTasks = allTasks.filter((f) => !inFolderList(f.filename, notInFolders)) // filename not in any of these folders
  * @author @dwertheimer
- * @returns
+ * @returns {boolean}
  */
 export function inFolderList(filenameStr: string, folderListArr: Array<string>, caseSensitive: boolean = false): boolean {
   const filename = caseSensitive ? forceLeadingSlash(filenameStr) : forceLeadingSlash(filenameStr.toLowerCase())

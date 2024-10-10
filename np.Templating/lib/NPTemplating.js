@@ -28,12 +28,12 @@ const isCommentTag = (tag: string = '') => {
   return tag.includes('<%#')
 }
 
-const codeBlockHasComment = (codeBlock = '') => {
+const codeBlockHasComment = (codeBlock: string = '') => {
   const CODE_BLOCK_COMMENT_TAGS = ['template: ignore', 'template:ignore']
   return CODE_BLOCK_COMMENT_TAGS.some((tag) => codeBlock.includes(tag))
 }
 
-const blockIsJavaScript = (codeBlock = '') => {
+const blockIsJavaScript = (codeBlock: string = '') => {
   return codeBlock.includes('```templatejs') // change from js/javascript to templatejs
 }
 
@@ -231,7 +231,7 @@ export default class NPTemplating {
 
     // let result = this_removeWhitespaceFromCodeBlocks(templateResult) // dbw removed the _removeWhitespaceFromCodeBlocks to leave code blocks intact
     let result = templateResult
-    result = result.replace('ejs', 'template')
+    // result = result.replace('ejs', 'template') // dbw removed this to allow for users who have the letters ejs in text in their notes
     result = result.replace('If the above error is not helpful, you may want to try EJS-Lint:', '')
     // result = result.replace(/(?:https?|ftp):\/\/[\n\S]+/g, 'HTTP_REMOVED')
     result = result.replace('https://github.com/RyanZim/EJS-Lint', 'HTTP_REMOVED')

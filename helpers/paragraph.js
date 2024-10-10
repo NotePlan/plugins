@@ -7,9 +7,7 @@ import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
-import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
-
 //-----------------------------------------------------------------------------
 
 /**
@@ -623,26 +621,4 @@ export function getTagsFromString(content: string, includeSymbol: boolean = true
   const hashtags = getElementsFromTask(content, HASHTAGS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
   const mentions = getElementsFromTask(content, MENTIONS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
   return { hashtags, mentions }
-}
-
-/**
- * Take a line and simplify by removing blockIDs, start-of-line markers, and trim start/end.
- * Note: different from simplifyParaContent() which doesn't do as much.
- * @author @jgclark
- * @param {string} input
- * @returns {string} simplified output
- */
-export function simplifyRawContent(input: string): string {
-  try {
-    // Remove start-of-line markers
-    let output = input.slice(getLineMainContentPos(input))
-    // Remove blockIDs (which otherwise can mess up the other sync'd copies)
-    output = output.replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '')
-    // Trim whitespace at start/end
-    output = output.trim()
-    return output
-  } catch (error) {
-    logError('simplifyRawContent', error.message)
-    return '<error>' // for completeness
-  }
 }

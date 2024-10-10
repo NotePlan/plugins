@@ -6,9 +6,16 @@
 
 import {
   getNPWeekStr,
-  RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, RE_NP_YEAR_SPEC,
+  RE_ISO_DATE,
+  RE_NP_WEEK_SPEC,
+  RE_NP_MONTH_SPEC,
+  RE_NP_QUARTER_SPEC,
+  RE_NP_YEAR_SPEC,
   todaysDateISOString,
-  WEEK_NOTE_LINK, MONTH_NOTE_LINK, QUARTER_NOTE_LINK, YEAR_NOTE_LINK,
+  WEEK_NOTE_LINK,
+  MONTH_NOTE_LINK,
+  QUARTER_NOTE_LINK,
+  YEAR_NOTE_LINK,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER } from '@helpers/regex'
@@ -90,11 +97,7 @@ export function convertAllLinksToHTMLLinks(original: string): string {
  * @param {boolean?} addWebIcon before the link? (default: true)
  * @param {number?} truncateLength the display of the link? (default: 0 = off)
  */
-export function changeBareLinksToHTMLLink(
-  original: string,
-  addWebIcon: boolean = true,
-  truncateLength: number = 0,
-): string {
+export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true, truncateLength: number = 0): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
@@ -102,9 +105,7 @@ export function changeBareLinksToHTMLLink(
     clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
-      const URLForDisplay = (truncateLength > 0 && linkURL.length > truncateLength)
-        ? truncateHTML(linkURL, truncateLength, true)
-        : linkURL
+      const URLForDisplay = truncateLength > 0 && linkURL.length > truncateLength ? truncateHTML(linkURL, truncateLength, true) : linkURL
       if (addWebIcon) {
         // not displaying icon
         output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${URLForDisplay}</a>`)
@@ -421,11 +422,11 @@ export function encodeRFC3986URIComponent(input: string): string {
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
     .replace(/!/g, '%21')
-    .replace(/'/g, "%27")
+    .replace(/'/g, '%27')
     .replace(/\(/g, '%28')
     .replace(/\)/g, '%29')
     .replace(/\*/g, '%2A')
-    // .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+  // .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 }
 
 /**
@@ -436,14 +437,7 @@ export function encodeRFC3986URIComponent(input: string): string {
  * @returns {string}
  */
 export function decodeRFC3986URIComponent(input: string): string {
-  const decodedSpecials = input
-    .replace(/%5B/g, '[')
-    .replace(/%5D/g, ']')
-    .replace(/%21/g, '!')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/g, '*')
+  const decodedSpecials = input.replace(/%5B/g, '[').replace(/%5D/g, ']').replace(/%21/g, '!').replace(/%27/g, "'").replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2A/g, '*')
   return decodeURIComponent(decodedSpecials)
 }
 
@@ -499,4 +493,82 @@ export function removeRepeats(content: string): string {
     .replace(/\@repeat\(\d{1,}\/\d{1,}\)/g, '')
     .replace(/ {2,}/g, ' ')
     .trim()
+}
+
+/**
+ * Safely evaluates a string representation of an array or object.
+ * It assumes the input string is a JavaScript-like array or object structure.
+ * We use this to read the form data from the template and turn it into an object.
+ * @param {string} str - The string to evaluate.
+ * @returns {Array<Object> | Object} - The evaluated array or object.
+ * @throws {Error} - Throws an error if the string cannot be evaluated.
+ */
+export function parseObjectString(str: string): Array<Object> | Object {
+  try {
+    // Ensure the string is wrapped properly and evaluated in a safe context.
+    const result = new Function(`return ${str}`)()
+
+    // Verify that the result is an array or object
+    if (!Array.isArray(result) && typeof result !== 'object') {
+      throw new Error('The evaluated result is neither an array nor an object.')
+    }
+
+    return result
+  } catch (error) {
+    logError('Failed to evaluate the string:', error.message)
+    throw error
+  }
+}
+
+/**
+ * Validates a string representation of an array or object.
+ * It attempts to parse the string and identifies any errors.
+ * @param {string} str - The string to validate.
+ * @returns {Array<string>} - An array of error messages, if any.
+ */
+export function validateObjectString(str: string): Array<string> {
+  const errors: Array<string> = []
+  const lines = str.split('\n')
+
+  // Check for basic syntax errors line by line
+  lines.forEach((line, index) => {
+    try {
+      // Attempt to parse each line individually
+      new Function(`return ${line.trim()}`)()
+    } catch (error) {
+      errors.push(`Error on line ${index + 1}: ${error.message}`)
+    }
+  })
+
+  // Check for overall structure errors
+  try {
+    const parsedData = parseObjectString(str)
+
+    // Ensure parsedData is an array or object
+    if (Array.isArray(parsedData)) {
+      // Additional validation for JSON data types
+      parsedData.forEach((item: any, index: number) => {
+        if (item.type === 'json') {
+          ;['default', 'value'].forEach((field) => {
+            if (typeof item[field] === 'string') {
+              try {
+                JSON.parse(item[field])
+              } catch (jsonError) {
+                errors.push(`Invalid JSON in '${field}' field at item index ${index}: ${jsonError.message}`)
+              }
+            }
+          })
+        }
+      })
+    } else if (typeof parsedData === 'object') {
+      // Handle object case if needed
+      // Add specific validation logic for objects if applicable
+    } else {
+      throw new Error('Parsed data is neither an array nor an object.')
+    }
+  } catch (error) {
+    errors.push(`Overall structure error: ${error.message}`)
+  }
+
+  return errors
 }

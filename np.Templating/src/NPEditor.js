@@ -112,7 +112,7 @@ export async function writeNoteContents(
  * xcallback note: arg1 is template name, arg2 is whether to open in editor, arg3 is a list of vars to pass to template equals sign is %3d
  * @author @dwertheimer
  */
-export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = null): Promise<void> {
+export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = ''): Promise<void> {
   try {
     logDebug(
       pluginJson,
@@ -121,14 +121,17 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
       }"`,
     )
     if (selectedTemplate.length !== 0) {
-      const argObj = overrideSettingsWithStringArgs({}, args || '')
+      //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
+      const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
       clo(argObj, `templateFileByTitleEx after overrideSettingsWithStringArgs argObj`)
+
       // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
         await CommandBar.prompt('You must supply a template title as the first argument', helpInfo('Presets'))
       }
       let failed = false
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
+
       if (!templateData) {
         failed = true
       }
@@ -138,6 +141,12 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
+        if (data['newNoteTitle']) {
+          // if form or template has a newNoteTitle field then we need to call templateNew
+          const argsArray = [selectedTemplate, data['folder'] || null, argObj]
+          await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+          return
+        }
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
         // logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)

@@ -31,7 +31,13 @@ export function trimString(inStr: string, maxLen: number): string {
 /**
  * Convert a comma-separated string, which can just have a single term, to an array.
  * Returns empty list if no input, empty or undefined input.
- * Drawn from https://stackoverflow.com/a/19523289/3238281
+ * Trims whitespace from each element before returning.
+ * Based on https://stackoverflow.com/a/19523289/3238281
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string | Array<string>} input
+ * @param {string} separator
+ * @returns {Array<string>}
  */
 export function stringListOrArrayToArray(input: string | Array<string>, separator: string): Array<string> {
   let fullArray = []
@@ -49,6 +55,8 @@ export function stringListOrArrayToArray(input: string | Array<string>, separato
       fullArray = input // keep as an array
     }
   }
+  // Now trim whitespace around elements in the array
+  fullArray = fullArray.map((x) => x.trim())
   return fullArray
 }
 
