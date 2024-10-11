@@ -273,35 +273,93 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.quoteText('foo')
         expect(result).toEqual('foo')
       })
+
       test('should pass through colons without spaces (e.g. url)', () => {
         const result = f.quoteText('http://www.google.com')
         expect(result).toEqual('http://www.google.com')
       })
+
       test('should pass through text already quoted', () => {
         const result = f.quoteText('"foo bar"')
         expect(result).toEqual('"foo bar"')
       })
+
       test('should quote text with colon+space', () => {
         const result = f.quoteText('foo: bar')
         expect(result).toEqual('"foo: bar"')
       })
+
       test('should quote text with empty string value', () => {
         const result = f.quoteText('')
         expect(result).toEqual('""')
       })
+
       test('should quote text with leading hashtag', () => {
         const result = f.quoteText('#foo')
         expect(result).toEqual('"#foo"')
       })
+
       test('should not quote text with hashtag in the middle', () => {
         const result = f.quoteText('bar #foo')
         expect(result).toEqual('bar #foo')
       })
+
       test('should not quote hash with whitespace following (e.g. a comment that will get wiped out)', () => {
         const result = f.quoteText('# comment')
         expect(result).toEqual('# comment')
       })
+
+      // New tests for handling double quotes inside the text
+      test('should escape internal double quotes when wrapping with quotes', () => {
+        const result = f.quoteText('foo "bar" baz')
+        expect(result).toEqual('"foo \\"bar\\" baz"') // Inner double quotes are escaped
+      })
+
+      test('should escape internal double quotes when already wrapped in quotes', () => {
+        const result = f.quoteText('"foo "bar" baz"')
+        expect(result).toEqual('"foo \\"bar\\" baz"') // Inner double quotes are escaped, outer quotes retained
+      })
+
+      test('should escape internal double quotes and quote the text when required', () => {
+        const result = f.quoteText('foo: "bar"')
+        expect(result).toEqual('"foo: \\"bar\\""') // Colon with space forces quoting, internal quotes escaped
+      })
+
+      test('should preserve single quotes within the text', () => {
+        const result = f.quoteText("Don't worry")
+        expect(result).toEqual("Don't worry") // Single quotes should be preserved as-is
+      })
+
+      test('should preserve single quotes even if quoted with double quotes', () => {
+        const result = f.quoteText('"Don\'t worry"')
+        expect(result).toEqual('"Don\'t worry"') // Single quotes should not be altered
+      })
+
+      // Edge case: text with a trailing colon
+      test('should quote text with a trailing colon', () => {
+        const result = f.quoteText('foo:')
+        expect(result).toEqual('"foo:"') // Text ending in a colon needs quoting
+      })
+
+      // Edge case: text starting with @
+      test('should quote text starting with @', () => {
+        const result = f.quoteText('@foo')
+        expect(result).toEqual('"@foo"') // Text starting with @ needs quoting
+      })
+
+      // Edge case: text containing >
+      test('should quote text containing >', () => {
+        const result = f.quoteText('foo > bar')
+        expect(result).toEqual('"foo > bar"') // Text with > needs quoting
+      })
+
+      // Edge case: text with double quotes and special characters
+      test('should escape internal double quotes and quote special character-containing text', () => {
+        const result = f.quoteText('foo "bar: baz"')
+        expect(result).toEqual('"foo \\"bar: baz\\""') // Both colon and double quotes are handled
+      })
     })
+
     /*
      * writeFrontMatter()
      */

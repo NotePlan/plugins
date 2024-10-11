@@ -7,14 +7,17 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { log, clo, logDebug, logError } from '@helpers/dev'
+import { getCodeBlocksOfType } from '@helpers/codeblocks'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { timestamp } from '@templatingModules/DateModule'
+import { parseObjectString, validateObjectString } from '@helpers/stringTransforms'
 
 import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
 import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
+import { showMessage } from '@helpers/userInput'
 
 // helpers
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
@@ -148,6 +151,69 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
   }
 }
 
+export async function templateForm(templateTitle?: string): Promise<void> {
+  try {
+    let selectedTemplate // will be a filename
+    if (templateTitle?.trim().length) {
+      const options = await NPTemplating.getTemplateList('template-form')
+      const chosenOpt = options.find((option) => option.label === templateTitle)
+      if (chosenOpt) {
+        // variable passed is a note title, but we need the filename
+        selectedTemplate = chosenOpt.value
+      }
+    } else {
+      // ask the user for the template
+      selectedTemplate = await NPTemplating.chooseTemplate('template-form')
+    }
+    let formFields: Array<Object> = []
+    if (selectedTemplate) {
+      const note = await getNoteByFilename(selectedTemplate)
+      if (note) {
+        const codeBlocks = getCodeBlocksOfType(note, 'formfields')
+        if (codeBlocks.length > 0) {
+          const formFieldsString = codeBlocks[0].code
+          if (formFieldsString) {
+            try {
+              formFields = parseObjectString(formFieldsString)
+              if (!formFields) {
+                const errors = validateObjectString(formFieldsString)
+                logError(pluginJson, `templateForm: error validating form fields in ${selectedTemplate}, String:\n${formFieldsString}, `)
+                logError(pluginJson, `templateForm: errors: ${errors.join('\n')}`)
+                return
+              }
+              clo(formFields, `🎅🏼 DBWDELETE NPTemplating.templateForm formFields=`)
+            } catch (error) {
+              logError(pluginJson, `templateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
+              return
+            }
+          }
+        }
+      } else {
+        logError(pluginJson, `templateForm: could not find form template: ${selectedTemplate}`)
+        return
+      }
+    }
+    const templateData = await NPTemplating.getTemplate(selectedTemplate)
+    const templateFrontmatterAttributes = await NPTemplating.getTemplateAttributes(templateData)
+
+    if (!templateFrontmatterAttributes?.receivingTemplateTitle) {
+      logError(pluginJson, 'Template does not have a receivingTemplateTitle set')
+      await showMessage('Template does not have a receivingTemplateTitle set. Please set the receivingTemplateTitle in your template frontmatter first.')
+      return
+    }
+
+    //TODO: we may not need this step, ask @codedungeon what he thinks
+    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+
+    frontmatterAttributes = { ...frontmatterAttributes, formFields: formFields }
+
+    //TODO: IAMHERE - open the form fields in the editor, passing the data
+    DataStore.invokePluginCommandByName('openFormWindow', 'np.Shared', [frontmatterAttributes])
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
 export async function templateInvoke(templateName?: string): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
@@ -167,6 +233,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
+      const templateResult = await NPTemplating.render(frontmatterBody, data)
 
       const location = frontmatterAttributes?.location || 'append'
 
@@ -199,7 +266,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
   }
 }
 
-export async function templateNew(templateTitle: string = '', _folder?: string): Promise<void> {
+export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object): Promise<void> {
   try {
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
@@ -219,7 +286,8 @@ export async function templateNew(templateTitle: string = '', _folder?: string):
     let folder = _folder ?? ''
     let noteTitle = ''
 
-    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
+    let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData, args)
+    frontmatterAttributes = { ...frontmatterAttributes, ...args }
 
     if (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
@@ -629,11 +697,12 @@ export async function templateConvertNote(): Promise<void> {
   }
 }
 
-export async function templateExecute(templateName?: string): Promise<void> {
+export async function templateExecute(templateName?: string, userData?: any): Promise<void> {
   try {
     let selectedTemplateFilename
     if (templateName) {
       const notes = await DataStore.projectNoteByTitle(templateName, true)
+      clo(notes, `templateExecute searching for templateName="${templateName}"`)
       if (notes?.length) {
         selectedTemplateFilename = notes[0].filename
       } else {
@@ -642,7 +711,8 @@ export async function templateExecute(templateName?: string): Promise<void> {
     }
     selectedTemplateFilename =
       selectedTemplateFilename ?? (await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false }))
-    await NPTemplating.renderTemplate(selectedTemplateFilename)
+    clo(userData, `templateExecute selectedTemplateFilename="${selectedTemplateFilename}" userData=`)
+    await NPTemplating.renderTemplate(selectedTemplateFilename, userData)
   } catch (error) {
     logError(pluginJson, error.message)
   }

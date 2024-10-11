@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "1.10.5",
-  "plugin.lastUpdateInfo": "1.10.5: Update documentation links; allow for simple templates with no frontmatter",
+  "plugin.version": "1.10.6-notreleased",
+  "plugin.lastUpdateInfo": "1.10.6: Fix: Allows letters 'ejs' in text to be left intact",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -52,6 +52,19 @@
       ],
       "description": "Place template using <location> attribute in template frontmatter",
       "jsFunction": "templateInvoke",
+      "arguments": [
+        "Template name to execute (optional)"
+      ]
+    },
+    {
+      "name": "Open Template Form",
+      "alias": [
+        "form",
+        "dialog"
+      ],
+      "hidden": true,
+      "description": "Open form for template data entry which will be sent to a template for processing",
+      "jsFunction": "templateForm",
       "arguments": [
         "Template name to execute (optional)"
       ]

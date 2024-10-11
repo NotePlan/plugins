@@ -19,11 +19,7 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import {
-  getNPWeekData, getMonthData, getYearData, getQuarterData,
-  nowDoneDateTimeString,
-  toLocaleDateTimeString,
-} from '@helpers/NPdateTime'
+import { getNPWeekData, getMonthData, getYearData, getQuarterData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
@@ -112,9 +108,11 @@ export function insertContentUnderHeading(destNote: CoreNoteFields, headingToFin
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
   let insertionIndex = startOfNote // top of note by default
+  const trimmedHeadingToFind = headingToFind.trim()
+  logDebug(`NPParagraph/insertContentUnderHeading`, `  startOfNote = ${startOfNote} looking for "${trimmedHeadingToFind}"`)
   for (let i = 0; i < destNote.paragraphs.length; i++) {
     const p = destNote.paragraphs[i]
-    if (p.content.trim().startsWith(headingToFind) && p.type === 'title') {
+    if (p.content.trim().startsWith(trimmedHeadingToFind) && p.type === 'title') {
       insertionIndex = i + 1
       break
     }
@@ -1379,20 +1377,21 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
+ * Removes '>date' (including '>today') if present.
  * TODO: Cope with non-daily scheduled dates.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
- * @returns {boolean|TParagraph} success? - returns the paragraph updated if successful (for use in updateCache)
+ * @returns {TParagraph|false} success? - returns the paragraph updated if successful (for use in updateCache) or false
  */
-export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean | TParagraph {
+export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): false | TParagraph {
   if (para) {
     // Default to using current date/time
     // TEST: this should return in user locale time format (up to a point)
-    // FIXME: this call (which uses Noteplan.environment.is12hr) makes Dashbaord fail. The previous call without Noteplan.environment doesn't fail.
-    let dateString = nowDoneDateTimeString()
+    let dateTimeString = nowDoneDateTimeString()
     if (useScheduledDateAsCompletionDate) {
+      let dateString = ''
       // But use scheduled date instead if found
       if (hasScheduledDate(para.content)) {
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
@@ -1406,8 +1405,13 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
           logDebug('markComplete', `will use date of note ${dateString} as completion date`)
         }
       }
+      // add time on to give same structure
+      const timeString = NotePlan?.environment.is12hFormat ? '00:00 AM' : '00:00'
+      dateTimeString = `${dateString} ${timeString}`
+    } else {
+      logDebug('markComplete', `will add ${dateTimeString} as completion date`)
     }
-    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
+    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateTimeString})` : ''
 
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
@@ -1416,12 +1420,12 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para "{para.content}"`)
+      logDebug('markComplete', `updated para "${para.content}"`)
       return para
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para "{para.content}"`)
+      logDebug('markComplete', `updated para "${para.content}"`)
       return para
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
@@ -1775,18 +1779,14 @@ export function unscheduleItem(filename: string, content: string): boolean {
 /**
  * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
  * It adds the '>' to the start of the date, and appends to the end of the para.
- * It removes any existing scheduled >dates, and if wanted, 
+ * It removes any existing scheduled >dates, and if wanted,
  * @author @jgclark
  * @param {TParagraph} para of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
  * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
  * @returns {boolean} success?
  */
-export function scheduleItem(
-  thisPara: TParagraph,
-  dateStrToAdd: string,
-  changeParaType: boolean = true
-): boolean {
+export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeParaType: boolean = true): boolean {
   try {
     const thisNote = thisPara.note
     const thisContent = thisPara.content
@@ -1961,8 +1961,7 @@ export function removeAllDueDates(filename: string): boolean {
     note.updateParagraphs(paras)
     logDebug('removeAllDueDates', `- this appears to have worked.`)
     return true
-  }
-  catch (error) {
+  } catch (error) {
     logError('removeAllDueDates', error.message)
     return false
   }
