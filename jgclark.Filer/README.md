@@ -4,7 +4,7 @@ This plugin provides extra commands to help move or copy things around in NotePl
 It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the '/Filer: update plugin settings' command (on iOS).
 
 ## /move paragraph or selection
-The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, without having to lose your flow by switching to the other note. It works on any sort of lines, not just tasks.
+The **/move paragraph or selection** command (aliased to **/mp** and **/file**) quickly **files** (moves) lines to different notes in NotePlan, without having to lose your flow by switching to the other note. It works on any sort of lines, not just tasks.
 
 It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after. Where possible it will visually highlight the lines it will be moving (on NotePlan v3.6.2+). You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 
@@ -15,10 +15,10 @@ NB: due to limitations in the API it's not yet possible to move items to a Calen
 ## /move paragraph block
 This extends the first command, by also moving commands in the current paragraph 'block'. If the 'Include lines from start of Section in the Block?' setting is true, it takes the most recent heading and its following section, up to the next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section. This means you don't have to move the cursor to the start of the section before you run it.
 
-From v0.7.0, you can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section.
+You can turn on 'Use a tighter definition of when a Block finishes?' in the settings, which will stop the section at the next blank line, as well as next heading of the same level or higher, or the next horizontal line, or the start of the `## Done` or `## Cancelled` section.
 
 ## /quick move to <...> note
-These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note. (Available with weekly notes from NotePlan v3.6.)
+These 4 commands each moves lines to the current weekly note, using the same selection strategy as /mp (see above). The move happens in the background, leaving you in the flow in your current note.
 
 - **/quick move to Today's note** (alias **/qmtd**) -- Note: this is different from the existing 'Move Task To Today ⌘0' shortcut, which actually _schedules_ not moves.
 - **/quick move to Tomorrow's note** (alias **/qmtm**) -- Note: this is different from the existing 'Move Task To Tomorrow ⌘1' shortcut, which actually _schedules_ not moves.
@@ -27,6 +27,12 @@ These 4 commands each moves lines to the current weekly note, using the same sel
 
 They could be mapped to shortcut keys to make using them even faster.
 
+## /new note from clipboard
+This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
+
+## /new note from selection
+This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
+
 ## /add sync'd copy to note
 This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
 
@@ -34,12 +40,15 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 
 NB: This feature only works on single lines, not whole blocks, at the moment.
 
+## /archive note keeping folder structure
+Move the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder.
+
 ## various /... note link ... commands
-There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
-- **/move note links**
-- **/move note links (recently changed)**
-- **/copy note links**
-- **/copy note links (recently changed)**
+There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to the regular note with that title:
+- **/copy note links** (alias **/cnl**)
+- **/copy note links (recently changed)** (alias **/cnlrc**)
+- **/move note links** (alias **/mnl**)
+- **/move note links (recently changed)** (alias **/mnlrc**)
 
 For example, if you collect tasks and notes on 3 different main areas in your daily note, you might want to copy or move those to different 'progress log' notes at the end of each day:
 
@@ -59,11 +68,11 @@ There are a number of settings to make it useful for a variety of ways of organi
 - File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.
 - Where to add in the note: If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
 - Allow preamble before first heading? If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).
-- Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
+- Tag that indicates a [[note link]] should be ignored: if this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
 
 In the demo above, the daily note includes the date ("Tues 21/3") as part of the (sub)heading. As this is copied into the project log, it serves as an automatic index in that note. To add today's date in whatever style you wish is relatively simple using the [date commands in the Templating plugin](https://nptemplating-docs.netlify.app/docs/templating-examples/date-time).
 
-The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
+The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To control this there's an additional setting:
 - How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.
 
 For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand, or could be automated through the following method ...
@@ -87,11 +96,10 @@ You can also run from an x-callback call. At simplest this is:
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
 ```
 
-## /new note from clipboard
-This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
+## /smart duplicate note
+From the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists for the new period, but no completed ones. 
 
-## /new note from selection
-This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
+This is useful if you have notes for Areas or Topics that get long, and you want a fresh note for each year/half-year/quarter.
 
 ## /filer:update plugin settings
 This command allows settings to be changed on iOS/iPadOS.
