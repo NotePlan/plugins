@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "1.0.0.b3",
+  "plugin.version": "1.0.0",
   "plugin.lastUpdateInfo": "1.0.0: new 'next action' functionality. New display toggles, and keyboard shortcuts. Much faster. Bug fixes. Lots of under-the-hood changes.\n0.14.1: new 'Remove due dates when pausing a project?' option. Other small improvements and fixes.\n0.14.0: add edit buttons to Rich output. Other small improvements and fixes.\n0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.",
   "plugin.dependsOn": [
     {
@@ -170,11 +170,6 @@
       "jsFunction": "toggleDisplayFinished"
     },
     {
-      "name": "Projects: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
-    },
-    {
       "name": "removeAllDueDates",
       "description": "removeAllDueDates callback entry",
       "jsFunction": "removeAllDueDates",
@@ -184,9 +179,15 @@
       ]
     },
     {
+      "name": "Projects: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    },
+    {
       "name": "test:generateAllProjectsList",
       "description": "make/update allProjects list JSON file",
-      "jsFunction": "generateAllProjectsList"
+      "jsFunction": "generateAllProjectsList",
+      "hidden": true
     },
     {
       "name": "test:getNextNoteToReview",
@@ -203,12 +204,14 @@
     {
       "name": "test:logAllProjectsList",
       "description": "write allProjects JSON to log",
-      "jsFunction": "logAllProjectsList"
+      "jsFunction": "logAllProjectsList",
+      "hidden": true
     },
     {
       "name": "test:renderProjectLists",
       "description": "render current allProjects list in current style(s)",
-      "jsFunction": "renderProjectLists"
+      "jsFunction": "renderProjectLists",
+      "hidden": true
     }
   ],
   "plugin.inactiveCommands": [
@@ -231,11 +234,6 @@
       "name": "test:fonts",
       "description": "test font glyphs",
       "jsFunction": "testFonts"
-    },
-    {
-      "name": "test:logReviewList",
-      "description": "write reviewList pref to log",
-      "jsFunction": "logReviewList"
     },
     {
       "name": "rev:test update Reviews plugin",
@@ -398,19 +396,19 @@
       "required": true
     },
     {
-      "key": "displayNextActions",
-      "title": "Display next actions in output?",
-      "description": "Whether to display the next action in the output? Note: If there are multiple items with the next action tag, only the first is shown.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "nextActionTag",
-      "title": "Next action #hashtag",
+      "title": "Next action tag",
       "description": "#hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next')",
       "type": "string",
       "default": "#next",
+      "required": true
+    },
+    {
+      "key": "displayNextActions",
+      "title": "Display next actions in output?",
+      "description": "Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
@@ -471,7 +469,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for toggle Pause Project command"
+      "title": "Settings for 'pause project toggle' command"
     },
     {
       "key": "removeDueDatesOnPause",
@@ -483,7 +481,7 @@
     },
     {
       "type": "heading",
-      "title": "Customise the @strings"
+      "title": "Customise the metadata @strings"
     },
     {
       "key": "startMentionStr",

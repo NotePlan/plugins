@@ -2,16 +2,9 @@
 /* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
-// Commands for Reviewing project-style notes, GTD-style.
-//
-// The major part is creating HTML view for the review list.
-// This doesn't require any comms back to the plugin through bridges;
-// all such activity happens via x-callback calls for simplicity.
-///
-// It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
-//
+// Supporting functions that deal with the allProjects list.
 // by @jgclark
-// Last updated 2024-10-06 for v1.0.0.b3, @jgclark
+// Last updated 2024-10-11 for v1.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -23,8 +16,8 @@ import {
   getReviewSettings,
   type ReviewConfig,
   updateDashboardIfOpen,
-} from './reviewHelpers'
-import { Project } from './projectClass'
+} from './reviewHelpers.js'
+import { Project } from './projectClass.js'
 import {
   clo, JSP, logDebug, logError, logInfo, logTimer, logWarn,
 } from '@helpers/dev'
@@ -39,21 +32,11 @@ import { sortListBy } from '@helpers/sorting'
 
 // Settings
 const pluginID = 'jgclark.Reviews'
-// const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const allProjectsListFilename = `../${pluginID}/allProjectsList.json` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const maxAgeAllProjectsListInHours = 1
 const generatedDatePrefName = 'Reviews-lastAllProjectsGenerationTime'
 
 //-------------------------------------------------------------------------------
-
-/**
- * Log the machine-readable list of project-type notes
- * @author @jgclark
- */
-export async function logFullReviewList(): Promise<void> {
-  const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
-  console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
-}
 
 function stringifyProjectObjects(objArray: Array<any>): string {
   /**
@@ -333,9 +316,11 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
 
     // Sort projects by folder > nextReviewDays > dueDays > title
     const sortingSpecification = []
+    // sortingSpecification.push('isPaused') //  oddly we need to put this first to make sure paused don't come at the top
     if (config.displayGroupedByFolder) {
       sortingSpecification.push('folder')
     }
+    sortingSpecification.push('isCancelled', 'isCompleted', 'isPaused') // i.e. 'active' before 'finished'
     switch (config.displayOrder) {
       case 'review': {
         sortingSpecification.push('nextReviewDays')
@@ -349,10 +334,6 @@ export async function filterAndSortProjectsList(config: ReviewConfig, projectTag
         sortingSpecification.push('title')
         break
       }
-    }
-    // if (displayFinished === 'display at end') {
-    if (displayFinished) {
-      sortingSpecification.push('-isCompleted', '-isCancelled') // i.e. 'active' before 'finished'
     }
     logDebug('filterAndSortProjectsList', `- sorting by ${String(sortingSpecification)}`)
     const sortedProjectInstances = sortListBy(projectInstances, sortingSpecification)

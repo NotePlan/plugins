@@ -5,20 +5,20 @@ This plugin provides commands to help **review** Project notes, and it helps me 
 
 The **/project lists** command shows the Project Review List screen, showing the projects due for review from various different NotePlan folders:
 
-![Project Lists: example in 'Rich' style](review-list-rich-0.14@2x.png)
+![Project Lists: example in 'Rich' style](review-list-rich-1.0.0.png)
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 60 of these.
 
 After each project name (the title of the note) is an edit icon, which when clicked opens a dialog with helpful controls for that particular project:
 
-![Edit dialog](edit-dialog-0.14.png)
+![Edit dialog](edit-dialog-1.0.png)
 
-User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (using an earlier version of the plugin):
+User George (@george65) has recorded two video walkthroughs that show most of what the plugin does (recorded using an earlier version of the plugin):
 
 - [Inside Look: How George, CMO of Verge.io, Uses NotePlan for Effective Project Management](https://www.youtube.com/watch?v=J-FlyffE9iA) featuring this and my Dashboard plugin.
     [![thumbnail](effective-PM-with-George-thumbnail.jpg)](https://www.youtube.com/watch?v=J-FlyffE9iA)
 
-- [Walk-through of Reviews in NotePlan with Project + Reviews Plugin](https://youtu.be/R-3qn6wdDLk) (Note: this was using v0.10, and the buttons have changed a little since then.)
+- [Walk-through of Reviews in NotePlan with Project + Reviews Plugin](https://youtu.be/R-3qn6wdDLk) (Note: this was using v0.10, and there have been important improvements since then.)
     [![thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
 You might also like:
@@ -108,14 +108,16 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 
 Notes about the displays:
 - the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use (though see below on how to override this).  In this style this heading row deliberately 'sticks' to the top of the window as you scroll the list:
-![Buttons in 'Rich' style](top-controls-0.14.png)
-- due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
+![Buttons in 'Rich' style](top-controls-1.0.png)
+- in the Rich style, all #tags to review get shown one after the other in a single window.
 - if you can make the window wide enough it will display in 2 (or even 3!) columns
 - the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
 - the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described below).
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
+- Next action tag: #hashtag to include in a task or checklist to indicate its the next action in this project (optional; default '#next').
+- Display next actions in output? Whether to display the next action in the output? This requires the previous setting to be set. Note: If there are multiple items with the next action tag, only the first is shown.
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
   - if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders. 
   - If empty, all folders will be used apart from those in the next setting.
@@ -125,12 +127,16 @@ Other settings:
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display projects grouped by folder? Whether to group the projects by their folder.
 - Hide higher-level folder names in headings? If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in headings.
+- Show completed/cancelled projects? If set, then completed/cancelled projects will be shown at the end of the list of active projects.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
 - Only display projects/areas ready for review?: If true then it will only display project/area notes ready for review (plus paused ones).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
 - Confirm next Review?: When running '/next project review' it asks whether to start the next review.
 - Theme to use in rich project lists: if set to a valid installed Theme name, then that will always be used in place of the currently active theme for the rest of NotePlan.
+- Folder to Archive completed/cancelled project notes to: By default this is the built-in Archive folder (shown in the sidebar) which has the special name '@Archive', but it can be set to any other folder name.
+- Archive using folder structure? When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside your chosen Archive folder (set above). (This is the same thing that the Filer plugin's "/archive note using folder structure" command does, though Filer does not need to be installed to use this.)
+
 
 ## The other Commands
 Each command is described in turn. If you have a Rich style project list open, the list will be automatically updated after most of them.
@@ -140,6 +146,7 @@ This kicks off the most overdue review by opening that project's note in the edi
 
 ### "/finish project review" command
 This updates the current open project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
+If the 'Next action tag' setting is set, then it will warn if it finds no example of that tag on all open tasks/checklists.
 
 ### "/next project review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
@@ -148,10 +155,10 @@ This updates this project's `@reviewed(date)`, and jumps to the next project to 
 This overrides (or skips) the normal review interval for a project, by adding a `@nextReview(...)` date of your choosing to the current project note. It also jumps to the next project to review.  The next time "finish review" command is used on the project note, the `@nextReview(date)` is removed.
 
 ### "/complete project" command
-This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder (or alternative folder you set in the settings).
 
 ### "/cancel project" command
-This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder (or alternative folder you set in the settings).
 
 ### "/pause project toggle" command
 This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
@@ -167,7 +174,7 @@ Progress: <num>@YYYY-MM-DD: <short description>
 It will also update the project's `@reviewed(date)`.
 
 ## Capturing Progress
-In a project/area note you can, if you wish, include a one-line summary of your view on its current overall progress. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think we're 10% complete:
+In a project/area note you can, if you wish, include a one-line summary of your view on its current **overall progress**. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think it's only 10% complete:
 
 ```markdown
 # Secret Undertaking
@@ -184,7 +191,10 @@ Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's d
 * [ ] arrange for 007's parking tickets to be paid
 ...
 ```
-The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note. The date and the comment are needed.
+The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note (that aren't due in the future). The comment are needed, and the date is inserted automatically.
+
+## Capturing Next Action
+Part of the Gettings Things Done methodology is to be clear what your 'next action' is. If you want to put a standard tag on such tasks/checklists -- e.g. `#next`, and put that in the settings, then in the project lists this next action will be shown after the progress summary.
 
 ## Creating a new Project/Area note
 A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:

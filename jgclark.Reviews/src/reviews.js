@@ -11,11 +11,10 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2024-10-10 for v1.0.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-// import fm from 'front-matter'
 import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
@@ -24,25 +23,19 @@ import {
   getNextActionLineIndex,
   getReviewSettings,
   type ReviewConfig,
-  // updateDashboardIfOpen,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
 import {
   filterAndSortProjectsList,
-  // filterAndSortReviewList,
   getNextNoteToReview,
-  // makeFullReviewList,
   getSpecificProjectFromList,
   generateAllProjectsList,
   updateProjectInAllProjectsList,
-  // updateAllProjectsListAfterChange
-} from './reviewListHelpers'
+} from './allProjectsListHelpers.js'
 import {
-  // calcDurationsForProject,
   calcReviewFieldsForProject,
   generateProjectOutputLine,
-  // Project
 } from './projectClass'
 import { checkString } from '@helpers/checkType'
 import {
@@ -60,7 +53,7 @@ import {
   makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
-import { getOrMakeNote } from '@helpers/note'
+import { getOrMakeNote, numberOfOpenItemsInNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
@@ -280,10 +273,7 @@ const addToggleEvents: string = `
   console.log('- '+ String(added) + ' input ELs added');
 </script>
 `
-
-//-------------------------------------------------------------------
-// Moved following from projectLists.js to avoid circular dependency
-//-------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
@@ -311,7 +301,26 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('makeProjectLists', JSP(error))
+  }
+}
+
+/**
+ * Internal version of above that doesn't open window if not already open.
+ * @param {number?} scrollPos 
+ */
+async function makeProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<void> {
+  try {
+    let config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    // Re-calculate the allProjects list (in foreground)
+    await generateAllProjectsList(config, true)
+
+    // Call the relevant rendering function, but only continue if relevant window is open
+    await renderProjectLists(config, false, scrollPos)
+  } catch (error) {
+    logError('makeProjectLists', JSP(error))
   }
 }
 
@@ -328,8 +337,11 @@ export async function renderProjectLists(
   scrollPos: number = 0
 ): Promise<void> {
   try {
-    logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}`)
+    logDebug(pluginJson, `--------------------------------------------------------------`)
+    logDebug('renderProjectLists', `Starting ${configIn ? 'with given config' : '*without config*'}. shouldOpen ${String(shouldOpen)} / scrollPos ${scrollPos}`)
     const config = (configIn) ? configIn : await getReviewSettings()
+    // TODO(later): remove once figured out GavinW issues
+    clo(config, 'config:')
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -340,7 +352,7 @@ export async function renderProjectLists(
       await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
   } catch (error) {
-    clo(configIn, 'config at start of renderProjectLists:')
+    clo(configIn, '❗️ERROR❗️  configIn at start of renderProjectLists:')
   }
 }
 
@@ -362,7 +374,6 @@ export async function renderProjectListsHTML(
   try {
     // Q: Why isn't this debug line being shown when triggered by toggleDisplayOnlyDue called from HTML window, but not from x-callback?
     // A: Don't know, but workaround for loss of plugin folder seems to have cured it.
-    logDebug('renderProjectListsHTML', `--------------------------------------------------------------`)
     if (config.projectTypeTags.length === 0) {
       throw new Error('No projectTypeTags configured to display')
     }
@@ -373,30 +384,38 @@ export async function renderProjectListsHTML(
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    logDebug('renderProjectListsHTML', `starting for ${String(config.projectTypeTags)} tags`)
+    logDebug('renderProjectListsHTML', `Starting for ${String(config.projectTypeTags)} tags`)
 
     // Test to see if we have the font resources we want
-    if (!(await checkForWantedResources(pluginID))) {
+    const res = await checkForWantedResources(pluginID)
+    if (!res) {
       logError(pluginJson, `Sorry, I can't find the file resources I need to continue. Stopping.`)
       await showMessage(`Sorry, I can't find the file resources I need to continue. Please check you have installed the 'Shared Resources' plugin, and then try again.`)
       return
     } else {
-      const wantedSharedFilenames = ['fontawesome.css', 'regular.min.flat4NP.css', 'solid.min.flat4NP.css', 'fa-regular-400.woff2', 'fa-solid-900.woff2']
-      const numFoundSharedFilenames = await checkForWantedResources(pluginID, wantedSharedFilenames)
-      if (Number(numFoundSharedFilenames) < wantedSharedFilenames.length) {
-        logWarn('renderProjectListsHTML', `I can only find ${String(numFoundSharedFilenames)} of the ${String(wantedSharedFilenames.length)} wanted shared resource files`)
-      }
-      // Check that the projectList.css and projectListEvents.js files are available
-      const wantedLocalFilenames = ['projectList.css', 'projectListEvents.js']
-      for (const lf of wantedLocalFilenames) {
-        const filename = `../../${pluginID}/${lf}`
-        if (DataStore.fileExists(filename)) {
-          logDebug(`renderProjectListsHTML`, `- ${filename} exists`)
-        } else {
-          logWarn(`renderProjectListsHTML`, `- ${filename} not found`)
-        }
+      logDebug('renderProjectListsHTML', `${String(res)} required shared resources found`)
+    }
+
+    // TODO(later): remove in time
+    // Double-Check that some of the pluginJson.requiredFiles (local) are available
+    const wantedLocalFilenames = [
+      "projectList.css",
+      "projectListDialog.css",
+      "projectListEvents.js",
+      "HTMLWinCommsSwitchboard.js",
+      "shortcut.js",
+      "showTimeAgo.js"
+    ]
+    logDebug('renderProjectListsHTML', `Checking for ${wantedLocalFilenames.length} local requiredFiles (${String(wantedLocalFilenames)})`)
+    for (const lf of wantedLocalFilenames) {
+      const filename = `../../${pluginID}/${lf}`
+      if (DataStore.fileExists(filename)) {
+        logDebug(`renderProjectListsHTML`, `- ${filename} exists`)
+      } else {
+        logWarn(`renderProjectListsHTML`, `- local requiredFile ${filename} not found`)
       }
     }
+
     logTimer('renderProjectListsHTML', funcTimer, `after checkForWantedResources`)
 
     // Ensure projectTypeTags is an array before proceeding
@@ -404,14 +423,6 @@ export async function renderProjectListsHTML(
 
     // String array to save all output
     const outputArray = []
-
-    // WARNING: This is just a *partial workaround* to the losing-css-file problem
-    // Include whole CSS directly here.
-    // outputArray.push(`<!-- ❗️ COPY OF THE 'projectList.css' FILE ❗️ -->`)
-    // outputArray.push(`<style type="text/css">`)
-    // const mainCSSfileContents = DataStore.loadData(`../../${pluginID}/projectList.css`, true) ?? '(empty!)'
-    // outputArray.push(mainCSSfileContents)
-    // outputArray.push(`</style>\n`)
 
     // Add (pseduo-)buttons for various commands
     // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
@@ -953,13 +964,18 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
   try {
     const config: ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
+    // TODO(later): remove once figured out GavinW issues
+    clo(config, 'config:')
 
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
-    // If we're interested in Next Actions, check to see if one is now set
-    if (config.nextActionTag !== '') {
+    // If we're interested in Next Actions, and there are open items in the note, check to see if one is now set
+    const numOpenItems = numberOfOpenItemsInNote(note)
+    logDebug('finishReviewCoreLogic', `Checking for Next Action tag '${config.nextActionTag}' in '${displayTitle(note)}' ... with ${numOpenItems} open items`)
+    if (config.nextActionTag !== '' && numOpenItems > 0) {
       const nextActionLineIndex = getNextActionLineIndex(note, config.nextActionTag)
+      logDebug('finishReviewCoreLogic', `nextActionLineIndex= '${String(nextActionLineIndex)}'`)
       if (isNaN(nextActionLineIndex)) {
         const res = await showMessageYesNo(
           `There's no Next Action tag '${config.nextActionTag}' in '${displayTitle(note)}'. Do you wish to continue finishing this review?`,
@@ -1002,12 +1018,12 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
 
       // Save changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      // Update display for user (but don't focus)
+      // Update display for user (but don't open if it isn't already)
       await renderProjectLists(config, false)
     } else {
-      // Regenerate whole list and display
+      // Regenerate whole list (and display if window is already open)
       logWarn('finishReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await makeProjectLists()
+      await makeProjectListsAndRenderIfOpen()
     }
   }
   catch (error) {
@@ -1166,12 +1182,12 @@ async function skipReviewCoreLogic(note: CoreNoteFields, skipIntervalOrDate: str
       logDebug('skipReviewCoreLogic', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
       // Write changes to allProjects list
       await updateProjectInAllProjectsList(thisNoteAsProject)
-      // Update display for user (but don't focus)
+      // Update display for user (but don't open window if not open already)
       await renderProjectLists(config, false)
     } else {
-      // Regenerate whole list and display
+      // Regenerate whole list (and display if window is already open)      
       logWarn('skipReviewCoreLogic', `- Couldn't find project '${note.filename}' in allProjects list. So regenerating whole list and display.`)
-      await makeProjectLists()
+      await makeProjectListsAndRenderIfOpen()
     }
   }
   catch (error) {

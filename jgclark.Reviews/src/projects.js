@@ -21,7 +21,7 @@ import {
 } from './reviewHelpers'
 import {
   updateAllProjectsListAfterChange
-} from './reviewListHelpers'
+} from './allProjectsListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'

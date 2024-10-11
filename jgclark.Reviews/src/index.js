@@ -3,20 +3,15 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // by Jonathan Clark
-// Last updated 2024-10-04 for v1.0.0.b2, @jgclark
+// Last updated 2024-10-08 for v1.0.0.b2+, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
-import {
-  renderProjectLists
-} from './reviews'
-import {
-  generateAllProjectsList,
-  // makeFullReviewList,
-} from './reviewListHelpers'
+import { renderProjectLists } from './reviews'
+import { generateAllProjectsList } from './allProjectsListHelpers'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
@@ -26,7 +21,6 @@ export {
   finishReview,
   finishReviewAndStartNextReview,
   makeProjectLists, // TODO: rename to displayProjectLists
-  // nextReview,
   redisplayProjectListHTML,
   renderProjectLists,
   setNewReviewInterval,
@@ -39,9 +33,8 @@ export {
   generateAllProjectsList,
   getNextNoteToReview, //  TODO: remove in time
   getNextProjectsToReview, //  TODO: remove in time
-  logAllProjectsList,
-  logFullReviewList,
-} from './reviewListHelpers'
+  logAllProjectsList
+} from './allProjectsListHelpers'
 export { NOP } from './reviewHelpers'
 export { removeAllDueDates } from '@helpers/NPParagraph'
 export {

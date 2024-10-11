@@ -1,12 +1,44 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.0.0] - 2024-10-11
+### New
+- can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List. (This can be turned off if desired.) (Requested by @matt.)
+- if a 'next action' tag is set, then warn user if they're finishing a Review, and no next action tag is found. (Unless there are no open items.)
+- added 'New Interval' buttons to the top bar and edit dialogs, to change the `@review(...)` interval.
+- added "Display only due?" and "Display finished?" toggles to window.
+- added ⌘D and ⌘F shortcuts for changing the "Display only due?" and "Display finished?" toggles.
+- added setting "Folder to Archive completed/cancelled project notes to". The default remains the built-in Archive location in the sidebar. (For @dvarlot.)
+
+### Changed
+- doubled speed of generating longer project lists
+- tweaked layout of item edit dialog to more closely match the Dashboard plugin
+- the Dashboard plugin (if open) will refresh its Project section when the a relevant change is made to a Project in this plugin.
+- simplified the "Display finished Projects?" setting to now be just off or on (which displays them after the open projects).
+- improved display of projects with literally no tasks
+- paused projects are now shown after active projects
+
+### Fixed
+- now won't open the Projects List window after a review is finished, if it wasn't already open.
+
+<!-- ### Changes (under the hood)
+- split out Project class definition from reviewHelpers.js
+- changed from using tab-separated text file that holds a few details on matching project notes, to a JSON-formatted file, holding all details on all relevant project notes
+- tweaked Rich layout slightly to suit adding 'next action' feature
+- setting name 'Only display due projects/areas?' is now 'Only display projects/areas ready for review?'
+- stopped using NP Preferences for displayFinished and displayOnlyDue settings; now directly changed in the `settings.json` file -->
+
+<!-- ## [1.0.0.b4] - 2024-10-11
+### Changed
+- now doesn't ask for a 'next action' if there are no open tasks or checklists at the end of a review.
+- now won't open the Projects List window after a review is finished, if it wasn't already open
+
 ## [1.0.0.b3] - 2024-10-07
 ### Fixed
 - duplicate entries showing if more than one wanted hashtag is configured  (thanks to @drb for spotting it)
 - fix to display of projects with literally no tasks
 ### New
-- new setting "Folder to Archive completed/cancelled project notes to". The default remains the built-in Archive location in the sidebar.  (For @dvarlot.)
+- new setting "Folder to Archive completed/cancelled project notes to". The default remains the built-in Archive location in the sidebar. (For @dvarlot.)
 
 ## [1.0.0.b2] - 2024-10-04
 ### Fixed
@@ -22,7 +54,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - added ⌘D and ⌘F shortcuts for changing the "Display only due?" and "Display finished?" toggles.
 
 ### Fixed
-- calculating % complete where progress line didn't contain a percentage <!-- committed  as 0.14.2 -->
+- calculating % complete where progress line didn't contain a percentage [committed  as 0.14.2]
 - 'Refresh' button sometimes not working on Markdown output
 - height of some circle icons in first column
 
@@ -38,6 +70,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - tweaked Rich layout slightly to suit adding 'next action' feature
 - setting name 'Only display due projects/areas?' is now 'Only display projects/areas ready for review?'
 - stopped using NP Preferences for displayFinished and displayOnlyDue settings; now directly changed in the `settings.json` file
+-->
 
 ## [0.14.1] - 2024-09-03
 ### New

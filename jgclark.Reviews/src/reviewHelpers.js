@@ -139,7 +139,9 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
  * @returns {number}
  */
 export function getNextActionLineIndex(note: TNote, naTag: string): number {
+  logDebug('getNextActionLineIndex', `Checking for @${naTag} in ${displayTitle(note)} with ${note.paragraphs.length} paragraphs`)
   const NAParas = note.paragraphs.filter((p) => p.content.includes(naTag)) ?? []
+  logDebug('getNextActionLineIndex', `Found ${NAParas.length} matching paragraphs`)
   const result = (NAParas.length > 0) ? NAParas[0].lineIndex : NaN
   return result
 }

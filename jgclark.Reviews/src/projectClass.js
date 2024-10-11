@@ -972,7 +972,7 @@ function decoratedProjectTitle(thisProject: Project, style: string, config: any)
       } else if (thisProject.isCancelled) {
         return `<span class="cancelled">${noteTitleWithOpenAction}</span>`
       } else if (thisProject.isPaused) {
-        return `<span class="paused">Paused: ${noteTitleWithOpenAction}</span>`
+        return `<span class="paused">${noteTitleWithOpenAction}</span>`
       } else {
         return `${noteTitleWithOpenAction}`
       }

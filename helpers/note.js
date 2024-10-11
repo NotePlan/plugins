@@ -24,6 +24,7 @@ import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/fo
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
 import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
@@ -770,4 +771,26 @@ export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly'
   } else {
     return 'Project'
   }
+}
+
+/**
+ * Return count of number of open tasks/checklists in the content.
+ * @param {string} content 
+ * @returns {number}
+ */
+export function numberOfOpenItemsInString(content: string): number {
+  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
+  logDebug('numberOfOpenItems', String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  return res ? res.length : 0
+}
+
+/**
+ * Return count of number of open tasks/checklists in the content.
+ * @param {string} content 
+ * @returns {number}
+ */
+export function numberOfOpenItemsInNote(note: TNote): number {
+  const res = note.paragraphs.filter(p => ['open','scheduled','checklist','checklistScheduled'].includes(p.type))
+  return res ? res.length : 0
 }
