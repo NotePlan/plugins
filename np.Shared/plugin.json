@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.8.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "0.6.3",
+  "plugin.version": "0.7.0",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",
   "plugin.dependencies": [],
@@ -27,6 +27,8 @@
     "react.core.dev.js",
     "react.c.Root.min.js",
     "react.c.Root.dev.js",
+    "react.c.FormView.bundle.min.js",
+    "react.c.FormView.bundle.dev.js",
     "noteplanstate-edited.otf",
     "shortcut.js",
     "encodeDecode.js"
@@ -34,7 +36,7 @@
   "plugin.commands": [
     {
       "name": "openReactWindow",
-      "description": "Run React with Local Files",
+      "description": "Open a HTML+React Window for whatever WebView component was supplied by plugin",
       "jsFunction": "openReactWindow",
       "hidden": true
     },
@@ -42,6 +44,18 @@
       "name": "onMessageFromHTMLView",
       "description": "React Window calling back to plugin",
       "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "name": "openFormWindow",
+      "description": "Open HTML+React Form Window",
+      "jsFunction": "openFormWindow",
+      "hidden": true
+    },
+    {
+      "name": "onFormMessageFromHTMLView",
+      "description": "React Form Calling back to plugin",
+      "jsFunction": "onFormMessageFromHTMLView",
       "hidden": true
     },
     {

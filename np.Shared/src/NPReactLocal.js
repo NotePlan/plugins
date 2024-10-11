@@ -110,15 +110,8 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     if (!globalSharedData.componentPath?.length) logError("globalSharedData.componentPath is not set. cannot load your plugin's React components")
     const componentsStr = `\t\t<script type="text/javascript" src="${globalSharedData.componentPath}"></script>\n`
 
-    //TODO: delete this after testing that we don't need it. Always use React.* (e.g. React.useState)
-    const destructureReact = `
-    <!-- Load React Functions Used by Components in case someone uses without the React. in front -->
-      <script type="text/javascript"> const { useState, useEffect, useReducer, createContext, useContext, useRef, useMemo } = React; </script>
-    <!-- Load React Components -->`
-
     // <script> logDebug("HTML JS","Root component loaded. There is no babel, so you cannot use JSX unless it's compiled by rollup."); </script>
     const reactComponents = `     
-          ${destructureReact}
           ${componentsStr}
         `
 

@@ -1,18 +1,19 @@
 // @flow
+
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-10-08 for v0.4.4+, @jgclark
+// last updated 15.7.2023 for v0.4.4, @jgclark
 // -----------------------------------------------------------------------------
 
+const sharedPluginID = 'np.Shared'
 import pluginJson from '../plugin.json'
 import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
-import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
 export { openReactWindow, onMessageFromHTMLView } from './NPReactLocal'
-
-const sharedPluginID = 'np.Shared'
+export { openFormWindow, onFormMessageFromHTMLView } from './NPFormPluginEntrypoint'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).
@@ -45,34 +46,35 @@ export async function logAvailableSharedResources(pluginID: string): Promise<voi
 }
 
 /**
- * Test to see if np.Shared is installed, and the relevant plugin.resuiredSharedFiles are available. 
- * Altnernatively, if a list of filenames are passed, then check that they are available. 
- * Return the number of wanted files found, or false if np.Shared isn't installed.
+ * Test to see if np.Shared is installed, and if filenames are passed, then check that they are available too. In the latter case, return the number of 'filesToCheck' that are found.
  * @author @jgclark
  * @param {string} clientPluginID - pluginID for the client plugin
  * @param {Array<string>} files - optional list of filenames to check
- * @results {false | number} simple or more complex results of check
+ * @results {boolean | number} simple or more complex results of check
  */
-export async function checkForWantedResources(pluginID: string, filesToCheckIn?: Array<string>): Promise<false | number> {
+export async function checkForWantedResources(pluginID: string, filesToCheck?: Array<string>): Promise<boolean | number> {
   try {
     // logDebug('checkForWantedResources', `Starting with buildVersion ${Number(NotePlan.environment.buildVersion)}`)
     // First test to see if np.Shared is installed
     if (!DataStore.isPluginInstalledByID(sharedPluginID)) {
-      logWarn('checkForWantedResources', `${sharedPluginID} is not installed.`)
+      logInfo('checkForWantedResources', `${sharedPluginID} is not installed.`)
       return false
     }
+
     // It is installed.
-    logDebug(`checkForWantedResources`, `plugin np.Shared is loaded`)
+    const retBool = true
+    // If we don't want to check whether file(s) can be accessed then return
+    if (!filesToCheck) {
+      return true
+    }
 
-    // Work out list of files to check for
-    const livePluginJson = await getPluginJson(pluginID) ?? {}
-    // clof(livePluginJson, `livePluginJson some fields`, ['plugin.requiredSharedFiles', 'plugin.requiredFiles'])
+    // We want to check, so read this plugin's requiredSharedFiles
+    const livePluginJson = await getPluginJson(pluginID)
     const requiredSharedFiles = livePluginJson['plugin.requiredSharedFiles'] ?? []
-    // logDebug(`checkForWantedResources`, `requiredSharedFiles: ${String(requiredSharedFiles)}`)
-    const filesToCheck = filesToCheckIn ? filesToCheckIn : requiredSharedFiles
-    // logDebug(`checkForWantedResources`, `filesToCheck: ${String(filesToCheck)}`)
+    // $FlowFixMe
+    logDebug(`${pluginID}/init/checkForWantedResources`, `plugin np.Shared is loaded 😄 and provides ${String(requiredSharedFiles.length)} files:`)
 
-    // Double-check that these files can be accessed
+    // Double-check that the requiredSharedFiles can be accessed
     let numFound = 0
     for (const rf of filesToCheck) {
       const filename = `../../${sharedPluginID}/${rf}`
@@ -94,12 +96,9 @@ export async function checkForWantedResources(pluginID: string, filesToCheckIn?:
         }
       }
     }
-    if (filesToCheck.length !== numFound) {
-      logWarn(`checkForWantedResources`, `I can access ${String(numFound)}, not the ${String(filesToCheck.length)} wanted shared resource files. This will probably mean issues with display or functionality.`)
-    }
     return numFound
   } catch (error) {
-    logError('checkForWantedResources', `for ${pluginID}: ${JSP(error)}`)
+    logError(pluginID, error.message)
     return false
   }
 }
