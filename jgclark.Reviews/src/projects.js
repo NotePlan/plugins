@@ -3,22 +3,25 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 2024-08-30 for v0.14.1, @jgclark
+// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
+import { Project, generateProjectOutputLine } from './projectClass'
 import {
   finishReview,
   renderProjectLists,
-  updateReviewListAfterChange
+  // updateAllProjectsListAfterChange,
 } from './reviews'
 import {
   getReviewSettings,
-  Project,
   type ReviewConfig
 } from './reviewHelpers'
+import {
+  updateAllProjectsListAfterChange
+} from './allProjectsListHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
@@ -82,7 +85,7 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
     // If this has worked, then ...
     if (newMSL) {
       // Get settings
-      const config: ?ReviewConfig = await getReviewSettings()
+      const config: ReviewConfig = await getReviewSettings()
       if (config) {
         // we need to re-load the note according to @Eduard
         await Editor.openNoteByFilename(note.filename)
@@ -92,18 +95,18 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
         const willArchive = await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes'
 
         if (willArchive) {
-          // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+          // delete the line from the allProjects list, as we don't show project notes in the archive
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
-          // update the full-review-list, using the machineSummaryLine
-          await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config)
         }
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('list', true)
+        // const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        const lineToAdd = generateProjectOutputLine(thisProject, config, 'list')
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/completeProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -121,8 +124,8 @@ export async function completeProject(noteArg?: TNote): Promise<void> {
         // ... and finally ask whether to move it to the @Archive
         if (willArchive) {
           const newFilename = (config.archiveUsingFolderStructure)
-            ? archiveNoteUsingFolder(note)
-            : DataStore.moveNote(note.filename, '@Archive')
+            ? archiveNoteUsingFolder(note, config.archiveFolder)
+            : DataStore.moveNote(note.filename, config.archiveFolder)
           logInfo('project/completeProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
         } else {
           logInfo('project/completeProject', 'Project completed, review list updated, and window updated.')
@@ -177,7 +180,7 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
     // If this has worked, then ...
     if (newMSL) {
       // Get settings
-      const config: ?ReviewConfig = await getReviewSettings()
+      const config: ReviewConfig = await getReviewSettings()
       if (config) {
 
         // we need to re-load the note according to EM
@@ -188,18 +191,18 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
         const willArchive = await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No']) === 'Yes'
 
         if (willArchive) {
-          // delete the line from the full-review-list, as we don't show project notes in the archive
-          await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+          // delete the line from the allProjects list, as we don't show project notes in the archive
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', true, config)
         } else {
-          // update the full-review-list, using the machineSummaryLine
-          await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+          await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config)
         }
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)
 
         // Now add to the Yearly note for this year (if present)
-        const lineToAdd = thisProject.detailedSummaryLine('list', true)
+        // const lineToAdd = thisProject.generateProjectOutputLine('list', true, true, false, false)
+        const lineToAdd = generateProjectOutputLine(thisProject, config, 'list')
         const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
         if (yearlyNote != null) {
           logInfo('project/cancelProject', `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -215,8 +218,8 @@ export async function cancelProject(noteArg?: TNote): Promise<void> {
         // ... and finally ask whether to move it to the @Archive
         if (willArchive) {
           const newFilename = (config.archiveUsingFolderStructure)
-            ? archiveNoteUsingFolder(note)
-            : DataStore.moveNote(note.filename, '@Archive')
+            ? archiveNoteUsingFolder(note, config.archiveFolder)
+            : DataStore.moveNote(note.filename, config.archiveFolder)
           logInfo('cancelProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
         } else {
           logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
@@ -266,15 +269,16 @@ export async function togglePauseProject(noteArg?: TNote): Promise<void> {
     // If this has worked, then ...
     if (newMSL !== '') {
       // Get settings
-      const config: ?ReviewConfig = await getReviewSettings()
+      const config: ReviewConfig = await getReviewSettings()
       if (config) {
         // we need to re-load the note according to EM
         await Editor.openNoteByFilename(note.filename)
       // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-        // update the full-review-list, using the machineSummaryLine
+        // update the full-review-list, using the TSVSummaryLine
         // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+        // FIXME: remove newMSL implication
+        await updateAllProjectsListAfterChange(note.filename ?? '<error>', false, config, newMSL)
 
         // re-render the outputs (but don't focus)
         await renderProjectLists(config, false)

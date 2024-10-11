@@ -24,8 +24,9 @@ import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/fo
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
-import { isOpen } from '@helpers/utils'
+import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
 
@@ -96,8 +97,9 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
  * Print summary of note details to log
  * @author @eduardmet
  * @param {TNote} note
+ * @param {boolean} alsoShowParagraphs? (default: false)
  */
-export function printNote(note: TNote): void {
+export function printNote(note: TNote, alsoShowParagraphs: boolean = false): void {
   if (note == null) {
     logDebug('note/printNote()', 'No Note found!')
     return
@@ -106,17 +108,29 @@ export function printNote(note: TNote): void {
   if (note.type === 'Notes') {
     logInfo(
       'note/printNote',
-      `title: ${note.title ?? ''}\n\tfilename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
+      `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
         note.paragraphs.length
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
     )
   } else {
     logInfo(
       'note/printNote',
-      `filename: ${note.filename ?? ''}\n\tcreated: ${String(note.createdDate) ?? ''}\n\tchanged: ${String(note.changedDate) ?? ''}\n\tparagraphs: ${
+      `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
         note.paragraphs.length
-      }\n\thashtags: ${note.hashtags?.join(',') ?? ''}\n\tmentions: ${note.mentions?.join(',') ?? ''}`,
+      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
     )
+  }
+  if (note.paragraphs.length > 0) {
+    const open = note.paragraphs.filter((p) => isOpen(p)).length
+    const done = note.paragraphs.filter((p) => isDone(p)).length
+    const closed = note.paragraphs.filter((p) => isClosed(p)).length
+    const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
+    console.log(
+      `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
+    )
+    if (alsoShowParagraphs) {
+      note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+    }
   }
 }
 
@@ -804,3 +818,24 @@ export function isFilenameAllowedInFolderList(
   return matchFound
 }
 
+/**
+ * Return count of number of open tasks/checklists in the content.
+ * @param {string} content 
+ * @returns {number}
+ */
+export function numberOfOpenItemsInString(content: string): number {
+  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
+  logDebug('numberOfOpenItems', String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  return res ? res.length : 0
+}
+
+/**
+ * Return count of number of open tasks/checklists in the content.
+ * @param {string} content 
+ * @returns {number}
+ */
+export function numberOfOpenItemsInNote(note: TNote): number {
+  const res = note.paragraphs.filter(p => ['open','scheduled','checklist','checklistScheduled'].includes(p.type))
+  return res ? res.length : 0
+}
