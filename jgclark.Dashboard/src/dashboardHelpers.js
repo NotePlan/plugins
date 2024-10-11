@@ -709,6 +709,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
  * It also moves indented child paragraphs of any type.
  * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
  * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
+ * Note: is similar but different to moveClickHandlers::moveFromCalToCal().
  * @author @jgclark
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
@@ -757,6 +758,10 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       logDebug('moveItemBetweenCalendarNotes',
         `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
       )
+
+      // ? TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
+      // ? TODO: Add new setting + logic to not add new section heading (ref #551)
+
       if (matchedHeading !== '') {
         // Heading does exist in note already
         toNote.addParagraphBelowHeadingTitle(
@@ -824,6 +829,9 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     // Ask to which heading to add the selectedParas
     const headingToFind = await chooseHeading(destNote, true, true, false)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+
+    // TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
+    // TODO: Add new setting + logic to not add new section heading (ref #551)
 
     // Add text to the new location in destination note
     // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)

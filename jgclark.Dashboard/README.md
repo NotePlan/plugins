@@ -27,12 +27,13 @@ From v2, the top right has icons for two menus:
 
 [<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
+_This Plugin requires the separate 'Shared Resources' plugin to be installed._
+
 ## What's improved in v2.0?
 Lots! See the [CHANGELOG](./CHANGELOG.md) for details.
 
 ## Interacting with items in the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square.  The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing **⌘ (command)** button when clicking on the open circle or square.
-
 
 <!-- TODO: <img width="400px" src="complete+cancel-2.0.0.gif" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/> -->
 
@@ -49,19 +50,27 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `Cancel` cancels the task/checklist
 - `Move to note` opens the command bar asking which note + heading you want to move this item to
 - `↑ Priority` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
-- `↓ Priority` decreasas the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
+- `↓ Priority` decreases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `Change to ◯/◻︎` toggles an item between being a task and a checklist
 - `Complete Then` completes an overdue task, but marks it `@done(...)` on the _original_ due date, not today.
 - `Unschedule` unschedules a task (i.e. removes any `>date`).
 
 You can also update the text of the item itself, which is saved whenever you press the `Update` button (or any of the other action buttons). You can press `ESC` key to close the dialog, or click on the `X` button.
 
+### Interactive Processing
+??? ...
+
+### Add Task/Checklist items
 <img src="add-buttons-2.0.0.png" align="right" width="200px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month.
 
-Other notes:
-- _This requires the separate 'Shared Resources' plugin to be installed_.
-- The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
-- The display is responsive: switching from narrow to normal to multi-column layout depending how wide you set it.
+### Move all item buttons
+??? ...
+
+- Note: be careful with this: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so this can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on both the notes the tasks were moved from and to.
+
+## Other notes about the Dashboard display
+- The Dashboard uses a flexible HTML-based display, that's entirely different technology from NotePlan's editors. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
+- The display is responsive: change the width of the window, and it will change from narrow to normal to multi-column layout.
 - Note: some of the buttons are hidden when running on iOS or iPadOS because of limitations in the environment the Dashboard runs in. We are hopeful these will be removed in time.
 - The items are shown sorted first by increasing time (where there is a time block), then by decreasing priority.
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.

@@ -61,19 +61,6 @@ function haveOpenItemsChanged(note: TNote): boolean {
 }
 
 /**
- * Return number of open items in a multi-line string.
- * Note: now not used
- * @param {number} content
- * @returns {number}
- */
-// function numberOfOpenItems(content: string): number {
-//   const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
-//   // logDebug(pluginJson, String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-//   const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-//   return res ? res.length : 0
-// }
-
-/**
  * Make array of calendar section codes and their current filename
  * @returns {Array<{string, string}>}
  */

@@ -46,6 +46,7 @@ const checkThreshold = 20 // number beyond which to check with user whether to p
  * Move an item from one calendar note to a different one.
  * The date to move to is indicated by controlStr, which is a relative date.
  * TODO: Extend to move sub-items as well, if wanted.
+ * Note: is similar but different to dashboardHelpers::moveItemBetweenCalendarNotes().
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */

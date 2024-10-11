@@ -2,14 +2,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project } from '../../jgclark.Reviews/src/reviewHelpers.js'
-import { getNextNotesToReview, makeFullReviewList } from '../../jgclark.Reviews/src/reviews.js'
+import { Project } from '../../jgclark.Reviews/src/projectClass.js'
 import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
+import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // for v1.0 of Reviews Plugin
+import type {
+  TDashboardSettings, TItemType, TParagraphForDashboard,
+  TSectionCode, TSection, TSectionItem, TSectionDetails
+} from './types'
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
