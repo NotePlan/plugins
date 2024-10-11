@@ -2,7 +2,14 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 
-## [Perspectives.a12] @jgc, 2024-09-???
+## [Perspectives.a13] @jgc, 2024-10-11
+- fixed build's circular dependency warnings
+- optimised the 'Refresh' work: it should now only recalculate the visible sections.
+- updated references to newer Dashboard functions
+- when adding a new Perspective, ensure no reuse of an existing name, no * at end, and not -
+- been testing addPerspective() and deletePerspective(). Confirmed they work OK, writing to disk. FIXME: The messages aren't getting through to the front end though.
+
+## [Perspectives.a12] @jgc, 2024-09-20
 - add time to @done(...) when "completing then"
 - fixed some items not being found when referenced to weekly notes
 - child items are now indented like in the NP Editor

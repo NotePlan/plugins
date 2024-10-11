@@ -1,19 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-09-19 for v2.1.0.a8+ by @jgclark
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-// import { doSettingsChanged } from "./clickHandlers.js"
 import { getDashboardSettings, setPluginData } from "./dashboardHelpers.js"
-// import { refreshDashboardData } from './reactMain'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
-import { chooseOption, getInputTrimmed } from '@helpers/userInput'
+import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 
 /* -----------------------------------------------------------------------------
@@ -58,7 +56,6 @@ Named perspectives
 const pluginID = pluginJson['plugin.id']
 
 export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
-  // $FlowFixMe[prop-missing] rest specified later
   {
     name: "-",
     isModified: false,
@@ -76,7 +73,6 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
       ignoreItemsWithTerms: "#test, @church",
     }
   },
-  // $FlowFixMe[prop-missing] rest specified later
   {
     name: "Work",
     isModified: false,
@@ -88,6 +84,21 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     }
   },
 ]
+
+/**
+ * Log out short list of key Perspective details
+ * @param {Array<TPerspectiveDef>} settingsArr 
+ */
+export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys: boolean = false): void {
+  for (const thisP of settingsArr) {
+    const name = thisP.name === '-' ? 'Default (-)' : thisP.name
+    logDebug('getPerspectiveSettings', `- ${name}: ${thisP.isModified ? ' (modified)':''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`)
+
+    if (showAllKeys) {
+      clo(thisP.dashboardSettings, `getPerspectiveSettings: -`)
+    }
+  }
+}
 
 //-----------------------------------------------------------------------------
 // Getters
@@ -116,7 +127,9 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== "[]") {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       const settingsArr = parseSettings(perspectiveSettingsStr) ?? []
-      logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
+      // logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
+      logDebug(`getPerspectiveSettings: Loaded ${settingsArr.length} perspectives from disk (${perspectiveSettingsStr.length} chars):`)
+      logPerspectives(settingsArr)
       return settingsArr
     }
     else {
@@ -126,7 +139,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
 
       // now fill in with the rest of the current dashboardSettings
       const currentDashboardSettings = await getDashboardSettings()
-          // FIXME: @jgclark (from dbw): I'm still not convinced we need to copy all of these
+          // TODO?: @jgclark (from dbw): I'm still not convinced we need to copy all of these
           const extendedPerspectiveSettings = perspectiveSettings
         //   const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
         // psd => ({
@@ -262,20 +275,26 @@ export function getAllowedFoldersInCurrentPerspective(
 
 export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<boolean> {
   // Check if perspective exists
-  logDebug('switchToPerspective', `for name ${name}, with ...`)
-  clo(allDefs, `switchToPerspective: allDefs =`)
+  logDebug('switchToPerspective', `Starting for name ${name}, with ...`)
+  logPerspectives(allDefs)
+
   // FIXME: always results in -
-  const thisDef = await getPerspectiveNamed(name, allDefs) ?? await getPerspectiveNamed("-", allDefs)
+  let thisDef = await getPerspectiveNamed(name, allDefs)
+  if (!thisDef) { 
+    logWarn('switchToPerspective', `Could not find definition for perspective '${name}'. Will try using the default.`)
+    thisDef = await getPerspectiveNamed("-", allDefs)
+  }
   if (!thisDef) {
-    logError('switchToPerspective', `Could not find definition for perspective '${name}'.`)
+    logError('switchToPerspective', `Could not find definition for perspective '${name}', or the default. Stopping.`)
     return false
   }
+  logDebug('switchToPerspective', `Got definition for perspective '${name}'.`)
+
   // Now set activePerspectiveName in dashboardSettings
   const dSettings = await getDashboardSettings()
   dSettings.activePerspectiveName = thisDef.name
 
   // SAVE IT! Based on clickHandlers::doSettingsChanged()
-  // TODO: Pull this into a separate function
   const updatedDashboardSettings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dSettings) }
   DataStore.settings = updatedDashboardSettings
 
@@ -379,7 +398,6 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
 
 /**
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
- * TODO: ensure no reuse and no * at end or -
  */
 export async function addNewPerspective(): Promise<void> {
   const allDefs = await getPerspectiveSettings()
@@ -393,6 +411,20 @@ export async function addNewPerspective(): Promise<void> {
   }
   if (name === '-') {
     logWarn('addPerspectiveSetting', `Cannot add default Perspective '-'.`)
+    await showMessage(`Cannot add Perspective name '-' as that is the default name.`, 'Oh. I will try again', 'Perspectives')
+    return
+  }
+  if (name[name.length - 1] === '*') {
+    logWarn('addPerspectiveSetting', `Cannot add name a Perspective ending with a '*'.`)
+    await showMessage(`Cannot add Perspective name '${name}' as it cannot end with a '*' character.`, 'Oh. I will try again', 'Perspectives')
+    return
+  }
+
+  // Check we don't have this name in use already
+  const existsAlready = allDefs.find(d=>d.name === name)
+  if (existsAlready) {
+    logWarn('addPerspectiveSetting', `Cannot add Perspective name '${name}' as it exists already.`)
+    await showMessage(`Cannot add Perspective name '${name}' as it exists already.`, 'Oops', 'Perspectives')
     return
   }
 
@@ -400,11 +432,8 @@ export async function addNewPerspective(): Promise<void> {
   const newDef: TPerspectiveDef = {
     name: name,
     isModified: false,
-    // $FlowFixMe[prop-missing] gets set later
     dashboardSettings: {
-      ...cleanDashboardSettings(currentDashboardSettings)
-      // includedFolders: includedFolders || "",
-      // excludedFolders: excludedFolders || "",
+      ... cleanDashboardSettings(currentDashboardSettings)
     }
   }
   logInfo('addPerspectiveSetting', `... adding Perspective #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
@@ -413,14 +442,18 @@ export async function addNewPerspective(): Promise<void> {
   const updatedPerspectives = [...allDefs, newDef]
   // save active perspective name into dashboard settings
   const res = saveAllPerspectiveDefs(updatedPerspectives)
-
+  logDebug('addPerspectiveSetting', `- Saved '${name}': now ${String(updatedPerspectives.length)} perspectives`)
+  
   // Then update pluginData with new dS that includes new aPN
   const updatedDashboardSettings = { ...currentDashboardSettings, activePerspectiveName: name }
   await setPluginData({ dashboardSettings: updatedDashboardSettings }, `Updating dashbaordSettings after adding Perspective ${name}`)
+  logDebug('addPerspectiveSetting', `- After setPluginData`)
 
   const res2 = await switchToPerspective(name, updatedPerspectives)
-  logDebug('addPerspectiveSetting', `Result of switchToPerspective('${name}'): ${String(res2)}`)
+  logDebug('addPerspectiveSetting', `- Result of switchToPerspective('${name}'): ${String(res2)}`)
   // FIXME: HELP: This writes to the settings file OK, but ^^^ doesn't trigger any update in the UI yet.
+  // So I want to try the following, but I don't have the function defs to call:
+  // await adjustSettingsAndSave(updatedPerspectives, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `addPerspective('${name}')`)
 }
 
 /**
@@ -439,27 +472,27 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   // DataStore.settings = pluginSettings
 
   // V2
-  let pSettings = await getPerspectiveSettings()
-  for (const p of pSettings) {
+  let allDefs = await getPerspectiveSettings()
+  for (const p of allDefs) {
     if (p.name !== '-') {
       await deletePerspective(p.name)
     }
   }
   logDebug('deleteAllNamedPerspectiveSettings', `Deleted all named perspectives, other than default.`)
 
-  pSettings = await getPerspectiveSettings()
-  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(pSettings)
+  allDefs = await getPerspectiveSettings()
+  const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
   logDebug('deleteAllNamedPerspectiveSettings', `- Test: new list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
   // Set current perspective to default ("-")
-  const res = await switchToPerspective('-')
+  const res = await switchToPerspective('-', allDefs)
   logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(res)}`)
 }
 
 /**
  * Delete a Perspective definition from dashboardSettings.
  * @param {string} nameIn
- * TEST: live
- * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Home
+ * TEST: live.
+ * TEST: from param: noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Delete%20Perspective&arg0=Test
  */
 export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
@@ -474,7 +507,8 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       return
     }
 
-    logInfo('deletePerspective', `Starting with ${existingDefs.length} perspectives and param '${nameIn}'`)
+    logInfo('deletePerspective', `Starting with param '${nameIn}' and perspectives:`)
+    logPerspectives(existingDefs)
 
     if (nameIn !== '' && getPerspectiveNamed(nameIn, existingDefs)) {
       nameToUse = nameIn
@@ -497,23 +531,26 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     // if this is the active perspective, then set the activePerspectiveName to default
     if (nameToUse === dashboardSettings.activePerspectiveName) {
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
-      const res = await switchToPerspective('-')
+      const res = await switchToPerspective('-', existingDefs)
       logDebug('deletePerspective', `Result of switchToPerspective("-"): ${String(res)}`)
     }
 
     // delete this Def from the list of Perspective Defs
     const perspectivesWithoutOne = existingDefs.filter(obj => obj.name !== nameToUse)
     logInfo('deletePerspective', `Finished with ${String(perspectivesWithoutOne.length)} perspectives remaining`)
+    logPerspectives(perspectivesWithoutOne) // ✅
 
     // Persist this change 
     // v1:
     const pluginSettings = DataStore.settings
     pluginSettings.perspectiveSettings = JSON.stringify(perspectivesWithoutOne)
     DataStore.settings = pluginSettings
-    // FIXME: ^^^^ not updating elsewhere in the interface.
+    clo(DataStore.settings, `deletePerspective at end DataStore.settings =`) // ✅
+
+    // FIXME: but not updating elsewhere in the interface.
     // v2:
     // So I want to try the following, but I don't have the function defs to call:
-    // await adjustSettingsAndSave(perspectivesWithoutOne, setDashboardSettings, setPerspectiveSettings, `deletePerspective('${nameToUse}')`)
+    // await adjustSettingsAndSave(perspectivesWithoutOne, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `deletePerspective('${nameToUse}')`)
 
   } catch (error) {
     logError('deletePerspective', error.message)

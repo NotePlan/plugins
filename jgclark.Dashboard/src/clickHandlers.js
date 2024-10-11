@@ -126,8 +126,8 @@ export async function incrementallyRefreshSections(
     logError('incrementallyRefreshSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
-  // loop through sectionCodes
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
+  // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)

@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated 2024-08-22 for v2.1.0.a9 by @dbw
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
+import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
@@ -96,14 +96,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
   if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
+    // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
-    logInfo('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
+    logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
     sections = deduplicatedSections
-    logInfo('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
+    logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
   }
 

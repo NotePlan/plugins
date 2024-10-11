@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2024-07-14 for v2.0.1 by @jgclark
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
 import type { TSection, TDashboardSettings, TSectionCode, TSectionDetails } from '../../../types.js'
@@ -18,6 +18,30 @@ const sectionWithTag = allSectionDetails.filter(s => s.sectionCode === 'TAG')[0]
 export function getShowTagSettingName(tag: string): string {
   const showSetting = sectionWithTag.showSettingName
   return `${showSetting}_${tag}`
+}
+
+/**
+ * Return list of currently visible sections.
+ * @param {TDashboardSettings} dashboardSettings - Shared settings to determine visibility of sections.
+ * @param {Array<TSection>} sections - The sections to filter.
+ * @returns {Array<TSectionCode>}
+ */
+export function getVisibleSectionCodes(
+  dashboardSettings: TDashboardSettings,
+  sections: Array<TSection>
+): Array<TSectionCode> {
+  const output: Array<TSectionCode> = []
+  
+  for (const section of sections) {
+    if (section) {
+      const isVisible = sectionIsVisible(section, dashboardSettings)
+      if (isVisible) {
+        output.push(section.sectionCode)
+      }
+    }
+  }
+  logDebug('sectionHelpers/getVisibleSectionCodes', `Visible section codes: ${String(output)}`)
+  return output
 }
 
 /**
@@ -89,7 +113,7 @@ function getUseFirstButVisible(
 
 /**
  * Removes duplicate items from sections based on specified fields and prioritizes sections based on a given order.
- *
+ * Note: This will be called multiple times for each section being displayed -- for all the other sections, it seems.
  * @param {Array<TSection>} _sections - The sections to filter.
  * @param {Array<string>} paraMatcherFields - The fields (on the underlying para) to match for duplicates.
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
@@ -121,7 +145,7 @@ export function getSectionsWithoutDuplicateLines(
     sections.filter(section => section.sectionCode === st)
   )
   const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections)
-  logInfo('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
+  logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
   
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter(section => !useFirst.includes(section.sectionCode)))
@@ -152,7 +176,7 @@ export function getSectionsWithoutDuplicateLines(
     // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
   })
   const totalItemsAfterDedupe = countTotalSectionItems(orderedSections)
-  logInfo('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map(s => s.name))} with ${totalItemsAfterDedupe} items`)
+  logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map(s => s.name))} with ${totalItemsAfterDedupe} items`)
 
   // Return the orderedSections instead of the original sections
   return orderedSections

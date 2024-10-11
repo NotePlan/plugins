@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -10,6 +10,7 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
+import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
@@ -18,8 +19,8 @@ import { useAppContext } from '../AppContext.jsx'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
-import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
 import PerspectiveSelector  from './PerspectiveSelector.jsx'
+import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import {
   handleSwitchChange,
@@ -75,7 +76,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
-  const {/* pluginDataSettings, notePlanSettings, */ logSettings } = pluginData
+  const { sections, logSettings } = pluginData
 
   const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
@@ -86,6 +87,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const isMobile = pluginData.platform !== "macOS"
   const isNarrowWidth = window.innerWidth <= 650
   const updatedText = "Updated"
+
+  const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -108,11 +111,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       <div className="refresh">
         <RefreshControl
           refreshing={pluginData.refreshing === true}
-          handleRefreshClick={handleRefreshClick(sendActionToPlugin, false)}
+          handleRefreshClick={handleRefreshClick(sendActionToPlugin, false, visibleSectionCodes)}
         />
         {showHardRefreshButton && (
           <button
-            onClick={handleRefreshClick(sendActionToPlugin, true)}
+            onClick={handleRefreshClick(sendActionToPlugin, true, visibleSectionCodes)}
             className="HAButton hardRefreshButton"
           >
             <i className={"fa-regular fa-arrows-retweet"}></i>

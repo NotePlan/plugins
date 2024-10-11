@@ -150,7 +150,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decrement the number of items to show if the last one is the filterIndicator
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') {
     numItemsToShow--
-    logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
+    // logDebug('Section', `Section ${section.ID} has only one item: ${itemsToShow[0].itemType}, so decrement numItemsToShow to ${String(numItemsToShow)}`)
   }
   if (numItemsToShow === 1 && ((itemsToShow[0].itemType === 'itemCongrats') || itemsToShow[0].itemType === 'projectCongrats')) numItemsToShow = 0
 

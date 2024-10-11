@@ -23,7 +23,7 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
-import { showMessage } from '@helpers/userInput'
+// import { showMessage } from '@helpers/userInput'
 import { isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPnote.js'
@@ -170,7 +170,8 @@ export async function convertNoteToFrontmatter(note: TNote, defaultFMText: strin
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
-    await showMessage(error.message)
+    // await showMessage(error.message) // to avoid circular dependency with userInput. Instead:
+    await CommandBar.prompt('Convert to Frontmatter Error', error.message)
   }
 }
 
@@ -585,7 +586,8 @@ export function findNotesMatchingHashtag(
     if (projectNotesWithTag.length > 0) {
       logDebug(
         'NPnote/findNotesMatchingHashtag',
-        `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`,
+        // `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}': [${String(projectNotesWithTag.map((a) => a.title ?? a.filename ?? '?'))}]`,
+        `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`,
       )
     }
 

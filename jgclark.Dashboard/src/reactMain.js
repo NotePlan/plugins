@@ -15,7 +15,7 @@ import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { getPerspectiveSettings } from './perspectiveHelpers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
-import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import {
   getGlobalSharedData, sendToHTMLWindow,
@@ -341,8 +341,8 @@ export async function updateReactWindowData(actionType: string, data: any = null
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
   try {
     let _newData = null
-    logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
-    // clo(data, `Plugin onMessageFromHTMLView data=`)
+    logInfo(pluginJson, `actionType '${actionType}' received by onMessageFromHTMLView`)
+    clo(data, `Plugin onMessageFromHTMLView data=`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {

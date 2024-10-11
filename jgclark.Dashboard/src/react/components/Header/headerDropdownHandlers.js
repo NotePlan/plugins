@@ -1,6 +1,10 @@
 // @flow
+//--------------------------------------------------------------------------
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+//--------------------------------------------------------------------------
+
 import { allSectionDetails } from "../../../constants.js"
-import type { TDashboardSettings } from "../../../types.js"
+import type { TDashboardSettings, TSectionCode } from "../../../types.js"
 import { dashboardFilterDefs } from "../../../dashboardSettings"
 import { adjustSettingsAndSave } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
@@ -10,12 +14,21 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
  * 
  * @param {Function} sendActionToPlugin - Function to send actions to the plugin.
  * @param {boolean} isDev? (default: false) If true, then pressing refresh will do a complete reload, not just a refresh.
+ * @param {Array<TSectionCode>} list of currently visible sectionCodes
  * @returns {Function} - A function to handle the click event.
  */
-export const handleRefreshClick = (sendActionToPlugin: Function, isDev: boolean = false): Function => (): void => {
+export const handleRefreshClick = (
+  sendActionToPlugin: Function, 
+  isDev: boolean = false, 
+  visibleSectionCodes: Array<TSectionCode>,
+): Function => (): void => {
   const actionType = isDev ? 'windowReload' : 'refresh'
   logDebug('Header', `Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}`)
-  sendActionToPlugin(actionType, { actionType }, 'Refresh button clicked', true)
+  sendActionToPlugin(actionType, 
+    { actionType: actionType,
+      sectionCodes: visibleSectionCodes
+     },
+    'Refresh button clicked', true)
 }
 
 /**

@@ -49,7 +49,7 @@ import {
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
 import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
-import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
+// import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import {
   copyUpdatedSectionItemData, findSectionItems,
 } from './dataGeneration'
@@ -120,12 +120,17 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
+        const sectionCodesToUse = (data.sectionCodes) ? data.sectionCodes : allSectionCodes
+        logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
+      
+        await incrementallyRefreshSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
         break
       }
       case 'windowReload': {
         const useDemoData = data.settings?.useDemoData ?? false
-        await showDashboardReact('full', useDemoData) // FIXME: cause of circular dependency // TODO: x-callback instead!
+        // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
+        // TEST: trying Plugin command invocation instead
+        DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
         return
       }
       case 'completeTask': {

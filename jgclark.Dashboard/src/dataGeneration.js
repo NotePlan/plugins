@@ -7,13 +7,9 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { Project } from '../../jgclark.Reviews/src/projectClass.js'
+import { Project } from '../../jgclark.Reviews/src/projectClass.js' // for v1.0 of Reviews Plugin
 import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // for v1.0 of Reviews Plugin
-import type {
-  TDashboardSettings, TItemType, TParagraphForDashboard,
-  TSectionCode, TSection, TSectionItem, TSectionDetails
-} from './types'
 import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
@@ -49,8 +45,8 @@ import {
 } from './perspectiveHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared.js'
 import type {
-  TDashboardSettings,
-  TSectionCode, TSection, TSectionItem, TParagraphForDashboard, TItemType, TSectionDetails,
+  TDashboardSettings, TItemType, TParagraphForDashboard,
+  TSectionCode, TSection, TSectionItem, TSectionDetails
 } from './types'
 import {
   getDateStringFromCalendarFilename,
