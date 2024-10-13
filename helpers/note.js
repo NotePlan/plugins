@@ -96,21 +96,25 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
 /**
  * Print summary of note details to log
  * @author @eduardmet
- * @param {TNote} note
- * @param {boolean} alsoShowParagraphs? (default: false)
+ * @param {?TNote} noteIn
+ * @param {boolean?} alsoShowParagraphs? (default: false)
  */
-export function printNote(note: TNote, alsoShowParagraphs: boolean = false): void {
-  if (note == null) {
-    logDebug('note/printNote()', 'No Note found!')
-    return
+export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
+  let note
+  if (noteIn == null) {
+    logDebug('note/printNote()', 'No Note found. Will try Editor note.')
+    note = Editor?.note
+  } else {
+    note = noteIn
   }
 
   if (note.type === 'Notes') {
+    const endOfActive = findEndOfActivePartOfNote(note)
     logInfo(
       'note/printNote',
       `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
         note.paragraphs.length
-      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
     )
   } else {
     logInfo(

@@ -1,6 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.20.1] - 2024-10-13 (_not yet released_)
+- new command 'printNote' (for debugging purposes)
+
 ## [0.20.0] - 2024-08-16
 ### Added
 - new **delete note** command, that makes easier what the current NotePlan UI makes difficult.
