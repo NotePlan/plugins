@@ -44,7 +44,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, /* setPerspectiveSettings, */ updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, setPerspectiveSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -176,36 +176,48 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
     const lastChangeText = (dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0) ?? ''
+    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText)||''}"`)
     const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
     if (settingsNeedFirstTimeMigration || shouldSendToPlugin) {
       settingsNeedFirstTimeMigration && logDebug('Dashboard/useEffect(dashboardSettings)', `- Settings need first time migration sending to plugin to be saved or otherwise shouldSendToPlugin`, dashboardSettings)
       logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
-      const sharedSets = { ...dashboardSettings }
+      const dashboardSettingsCopy = { ...dashboardSettings }
       if (settingsNeedFirstTimeMigration) {
-        sharedSets.settingsMigrated = true
-        sharedSets.lastChange = 'Saving first time migration'
+        dashboardSettingsCopy.settingsMigrated = true
+        dashboardSettingsCopy.lastChange = 'Saving first time migration'
       }
       // TODO: DELETE this log line after perspective testing is completed
-      /perspective/i.test(typeof lastChangeText === "string" ? lastChangeText : '') && logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${sharedSets.activePerspectiveName}"; excludedFolders:${sharedSets.excludedFolders}`, sharedSets)
+      /perspective/i.test(typeof lastChangeText === "string" ? lastChangeText : '') && logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
 
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: sharedSets.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
+      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: dashboardSettingsCopy, logMessage: dashboardSettingsCopy.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
 
-      if (sharedSets.activePerspectiveName === "-" || !(sharedSets.activePerspectiveName)) {
+      // If a perspective is not set (or it is set to "-"), we need to keep the "-" perspective updated with the current settings so that you can return to your last state
+      // after switching to a perspective and back to "-". So every time dashboardSettings changes and no perspective is set, we are quietly saving the update
+      if (dashboardSettingsCopy.activePerspectiveName === "-" || !(dashboardSettingsCopy.activePerspectiveName)) {
         // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspective
         // when any settings are changed
-        // Note: default perspective is never shown with a "*" on the end.        saveDefaultPerspectiveData(perspectiveSettings, sharedSets, setPerspectiveSettings)
+        // Note: default perspective is never shown with a "*" on the end.        
+        saveDefaultPerspectiveData(perspectiveSettings, dashboardSettingsCopy, setPerspectiveSettings)
+      } else {
+        // FIXME: dbw: I'm not sure what this following code is or what it does or did, but let's keep an eye on it
+        const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === dashboardSettingsCopy.activePerspectiveName) ?? 0
+        logDebug('Dashboard/useEffect(dashboardSettings)', `Currenlty doing anything, but log previously said: - Will now need to update perspective "${dashboardSettingsCopy.activePerspectiveName}" to isModified; dashPerspectiveIndex=${dashPerspectiveIndex}`)
+        // perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(dashboardSettingsCopy) }
       }
-      // FIXME: (@jgclark) dbw commenting out this @jgclark code which I didn't understand what it was doing
-      // } else {
-      //   const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === sharedSets.activePerspectiveName) ?? 0
-      //   logDebug('Dashboard/useEffect(dashboardSettings)', `- Will now need to update perspective "${sharedSets.activePerspectiveName}" to isModified`)
-      //   // FIXME: Gets here but vvvvv doesn't seem to work
-      //   perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(sharedSets) }
-      // }
     } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
       !shouldSendToPlugin && logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated in React, but not sending to plugin because lastChange="${dashboardSettings.lastChange}"`)
     }
   }, [dashboardSettings])
+
+  // create a new effect that sets perspectiveSettings in the plugin when pluginData.perspectiveSettings changes
+  useEffect(() => {
+    if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
+      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- pluginData.perspectiveSettings changed: ${JSP(pluginData.perspectiveSettings, 2)}`)
+      const lastPerspectiveName = pluginData.perspectiveSettings[pluginData.perspectiveSettings.length - 1].name
+      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- lastPerspectiveName in perspectives array: ${lastPerspectiveName}`)
+      setPerspectiveSettings(pluginData.perspectiveSettings)
+    }
+  }, [pluginData.perspectiveSettings])
 
   // When perspectiveSettings changes anywhere, send it to the plugin to save in settings
   useEffect(() => {
@@ -214,7 +226,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated`, perspectiveSettings)
         sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
       } else {
-        logDebug('Dashboard', `Watcher for perspectiveSettings changes. Settings match. Maybe this was the initialization?`)
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. Settings match. Probably just newest perspective data sent from plugin. No need to send back again.`)
       }
     }
   }, [perspectiveSettings])

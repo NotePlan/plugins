@@ -10,46 +10,32 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
-import type { TActionOnReturn, TBridgeClickHandlerResult, TDashboardSettings, TDashboardLoggingConfig, TItemType, TNotePlanSettings, TParagraphForDashboard, TSection } from './types'
+import type {
+  TActionOnReturn,
+  TBridgeClickHandlerResult,
+  TDashboardSettings,
+  TDashboardLoggingConfig,
+  TItemType,
+  TNotePlanSettings,
+  TParagraphForDashboard,
+  TSection,
+} from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
-import {
-  getAPIDateStrFromDisplayDateStr,
-  getTodaysDateHyphenated,
-  includesScheduledFutureDate,
-} from '@helpers/dateTime'
+import { getAPIDateStrFromDisplayDateStr, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import {
-  sendToHTMLWindow,
-  getGlobalSharedData,
-} from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, getNoteByFilename, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
-import {
-  findEndOfActivePartOfNote,
-  findHeadingStartsWith,
-  findStartOfActivePartOfNote,
-  isTermInURL,
-  parasToText,
-  smartPrependPara,
-} from '@helpers/paragraph'
+import { findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote, isTermInURL, parasToText, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import {
-  getTimeBlockString,
-  isTypeThatCanHaveATimeBlock,
-  RE_TIMEBLOCK_APP,
-} from '@helpers/timeblocks'
-import {
-  chooseHeading, chooseNote, displayTitleWithRelDate,
-} from '@helpers/userInput'
-import {
-  isOpen, isOpenTask, isOpenNotScheduled,
-  removeDuplicates
-} from '@helpers/utils'
+import { getTimeBlockString, isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_APP } from '@helpers/timeblocks'
+import { chooseHeading, chooseNote, displayTitleWithRelDate } from '@helpers/userInput'
+import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Types
@@ -71,12 +57,14 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
   // Note: We think following (newer API call) is unreliable.
   let pluginSettings = DataStore.settings
   if (!pluginSettings || !pluginSettings.dashboardSettings) {
-    clo(pluginSettings, `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `)
+    clo(
+      pluginSettings,
+      `getDashboardSettings (newer API): DataStore.settings?.dashboardSettings not found; should be there by default. here's the full settings for ${pluginID} plugin: `,
+    )
 
     // Fall back to the older way:
     pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
     clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
-
   }
   if (!pluginSettings.dashboardSettings) {
     // Note: sharedSettings now dropped, so this is removed.
@@ -87,7 +75,12 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     //   logDebug('getDashboardSettings', `now deleted sharedSettings.`)
     //   DataStore.settings = pluginSettings
     // } else {
-      throw (pluginSettings, `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${pluginSettings.pluginID || ''} plugin: `)
+    throw (
+      (pluginSettings,
+      `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
+        pluginSettings.pluginID || ''
+      } plugin: `)
+    )
     // }
   }
 
@@ -102,14 +95,15 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
   try {
     // Get plugin settings
     const config: TDashboardSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    
+
     if (config == null || Object.keys(config).length === 0) {
-      throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`)
+      throw new Error(
+        `Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`,
+      )
     }
     const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
     // $FlowIgnore
     return logBits
-
   } catch (err) {
     logError('getLogSettings', `${err.name}: ${err.message}`)
     // $FlowFixMe[incompatible-return] reason for suppression
@@ -127,7 +121,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
     return {
       timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString')) ?? '',
       defaultFileExtension: DataStore.defaultFileExtension,
-      doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks')
+      doneDatesAvailable: !!DataStore.preference('isAppendCompletionLinks'),
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -151,9 +145,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       // Note: Demo data gives .children not function returning children
       // So test to see if children() function is present, before trying to use it
       // $FlowFixMe[method-unbinding]
-      const anyChildren = (p.children && typeof p.children === 'function')
-        ? p.children()
-        : p.children
+      const anyChildren = p.children && typeof p.children === 'function' ? p.children() : p.children
       const hasChild = anyChildren.length > 0
       const isAChild = isAChildPara(p)
 
@@ -170,7 +162,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       return {
         filename: note.filename,
         noteType: note.type,
-        title: (note.type === 'Notes') ? displayTitle(note) : note.title /* will be ISO-8601 date */,
+        title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
         type: p.type,
         prefix: p.rawContent.replace(p.content, ''),
         content: p.content,
@@ -181,7 +173,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         changedDate: note?.changedDate,
         hasChild: hasChild,
         isAChild: isAChild,
-        indentLevel: p.indents
+        indentLevel: p.indents,
       }
     })
     return dashboardParas
@@ -223,7 +215,11 @@ export function getOpenItemParasForCurrentTimePeriod(
     if (useEditorWherePossible && Editor && Editor?.note?.filename === timePeriodNote.filename) {
       // If note of interest is open in editor, then use latest version available, as the DataStore could be stale.
       parasToUse = Editor.paragraphs
-      logTimer('getOpenItemPFCTP', startTime, `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
+      logTimer(
+        'getOpenItemPFCTP',
+        startTime,
+        `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`,
+      )
     } else {
       // read note from DataStore in the usual way
       parasToUse = timePeriodNote.paragraphs
@@ -251,10 +247,7 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Keep only non-empty open tasks not scheduled (other than >today)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
-    openParas = openParas.filter((p) =>
-      isOpenNotScheduled(p) ||
-      (p.content.includes(thisNoteDateSched) ||
-        (isToday && p.content.includes('>today'))))
+    openParas = openParas.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
     // logTimer('getstartTime, OpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
 
     // Filter out any future-scheduled tasks from this calendar note
@@ -266,8 +259,8 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
-      openParas = openParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
     } else {
       // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
@@ -316,8 +309,8 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
-      refOpenParas = refOpenParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      refOpenParas = refOpenParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
       // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
     } else {
       // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
@@ -368,7 +361,7 @@ export function deepCompare(value1: any, value2: any, path: string): void {
     const keys1 = Object.keys(value1)
     const keys2 = Object.keys(value2)
     const allKeys = new Set([...keys1, ...keys2])
-    allKeys.forEach(key => {
+    allKeys.forEach((key) => {
       if (!(key in value1)) {
         logDebug(`Property ${path}.${key} is missing in the first object value`)
       } else if (!(key in value2)) {
@@ -385,7 +378,7 @@ export function deepCompare(value1: any, value2: any, path: string): void {
 /**
  * Note: suggested by ChatGPT
  * Helper function to determine if a value is an object.
- * 
+ *
  * @param {any} value The value to check.
  * @return {boolean} True if the value is an object, false otherwise.
  */
@@ -450,25 +443,32 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
-    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
+    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${dashboardSettings.excludedFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
-      filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
     } else {
-      logDebug('getRelevantOverdueTasks...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      logDebug(
+        'getRelevantOverdueTasks...',
+        `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
+      )
     }
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'dashboardSettings.ignoreItemsWithTerms'(${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`)
+    logTimer(
+      'getRelevantOverdueTasks',
+      thisStartTime,
+      `- after 'dashboardSettings.ignoreItemsWithTerms'(${dashboardSettings.ignoreItemsWithTerms}) filter: ${filteredOverdueParas.length} paras`,
+    )
 
     // Limit overdues to last N days for testing purposes
     if (!Number.isNaN(dashboardSettings.lookBackDaysForOverdue) && dashboardSettings.lookBackDaysForOverdue > 0) {
       const numDaysToLookBack = dashboardSettings.lookBackDaysForOverdue
       const cutoffDate = moment().subtract(numDaysToLookBack, 'days').format('YYYYMMDD')
       logDebug('getRelevantOverdueTasks', `lookBackDaysForOverdue limiting to last ${String(numDaysToLookBack)} days (from ${cutoffDate})`)
-      filteredOverdueParas = filteredOverdueParas.filter((p) => p.filename ? p.filename > cutoffDate : true)
+      filteredOverdueParas = filteredOverdueParas.filter((p) => (p.filename ? p.filename > cutoffDate : true))
     }
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
@@ -481,7 +481,7 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     // Remove items already in Yesterday section (if turned on)
     if (dashboardSettings.showYesterdaySection) {
       if (yesterdaysParas.length > 0) {
-      // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
+        // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysParas
         filteredOverdueParas.map((p) => {
           if (yesterdaysParas.filter((y) => y.content === p.content).length > 0) {
             logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
@@ -505,23 +505,19 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
  * @param {TDashboardSettings} settings
  * @returns {Array<TParagraph>}
  */
-export async function getRelevantPriorityTasks(
-  config: TDashboardSettings,
-): Promise<Array<TParagraph>> {
+export async function getRelevantPriorityTasks(config: TDashboardSettings): Promise<Array<TParagraph>> {
   try {
     const thisStartTime = new Date()
 
     await CommandBar.onAsyncThread()
     // Get list of folders to ignore
-    const excludedFolders = config.excludedFolders ? config.excludedFolders.split(',').map(folder => folder.trim()) : []
+    const excludedFolders = config.excludedFolders ? config.excludedFolders.split(',').map((folder) => folder.trim()) : []
     logInfo('getRelevantPriorityTasks', `excludedFolders: ${excludedFolders.toString()}`)
     // Reduce list to all notes that are not blank or in @ folders or excludedFolders
     let notesToCheck = projectNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    notesToCheck = notesToCheck
-      .filter((n) => n.filename.match(/(.txt|.md)$/))
-      .filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
+    notesToCheck = notesToCheck.filter((n) => n.filename.match(/(.txt|.md)$/)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
 
     // Now find all open items in them which have a priority marker
@@ -536,8 +532,8 @@ export async function getRelevantPriorityTasks(
     // Filter out anything from 'ignoreItemsWithTerms' setting
     let filteredPriorityParas = priorityParas
     if (config.ignoreItemsWithTerms) {
-      const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map(phrase => phrase.trim())
-      filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some(phrase => p.content.includes(phrase)))
+      const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
       logDebug('getRelevantPriorityTasks', `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
     }
 
@@ -558,7 +554,7 @@ export async function getRelevantPriorityTasks(
 
 /**
  * ???
- * @param {Array<TNote>} notesToCheck 
+ * @param {Array<TNote>} notesToCheck
  * @returns {Array<TParagraph>}
  */
 function getAllOpenPriorityItems(notesToCheck: Array<TNote>): Array<TParagraph> {
@@ -572,7 +568,7 @@ function getAllOpenPriorityItems(notesToCheck: Array<TNote>): Array<TParagraph> 
 
 /**
  * ???
- * @param {TNote} note 
+ * @param {TNote} note
  * @returns {Array<TParagraph>}
  */
 function getOpenPriorityItems(note: TNote): Array<TParagraph> {
@@ -755,7 +751,8 @@ export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDa
       // so replace with one half of /qath:
       const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
       const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug('moveItemBetweenCalendarNotes',
+      logDebug(
+        'moveItemBetweenCalendarNotes',
         `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
       )
 
@@ -838,7 +835,8 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
 
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
-    if (itemType === 'open') { // there is no "task" in itemType
+    if (itemType === 'open') {
+      // there is no "task" in itemType
       // FIXME: @jgclark: We had the exact note (destNote), but now we are going to try to find it again by title?
       // this is not great because we could have multiple notes with the same title
       // ok for now, but this helper should be able to accept a specific filename
@@ -894,12 +892,13 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
 /**
  * Convenience function to update the global shared data in the webview window, telling React to update it
  * @param {TAnyObject} changeObject - the fields inside pluginData to update
- * @param {string} changeMessage 
+ * @param {string} changeMessage
  * @usage await setPluginData({ refreshing: false, lastFullRefresh: new Date() }, 'Finished Refreshing all sections')
  */
-export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ""): Promise<void> {
+export async function setPluginData(changeObject: TAnyObject, changeMessage: string = ''): Promise<void> {
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   reactWindowData.pluginData = { ...reactWindowData.pluginData, ...changeObject }
+  clo(reactWindowData, `\n\n- reactWindowData before sendToHTMLWindow: ${changeMessage}`)
   await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, changeMessage)
 }
 
@@ -907,8 +906,8 @@ export async function setPluginData(changeObject: TAnyObject, changeMessage: str
  * Merge existing sections data with replacement data
  * If the section existed before, it will be replaced with the new data
  * If the section did not exist before, it will be added to the end of sections
- * @param {Array<TSection>} existingSections 
- * @param {Array<TSection>} newSections 
+ * @param {Array<TSection>} existingSections
+ * @param {Array<TSection>} newSections
  * @returns {Array<TSection>} - merged sections
  */
 export function mergeSections(existingSections: Array<TSection>, newSections: Array<TSection>): Array<TSection> {

@@ -84,7 +84,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
   const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
-  logDebug('WebView', `found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
+  logDebug('WebView', `At top of WebView, found ${String(pSettings.length)} perspective settings: ${pSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
   const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************
@@ -138,6 +138,27 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   useEffect(() => {
     logInfo('WebView', `React Dashboard Initialized and rendered.`)
   }, [])
+
+  // Effect to update dashboardSettings when data.pluginData.dashboardSettings changes
+  useEffect(() => {
+    logDebug('WebView', 'Detected change in data.pluginData.dashboardSettings.')
+
+    const dSettings = data.pluginData.dashboardSettings || {}
+    const dSettingsItems = createDashboardSettingsItems(dSettings)
+    const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
+    const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
+    const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
+    const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
+    const dashboardSettingsOrDefaults = { 
+      ...settingsDefaults, 
+      ...filterSettingsDefaults, 
+      ...otherSettingsDefaults, 
+      ...dSettings, 
+      lastChange: `_WebView_DashboardDefaultSettings` 
+    }
+
+    setDashboardSettings(dashboardSettingsOrDefaults)
+  }, [data.pluginData.dashboardSettings])
 
   /****************************************************************************************************************************
    *                        HELPER FUNCTIONS
