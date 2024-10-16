@@ -1,14 +1,15 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to select and manage perspectives
-// Called by DashboardSettings component.
-// Last updated 2024-08-21 for v2.1.0.a8 by @jgclark
+ // Dashboard React component to select and manage perspectives
+ // Refactored to use useReducer to give more visibility into what's happening
+ // Prevents infinite render loops by avoiding returning null
+ // Last updated 2024-10-17
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
-// Imports
+ // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useState } from 'react'
+import React, { useReducer, useEffect, useCallback } from 'react'
 import ComboBox from '../ComboBox.jsx'
 import {
   cleanDashboardSettings,
@@ -17,14 +18,73 @@ import {
   getPerspectiveNamed,
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
-import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
-// Type Definitions
+ // Type Definitions
 //--------------------------------------------------------------------------
+type State = {
+  perspectiveNameOptions: Array<string>,
+  activePerspectiveName: string,
+  isValid: boolean,
+  isLoading: boolean,
+}
+
+type Action =
+  | { type: 'SET_PERSPECTIVE_OPTIONS', payload: Array<string> }
+  | { type: 'SET_ACTIVE_PERSPECTIVE', payload: string }
+  | { type: 'VALIDATE_ACTIVE_PERSPECTIVE' }
+  | { type: 'SET_LOADING', payload: boolean }
+  | { type: 'LOG_STATE', payload: string }
 
 //--------------------------------------------------------------------------
-// PerspectiveSelector Component Definition
+ // Reducer Function with Comprehensive Logging
+//--------------------------------------------------------------------------
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_PERSPECTIVE_OPTIONS':
+      logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS, Payload: ${JSON.stringify(action.payload)}`)
+      return {
+        ...state,
+        perspectiveNameOptions: action.payload,
+        isLoading: false,
+      }
+
+    case 'SET_ACTIVE_PERSPECTIVE':
+      logDebug('PerspectiveSelector Reducer', `Action: SET_ACTIVE_PERSPECTIVE, Payload: ${action.payload}`)
+      return {
+        ...state,
+        activePerspectiveName: action.payload,
+      }
+
+    case 'VALIDATE_ACTIVE_PERSPECTIVE': {
+      const isValid = state.perspectiveNameOptions.includes(state.activePerspectiveName)
+      logDebug('PerspectiveSelector Reducer', `Action: VALIDATE_ACTIVE_PERSPECTIVE, isValid: ${String(isValid)}`)
+      return {
+        ...state,
+        isValid,
+        activePerspectiveName: isValid ? state.activePerspectiveName : '-',
+      }
+    }
+    case 'SET_LOADING':
+      logDebug('PerspectiveSelector Reducer', `Action: SET_LOADING, Payload: ${action.payload}`)
+      return {
+        ...state,
+        isLoading: action.payload,
+      }
+
+    case 'LOG_STATE':
+      logDebug('PerspectiveSelector Reducer', `Action: LOG_STATE, Message: ${action.payload}`)
+      return state
+
+    default:
+      logWarn('PerspectiveSelector Reducer', `Unhandled action type: ${action.type}`)
+      return state
+  }
+}
+
+//--------------------------------------------------------------------------
+ // PerspectiveSelector Component Definition
 //--------------------------------------------------------------------------
 const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
@@ -34,148 +94,228 @@ const PerspectiveSelector = (): React$Node => {
   const { perspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
-  // State
+  // Reducer Initialization
   //----------------------------------------------------------------------
-  // We need to store the state of the ComboBox options and the active perspective name in local state so that we can
-  // redraw the component if the options are changed outside of the component (e.g. in the settings dialog).
-  // Set the initial state of the ComboBox options and the active perspective name to empty and we will update them in the
-  // useEffect hook below.
-  const [perspectiveNameOptions, setPerspectiveNameOptions] = useState < Array < string >> ([])
-  const [activePerspectiveName, setActivePerspectiveName] = useState < string > (dashboardSettings.activePerspectiveName || '')
+  const initialState: State = {
+    perspectiveNameOptions: [],
+    activePerspectiveName: dashboardSettings.activePerspectiveName || '',
+    isValid: true,
+    isLoading: true,
+  }
+
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { perspectiveNameOptions, activePerspectiveName, isValid, isLoading } = state
+
+  logDebug(
+    'PerspectiveSelector',
+    `Initial State: perspectiveNameOptions=${JSON.stringify(
+      perspectiveNameOptions
+    )}, activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
+  )
 
   //----------------------------------------------------------------------
-  // Effects
+  // Effect to Update Perspective Options When perspectiveSettings Change
   //----------------------------------------------------------------------
-
-  // Note: see also Dashboard component for useEffect() on dashboardSettings
-
-  // Watching any change in perspectiveSettings (e.g. you changed them in the settings dialog)
   useEffect(() => {
-    logDebug('PerspectiveSelector', `useEffect called because perspectiveSettings changed to ${perspectiveSettings.length} perspectives`)
-    if (!perspectiveSettings) return
-    // We set the initial options for the ComboBox to the list of perspective names from the dashboard settings here.
-    // We also watch for changes to perspectiveSettings (e.g. when a new perspective is added) so we can re-render the ComboBox with the updated list of perspective names.
-    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because perspectiveSettings changed`, perspectiveSettings)
-    const options = getDisplayListOfPerspectiveNames(perspectiveSettings, true)
-    if (!options) return
-    clo(options, `PerspectiveSelector/useEffect(perspectiveSettings): new options, dashboardSettings.activePerspectiveName=${dashboardSettings.activePerspectiveName}`)
-    const apn = dashboardSettings.activePerspectiveName
-    if (apn && endsWithStar(apn) && !options.includes(apn)) {
-      const nameWithoutStar = apn.slice(0, -1)
-      const index = options.indexOf(nameWithoutStar)
-      if (index !== -1) {
-        // If the activePerspectiveName ends with a star, we need to add it to the list of options temporarily
-        options.splice(index + 1, 0, apn)
-      }
-      logDebug('PerspectiveSelector', `useEffect: adding activePerspectiveName "${apn}" to options & setting to active`)
-      setActivePerspectiveName(apn)
-    }
-    clo(perspectiveNameOptions, 'PerspectiveSelector/useEffect(activePerspectiveName): setting new options')
-    setPerspectiveNameOptions(options)
-  }, [perspectiveSettings, dashboardSettings.activePerspectiveName, activePerspectiveName]) // dependencies: run any time this changes
+    logDebug('PerspectiveSelector/useEffect', 'Detected change in perspectiveSettings.')
 
-  // TODO: HELP: Why does ^^^ have dashboardSettings.activePerspectiveName but vvv it is just activePerspectiveName?
-  // TODO: HELP: Why does ^^^ have perspectiveSettings but there isn't a useState for it above?
-
-  // Remove any star at the end of the active perspective name if we change to another one
-  useEffect(() => {
-    if (!activePerspectiveName) return
-    logDebug('PerspectiveSelector', `useEffect called because activePerspectiveName changed to "${activePerspectiveName}"`)
-    if (!endsWithStar(activePerspectiveName) && perspectiveNameOptions.find((option) => endsWithStar(option))) {
-      logDebug('PerspectiveSelector', `useEffect: Removing all option names which had stars at the end`)
-      // get rid of any star at the end of the active perspective names if we change to another one
-      const optionsWithNoStars = perspectiveNameOptions.filter((option) => !endsWithStar(option))
-      clo(optionsWithNoStars, 'PerspectiveSelector/useEffect(activePerspectiveName): new options')
-      if (!optionsWithNoStars.length) return
-      setPerspectiveNameOptions(optionsWithNoStars)
-    }
-  }, [activePerspectiveName])
-
-  // sets the selection in the combobox to "-" if can't find an active perspective
-  useEffect(() => {
     if (!perspectiveSettings) {
-      logWarn('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called with perspectiveSettings falsy`)
+      logWarn('PerspectiveSelector/useEffect', 'perspectiveSettings is falsy. Exiting effect.')
+      dispatch({ type: 'LOG_STATE', payload: 'perspectiveSettings is falsy' })
+      dispatch({ type: 'SET_LOADING', payload: false })
+      return
     }
-    // if (endsWithStar(activePerspectiveName)) return // special case that's not in the official list
-    logDebug('PerspectiveSelector', `(${perspectiveSettings.length} perspectives) useEffect called because activePerspectiveName changed`)
+
+    // Indicate loading state
+    dispatch({ type: 'SET_LOADING', payload: true })
+
+    // Get list of perspective names
     const options = getDisplayListOfPerspectiveNames(perspectiveSettings, true)
-    // So we should first make sure the activePerspectiveName exists in the list of options before setting the combo box current value.
+    logDebug('PerspectiveSelector/useEffect', `Retrieved perspective options: ${JSON.stringify(options)}`)
+
+    if (!options || options.length === 0) {
+      logWarn('PerspectiveSelector/useEffect', 'Options derived from perspectiveSettings are empty or falsy.')
+      dispatch({ type: 'LOG_STATE', payload: 'Options derived from perspectiveSettings are empty or falsy.' })
+      dispatch({ type: 'SET_PERSPECTIVE_OPTIONS', payload: [] })
+      dispatch({ type: 'SET_LOADING', payload: false })
+      return
+    }
+
+    dispatch({ type: 'SET_PERSPECTIVE_OPTIONS', payload: options })
+    dispatch({ type: 'SET_LOADING', payload: false })
+  }, [perspectiveSettings])
+
+  //----------------------------------------------------------------------
+  // Effect to Validate Active Perspective When Options or Active Name Change
+  //----------------------------------------------------------------------
+  useEffect(() => {
+    logDebug('PerspectiveSelector/useEffect', 'Validating active perspective.')
+
     const apn = dashboardSettings.activePerspectiveName
-    const endsWithStar = apn && apn.endsWith('*')
-    const perspectiveNameIfItExistsOrDefault: string = endsWithStar ? apn : apn ? options.find((option) => option === apn) ?? '-' : '-'
-    // if (endsWithStar(dashboardSettings.activePerspectiveName)) perspectiveNameIfItExistsOrDefault = dashboardSettings.activePerspectiveName
-    logDebug('PerspectiveSelector/useEffect(activePerspectiveName)', `useEffect: activePerspectiveName: ${dashboardSettings.activePerspectiveName}, perspectiveExists: ${perspectiveNameIfItExistsOrDefault ?? 'no'}`)
-    if (activePerspectiveName !== perspectiveNameIfItExistsOrDefault) {
-      logDebug('PerspectiveSelector/useEffect(activePerspectiveName)', `useEffect: setting activePerspectiveName to ${perspectiveNameIfItExistsOrDefault}`)
-    }
-    setActivePerspectiveName(perspectiveNameIfItExistsOrDefault)
-  }, [activePerspectiveName]) // dependencies: run any time this changes
+    const updatedOptions = [...perspectiveNameOptions]
 
-  //----------------------------------------------------------------------
-  // Handlers
-  //----------------------------------------------------------------------
-
-  /**
-   * Handler for when the perspective name is changed in the ComboBox.
-   * @param {string} newValue - The new perspective name selected.
-   */
-  const handlePerspectiveChange = (newValue: string) => {
-    if (activePerspectiveName === newValue) {
-      logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}; but that was no change, so returning`)
-      return
-    } else {
-      logDebug('PerspectiveSelector/handlePerspectiveChange', `called with newValue: ${newValue}`)
-      if (endsWithStar(activePerspectiveName)) {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `changed to another perspective, but activePerspectiveName ends with a star`)
-        //TODO: (@jgclark) ask if we should save first
-        setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
+    if (apn && endsWithStar(apn) && !updatedOptions.includes(apn)) {
+      const nameWithoutStar = apn.slice(0, -1)
+      const index = updatedOptions.indexOf(nameWithoutStar)
+      if (index !== -1) {
+        updatedOptions.splice(index + 1, 0, apn)
+        logDebug(
+          'PerspectiveSelector/useEffect',
+          `Added activePerspectiveName with star "${apn}" after "${nameWithoutStar}" in options.`
+        )
+      } else {
+        logWarn(
+          'PerspectiveSelector/useEffect',
+          `Name without star "${nameWithoutStar}" not found in options. Cannot insert "${apn}".`
+        )
       }
-      setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
     }
 
-    // Get the new settings to apply
-    const newPerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
-    if (!newPerspectiveDef || newPerspectiveDef.dashboardSettings === undefined) {
-      logDebug('PerspectiveSelector/handlePerspectiveChange', `⚠️ Cannot get newPerspectiveDef`)
-      return
+    dispatch({ type: 'VALIDATE_ACTIVE_PERSPECTIVE' })
+  }, [perspectiveNameOptions, dashboardSettings.activePerspectiveName])
+
+  //----------------------------------------------------------------------
+  // Effect to Log State Changes (Optional, for Debugging)
+  //----------------------------------------------------------------------
+  useEffect(() => {
+    logDebug(
+      'PerspectiveSelector/useEffect',
+      `State updated: perspectiveNameOptions=${JSON.stringify(
+        perspectiveNameOptions
+      )}, activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
+    )
+  }, [perspectiveNameOptions, activePerspectiveName, isValid, isLoading])
+
+  //----------------------------------------------------------------------
+  // Effect to Update Active Perspective Name When It Changes Externally
+  //----------------------------------------------------------------------
+  useEffect(() => {
+    logDebug('PerspectiveSelector/useEffect', `Detected change in dashboardSettings.activePerspectiveName: "${dashboardSettings.activePerspectiveName}"`)
+
+    if (activePerspectiveName !== dashboardSettings.activePerspectiveName) {
+      logDebug(
+        'PerspectiveSelector/useEffect',
+        `Updating activePerspectiveName from "${activePerspectiveName}" to "${dashboardSettings.activePerspectiveName}".`
+      )
+      dispatch({ type: 'SET_ACTIVE_PERSPECTIVE', payload: dashboardSettings.activePerspectiveName })
     }
-    // clo(newPerspectiveDef, 'PerspectiveSelector/handlePerspectiveChange: newPerspectiveDef')
-    logDebug('PerspectiveSelector/handlePerspectiveChange', `newPerspectiveDef("${newValue}") has excludedFolders: [${String(newPerspectiveDef.dashboardSettings.excludedFolders)}]`)
+  }, [dashboardSettings.activePerspectiveName, activePerspectiveName])
 
-    setActivePerspectiveName(newValue) // this only changes the local state of the ComboBox
+  //----------------------------------------------------------------------
+  // Handler for Perspective Change with Comprehensive Logging
+  //----------------------------------------------------------------------
+  const handlePerspectiveChange = useCallback(
+    (newValue: string) => {
+      logDebug(
+        'PerspectiveSelector/handlePerspectiveChange',
+        `User selected newValue: "${newValue}". Current activePerspectiveName: "${activePerspectiveName}".`
+      )
 
-    // FIXME(@dbw): this isn't showing the "*" in the closed state of the combobox on modified perspectives
+      if (activePerspectiveName === newValue) {
+        logDebug(
+          'PerspectiveSelector/handlePerspectiveChange',
+          `newValue "${newValue}" is the same as activePerspectiveName. No action taken.`
+        )
+        return
+      }
 
-    // TODO: check if current perspective isModified; if so, offer to save first
-    // @jgclark, is isModified necessary? see TODO above
-    if (newPerspectiveDef.isModified) {
+      // Get the new perspective definition
+      const newPerspectiveDef = getPerspectiveNamed(newValue, perspectiveSettings)
+      if (!newPerspectiveDef || newPerspectiveDef.dashboardSettings === undefined) {
+        logWarn(
+          'PerspectiveSelector/handlePerspectiveChange',
+          `Cannot find perspective definition for "${newValue}". Action aborted.`
+        )
+        dispatch({ type: 'LOG_STATE', payload: `Cannot find perspective definition for "${newValue}".` })
+        return
+      }
 
-      logWarn('PerspectiveSelector/handlePerspectiveChange', `current Perspective ${newValue} isModified, so ask to see if we should save it first.`) // TODO: drop Warn level later
-      // TODO: offer to save first
-    }
+      logDebug(
+        'PerspectiveSelector/handlePerspectiveChange',
+        `Selected Perspective "${newValue}" has excludedFolders: [${String(
+          newPerspectiveDef.dashboardSettings.excludedFolders
+        )}].`
+      )
 
-    // TEST: override dashboardSettings with what is in the Perspective & set the new activePerspectiveName
-    const perspectiveDashboardSettings = cleanDashboardSettings(newPerspectiveDef.dashboardSettings)
-    setDashboardSettings((prev) => ({ ...prev, ...perspectiveDashboardSettings, activePerspectiveName: newValue, lastChange: `perspective changed to ${newValue}` }))
+      // Clean and prepare new dashboard settings
+      const perspectiveDashboardSettings = cleanDashboardSettings(newPerspectiveDef.dashboardSettings)
+      logDebug(
+        'PerspectiveSelector/handlePerspectiveChange',
+        `Cleaned dashboard settings: ${JSON.stringify(perspectiveDashboardSettings)}.`
+      )
 
-    // Cannot immediately rely on the updated dashboardSettings, because it happens asynchronously.
-    // logDebug('PerspectiveSelector/handlePerspectiveChange', `- after updating dS, activePerspectiveName: ${String(dashboardSettings.activePerspectiveName)} / excludedFolders: [${String(dashboardSettings.excludedFolders)}]`)
+      // Dispatch action to set active perspective
+      dispatch({ type: 'SET_ACTIVE_PERSPECTIVE', payload: newValue })
 
-    // beware race conditions, as we cannot await.
-    logDebug('PerspectiveSelector/handlePerspectiveChange', `Hopefully the window will now magically React and refresh itself ...`)
+      // Update dashboard settings atomically
+      setDashboardSettings((prev) => {
+        const updatedSettings = {
+          ...prev,
+          ...perspectiveDashboardSettings,
+          activePerspectiveName: newValue,
+          lastChange: `perspective changed to ${newValue}`,
+        }
+        logDebug(
+          'PerspectiveSelector/setDashboardSettings',
+          `Updating dashboardSettings with: ${JSON.stringify(updatedSettings)}.`
+        )
+        return updatedSettings
+      })
+
+      // Handle modified perspectives
+      if (newPerspectiveDef.isModified) {
+        logWarn(
+          'PerspectiveSelector/handlePerspectiveChange',
+          `Perspective "${newValue}" is modified. Consider prompting to save changes.`
+        )
+        // TODO: Implement prompt to save changes if necessary
+      }
+
+      logDebug(
+        'PerspectiveSelector/handlePerspectiveChange',
+        `Perspective changed to "${newValue}". Awaiting React to re-render components based on new settings.`
+      )
+    },
+    [activePerspectiveName, perspectiveSettings, setDashboardSettings]
+  )
+
+  //----------------------------------------------------------------------
+  // Render Logic with Comprehensive Logging
+  //----------------------------------------------------------------------
+  if (isLoading) {
+    logDebug('PerspectiveSelector', 'Component is loading perspective options.')
+    return (
+      <div>
+        <label>Persp</label>
+        <select disabled>
+          <option>Loading...</option>
+        </select>
+      </div>
+    )
   }
 
-  //----------------------------------------------------------------------
-  // Render
-  //----------------------------------------------------------------------
   if (!perspectiveNameOptions.length) {
-    logWarn('PerspectiveSelector', `perspectiveNameOptions is empty, so returning null.`)
-    return null
+    logWarn('PerspectiveSelector', 'perspectiveNameOptions is empty. Rendering disabled ComboBox.')
+    return (
+      <div>
+        <label>Persp</label>
+        <select disabled>
+          <option>No Perspectives Available</option>
+        </select>
+      </div>
+    )
   }
+
+  logDebug(
+    'PerspectiveSelector',
+    `Rendering ComboBox with value="${activePerspectiveName}" and options=${JSON.stringify(
+      perspectiveNameOptions
+    )}.`
+  )
 
   return (
     <ComboBox
-      label={'Persp'}
+      label="Persp"
       value={activePerspectiveName}
       onChange={handlePerspectiveChange}
       options={perspectiveNameOptions}
