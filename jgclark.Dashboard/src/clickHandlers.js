@@ -5,16 +5,9 @@
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
 // Last updated 2024-09-17 for v2.0.6+ by @jgclark
 //-----------------------------------------------------------------------------
-import {
-  addChecklistToNoteHeading,
-  addTaskToNoteHeading,
-} from "../../jgclark.QuickCapture/src/quickCapture"
-import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
-import {
-  buildListOfDoneTasksToday,
-  getTotalDoneCounts,
-  rollUpDoneCounts,
-} from "./countDoneTasks"
+import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
+import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
+import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
 import {
   getDashboardSettings,
   getNotePlanSettings,
@@ -23,10 +16,10 @@ import {
   // moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
   setPluginData,
-} from "./dashboardHelpers"
-import { getAllSectionsData, getSomeSectionsData } from "./dataGeneration" // FIXME: causing a circular dependency
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from "./types"
-import { validateAndFlattenMessageObject } from "./shared"
+} from './dashboardHelpers'
+import { getAllSectionsData, getSomeSectionsData } from './dataGeneration' // FIXME: causing a circular dependency
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
+import { validateAndFlattenMessageObject } from './shared'
 import {
   cancelItem,
   completeItem,
@@ -36,25 +29,14 @@ import {
   highlightParagraphInEditor,
   scheduleItem,
   unscheduleItem,
-} from "@helpers/NPParagraph"
-import { getNPWeekData, type NotePlanWeekInfo } from "@helpers/NPdateTime"
-import { openNoteByFilename } from "@helpers/NPnote"
-import {
-  calcOffsetDateStr,
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-  RE_DATE,
-  RE_DATE_INTERVAL,
-} from "@helpers/dateTime"
-import {
-  clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer
-} from "@helpers/dev"
-import { getGlobalSharedData } from "@helpers/HTMLView"
-import {
-  cyclePriorityStateDown,
-  cyclePriorityStateUp,
-} from "@helpers/paragraph"
-import { showMessage, processChosenHeading } from "@helpers/userInput"
+} from '@helpers/NPParagraph'
+import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import { openNoteByFilename } from '@helpers/NPnote'
+import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { getGlobalSharedData } from '@helpers/HTMLView'
+import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
+import { showMessage, processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -67,7 +49,6 @@ import { showMessage, processChosenHeading } from "@helpers/userInput"
 /****************************************************************************************************************************
  *                             Data types + constants
  ****************************************************************************************************************************/
-
 
 /****************************************************************************************************************************
  *                             HANDLERS
@@ -88,7 +69,7 @@ export async function refreshAllSections(): Promise<void> {
     refreshing: false,
     sections: newSections,
     lastFullRefresh: new Date(),
-    totalDoneCounts: getTotalDoneCounts(newSections)
+    totalDoneCounts: getTotalDoneCounts(newSections),
   }
   await setPluginData(changedData, 'Finished Refreshing all sections')
   logTimer('refreshAllSections', startTime, `at end for all sections`)
@@ -98,7 +79,7 @@ export async function refreshAllSections(): Promise<void> {
   if (NPSettings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
-      totalDoneCounts: totalDoneCounts
+      totalDoneCounts: totalDoneCounts,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
   }
@@ -108,9 +89,9 @@ export async function refreshAllSections(): Promise<void> {
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
- * Today loads first and then this function is automatically called from a useEffect in 
+ * Today loads first and then this function is automatically called from a useEffect in
  * Dashboard.jsx to load the rest.
- * @param {MessageDataObject} data 
+ * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
  * @returns {TBridgeClickHandlerResult}
@@ -118,7 +99,7 @@ export async function refreshAllSections(): Promise<void> {
 export async function incrementallyRefreshSections(
   data: MessageDataObject,
   calledByTrigger: boolean = false,
-  setFullRefreshDate: boolean = false
+  setFullRefreshDate: boolean = false,
 ): Promise<TBridgeClickHandlerResult> {
   const incrementalStart = new Date()
   const { sectionCodes } = data
@@ -134,7 +115,7 @@ export async function incrementallyRefreshSections(
     logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
   }
 
-  const updates:any = { refreshing: false }
+  const updates: any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
   logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
@@ -145,7 +126,7 @@ export async function incrementallyRefreshSections(
   if (NPSettings.doneDatesAvailable) {
     const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
     const changedData = {
-      totalDoneCounts: totalDoneCounts
+      totalDoneCounts: totalDoneCounts,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSections')
   }
@@ -156,7 +137,7 @@ export async function incrementallyRefreshSections(
 /**
  * Tell the React window to update by re-generating a subset of Sections.
  * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time.
- * @param {MessageDataObject} data 
+ * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @returns {TBridgeClickHandlerResult}
  */
@@ -180,7 +161,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const mergedSections = mergeSections(existingSections, newSections)
   // logDebug('refreshSomeSections', `- after mergeSections(): ${timer(start)}`)
 
-  const updates:TAnyObject = { sections: mergedSections }
+  const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
   // TODO: turning off for now, as was being called too often? Need to figure this out.
   // updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
@@ -202,13 +183,13 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     const config = await getDashboardSettings()
     clo(data, 'data for doAddItem', 2)
     const { actionType, toFilename, sectionCodes, userInputObj } = data
-    const { text, heading } = userInputObj||{}
+    const { text, heading } = userInputObj || {}
 
     logDebug('doAddItem', `- actionType: ${actionType} to ${toFilename || ''} in section ${String(sectionCodes)}`)
     if (!toFilename) {
       throw new Error('doAddItem: No toFilename provided')
     }
-    const todoType = (actionType === 'addTask') ? 'task' : 'checklist'
+    const todoType = actionType === 'addTask' ? 'task' : 'checklist'
 
     const calNoteDateStr = getDateStringFromCalendarFilename(toFilename, true)
     // logDebug('addTask', `= date ${calNoteDateStr}`)
@@ -216,15 +197,15 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
       throw new Error(`calNoteDateStr isn't defined for ${toFilename}`)
     }
 
-    const content = text ?? await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`)
+    const content = text ?? (await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`))
     const note = DataStore.noteByFilename(toFilename, 'Calendar')
     if (!note) throw new Error(`doAddItem: No note found for ${toFilename}`)
     // Add text to the new location in destination note
 
     const newHeadingLevel = config.newTaskSectionHeadingLevel
 
-    const headingToUse = heading ? (await processChosenHeading(note, newHeadingLevel, heading||'')) : config.newTaskSectionHeading
-    
+    const headingToUse = heading ? await processChosenHeading(note, newHeadingLevel, heading || '') : config.newTaskSectionHeading
+
     if (actionType === 'addTask') {
       addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
     } else {
@@ -235,14 +216,13 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 
     // update just the section we've added to
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
-  }
-  catch (err) {
+  } catch (err) {
     logError('doAddItem', err.message)
     return { success: false }
   }
 }
 
-/** 
+/**
  * Complete the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -252,17 +232,16 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
   const updatedParagraph = completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`) // ✅
 
-  if (typeof updatedParagraph !== "boolean") {
-    logDebug('doCompleteTask', `-> {${updatedParagraph.content
-      }}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+  if (typeof updatedParagraph !== 'boolean') {
+    logDebug('doCompleteTask', `-> {${updatedParagraph.content}}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTask', `-> failed`)
     return handlerResult(false)
   }
 }
 
-/** 
+/**
  * Complete the task in the actual Note, but with the date it was scheduled for.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -270,9 +249,8 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
 export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItemEarlier(filename, content)
-  if (typeof updatedParagraph !== "boolean") {
-    logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content
-      }}`)
+  if (typeof updatedParagraph !== 'boolean') {
+    logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTaskThen', `-> failed`)
@@ -280,7 +258,7 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
   }
 }
 
-/** 
+/**
  * Cancel the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -299,7 +277,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
   return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
-/** 
+/**
  * Complete the checklist in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
@@ -312,7 +290,7 @@ export function doCompleteChecklist(data: MessageDataObject): TBridgeClickHandle
   return handlerResult(Boolean(updatedParagraph), ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
-/** 
+/**
  * Delete the item in the actual Note.
  * TODO: extend to delete sub-items as well if wanted.
  * @param {MessageDataObject} data - The data object containing information for content update.
@@ -328,11 +306,11 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
   return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
-/** 
+/**
  * Cancel the checklist in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
- */ 
+ */
 export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   let res = cancelItem(filename, content)
@@ -373,7 +351,7 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
     throw new Error(`updateItemContent: No para.note found for filename ${filename} and content ${content}`)
   }
 
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: para })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: para })
 }
 
 // Send a request to toggleType to plugin
@@ -398,7 +376,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
     const existingType = updatedParagraph.type
     logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
-    const updatedType = (existingType === 'checklist') ? 'open' : 'checklist'
+    const updatedType = existingType === 'checklist' ? 'open' : 'checklist'
     updatedParagraph.type = updatedType
     logDebug('doToggleType', `-> ${updatedType}`)
     thisNote.updateParagraph(updatedParagraph)
@@ -406,7 +384,6 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     // Refresh the whole section, as we might want to filter out the new item type from the display
     // return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
-
   } catch (error) {
     logError('doToggleType', error.message)
     return handlerResult(false)
@@ -422,7 +399,7 @@ export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerRe
   // logDebug('doUnscheduleItem', `  -> result ${String(res)}`)
   // Update display in Dashboard too
   // sendToHTMLWindow(windowId, 'unscheduleItem', data)
-  return handlerResult(true, ['UPDATE_LINE_IN_JSON','START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
+  return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
 }
 
 // Send a request to cyclePriorityStateUp to plugin
@@ -486,7 +463,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
 export async function doShowNoteInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, modifierKey } = data
   if (!filename) throw 'doShowNoteInEditorFromFilename: No filename: stopping'
-  const note = await openNoteByFilename(filename, { newWindow: modifierKey==='meta', splitView: modifierKey==='alt' } )
+  const note = await openNoteByFilename(filename, { newWindow: modifierKey === 'meta', splitView: modifierKey === 'alt' })
   return handlerResult(note ? true : false)
 }
 
@@ -512,11 +489,11 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
  * If option key is clicked, then open in a new split view.
  * @param {MessageDataObject} data with details of item
  * @returns {TBridgeClickHandlerResult} how to handle this result
-*/
+ */
 export async function doShowLineInEditorFromFilename(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, modifierKey } = validateAndFlattenMessageObject(data)
   // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-  const note = await Editor.openNoteByFilename(filename, modifierKey==='meta',0,0,modifierKey==='alt')
+  const note = await Editor.openNoteByFilename(filename, modifierKey === 'meta', 0, 0, modifierKey === 'alt')
   if (note) {
     const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
     logDebug(
@@ -554,9 +531,9 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { filename, content, itemType, para } = validateAndFlattenMessageObject(data)
   logDebug('doMoveToNote', `starting -> ${filename} / ${content} / ${itemType}`)
-  const newNote: TNote|null|void = await moveItemToRegularNote(filename, content, itemType)
+  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType)
   if (newNote) {
-    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title||''}"`)
+    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
     logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
     // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
     const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
@@ -576,7 +553,7 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
  * Reschedule (i.e. update the >date) an item in place.
  * The new date is indicated by the controlStr ('t' or date interval),
  * or failing that the dateString (an NP date).
- * Note: now defaults to changing the item to being type 'rescheduled' or 'checklistScheduled', as well as 
+ * Note: now defaults to changing the item to being type 'rescheduled' or 'checklistScheduled', as well as
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
@@ -659,22 +636,21 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
  */
-export function doSettingsChanged(data: MessageDataObject, settingName: string): TBridgeClickHandlerResult {
+export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   // clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
+  if (settingName === 'dashboardSettings') {
+    newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
+  }
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
-  // TODO: from @dwertheimer - this part is probably not needed anymore and should be deleted
-  // logLevel is a special case that we need to specifically update in DataStore
-  // so that plugin-side functions that log can pick it up even before React is ready
-  // if (newSettings._logLevel && newSettings._logLevel !== DataStore.settings._logLevel) {
-  //   combinedUpdatedSettings._logLevel =  newSettings._logLevel
-  //   logDebug('doSettingsChanged', `key "_logLevel" saved in DataStore.settings; new value is: ${newSettings._logLevel}`)
-  // }
+
   logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings`)
   DataStore.settings = combinedUpdatedSettings
+  clo(DataStore.settings, `doSettingsChanged: DataStore.settings after save`)
+  await setPluginData({ [settingName]: newSettings }, `_Updated ${settingName} in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 

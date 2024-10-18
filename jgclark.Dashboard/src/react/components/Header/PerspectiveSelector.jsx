@@ -108,16 +108,14 @@ const PerspectiveSelector = (): React$Node => {
 
   logDebug(
     'PerspectiveSelector',
-    `Initial State: perspectiveNameOptions=${JSON.stringify(
-      perspectiveNameOptions
-    )}, activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
+    `Initial State: perspectiveNameOptions=, activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
   )
 
   //----------------------------------------------------------------------
   // Effect to Update Perspective Options When perspectiveSettings Change
   //----------------------------------------------------------------------
   useEffect(() => {
-    logDebug('PerspectiveSelector/useEffect', 'Detected change in perspectiveSettings.')
+    logDebug('PerspectiveSelector/useEffect', `Detected change in perspectiveSettings. activePerspectiveName="${dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${dashboardSettings.lastChange}"`)
 
     if (!perspectiveSettings) {
       logWarn('PerspectiveSelector/useEffect', 'perspectiveSettings is falsy. Exiting effect.')
@@ -131,7 +129,7 @@ const PerspectiveSelector = (): React$Node => {
 
     // Get list of perspective names
     const options = getDisplayListOfPerspectiveNames(perspectiveSettings, true)
-    logDebug('PerspectiveSelector/useEffect', `Retrieved perspective options: ${JSON.stringify(options)}`)
+    logDebug('PerspectiveSelector/useEffect', `Retrieved perspective options: activePerspectiveName${dashboardSettings.activePerspectiveName}`)
 
     if (!options || options.length === 0) {
       logWarn('PerspectiveSelector/useEffect', 'Options derived from perspectiveSettings are empty or falsy.')
@@ -149,7 +147,7 @@ const PerspectiveSelector = (): React$Node => {
   // Effect to Validate Active Perspective When Options or Active Name Change
   //----------------------------------------------------------------------
   useEffect(() => {
-    logDebug('PerspectiveSelector/useEffect', 'Validating active perspective.')
+    logDebug('PerspectiveSelector/useEffect', `perspectiveNameOptions or dashboardSettings.activePerspectiveName changed:${dashboardSettings.activePerspectiveName}`)
 
     const apn = dashboardSettings.activePerspectiveName
     const updatedOptions = [...perspectiveNameOptions]
@@ -159,6 +157,7 @@ const PerspectiveSelector = (): React$Node => {
       const index = updatedOptions.indexOf(nameWithoutStar)
       if (index !== -1) {
         updatedOptions.splice(index + 1, 0, apn)
+        // FIXME: this doesn't seem to be doing anything becauuse it doesn't update the list in the state
         logDebug(
           'PerspectiveSelector/useEffect',
           `Added activePerspectiveName with star "${apn}" after "${nameWithoutStar}" in options.`
@@ -169,9 +168,11 @@ const PerspectiveSelector = (): React$Node => {
           `Name without star "${nameWithoutStar}" not found in options. Cannot insert "${apn}".`
         )
       }
+    } else {
+      logDebug('PerspectiveSelector/useEffect', `No star found in activePerspectiveName "${apn}".`)
     }
 
-    dispatch({ type: 'VALIDATE_ACTIVE_PERSPECTIVE' })
+    dispatch({ type: 'VALIDATE_ACTIVE_PERSPECTIVE' }) //dbw commenting this out because not sure if it's even necessary
   }, [perspectiveNameOptions, dashboardSettings.activePerspectiveName])
 
   //----------------------------------------------------------------------
@@ -180,9 +181,7 @@ const PerspectiveSelector = (): React$Node => {
   useEffect(() => {
     logDebug(
       'PerspectiveSelector/useEffect',
-      `State updated: perspectiveNameOptions=${JSON.stringify(
-        perspectiveNameOptions
-      )}, activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
+      `State updated: activePerspectiveName=${activePerspectiveName}, isValid=${String(isValid)}, isLoading=${isLoading}`
     )
   }, [perspectiveNameOptions, activePerspectiveName, isValid, isLoading])
 
@@ -204,7 +203,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Handler for Perspective Change with Comprehensive Logging
   //----------------------------------------------------------------------
-  const handlePerspectiveChange = useCallback(
+  const handlePerspectiveChange = //useCallback(
     (newValue: string) => {
       logDebug(
         'PerspectiveSelector/handlePerspectiveChange',
@@ -253,11 +252,11 @@ const PerspectiveSelector = (): React$Node => {
           ...prev,
           ...perspectiveDashboardSettings,
           activePerspectiveName: newValue,
-          lastChange: `perspective changed to ${newValue}`,
+          lastChange: `perspective changed to ${newValue} ${new Date().toLocaleTimeString()}`,
         }
         logDebug(
           'PerspectiveSelector/setDashboardSettings',
-          `Updating dashboardSettings with: ${JSON.stringify(updatedSettings)}.`
+          `Updating dashboardSettings with activePerspectiveName: ${updatedSettings.activePerspectiveName}.`
         )
         return updatedSettings
       })
@@ -275,9 +274,10 @@ const PerspectiveSelector = (): React$Node => {
         'PerspectiveSelector/handlePerspectiveChange',
         `Perspective changed to "${newValue}". Awaiting React to re-render components based on new settings.`
       )
-    },
-    [activePerspectiveName, perspectiveSettings, setDashboardSettings]
-  )
+    }
+    // ,
+    // [activePerspectiveName, perspectiveSettings, setDashboardSettings]
+  // )
 
   //----------------------------------------------------------------------
   // Render Logic with Comprehensive Logging
@@ -308,9 +308,7 @@ const PerspectiveSelector = (): React$Node => {
 
   logDebug(
     'PerspectiveSelector',
-    `Rendering ComboBox with value="${activePerspectiveName}" and options=${JSON.stringify(
-      perspectiveNameOptions
-    )}.`
+    `Rendering ComboBox with value="${activePerspectiveName}"}".`
   )
 
   return (

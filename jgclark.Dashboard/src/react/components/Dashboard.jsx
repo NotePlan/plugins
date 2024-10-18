@@ -174,20 +174,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // if you don't want the info sent, use a _ for the first char of lastChange
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
   useEffect(() => {
-    const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
     const lastChangeText = (dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0) ?? ''
-    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText)||''}"`)
+    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText)||''}" activePerspective=${dashboardSettings.activePerspectiveName}`)
     const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
-    if (settingsNeedFirstTimeMigration || shouldSendToPlugin) {
-      settingsNeedFirstTimeMigration && logDebug('Dashboard/useEffect(dashboardSettings)', `- Settings need first time migration sending to plugin to be saved or otherwise shouldSendToPlugin`, dashboardSettings)
+    if (shouldSendToPlugin) {
       logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
-      const dashboardSettingsCopy = { ...dashboardSettings }
-      if (settingsNeedFirstTimeMigration) {
-        dashboardSettingsCopy.settingsMigrated = true
-        dashboardSettingsCopy.lastChange = 'Saving first time migration'
-      }
+      const dashboardSettingsCopy = { lastChange:"", activePerspectiveName:"-", ...dashboardSettings }
       // TODO: DELETE this log line after perspective testing is completed
-      /perspective/i.test(typeof lastChangeText === "string" ? lastChangeText : '') && logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
+      logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
 
       sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: dashboardSettingsCopy, logMessage: dashboardSettingsCopy.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
 
@@ -212,7 +206,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // create a new effect that sets perspectiveSettings in the plugin when pluginData.perspectiveSettings changes
   useEffect(() => {
     if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
-      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- pluginData.perspectiveSettings changed: ${JSP(pluginData.perspectiveSettings, 2)}`)
+      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- pluginData.perspectiveSettings changed; activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
       const lastPerspectiveName = pluginData.perspectiveSettings[pluginData.perspectiveSettings.length - 1].name
       logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- lastPerspectiveName in perspectives array: ${lastPerspectiveName}`)
       setPerspectiveSettings(pluginData.perspectiveSettings)

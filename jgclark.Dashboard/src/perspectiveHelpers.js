@@ -223,7 +223,6 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
       options = options.filter((name) => name !== '-')
     }
 
-    logDebug('getDisplayListOfPerspectiveNames ->', String(options))
     return options
   } catch (err) {
     logError('getDisplayListOfPerspectiveNames', err.message)
@@ -299,7 +298,11 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
 export async function updateCurrentPerspectiveDef(): Promise<boolean> {
   try {
     // FIXME: doesn't get this OK:
-    const activePerspectiveName = DataStore.settings.dashboardSettings.activePerspectiveName
+    const ds = await getDashboardSettings()
+    let activePerspectiveName = ds.activePerspectiveName || ''
+    if (endsWithStar(activePerspectiveName)) {
+      activePerspectiveName = activePerspectiveName.slice(0, -1)
+    }
     const allDefs = await getPerspectiveSettings()
     const activeDefIndex: number = allDefs.findIndex((d) => d.name === activePerspectiveName)
     if (activeDefIndex === undefined || activeDefIndex === -1) {
@@ -604,6 +607,7 @@ export function adjustSettingsAndSave(
     // perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
     // TODO: following discussions on 19/20 August, I'm not sure if this is the right thing to do. We want to update default ("-") not named perspective, right?
     if (settingsToSave.perspectiveSettings) {
+      logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
       setPerspectiveSettings(settingsToSave.perspectiveSettings)
       delete settingsToSave.perspectiveSettings
       // setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
@@ -611,13 +615,14 @@ export function adjustSettingsAndSave(
     }
 
     if (Object.keys(settingsToSave).length > 0) {
+      clo(settingsToSave, `adjustSettingsAndSave saving these using setDashboardSettings`)
       // there were other (non-perspective) changes made
       const apn = settingsToSave.activePerspectiveName
       if (typeof apn === 'string' && apn.length > 0 && apn !== '-' && !endsWithStar(apn)) {
         // $FlowIgnore // we know apn is a string so this concat will work
         settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
       }
-      setDashboardSettings({ ...settingsToSave, lastChange: 'Dashboard Settings Modal saved' })
+      setDashboardSettings({ ...settingsToSave, lastChange: `Dashboard Settings changed (modal or menu) - ${JSON.stringify(updatedSettings)}` })
       logDebug('adjustSettingsAndSave', `- after updating dashboardSettings, with activePerspectiveName=${settingsToSave.activePerspectiveName}`)
     }
   } catch (err) {
