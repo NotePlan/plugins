@@ -1,4 +1,5 @@
 // @flow
+// Last updated 2024-07-13 for v1.1.1 by @jgclark
 
 import pluginJson from '../plugin.json'
 import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
@@ -76,51 +77,29 @@ const SORT_ORDERS = [
   },
 ]
 
-/**
- * @param {string} heading The text that goes above the tasks. Should have a \n at the end.
- * @param {string} separator The line that goes beneath the tasks. Should have a \n at the end.
- */
-export function openTasksToTop(heading: string = '## Tasks:\n', separator: string = '---\n') {
-  if (Editor.note == null) {
-    return // if no note, stop. Should resolve 2 flow errors below, but doesn't :-(
-  }
-  logDebug(`openTasksToTop(): Bringing open tasks to top`)
-  //FIXME: need to make this work now that nmn.sweep is gone
-  // MAYBE ADD A QUESTION IN THE FLOW FOR WHICH TASKS TO MOVE
+const DEFAULT_SORT_INDEX = 0
 
-  const sweptTasks = { msg: '', status: '', taskArray: [], tasks: 0 }
-  // if (Editor.type === 'Calendar') {
-  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, false, true, false, 'move')
-  // } else {
-  //   if (Editor.note) sweptTasks = await sweepNote(Editor.note, false, true, false, true, true, false, 'move')
-  // }
-  if (sweptTasks) logDebug(`openTasksToTop(): ${sweptTasks?.taskArray?.length || 0} open tasks:`)
-  // logDebug(JSON.stringify(sweptTasks))
-  if (sweptTasks.taskArray?.length) {
-    if (sweptTasks.taskArray[0].content === Editor.title) {
-      sweptTasks.taskArray.shift()
-    }
-    Editor.prependParagraph(heading.concat((sweptTasks.taskArray ?? []).map((m) => m.rawContent).join('\n')).concat(`\n${separator}`), 'text')
-  }
-}
+// --------------------------------------------------------------
 
-//FIXME: need to finish this...
 /**
- * This template/macro is going to headlessly sort all tasks in the note based on certain criteria.
+ * This is going to headlessly sort all tasks in the Editor based on certain criteria passed in.
+ * i.e. entry point for Templates/x-callback/invokePluginCommand.
  * e.g. {{sortTasks({withUserInput: false, withHeadings: true, subHeadingCategory: true, sortOrder: ['-priority', 'content'], })}}
+ * TODO: Extend to deal with notes other than Editor.
+ * @param {string} paramStr
  */
-export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
-  logDebug(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
+export async function sortTasksViaExternalCall(paramStr: string = ''): Promise<void> {
+  logDebug('sortTasksViaExternalCall', `Starting with paramStr '${paramStr}', and will call sortTasks()`)
   const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
   const sortFields: string[] = await getTagParamsFromString(paramStr, 'sortFields', SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields)
   const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
   const subHeadingCategory: boolean = await getTagParamsFromString(paramStr, 'subHeadingCategory', false)
   await sortTasks(withUserInput, sortFields, withHeadings, subHeadingCategory)
+  logDebug('sortTasksViaExternalCall', `finished`)
 }
 
 /**
- * @description Bring tasks (tasks only, no surrounding text) to top of note
- * @returns {Promise<void>}
+ * Bring tasks (tasks only, no surrounding text) to top of note
  */
 export async function tasksToTop() {
   try {
@@ -160,8 +139,15 @@ export async function sortTasksByTag() {
 
 export async function sortTasksDefault() {
   try {
-    logDebug('sortTasksDefault(): startng sortTasksDefault()')
-    const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = DataStore.settings
+    logDebug('sortTasksDefault', `startng sortTasksDefault()`)
+    let settings = await DataStore.loadJSON("../dwertheimer.TaskSorting/settings.json")
+    clo(settings)
+    // const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = settings
+    const defaultSort1 = settings.defaultSort1
+    const defaultSort2 = settings.defaultSort2
+    const defaultSort3 = settings.defaultSort3
+    const includeHeading = settings.includeHeading
+    const includeSubHeading = settings.includeSubHeading
     logDebug(
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
     )
@@ -180,96 +166,95 @@ export async function sortTasksTagMention() {
   }
 }
 
-const DEFAULT_SORT_INDEX = 0
-
 /**
- *
+ * Insert multiple tasks to the Editor, in a more efficient manner (as opposed to inserting them one by one).
  * @param {TNote} note
  * @param {array} todos // @jgclark comment: needs type not just array. Perhaps Array<TParagraph> ?
- * @param {string} heading
- * @param {string} separator
- * @param {string} subHeadingCategory
- * @return {number} next line number
+ * @param {string?} heading to remove from note TODO: is this really a thing?
+ * @param {string?} separator
+ * @param {string?} subHeadingCategory
+ * @param {string?} theTitle of the note?
+ * @param {boolean?} insertAtSectionStart? (default: true) Insert at start of active part of note, or else at end of active part.
+ * @returns {number} next line number
  */
-function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', theTitle: string = '') {
-  const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
-  const { tasksToTop } = DataStore.settings
-  // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
-  // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
-  logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
-  let todossubHeadingCategory = []
-  const headingStr = heading ? `${heading}\n` : ''
-  if (heading) {
-    logDebug(`\tInsertTodos: heading=${heading}`)
-    removeHeadingFromNote(note, heading, true)
-  }
-
-  if (subHeadingCategory) {
-    const leadingDigit = {
-      hashtags: '#',
-      mentions: '@',
-      priority: '',
-      content: '',
-      due: '',
+export function insertTodos(note: CoreNoteFields, todos, heading: string = '', separator: string = '', subHeadingCategory: string = '', theTitle: string = '', insertAtSectionStart: boolean = true): number {
+  try {
+    const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
+    // const { tasksToTop } = DataStore.settings // now coming from calling function, to avoid potentially wrong plugin settings
+    // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
+    // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
+    logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
+    let todossubHeadingCategory = []
+    const headingStr = heading ? `${heading}\n` : ''
+    if (heading) {
+      logDebug('InsertTodos', `\theading=${heading}`)
+      removeHeadingFromNote(note, heading, true)
     }
-    let lastSubcat = ''
-    for (const lineIndex in todos) {
-      const shcZero = todos[lineIndex][subHeadingCategory][0] ?? `<none>`
-      // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
-      const subCat =
-        /* $FlowIgnore - complaining about -priority being missing. */
-        (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || todos[lineIndex][subHeadingCategory] || ''
-      // logDebug(
-      //   `lastSubcat[${subHeadingCategory}]=${subCat} check: ${JSON.stringify(
-      //     todos[lineIndex],
-      //   )}`,
-      // )
-      if (lastSubcat !== subCat) {
-        lastSubcat = subCat
+
+    if (subHeadingCategory) {
+      const leadingDigit = {
+        hashtags: '#',
+        mentions: '@',
+        priority: '',
+        content: '',
+        due: '',
+      }
+      let lastSubcat = ''
+      for (const lineIndex in todos) {
+        const shcZero = todos[lineIndex][subHeadingCategory][0] ?? `<none>`
+        // logDebug(`InsertTodos: shcZero=${shcZero} typeof=${typeof shcZero} todos[lineIndex][subHeadingCategory]=${todos[lineIndex][subHeadingCategory]}`)
+        const subCat =
+          (leadingDigit[subHeadingCategory] ? leadingDigit[subHeadingCategory] : '') + shcZero || todos[lineIndex][subHeadingCategory] || ''
+        if (lastSubcat !== subCat) {
+          lastSubcat = subCat
         // logDebug(pluginJson, `insertTodos subCat:"${subCat}" typeof=${typeof subCat} length=${subCat.length}`)
 
-        const headingStr = `#### ${subCat}:`
-        todossubHeadingCategory.push({ raw: `\n${headingStr}` })
-        // delete the former version of this subheading
-        removeHeadingFromNote(note, subCat)
+          const headingStr = `#### ${subCat}:`
+          todossubHeadingCategory.push({ raw: `\n${headingStr}` })
+          // delete the former version of this subheading
+          removeHeadingFromNote(note, subCat)
+        }
+        todossubHeadingCategory.push(todos[lineIndex])
       }
-      todossubHeadingCategory.push(todos[lineIndex])
-    }
-  } else {
-    todossubHeadingCategory = todos
-  }
-
-  const contentStr = todossubHeadingCategory
-    .map((t) => {
-      let str = t.raw
-      if (t.children && t.children.length) {
-        //TODO: sort 2nd level also indented tasks
-        str += `\n${t.children.map((c) => c.raw).join('\n')}`
-      }
-      return str
-    })
-    .join(`\n`)
-  // logDebug(`Inserting tasks into Editor:\n${contentStr}`)
-  // logDebug(`inserting tasks: \n${JSON.stringify(todossubHeadingCategory)}`)
-  const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
-  if (title !== '') {
-    // const headingIndex = findHeading(note, title)?.lineIndex || 0
-    logDebug(`\tinsertTodos`, `tasksToTop=${tasksToTop} title="${title}"`)
-    if (tasksToTop) {
-      note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
     } else {
-      const paras = getBlockUnderHeading(note, title)
-      const lastPara = paras[paras.length - 1]
-      const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
-      logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
-      // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
-      note[insertFunc](content, lastPara)
+      todossubHeadingCategory = todos
     }
-  } else {
-    const insertionIndex = tasksToTop ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
-    note.insertParagraph(content, insertionIndex, 'text')
+
+    const contentStr = todossubHeadingCategory
+      .map((t) => {
+        let str = t.raw
+        if (t.children && t.children.length) {
+          //TODO: sort 2nd level also indented tasks
+          str += `\n${t.children.map((c) => c.raw).join('\n')}`
+        }
+        return str
+      })
+      .join(`\n`)
+    // logDebug(`Inserting tasks into Editor:\n${contentStr}`)
+    // logDebug(`inserting tasks: \n${JSON.stringify(todossubHeadingCategory)}`)
+    const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
+    if (title !== '') {
+    // const headingIndex = findHeading(note, title)?.lineIndex || 0
+      logDebug(`\tinsertTodos: insertAtSectionStart=${insertAtSectionStart} title="${title}"`)
+      if (insertAtSectionStart) {
+        note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+      } else {
+        const paras = getBlockUnderHeading(note, title)
+        const lastPara = paras[paras.length - 1]
+        const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
+        logDebug(`\tinsertTodos note.${insertFunc} "${lastPara.content}"`)
+        // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
+        note[insertFunc](content, lastPara)
+      }
+    } else {
+      const insertionIndex = insertAtSectionStart ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
+      note.insertParagraph(content, insertionIndex, 'text')
+    }
+    logDebug(`\tinsertTodos finished`)
   }
-  // logDebug(`\tinsertTodos finished`)
+  catch (error) {
+    logError('InsertTodos', JSP(error))
+  }
 }
 
 /**
@@ -317,44 +302,6 @@ async function getUserSort(sortChoices = SORT_ORDERS) {
   // logDebug(`\tgetUserSort returning ${JSON.stringify(sortChoices[choice.index].sortFields)}`)
   return sortChoices[choice.index].sortFields
 }
-
-// function findRawParagraph(note: TNote, content) {
-//   if (content) {
-//     const found = note.paragraphs.filter((p) => p.rawContent === content)
-//     if (found && found.length > 1) {
-//       logDebug(`** Found ${found.length} identical occurrences for "${content}". Deleting the first.`)
-//     }
-//     return found[0] || null
-//   } else {
-//     return null
-//   }
-// }
-// async function saveBackup(taskList: Array<TParagraph>) {
-//   const backupPath = `@Trash`
-//   const backupTitle = `_Task-sort-backup`
-//   const backupFilename = `${backupPath}/${backupTitle}.${DataStore.defaultFileExtension}`
-//   logDebug(`\tBackup filename: ${backupFilename}`)
-//   let notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
-//   logDebug(`\tGot note back: ${notes ? JSON.stringify(notes) : ''}`)
-//   if (!notes || !notes.length) {
-//     logDebug(`\tsaveBackup: no note named ${backupFilename}`)
-//     const filename = await DataStore.newNote(`_Task-sort-backup`, `@Trash`)
-//     // TODO: There's a bug in API where filename is not correct and the file is not in cache unless you open a command bar
-//     // remove all this:
-//     await CommandBar.showOptions(['OK'], `\tBacking up todos in @Trash/${backupTitle}`)
-//     //
-//     logDebug(`\tCreated ${filename ? filename : ''} for backups`)
-//     notes = await DataStore.projectNoteByTitle(backupTitle, false, true)
-//     // note = await DataStore.projectNoteByFilename(backupFilename)
-//     logDebug(`\tbackup file contents:\n${notes ? JSON.stringify(notes) : ''}`)
-//   }
-//   if (notes && notes[0]) {
-//     notes[0].insertParagraph(`---`, 2, 'text')
-//     logDebug(`\tBACKUP Saved to ${backupTitle}`)
-//     await insertTodos(notes[0], taskList)
-//   }
-// }
-
 /**
  * Delete Tasks from the note
  * @param {TNote} note
@@ -381,14 +328,6 @@ function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByTyp
       // return findRawParagraph(note, t.raw || null)
       tasksToDelete.push(t.paragraph)
     })
-    //$FlowIgnore
-    // logDebug(`deletesForThisType.length=${deletesForThisType.length} \n${JSON.stringify(deletesForThisType)}`)
-    // deletesForThisType.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
-    // logDebug(`Editor content before remove: ${Editor.content || ''}`)
-    // $FlowFixMe
-    // if (deletesForThisType && deletesForThisType.length) tasksToDelete.push(deletesForThisType)
-    // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
-
     // logDebug(`Editor content after remove: ${Editor.content || ''}`)
   }
   if (tasksToDelete.length) {
@@ -444,14 +383,14 @@ export async function writeOutTasks(
   subHeadingCategory: any | null | string = null,
   title: string = '',
 ): Promise<void> {
-  const { outputOrder, tasksToTop } = DataStore.settings
+  const { outputOrder, insertAtSectionStart } = DataStore.settings
   let taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
   taskTypes = addChecklistTypes(taskTypes)
   logDebug(pluginJson, `writeOutTasks taskTypes: ${taskTypes.toString()}`)
   const headings = TOP_LEVEL_HEADINGS
   // need to write in reverse order if we are going to keep adding a top insertionIndex
-  const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
-  logDebug(`writeOutTasks: writing task types in ${tasksToTop ? 'reverse for lineIndex security' : 'order'} : ${writeSequence.toString()}`)
+  const writeSequence = insertAtSectionStart ? taskTypes.slice().reverse() : taskTypes
+  logDebug(`writeOutTasks: writing task types in ${insertAtSectionStart ? 'reverse for lineIndex security' : 'order'} : ${writeSequence.toString()}`)
   for (let i = 0; i < writeSequence.length; i++) {
     const ty = writeSequence[i]
     if (tasks[ty]?.length) {
@@ -463,8 +402,9 @@ export async function writeOutTasks(
               tasks[ty],
               withHeadings ? `### ${headings[ty]}:` : '',
               drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
-              subHeadingCategory,
-              title,
+            subHeadingCategory || '',
+            title,
+            insertAtSectionStart
             )
           : null
       } catch (e) {
@@ -474,7 +414,7 @@ export async function writeOutTasks(
   }
 }
 
-async function wantHeadings() {
+async function wantHeadings(): boolean {
   return await chooseOption(
     `Include Task Type headings in the output?`,
     [
@@ -485,7 +425,7 @@ async function wantHeadings() {
   )
 }
 
-async function wantSubHeadings() {
+async function wantSubHeadings(): boolean {
   return await chooseOption(
     `Include sort field subheadings in the output?`,
     [
@@ -496,7 +436,7 @@ async function wantSubHeadings() {
   )
 }
 
-async function sortInsideHeadings() {
+async function sortInsideHeadings(): boolean {
   return await chooseOption(
     `Sort each heading's tasks individually?`,
     [
@@ -507,7 +447,7 @@ async function sortInsideHeadings() {
   )
 }
 
-export function removeEmptyHeadings(note: CoreNoteFields) {
+export function removeEmptyHeadings(note: CoreNoteFields): void {
   const paras = note.paragraphs
   const updates = []
   const topLevelHeadings = Object.keys(TOP_LEVEL_HEADINGS).map((key) => TOP_LEVEL_HEADINGS[key])
@@ -538,18 +478,23 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
   if (updates.length) {
     // updates.map((u) => logDebug(pluginJson, `removeEmptyHeadings deleting spinster lineIndex[${u.lineIndex}] ${u.rawContent}`))
     // note.updateParagraphs(updates)
+    logInfo(pluginJson, `removeEmptyHeadings: deleting ${updates.length} empty heading paras`)
     note.removeParagraphs(updates)
+  } else {
+    logDebug(pluginJson, `removeEmptyHeadings: no empty heading paras to delete.`)
   }
 }
 
 /**
- * If {stopAtDoneHeading} setting is set, then find just the paragraphs up to the first done/cancelled heading
- * @param {*} note - input note
+ * If {stopAtDoneHeading} setting is set, then find just the paragraphs up to the first done/cancelled heading.
+ * WARNING: this didn't work for @jgclark in Oct 2024, returning all paras, not just those in active part.
+ * @param {CoreNoteFields} note - input note
  * @returns {$ReadOnlyArray<TParagraph>} - array of paragraphs
  */
 export function getActiveParagraphs(note: CoreNoteFields): $ReadOnlyArray<TParagraph> {
   const { stopAtDoneHeading } = DataStore.settings
-  return (stopAtDoneHeading ? note.paragraphs.filter((p) => p.lineIndex <= findEndOfActivePartOfNote(note)) : note?.paragraphs) || []
+  const endOfActive = findEndOfActivePartOfNote(note)
+  return (stopAtDoneHeading ? note.paragraphs.filter((p) => p.lineIndex <= endOfActive) : note?.paragraphs) || []
 }
 
 /**
@@ -602,8 +547,11 @@ export async function sortTasks(
   withHeadings: boolean | null = null,
   subHeadingCategory: boolean | null = null,
 ) {
-  const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
-
+  // const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
+  let settings = await DataStore.loadJSON("../dwertheimer.TaskSorting/settings.json")
+  const eliminateSpinsters = settings.includeSubHeading
+  const sortInHeadings = settings.sortInHeadings
+  const includeSubHeading = settings.includeSubHeading
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
 
   logDebug(
@@ -638,7 +586,7 @@ export async function sortTasks(
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
   for (const key in sortGroups) {
-    logDebug(`sortTasks: heading Group title="${key}" (${sortGroups[key].length} paragraphs)`)
+    logDebug(`sortTasks: sortGroup heading/key="${key}" (${sortGroups[key].length} paragraphs)`)
     if (sortGroups[key].length) {
       const sortedTasks = sortParagraphsByType(sortGroups[key], sortOrder)
       if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
@@ -666,35 +614,41 @@ export async function sortTasks(
 }
 
 /**
- * sortTasksUnderHeading
- * Plugin entrypoint for "/sth"
+ * Sort Tasks/Checklists Under a Heading in the Editor, either specified in the call, or ask the user.
+ * Note: Plugin entrypoint for "/sth"
+ * @param {string} headingIn
  */
-export async function sortTasksUnderHeading() {
+export async function sortTasksUnderHeading(headingIn = '') {
   try {
-    if (Editor.note) {
-      const heading = await chooseHeading(Editor?.note, false, false, false)
-      if (heading && Editor.note) {
-        const block = getBlockUnderHeading(Editor.note, heading)
-        if (block?.length) {
-          const sortOrder = await getUserSort()
-          if (sortOrder) {
-            const sortedTasks = sortParagraphsByType(block, sortOrder)
-            clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
-            // const printHeadings = (await wantHeadings()) || false
-            // const printSubHeadings = (await wantSubHeadings()) || false
-            // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-            if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-            // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
-            if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
-          }
-        } else {
-          await showMessage(`No tasks found under heading "${heading}"`)
-        }
+    if (!Editor || !Editor.note) {
+      logError('sortTasksUnderHeading', `sortTasksUnderHeading: There is no open Editor.note. Stopping.`)
+      await showMessage('No note is open, so stopping.')
+    }
+
+    // Get heading from param or ask user
+    const headingToUse = (headingIn !== '') ? headingIn : await chooseHeading(Editor?.note, false, false, false)
+    if (!headingToUse) {
+      logInfo('sortTasksUnderHeading', `No heading given, so stopping.`)
+      await showMessage(`No heading given, so stopping.`)
+    }
+
+    // Sort tasks
+    logDebug('sortTasksUnderHeading', `Will sort tasks under heading '${headingToUse}'`)
+    const block = getBlockUnderHeading(Editor.note, headingToUse)
+    if (block?.length) {
+      // TODO: If a heading was given, then use user's defined default sort order instead of asking
+      const sortOrder = await getUserSort()
+      if (sortOrder) {
+        const sortedTasks = sortParagraphsByType(block, sortOrder)
+        clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
+        deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+        await writeOutTasks(Editor.note, sortedTasks, false, false, '', headingToUse)
       }
     } else {
-      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
-      await showMessage('No note is open')
+      logInfo('sortTasksUnderHeading', `No tasks found under heading "${heading}"`)
+      await showMessage(`No tasks found under heading "${headingToUse}"`)
     }
+
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))
   }

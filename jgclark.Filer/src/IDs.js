@@ -34,15 +34,17 @@ export async function addIDAndAddToOtherNote(): Promise<void> {
 
     // Get current paragraph
     const firstSelParaIndex = selectedParagraphs[0].lineIndex //getSelectedParaIndex()
-    let para = note.paragraphs[firstSelParaIndex]
+    const para = note.paragraphs[firstSelParaIndex]
 
     // Add Line ID for the first paragraph (known as 'blockID' by API)
     note.addBlockID(para) // in this case, note is Editor.note, which is not saved in realtime. This has been causing race conditions at times.
     note.updateParagraph(para)
-    if (NotePlan.environment.buildVersion >= 1053) {
-      await Editor.save() // attempt to save this before reading it again (if running NP 3.9.3+)
-    }
-    para = note.paragraphs[firstSelParaIndex] // refresh para
+
+    // (Oct 2024) Now removing this as it seems to stop this command working, but with no error.
+    // if (NotePlan.environment.buildVersion >= 1053) {
+    //   await Editor.save() // (Aug 2023) attempt to save this before reading it again (if running NP 3.9.3+)
+    // }
+    // para = note.paragraphs[firstSelParaIndex] // refresh para
     const newBlockID = para.blockId
     if (newBlockID) {
       logDebug(pluginJson, `- blockId added: '${newBlockID}'`)

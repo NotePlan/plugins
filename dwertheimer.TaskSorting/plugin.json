@@ -3,14 +3,10 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.1.0",
-  "plugin.lastUpdateInfo": "Added \\cnt copy noteTags command.\nInitial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
+  "plugin.version": "1.1.1",
+  "plugin.lastUpdateInfo": "1.1.1: Added 'sortTasksViaExternalCall' hidden command for external calls or other plugins.\n1.1.0: Added \\cnt copy noteTags command.\nInitial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
-  "plugin.requiredFiles-EDIT_ME": [
-    "html-plugin-comms.js"
-  ],
-  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md",
@@ -34,16 +30,19 @@
       ]
     },
     {
-      "name": "Sort tasks under heading (choose)",
-      "description": "sth",
+      "name": "Sort tasks under heading",
+      "description": "Sort tasks under heading",
       "jsFunction": "sortTasksUnderHeading",
       "alias": [
         "tsh"
+      ],
+      "arguments": [
+        "heading to sort"
       ]
     },
     {
       "name": "Tasks Sort by User Default (in settings)",
-      "description": "tsd",
+      "description": "Tasks Sort by User Default (in settings)",
       "jsFunction": "sortTasksDefault",
       "alias": [
         "tsd"
@@ -51,7 +50,7 @@
     },
     {
       "name": "Tasks Sort by calendar due date",
-      "description": "tsc",
+      "description": "Tasks Sort by calendar due date",
       "jsFunction": "sortTasksByDue",
       "alias": [
         "tsc"
@@ -59,7 +58,7 @@
     },
     {
       "name": "Tasks Sort by @Mention/person",
-      "description": "tsm",
+      "description": "Tasks Sort by @Mention/person",
       "jsFunction": "sortTasksByPerson",
       "alias": [
         "tsm"
@@ -67,7 +66,7 @@
     },
     {
       "name": "Tasks Sort by #Tag",
-      "description": "tst",
+      "description": "Tasks Sort by #Tag",
       "jsFunction": "sortTasksByTag",
       "alias": [
         "tst"
@@ -75,7 +74,7 @@
     },
     {
       "name": "Tasks Sort by #Tag + @Mention",
-      "description": "tstm",
+      "description": "Tasks Sort by #Tag + @Mention",
       "jsFunction": "sortTasksTagMention",
       "alias": [
         "tstm"
@@ -83,7 +82,7 @@
     },
     {
       "name": "Tasks to Top - Bring all tasks in note to top",
-      "description": "tt",
+      "description": "Tasks to Top - Bring all tasks in note to top",
       "jsFunction": "tasksToTop",
       "alias": [
         "tt"
@@ -91,7 +90,7 @@
     },
     {
       "name": "Mark All Tasks on Page (open or complete)",
-      "description": "mat",
+      "description": "Mark All Tasks on Page (open or complete)",
       "jsFunction": "markTasks",
       "alias": [
         "mat"
@@ -100,32 +99,56 @@
     {
       "name": "cta - Copy tags from previous line",
       "description": "Copy #tags and @mentions from previous line",
-      "jsFunction": "copyTagsFromLineAbove"
+      "jsFunction": "copyTagsFromLineAbove",
+      "alias": [
+        "cta"
+      ]
     },
     {
       "name": "cth - Copy tags from heading above",
       "description": "Copy #tags/@mentions from heading to all lines between",
-      "jsFunction": "copyTagsFromHeadingAbove"
+      "jsFunction": "copyTagsFromHeadingAbove",
+      "alias": [
+        "cth"
+      ]
     },
     {
       "name": "ctm - Copy line for each mention",
       "description": "Copy line for each @mention, listing it first",
-      "jsFunction": "copyLineForEachMention"
+      "jsFunction": "copyLineForEachMention",
+      "alias": [
+        "ctm"
+      ]
     },
     {
       "name": "ctt - Copy line for each hashtag",
       "description": "Copy line for each #hashtag, listing it first",
-      "jsFunction": "copyLineForEachHashtag"
+      "jsFunction": "copyLineForEachHashtag",
+      "alias": [
+        "ctt"
+      ]
     },
     {
       "name": "cnt - Copy tags from noteTags",
       "description": "Copies all noteTags to all tasks in note",
-      "jsFunction": "addNoteTagsToAllTask"
+      "jsFunction": "addNoteTagsToAllTask",
+      "alias": [
+        "cnt"
+      ]
     },
     {
-      "name": "Add a onSave trigger to copy noteTags to all tasks",
-      "description": "Copies all noteTags to all tasks in note",
+      "name": "Add an onSave trigger to copy noteTags to all tasks",
+      "description": "Add an onSave trigger to copy noteTags to all tasks",
       "jsFunction": "addNoteTagsTriggerToFm"
+    },
+    {
+      "name": "sortTasksViaExternalCall",
+      "description": "entry point to sortTasks from x-callback etc.",
+      "jsFunction": "sortTasksViaExternalCall",
+      "arguments": [
+        "JSON5 paramater string (withUserInput (boolean), sortFields (Array<string>), withHeadings (boolean),  subHeadingCategory (boolean)"
+      ],
+      "hidden": true
     },
     {
       "name": "triggerCopyNoteTags",
@@ -134,33 +157,35 @@
       "hidden": true
     },
     {
-      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Task Sorting: Version",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "description": "Update + Check Version",
       "jsFunction": "versionCheck"
     },
     {
-      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "onOpen",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "description": "entry point for onOpen trigger",
       "jsFunction": "onOpen",
       "hidden": true
     },
     {
-      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "onEditorWillSave",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "description": "entry point for onEditorWillSave trigger",
       "jsFunction": "onEditorWillSave",
       "hidden": true
     },
     {
-      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "onMessageFromHTMLView",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "description": "dwertheimer.TaskSorting: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     },
     {
-      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Task Sorting: Update Plugin Settings",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "description": "Preferences",
       "jsFunction": "editSettings"
     }

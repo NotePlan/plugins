@@ -450,12 +450,12 @@ describe('sorting.js', () => {
     })
   })
   /*
-   * getSortableTask()
+   * getSortableParaSubset()
    */
-  describe('getSortableTask()' /* function */, () => {
+  describe('getSortableParaSubset()' /* function */, () => {
     test('should create basic task object', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content', filename: 'testFile.md', lineIndex: 15 })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       const expected = {
         calculatedType: 'open',
         children: [],
@@ -475,29 +475,29 @@ describe('sorting.js', () => {
     })
     test('should have hashtags', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content #foo', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('hashtags', ['foo'])
     })
     test('should have mentions', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content @foo', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('mentions', ['foo'])
     })
     test('should have exclamation mark priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('priority', 3)
       expect(result).toHaveProperty('exclamations', ['!!!'])
     })
     test('should have parens priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('priority', 2)
       expect(result).toHaveProperty('parensPriority', ['B'])
     })
     test('should have calculatedType', () => {
       const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2020-01-01', filename: 'testFile.md' })
-      const result = s.getSortableTask(paragraph)
+      const result = s.getSortableParaSubset(paragraph)
       expect(result).toHaveProperty('calculatedType', 'checklistScheduled')
     })
   })

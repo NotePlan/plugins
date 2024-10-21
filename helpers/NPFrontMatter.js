@@ -68,11 +68,16 @@ export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] 
  * @returns {boolean} true if the note has front matter
  */
 export function noteHasFrontMatter(note: CoreNoteFields): boolean {
-  logDebug('noteHasFrontMatter', `has ${String(note.paragraphs?.length)} lines`)
-  if (note.paragraphs.length > 0) logDebug('noteHasFrontMatter', `- para 0 = ${note.paragraphs?.[0].type} "${note.paragraphs?.[0].content}"`)
-  if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false
-  return note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+  try {
+    logDebug('noteHasFrontMatter', `has ${String(note.paragraphs?.length)} lines`)
+    if (note.paragraphs.length > 0) logDebug('noteHasFrontMatter', `- para 0 = ${note.paragraphs?.[0].type} "${note.paragraphs?.[0].content}"`)
+    if (!note || !note.paragraphs || note.paragraphs?.length < 2) return false
+    return note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+  } catch (err) {
+    logError('noteHasFrontMatter', err)
+  }
 }
+
 /**
  * get the front matter attributes from a note
  * @param {TNote} note

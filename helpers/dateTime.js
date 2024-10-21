@@ -1,4 +1,5 @@
 // @flow
+/* eslint-disable prefer-template */
 //-------------------------------------------------------------------------------
 // Date functions, that don't rely on NotePlan functions/types
 // @jgclark except where shown
@@ -63,6 +64,9 @@ export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
 export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUARTER_SPEC}`)
 export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
+// Half-Years -- Note: not supported by NotePlan, but used by @jgclark in some places
+export const RE_NP_HALFYEAR_SPEC = '\\d{4}\\H[1-2](?!\\d)' // find dates of form YYYYHn not followed by digit
+
 // Years
 // export const RE_NP_YEAR_SPEC = '(?<!\\d)\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing digit or - [doesn't work because it has a lookbehind]
 export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without trailing - or digit [fails if I add negative start or negative lookbehinds]
@@ -71,7 +75,7 @@ export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
 export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
-// Tests for all interval types
+// Tests for all NP-supported interval types
 export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
 export const RE_IS_SCHEDULED: RegExp = new RegExp(`>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`)
 
@@ -82,7 +86,7 @@ export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE: RegExp = new RegExp(`@done\
 export const RE_DONE_DATE_OPT_TIME: RegExp = new RegExp(`@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`)
 
 // Intervals
-export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
+export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqHhYy]` // Note: includes @jgclark extension
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
@@ -940,6 +944,9 @@ function convertOffsetUnitToMomentUnit(unit: string): string {
     case 'q':
       unitForMoment = 'Q'
       break
+    case 'h':
+      unitForMoment = 'y' // Note: this isn't fully accurate, and needs to be corrected for later.
+      break
     default:
       unitForMoment = unit
       break
@@ -986,7 +993,7 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
       ? MOMENT_FORMAT_NP_QUARTER
       : unit === 'y'
       ? MOMENT_FORMAT_NP_YEAR
-      : ''
+              : ''
   return momentDateFormat
 }
 
@@ -995,7 +1002,7 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for  strings as well. Docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
- * @param {string} baseDateStrIn is type ISO Date (i.e. YYYY-MM-DD), NP's filename format YYYYMMDD, or NP Weekly/Monthly/Quarterly/Yearly date strings
+ * @param {string} baseDateStrIn is type ISO Date (i.e. YYYY-MM-DD), NP's filename format YYYYMMDD, or NP Weekly/Monthly/Quarterly/Yearly date strings, or (for @jgc) Half-Years (i.e. YYYYHn).
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @returns {Date} new date
  * @test - available in jest file
@@ -1006,13 +1013,22 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
       logError('dateTime / cOD', `Invalid date interval '${interval}'`)
       return null
     }
-    const unit = interval.charAt(interval.length - 1) // get last character
-    const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
+    let unit = interval.charAt(interval.length - 1) // get last character
+    let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
+    // Note: splitIntervalToParts(interval) has a different output!
+
+    // Note: Annoyingly, Moment doesn't cope with half-years, so we need to convert to quarters and back again
+    if (unit === 'h') {
+      unit = 'q'
+      num = Math.floor(num * 2)
+      logDebug('dateTime / cOD', `special case: converted half-year interval ${interval} -> ${num} / ${unit}`)
+    }
 
     // short codes in moment library aren't quite the same as mine
     const unitForMoment = convertOffsetUnitToMomentUnit(unit)
 
     let momentDateFormat = ''
+    let baseDateStr = baseDateStrIn
     if (baseDateStrIn.match(RE_ISO_DATE)) {
       momentDateFormat = 'YYYY-MM-DD'
     } else if (baseDateStrIn.match(RE_YYYYMMDD_DATE)) {
@@ -1024,6 +1040,12 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
       momentDateFormat = MOMENT_FORMAT_NP_MONTH
     } else if (baseDateStrIn.match(RE_NP_QUARTER_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+    } else if (baseDateStrIn.match(RE_NP_HALFYEAR_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+      const h = parseInt(baseDateStrIn.charAt(baseDateStrIn.length - 1))
+      const q = Math.floor(h * 2)
+      baseDateStr = baseDateStrIn.slice(0, 4) + '-Q' + String(q)
+      logDebug('dateTime / cOD', `special case: baseDatrStrIn ${baseDateStrIn} converted -> ${baseDateStr}`)
     } else if (baseDateStrIn.match(RE_NP_YEAR_SPEC)) {
       // NB: test has to go at end as it will match all longer formats
       momentDateFormat = MOMENT_FORMAT_NP_YEAR
@@ -1032,10 +1054,10 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
     }
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
-    const baseDateMoment = moment(baseDateStrIn, momentDateFormat)
+    const baseDateMoment = moment(baseDateStr, momentDateFormat)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
 
-    // logDebug('dateTime / cOD', `for '${baseDateStrIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
+    // logDebug('dateTime / cOD', `for '${baseDateStr}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate
   } catch (e) {
     logError('dateTime / cOD', `${e.message} for '${baseDateStrIn}' interval '${interval}'`)
@@ -1055,7 +1077,13 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
   const intervalNumber = Number(interval.slice(0, interval.length - 1))
   const intervalChar = interval.charAt(interval.length - 1)
   const intervalType =
-    intervalChar === 'd' ? 'day' : intervalChar === 'w' ? 'week' : intervalChar === 'm' ? 'month' : intervalChar === 'q' ? 'quarter' : intervalChar === 'y' ? 'year' : 'error'
+    intervalChar === 'd' ? 'day'
+      : intervalChar === 'w' ? 'week'
+        : intervalChar === 'm' ? 'month'
+          : intervalChar === 'q' ? 'quarter'
+            : intervalChar === 'h' ? 'half-year'
+              : intervalChar === 'y' ? 'year'
+                : 'error'
   const intervalParts = { number: intervalNumber, type: intervalType }
   return intervalParts
 }
@@ -1065,12 +1093,12 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
  * Moment docs: https://momentjs.com/docs/#/get-set/
- * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
- * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY (plus 'half-year' YYYY-Hn)
+ * - 'offsetInterval' of form +nn[bdwmqhy] or -nn[bdwmqhy], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
  * - 'adaptOutputInterval' (optional). Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
  * @author @jgclark
- * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
- * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY, plus YYYYHn for @jgc
+ * @param {string} offsetInterval of form +nn[bdwmqhy] or -nn[bdwmqhy], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas), and 'h' is @jgc addition for half-year
  * @param {string?} adaptOutputInterval. Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
  * - 'shorter': keep the shorter of the two calendar types. E.g. a daily date + 1w -> daily date. Or '2023-07' + '2w' -> '2023-W28'.
  * - 'longer': use the longer of the two calendar types. E.g. a daily date + 1w -> weekly date.
@@ -1089,7 +1117,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       throw new Error('Empty offsetInterval string')
     }
     const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
-    // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
+    logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
 
     // calc offset date
     // (Note: library functions cope with negative nums, so just always use 'add' function)
@@ -1099,7 +1127,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     }
     // Now decide how to format the new date.
     // Start with using baseDateIn's format
-    const calendarTypeOrder = 'dbwmqy'
+    const calendarTypeOrder = 'dbwmqhy'
     let newDateStr = ''
     let baseDateMomentFormat = ''
     let baseDateUnit = ''
@@ -1119,6 +1147,9 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
       baseDateMomentFormat = MOMENT_FORMAT_NP_QUARTER
       baseDateUnit = 'q'
+    } else if (baseDateIn.match(RE_NP_HALFYEAR_SPEC)) {
+      baseDateMomentFormat = MOMENT_FORMAT_NP_QUARTER // Note: this isn't fully accurate, and needs to be corrected for later.
+      baseDateUnit = 'h'
     } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
       // NB: test has to go at end as it will match all longer formats
       baseDateMomentFormat = MOMENT_FORMAT_NP_YEAR
@@ -1130,7 +1161,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     newDateStr = newDateStrFromBaseDateType
 
     // Also calculate offset's output format
-    const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
+    const offsetMomentFormat = (offsetUnit === 'd') && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
@@ -1203,6 +1234,19 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
         break
       }
     }
+
+    // Finally, deal with special half-year case: take the Quarter number and divide by 2
+    if (baseDateUnit === 'h') { // or is this unit?
+      if (newDateStr.endsWith('-Q1') || newDateStr.endsWith('-Q2')) {
+        newDateStr = newDateStr.slice(0, newDateStr.length - 3) + 'H1'
+      } else if (newDateStr.endsWith('-Q3') || newDateStr.endsWith('-Q4')) {
+        newDateStr = newDateStr.slice(0, newDateStr.length - 3) + 'H2'
+      } else {
+        logError('dateTime / cODS', `baseDateUnit is 'h' but no ending 'Qn' string found in newDateStr '${newDateStr}'`)
+      }
+      logDebug('dateTime / cODS', `changed output to ${newDateStr} to handle half-year request`)
+    }
+
     // logDebug('dateTime / cODS', `for '${baseDateIn}' date, offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
     return newDateStr
   } catch (e) {

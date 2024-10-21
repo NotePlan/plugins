@@ -15,7 +15,8 @@ import { parasToText } from '@helpers/paragraph'
  * Blocks are broken based on the following block types: 'empty', 'separator',
  * or a 'title'.headingLevel <= the last title level in the block
  * Separators and empty lines are included as their own blocks
- *
+ * 
+ * @author @dwertheimer
  * @param {Array<TParagraph>} array - The array of objects to break into blocks.
  * @return {Array<Array<TParagraph>>} An array of blocks, where each block is an array of objects.
  */
@@ -64,6 +65,7 @@ export function isBreakBlock(item: TParagraph, breakBlockTypes: Array<string> = 
 /**
  * Checks if a title's heading level is lower than the specified level.
  *
+ * @author @jgclark
  * @param {TParagraph} item - The title object to check.
  * @param {number} level - The lowest heading level in the block.
  * @return {boolean} True if the title's heading level is lower than the specified level, false otherwise.
@@ -77,11 +79,12 @@ export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowest
  * Note: simplified version of 'moveParas()' in NPParagraph.
  * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragaphs have to be indented (false) or can take all following lines at same level until next empty line as well.
  * Note: not yet used, it seems.
+ * TODO: uses DataStore, so should move to NPBlocks, along with some of NPParagraph, to be honest.
+ * @author @jgclark
  * @param {TParagraph} para
  * @param {string} toFilename
  * @param {NoteType} toNoteType
  * @param {string} toHeading to move under
- * @author @jgclark
  */
 export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNoteType: NoteType, toHeading: string): void {
   try {
@@ -92,19 +95,10 @@ export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNo
       throw new Error('Invalid paragraph filename given.')
     }
 
-    // Get config settings
-    // const config = await getFilerSettings()
-
     const fromNote = para.note
     if (!fromNote) {
       throw new Error(`From note can't be found. Stopping.`)
     }
-
-    // Get paragraph index
-    const firstSelLineIndex = para.lineIndex
-    const lastSelLineIndex = para.lineIndex
-    // Get paragraphs for the selection or block
-    let firstStartIndex = 0
 
     // get children paras (as well as the original)
     const parasInBlock = getParaAndAllChildren(para)

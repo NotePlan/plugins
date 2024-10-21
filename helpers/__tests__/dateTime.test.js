@@ -16,7 +16,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
+  DataStore.settings['_logLevel'] = 'DEBUG' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
@@ -536,6 +536,18 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('2022-Q2 -2q', () => {
         expect(dt.calcOffsetDateStr('2022-Q2', '-2q')).toEqual('2021-Q4')
+      })
+      test('2022-Q2 +1h', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '1h')).toEqual('2022-Q4')
+      })
+      test('2022-Q2 +2h', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '2h')).toEqual('2023-Q2')
+      })
+      test('2022H2 +1h', () => {
+        expect(dt.calcOffsetDateStr('2022H2', '1h')).toEqual('2023H1')
+      })
+      test('2022H2 +2h', () => {
+        expect(dt.calcOffsetDateStr('2022H2', '2h')).toEqual('2023H2')
       })
       test('2022 +2y', () => {
         expect(dt.calcOffsetDateStr('2022', '2y')).toEqual('2024')
@@ -1143,6 +1155,13 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual({
         number: -1,
         type: 'quarter',
+      })
+    })
+    test('1h', () => {
+      const result = dt.splitIntervalToParts('1h')
+      expect(result).toEqual({
+        number: 1,
+        type: 'half-year',
       })
     })
     test('2y', () => {

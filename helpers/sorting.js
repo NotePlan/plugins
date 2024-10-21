@@ -100,30 +100,30 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
  * @returns {function} callback function for sort()
  */
 export const fieldSorter =
-  (fields: Array<string>): function =>
-  (a, b) =>
-    fields
-      .map((_field) => {
-        let field = _field
-        let dir = 1
-        const isDesc = field[0] === '-'
-        if (isDesc) {
-          dir = -1
-          field = field.substring(1)
-        }
-        // field = isNaN(field) ? field : Number(field)
-        const aFirstValue = firstValue(get(a, field))
-        const bFirstValue = firstValue(get(b, field))
-        const aValue = aFirstValue == null ? null : isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
-        const bValue = bFirstValue == null ? null : isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
-        // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
-        if (aValue === bValue) return 0
-        if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
-        if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
-        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
-        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
-      })
-      .reduce((p, n) => (p ? p : n), 0)
+  (fields: Array<string>): ((a: any, b: any) => number) =>
+    (a: any, b: any) =>
+      fields
+        .map((_field) => {
+          let field = _field
+          let dir = 1
+          const isDesc = field[0] === '-'
+          if (isDesc) {
+            dir = -1
+            field = field.substring(1)
+          }
+          // field = isNaN(field) ? field : Number(field)
+          const aFirstValue = firstValue(get(a, field))
+          const bFirstValue = firstValue(get(b, field))
+          const aValue = aFirstValue == null ? null : isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
+          const bValue = bFirstValue == null ? null : isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
+          // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
+          if (aValue === bValue) return 0
+          if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
+          if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
+          // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
+          return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
+        })
+        .reduce((p, n) => (p ? p : n), 0)
 
 /**
  * Helper function for fieldSorter fields.
@@ -164,8 +164,7 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 }
 
 /*
- * Get numeric priority level based on !!! or (B)
- * TODO: Extend to add 'working-on' support (W)
+ * Get numeric priority level of a SortableParagraphSubset item based on >>, !!!, !!, ! or nothing
  * @author @dwertheimer
  * @param {SortableParagraphSubset} item
  * @returns {number} priority from 3, 2, 1, 4 for >> or -1 (default)
@@ -183,14 +182,13 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
 }
 
 /*
- * Get numeric priority level based on !!! or (B)
- * TODO: Extend to add 'working-on' support (W)
+ * Get numeric priority level of a Paragraph based on >>, !!!, !!, ! or nothing
  * @author @jgclark wrapping @dwertheimer's work above
  * @param {TParagraph} input
  * @returns {number} priority from 3, 2, 1, -1 (default)
  */
 export function getNumericPriorityFromPara(para: TParagraph): number {
-  const item: SortableParagraphSubset = getSortableTask(para)
+  const item: SortableParagraphSubset = getSortableParaSubset(para)
   return getNumericPriority(item)
 }
 
@@ -224,7 +222,7 @@ export function calculateParagraphType(para: TParagraph): string {
  * @returns {SortableParagraphSubset} - a sortable object
  * @author @dwertheimer
  */
-export function getSortableTask(para: TParagraph): SortableParagraphSubset {
+export function getSortableParaSubset(para: TParagraph): SortableParagraphSubset {
   const content = para.content
   const hashtags = getElementsFromTask(content, RE_HASHTAGS)
   const mentions = getElementsFromTask(content, RE_MENTIONS)
@@ -261,22 +259,26 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
  */
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
   const tasks = TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {})
-  let lastParent = { indents: 999, children: [] }
+  // $FlowFixMe[prop-missing] only dealing with sub-type here
+  let lastParent: SortableParagraphSubset = { indents: 999, children: [] }
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
     const para = paragraphs[index]
     // logDebug('getTasksByType', `${para.lineIndex}: ${para.type}`)
-    if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
+    // FlowFixMe[invalid-compare] reason for suppression
+    if (isTask || (!ignoreIndents && (para.indents > lastParent.indents))) {
       // const content = para.content // Not used
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {
-        const task: SortableParagraphSubset = getSortableTask(para)
+        const task: SortableParagraphSubset = getSortableParaSubset(para)
         if (!ignoreIndents && para.indents > lastParent.indents) {
           lastParent.children.push(task)
         } else {
           const ct = useCalculatedScheduled ? task.calculatedType : task.type // will always be the same as para.type except in case of scheduled
+          // $FlowIgnore[invalid-computed-prop]
           if (ct && tasks[ct]) {
             const len = tasks[ct].push(task)
+            // $FlowIgnore[invalid-computed-prop]
             lastParent = tasks[ct][len - 1]
           }
         }

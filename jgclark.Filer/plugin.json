@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
   "plugin.version": "1.2.0",
-  "plugin.lastUpdateInfo": "1.2.0: New '/smart duplicate note' command.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
+  "plugin.lastUpdateInfo": "1.2.0: New '/smart duplicate note' commands. Fix for '/add sync'd copy to note' command.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -160,10 +160,21 @@
     {
       "name": "smart duplicate note",
       "alias": [
-        "nnfs"
+        "sdn"
       ],
-      "description": "from the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists for the new period.",
+      "description": "from the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note.",
       "jsFunction": "smartDuplicateRegularNote"
+    },
+    {
+      "name": "smart file to completed sections",
+      "alias": [
+        "sftcs"
+      ],
+      "description": "???from the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note.",
+      "jsFunction": "smartFileToCompletedSections",
+      "arguments": [
+        "filename of note to work on"
+      ]
     },
     {
       "name": "Filer: update plugin settings",
