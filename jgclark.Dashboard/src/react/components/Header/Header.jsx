@@ -55,7 +55,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, setDashboardSettings, sendActionToPlugin, pluginData, setPerspectiveSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, perspectiveSettings, setPerspectiveSettings } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -141,7 +141,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
-              handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
+              handleSwitchChange(dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, perspectiveSettings, setPerspectiveSettings)(key)(e)
               onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
             }}
             className={'feature-flags'}
@@ -166,12 +166,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(dashboardSettings, setDashboardSettings, sendActionToPlugin, setPerspectiveSettings)(key)(e)
+            handleSwitchChange(dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, perspectiveSettings, setPerspectiveSettings)(key)(e)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           handleSaveInput={(key, newValue) => {
             handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSaveInput(setDashboardSettings)(key)(newValue)
+            handleSaveInput(dispatchDashboardSettings)(key)(newValue)
             onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
           }}
           className={'filter'}

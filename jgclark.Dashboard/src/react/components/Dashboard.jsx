@@ -22,6 +22,7 @@ import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import {compareObjects}  from '@helpers/dev'
 import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
@@ -44,7 +45,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, setPerspectiveSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, setPerspectiveSettings, dispatchDashboardSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -137,6 +138,17 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [dashboardSettings])
 
+  // Effect to update dashboardSettings when pluginData.dashboardSettings changes (e.g. the plugin rewrote it)
+  useEffect(() => {
+    logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
+    pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`, `dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
+    if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
+
+      logDebug(`WebView`, `Looks like dashboardSettings are different. calling dispatchDashboardSettings()`)
+      dispatchDashboardSettings({ type: 'SET_DASHBOARD_SETTINGS', payload: pluginData.dashboardSettings, reason: `DashboardSettings changed in WebView` })
+    }
+  }, [pluginData.dashboardSettings])
+
   // temporary code to output variable changes to Chrome DevTools console
   const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length === 0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
@@ -175,15 +187,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
   useEffect(() => {
     const lastChangeText = (dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0) ?? ''
-    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText)||''}" activePerspective=${dashboardSettings.activePerspectiveName}`)
+    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText) || ''}" activePerspective=${dashboardSettings.activePerspectiveName}`)
     const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
     if (shouldSendToPlugin) {
       logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
-      const dashboardSettingsCopy = { lastChange:"", activePerspectiveName:"-", ...dashboardSettings }
+      const dashboardSettingsCopy = { lastChange: "", activePerspectiveName: "-", ...dashboardSettings }
       // TODO: DELETE this log line after perspective testing is completed
       logDebug('Dashboard/useEffect(dashboardSettings)', `- New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
 
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: dashboardSettingsCopy, logMessage: dashboardSettingsCopy.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
+      // sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: dashboardSettingsCopy, logMessage: dashboardSettingsCopy.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
 
       // If a perspective is not set (or it is set to "-"), we need to keep the "-" perspective updated with the current settings so that you can return to your last state
       // after switching to a perspective and back to "-". So every time dashboardSettings changes and no perspective is set, we are quietly saving the update
@@ -217,8 +229,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     if (perspectiveSettings && perspectiveSettings.length > 0) {
       if (JSON.stringify(perspectiveSettings) !== JSON.stringify(pluginData.perspectiveSettings)) {
-        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated`, perspectiveSettings)
-        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+        logDebug('Dashboard', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(compareObjects(pluginData.perspectiveSettings,perspectiveSettings))}\n\tNOTE: Not currently sending this back to plugin because was circular. Need to find a better way.`, perspectiveSettings)
+        // sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
       } else {
         logDebug('Dashboard', `Watcher for perspectiveSettings changes. Settings match. Probably just newest perspective data sent from plugin. No need to send back again.`)
       }
@@ -289,7 +301,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    logDebug('Dashboard', `Dashboard::handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
+    logDebug('Dashboard', `Dashboard::handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing || {})}`)
     // xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later NOTE: dbw commented this out on 2024-10-08 after changing how interactiveProcessing works
   }
 

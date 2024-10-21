@@ -13,6 +13,8 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
+export type TPerspectiveOptionObject = { isModified: boolean, label: string, value: string }
+
 /* -----------------------------------------------------------------------------
    Design logic
  -------------------------------------------------------------------------------
@@ -210,7 +212,11 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPe
  * @param {boolean} includeDefaultOption? (optional; default = true)
  * @returns {Array<string>}
  */
-export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>, includeDefaultOption: boolean = true): Array<string> {
+export function getDisplayListOfPerspectiveNames(
+  allDefs: Array<TPerspectiveDef>,
+  includeDefaultOption: boolean = true,
+  returnOptionObjects: boolean = false,
+): Array<string | { label: string, value: string, isModified: boolean }> {
   try {
     // Get all perspective names
     if (!allDefs || allDefs.length === 0) {
@@ -218,9 +224,11 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
     }
 
     // Form list of options, removing "-" from the list if wanted
-    let options = allDefs.map((def) => (def.isModified ? `${def.name}*` : def.name)).sort((a, b) => (a === '-' ? -1 : b === '-' ? 1 : 0))
+    let options = returnOptionObjects
+      ? allDefs.map((def) => ({ label: def.name, value: def.name, isModified: def.isModified || false }))
+      : allDefs.map((def) => (def.isModified ? `${def.name}*` : def.name)).sort((a, b) => (a === '-' ? -1 : b === '-' ? 1 : 0))
     if (!includeDefaultOption) {
-      options = options.filter((name) => name !== '-')
+      returnOptionObjects ? (options = options.filter((obj) => obj.label !== '-')) : (options = options.filter((name) => name !== '-'))
     }
 
     return options
@@ -361,6 +369,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
     'pluginID',
+    'showPerspectives',
     /FFlag_/,
     /separator\d/, // though JGC has never seen this on 'heading/d' in dashboardSettings?
     /heading\d/,
@@ -536,11 +545,6 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     pluginSettings.perspectiveSettings = JSON.stringify(perspectivesWithoutOne)
     DataStore.settings = pluginSettings
     clo(DataStore.settings, `deletePerspective at end DataStore.settings =`) // ✅
-
-    // FIXME: but not updating elsewhere in the interface.
-    // v2:
-    // So I want to try the following, but I don't have the function defs to call:
-    // await adjustSettingsAndSave(perspectivesWithoutOne, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `deletePerspective('${nameToUse}')`)
   } catch (error) {
     logError('deletePerspective', error.message)
   }
@@ -583,49 +587,28 @@ export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItems
 export const endsWithStar = (input: string): boolean => /\*$/.test(input)
 
 /**
- * TEST: this is new
- * Make a change to the current dashboard settings and save.
- * Note: this does *not* update a current named persectiveDef, but does update the default one ("-").
- * @param {TDashboardSettings} updatedSettings
- * @param {TDashboardSettings} dashboardSettings
- * @param {Function} setDashboardSettings
- * @param {Function} setPerspectiveSettings
- * @param {string} logMessage
+ * Set (in React) perspectiveSettings if it has changed via the JSON editor in the Dashboard Settings panel
+ * Return the updated settings object without the perspectiveSettings to be saved as dashboardSettings
+ * @param {*} updatedSettings
+ * @param {*} dashboardSettings
+ * @param {*} setPerspectiveSettings
+ * @param {*} logMessage
+ * @returns
  */
-export function adjustSettingsAndSave(
+export function setPerspectivesIfJSONChanged(
   updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
   dashboardSettings: TDashboardSettings,
-  setDashboardSettings: Function,
   setPerspectiveSettings: Function,
   logMessage: string,
-): void {
-  try {
-    logDebug('adjustSettingsAndSave', `🥷 starting reason "${logMessage}"`)
-    clo(updatedSettings, `🥷 - before updating dashboardSettings:`)
-    // Note must always include all settings, because FFlags etc. are not in the dialog
-    const settingsToSave = { ...dashboardSettings, ...updatedSettings }
-    // perspectiveSettings is a special case. we don't want to save it into the dashboardSettings object
-    // TODO: following discussions on 19/20 August, I'm not sure if this is the right thing to do. We want to update default ("-") not named perspective, right?
-    if (settingsToSave.perspectiveSettings) {
-      logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
-      setPerspectiveSettings(settingsToSave.perspectiveSettings)
-      delete settingsToSave.perspectiveSettings
-      // setUpdatedSettings(settingsToSave) // Probably not needed because dialog is closing anyway
-      clo(settingsToSave, `- after updating perspectiveSettings:`)
-    }
-
-    if (Object.keys(settingsToSave).length > 0) {
-      clo(settingsToSave, `adjustSettingsAndSave saving these using setDashboardSettings`)
-      // there were other (non-perspective) changes made
-      const apn = settingsToSave.activePerspectiveName
-      if (typeof apn === 'string' && apn.length > 0 && apn !== '-' && !endsWithStar(apn)) {
-        // $FlowIgnore // we know apn is a string so this concat will work
-        settingsToSave.activePerspectiveName += '*' // add the star/asterisk to indicate a change
-      }
-      setDashboardSettings({ ...settingsToSave, lastChange: `Dashboard Settings changed (modal or menu) - ${JSON.stringify(updatedSettings)}` })
-      logDebug('adjustSettingsAndSave', `- after updating dashboardSettings, with activePerspectiveName=${settingsToSave.activePerspectiveName}`)
-    }
-  } catch (err) {
-    logError('adjustSettingsAndSave', err.message)
+): TDashboardSettings {
+  logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
+  const settingsToSave = { ...dashboardSettings, ...updatedSettings }
+  if (settingsToSave.perspectiveSettings) {
+    // this should only be true if we are coming from the settings panel with the JSON editor
+    // so let's update the React state for perspectiveSettings but separate this from the other dashboardSettings
+    logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
+    setPerspectiveSettings(settingsToSave.perspectiveSettings)
+    delete settingsToSave.perspectiveSettings
   }
+  return settingsToSave
 }

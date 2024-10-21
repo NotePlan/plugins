@@ -80,11 +80,10 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
   const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
-  const [dashboardSettings, setDashboardSettings] = useState(dashboardSettingsOrDefaults)
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  const pSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || {}
-  logDebug('WebView', `At top of WebView, found ${String(pSettings.length)} perspective settings; activePerspectiveName="${dashboardSettings.activePerspectiveName}".`)
+  const pSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || []).map(p=>({...p,showPerspectives:true}))
+  logDebug('WebView', `At top of WebView, found ${String(pSettings.length)} perspective settings; activePerspectiveName="${dashboardSettingsOrDefaults.activePerspectiveName}".`)
   const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
 
   /****************************************************************************************************************************
@@ -131,7 +130,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     } else {
       // logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
-      logDebug(`WebView`,`data changed. activeProfileName="${data?.pluginData?.dashboardSettings?.activePerspectiveName}" lastChange=${data?.pluginData?.dashboardSettings?.lastChange}`)
+      logDebug(`WebView`,`data changed. activePerspectiveName="${data?.pluginData?.dashboardSettings?.activePerspectiveName}" lastChange=${data?.pluginData?.dashboardSettings?.lastChange}`)
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
@@ -140,18 +139,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     logInfo('WebView', `React Dashboard Initialized and rendered.`)
   }, [])
 
-  // Effect to update dashboardSettings when data.pluginData.dashboardSettings changes
-  useEffect(() => {
-    logDebug('WebView', `Detected change in data.pluginData.dashboardSettings.activePerspectiveName="${data.pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${data.pluginData.dashboardSettings.lastChange}"`)
-    clo(dashboardSettings,`WebView effect: dashboardSettings`)
-    clo(data.pluginData.dashboardSettings,`WebView effect: data.pluginData.dashboardSettings`)
-    data.pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`,`dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
-    if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(data.pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
-
-      logDebug(`WebView`,`Looks like dashboardSettings are different. calling setDashboardSettings()`)
-      setDashboardSettings(data.pluginData.dashboardSettings)
-    }
-  }, [data.pluginData.dashboardSettings, dashboardSettings])
 
   /****************************************************************************************************************************
    *                        HELPER FUNCTIONS
@@ -233,8 +220,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}
-      dashboardSettings={dashboardSettings}
-      setDashboardSettings={setDashboardSettings}
+      dashboardSettings={dashboardSettingsOrDefaults}
       perspectiveSettings={perspectiveSettings}
       setPerspectiveSettings={setPerspectiveSettings}
     >

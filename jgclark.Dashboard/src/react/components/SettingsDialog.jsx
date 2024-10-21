@@ -12,7 +12,7 @@
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
-import { adjustSettingsAndSave } from '../../perspectiveHelpers'
+import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
 // import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
@@ -51,7 +51,7 @@ const SettingsDialog = ({
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
-	const { dashboardSettings, setDashboardSettings, setPerspectiveSettings, pluginData } = useAppContext()
+	const { dashboardSettings, dispatchDashboardSettings, setPerspectiveSettings, pluginData, perspectiveSettings } = useAppContext()
 
 	const pluginDisplayVersion = `v${pluginData.version}`
 
@@ -131,10 +131,24 @@ const SettingsDialog = ({
 	// Handle "Save & Close" action
 	const handleSave = () => {
 		if (onSaveChanges) {
+			const usingPerspectives = dashboardSettings.showPerspectives
+			logDebug(`SettingsDialog: handlesave showPerspectives=${usingPerspectives} apn=${dashboardSettings.activePerspectiveName}`)
+			if (usingPerspectives) {
+			  const apn = dashboardSettings.activePerspectiveName
+			  setPerspectiveSettings(perspectiveSettings.map(p=> p.name === apn ?  { ...p, isModified: true } : {...p, isModified: false } ))
+			}
 			onSaveChanges(updatedSettings)
 		}
-
-		adjustSettingsAndSave(updatedSettings, dashboardSettings, setDashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
+		let settingsToSave = updatedSettings
+		if (updatedSettings.perspectiveSettings) {
+			// setPerspectivesIfJSONChanged will peel off perspectiveSettings if it has changed via the JSON editor and leave the rest to be saved as dashboardSettings
+			settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
+		}
+		dispatchDashboardSettings({
+			type: 'UPDATE_DASHBOARD_SETTINGS',
+			payload: settingsToSave,
+			reason: `Dashboard Settings saved from (modal or menu)`,
+		})
 
 		toggleDialog()
 	}
@@ -233,11 +247,11 @@ const SettingsDialog = ({
 								className: '', // for future use
 								showDescAsTooltips: false
 							})}
-						{/* {item.description && (
+							{/* {item.description && (
 							<div className="item-description">{item.description}</div>
 						)} */}
-					</div>
-				))}
+						</div>
+					))}
 					<div className="item-description">{pluginDisplayVersion}</div>
 				</div>
 			</div>

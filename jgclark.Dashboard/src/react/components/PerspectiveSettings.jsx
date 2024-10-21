@@ -69,7 +69,7 @@ const PerspectiveSettings = ({
 
     const setJsonData = (updatedData: any) => {
       clo(updatedData, `PerspectiveSettings updated; but wont' be saved until user clicks Save:`)
-      // Note that JSON was updated but setDashboardSettings should not be called until the user clicks "Save on the window" 
+      // Note that JSON was updated but dispatchDashboardSettings should not be called until the user clicks "Save on the window" 
       // so we don't set it here, we just pass it back to the parent component (SettingsDialog) to handle as if it was any other field
       // TODO: check this is working
       handleFieldChange('perspectiveSettings', updatedData)

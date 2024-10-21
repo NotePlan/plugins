@@ -6,8 +6,47 @@ import { logDebug, clo } from '@helpers/react/reactDev'
 
 declare var NP_THEME: any
 
-export type OptionType = { label: string, value: string, id?: number }
+/** @typedef {Object} OptionType
+ *  @property {string} label
+ *  @property {string} value
+ *  @property {number=} id
+ *  @property {boolean=} isModified
+ */
 
+export type OptionType = {
+  label: string,
+  value: string,
+  id?: number,
+  isModified?: boolean,
+}
+
+// Define the Props type using Flow
+export type Props = {
+  options: Array<OptionType | string>,
+  onSelect?: (option: OptionType | string) => void,
+  onChange?: (option: OptionType | string) => void,
+  value?: OptionType | string,
+  id?: string,
+  compactDisplay?: boolean,
+  disabled?: boolean,
+  inputRef?: { current: null | HTMLInputElement },
+  label?: string,
+  noWrapOptions?: boolean,
+  focus?: boolean,
+  style?: {
+    container?: Object,
+    control?: Object,
+    label?: Object,
+    // Add other style properties as needed
+  },
+}
+
+/**
+ * Returns style object for the dot indicator.
+ *
+ * @param {string} [color='transparent'] - The color of the dot.
+ * @returns {Object} Style object for the dot.
+ */
 const dot = (color: string = 'transparent') => ({
   alignItems: 'center',
   display: 'flex',
@@ -26,8 +65,17 @@ const dot = (color: string = 'transparent') => ({
 const isDark = (bgColor: string) => chroma(bgColor).luminance() < 0.5
 const isLight = (bgColor: string) => !isDark(bgColor)
 
+/**
+ * Calculates an alternative color based on background color and strength.
+ *
+ * @param {string} bgColor - The background color.
+ * @param {number} [strength=0.2] - The strength of change.
+ * @returns {string} The calculated alternative color.
+ */
 const getAltColor = (bgColor: string, strength: number = 0.2) => {
-  const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css()
+  const calcAltFromBGColor = isLight(bgColor)
+    ? chroma(bgColor).darken(strength).css()
+    : chroma(bgColor).brighten(strength).css()
   return calcAltFromBGColor
 }
 
@@ -55,16 +103,30 @@ const bgColor = chroma(NP_THEME.base.backgroundColor)
 // const bOrW = chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black'
 // const lighterBG = chroma.average([NP_THEME.base.backgroundColor, NP_THEME.base.altColor, bOrW]).css()
 
-const colourStyles = {
+const defaultColourStyles = {
   clearIndicator: (styles: any) => ({ ...styles, color: '#00FF00' }),
-  container: (styles: any) => ({ ...styles, width: '100%', backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor, borderRadius: 5 }),
+  container: (styles: any) => ({
+    ...styles,
+    width: '100%',
+    minWidth: '200px', // Default minimum width
+    maxWidth: '400px', // Default maximum width
+    minHeight: '40px', // Default minimum height
+    maxHeight: '60px', // Default maximum height
+    backgroundColor: NP_THEME.base.backgroundColor,
+    color: NP_THEME.base.textColor,
+    borderRadius: 5,
+    boxSizing: 'border-box', // Ensure padding and borders are included in the element's total width and height
+  }),
   control: (styles: any) => ({
     ...styles,
     backgroundColor: NP_THEME.base.backgroundColor ?? 'white',
     color: NP_THEME.base.textColor ?? 'black',
     borderColor: chroma('white').alpha(0.25).css(),
   }),
-  dropdownIndicator: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor }),
+  dropdownIndicator: (styles: any) => ({
+    ...styles,
+    color: NP_THEME.base.textColor,
+  }),
   group: (styles: any) => ({ ...styles, color: '#00FF00' }),
   groupHeading: (styles: any) => ({ ...styles, color: '#00FF00' }),
   indicatorsContainer: (styles: any) => ({ ...styles, color: '#00FF00' }),
@@ -72,17 +134,44 @@ const colourStyles = {
   input: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor }),
   loadingIndicator: (styles: any) => ({ ...styles, color: '#00FF00' }),
   loadingMessage: (styles: any) => ({ ...styles, color: '#00FF00' }),
-  menu: (styles: any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor ?? 'white' }),
-  menuList: (styles: any) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor ?? 'white' }),
+  menu: (styles: any) => ({
+    ...styles,
+    backgroundColor: NP_THEME.base.backgroundColor ?? 'white',
+  }),
+  menuList: (styles: any) => ({
+    ...styles,
+    backgroundColor: NP_THEME.base.backgroundColor ?? 'white',
+  }),
   menuPortal: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
   multiValue: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
   multiValueLabel: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
-  multiValueRemove: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
-  noOptionsMessage: (styles: any) => ({ ...styles, backgroundColor: '#00FF00' }),
-  placeholder: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor, fontSize: '0.8rem', backgroundColor: NP_THEME.base.backgroundColor }),
-  singleValue: (styles: any) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
-  option: (styles: any, { isDisabled, isSelected }: { isDisabled: boolean, isSelected: boolean }) => {
-    // note wrapping the option will be updated later in the component
+  multiValueRemove: (styles: any) => ({
+    ...styles,
+    backgroundColor: '#00FF00',
+  }),
+  noOptionsMessage: (styles: any) => ({
+    ...styles,
+    backgroundColor: '#00FF00',
+  }),
+  placeholder: (styles: any) => ({
+    ...styles,
+    color: NP_THEME.base.textColor,
+    fontSize: '0.8rem',
+    backgroundColor: NP_THEME.base.backgroundColor,
+  }),
+  singleValue: (
+    styles: any,
+    { data }: { data: OptionType }
+  ) => ({
+    ...styles,
+    color: NP_THEME.base.textColor,
+    ...(data.isModified ? dot(NP_THEME.base.tintColor) : {}),
+  }),
+  option: (
+    styles: any,
+    { isDisabled, isSelected }: { isDisabled: boolean, isSelected: boolean }
+  ) => {
+    // Note: wrapping the option will be updated later in the component
     return {
       ...styles,
       ...menuStyles,
@@ -94,42 +183,68 @@ const colourStyles = {
       },
       ':active': {
         ...styles[':active'],
-        backgroundColor: !isDisabled ? (isSelected ? bgColor.css() : bgColor.alpha(0.3).css()) : undefined,
+        backgroundColor: !isDisabled
+          ? isSelected
+            ? bgColor.css()
+            : bgColor.alpha(0.3).css()
+          : undefined,
       },
     }
   },
 }
 
-type Props = {
-  options: Array<OptionType | string>,
-  onSelect?: Function,
-  onChange?: Function,
-  value?: OptionType | string, // Use value instead of defaultValue
-  id?: string,
-  compactDisplay?: boolean, // Add compactDisplay prop
-  disabled?: boolean, // Add disabled prop
-  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop
-  label?: string, // Add label prop
-  noWrapOptions?: boolean, // truncate, do not wrap the label
-  focus?: boolean, // Add focus prop
-}
-
+/**
+ * ThemedSelect Component
+ *
+ * @param {Props} props - The properties for the component.
+ * @returns {React.Node} The ThemedSelect component.
+ */
 export function ThemedSelect(props: Props): any {
-  const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions, focus } = props
+  const {
+    options,
+    onSelect,
+    onChange,
+    value,
+    compactDisplay,
+    disabled,
+    inputRef,
+    label,
+    noWrapOptions,
+    focus,
+    style = {},
+  } = props
 
   const [wasFocused, setWasFocused] = useState(false)
 
+  /**
+   * Normalizes an option to ensure it is in { label, value } format.
+   *
+   * @param {OptionType|string} option - The option to normalize.
+   * @returns {OptionType} The normalized option.
+   */
   const normalizeOption = (option: OptionType | string) => {
-    return typeof option === 'string' ? { label: option, value: option } : option
+    return typeof option === 'string'
+      ? { label: option, value: option }
+      : option
   }
 
   // Normalize options to ensure they are in { label, value } format
-  const normalizedOptions = options.map(option =>
-    normalizeOption(option)
-  )
+  const normalizedOptions = options.map(option => normalizeOption(option))
 
+  /**
+   * Finds an option in the options list.
+   *
+   * @param {OptionType|string} option - The option to find.
+   * @returns {OptionType|undefined} The found option or undefined.
+   */
   const findOption = (option: OptionType | string) => {
-    return option ? normalizedOptions.find(opt => opt.value === (typeof option === 'string' ? option : option.value)) : undefined
+    return option
+      ? normalizedOptions.find(
+          opt =>
+            opt.value ===
+            (typeof option === 'string' ? option : option.value)
+        )
+      : undefined
   }
 
   const defaultValue = value ? findOption(value) : undefined
@@ -138,12 +253,14 @@ export function ThemedSelect(props: Props): any {
     normalizedOptions.unshift(optionToAdd)
   }
 
-  colourStyles.option =  noWrapOptions ? (provided) => ({
+  if (noWrapOptions) {
+    defaultColourStyles.option = (provided: any) => ({
       ...provided,
       whiteSpace: 'nowrap',
       overflow: 'hidden',
-      textOverflow: 'ellipsis'
-    }) : colourStyles.option
+      textOverflow: 'ellipsis',
+    })
+  }
 
   // Focus the input when the component mounts if focus is true
   useEffect(() => {
@@ -153,20 +270,61 @@ export function ThemedSelect(props: Props): any {
     }
   }, [focus, inputRef])
 
+  // Merge custom styles with default styles
+  const mergedStyles = {
+    ...defaultColourStyles,
+    container: (base: any) => ({
+      ...defaultColourStyles.container(base),
+      ...style.container,
+    }),
+    control: (base: any) => ({
+      ...defaultColourStyles.control(base),
+      ...style.control,
+    }),
+    // Add other style functions as needed
+  }
+
   return (
-    <div className={`${disabled ? 'disabled' : ''} ${compactDisplay ? 'input-box-container-compact' : 'input-box-container'}`}>
-      {label && <label className="input-box-label">{label}</label>}
-      <div className="input-box-wrapper">
+    <div
+      className={`${
+        disabled ? 'disabled' : ''
+      } ${
+        compactDisplay ? 'input-box-container-compact' : 'input-box-container'
+      }`}
+    >
+      {label && (
+        <label
+          className="input-box-label"
+          style={{
+            display: 'inline-block',
+            verticalAlign: 'middle',
+            marginRight: compactDisplay ? '10px' : '0',
+            marginBottom: compactDisplay ? '0' : '5px',
+            ...style.label, // Allow overriding label styles
+          }}
+        >
+          {label}
+        </label>
+      )}
+      <div
+        className="input-box-wrapper"
+        style={{
+          display: 'inline-block',
+          verticalAlign: 'middle',
+          width: compactDisplay ? 'auto' : '100%',
+          ...style.container, // Allow overriding container styles
+        }}
+      >
         <Select
           options={normalizedOptions}
           onSelect={onSelect}
           onChange={onChange}
-          value={value ? findOption(value) : undefined} // Use value instead of defaultValue
-          defaultValue={value ? findOption(value) : undefined} // Just to be sure
-          styles={colourStyles}
+          value={value ? findOption(value) : undefined}
+          defaultValue={value ? findOption(value) : undefined}
+          styles={mergedStyles}
           autosize={true}
-          isDisabled={disabled} // Use disabled prop
-          ref={inputRef} // Use inputRef prop
+          isDisabled={disabled}
+          ref={inputRef}
         />
       </div>
     </div>

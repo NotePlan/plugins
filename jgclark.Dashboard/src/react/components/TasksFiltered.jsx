@@ -5,10 +5,10 @@
 // Last updated 2024-08-26 for v2.1.0.a9 by @jgclark
 //--------------------------------------------------------------------------
 
-import { type Node } from 'react'
+import React,{ type Node } from 'react'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
+// import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
 
 type Props = {
@@ -19,10 +19,10 @@ type Props = {
  * Component for displaying a filter indicator.
  */
 const TasksFiltered = ({ item }: Props): Node => {
-  const { /*sendActionToPlugin, */ setDashboardSettings } = useAppContext()
+  const { /*sendActionToPlugin, */ dispatchDashboardSettings } = useAppContext()
 
   function handleLineClick(e: MouseEvent) {
-    const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
+    // const { modifierName } = extractModifierKeys(e) // Indicates whether a modifier key was pressed -- Note: not yet used
 
     // V1 attempt-- not working
     // logDebug('TasksFiltered/handleLineClick', `Trying to use sendActionToPlugin with actionType turnOffPriorityItemsFilter`)
@@ -35,7 +35,7 @@ const TasksFiltered = ({ item }: Props): Node => {
 
     // v2
     logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
-    setDashboardSettings(prevSettings => ({ ...prevSettings, ['filterPriorityItems']: false }))
+    dispatchDashboardSettings({ type: 'UPDATE_DASHBOARD_SETTINGS', payload: { filterPriorityItems: false }, reason: 'Filtered tasks link clicked'   })
   }
 
   return (
