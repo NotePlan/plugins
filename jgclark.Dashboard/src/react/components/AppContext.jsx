@@ -97,13 +97,14 @@ export const AppProvider = ({
   useEffect(() => {
     const shouldSendToPlugin =
       dashboardSettings.lastChange && dashboardSettings.lastChange[0] !== '_' && JSON.stringify(dashboardSettings) !== JSON.stringify(lastSentDashboardSettingsRef.current)
-
-    const changedProps = lastSentDashboardSettingsRef.current ? compareObjects(dashboardSettings, lastSentDashboardSettingsRef.current) : dashboardSettings // first time thru .current is null so everything is changed
-    logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
+    const diff = compareObjects(dashboardSettings, lastSentDashboardSettingsRef.current)
+    const changedProps = lastSentDashboardSettingsRef.current ? diff : dashboardSettings // first time thru .current is null so everything is changed
+    // logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
     // clo(dashboardSettings,'AppContext/useEffect(dashboardSettings) dashboardSettings')
     // clo(lastSentDashboardSettingsRef.current,'AppContext/useEffect(dashboardSettings) lastSentDashboardSettingsRef.current')
 
     if (shouldSendToPlugin && changedProps) {
+      logDebug(`AppContext/useEffect(dashboardSettings)`,`dashboardSettings. SENDING changes to plugin ${diff ? JSON.stringify(diff): ''}`)
       sendActionToPlugin(
         'dashboardSettingsChanged',
         {

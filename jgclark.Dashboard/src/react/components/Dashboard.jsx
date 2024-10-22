@@ -197,8 +197,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       const dashboardSettingsCopy = { lastChange: "", activePerspectiveName: "-", ...dashboardSettings }
       // TODO: DELETE this log line after perspective testing is completed
       logDebug('Dashboard/useEffect(dashboardSettings)', `Watcher - New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
-      logDebug('Dashboard/useEffect(dashboardSettings)', `FIXME: this is where we used to send changes to the plugin from within the Dashboard component. But commented out for now, because we are sending from Context (I think)`)
-      // sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: dashboardSettingsCopy, logMessage: dashboardSettingsCopy.lastChange || '' }, 'Dashboard dashboardSettings updated', true)
 
       // If a perspective is not set (or it is set to "-"), we need to keep the "-" perspective updated with the current settings so that you can return to your last state
       // after switching to a perspective and back to "-". So every time dashboardSettings changes and no perspective is set, we are quietly saving the update

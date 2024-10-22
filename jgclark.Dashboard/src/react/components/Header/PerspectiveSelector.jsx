@@ -39,7 +39,7 @@ type Action =
   | { type: 'LOG_STATE', payload: string }
 
 
-const staticOptions = ["Add New Perspective", "Save Perspective"]
+const staticOptions = [{label: "Add New Perspective", value: "Add New Perspective"},{label: "Save Perspective", value: "Save Perspective"} ]
 
 //--------------------------------------------------------------------------
 // PerspectiveSelector Component Definition
@@ -297,11 +297,13 @@ const PerspectiveSelector = (): React$Node => {
       </div>
     )
   }
+  if (perspectiveNameOptions) {
+    logDebug(
+      'PerspectiveSelector',
+      `Rendering ComboBox with value="${activePerspectiveName}". isModified=${String(perspectiveNameOptions.find(o=>o.label === activePerspectiveName).isModified||false)}`
+    )
+  }
 
-  logDebug(
-    'PerspectiveSelector',
-    `Rendering ComboBox with value="${activePerspectiveName}". isModified=${String(perspectiveNameOptions.find(o=>o.label === activePerspectiveName).isModified||false)}`
-  )
 
   const customStyles = {
     container: {

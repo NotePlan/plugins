@@ -648,13 +648,10 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   logDebug(`doSettingsChanged`, `TOP saving: activePerspectiveName=${newSettings.activePerspectiveName} excluded=${newSettings.excludedFolders}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
 
-  logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings\n\n ${JSON.stringify(combinedUpdatedSettings)}`)
   DataStore.settings = combinedUpdatedSettings
-  clo(DataStore.settings, `doSettingsChanged: DataStore.settings after save`)
   const ds = JSON.parse(DataStore.settings.dashboardSettings)
   logDebug(`doSettingsChanged`, `AFTER saving: activePerspectiveName=${ds.activePerspectiveName} excluded=${ds.excludedFolders}`)
   await setPluginData({ [settingName]: newSettings }, `_Updated ${settingName} in global pluginData`)
-  logDebug(`\n\n\n`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
