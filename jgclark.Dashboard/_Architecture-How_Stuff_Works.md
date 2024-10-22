@@ -65,11 +65,11 @@ At 2.1, sharedSettings has been dropped.
 
 ### Loading of perspectives data in React front-end
 - WebView component reads the `pluginData.perspectiveSettings` array
-- WebView turns it into a local state variable in WebView called perspectiveSettings and passes perspectiveSettings/setPerspectiveSettings in the global context so any component can access it
+- WebView turns it into a local state variable in WebView called perspectiveSettings and passes perspectiveSettings/dispatchPerspectiveSettings in the global context so any component can access it
 
 ### Saving of perspective changes
-- Perspective changes are not directly saved by a handler, instead the settings are written to the context using setPerspectiveSettings and will be picked up by a watcher (see below)
-- When a user makes a change in the Settings Dialog (or using the filter switches), the function adjustSettingsAndSave() sets perspective changes in the global context using `setPerspectiveSettings`
+- Perspective changes are not directly saved by a handler, instead the settings are written to the context using dispatchPerspectiveSettings and will be picked up by a watcher (see below)
+- When a user makes a change in the Settings Dialog (or using the filter switches), the function adjustSettingsAndSave() sets perspective changes in the global context using `dispatchPerspectiveSettings`
 
 ### Watching for perspective changes
 - Dashboard component has a useEffect that is watching for any changes in the global perspectiveSettings, and when/if it sees a change, it sends an action to the plugin to save the changes to the DataStore: `sendActionToPlugin('perspectiveSettingsChanged'...`

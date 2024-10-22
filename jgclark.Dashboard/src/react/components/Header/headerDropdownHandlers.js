@@ -3,8 +3,9 @@
 // Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import { allSectionDetails } from '../../../constants.js'
-import type { TDashboardSettings, TSectionCode } from '../../../types.js'
+import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
 import { dashboardFilterDefs } from '../../../dashboardSettings'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 
@@ -39,8 +40,8 @@ export const handleSwitchChange = (
   dashboardSettings: TDashboardSettings,
   dispatchDashboardSettings: Function,
   sendActionToPlugin: Function,
-  perspectiveSettings,
-  setPerspectiveSettings: Function,
+  perspectiveSettings: TPerspectiveSettings,
+  dispatchPerspectiveSettings: Function,
 ): Function => {
   // Return the event handler function
   return (key: string) =>
@@ -58,10 +59,14 @@ export const handleSwitchChange = (
 
       logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
       const usingPerspectives = dashboardSettings.showPerspectives
-      logDebug(`headerDropdownHandler: handlesave showPerspectives=${usingPerspectives} apn=${dashboardSettings.activePerspectiveName}`)
+      logDebug(`headerDropdownHandler: handlesave showPerspectives=${String(usingPerspectives)} apn=${dashboardSettings.activePerspectiveName}`)
       if (usingPerspectives) {
         const apn = dashboardSettings.activePerspectiveName
-        setPerspectiveSettings(perspectiveSettings.map((p) => (p.name === apn ? { ...p, isModified: true } : { ...p, isModified: false })))
+        dispatchPerspectiveSettings({
+          type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+          payload: perspectiveSettings.map((p) => (p.name === apn ? { ...p, isModified: true } : { ...p, isModified: false })),
+          reason: `Switch changed: ${key}=${isChecked}`,
+        })
       }
 
       // This saves the change in local context, and then it will be picked up and sent to plugin
@@ -70,7 +75,7 @@ export const handleSwitchChange = (
         // was previously: dispatchDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
         const settingsToSave = { ...dashboardSettings, [key]: isChecked }
         dispatchDashboardSettings({
-          type: 'UPDATE_DASHBOARD_SETTINGS',
+          type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
           payload: settingsToSave,
           reason: `Switch changed: ${key}=${isChecked}`,
         })
@@ -81,7 +86,8 @@ export const handleSwitchChange = (
           logDebug('handleSwitchChange', `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
           if (sectionCode) {
             const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
-            sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
+            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing section: ${sectionCode}`)
+            // sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
           } else {
             logDebug('handleSwitchChange', `No sectionCode found for ${key} so not refreshing any sections`)
           }
@@ -92,7 +98,8 @@ export const handleSwitchChange = (
             const logMessage = isTagSection
               ? `Tag section ${key} turned on, so refreshing all sections`
               : `Refresh all sections because of setting ${key} refreshAllOnChange set to true`
-            sendActionToPlugin('refresh', { actionType: 'refresh', logMessage }, `Refreshing all sections`, true)
+            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing all sections`)
+            // sendActionToPlugin('refresh', { actionType: 'refresh', logMessage }, `Refreshing all sections`, true)
           }
         }
       } else {
@@ -115,11 +122,11 @@ export const handleSaveInput =
   (key: string) =>
   (newValue: string) => {
     logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue}`)
-    dispatchDashboardSettings((prev) => {
-      logDebug('Header', `Previous dashboardSettings:`, prev)
-      const newSettings = { ...prev, [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
-      logDebug('Header', `New dashboardSettings: ${JSP(newSettings, 2)}`)
-      return newSettings
+    const newSettings = { [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
+    dispatchDashboardSettings({
+      type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+      payload: newSettings,
+      reason: `Input value changed: ${key}=${newValue}`,
     })
   }
 

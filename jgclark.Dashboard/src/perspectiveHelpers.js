@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 import { getDashboardSettings, setPluginData } from './dashboardHelpers.js'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
+import { PERSPECTIVE_ACTIONS } from './react/reducers/actionTypes'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
@@ -591,14 +592,14 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
  * Return the updated settings object without the perspectiveSettings to be saved as dashboardSettings
  * @param {*} updatedSettings
  * @param {*} dashboardSettings
- * @param {*} setPerspectiveSettings
+ * @param {*} dispatchPerspectiveSettings
  * @param {*} logMessage
  * @returns
  */
 export function setPerspectivesIfJSONChanged(
   updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
   dashboardSettings: TDashboardSettings,
-  setPerspectiveSettings: Function,
+  dispatchPerspectiveSettings: Function,
   logMessage: string,
 ): TDashboardSettings {
   logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
@@ -607,7 +608,7 @@ export function setPerspectivesIfJSONChanged(
     // this should only be true if we are coming from the settings panel with the JSON editor
     // so let's update the React state for perspectiveSettings but separate this from the other dashboardSettings
     logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
-    setPerspectiveSettings(settingsToSave.perspectiveSettings)
+    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: settingsToSave.perspectiveSettings, reason: `JSON editor: ${logMessage}` })
     delete settingsToSave.perspectiveSettings
   }
   return settingsToSave

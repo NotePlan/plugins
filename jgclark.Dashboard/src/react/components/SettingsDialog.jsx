@@ -11,6 +11,7 @@
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem } from '../../types'
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
@@ -18,6 +19,7 @@ import { useAppContext } from './AppContext.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
 import Modal from './Modal'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
+import { dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -51,7 +53,7 @@ const SettingsDialog = ({
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
-	const { dashboardSettings, dispatchDashboardSettings, setPerspectiveSettings, pluginData, perspectiveSettings } = useAppContext()
+	const { dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, pluginData, perspectiveSettings } = useAppContext()
 
 	const pluginDisplayVersion = `v${pluginData.version}`
 
@@ -132,20 +134,24 @@ const SettingsDialog = ({
 	const handleSave = () => {
 		if (onSaveChanges) {
 			const usingPerspectives = dashboardSettings.showPerspectives
-			logDebug(`SettingsDialog: handlesave showPerspectives=${usingPerspectives} apn=${dashboardSettings.activePerspectiveName}`)
+			logDebug(`SettingsDialog: handlesave showPerspectives=${String(usingPerspectives)} apn=${dashboardSettings.activePerspectiveName}`)
 			if (usingPerspectives) {
 			  const apn = dashboardSettings.activePerspectiveName
-			  setPerspectiveSettings(perspectiveSettings.map(p=> p.name === apn ?  { ...p, isModified: true } : {...p, isModified: false } ))
+			  dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings.map(p=> p.name === apn 
+				?  { ...p, isModified: true, lastChange: `${dt()}` } 
+				: {...p, isModified: false } ),
+				reason: `SettingsDialog: Save button clicked while active perspective was: ${apn}`
+			})
 			}
 			onSaveChanges(updatedSettings)
 		}
 		let settingsToSave = updatedSettings
 		if (updatedSettings.perspectiveSettings) {
 			// setPerspectivesIfJSONChanged will peel off perspectiveSettings if it has changed via the JSON editor and leave the rest to be saved as dashboardSettings
-			settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, setPerspectiveSettings, `Dashboard Settings Panel updates`)
+			settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, dispatchPerspectiveSettings, `Dashboard Settings Panel updates`)
 		}
 		dispatchDashboardSettings({
-			type: 'UPDATE_DASHBOARD_SETTINGS',
+			type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
 			payload: settingsToSave,
 			reason: `Dashboard Settings saved from (modal or menu)`,
 		})

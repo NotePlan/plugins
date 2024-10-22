@@ -55,7 +55,7 @@ export type TDashboardSettings = {
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
   updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
   useTodayDate: boolean,
-  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to 
+  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to
   lookBackDaysForOverdue: number,
   FFlag_HardRefreshButton: boolean,
   autoUpdateAfterIdleTime: number,
@@ -80,6 +80,8 @@ export type TPerspectiveDef = {
   dashboardSettings: TDashboardSettings,
   isModified: boolean,
 }
+
+export type TPerspectiveSettings = Array<TPerspectiveDef>
 
 //-----------------------------------------------------------------------------
 // Other types
@@ -142,10 +144,10 @@ export type TParagraphForDashboard = {
 export type TProjectForDashboard = {
   filename: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
   title: string /* of the note the task originally comes from (not the Calendar it might be referenced to) */,
-  reviewInterval: string, /* from the Project instance */
-  percentComplete: number, /* from the Project instance */
-  lastProgressComment: string, /* from the Project instance */
-  nextReviewDays: number, /* from the Project instance */
+  reviewInterval: string /* from the Project instance */,
+  percentComplete: number /* from the Project instance */,
+  lastProgressComment: string /* from the Project instance */,
+  nextReviewDays: number /* from the Project instance */,
 }
 
 // details for a UI button
@@ -236,13 +238,13 @@ export type MessageDataObject = {
   actionType: TActionType, // main verb (was .type)
   controlStr?: TControlString, // further detail on actionType
   updatedContent?: string, // where we have made an update in React window
-  newSettings?: string, /* either reactSettings or dashboardSettings depending on actionType */
-  modifierKey?: any, /* used when modifier key is pressed with an action */
+  newSettings?: string /* either reactSettings or dashboardSettings depending on actionType */,
+  modifierKey?: any /* used when modifier key is pressed with an action */,
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
   newDimensions?: { width: number, height: number },
   settings?: TAnyObject,
-  filename?: string, /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */
+  filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
   logMessage?: string,
   userInputObj?: TAnyObject,
 }
@@ -251,7 +253,13 @@ export type MessageDataObject = {
  * Each called function should use this standard return object
  */
 
-export type TActionOnReturn = 'UPDATE_LINE_IN_JSON' | 'REMOVE_LINE_FROM_JSON' | 'REFRESH_SECTION_IN_JSON' | 'REFRESH_ALL_SECTIONS' | 'REFRESH_ALL_CALENDAR_SECTIONS' | 'START_DELAYED_REFRESH_TIMER'
+export type TActionOnReturn =
+  | 'UPDATE_LINE_IN_JSON'
+  | 'REMOVE_LINE_FROM_JSON'
+  | 'REFRESH_SECTION_IN_JSON'
+  | 'REFRESH_ALL_SECTIONS'
+  | 'REFRESH_ALL_CALENDAR_SECTIONS'
+  | 'START_DELAYED_REFRESH_TIMER'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
@@ -282,20 +290,20 @@ export type TReactSettings = {
 export type TPluginData = {
   dashboardSettings: any,
   perspectiveSettings: any,
-  logSettings: any, /* logging settings from plugin preferences */
-  notePlanSettings: any, /* for copies of some app settings */
-  refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
+  logSettings: any /* logging settings from plugin preferences */,
+  notePlanSettings: any /* for copies of some app settings */,
+  refreshing?: Array<TSectionCode> | boolean /* true if all, or array of sectionCodes if some */,
   sections: Array<TSection>,
-  lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
-  themeName: string, /* the theme name used when generating the dashboard */
-  platform: string, /* the platform used when generating the dashboard */
-  demoMode: boolean, /* use fake content for demo purposes */
+  lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,
+  themeName: string /* the theme name used when generating the dashboard */,
+  platform: string /* the platform used when generating the dashboard */,
+  demoMode: boolean /* use fake content for demo purposes */,
   totalDoneCounts?: TDoneCount,
-  startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
+  startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
   version: string,
 }
 
-export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList' 
+export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList'
 
 // export type TSettingItem = {
 //   type: TSettingItemType,
@@ -324,19 +332,21 @@ export type TItemToProcess = {
   processed?: boolean,
 }
 
-export type TInteractiveProcessing = {
-  sectionName: string,
-  currentIPIndex: number,
-  totalTasks: number,
-  clickPosition: TClickPosition,
-  startingUp?: boolean,
-  visibleItems?: Array<TItemToProcess>,
-} | false
+export type TInteractiveProcessing =
+  | {
+      sectionName: string,
+      currentIPIndex: number,
+      totalTasks: number,
+      clickPosition: TClickPosition,
+      startingUp?: boolean,
+      visibleItems?: Array<TItemToProcess>,
+    }
+  | false
 
 export type TDoneCount = {
   completedTasks: number,
   // completedChecklists: number,
-  lastUpdated: Date
+  lastUpdated: Date,
 }
 
 export type TDoneTodayNotes = {

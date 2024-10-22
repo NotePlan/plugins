@@ -642,15 +642,19 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  if (settingName === 'dashboardSettings') {
-    newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
-  }
+  // if (settingName === 'dashboardSettings') {
+  //   newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
+  // }
+  logDebug(`doSettingsChanged`, `TOP saving: activePerspectiveName=${newSettings.activePerspectiveName} excluded=${newSettings.excludedFolders}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
 
-  logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings`)
+  logDebug('doSettingsChanged', `saving key "${settingName}" in DataStore.settings\n\n ${JSON.stringify(combinedUpdatedSettings)}`)
   DataStore.settings = combinedUpdatedSettings
   clo(DataStore.settings, `doSettingsChanged: DataStore.settings after save`)
+  const ds = JSON.parse(DataStore.settings.dashboardSettings)
+  logDebug(`doSettingsChanged`, `AFTER saving: activePerspectiveName=${ds.activePerspectiveName} excluded=${ds.excludedFolders}`)
   await setPluginData({ [settingName]: newSettings }, `_Updated ${settingName} in global pluginData`)
+  logDebug(`\n\n\n`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 

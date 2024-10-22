@@ -10,6 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useReducer, useEffect } from 'react'
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect.jsx'
 import {
   cleanDashboardSettings,
@@ -19,7 +20,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
-import { compareObjects } from '@helpers/dev.js'
+import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -47,7 +48,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, setPerspectiveSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings } = useAppContext()
   const { perspectiveSettings } = useAppContext()
 
   //--------------------------------------------------------------------------
@@ -137,7 +138,7 @@ const PerspectiveSelector = (): React$Node => {
     if (diff) {
       logDebug('PerspectiveSelector/useEffect', `perspectiveNameOptions changed. Updating options. diff=${JSON.stringify(diff)} isLoading=${String(isLoading)}`)
       clo(perspectiveNameOptions, `PerspectiveSelector/useEffect perspectiveNameOptions`)
-      clo(options, `PerspectiveSelector/useEffect options`)
+      clo(options, `PerspectiveSelector/useEffect perspectiveSettings changed. updating options`)
       dispatchPerspectiveSelector({ type: 'SET_PERSPECTIVE_OPTIONS', payload: options })
     }
 
@@ -161,7 +162,7 @@ const PerspectiveSelector = (): React$Node => {
   useEffect(() => {
     logDebug(
       'PerspectiveSelector/useEffect',
-      `State updated: activePerspectiveName=${activePerspectiveName}}, isLoading=${isLoading}`
+      `State updated: activePerspectiveName="${activePerspectiveName}", isLoading=${String(isLoading)}`
     )
   }, [perspectiveNameOptions, activePerspectiveName, isLoading])
 
@@ -183,7 +184,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Handler for Perspective Change with Comprehensive Logging
   //----------------------------------------------------------------------
-  const handlePerspectiveChange = //useCallback(
+  const handlePerspectiveChange = 
     (newValue: string) => {
       logDebug(
         'PerspectiveSelector/handlePerspectiveChange',
@@ -211,10 +212,12 @@ const PerspectiveSelector = (): React$Node => {
         const thisPersp = getPerspectiveNamed(perspName, perspectiveSettings)
         if (thisPersp && thisPersp.isModified) {
           dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: perspName })
-          setPerspectiveSettings(perspectiveSettings.map(p => p.name === perspName ? { ...p, isModified: false } : p))
-          dispatchDashboardSettings({ type: 'UPDATE_DASHBOARD_SETTING', payload: { key: "activePerspectiveName", value: perspName }, reason: `Perspective selector clicked save while active persp was: ${state.activePerspectiveName}` })
+          dispatchPerspectiveSettings(
+            { type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, 
+            payload: perspectiveSettings.map(p => p.name === perspName ? { ...p, isModified: false } : p),
+            reason: `Save perspective selected while active perspective was: ${state.activePerspectiveName}`
+           })
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} saved!`)
-
         } else {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} was not modified. Not saving.`)
         }
@@ -253,33 +256,20 @@ const PerspectiveSelector = (): React$Node => {
       const updatedSettings = {
         ...perspectiveDashboardSettings,
         activePerspectiveName: newValue,
-        lastChange: `perspective changed to ${newValue} ${new Date().toLocaleTimeString()}`,
       }
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `calling UPDATE_DASHBOARD_SETTINGS with: ${JSON.stringify(updatedSettings)}`)
+      
       dispatchDashboardSettings({
-        type: 'UPDATE_DASHBOARD_SETTINGS',
+        type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: updatedSettings,
-        reason: `perspective changed to ${newValue} ${new Date().toLocaleTimeString()}; loading ${Object.keys(updatedSettings).length} settings`,
+        reason: `perspective changed to ${newValue} ${dt()}; loaded ${Object.keys(updatedSettings).length} settings`,
       })
-
-      //FIXME: explicitly send dashsettings and persp settings to new receiver after change
-
-      // Handle modified perspectives
-      if (newPerspectiveDef.isModified) {
-        logWarn(
-          'PerspectiveSelector/handlePerspectiveChange',
-          `Perspective "${newValue}" is modified. Consider prompting to save changes.`
-        )
-        // TODO: Implement prompt to save changes if necessary
-      }
 
       logDebug(
         'PerspectiveSelector/handlePerspectiveChange',
-        `Perspective changed to "${newValue}". Awaiting React to re-render components based on new settings.`
+        `Perspective changed to "${newValue}". Awaiting React to re-render components based on new settings for: "${updatedSettings.activePerspectiveName}"`
       )
     }
-  // ,
-  // [activePerspectiveName, perspectiveSettings, setDashboardSettings]
-  // )
 
   //----------------------------------------------------------------------
   // Render Logic with Comprehensive Logging
@@ -310,7 +300,7 @@ const PerspectiveSelector = (): React$Node => {
 
   logDebug(
     'PerspectiveSelector',
-    `Rendering ComboBox with value="${activePerspectiveName}".`
+    `Rendering ComboBox with value="${activePerspectiveName}". isModified=${String(perspectiveNameOptions.find(o=>o.label === activePerspectiveName).isModified||false)}`
   )
 
   const customStyles = {

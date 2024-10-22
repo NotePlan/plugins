@@ -82,9 +82,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  const pSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || []).map(p=>({...p,showPerspectives:true}))
-  logDebug('WebView', `At top of WebView, found ${String(pSettings.length)} perspective settings; activePerspectiveName="${dashboardSettingsOrDefaults.activePerspectiveName}".`)
-  const [perspectiveSettings, setPerspectiveSettings] = useState(pSettings)
+  const initialPerspectiveSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || []).map(p=>({...p,showPerspectives:true}))
+  logDebug('WebView', `At top of WebView, found ${String(initialPerspectiveSettings.length)} perspective settings; activePerspectiveName="${dashboardSettingsOrDefaults.activePerspectiveName}".`)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -221,8 +220,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       reactSettings={reactSettings}
       setReactSettings={setReactSettings}
       dashboardSettings={dashboardSettingsOrDefaults}
-      perspectiveSettings={perspectiveSettings}
-      setPerspectiveSettings={setPerspectiveSettings}
+      perspectiveSettings={initialPerspectiveSettings}
     >
       <Dashboard pluginData={pluginData} />
     </AppProvider>
