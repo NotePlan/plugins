@@ -102,10 +102,14 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
 export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
   let note
   if (noteIn == null) {
-    logDebug('note/printNote()', 'No Note found. Will try Editor note.')
+    logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
     note = Editor?.note
   } else {
     note = noteIn
+  }
+  if (!note) {
+    logWarn('note/printNote()', `No valid note found. Stopping.`)
+    return
   }
 
   if (note.type === 'Notes') {

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-10-13 for v0.20.1 by @jgclark
+// Last updated 2024-10-22 for v0.20.1 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -65,10 +65,6 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${configKey}: onUpdateOrInstall running`)
-
-    // Notify user about migration of 'open note' commands
-    // TODO: Remove in time. Suggest present in 0.19.1 -> 0.19.x
-    await migrateCommandsIfNecessary(pluginJson)
 
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {

@@ -206,15 +206,15 @@
       "jsFunction": "updateSettings"
     },
     {
+      "name": "log note details",
+      "description": "Log main details about note to console",
+      "jsFunction": "printNote"
+    },
+    {
       "name": "triggerFindUnlinkedNotes",
       "description": "onEditorWillSave",
       "jsFunction": "triggerFindUnlinkedNotes",
       "hidden": true
-    },
-    {
-      "name": "test: printNote",
-      "description": "Log main details about note to console",
-      "jsFunction": "printNote"
     }
   ],
   "offerToDownloadPlugin": {
