@@ -208,6 +208,7 @@ export type TActionType =
   | 'windowWasResized'
   | 'windowReload'
   | 'windowResized'
+  | 'addNewPerspective'
 
 export type TControlString =
   | 't'

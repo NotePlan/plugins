@@ -20,6 +20,7 @@ import {
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration' // FIXME: causing a circular dependency
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
 import { validateAndFlattenMessageObject } from './shared'
+import { addNewPerspective } from './perspectiveHelpers'
 import {
   cancelItem,
   completeItem,
@@ -661,6 +662,11 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+}
+
+export async function doAddNewPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  await addNewPerspective()
+  return handlerResult(true, [])
 }
 
 // export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {

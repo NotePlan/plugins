@@ -368,7 +368,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
  */
 export async function addNewPerspective(): Promise<void> {
-  const allDefs = await getPerspectiveSettings()
+  let allDefs = await getPerspectiveSettings()
   logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspectives ...`)
 
   // Get user input
@@ -405,6 +405,7 @@ export async function addNewPerspective(): Promise<void> {
     },
   }
   logInfo('addPerspectiveSetting', `... adding Perspective #${String(allDefs.length)}:\n${JSON.stringify(newDef, null, 2)}`) // ✅
+  allDefs = allDefs.map((d) => ({ ...d, isModified: false }))
 
   // persist the updated Perpsective settings
   const updatedPerspectives = [...allDefs, newDef]
