@@ -4,15 +4,54 @@
 // Based on basic HTML controls, not a fancy React Component.
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, type ElementRef } from 'react'
+import './DropdownSelect.css'
+import { clo, logDebug } from '@helpers/react/reactDev'
+
+declare var NP_THEME: any
+
+type Option = {
+  label: string,
+  value: string,
+  [string]: any, // Allow additional properties
+}
+
+type Styles = {
+  container?: { [string]: mixed },
+  label?: { [string]: mixed },
+  wrapper?: { [string]: mixed },
+  inputContainer?: { [string]: mixed },
+  input?: { [string]: mixed },
+  arrow?: { [string]: mixed },
+  dropdown?: { [string]: mixed },
+  option?: { [string]: mixed },
+  indicator?: { [string]: mixed }, // Style for the indicator
+}
 
 type DropdownSelectProps = {
   label: string,
-  options: Array<string>,
+  options: Array<string | Option>,
   value: string,
-  onChange: (value: string) => void,
-  inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
+  onChange: ({ [string]: mixed }) => void,
+  inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
   disabled?: boolean,
+  styles?: Styles,
+  fullWidthOptions?: boolean,
+  showIndicatorOptionProp?: string,
+}
+
+/**
+ * Safely merges two style objects, giving precedence to the second.
+ *
+ * @param {Object} baseStyles - The base styles.
+ * @param {Object} overrideStyles - The styles to override with.
+ * @returns {Object} The merged style object.
+ */
+const mergeStyles = (
+  baseStyles: { [string]: mixed },
+  overrideStyles: { [string]: mixed } = {}
+) => {
+  return { ...baseStyles, ...overrideStyles }
 }
 
 const DropdownSelect = ({
@@ -23,11 +62,19 @@ const DropdownSelect = ({
   onChange,
   inputRef,
   compactDisplay = false,
+  styles = {},
+  fullWidthOptions = false,
+  showIndicatorOptionProp = '',
 }: DropdownSelectProps): React$Node => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
+
+  // Normalize options to a consistent format
+  const normalizedOptions: Array<Option> = options.map(option =>
+    typeof option === 'string' ? { label: option, value: option } : option
+  )
 
   //----------------------------------------------------------------------
   // Handlers
@@ -35,8 +82,8 @@ const DropdownSelect = ({
 
   const toggleDropdown = () => setIsOpen(!isOpen)
 
-  const handleOptionClick = (option: string) => {
-    setSelectedValue(option)
+  const handleOptionClick = (option: Option) => {
+    setSelectedValue(option.value)
     onChange(option)
     setIsOpen(false)
   }
@@ -56,7 +103,6 @@ const DropdownSelect = ({
   // Effects
   //----------------------------------------------------------------------
 
-  // Handle clicks outside the dropdown to close it
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
@@ -64,13 +110,11 @@ const DropdownSelect = ({
     }
   }, [])
 
-  // Function to find the nearest scrollable ancestor
   const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
     console.log('findScrollableAncestor called with el:', el)
-    let currentEl: ?Element = el // Allow currentEl to be Element or null
+    let currentEl: ?Element = el
     while (currentEl && currentEl.parentElement) {
       currentEl = currentEl.parentElement
-      // Check if currentEl is an HTMLElement
       if (currentEl instanceof HTMLElement) {
         const style = window.getComputedStyle(currentEl)
         const overflowY = style.overflowY
@@ -79,15 +123,14 @@ const DropdownSelect = ({
           currentEl.scrollHeight > currentEl.clientHeight
         if (isScrollable) {
           console.log('Found scrollable ancestor:', currentEl)
-          return currentEl // currentEl is HTMLElement here
+          return currentEl
         }
-      } 
+      }
     }
     console.log('No scrollable ancestor found')
     return null
   }
 
-  // Effect to adjust scroll when the dropdown opens
   useEffect(() => {
     if (isOpen && dropdownRef.current && optionsRef.current) {
       setTimeout(() => {
@@ -95,37 +138,27 @@ const DropdownSelect = ({
         const dropdown: HTMLElement = dropdownRef.current
         const options: HTMLElement = optionsRef.current
 
-        // Get the bounding rects
         const dropdownRect = dropdown.getBoundingClientRect()
         const optionsRect = options.getBoundingClientRect()
 
-        // Combine the rects to get the total area
         const totalTop = Math.min(dropdownRect.top, optionsRect.top)
         const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
 
-        // Create a totalRect object
         const totalRect = {
           top: totalTop,
           bottom: totalBottom,
         }
 
-        console.log('Total rect:', totalRect)
-
-        // Find the scrollable container
         const scrollableContainer = findScrollableAncestor(dropdown)
-        console.log('Scrollable container:', scrollableContainer)
 
         if (scrollableContainer) {
           const containerRect = scrollableContainer.getBoundingClientRect()
-          console.log('Container rect:', containerRect)
 
           const isOutOfView =
             totalRect.bottom > containerRect.bottom ||
             totalRect.top < containerRect.top
-          console.log('Is dropdown out of view?', isOutOfView)
 
           if (isOutOfView) {
-            // Calculate the offset to scroll
             let offset =
               scrollableContainer.scrollTop +
               (totalRect.bottom - containerRect.bottom)
@@ -134,49 +167,130 @@ const DropdownSelect = ({
                 scrollableContainer.scrollTop -
                 (containerRect.top - totalRect.top)
             }
-            console.log('Scrolling container to offset:', offset)
             scrollableContainer.scrollTo({
               top: offset,
               behavior: 'smooth',
             })
-          } else {
-            console.log('Dropdown is already in view.')
-          }
-        } else {
-          console.log('No scrollable container found.')
-        }
-      }, 100) // Adjust the delay as needed
+          } 
+        } 
+      }, 100)
     }
   }, [isOpen])
+
+  // Determine if the selected option should show the indicator
+  const selectedOption = normalizedOptions.find(
+    option => option.value === selectedValue
+  )
+  const shouldShowIndicator = showIndicatorOptionProp && selectedOption
+    ? selectedOption[showIndicatorOptionProp] === true
+    : false
+
+  //----------------------------------------------------------------------
+  // Indicator Style Function
+  //----------------------------------------------------------------------
+  /**
+   * Returns style object for the dot indicator.
+   *
+   * @param {boolean} isVisible - Whether the indicator should be visible.
+   * @param {Object} customStyles - Custom styles for the indicator.
+   * @returns {Object} Style object for the dot.
+   */
+  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}) => ({
+    backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
+    borderRadius: '50%',
+    height: 10,
+    width: 10,
+    marginRight: 8,
+    display: 'inline-block',
+    flexShrink: 0,
+    ...customStyles,
+  })
 
   return (
     <div
       className={`${
-        compactDisplay ? 'dropdown-container-compact' : 'dropdown-container'
+        compactDisplay ? 'combobox-container-compact' : 'combobox-container'
       } ${disabled ? 'disabled' : ''}`}
-      ref={dropdownRef} // Attach the ref to the outer container
+      ref={dropdownRef}
+      style={mergeStyles({}, styles.container)}
     >
-      <label className="dropdown-label">{label}</label>
-      <div className="dropdown-wrapper" onClick={toggleDropdown}>
-        <input
-          type="text"
-          className="dropdown-input"
-          value={selectedValue}
-          readOnly
-          ref={inputRef} // Pass the inputRef to the input element
-        />
-        <span className="dropdown-arrow">&#9662;</span>
+      <label className="combobox-label" style={mergeStyles({}, styles.label)}>
+        {label}
+      </label>
+      <div
+        className="combobox-wrapper"
+        style={mergeStyles({}, styles.wrapper)}
+        onClick={disabled ? undefined : toggleDropdown}
+      >
+        <div
+          className="combobox-input-container"
+          style={mergeStyles(
+            {
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+            },
+            styles.inputContainer || {}
+          )}
+        >
+          {showIndicatorOptionProp && (
+            <span
+              style={dot(shouldShowIndicator, styles.indicator || {})}
+            />
+          )}
+          <input
+            type="text"
+            className="combobox-input"
+            value={selectedValue}
+            readOnly
+            ref={inputRef}
+            disabled={disabled}
+            style={mergeStyles(
+              { paddingLeft: showIndicatorOptionProp ? '24px' : '8px' },
+              styles.input
+            )}
+          />
+        </div>
+        <span className="combobox-arrow" style={mergeStyles({}, styles.arrow)}>
+          &#9662;
+        </span>
         {isOpen && (
-          <div className="dropdown-dropdown" ref={optionsRef}>
-            {options.map((option: string) => (
-              <div
-                key={option}
-                className="dropdown-option"
-                onClick={() => handleOptionClick(option)}
-              >
-                {option}
-              </div>
-            ))}
+          <div
+            className="combobox-dropdown"
+            ref={optionsRef}
+            style={mergeStyles(
+              { width: fullWidthOptions ? '100%' : 'auto' },
+              styles.dropdown
+            )}
+          >
+            {normalizedOptions.map((option: Option) => {
+              const showIndicator =
+                showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
+              return (
+                <div
+                  key={option.value}
+                  className="combobox-option"
+                  onClick={() => handleOptionClick(option)}
+                  style={mergeStyles(
+                    {
+                      display: 'flex',
+                      alignItems: 'center',
+                    },
+                    styles.option
+                  )}
+                >
+                  {showIndicator && (
+                    <span
+                      style={dot(
+                        option[showIndicatorOptionProp] === true,
+                        styles.indicator || {}
+                      )}
+                    />
+                  )}
+                  <span>{option.label}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

@@ -137,7 +137,7 @@ const SettingsDialog = ({
 			logDebug(`SettingsDialog: handlesave showPerspectives=${String(usingPerspectives)} apn=${dashboardSettings.activePerspectiveName}`)
 			if (usingPerspectives) {
 			  const apn = dashboardSettings.activePerspectiveName
-			  dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings.map(p=> p.name === apn 
+			  dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings.map(p=> p.name === apn && p.name !== "-"
 				?  { ...p, isModified: true, lastChange: `${dt()}` } 
 				: {...p, isModified: false } ),
 				reason: `SettingsDialog: Save button clicked while active perspective was: ${apn}`

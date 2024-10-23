@@ -647,11 +647,19 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   // }
   logDebug(`doSettingsChanged`, `TOP saving: activePerspectiveName=${newSettings.activePerspectiveName} excluded=${newSettings.excludedFolders}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+  if (data.perspectiveSettings) {
+    combinedUpdatedSettings.perspectiveSettings = JSON.stringify(data.perspectiveSettings)
+  }
 
   DataStore.settings = combinedUpdatedSettings
   const ds = JSON.parse(DataStore.settings.dashboardSettings)
   logDebug(`doSettingsChanged`, `AFTER saving: activePerspectiveName=${ds.activePerspectiveName} excluded=${ds.excludedFolders}`)
-  await setPluginData({ [settingName]: newSettings }, `_Updated ${settingName} in global pluginData`)
+  const updatedPluginData = { [settingName]: newSettings }
+  if (data.perspectiveSettings) {
+    // $FlowFixMe(incompatible-type)
+    updatedPluginData.perspectiveSettings = data.perspectiveSettings
+  }
+  await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 

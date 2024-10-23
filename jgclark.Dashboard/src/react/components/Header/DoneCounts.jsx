@@ -31,7 +31,6 @@ const DoneCounts = ({ totalDoneCounts }: Props): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const { pluginData } = useAppContext()
-  logDebug('DoneCounts', `Component called.`)
 
   //----------------------------------------------------------------------
   // Hooks

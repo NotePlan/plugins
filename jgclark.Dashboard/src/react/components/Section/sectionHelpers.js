@@ -37,7 +37,7 @@ export function getVisibleSectionCodes(dashboardSettings: TDashboardSettings, se
       }
     }
   }
-  logDebug('sectionHelpers/getVisibleSectionCodes', `Visible section codes: ${String(output)}`)
+  // logDebug('sectionHelpers/getVisibleSectionCodes', `Visible section codes: ${String(output)}`)
   return output
 }
 
@@ -99,7 +99,7 @@ function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings:
         }
       })
     : useFirst
-  logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
+  // logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
   return useFirstButVisible
 }

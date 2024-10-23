@@ -241,7 +241,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     const resourceLinksInHeader = `
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/DashboardDialog.css"> -->
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+       <!-- <link rel="stylesheet" href="../np.Shared/css.w3.css"> -->
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">
@@ -296,7 +296,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      debug: ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
       dataMode: 'live', // or 'demo' or 'test' TODO:
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,

@@ -10,8 +10,10 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, useReducer, useRef, type Node } from 'react'
+import { PERSPECTIVE_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
+import { cleanDashboardSettings } from '../../perspectiveHelpers'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import { compareObjects } from '@helpers/dev'
@@ -64,6 +66,29 @@ const defaultContextValue: AppContextType = {
 const AppContext = createContext<AppContextType>(defaultContextValue)
 
 /****************************************************************************************************************************
+ *                             FUNCTIONS
+ ****************************************************************************************************************************/
+
+  /**
+   * If a perspective is not set, then save current settings to the default "-" perspective because we always
+   * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
+   * @param {any} perspectiveSettings 
+   * @param {any} newDashboardSettings 
+   * @param {Function} dispatchPerspectiveSettings 
+   */
+  function saveDefaultPerspectiveData(perspectiveSettings: any, dashboardSettings: TDashboardSettings, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
+    const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
+    if (dashPerspectiveIndex > -1) {
+      perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
+    } else {
+      logDebug('Dashboard/saveDefaultPerspectiveData', `- Shared settings updated: "${newDashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
+      perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) })
+    }
+    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings, reason: `No perspective was set; saving default perspective info.` })
+  }
+
+
+/****************************************************************************************************************************
  *                             CONTEXT PROVIDER FUNCTIONS
  ****************************************************************************************************************************/
 
@@ -102,6 +127,11 @@ export const AppProvider = ({
     // logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
     // clo(dashboardSettings,'AppContext/useEffect(dashboardSettings) dashboardSettings')
     // clo(lastSentDashboardSettingsRef.current,'AppContext/useEffect(dashboardSettings) lastSentDashboardSettingsRef.current')
+    if (dashboardSettings.activePerspectiveName === "-" || !(dashboardSettings.activePerspectiveName)) {
+      // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
+      logDebug('AppContext/useEffect(dashboardSettings)',`No named perspective set, so saving this change into the "-" perspective.`)
+      saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, cleanDashboardSettings(dashboardSettings), dispatchPerspectiveSettings)
+    }
 
     if (shouldSendToPlugin && changedProps) {
       logDebug(`AppContext/useEffect(dashboardSettings)`,`dashboardSettings. SENDING changes to plugin ${diff ? JSON.stringify(diff): ''}`)
@@ -110,6 +140,7 @@ export const AppProvider = ({
         {
           actionType: 'dashboardSettingsChanged',
           settings: dashboardSettings,
+          perspectiveSettings: perspectiveSettings,
           logMessage: dashboardSettings.lastChange || '',
         },
         'Dashboard dashboardSettings updated',

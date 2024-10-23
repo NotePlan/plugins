@@ -71,23 +71,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //
   // Functions
   //
-  /**
-   * If a perspective is not set, then save current settings to the default "-" perspective because we always
-   * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
-   * @param {any} perspectiveSettings 
-   * @param {any} newDashboardSettings 
-   * @param {Function} dispatchPerspectiveSettings 
-   */
-  function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: any, dispatchPerspectiveSettings: Function) {
-    const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
-    if (dashPerspectiveIndex > -1) {
-      perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
-    } else {
-      logDebug('Dashboard/saveDefaultPerspectiveData', `- Shared settings updated: "${newDashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
-      perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) })
-    }
-    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings, reason: `No perspective was set; saving default perspective info.` })
-  }
 
   //----------------------------------------------------------------------
   // Constants
@@ -102,11 +85,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
-    logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
+    // logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
     sections = deduplicatedSections
-    logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
+    // logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
   }
 
@@ -186,44 +169,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.sections])
 
-  // when dashboardSettings changes anywhere, send it to the plugin to save in settings
-  // if you don't want the info sent, use a _ for the first char of lastChange
-  // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
-  useEffect(() => {
-    const lastChangeText = dashboardSettings?.lastChange ?? ''
-    logDebug('Dashboard/useEffect(dashboardSettings)', `dashboardSettings changed - lastChangeText="${String(lastChangeText) || ''}" activePerspective=${dashboardSettings.activePerspectiveName}`)
-    const shouldSendToPlugin = !(lastChangeText && dashboardSettings.lastChange[0] === '_')
-    if (shouldSendToPlugin) {
-      const dashboardSettingsCopy = { lastChange: "", activePerspectiveName: "-", ...dashboardSettings }
-      // TODO: DELETE this log line after perspective testing is completed
-      logDebug('Dashboard/useEffect(dashboardSettings)', `Watcher - New perspective-related settings: activePerspectiveName:"${dashboardSettingsCopy.activePerspectiveName}"; excludedFolders:${dashboardSettingsCopy.excludedFolders}`, dashboardSettingsCopy)
-
-      // If a perspective is not set (or it is set to "-"), we need to keep the "-" perspective updated with the current settings so that you can return to your last state
-      // after switching to a perspective and back to "-". So every time dashboardSettings changes and no perspective is set, we are quietly saving the update
-      if (dashboardSettingsCopy.activePerspectiveName === "-" || !(dashboardSettingsCopy.activePerspectiveName)) {
-        // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspective
-        // when any settings are changed
-        // Note: default perspective is never shown with a "*" on the end.        
-        logDebug('Dashboard/useEffect(dashboardSettings)',`No named perspective set, so saving this change into the "-" perspective.`)
-        saveDefaultPerspectiveData(perspectiveSettings, cleanDashboardSettings(dashboardSettingsCopy), dispatchPerspectiveSettings)
-      } 
-    } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
-      !shouldSendToPlugin && logDebug('Dashboard/useEffect(dashboardSettings)', `- Shared settings updated in React, but not sending to plugin because lastChange="${dashboardSettings.lastChange}"`)
-    }
-  }, [dashboardSettings])
-
-  // create a new effect that sets perspectiveSettings in the plugin when pluginData.perspectiveSettings changes
+  // create a new effect that sets perspectiveSettings when pluginData.perspectiveSettings changes in the plugin
   useEffect(() => {
     if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
       logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- pluginData.perspectiveSettings changed; activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
-      const lastPerspectiveName = pluginData.perspectiveSettings[pluginData.perspectiveSettings.length - 1].name
-      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- lastPerspectiveName in perspectives array: ${lastPerspectiveName}`)
       const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
       if (diff) {
-        logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
+        // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
         dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: pluginData.perspectiveSettings, reason: `Perspectives changed by plugin (${JSON.stringify(diff)})` })
       } else {
-        logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array unchanged: ${JSON.stringify(diff)}`)
+        // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array unchanged`)
       }
     }
   }, [pluginData.perspectiveSettings])

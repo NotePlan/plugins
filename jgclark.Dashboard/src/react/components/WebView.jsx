@@ -83,7 +83,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
   const initialPerspectiveSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || []).map(p=>({...p,showPerspectives:true}))
-  logDebug('WebView', `At top of WebView, found ${String(initialPerspectiveSettings.length)} perspective settings; activePerspectiveName="${dashboardSettingsOrDefaults.activePerspectiveName}".`)
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -129,7 +128,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     } else {
       // logDebug(`WebView`, `FYI, data watch (for scroll): underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
-      logDebug(`WebView`,`data changed. activePerspectiveName="${data?.pluginData?.dashboardSettings?.activePerspectiveName}" lastChange=${data?.pluginData?.dashboardSettings?.lastChange}`)
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])

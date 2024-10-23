@@ -3,10 +3,10 @@
 // Dashboard plugin function to find and track tasks completed today in non-calendar notes
 // Last updated 2024-07-25 for v2.0.4 by @jgclark
 //-----------------------------------------------------------------------------
-import type { TDoneCount, TDoneTodayNotes, TSection } from "./types"
-import { getNotesChangedInInterval } from "@helpers/NPnote"
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, toLocaleDateTimeString } from "@helpers/dateTime"
-import { clo, logDebug, logError, logInfo, logTimer, timer } from "@helpers/dev"
+import type { TDoneCount, TDoneTodayNotes, TSection } from './types'
+import { getNotesChangedInInterval } from '@helpers/NPnote'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, toLocaleDateTimeString } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo, logTimer, timer } from '@helpers/dev'
 
 //-----------------------------------------------------------------
 // functions
@@ -33,7 +33,7 @@ export function getTotalDoneCounts(sections: Array<TSection>): TDoneCount {
   return {
     completedTasks: numDoneTasks,
     // completedChecklists: numDoneChecklists,
-    lastUpdated: latestDate
+    lastUpdated: latestDate,
   }
 }
 
@@ -69,7 +69,7 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
     // Calculate the number of closed items
     const todayHyphenated = getTodaysDateHyphenated()
     const RE_DONE_TODAY = new RegExp(`@done\\(${todayHyphenated}.*\\)`)
-    const numCompletedTasks = parasToUse.filter((p) => (p.type === 'done') && RE_DONE_TODAY.test(p.content)).length
+    const numCompletedTasks = parasToUse.filter((p) => p.type === 'done' && RE_DONE_TODAY.test(p.content)).length
 
     const outputObject: TDoneCount = {
       completedTasks: numCompletedTasks,
@@ -112,15 +112,14 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
           filename: note.filename,
           counts: {
             completedTasks: numDoneToday,
-            lastUpdated: note.changedDate
+            lastUpdated: note.changedDate,
           },
         })
       }
     }
     logTimer('buildListOfDoneTasksToday', startTime, `=> to find ${total} done tasks today in ordinary notes`)
     return outputArr
-  }
-  catch (err) {
+  } catch (err) {
     logError('buildListOfDoneTasksToday', err.message)
     return []
   }
@@ -129,17 +128,15 @@ export function buildListOfDoneTasksToday(): Array<TDoneTodayNotes> {
 /**
  * Summarise (roll up) the doneCounts, from both available Types of done count, into a single TDoneCount.
  * Note: we're not yet using the 'lastUpdated' information, but I was planning to.
- * @param {Array<TDoneCount>} countsArr 
- * @param {Array<TDoneTodayNotes>} countsNotesArr 
+ * @param {Array<TDoneCount>} countsArr
+ * @param {Array<TDoneTodayNotes>} countsNotesArr
  * @returns {TDoneCount}
  */
 export function rollUpDoneCounts(countsArr: Array<TDoneCount>, countsNotesArr: Array<TDoneTodayNotes>): TDoneCount {
   try {
-    const startTime = new Date()
-    logDebug('buildListOfDoneTasks', `Starting at ${String(startTime)}`)
     const summary: TDoneCount = {
       completedTasks: 0,
-      lastUpdated: new Date(0)
+      lastUpdated: new Date(0),
     }
     for (const thisCount of countsArr) {
       summary.completedTasks += thisCount.completedTasks
@@ -149,10 +146,8 @@ export function rollUpDoneCounts(countsArr: Array<TDoneCount>, countsNotesArr: A
       summary.completedTasks += thisCount.counts.completedTasks
       if (thisCount.counts.lastUpdated > summary.lastUpdated) summary.lastUpdated = thisCount.counts.lastUpdated
     }
-    clo(summary, 'rollUpDoneCounts:', 2)
     return summary
-  }
-  catch (err) {
+  } catch (err) {
     logError('buildListOfDoneTasks', err.message)
     return { completedTasks: 0, lastUpdated: new Date(0) }
   }

@@ -64,7 +64,7 @@ export const handleSwitchChange = (
         const apn = dashboardSettings.activePerspectiveName
         dispatchPerspectiveSettings({
           type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-          payload: perspectiveSettings.map((p) => (p.name === apn ? { ...p, isModified: true } : { ...p, isModified: false })),
+          payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),
           reason: `Switch changed: ${key}=${isChecked}`,
         })
       }

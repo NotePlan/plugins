@@ -6,6 +6,7 @@
 // Types for Settings
 
 import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
+export type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -243,7 +244,8 @@ export type MessageDataObject = {
   sectionCodes?: Array<TSectionCode>, // needed for processActionOnReturn to be able to refresh some but not all sections
   toFilename?: string,
   newDimensions?: { width: number, height: number },
-  settings?: TAnyObject,
+  settings?: TDashboardSettings | TPerspectiveSettings,
+  perspectiveSettings?: TPerspectiveSettings,
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
   logMessage?: string,
   userInputObj?: TAnyObject,
@@ -304,22 +306,6 @@ export type TPluginData = {
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList'
-
-// export type TSettingItem = {
-//   type: TSettingItemType,
-//   key?: string, // Note: annoyingly we can have setting items which are just 'separator' with no key, so this is optional
-//   value?: string,
-//   label?: string,
-//   checked?: boolean,
-//   options?: Array<string>,
-//   textType?: 'title' | 'description' | 'separator',
-//   description?: string,
-//   default?: any,
-//   refreshAllOnChange?: boolean,
-//   compactDisplay?: boolean,
-//   controlsOtherKeys?: Array<string>,
-//   dependsOnKey?: string,
-// }
 
 export type TPluginCommandSimplified = {
   commandName: string,

@@ -111,25 +111,19 @@ export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys
  */
 export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
   try {
-    logDebug('getPerspectiveSettings', `Attempting to get Perspective settings ...`)
     // Note: (in an earlier place this code was used) we think following (newer API call) is unreliable.
     let pluginSettings = DataStore.settings
     let perspectiveSettingsStr: string = pluginSettings?.perspectiveSettings
     let perspectiveSettings: Array<TPerspectiveDef>
     if (!perspectiveSettingsStr) {
-      clo(pluginSettings, `getPerspectiveSettings (newer API): DataStore.settings?.perspectiveSettings not found. Here's the full settings for ${pluginID} plugin: `)
-
       // Fall back to the older way:
       pluginSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-      clo(pluginSettings, `getPerspectiveSettings (older lookup): pluginSettings loaded from settings.json`)
       perspectiveSettingsStr = pluginSettings?.perspectiveSettings
     }
 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       const settingsArr = parseSettings(perspectiveSettingsStr) ?? []
-      // logDebug(`getPerspectiveSettings: Loaded from disk: perspectiveSettingsStr (${settingsArr.length})`, `${perspectiveSettingsStr}`)
-      logDebug(`getPerspectiveSettings: Loaded ${settingsArr.length} perspectives from disk (${perspectiveSettingsStr.length} chars):`)
       logPerspectives(settingsArr)
       return settingsArr
     } else {
@@ -137,29 +131,9 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
       perspectiveSettings = perspectiveSettingDefaults
 
-      // now fill in with the rest of the current dashboardSettings
-      const currentDashboardSettings = await getDashboardSettings()
-      // TODO?: @jgclark (from dbw): I'm still not convinced we need to copy all of these
-      const extendedPerspectiveSettings = perspectiveSettings
-      //   const extendedPerspectiveSettings: Array<TPerspectiveDef> = perspectiveSettings.map(
-      // psd => ({
-      //   ...psd /*,
-      //   dashboardSettings: cleanDashboardSettings({
-      //     ...currentDashboardSettings, ...psd.dashboardSettings,
-      //     // // ensure aPN is the same as this perspective name (just in case)
-      //     // activePerspectiveName: psd.name
-      //     */
-      //   })
-      // })
-      // )
-      // const extendedPerspectiveSettings = [
-      //   ...pSettingDefaults, pSettings
-      // ]
-      clo(extendedPerspectiveSettings, `extendedPerspectiveSettings =`)
-
       // persist and return
-      saveAllPerspectiveDefs(extendedPerspectiveSettings)
-      return extendedPerspectiveSettings
+      saveAllPerspectiveDefs(perspectiveSettings)
+      return perspectiveSettings
     }
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
@@ -216,8 +190,7 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPe
 export function getDisplayListOfPerspectiveNames(
   allDefs: Array<TPerspectiveDef>,
   includeDefaultOption: boolean = true,
-  returnOptionObjects: boolean = false,
-): Array<string | { label: string, value: string, isModified: boolean }> {
+): Array<{ label: string, value: string, isModified: boolean }> {
   try {
     // Get all perspective names
     if (!allDefs || allDefs.length === 0) {
@@ -225,17 +198,15 @@ export function getDisplayListOfPerspectiveNames(
     }
 
     // Form list of options, removing "-" from the list if wanted
-    let options = returnOptionObjects
-      ? allDefs.map((def) => ({ label: def.name, value: def.name, isModified: def.isModified || false }))
-      : allDefs.map((def) => (def.isModified ? `${def.name}*` : def.name)).sort((a, b) => (a === '-' ? -1 : b === '-' ? 1 : 0))
+    let options = allDefs.map((def) => ({ label: def.name, value: def.name, isModified: def.isModified || false }))
     if (!includeDefaultOption) {
-      returnOptionObjects ? (options = options.filter((obj) => obj.label !== '-')) : (options = options.filter((name) => name !== '-'))
+      options = options.filter((obj) => obj.label !== '-')
     }
 
     return options
   } catch (err) {
     logError('getDisplayListOfPerspectiveNames', err.message)
-    return ['-']
+    return [{ label: '-', value: '-', isModified: false }]
   }
 }
 
