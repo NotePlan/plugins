@@ -127,8 +127,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
     pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`, `dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
     if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
-      const diff = compareObjects(pluginData.dashboardSettings,dashboardSettings)
+      let diff = compareObjects(pluginData.dashboardSettings,dashboardSettings)
       clo(diff,`Dashboard pluginData.dashboardSettings watcher diff`)
+      if (diff && Object.keys(diff).length === 1 && diff.hasOwnProperty("lastChange")) {
+        diff = null
+        logDebug(`Dashboard`, `useEffect(pluginData.dashboardSettings) - Only lastChange field was different. (old="${dashboardSettings.lastChange}" new="${pluginData.dashboardSettings.lastChange}") Ignoring.`)
+      }
       if (diff) {
         logDebug(`WebView`, `Looks like dashboardSettings are different. calling dispatchDashboardSettings()`)
         dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: pluginData.dashboardSettings })
