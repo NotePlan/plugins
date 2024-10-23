@@ -41,7 +41,7 @@ type Action =
   | { type: 'LOG_STATE', payload: string }
 
 
-const staticOptions = [{label: "Add New Perspective", value: "Add New Perspective"},{label: "Save Perspective", value: "Save Perspective"} ]
+const staticOptions = [{ label: "Add New Perspective", value: "Add New Perspective" }]
 
 /**
  * Formats the name of a perspective or option by appending an asterisk if it is modified.
@@ -51,8 +51,9 @@ const staticOptions = [{label: "Add New Perspective", value: "Add New Perspectiv
  * @param {boolean} item.isModified - Indicates if the perspective or option is modified.
  * @returns {string} The formatted name.
  */
-const formatNameWithModification = (item: { name?: string, isModified: boolean, value?: string }): string => {
-  return item.isModified ? `${item.name ? item.name : item?.value || ''}*` : item.name||item.value||''
+const formatNameWithModification = (item: { name: string, isModified: boolean, [string]: mixed }): string => {
+  console.log('formatNameWithModification', item)
+  return item.isModified ? `${item.name}*` : item.name
 }
 
 //--------------------------------------------------------------------------
@@ -70,21 +71,20 @@ const PerspectiveSelector = (): React$Node => {
   //--------------------------------------------------------------------------
   const reducer = (state: State, action: Action): State => {
     switch (action.type) {
-      case 'SET_PERSPECTIVE_OPTIONS':
+      case 'SET_PERSPECTIVE_OPTIONS': {
         logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS, Payload: ${JSON.stringify(action.payload)}${!action.payload ? ' (empty)' : ''}`)
+        // Determine if "Save Perspective" should be included
+        const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings);
+        const dynamicOptions = thisPersp?.isModified
+          ? [{ label: "Save Perspective", value: "Save Perspective" }]
+          : []
         return {
           ...state,
           // $FlowFixMe
-          perspectiveNameOptions: [...staticOptions, ...action.payload].map(option => (
-            // $FlowFixMe
-            {
-            ...option,
-            label: formatNameWithModification(option)||option.value,
-            value: option.value
-          })),
+          perspectiveNameOptions: [...staticOptions, ...dynamicOptions, ...action.payload],
           isLoading: false,
         }
-
+      }
       case 'SET_ACTIVE_PERSPECTIVE':
         logDebug('PerspectiveSelector Reducer', `Action: SET_ACTIVE_PERSPECTIVE, Payload: ${action.payload}`)
         return {
@@ -157,8 +157,8 @@ const PerspectiveSelector = (): React$Node => {
       clo(options, `PerspectiveSelector/useEffect(perspectiveSettings) perspectiveSettings changed. updating options`)
       dispatchPerspectiveSelector({ type: 'SET_PERSPECTIVE_OPTIONS', payload: options })
       const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings)
-      const nameToDisplay = formatNameWithModification(thisPersp)
-      dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: nameToDisplay||'' })
+
+      dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: thisPersp?.name || '' })
     }
 
     dispatchPerspectiveSelector({ type: 'SET_LOADING', payload: false })
@@ -191,33 +191,31 @@ const PerspectiveSelector = (): React$Node => {
   useEffect(() => {
     logDebug('PerspectiveSelector/useEffect(dashboardSettings.activePerspectiveName)', `activePerspectiveName="${activePerspectiveName}" dashboardSettings.activePerspectiveName="${dashboardSettings.activePerspectiveName}"`)
     const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings)
+    if (!thisPersp) {
+      throw new Error(`PerspectiveSelector/useEffect(dashboardSettings.activePerspectiveName): Cannot find perspective definition for "${dashboardSettings.activePerspectiveName}".`)
+    }
+    const nameToDisplay = dashboardSettings.activePerspectiveName
     if (activePerspectiveName !== dashboardSettings.activePerspectiveName) {
-      const nameToDisplay = formatNameWithModification(thisPersp)
       logDebug(
         'PerspectiveSelector/useEffect(perspectiveSettings)',
         `Updating activePerspectiveName from "${activePerspectiveName}" to "${nameToDisplay}".`
       )
-      const thisOption = perspectiveNameOptions.find(o=>o.value === dashboardSettings.activePerspectiveName)
-      if (thisOption) {
         dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: nameToDisplay })
-      } else {
-        throw new Error(`PerspectiveSelector/useEffect(dashboardSettings.activePerspectiveName): Cannot find perspective definition for "${dashboardSettings.activePerspectiveName}".`)
-      }
-    } else{
+
+    } else {
       if (thisPersp) {
-      const nameToDisplay = formatNameWithModification(thisPersp)
-      if (activePerspectiveName !== nameToDisplay) {
-        dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: nameToDisplay })
+        if (activePerspectiveName !== nameToDisplay) {
+          dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: nameToDisplay })
+        }
       }
-    }
     }
   }, [dashboardSettings.activePerspectiveName, activePerspectiveName])
 
   //----------------------------------------------------------------------
   // Handler for Perspective Change with Comprehensive Logging
   //----------------------------------------------------------------------
-  const handlePerspectiveChange = 
-    (newValue: string) => {
+  const handlePerspectiveChange =
+    (newValue: { label: string, value: string, [string]: mixed }) => {
       logDebug(
         'PerspectiveSelector/handlePerspectiveChange',
         `User selected newValue: "${newValue}". Current activePerspectiveName: "${activePerspectiveName}".`
@@ -245,12 +243,13 @@ const PerspectiveSelector = (): React$Node => {
         if (thisPersp && thisPersp.isModified && thisPersp.name !== '-') {
           const resetModified = perspectiveSettings.map(p => ({ ...p, isModified: false }))
           dispatchPerspectiveSettings(
-            { type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, 
-            payload: resetModified,
-            reason: `Save perspective selected while active perspective was: ${state.activePerspectiveName}`
-           })
-           dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: perspName })
-           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} saved!`)
+            {
+              type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+              payload: resetModified,
+              reason: `Save perspective selected while active perspective was: ${state.activePerspectiveName}`
+            })
+          dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: perspName })
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} saved!`)
         } else {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `${thisPersp.name} was not modified. Not saving.`)
         }
@@ -295,7 +294,7 @@ const PerspectiveSelector = (): React$Node => {
         activePerspectiveName: newValue,
       }
       logDebug('PerspectiveSelector/handlePerspectiveChange', `calling UPDATE_DASHBOARD_SETTINGS with: ${JSON.stringify(updatedSettings)}`)
-      
+
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: updatedSettings,
@@ -337,19 +336,26 @@ const PerspectiveSelector = (): React$Node => {
 
   const customStyles = {
     container: {
-      minWidth: '45px', 
+      minWidth: '45px',
       width: '51px', // Half the default width of 400px
       height: '21px', // Three-quarters the default height of 60px
     },
   }
 
-  const normalizedOptions:Array<TPerspectiveOptionObject> = perspectiveNameOptions ? perspectiveNameOptions.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []
-
+  const normalizedOptions: Array<TPerspectiveOptionObject> = perspectiveNameOptions ? perspectiveNameOptions.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []
+  const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
+  if (!thisPersp) {
+    throw new Error(`3: PerspectiveSelector: Cannot find perspective definition for: "${activePerspectiveName}".`)
+  }
+  const nameToDisplay = formatNameWithModification(thisPersp)
+  const selectedValue = {label:nameToDisplay, value:activePerspectiveName }
+  logDebug('PerspectiveSelector', `rendering dropdown with value: ${JSON.stringify(selectedValue)}`)
   return (
     <DropdownSelect
       style={customStyles}
-      options={normalizedOptions} 
-      value={normalizedOptions.find(o=>o.value === activePerspectiveName)?.label||''} // show the star if it's modified
+      options={normalizedOptions}
+      // value={normalizedOptions.find(o=>o.value === activePerspectiveName)?.label||''} // show the star if it's modified
+      value={selectedValue} // show the star if it's modified
       onChange={(selectedOption) => {
         const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
         value && handlePerspectiveChange(value)

@@ -30,7 +30,7 @@ type Styles = {
 type DropdownSelectProps = {
   label: string,
   options: Array<string | Option>,
-  value: string,
+  value: string|Option,
   onChange: ({ [string]: mixed }) => void,
   inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
@@ -66,15 +66,25 @@ const DropdownSelect = ({
   fullWidthOptions = false,
   showIndicatorOptionProp = '',
 }: DropdownSelectProps): React$Node => {
+
+    // Normalize options to a consistent format
+    const normalizedOptions: Array<Option> = options.map(option =>
+      typeof option === 'string' ? { label: option, value: option } : option
+    )
+    logDebug('DropdownSelect', `Starting was sent value: ${JSON.stringify(value)}`)
+    const foundOption = normalizedOptions.find(o=>o.value === (typeof value === 'string' ? value : value?.value))
+    if (foundOption) {
+      if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
+        foundOption.label = (typeof value === 'string' ? value : value?.label)
+      }
+    }
+
+  logDebug('DropdownSelect', `Starting dropdown with foundOption: ${JSON.stringify(foundOption)}`)
+
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedValue, setSelectedValue] = useState(value)
+  const [selectedValue, setSelectedValue] = useState(foundOption)
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
-
-  // Normalize options to a consistent format
-  const normalizedOptions: Array<Option> = options.map(option =>
-    typeof option === 'string' ? { label: option, value: option } : option
-  )
 
   //----------------------------------------------------------------------
   // Handlers
@@ -83,7 +93,7 @@ const DropdownSelect = ({
   const toggleDropdown = () => setIsOpen(!isOpen)
 
   const handleOptionClick = (option: Option) => {
-    setSelectedValue(option.value)
+    setSelectedValue(option)
     onChange(option)
     setIsOpen(false)
   }
@@ -103,6 +113,16 @@ const DropdownSelect = ({
   // Effects
   //----------------------------------------------------------------------
 
+  useEffect(() => {
+    const newFoundOption = normalizedOptions.find(o => o.value === (typeof value === 'string' ? value : value?.value))
+    if (newFoundOption) {
+      if (newFoundOption.label !== (typeof value === 'string' ? value : value?.label)) {
+        newFoundOption.label = (typeof value === 'string' ? value : value?.label)
+      }
+      setSelectedValue(newFoundOption)
+    }
+  }, [value, normalizedOptions])
+  
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
@@ -179,7 +199,7 @@ const DropdownSelect = ({
 
   // Determine if the selected option should show the indicator
   const selectedOption = normalizedOptions.find(
-    option => option.value === selectedValue
+    option => option.value === selectedValue.value
   )
   const shouldShowIndicator = showIndicatorOptionProp && selectedOption
     ? selectedOption[showIndicatorOptionProp] === true
@@ -205,6 +225,8 @@ const DropdownSelect = ({
     flexShrink: 0,
     ...customStyles,
   })
+
+  logDebug('DropdownSelect', `rendering dropdown with selectedValue: ${JSON.stringify(selectedValue)}`)
 
   return (
     <div
@@ -241,7 +263,7 @@ const DropdownSelect = ({
           <input
             type="text"
             className="combobox-input"
-            value={selectedValue}
+            value={selectedValue?.label||''}
             readOnly
             ref={inputRef}
             disabled={disabled}

@@ -176,7 +176,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // create a new effect that sets perspectiveSettings when pluginData.perspectiveSettings changes in the plugin
   useEffect(() => {
     if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
-      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- pluginData.perspectiveSettings changed; activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
+      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `changed: activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
       const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
       if (diff) {
         // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
