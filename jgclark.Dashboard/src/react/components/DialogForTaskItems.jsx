@@ -53,7 +53,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // - All 3 other cases: use rescheduleItem()
   const dateChangeFunctionToUse = (noteType === 'Calendar' && !resched)
     ? 'moveFromCalToCal' : 'rescheduleItem'
-  logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
+  // logDebug('DialogForTaskItems', `- dateChangeFunctionToUse = ${dateChangeFunctionToUse} from resched?:${String(resched)}`)
 
   const { interactiveProcessing } = reactSettings ?? {}
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}

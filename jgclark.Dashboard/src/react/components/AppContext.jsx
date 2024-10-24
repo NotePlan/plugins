@@ -119,7 +119,6 @@ export const AppProvider = ({
   const [perspectiveSettings, dispatchPerspectiveSettings] = useReducer(perspectiveSettingsReducer, initialPerspectiveSettings)
 
   useEffect(() => {
-    logDebug('AppContext', `Just FYI, perspectiveSettings updated somewhere.`, perspectiveSettings)
     const diff = compareObjects(perspectiveSettings, pluginData.perspectiveSettings)
     if (diff) {
       logDebug('AppContext', `perspectiveSettings changed: ${JSON.stringify(diff)}`)
@@ -156,9 +155,7 @@ export const AppProvider = ({
         true,
       )
       lastSentDashboardSettingsRef.current = dashboardSettings
-    } else {
-      logDebug(`AppContext/useEffect(dashboardSettings)`, `Settings is the same. No need to send to plugin`)
-    }
+    } 
   }, [dashboardSettings, sendActionToPlugin])
 
   const contextValue: AppContextType = {

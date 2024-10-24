@@ -307,7 +307,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      debug: ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
       dataMode: 'live', // or 'demo' or 'test' TODO:
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,

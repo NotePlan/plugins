@@ -124,11 +124,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // Effect to update dashboardSettings when pluginData.dashboardSettings changes (e.g. the plugin rewrote it)
   useEffect(() => {
-    logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
+    // logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
     pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`, `dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
     if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
       let diff = compareObjects(pluginData.dashboardSettings,dashboardSettings)
-      clo(diff,`Dashboard pluginData.dashboardSettings watcher diff`)
+      diff && clo(diff,`Dashboard pluginData.dashboardSettings watcher diff`)
       if (diff && Object.keys(diff).length === 1 && diff.hasOwnProperty("lastChange")) {
         diff = null
         logDebug(`Dashboard`, `useEffect(pluginData.dashboardSettings) - Only lastChange field was different. (old="${dashboardSettings.lastChange}" new="${pluginData.dashboardSettings.lastChange}") Ignoring.`)
@@ -176,10 +176,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // create a new effect that sets perspectiveSettings when pluginData.perspectiveSettings changes in the plugin
   useEffect(() => {
     if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
-      logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `changed: activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
+      // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `changed: activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
       const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
       if (diff) {
-        // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
+        logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
         dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: pluginData.perspectiveSettings, reason: `Perspectives changed by plugin (${JSON.stringify(diff)})` })
       } else {
         // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array unchanged`)

@@ -350,7 +350,6 @@ const PerspectiveSelector = (): React$Node => {
   }
   const nameToDisplay = thisPersp ? formatNameWithModification(thisPersp) : ''
   const selectedValue = {label:nameToDisplay, value:activePerspectiveName }
-  logDebug('PerspectiveSelector', `rendering dropdown with value: ${JSON.stringify(selectedValue)}`)
   return (
     <DropdownSelect
       style={customStyles}

@@ -122,7 +122,6 @@ export function Root(/* props: Props */): Node {
   // eslint-disable-next-line no-unused-vars
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
     const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    logDebug(`Root`,`Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
     // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
@@ -266,7 +265,6 @@ export function Root(/* props: Props */): Node {
             case 'SHOW_BANNER':
                 logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
                 setNPData((prevData) => {
-                  clo(npData,`Root: SHOW_BANNER npData before setting`)
                   prevData.passThroughVars = prevData.passThroughVars ?? {}
                   prevData.passThroughVars.lastWindowScrollTop = 0
                 return { ...prevData, ...payload }
@@ -408,8 +406,6 @@ useEffect(() => {
 /****************************************************************************************************************************
  *                             RENDER
  ****************************************************************************************************************************/
-
-logDebug(`Root`, `Root: dialogIsVisible=${dialogIsVisible} warning=${JSON.stringify(warning)}`)
 
 return (
   <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => { }} onError={myErrorLogger}>
