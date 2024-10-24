@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-09-27 for v2.0.6+ by @jgclark
+// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
-import { getNextProjectsToReview } from '../../jgclark.Reviews/src/reviewListHelpers.js' // assumes v0.15+ of Reviews Plugin
+import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // assumes v0.15+ of Reviews Plugin
 import type {
   TDashboardSettings, TItemType, TParagraphForDashboard,
   TSectionCode, TSection, TSectionItem, TSectionDetails
@@ -16,14 +16,12 @@ import { allSectionCodes } from "./constants.js"
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  // extendParasToAddStartTimes,
   getDashboardSettings,
   getNotePlanSettings,
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
   getRelevantPriorityTasks,
   getStartTimeFromPara,
-  // getSharedSettings,
   makeDashboardParas,
 } from './dashboardHelpers'
 import {
@@ -48,36 +46,20 @@ import {
   getTodaysDateUnhyphenated,
   filenameIsInFuture,
   includesScheduledFutureDate,
-  // includesScheduledFutureDate,
-  // toISOShortDateTimeString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-// import { displayTitle } from '@helpers/general'
-import {
-  // getTimeRangeFromTimeBlockString,
-  // localeDateStr,
-  toNPLocaleDateString,
-  // setMomentLocaleFromEnvironment,
-} from '@helpers/NPdateTime'
-import {
-  findNotesMatchingHashtagOrMention,
-  // getReferencedParagraphs
-} from '@helpers/NPnote'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
+import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-// import { getTimeBlockString } from '@helpers/timeblocks'
-import {
-  // isOpen, isOpenTask,
-  isOpen, isOpenTask,
-  // removeDuplicates
-} from '@helpers/utils'
+import { isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
 
-const reviewPluginID = 'jgclark.Reviews'
-const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
+// const reviewPluginID = 'jgclark.Reviews'
+// const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 
 //-----------------------------------------------------------------
 
@@ -703,6 +685,14 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           tooltip: "Add a checklist item to next week's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
+        },
+        {
+          actionName: 'moveAllThisWeekNextWeek',
+          actionPluginID: `${pluginJson["plugin.id"]}`,
+          tooltip: 'Move or schedule all open items from this week to next week',
+          display: 'All <i class="fa-solid fa-right-long"></i> Next Week',
+          actionParam: 'true' /* refresh afterwards */,
+          postActionRefresh: ['W'] // refresh the week section afterwards
         },
       ],
     }

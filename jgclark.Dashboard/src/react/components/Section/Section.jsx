@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-07-19 for v2.0.3 by @jgclark
+// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -69,7 +69,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         logDebug('Section', `Section 0 doesn't have any sectionItems, so display congrats message`)
         sectionItems = [{
           ID: '0-Congrats',
-          itemType: 'congrats',
+          itemType: 'itemCongrats',
         }]
       }
     }
@@ -132,7 +132,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Decrement the number of items to show if the last one is the filterIndicator
   if (numItemsToShow > 0 && itemsToShow[numItemsToShow - 1].itemType === 'filterIndicator') numItemsToShow--
-  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'congrats') numItemsToShow = 0
+  if (numItemsToShow === 1 && itemsToShow[0].itemType === 'itemCongrats') numItemsToShow = 0
 
   // Replace {count} and {totalCount} placeholders
   let descriptionToUse = section.description
@@ -173,11 +173,14 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
         <div className="sectionButtons">
           {(section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? [])}
-          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'congrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'itemCongrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
             <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} tasks`}>
-                <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i>
-                <span className="fa-layers-text" data-fa-transform="shrink-8" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
+              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+                {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+                {/* wanted to use 'fa-arrow-progress' here but not in our build */}
+                {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
+                <i className="fa-regular fa-angles-right"></i>
+                <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>{numItemsToShow}</span>
               </button>
             </>
           )}

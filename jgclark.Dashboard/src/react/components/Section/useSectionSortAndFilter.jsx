@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Last updated 2024-07-16 for v2.0.2 by @jgclark
+// Last updated 2024-10-24 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
 import type { TSection, TSectionItem } from '../../../types.js'
-import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
+import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
@@ -28,16 +28,23 @@ const useSectionSortAndFilter = (
   useEffect(() => {
     const filterPriorityItems = dashboardSettings?.filterPriorityItems ?? false
     const limitToApply = dashboardSettings?.maxItemsToShowInSection ?? 20
-    let maxPrioritySeen = 0
+
+    // Find highest priority seen
+    let maxPrioritySeen = -1
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
         maxPrioritySeen = i.para.priority
       }
     }
-
-    const filteredItems = filterPriorityItems ? items.filter(f => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
+    logInfo('useSectionSortAndFilter', `Highest priority seen: ${maxPrioritySeen} with ${items.length} items`)
+    // and then filter lower-priority items (if wanted)
+    const filteredItems = filterPriorityItems
+      ? items.filter(f => (f.para?.priority ?? 0) >= maxPrioritySeen)
+      : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
+    logInfo('useSectionSortAndFilter', `After filter: ${String(priorityFilteringHappening)} and ${filteredItems.length} items`)
 
+    // sort items
     filteredItems.sort((a, b) => {
       if (a.para?.startTime && b.para?.startTime) {
         const startTimeComparison = a.para.startTime.localeCompare(b.para.startTime)
