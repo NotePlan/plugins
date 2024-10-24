@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
+// Last updated 2024-10-24 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -271,6 +271,7 @@ export type TPluginData = {
   demoMode: boolean, /* use fake content for demo purposes */
   totalDoneCounts?: TDoneCount,
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
+  version: string,
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' 
