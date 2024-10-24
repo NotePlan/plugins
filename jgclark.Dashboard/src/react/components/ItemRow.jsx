@@ -31,7 +31,7 @@ function ItemRow({ item, thisSection }: Props): React.Node {
         <ProjectItem item={item} />
       ) : itemType === 'filterIndicator' ? (
         <TasksFiltered item={item} />
-      ) : itemType === 'congrats' ? (
+        ) : itemType === 'itemCongrats' ? (
         <NoTasks />
       ) : (
               <TaskItem item={item} thisSection={thisSection} />

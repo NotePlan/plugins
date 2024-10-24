@@ -22,9 +22,9 @@ export async function checkForRequiredSharedFiles(pluginJson: any): Promise<void
         `thisPluginID`,
         `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so expect issues with display or functionality 😳`,
       )
-      // } else if (wantedRes) {
-      //   // plugin np.Shared is loaded
-      //   logDebug(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared is loaded 😄; no further checking done`)
+    } else if (wantedRes) {
+      // plugin np.Shared is loaded
+      logDebug(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared is loaded 😄; no further checking done`)
     } else {
       // plugin np.Shared is not loaded
       logWarn(`${thisPluginID}/checkForRequiredSharedFiles`, `plugin np.Shared isn't loaded 🥵, so icons probably won't display`)
