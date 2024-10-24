@@ -40,6 +40,7 @@ export type TSettingItemType =
   | 'heading'
   | 'input-readonly'
   | 'json'
+  
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -57,6 +58,8 @@ export type TSettingItem = {
   step?: number, // only applies to number type -- the increment/decrement amount
   noWrapOptions?: boolean, // truncate, do not wrap the label (for combo)
   focus?: boolean, // for input fields only, set focus to this field when dialog opens
+  controlsOtherKeys?: Array<string>, // if this item is changed, also change the items named in this array
+  displayDoneCounts?: boolean, // if true, then show the done counts in the dashboard
 }
 
 export type TDynamicDialogProps = {

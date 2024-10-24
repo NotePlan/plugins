@@ -1,6 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
+- Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
+- Total refactor of interactive processing code to make it more maintainable and fix some bugs
+- Total refactor of Dashboard Settings and PerspectiveSettings components using useReducer for state management and improved visibility
+- Improved PerspectiveSelector dropdown data saving (using useReducer) and made it more robust
+- Added "Add Perspective" and "Save Perspective" buttons to PerspectiveSelector dropdown
+- Added some code back in to make BANNER messages display again at the top of the page when there are errors
+- Added a LOT of logging to ensure the right things are happening, but it's super noisy. Will delete most of it before final release.
+### Todo
+- fix bug in taskdialog where priority markers are not being updated in interface
+- (jgclark): fix the CSS selectors that are messing up the rollup build
 
 ## [Perspectives.a13] @jgc, 2024-10-11
 - fixed build's circular dependency warnings

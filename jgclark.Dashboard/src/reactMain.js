@@ -17,7 +17,7 @@ import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage, getCallbackCodeString } from '@helpers/HTMLView'
 // import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -238,16 +238,27 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
+    // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
+    const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
+    const sendMessageToPluginFunction = `
+      const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
+    `
+
     const resourceLinksInHeader = `
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/DashboardDialog.css"> -->
-       <!-- <link rel="stylesheet" href="../np.Shared/css.w3.css"> -->
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+      <script>
+        ${sendMessageToPluginFunction}
+        ${runPluginCommandFunction}
+      </script>
+      `
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -296,7 +307,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      debug: ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
       dataMode: 'live', // or 'demo' or 'test' TODO:
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
@@ -345,15 +356,17 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     logInfo(pluginJson, `actionType '${actionType}' received by onMessageFromHTMLView`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+    const dataToSend = { ...data }
+    if (!dataToSend.actionType) dataToSend.actionType = actionType
     switch (actionType) {
       case 'SHOW_BANNER':
-        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', data)
+        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
       // WEBVIEW_WINDOW_ID
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
-        _newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        _newData = (await bridgeClickDashboardItem(dataToSend)) || reactWindowData // the processing function can update the reactWindowData object and return it
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }

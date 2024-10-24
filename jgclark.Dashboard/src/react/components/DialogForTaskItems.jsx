@@ -157,7 +157,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   // will eventually call onClose() from Dialog.jsx (does nothing special) 
   // and will pass it on to Dashboard::handleDialogClose which (may) refresh the page
   const closeDialog = (forceClose: boolean = false) => {
-    logDebug('DialogForTaskItems 🥸 closeDialog() reactSettings; looking for interactiveProcessing')
+    logDebug(`DialogForTaskItems 🥸 closeDialog(${String(forceClose)}) reactSettings; looking for interactiveProcessing`)
     if (reactSettings?.interactiveProcessing) {
       if (forceClose) {
         setReactSettings(prevSettings => ({
@@ -167,6 +167,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         }))
       } else {
         handleIPItemProcessed(false)
+        return
       }
     }
     console.log('DialogForTaskItems 🥸 closeDialog() calling setAnimationClass')
@@ -181,6 +182,10 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       // $FlowIgnore 
       // logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
       // reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
+      setReactSettings(prevSettings => ({
+        ...prevSettings,
+        dialogData: { isOpen: false, isTask: true },
+      }))
       onClose(forceClose)
     }, delay)
   }

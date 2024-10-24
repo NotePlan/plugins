@@ -65,6 +65,7 @@ export type TDashboardSettings = {
   interactiveProcessingHighlightTask: boolean,
   enableInteractiveProcessingTransitions: boolean,
   settingsMigrated: boolean,
+  displayDoneCounts: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
   lastChange: string, // not really a setting, but a way to track the last change made
 }
@@ -209,6 +210,7 @@ export type TActionType =
   | 'windowReload'
   | 'windowResized'
   | 'addNewPerspective'
+  | 'commsBridgeTest'
 
 export type TControlString =
   | 't'

@@ -71,15 +71,12 @@ const DropdownSelect = ({
     const normalizedOptions: Array<Option> = options.map(option =>
       typeof option === 'string' ? { label: option, value: option } : option
     )
-    logDebug('DropdownSelect', `Starting was sent value: ${JSON.stringify(value)}`)
     const foundOption = normalizedOptions.find(o=>o.value === (typeof value === 'string' ? value : value?.value))
     if (foundOption) {
       if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
         foundOption.label = (typeof value === 'string' ? value : value?.label)
       }
     }
-
-  logDebug('DropdownSelect', `Starting dropdown with foundOption: ${JSON.stringify(foundOption)}`)
 
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(foundOption)
@@ -122,7 +119,7 @@ const DropdownSelect = ({
       setSelectedValue(newFoundOption)
     }
   }, [value, normalizedOptions])
-  
+
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
@@ -225,8 +222,6 @@ const DropdownSelect = ({
     flexShrink: 0,
     ...customStyles,
   })
-
-  logDebug('DropdownSelect', `rendering dropdown with selectedValue: ${JSON.stringify(selectedValue)}`)
 
   return (
     <div

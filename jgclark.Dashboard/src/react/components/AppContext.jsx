@@ -136,7 +136,7 @@ export const AppProvider = ({
     // logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
     // clo(dashboardSettings,'AppContext/useEffect(dashboardSettings) dashboardSettings')
     // clo(lastSentDashboardSettingsRef.current,'AppContext/useEffect(dashboardSettings) lastSentDashboardSettingsRef.current')
-    if (dashboardSettings.activePerspectiveName === "-" || !(dashboardSettings.activePerspectiveName)) {
+    if (diff && dashboardSettings.activePerspectiveName === "-" || !(dashboardSettings.activePerspectiveName)) {
       // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
       logDebug('AppContext/useEffect(dashboardSettings)',`No named perspective set, so saving this change into the "-" perspective.`)
       saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, cleanDashboardSettings(dashboardSettings), dispatchPerspectiveSettings)

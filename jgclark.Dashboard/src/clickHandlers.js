@@ -422,7 +422,7 @@ export function doCyclePriorityStateUp(data: MessageDataObject): TBridgeClickHan
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
-    return handlerResult(false)
+    return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })
   }
 }
 
@@ -444,7 +444,7 @@ export function doCyclePriorityStateDown(data: MessageDataObject): TBridgeClickH
     return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph: para })
   } else {
     logWarn('doCyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
-    return handlerResult(false)
+    return handlerResult(false, [], { errorMsg: `unable to find para "${content}" in filename: "${filename}"` })
   }
 }
 
@@ -662,6 +662,11 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+}
+
+export async function doCommsBridgeTest(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  // send a banner message by failing the handler
+  return await handlerResult(false, [], { errorMsg: `Success: This was sent from the plugin. Round trip works 5x5.` })
 }
 
 export async function doAddNewPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {

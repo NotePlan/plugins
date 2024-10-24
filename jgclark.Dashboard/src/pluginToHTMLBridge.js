@@ -31,6 +31,7 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
+  doCommsBridgeTest,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
@@ -49,7 +50,7 @@ import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -278,6 +279,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data)
         break
       }
+      case 'commsBridgeTest': {
+        result = await doCommsBridgeTest(data)
+        break
+      }
       // case 'turnOffPriorityItemsFilter': {
       //   result = await turnOffPriorityItemsFilter()
       //   break
@@ -310,22 +315,25 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     await checkForThemeChange()
     if (!handlerResult) return
 
-    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-    if (actionsOnSuccess.length === 0) {
-      logDebug('processActionOnReturn', `note: no post process actions to perform`)
-      return
-    }
     const { success, updatedParagraph } = handlerResult
-    const isProject = data.item?.itemType === 'project'
-    const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
-
-    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`)
-    if (actsOnALine && filename === '') {
-      logWarn('processActionOnReturn', `Starting with no filename`)
-    }
 
     if (success) {
+      const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+      if (actionsOnSuccess.length === 0) {
+        logDebug('processActionOnReturn', `note: no post process actions to perform`)
+        return
+      }
+      const isProject = data.item?.itemType === 'project'
+      const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
+
+      const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+      logDebug(
+        'processActionOnReturn',
+        isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
+      )
+      if (actsOnALine && filename === '') {
+        logWarn('processActionOnReturn', `Starting with no filename`)
+      }
       if (filename !== '') {
         // update the cache for the note, as it might have changed
         const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
@@ -374,7 +382,11 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
       }
     } else {
-      logDebug('processActionOnReturn', `-> failed handlerResult`)
+      logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
+      await sendBannerMessage(
+        WEBVIEW_WINDOW_ID,
+        `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
+      )
     }
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)

@@ -129,7 +129,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
 
       <div className="totalCounts">
-        {pluginData?.totalDoneCounts
+        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
           ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
           : ''}
       </div>

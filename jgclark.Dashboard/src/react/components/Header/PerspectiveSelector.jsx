@@ -41,7 +41,7 @@ type Action =
   | { type: 'LOG_STATE', payload: string }
 
 
-const staticOptions = [{ label: "Add New Perspective", value: "Add New Perspective" }]
+const staticOptions = [{ label: "Save Perspective As...", value: "Add New Perspective" }]
 
 /**
  * Formats the name of a perspective or option by appending an asterisk if it is modified.

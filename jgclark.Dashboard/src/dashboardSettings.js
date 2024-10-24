@@ -3,23 +3,59 @@
 // Settings for the dashboard - loaded/set in React Window
 // Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
 //-----------------------------------------------------------------------------
-import type { TSettingItem } from "./types.js"
+import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
 
 // Filters are rendered in the file filterDropdownItems
 // Note that filters are automatically created for each section in the dashboard.
 // The filters below are non-section switches that display in the filters menu.
 export const dashboardFilterDefs: Array<TSettingItem> = [
-  { label: 'Filter out lower-priority items?', key: 'filterPriorityItems', type: 'switch', default: false, description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.' },
+  {
+    label: 'Filter out lower-priority items?',
+    key: 'filterPriorityItems',
+    type: 'switch',
+    default: false,
+    description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.',
+  },
   { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
   { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
-  { label: 'Hide priority markers?', key: 'hidePriorityMarkers', type: 'switch', default: false, description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)" },
-  { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: "Whether to show the note link for an open task or checklist" },
-  { label: 'Include folder name in note link?', key: 'includeFolderName', type: 'switch', default: true, description: "Whether to include the folder name when showing a note link" },
-  { label: 'Include scheduled date for tasks?', key: 'includeScheduledDates', type: 'switch', default: true, description: "Whether to display scheduled >dates for tasks in dashboard view" },
-  { label: 'Exclude tasks that include time blocks', key: 'excludeTasksWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open tasks that contain a time block" },
-  { label: 'Exclude checklists that include time blocks?', key: 'excludeChecklistsWithTimeblocks', type: 'switch', default: false, description: "Whether to stop display of open checklists that contain a time block" },
+  {
+    label: 'Hide priority markers?',
+    key: 'hidePriorityMarkers',
+    type: 'switch',
+    default: false,
+    description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)",
+  },
+  { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: 'Whether to show the note link for an open task or checklist' },
+  {
+    label: 'Include folder name in note link?',
+    key: 'includeFolderName',
+    type: 'switch',
+    default: true,
+    description: 'Whether to include the folder name when showing a note link',
+  },
+  {
+    label: 'Include scheduled date for tasks?',
+    key: 'includeScheduledDates',
+    type: 'switch',
+    default: true,
+    description: 'Whether to display scheduled >dates for tasks in dashboard view',
+  },
+  {
+    label: 'Exclude tasks that include time blocks',
+    key: 'excludeTasksWithTimeblocks',
+    type: 'switch',
+    default: false,
+    description: 'Whether to stop display of open tasks that contain a time block',
+  },
+  {
+    label: 'Exclude checklists that include time blocks?',
+    key: 'excludeChecklistsWithTimeblocks',
+    type: 'switch',
+    default: false,
+    description: 'Whether to stop display of open checklists that contain a time block',
+  },
 ]
 
 // This section is an array that describes the order and type of the individual settings
@@ -30,31 +66,32 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
 export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
-    label: "Perspectives",
+    label: 'Perspectives',
   },
   {
-    key: "showPerspectives",
-    label: "Show Perspectives",
-    description: "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
+    key: 'showPerspectives',
+    label: 'Show Perspectives',
+    description:
+      "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
     type: 'switch',
     default: true,
     compactDisplay: true,
-    controlsOtherKeys: ["activePerspectiveName", "perspectiveList"]
+    controlsOtherKeys: ['activePerspectiveName', 'perspectiveList'],
   },
   {
     type: 'hidden',
-    key: "activePerspectiveName",
-    label: "Name of active Perspective",
-    description: "The Perspective that is active.",
-    default: "",
+    key: 'activePerspectiveName',
+    label: 'Name of active Perspective',
+    description: 'The Perspective that is active.',
+    default: '',
     dependsOnKey: 'showPerspectives',
   },
   {
     type: 'perspectiveList',
-    key: "perspectiveList",
-    label: "Name of active Perspective",
-    description: "The Perspective that is active.",
-    default: "",
+    key: 'perspectiveList',
+    label: 'Name of active Perspective',
+    description: 'The Perspective that is active.',
+    default: '',
     dependsOnKey: 'showPerspectives',
   },
   {
@@ -62,131 +99,121 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "General Settings",
+    label: 'General Settings',
   },
   {
-    key: "includedFolders",
-    label: "Folders to include when finding items",
-    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
+    key: 'includedFolders',
+    label: 'Folders to include when finding items',
+    description:
+      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
-    default: "@Archive, @Templates, Saved Searches",
+    default: '@Archive, @Templates, Saved Searches',
     compactDisplay: true,
   },
   {
-    key: "excludedFolders",
-    label: "Folders to ignore when finding items",
-    description: "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
+    key: 'excludedFolders',
+    label: 'Folders to ignore when finding items',
+    description:
+      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
     type: 'input',
-    default: "@Archive, @Templates, Saved Searches",
+    default: '@Archive, @Templates, Saved Searches',
     compactDisplay: false,
   },
   {
     // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
-    key: "ignoreItemsWithTerms",
-    label: "Ignore items in calendar sections with phrase(s)",
-    description: "If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.",
+    key: 'ignoreItemsWithTerms',
+    label: 'Ignore items in calendar sections with phrase(s)',
+    description:
+      'If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.',
     type: 'input',
-    default: "#waiting",
+    default: '#waiting',
   },
   {
-    key: "newTaskSectionHeading",
-    label: "Section heading to add/move new tasks under",
-    description: "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note.",
+    key: 'newTaskSectionHeading',
+    label: 'Section heading to add/move new tasks under',
+    description:
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note.",
     type: 'input',
-    default: "Tasks",
+    default: 'Tasks',
     compactDisplay: true,
   },
   {
-    key: "newTaskSectionHeadingLevel",
-    label: "Heading level for new Headings",
-    description: "Heading level (1-5) to use when adding new headings in notes.",
+    key: 'newTaskSectionHeadingLevel',
+    label: 'Heading level for new Headings',
+    description: 'Heading level (1-5) to use when adding new headings in notes.',
     type: 'number',
-    default: "2",
+    default: '2',
     compactDisplay: true,
   },
   {
-    key: "rescheduleNotMove",
-    label: "Reschedule items in place, rather than move?",
-    description: "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
+    key: 'rescheduleNotMove',
+    label: 'Reschedule items in place, rather than move?',
+    description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
     type: 'switch',
     default: false,
     compactDisplay: true,
-    controlsOtherKeys: ["useRescheduleMarker"]
+    controlsOtherKeys: ['useRescheduleMarker'],
   },
   {
-    key: "useRescheduleMarker",
-    label: "When (re)scheduling an item, also show it as a scheduled item in main Editor?",
+    key: 'useRescheduleMarker',
+    label: 'When (re)scheduling an item, also show it as a scheduled item in main Editor?',
     description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
     type: 'switch',
     default: true,
     dependsOnKey: 'rescheduleNotMove',
   },
   {
-    key: "moveSubItems",
-    label: "Move sub-items with the item?",
-    description: "If set, then indented sub-items of an item will be moved if the item is moved to a different note.",
+    key: 'moveSubItems',
+    label: 'Move sub-items with the item?',
+    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
     type: 'switch',
     default: true,
   },
   {
-    key: "useTodayDate",
+    key: 'useTodayDate',
     label: "Use 'today' to schedule tasks for today?",
     description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
     type: 'switch',
     default: true,
   },
   {
-    type: 'separator',
-  },
-  {
-    type: 'heading',
-    label: "Display settings",
-  },
-  {
-    key: "maxItemsToShowInSection",
-    label: "Max number of items to show in a section?",
-    description: "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
-    type: 'number',
-    default: "30",
-    compactDisplay: true,
-  },
-  {
-    key: "showParentChildMarkers",
-    label: "Show parent/child markers on items?",
-    description: "Add a small icon on items that either have indented sub-items, or is an indented child a parent item.",
+    key: 'displayDoneCounts',
+    label: 'Show estimated counts of completed tasks?',
+    description:
+      'Show the estimated counts of completed tasks in the Dashboard. This is useful to see how many tasks you have completed today. Requires that you have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
     type: 'switch',
     default: true,
   },
   {
-    key: "dashboardTheme",
-    label: "Theme to use for Dashboard",
-    description: "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.",
-    type: 'input',
-    default: "",
-    compactDisplay: true,
-  },
-  {
     type: 'separator',
   },
   {
     type: 'heading',
-    label: "Overdue Tasks section",
+    label: 'Display settings',
   },
   {
-    key: "overdueSortOrder",
-    label: "Sort order for Overdue tasks",
-    description: "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
-    type: 'combo',
-    options: ["priority", "earliest", "most recent"],
-    default: "priority",
-    compactDisplay: true,
-  },
-  {
-    key: "lookBackDaysForOverdue",
-    label: "Number of days to look back for Overdue tasks",
-    description: "If set to any number > 0, will restrict Overdue tasks to just this last number of days.",
+    key: 'maxItemsToShowInSection',
+    label: 'Max number of items to show in a section?',
+    description:
+      "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
     type: 'number',
-    default: "",
+    default: '30',
+    compactDisplay: true,
+  },
+  {
+    key: 'showParentChildMarkers',
+    label: 'Show parent/child markers on items?',
+    description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
+    type: 'switch',
+    default: true,
+  },
+  {
+    key: 'dashboardTheme',
+    label: 'Theme to use for Dashboard',
+    description:
+      'If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.',
+    type: 'input',
+    default: '',
     compactDisplay: true,
   },
   {
@@ -194,14 +221,40 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Tag/Mention section",
+    label: 'Overdue Tasks section',
   },
   {
-    key: "tagsToShow",
-    label: "#tag/@mention(s) to show",
-    description: "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
+    key: 'overdueSortOrder',
+    label: 'Sort order for Overdue tasks',
+    description:
+      "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
+    type: 'combo',
+    options: ['priority', 'earliest', 'most recent'],
+    default: 'priority',
+    compactDisplay: true,
+  },
+  {
+    key: 'lookBackDaysForOverdue',
+    label: 'Number of days to look back for Overdue tasks',
+    description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
+    type: 'number',
+    default: '',
+    compactDisplay: true,
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Tag/Mention section',
+  },
+  {
+    key: 'tagsToShow',
+    label: '#tag/@mention(s) to show',
+    description:
+      "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
     type: 'input',
-    default: "",
+    default: '',
   },
   // Note: now effectively made Dashboard-wide, aka "ignoreItemsWithTerms"
   // {
@@ -216,14 +269,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Automatic Refresh"
+    label: 'Automatic Refresh',
   },
   {
-    key: "autoUpdateAfterIdleTime", // aka "autoRefresh"
-    label: "Automatic Update frequency",
-    description: "If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.",
+    key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
+    label: 'Automatic Update frequency',
+    description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
     type: 'number',
-    default: "0",
+    default: '0',
     compactDisplay: true,
   },
   {
@@ -231,28 +284,29 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Interactive Processing"
+    label: 'Interactive Processing',
   },
   {
-    key: "enableInteractiveProcessing",
-    label: "Enable interactive processing for each section?",
-    description: "If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.",
+    key: 'enableInteractiveProcessing',
+    label: 'Enable interactive processing for each section?',
+    description: 'If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.',
     type: 'switch',
     default: true,
-    controlsOtherKeys: ["interactiveProcessingHighlightTask", "enableInteractiveProcessingTransitions"]
+    controlsOtherKeys: ['interactiveProcessingHighlightTask', 'enableInteractiveProcessingTransitions'],
   },
   {
-    key: "interactiveProcessingHighlightTask",
-    label: "Open note and highlight task when processing?",
-    description: "If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window",
+    key: 'interactiveProcessingHighlightTask',
+    label: 'Open note and highlight task when processing?',
+    description:
+      'If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window',
     type: 'switch',
     dependsOnKey: 'enableInteractiveProcessing',
     default: false,
   },
   {
-    key: "enableInteractiveProcessingTransitions",
-    label: "Show interactive processing transitions?",
-    description: "By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.",
+    key: 'enableInteractiveProcessingTransitions',
+    label: 'Show interactive processing transitions?',
+    description: 'By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.',
     type: 'switch',
     dependsOnKey: 'enableInteractiveProcessing',
     default: true,
@@ -262,13 +316,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: "Logging",
-    description: "Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings."
+    label: 'Logging',
+    description: 'Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings.',
   },
 ]
 
 export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginSettings: TAnyObject */): Array<TSettingItem> => {
-  return dashboardSettingDefs.map(setting => {
+  return dashboardSettingDefs.map((setting) => {
     // clof(setting, 'createDashboardSettingsItems: setting',true)
     const thisKey = setting.key ?? ''
     switch (setting.type) {
