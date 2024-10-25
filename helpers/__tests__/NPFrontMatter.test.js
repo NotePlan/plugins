@@ -310,6 +310,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       // New tests for handling double quotes inside the text
+      // FIXME(@dwertheimer): fails. JGC has looked and doesn't understand this particular case fully to decide whether to fix code or this test.
       test('should escape internal double quotes when wrapping with quotes', () => {
         const result = f.quoteText('foo "bar" baz')
         expect(result).toEqual('"foo \\"bar\\" baz"') // Inner double quotes are escaped

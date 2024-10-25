@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-10-24 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -91,7 +91,7 @@ export type TSection = {
   doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
 }
 
-export type TItemType = 'open' | 'checklist' | 'congrats' | 'project' | 'filterIndicator'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'filterIndicator'
 
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
@@ -155,6 +155,7 @@ export type TActionType =
   | 'cyclePriorityStateUp'
   | 'cyclePriorityStateDown'
   | 'deleteItem'
+  | 'moveAllThisWeekNextWeek'
   | 'moveAllTodayToTomorrow'
   | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'
@@ -270,6 +271,7 @@ export type TPluginData = {
   demoMode: boolean, /* use fake content for demo purposes */
   totalDoneCounts?: TDoneCount,
   startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
+  version: string,
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' 

@@ -67,16 +67,19 @@ describe('helpers/folders', () => {
         const exclusions = ['CCC Areas']
         const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
         expect(folders.length).toBe(7)
+        // expect(folders).toEqual(['@Templates', '/', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3']) // doesn't work as expected, instead producing output ['0', '1','2','3', ...]
       })
       test('exclude CCC, LEVEL 2; include @specials -> 4 left', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = Object.keys(f.getFoldersMatching([], false, exclusions))
         expect(folders.length).toBe(4)
+        // expect(folders).toEqual(['@Templates', '/', 'Home Areas', 'TEST'])
       })
       test('exclude CCC, LEVEL 2; no @specials -> 3 left', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = Object.keys(f.getFoldersMatching([], true, exclusions))
         expect(folders.length).toBe(3)
+        // expect(folders).toEqual(['/', 'Home Areas', 'TEST'])
       })
     })
     describe('both inclusions + exclusions', () => {

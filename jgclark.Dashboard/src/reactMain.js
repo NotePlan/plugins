@@ -1,10 +1,9 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated 2024-10-24 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
-// import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import type { TPluginData, TDashboardSettings } from './types'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from "./constants"
@@ -19,7 +18,6 @@ import {
   getGlobalSharedData, sendToHTMLWindow,
   sendBannerMessage
 } from '@helpers/HTMLView'
-// import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
@@ -326,6 +324,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    version: pluginJson["plugin.version"],
   }
 
   // Calculate all done task counts (if the appropriate setting is on)

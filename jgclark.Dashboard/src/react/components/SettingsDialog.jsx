@@ -3,7 +3,7 @@
 // Dashboard React component to show the settings dialog
 // Changes are saved when "Save & Close" is clicked, but not before
 // Called by Header component.
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-10-24 for v2.0.7 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -51,7 +51,9 @@ const SettingsDialog = ({
 	//----------------------------------------------------------------------
 	// Context
 	//----------------------------------------------------------------------
-	const { dashboardSettings, setDashboardSettings } = useAppContext()
+	const { dashboardSettings, setDashboardSettings, pluginData } = useAppContext()
+
+	const pluginDisplayVersion = `v${pluginData.version}`
 
 	//----------------------------------------------------------------------
 	// State
@@ -188,6 +190,7 @@ const SettingsDialog = ({
 						)}
 					</div>
 				))}
+					<div className="item-description">{pluginDisplayVersion}</div>
 			</div>
 			</div>
 		</Modal>

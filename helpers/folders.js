@@ -3,7 +3,7 @@
 // Folder-level Functions
 
 import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
-import { forceLeadingSlash } from '@helpers/general'
+// import { forceLeadingSlash } from '@helpers/general'
 import { caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from './search'
 
 /**
@@ -15,7 +15,7 @@ import { caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from './sear
  * Note: now clarified that this is a case-insensitive match.
  * @author @jgclark
  * @tests in jest file
- * @param {Array<string>} inclusions - if these (sub)strings match then exclude this folder -- can be empty
+ * @param {Array<string>} inclusions - if not empty, use these (sub)strings to match folder items
  * @param {boolean} excludeSpecialFolders?
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
  * @returns {Array<string>} array of folder names
@@ -38,8 +38,8 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     const rootExcluded = exclusions.some((f) => f === '/')
     // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
-    // const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
-    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}, exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
+    const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
+    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)} and exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // Deal with special case of inclusions just '/'
     if (inclusions.length === 1 && inclusions[0] === '/') {
@@ -49,21 +49,26 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
 
     // if necessary filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
+    // logDebug('folders / getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     let reducedTerminatedWithSlash: Array<string> = []
     for (const f of reducedFolderList) {
       reducedTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
     }
-    // logDebug('folders / getFoldersMatching', `- reduced ${reducedTerminatedWithSlash.length} folders:  [${reducedTerminatedWithSlash.toString()}]`)
+    // logDebug('folders / getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
 
-    // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list. Note: now case insensitive.
-    reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
+    // filter reducedTerminatedWithSlash to exclude items in the exclusions list (if non-empty). Note: now case insensitive.
+    if (exclusionsWithoutRoot.length > 0) {
+      reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
+      // logDebug('folders / getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+    }
 
-    // logDebug(
-    //   'folders / getFoldersMatching',
-    //   `- after inclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`,
-    // )
+    // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list (if non-empty). Note: now case insensitive.
+    if (inclusionsWithoutRoot.length > 0) {
+      reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
+      // logDebug('folders / getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+    }
 
     // now remove trailing slash characters
     const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
@@ -72,7 +77,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (rootIncluded && !rootExcluded) {
       outputList.unshift('/')
     }
-    logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
     logError('getFoldersMatching', error.message)
