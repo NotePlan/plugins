@@ -113,7 +113,6 @@ export async function writeNoteContents(
  * @author @dwertheimer
  */
 export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = ''): Promise<void> {
-export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = ''): Promise<void> {
   try {
     logDebug(
       pluginJson,
@@ -124,10 +123,6 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
     if (selectedTemplate.length !== 0) {
       //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
       const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
-      //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
-      const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
-      clo(argObj, `templateFileByTitleEx after overrideSettingsWithStringArgs argObj`)
-
 
       // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
