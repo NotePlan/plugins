@@ -1354,7 +1354,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.content === content) {
-            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+            // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
           c++

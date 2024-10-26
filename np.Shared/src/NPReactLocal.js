@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
+import { showHTMLWindow /*, getCallbackCodeString */, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -148,17 +148,17 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
     <script>
       const receivingPluginID = "${pluginJson['plugin.id']}";
-      const onMessageFromPlugin = ()=>{} // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
+      const onMessageFromPlugin = ()=>{}; // np.Shared/pluginToHTMLCommsBridge wants to see this function, but we don't use it in React because we will set up our own listener in Root
     </script>
     <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
     `
 
-    const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
-    const sendMessageToPluginFunction = `
-      const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
-    `
+    // const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
+    // const sendMessageToPluginFunction = `
+    //   const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
+    // `
 
-    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>`
+    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>\n`
     const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
     const generatedOptions = {
       includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,

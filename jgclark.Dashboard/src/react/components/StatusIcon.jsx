@@ -16,16 +16,10 @@ type Props = {
   item: TSectionItem,
   respondToClicks: boolean,
   onIconClick?: (item: TSectionItem, actionType: string) => void,
-  location?: string, /* where being called from so we can make decisions (e.g. "dialog" to show/not show things) */
-};
+  location?: string /* where being called from so we can make decisions (e.g. "dialog" to show/not show things) */,
+}
 
-const StatusIcon = ({
-  item,
-  respondToClicks,
-  onIconClick,
-  location,
-}: Props): Node => {
-
+const StatusIcon = ({ item, respondToClicks, onIconClick, location }: Props): Node => {
   const { sendActionToPlugin, reactSettings } = useAppContext()
 
   const dialogIsOpen = reactSettings?.dialogData?.isOpen
@@ -34,8 +28,7 @@ const StatusIcon = ({
   useEffect(() => {
     // This effect runs when `item.itemType` changes
     setIconClassName(getClassNameFromType(item.itemType))
-  }, [item.itemType])  // Depend on `item.itemType` to update the icon when it changes
-
+  }, [item.itemType]) // Depend on `item.itemType` to update the icon when it changes
 
   // Initial state setup for iconClassName based on the item type
   const [iconClassName, setIconClassName] = useState(getClassNameFromType(item.itemType))
@@ -51,6 +44,7 @@ const StatusIcon = ({
       case 'checklistCancelled':
         return 'cancelled fa-regular fa-square-xmark'
       case 'itemCongrats':
+      case 'projectCongrats':
         return 'fa-regular fa-circle-check'
       case 'deleted':
         return 'fa-regular fa-trash-xmark'
@@ -89,12 +83,12 @@ const StatusIcon = ({
   function determineActionType(metaKey: boolean, ctrlKey: boolean): TActionType {
     switch (item.itemType) {
       case 'open': {
-        setIconClassName(getClassNameFromType(metaKey ? "cancelled" : ctrlKey ? "deleted" : "done"))
+        setIconClassName(getClassNameFromType(metaKey ? 'cancelled' : ctrlKey ? 'deleted' : 'done'))
         return metaKey ? 'cancelTask' : ctrlKey ? 'deleteItem' : 'completeTask'
       }
       case 'checklist': {
-        setIconClassName(getClassNameFromType(metaKey ? "checklistCancelled" : ctrlKey ? "deleted" : "checklistDone"))
-        return metaKey ? 'cancelChecklist' : ctrlKey ? "deleteItem" : 'completeChecklist'
+        setIconClassName(getClassNameFromType(metaKey ? 'checklistCancelled' : ctrlKey ? 'deleted' : 'checklistDone'))
+        return metaKey ? 'cancelChecklist' : ctrlKey ? 'deleteItem' : 'completeChecklist'
       }
       case 'project': {
         return 'showNoteInEditorFromFilename'
@@ -105,16 +99,20 @@ const StatusIcon = ({
     }
   }
 
-  const renderedIcon = (<div className="sectionItemTodo itemIcon todo">
-    <i className={iconClassName} onClick={handleIconClick}></i>
-  </div>)
+  const renderedIcon = (
+    <div className="sectionItemTodo itemIcon todo">
+      <i className={iconClassName} onClick={handleIconClick}></i>
+    </div>
+  )
 
   // Note: trying TooltipOnKeyPress as a span item, and an equivalent empty one if there's no tooltip
   return shouldShowTooltips ? (
     <TooltipOnKeyPress ctrlKey={{ text: 'Delete Item' }} metaKey={{ text: 'Cancel Item' }} label={`${item.itemType}_${item.ID}_Icon`}>
       {renderedIcon}
     </TooltipOnKeyPress>
-  ) : <span>{renderedIcon}</span>
+  ) : (
+    <span>{renderedIcon}</span>
+  )
 }
 
 export default StatusIcon

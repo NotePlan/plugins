@@ -126,6 +126,64 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
 }
 
 /**
+ * Compare two objects or arrays and return an object containing only the properties that have changed.
+ *
+ * @param {Object|Array} oldObj - The original object or array to compare against.
+ * @param {Object|Array} newObj - The new object or array with potential changes.
+ * @returns {Object|Array|null} - An object or array containing only the properties that have changed, or null if no changes.
+ */
+export function compareObjects(oldObj: any, newObj: any): any {
+  if (oldObj === newObj) {
+    return null // No changes
+  }
+
+  if (typeof oldObj !== typeof newObj) {
+    return newObj // Type has changed, consider as changed
+  }
+
+  if (Array.isArray(newObj)) {
+    if (!Array.isArray(oldObj)) {
+      return newObj // Changed from non-array to array
+    }
+
+    const differences = []
+    const maxLength = Math.max(oldObj.length, newObj.length)
+
+    for (let i = 0; i < maxLength; i++) {
+      const oldVal = oldObj[i]
+      const newVal = newObj[i]
+      const diff = compareObjects(oldVal, newVal)
+      if (diff !== null && diff !== undefined) {
+        differences[i] = diff
+      }
+    }
+
+    return differences.length > 0 ? differences : null
+  } else if (typeof newObj === 'object' && newObj !== null) {
+    if (typeof oldObj !== 'object' || oldObj === null) {
+      return newObj // Changed from non-object to object
+    }
+
+    const differences = {}
+    const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
+
+    for (const key of keys) {
+      const oldVal = oldObj[key]
+      const newVal = newObj[key]
+      const diff = compareObjects(oldVal, newVal)
+      if (diff !== null && diff !== undefined) {
+        differences[key] = diff
+      }
+    }
+
+    return Object.keys(differences).length > 0 ? differences : null
+  } else {
+    // Primitives
+    return newObj !== oldObj ? newObj : null
+  }
+}
+
+/**
  * CLO + field-limited - Loop through and Console.log only certain names/values of an object to console with text preamble
  * Like CLO but more concise, only showing certain fields. Useful for large objects with many fields.
  * Prunes object properties that are not in the list, but continues to look deeper as long as properties match the list.
@@ -330,7 +388,7 @@ const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERR
 
 /**
  * Test _logLevel against logType to decide whether to output
- * @param {string} logType 
+ * @param {string} logType
  * @returns {boolean}
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
@@ -351,8 +409,8 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 /**
  * Test if _logFunctionRE is set and matches the current log details.
  * Note: only works if DataStore is available.
- * @param {any} pluginInfo 
- * @returns 
+ * @param {any} pluginInfo
+ * @returns
  */
 export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null

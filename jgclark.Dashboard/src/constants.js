@@ -33,4 +33,4 @@ export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
 
 export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 
-export const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list
+export const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list. Excludes PROJ as that deals in notes not items

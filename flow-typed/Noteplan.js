@@ -1254,7 +1254,8 @@ declare interface Paragraph {
    */
   +rawContent: string;
   /**
-   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task). 
+   * Note: @jgclark thinks this does not include any indentation whitespace.
    */
   +prefix: string;
   /**

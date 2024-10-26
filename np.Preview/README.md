@@ -1,6 +1,6 @@
 # 🖥️ Preview Plugin
 This plugin provides the **/preview note** and **/start live preview** commands that renders the current note to HTML including:
-- standard Markdown conversion
+- standard Markdown conversion (including referenced images)
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
 - all open task and checklist types (according to user's Markdown settings) render as open tasks (using basic GFM rendering)
@@ -11,7 +11,11 @@ It adds a 'Print (opens in system browser)' button to the preview window (on mac
 
 [This example NotePlan note](https://noteplan.co/n/EA936BC2-A6C1-43F7-9C34-E2C31CF96AC6) includes examples of these different capabilities.
 
-Note: This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself.  Indeed I know there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses. To that end, I don't intend to be making many improvements to this.
+## Limitations
+This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself. To that end, I don't intend to be making many improvements to this.  In particular I'm aware that:
+
+- it does not render embedded images
+-  there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses.
 
 ## Automatic updating
 Use the **/start live preview** command to open the Preview window, _and enable near-live update for this note_. Under the hood this works by adding a **trigger** on the note so that the window will automatically refresh when you edit the note. This is the line it adds to the note's frontmatter block:

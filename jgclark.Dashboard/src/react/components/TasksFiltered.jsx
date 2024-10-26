@@ -22,7 +22,7 @@ const TasksFiltered = ({ item }: Props): Node => {
 
   function handleLineClick(_e: MouseEvent) {
     // logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
-    setDashboardSettings(prevSettings => ({ ...prevSettings, ['filterPriorityItems']: false }))
+    setDashboardSettings((prevSettings) => ({ ...prevSettings, ['filterPriorityItems']: false }))
   }
 
   return (
@@ -33,9 +33,7 @@ const TasksFiltered = ({ item }: Props): Node => {
           <i id={item.ID} className="fa-regular fa-plus"></i>
         </div>
       </span>
-      <div
-        className="sectionItemContent sectionItem"
-        onClick={(e) => handleLineClick(e)} >
+      <div className="sectionItemContent sectionItem" onClick={(e) => handleLineClick(e)}>
         <span className="content">
           <i>{item?.para?.content || '<no content>'}</i>
         </span>

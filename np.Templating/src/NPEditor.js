@@ -113,6 +113,7 @@ export async function writeNoteContents(
  * @author @dwertheimer
  */
 export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = ''): Promise<void> {
+export async function templateFileByTitleEx(selectedTemplate?: string = '', openInEditor?: boolean = false, args?: string | null = ''): Promise<void> {
   try {
     logDebug(
       pluginJson,
@@ -123,7 +124,10 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
     if (selectedTemplate.length !== 0) {
       //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
       const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
+      //TODO: call overrideSettingsWithTypedArgs() for JSON inputs from form
+      const argObj = args && typeof args === 'string' && args.includes('__isJSON__') ? JSON.parse(args) : overrideSettingsWithStringArgs({}, args || '')
       clo(argObj, `templateFileByTitleEx after overrideSettingsWithStringArgs argObj`)
+
 
       // args && args.split(',').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       if (!selectedTemplate || selectedTemplate.length === 0) {
@@ -141,6 +145,12 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes after preRender`)
         let data = { ...frontmatterAttributes, ...argObj, frontmatter: { ...frontmatterAttributes, ...argObj } }
+        if (data['newNoteTitle']) {
+          // if form or template has a newNoteTitle field then we need to call templateNew
+          const argsArray = [selectedTemplate, data['folder'] || null, argObj]
+          await DataStore.invokePluginCommandByName('templateNew', 'np.Templating', argsArray)
+          return
+        }
         if (data['newNoteTitle']) {
           // if form or template has a newNoteTitle field then we need to call templateNew
           const argsArray = [selectedTemplate, data['folder'] || null, argObj]

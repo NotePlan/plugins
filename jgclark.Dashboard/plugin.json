@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.0.7",
+  "plugin.version": "2.1.0.a14",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.0.7: new 'All -> Next Week' button in Week section. Under-the-hood changes to match Project + Reviews Plugin v1.0 release.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
+  "plugin.lastUpdateInfo": "2.1.0: Add Perspectives.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.min.js",
@@ -43,6 +43,7 @@
       "description": "Show Demo Dashboard",
       "jsFunction": "showDemoDashboard",
       "hidden": false,
+      "comment": "TODO: remove me in time",
       "alias": [
         "sdd"
       ],
@@ -74,16 +75,43 @@
       "hidden": "false"
     },
     {
+      "name": "Add new Perspective",
+      "description": "Add new Perspective from current settings.",
+      "jsFunction": "addNewPerspective",
+      "hidden": "false"
+    },
+    {
+      "name": "Delete Perspective",
+      "description": "Delete an existing Perspective.",
+      "jsFunction": "deletePerspective",
+      "hidden": "false"
+    },
+    {
+      "name": "Update current Perspective",
+      "description": "Update the current Perspective defintion",
+      "jsFunction": "updateCurrentPerspectiveDef",
+      "hidden": "false"
+    },
+    {
+      "name": "Delete all Perspective Settings",
+      "description": "Delete all Perspective Settings.",
+      "jsFunction": "deleteAllNamedPerspectiveSettings",
+      "hidden": "false"
+    },
+    {
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
       "hidden": true
     },
     {
-      "name": "refreshProjectSection",
-      "description": "Refresh project section",
-      "jsFunction": "refreshProjectSection",
-      "hidden": true
+      "name": "refreshSectionByCode",
+      "description": "Refresh section with section code",
+      "jsFunction": "refreshSectionByCode",
+      "hidden": true,
+      "arguments": [
+        "section code to refresh"
+      ]
     },
     {
       "name": "onMessageFromHTMLView",
@@ -96,6 +124,18 @@
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall",
       "hidden": true
+    },
+    {
+      "name": "Update plugin settings",
+      "description": "Settings interface (for iOS)",
+      "jsFunction": "editSettings",
+      "hidden": true
+    },
+    {
+      "comment": "TODO: remove me in time",
+      "name": "log Perspective Settings",
+      "description": "log perspective settings",
+      "jsFunction": "getPerspectiveSettings"
     }
   ],
   "plugin.commands.unused": [
@@ -120,10 +160,17 @@
     },
     {
       "type": "hidden",
-      "key": "reactSettings",
-      "description": "Saves last state of react UI choices as JSON string.",
+      "key": "dashboardSettings",
+      "description": "Saves last state of dashboardSettings as JSON string.",
       "required": true,
       "default": "{}"
+    },
+    {
+      "type": "hidden",
+      "key": "perspectiveSettings",
+      "description": "Saves current state of Perspective definitions as JSON string.",
+      "required": true,
+      "default": "[]"
     },
     {
       "type": "heading",
@@ -146,6 +193,14 @@
       "required": true
     },
     {
+      "key": "_logFunctionRE",
+      "title": "Regex for Functions to show in debug log",
+      "description": "Overrides the Log Level above if this regex matches the first argument in log*() calls. If not set, has no effect.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
       "key": "_logTimer",
       "title": "Enable Timer logging?",
       "description": "For plugin authors to help optimise the plugin.",
@@ -156,16 +211,16 @@
     {
       "type": "heading",
       "title": "All the rest of the Settings have been migrated to the Dashboard Window, so please make your changes there."
-    },
-    {
-      "type": "hidden",
-      "key": "dashboardSettings",
-      "description": "Saves last state of dashboardSettings as JSON string.",
-      "required": true,
-      "default": "{}"
     }
   ],
   "plugin.unused_settings": [
+    {
+      "type": "hidden",
+      "key": "reactSettings",
+      "description": "Saves last state of react UI choices as JSON string.",
+      "required": true,
+      "default": "{}"
+    },
     {
       "type": "heading",
       "title": "Do Not Change These Settings"

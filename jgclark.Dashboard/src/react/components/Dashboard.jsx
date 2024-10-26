@@ -1,26 +1,29 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
-// Called by parent component.
-// Last updated 2024-07-25 for v2.0.4 by @jgclark
+// Called by WebView component.
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
+// import type { TDashboardSettings } from '../../types.js'
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
+import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
-// import { type TActionButton } from '../../types.js'
 import Header from './Header'
 import Section from './Section/Section.jsx'
 import Dialog from './Dialog.jsx'
 import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, logError, logInfo, clo, clof, JSP } from '@helpers/react/reactDev.js'
+import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import {compareObjects}  from '@helpers/dev'
 import '../css/Dashboard.css'
 
 //--------------------------------------------------------------------------
@@ -33,7 +36,7 @@ declare var globalSharedData: {
 };
 
 type Props = {
-  pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
+  pluginData: Object, // the data that was sent from the plugin in the field "pluginData"
 }
 
 //--------------------------------------------------------------------------
@@ -43,7 +46,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, updatePluginData } = useAppContext()
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -65,34 +68,39 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
 
+  //
+  // Functions
+  //
+
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
 
   let sections = [...origSections]
   let totalSectionItems = countTotalSectionItems(origSections)
-  logInfo('Dashboard', `origSections: ${origSections.length} sections with ${String(totalSectionItems)} items`)
+  // logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
-  if (sections.length > 1 && dashboardSettings.hideDuplicates) {
+  if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
+    // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
     const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
-    logInfo('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
+    // logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
     sections = deduplicatedSections
-    logInfo('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
+    // logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
     // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
   }
 
   sections = sortSections(sections, sectionDisplayOrder)
-  logDebug('Dashboard', `sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
+  // logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
-  // FIXME: seems to be OK up to here. But then I get confused.
 
-  // DBW says the 98 was to avoid scrollbars. TEST: removing
+  // DBW says the 98 was to avoid scrollbars.
+  // TODO: JGC use KP's knowledge to have a more universal solution
   const dashboardContainerStyle = {
-    maxWidth: '100vw',  // '98vw',
+    maxWidth: '100vw', // '98vw',
     width: '100vw', // '98vw',
   }
 
@@ -111,11 +119,29 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (!dashboardSettings) {
       // Fallback or initialization logic for dashboardSettings
       logError('Dashboard', 'dashboardSettings is undefined')
-    } 
+    }
   }, [dashboardSettings])
-  
+
+  // Effect to update dashboardSettings when pluginData.dashboardSettings changes (e.g. the plugin rewrote it)
+  useEffect(() => {
+    // logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
+    pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`, `dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
+    if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
+      let diff = compareObjects(pluginData.dashboardSettings,dashboardSettings)
+      diff && clo(diff,`Dashboard pluginData.dashboardSettings watcher diff`)
+      if (diff && Object.keys(diff).length === 1 && diff.hasOwnProperty("lastChange")) {
+        diff = null
+        logDebug(`Dashboard`, `useEffect(pluginData.dashboardSettings) - Only lastChange field was different. (old="${dashboardSettings.lastChange}" new="${pluginData.dashboardSettings.lastChange}") Ignoring.`)
+      }
+      if (diff) {
+        logDebug(`WebView`, `Looks like dashboardSettings are different. calling dispatchDashboardSettings()`)
+        dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: pluginData.dashboardSettings })
+      }
+    }
+  }, [pluginData.dashboardSettings])
+
   // temporary code to output variable changes to Chrome DevTools console
-  const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length===0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
+  const logChanges = (label: string, value: any) => (!window.webkit) ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length === 0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
     (dashboardSettings && Object.keys(dashboardSettings).length > 0) ? logChanges('dashboardSettings', dashboardSettings) : null
   }, [dashboardSettings])
@@ -131,15 +157,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // if we did a force reload (DEV only) of the full sections data, no need to load the rest
     // but if we are doing a normal load, then get the rest of the section data incrementally
     // this executes before globalSharedData is saved into state 
-    logDebug('Dashboard', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
+    logDebug('Dashboard/useEffect [] (startup only)', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
     if (origSections.length <= 2) {
       const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
-      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage:'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
+      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage: 'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
     }
   }, [])
 
   // Change the title when the section data changes
-  // TODO(@dbw): this doesn't work and I'm not sure it ever can
   useEffect(() => {
     const windowTitle = `Dashboard - ${totalSectionItems} items`
     if (document.title !== windowTitle) {
@@ -148,40 +173,36 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [pluginData.sections])
 
-  // when reactSettings changes anywhere, send it to the plugin to save in settings
-  // if you don't want the info sent, use a _ for the first char of lastChange
-  // TEST: removing effect according to @dbw comment below
-  // useEffect(() => {
-  //   if (reactSettings?.lastChange && typeof reactSettings.lastChange === 'string' && reactSettings.lastChange.length > 0 && reactSettings.lastChange[0] !== '_') {
-  //     const trimmedReactSettings = { ...reactSettings, lastChange: '_Saving', dialogData: { isOpen: false, isTask: true, details: {} } }
-  //     const strReactSettings = JSON.stringify(trimmedReactSettings)
-  //     // TODO: (from @dwertheimer) this whole effect can probably be deleted because we are not persisting reactSettings to the plugin anymore
-  //     // sendActionToPlugin('reactSettingsChanged', { actionType: 'reactSettingsChanged', dashboardSettings: strReactSettings }, 'Dashboard reactSettings updated', true)
-  //   }
-  // }, [reactSettings])
-
-  // when dashboardSettings changes anywhere, send it to the plugin to save in settings
-  // if you don't want the info sent, use a _ for the first char of lastChange
-  // if settingsMigrated is undefined, then we are doing a first-time migration from plugin settings to dashboardSettings
+  // create a new effect that sets perspectiveSettings when pluginData.perspectiveSettings changes in the plugin
   useEffect(() => {
-    const settingsNeedFirstTimeMigration = dashboardSettings?.settingsMigrated === undefined
-    if (settingsNeedFirstTimeMigration || dashboardSettings?.lastChange && typeof dashboardSettings.lastChange === 'string' && dashboardSettings.lastChange.length > 0 && dashboardSettings.lastChange[0] !== '_') {
-      settingsNeedFirstTimeMigration && logDebug('Dashboard(component)', `Settings need first time migration sending to plugin to be saved`, dashboardSettings)
-      logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: "${dashboardSettings.lastChange}" sending to plugin to be saved`, dashboardSettings)
-      const sharedSets = { ...dashboardSettings }
-      if (settingsNeedFirstTimeMigration) { 
-        sharedSets.settingsMigrated = true
-        sharedSets.lastChange = 'Saving first time migration'
+    if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
+      // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `changed: activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
+      const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
+      if (diff) {
+        logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)
+        dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: pluginData.perspectiveSettings, reason: `Perspectives changed by plugin (${JSON.stringify(diff)})` })
+      } else {
+        // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array unchanged`)
       }
-      sendActionToPlugin('dashboardSettingsChanged', { actionType: 'dashboardSettingsChanged', settings: sharedSets, logMessage: `Settings needed migrating` }, 'Dashboard dashboardSettings updated', true)
-    } else if (dashboardSettings && Object.keys(dashboardSettings).length > 0) {
-      // logDebug('Dashboard', `Watcher for dashboardSettings changes. Shared settings updated: ${JSON.stringify(dashboardSettings,null,2)}`,dashboardSettings)
     }
-  }, [dashboardSettings])
+  }, [pluginData.perspectiveSettings])
 
-  // Update dialogData when pluginData changes, e.g. when the dialog is open and you are changing things like priority
+  // When perspectiveSettings changes anywhere, send it to the plugin to save in settings
   useEffect(() => {
-    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen)) return
+    if (perspectiveSettings && perspectiveSettings.length > 0) {
+      const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
+      if (diff) {
+        logDebug('Dashboard/useEffect(perspectiveSettings)', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(compareObjects(pluginData.perspectiveSettings,perspectiveSettings))}\n\tNOTE: Not currently sending this back to plugin because was circular. Need to find a better way.`, perspectiveSettings)
+        // sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+      } else {
+        logDebug('Dashboard/useEffect(perspectiveSettings)', `Watcher for perspectiveSettings changes. Settings match. Probably just newest perspective data sent from plugin. No need to send back again.`)
+      }
+    }
+  }, [perspectiveSettings])
+
+  // Update dialogData when pluginData changes, e.g. when the dialog is open for a task and you are changing things like priority
+  useEffect(() => {
+    if ((!reactSettings?.dialogData || !reactSettings.dialogData.isOpen) || !reactSettings.dialogData.isTask) return
     const { dialogData } = reactSettings
     const { details: dialogItemDetails } = dialogData
     if (!dialogData.isOpen || !dialogItemDetails) return
@@ -202,7 +223,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       // clo(`Dashboard: in useEffect on dialog details change, previous dialogData=${JSP(reactSettings?.dialogData)}\n...incoming data=${JSP(newSectionItem, 2)}`)
       // used to do the JSON.stringify to compare, but now that an .updated field is used, they will be different
       if (newSectionItem && newSectionItem.updated && JSON.stringify(newSectionItem) !== JSON.stringify(dialogData?.details?.item)) {
-        // logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`)
+        // TRYING TO FIGURE OUT WHERE hasChild IS BEING SET TO TRUE WHEN IT SHOULDN'T BE I think it's probably the cache update bug
+        newSectionItem?.para?.hasChild ? logDebug('Dashboard', `in useEffect on dialog details change, newSectionItem: ${JSP(newSectionItem, 2)}\n...will update dialogData`) : null
         // logDebug('Dashboard', `in useEffect on ${newSectionItem.ID} dialog details change`)
         newSectionItem.updated = false
         setReactSettings(prev => {
@@ -211,7 +233,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
             dialogData: {
               ...prev.dialogData,
               details: {
-                ...prev.dialogData.details /* to save the clickPosition */, 
+                ...prev.dialogData.details, // to save the clickPosition
                 item: newSectionItem
               }
             },
@@ -224,18 +246,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         const newPluginData = { ...pluginData, sections: updatedSections }
         updatePluginData(newPluginData, `Dialog updated data then reset for ${newSectionItem.ID}`)
       } else {
-        // FIXME(@dwertheimer): I worked around the crash this logDebug generates in the Projects section. But I'm not sure what this achieves?
-        // Q: And indeed, why is this being called at all when simply opening the Dialog for a project?
         // logDebug('Dashboard', `Dialog details change, newSectionItem: ${newSectionItem.ID}: ${newSectionItem.para?.content ?? '<no para.content>'}`)
       }
     }
   }, [pluginData, setReactSettings, reactSettings?.dialogData])
 
-  // 
+  // Catch startDelayedRefreshTimer from plugin
   useEffect(() => {
     if (pluginData.startDelayedRefreshTimer) {
       logDebug('Dashboard', `plugin sent pluginData.startDelayedRefreshTimer=true, setting up delayed timer.`)
-      updatePluginData({...pluginData, startRefreshTimer: false},'Got message from plugin; resetting refresh timer')
+      updatePluginData({ ...pluginData, startRefreshTimer: false }, 'Got message from plugin; resetting refresh timer')
       !(reactSettings?.interactiveProcessing) && refreshTimer() // start the cache-busting timer if !interactiveProcessing 
     }
   }, [pluginData.startDelayedRefreshTimer])
@@ -244,18 +264,15 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Handlers
   //----------------------------------------------------------------------
   const handleDialogClose = (xWasClicked: boolean = false) => {
-    // logDebug('Dashboard', `handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing||{})}`)
-    xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later
-    const interactiveProcessing = xWasClicked ? { interactiveProcessing: false, dialogData: { isOpen: false, details: null } } : {}
-    setReactSettings((prev) => ({ ...prev, dialogData: { ...prev.dialogData, isOpen: false }, lastChange: `_Dashboard-DialogClosed`, ...interactiveProcessing }))
+    logDebug('Dashboard', `Dashboard::handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing || {})}`)
+    // xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later NOTE: dbw commented this out on 2024-10-08 after changing how interactiveProcessing works
   }
 
   // Deal with the delayed refresh when a button was clicked
-  // Because sections and buttons could be destroyed after a click, we need to
-  // refresh from here
+  // Because sections and buttons could be destroyed after a click, we need to refresh from here
   const handleCommandButtonClick = (/*  button: TActionButton */) => {
     // logDebug('Dashboard', `handleCommandButtonClick was called for button: ${button.display}; setting up delayed timer.`)
-    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective
+    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective // TODO(dbw): review this
   }
 
   const autoRefresh = () => {
@@ -273,10 +290,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || "0") > 0
 
   return (
-    <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform??''}>
+    <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
         <IdleTimer
-          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000 /* 15 minutes default */}
+          idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : "15") * 60 * 1000}
           onIdleTimeout={autoRefresh}
         />
       )}
@@ -299,3 +316,4 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 }
 
 export default Dashboard
+

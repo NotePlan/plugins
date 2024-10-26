@@ -7,8 +7,8 @@
 import React from 'react'
 import type { TActionButton } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug, JSP } from '@helpers/react/reactDev.js'
-
+import { showDialog } from '@helpers/react/userInput'
+import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
 type ButtonProps = {
   button: TActionButton,
   onClick: (button: TActionButton) => void, // send this button info back up
@@ -16,7 +16,7 @@ type ButtonProps = {
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
-  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
+  const { sendActionToPlugin } = useAppContext()
   const { button, onClick } = inputObj
 
   // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
@@ -26,14 +26,25 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
 
-  const handleButtonClick = () => {
-    logDebug(`CommandButton`, `button clicked: ${button.display}`)
+
+  const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
     sendActionToPlugin(button.actionPluginID, {
       actionType: button.actionName,
       toFilename: button.actionParam,
-      sectionCodes: button.postActionRefresh
+      sectionCodes: button.postActionRefresh,
+      userInputObj: userInputObj,
     })
     onClick(button)
+  }
+
+  const handleButtonClick = async () => {
+    let userInputObj:TAnyObject|null
+    if (button.formFields) { // show dialog to get user input if formFields are defined
+       userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter })
+       userInputObj ? sendButtonAction(button, userInputObj) : null
+    } else {
+      sendButtonAction(button, null)
+    }
   }
 
   return (

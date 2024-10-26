@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { allSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
+import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddItem,
   doCancelChecklist,
@@ -19,6 +19,7 @@ import {
   doDeleteItem,
   doMoveToNote,
   doSettingsChanged,
+  doAddNewPerspective,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -30,6 +31,8 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
+  doCommsBridgeTest,
+  // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddProgressUpdate,
@@ -41,23 +44,13 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import {
-  doMoveFromCalToCal,
-  scheduleAllOverdueOpenToToday,
-  scheduleAllThisWeekNextWeek,
-  scheduleAllTodayTomorrow,
-  scheduleAllYesterdayOpenToToday,
-} from './moveClickHandlers'
+import { doMoveFromCalToCal, scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveClickHandlers'
 import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
-import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
-import {
-  copyUpdatedSectionItemData, findSectionItems,
-} from './dataGeneration'
+// import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
+import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import {
-  sendToHTMLWindow, getGlobalSharedData,
-} from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -99,7 +92,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
+    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -112,7 +105,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
         content = result.updatedParagraph?.content ?? ''
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
-        data.item?.para?.content ? data.item.para.content = content : null
+        data.item?.para?.content ? (data.item.para.content = content) : null
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
         // await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
@@ -120,12 +113,17 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        // await refreshAllSections()
-        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
+        const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : allSectionCodes
+        logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
+
+        await incrementallyRefreshSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
         break
       }
       case 'windowReload': {
-        showDashboardReact()
+        const useDemoData = data.settings?.useDemoData ?? false
+        // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
+        // TEST: trying Plugin command invocation instead
+        DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
         return
       }
       case 'completeTask': {
@@ -237,15 +235,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doRescheduleItem(data)
         break
       }
-      // saving this for now 2024-07-11, but delete if it's been more than two weeks :)
-      // case 'reactSettingsChanged': {
-      //   // $FlowIgnore
-      //   if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
-      //   result = await doSettingsChanged(data, 'reactSettings')
-      //   break
-      // }
       case 'dashboardSettingsChanged': {
-       result = await doSettingsChanged(data, 'dashboardSettings')
+        result = await doSettingsChanged(data, 'dashboardSettings')
+        break
+      }
+      case 'perspectiveSettingsChanged': {
+        result = await doSettingsChanged(data, 'perspectiveSettings')
+        break
+      }
+      case 'addNewPerspective': {
+        result = await doAddNewPerspective(data)
         break
       }
       // case 'setSpecificDate': {
@@ -284,6 +283,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllThisWeekNextWeek(data)
         break
       }
+      case 'commsBridgeTest': {
+        result = await doCommsBridgeTest(data)
+        break
+      }
+      // case 'turnOffPriorityItemsFilter': {
+      //   result = await turnOffPriorityItemsFilter()
+      //   break
+      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -295,7 +302,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     } else {
       logWarn('bCDI', `false result from call`)
     }
-
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
@@ -313,28 +319,36 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     await checkForThemeChange()
     if (!handlerResult) return
 
-    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-    if (actionsOnSuccess.length === 0) {
-      logDebug('processActionOnReturn', `note: no post process actions to perform`)
-      return
-    }
     const { success, updatedParagraph } = handlerResult
-    const isProject = data.item?.itemType === 'project'
-    const actsOnALine = actionsOnSuccess.some(str => str.includes("LINE"))
-
-    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`)
-    if (actsOnALine && filename === '') {
-      logWarn('processActionOnReturn', `Starting with no filename`)
-    }
 
     if (success) {
+      const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+      if (actionsOnSuccess.length === 0) {
+        logDebug('processActionOnReturn', `note: no post process actions to perform`)
+        return
+      }
+      const isProject = data.item?.itemType === 'project'
+      const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
+
+      const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+      logDebug(
+        'processActionOnReturn',
+        isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
+      )
+      if (actsOnALine && filename === '') {
+        logWarn('processActionOnReturn', `Starting with no filename`)
+      }
       if (filename !== '') {
         // update the cache for the note, as it might have changed
         const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
       }
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content||''}"`}`)
+        logDebug(
+          'processActionOnReturn',
+          `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID || ''} ${
+            data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content || ''}"`
+          }`,
+        )
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
@@ -372,7 +386,11 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
       }
     } else {
-      logDebug('processActionOnReturn', `-> failed handlerResult`)
+      logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
+      await sendBannerMessage(
+        WEBVIEW_WINDOW_ID,
+        `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
+      )
     }
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
@@ -399,7 +417,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     }
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
-    const isProject = data.item?.itemType === "project"
+    const isProject = data.item?.itemType === 'project'
 
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
@@ -432,11 +450,11 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
         throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
       }
     } else if (isProject) {
-      // 
+      //
       const projFilename = data.item?.project?.filename
       if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
       const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-        itemType: "project",
+        itemType: 'project',
         'project.filename': projFilename,
       })
       logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
@@ -472,8 +490,8 @@ export async function checkForThemeChange(): Promise<void> {
   const config = await getDashboardSettings()
 
   // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
-  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')  
-  const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
+  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
+  const currentTheme = config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null
 
   // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (!currentTheme) {
@@ -491,5 +509,5 @@ export async function checkForThemeChange(): Promise<void> {
 
     // ... so for now, force a reload instead
     await showDashboardReact('full')
-  } 
+  }
 }

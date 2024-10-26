@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
@@ -5,24 +6,21 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import type { TPluginData, TDashboardSettings } from './types'
-import { allSectionDetails, WEBVIEW_WINDOW_ID } from "./constants"
-import { dashboardFilterDefs, dashboardSettingDefs } from "./dashboardSettings"
-import { getDashboardSettings, getNotePlanSettings, getLogSettings, } from './dashboardHelpers'
-import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
-import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
+import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
+import { rollUpDoneCounts, getTotalDoneCounts, buildListOfDoneTasksToday } from './countDoneTasks'
+import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { clo, clof, JSP, logDebug, logError, logTimer, timer } from '@helpers/dev'
+import { getPerspectiveSettings } from './perspectiveHelpers'
+import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
+import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import {
-  getGlobalSharedData, sendToHTMLWindow,
-  sendBannerMessage
-} from '@helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
-
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -30,6 +28,7 @@ export type PassedData = {
   pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
+  dataMode: 'live' | 'demo' | 'test',
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
@@ -65,22 +64,24 @@ export async function showDemoDashboard(): Promise<void> {
  * x-callback entry point to change a single setting.
  * (Note: see also setSettings which does many at the same time.)
  * FIXME: doesn't work for show*Sections
- * @param {string} key 
- * @param {string} value 
+ * @param {string} key
+ * @param {string} value
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=activePerspectiveName&arg1=Home
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreTasksWithPhrase&arg1=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreItemsWithTerms&arg1=#waiting
  */
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
     logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
     const dashboardSettings = (await getDashboardSettings()) || {}
     // clo(dashboardSettings, 'dashboardSettings:')
-    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
-    const allKeys = allSettings.map(s => s.key)
+
+    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
+    const allKeys = allSettings.map((s) => s.key)
     logDebug('setSetting', `Existing setting keys: ${String(allKeys)}`)
     if (allKeys.includes(key)) {
-      const thisSettingDetail = allSettings.find(s => s.key === key) || {}
-      const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
+      const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
+      const setTo = thisSettingDetail.type === 'switch' ? value === 'true' : value
       // $FlowFixMe[prop-missing]
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
@@ -97,13 +98,13 @@ export async function setSetting(key: string, value: string): Promise<void> {
 /**
  * x-callback entry point to change multiple settings in one go.
  * @param {string} `key=value` pairs separated by ;
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreTasksWithPhrase=#waiting
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove=true;ignoreItemsWithTerms=#waiting
  */
 export async function setSettings(paramsIn: string): Promise<void> {
   try {
     const dashboardSettings = (await getDashboardSettings()) || {}
-    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter(k => k.label && k.key)
-    const allKeys = allSettings.map(s => s.key)
+    const allSettings = [...dashboardFilterDefs, ...dashboardSettingDefs].filter((k) => k.label && k.key)
+    const allKeys = allSettings.map((s) => s.key)
     const params = paramsIn.split(';')
     logDebug('setSettings', `Given ${params.length} key=value pairs to set:`)
     const i = 0
@@ -111,8 +112,8 @@ export async function setSettings(paramsIn: string): Promise<void> {
       const [key, value] = param.split('=')
       logDebug('setSettings', `- ${String(i)}: setting '${key}' -> '${value}'`)
       if (allKeys.includes(key)) {
-        const thisSettingDetail = allSettings.find(s => s.key === key) || {}
-        const setTo = thisSettingDetail.type === "switch" ? (value === 'true') : value
+        const thisSettingDetail = allSettings.find((s) => s.key === key) || {}
+        const setTo = thisSettingDetail.type === 'switch' ? value === 'true' : value
         // $FlowFixMe[prop-missing]
         dashboardSettings[key] = setTo
         logDebug('setSettings', `  - set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo})`)
@@ -129,14 +130,19 @@ export async function setSettings(paramsIn: string): Promise<void> {
 }
 
 /**
- * Make a callback with all the current settings in it, and 
+ * Make a callback with all the current settings in it, and
  */
 export async function makeSettingsAsCallback(): Promise<void> {
   try {
     const dashboardSettings = (await getDashboardSettings()) || {}
-    const params = Object.keys(dashboardSettings).map(k => `${k}=${String(dashboardSettings[k])}`).join(';')
+    const params = Object.keys(dashboardSettings)
+      .map((k) => `${k}=${String(dashboardSettings[k])}`)
+      .join(';')
     // then give user the choice of whether they want a raw URL or a pretty link.
-    const options = [{ label: 'raw URL', value: 'raw' }, { label: 'pretty link', value: 'link' }]
+    const options = [
+      { label: 'raw URL', value: 'raw' },
+      { label: 'pretty link', value: 'link' },
+    ]
     const result = await chooseOption('Settings as URL or Link?', options, 'raw URL')
     let output = ''
     // let clipboardType = ''
@@ -166,24 +172,29 @@ export async function makeSettingsAsCallback(): Promise<void> {
   }
 }
 
+/**
+ * TODO(dbw): fix flow errors and add JSDoc
+ * @param {string} limitToSections e.g. "TD,TY,#work"
+ */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
-  const dashboardSettings = (await getDashboardSettings()) || {}
-  // set everything to off to begin with
+  const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
+  // set everything off to begin with
   const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
     if (key) dashboardSettings[key] = false
   })
+
   // also turn off the specific tag sections (e.g. "showTagSection_@home")
-  keys.forEach((key) => dashboardSettings[key] = false)
+  keys.forEach((key) => (dashboardSettings[key] = false))
   const sectionsToShow = limitToSections.split(',')
   sectionsToShow.forEach((sectionCode) => {
     const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
     if (showSectionKey) {
       dashboardSettings[showSectionKey] = true
     } else {
-      if (sectionCode.startsWith("@") || sectionCode.startsWith("#")) {
+      if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
         dashboardSettings[`showTagSection_${sectionCode}`] = true
       } else {
         logError(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails`)
@@ -196,42 +207,56 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 /**
  * Plugin Entry Point for "Show Dashboard"
  * @author @dwertheimer
- * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) |  CSV of specific sections to load (e.g. from xcallback)
+ * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) | CSV of specific sections to load (e.g. from xcallback)
  * @param {boolean} useDemoData (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact 2 starting up (mode '${callMode}')${useDemoData ? ' in DEMO MODE' : ''}`)
+  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}') ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
   try {
     const startTime = new Date()
-    const limitToSections = !(callMode === 'trigger' || callMode === 'full') && callMode
-    if (limitToSections) await updateSectionFlagsToShowOnly(limitToSections)
+    // If callMode is a CSV of specific wanted sections, then override section flags for them
+    if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
 
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
+    // TODO: can this be moved to onInstallOrUpdate?
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
     // log warnings if we don't have required files
+    // TODO: can this be moved to onInstallOrUpdate?
     await checkForRequiredSharedFiles(pluginJson)
     logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
 
+    // Get settings
+    const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
+    // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
+    const logSettings = await getLogSettings()
+
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
-    logDebug('showDashboardReact', `lastFullRefresh = ${String(data.pluginData.lastFullRefresh)}`)
+    logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
+
+    // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
+    const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
+    const sendMessageToPluginFunction = `
+      const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
+    `
 
     const resourceLinksInHeader = `
-      <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/Dashboard.css">
-      <!-- <link rel="stylesheet" href="../${pluginJson["plugin.id"]}/DashboardDialog.css"> --Ю
+      <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
+      <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/DashboardDialog.css"> -->
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 
       <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
       <link href="../np.Shared/fontawesome.css" rel="stylesheet">
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
-    // clo(config, `showDashboardReact: keys:${Object.keys(config).length} config=`)
-    // logDebug('showDashboardReact', `config.dashboardTheme="${config.dashboardTheme}"`)
-    const logSettings = await getLogSettings()
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+      <script>
+        ${sendMessageToPluginFunction}
+        ${runPluginCommandFunction}
+      </script>
+      `
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
@@ -245,41 +270,45 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       preBodyScript: ``,
       postBodyScript: `
         <script type="text/javascript" >
-        // Set DataStore.settings so default clo etc. logging works in React
+        // Set DataStore.settings so default logDebug etc. logging works in React
         let DataStore = { settings: {_logLevel: "${logSettings._logLevel}" } };
         </script>
       `,
     }
+    //TODO: add the loglevle to the template and the dialog test
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('showDashboardReact', JSP(error))
   }
 }
 
 /**
- * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
+ * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
  * @returns {PassedData} the React Data Window object
  */
 export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const config: TDashboardSettings = await getDashboardSettings()
+    const dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    const perspectiveSettings = await getPerspectiveSettings()
+
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-    const pluginData = await getInitialDataForReactWindow(config, useDemoData)
-    // logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
+    const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)
+    logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
 
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-      debug: false, // ENV_MODE === 'development' ? true : false,
       ENV_MODE,
+      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      dataMode: 'live', // or 'demo' or 'test' TODO:
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
-      componentPath: `../${pluginJson["plugin.id"]}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+      componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }
@@ -301,21 +330,26 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
 export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
 
-  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging)}`)
+  logDebug(
+    'getInitialDataForReactWindow',
+    `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(
+      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging,
+    )}`,
+  )
 
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
 
-  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
-    ? await getAllSectionsData(useDemoData, true, true)
-    : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+  const sections =
+    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
+      ? await getAllSectionsData(useDemoData, true, true)
+      : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
   const NPSettings = getNotePlanSettings()
 
-  const pluginData: TPluginData =
-  {
+  const pluginData: TPluginData = {
     sections: sections,
     lastFullRefresh: new Date(),
     dashboardSettings: dashboardSettings,
@@ -324,7 +358,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
     demoMode: useDemoData,
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
-    version: pluginJson["plugin.version"],
+    version: pluginJson['plugin.version'],
   }
 
   // Calculate all done task counts (if the appropriate setting is on)
@@ -367,19 +401,20 @@ export async function updateReactWindowData(actionType: string, data: any = null
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
   try {
     let _newData = null
-    logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
-    // clo(data, `Plugin onMessageFromHTMLView data=`)
+    logInfo(pluginJson, `actionType '${actionType}' received by onMessageFromHTMLView`)
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+    const dataToSend = { ...data }
+    if (!dataToSend.actionType) dataToSend.actionType = actionType
     switch (actionType) {
       case 'SHOW_BANNER':
-        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', data)
+        sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
       // WEBVIEW_WINDOW_ID
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
-        _newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        _newData = (await bridgeClickDashboardItem(dataToSend)) || reactWindowData // the processing function can update the reactWindowData object and return it
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
@@ -394,7 +429,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
  * Update the sections data in the React Window data object
  * @returns {Promise<any>} - returns the full reactWindowData
  */
-async function refreshDashboardData(prevData?: any): any {
+export async function refreshDashboardData(prevData?: any): any {
   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
   const { demoMode } = reactWindowData
   const sections = await getAllSectionsData(demoMode, false, true)
@@ -427,4 +462,53 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
   const index = reactWindowData.pluginData.tableRows.findIndex((row) => row.id === clickedIndex)
   reactWindowData.pluginData.tableRows[index].textValue = `Item ${clickedIndex} was updated by the plugin (see changed data in the debug section below)`
   return reactWindowData //updated data to send back to React Window
+}
+/**
+ * Gather data you want passed to the React Window (e.g. what you you will use to display).
+ * You will likely use this function to pull together your starting window data.
+ * Must return an object, with any number of properties, however you cannot use the following reserved properties:
+ *   pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
+ * @returns {[string]: mixed} - the data that your React Window will start with
+ */
+
+export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
+  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
+  logDebug(
+    'getInitialDataForReactWindow',
+    `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(
+      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging,
+    )}`,
+  )
+
+  // Important Note: If we need to force load everything, it's easy.
+  // But if we don't then 2 things are needed:
+  // - the getSomeSectionsData() for just the Today section(s)
+  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+  const sections =
+    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
+      ? await getAllSectionsData(useDemoData, true, true)
+      : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+
+  const NPSettings = getNotePlanSettings()
+
+  const pluginData: TPluginData = {
+    sections: sections,
+    lastFullRefresh: new Date(),
+    dashboardSettings: dashboardSettings,
+    perspectiveSettings: perspectiveSettings,
+    notePlanSettings: NPSettings,
+    logSettings: await getLogSettings(),
+    demoMode: useDemoData,
+    platform: NotePlan.environment.platform, // used in dialog positioning
+    themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
+    version: pluginJson['plugin.version'],
+  }
+
+  // Calculate all done task counts (if the appropriate setting is on)
+  if (NPSettings.doneDatesAvailable) {
+    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
+    pluginData.totalDoneCounts = totalDoneCounts
+  }
+
+  return pluginData
 }

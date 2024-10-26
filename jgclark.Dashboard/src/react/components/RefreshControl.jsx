@@ -2,7 +2,7 @@
 //----------------------------------------------------------------------
 // RefreshControl.jsx
 // renders a refresh button or a refreshing spinner depending on refreshing state
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
+// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
 //----------------------------------------------------------------------
 
 import React from 'react'
@@ -11,7 +11,7 @@ import Button from './Button.jsx'
 type Props = {
   refreshing: boolean,
   handleRefreshClick: () => void,
-};
+}
 
 /**
  * Conditional rendering based on the `refreshing` state.
@@ -24,16 +24,17 @@ type Props = {
 const RefreshControl = (props: Props): React$Node => {
   const { refreshing, handleRefreshClick } = props
   return (
-      <Button
-        text={
-          <>
-          <i className={refreshing ? "fa-regular fa-arrow-rotate-right fa-spin" : "fa-regular fa-arrow-rotate-right"}></i>
-          <span className="pad-left">{refreshing ? "Refreshing" : "Refresh"}</span>
-          </>
-        }
-        clickHandler={handleRefreshClick}
+    <Button
+      text={
+        <>
+          {/* <i className={refreshing ? "fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i> */}
+          <i className={refreshing ? 'fa-regular fa-arrow-rotate-right fa-spin' : 'fa-regular fa-arrow-rotate-right'}></i>
+          <span className="pad-left">{refreshing ? 'Refreshing' : 'Refresh'}</span>
+        </>
+      }
+      clickHandler={handleRefreshClick}
       className="HAButton refreshButton"
-      />
+    />
   )
 }
 

@@ -1,8 +1,9 @@
-// ItemGrid.jsx
 // @flow
-/**
- * A grid layout for items within a section.
- */
+//--------------------------------------------------------------------------
+// A grid layout for items within a section.
+// Called by ItemGrid component.
+// Last updated 2024-07-09 for v2.0.0
+//--------------------------------------------------------------------------
 
 import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
@@ -16,7 +17,7 @@ type Props = {
 };
 
 function ItemGrid({ items, thisSection }: Props): React$Node {
-  const { dashboardSettings /*, reactSettings, setReactSettings, sendActionToPlugin */ } = useAppContext()
+  const { dashboardSettings } = useAppContext()
 
   const tasksToShow = (dashboardSettings && dashboardSettings.ignoreChecklistItems && items.length) 
   ? items.filter(si => !(si.para?.type === "checklist")) 

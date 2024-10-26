@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-05-29 for v2.0.5 by @jgclark
+// Last updated 2024-08-27 for v2.1.a10 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -13,7 +13,8 @@ import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
 import ComboBox from '../components/ComboBox.jsx'
 import TextComponent from '../components/TextComponent.jsx'
-import type { TSettingItem } from '../../types'
+import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
+import type { TSettingItem, TPerspectiveDef } from '../../types'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
@@ -32,6 +33,8 @@ type RenderItemProps = {
   inputRef?: { current: null | HTMLInputElement }, // Add inputRef prop type
   indent?: boolean,
   className?: string,
+  disabled?: boolean,
+  showDescAsTooltips?: boolean
 }
 
 /**
@@ -53,10 +56,14 @@ export function renderItem({
   inputRef, // Destructure inputRef
   indent = false,
   className = '',
+  disabled = false,
+  showDescAsTooltips = false // if true, then don't show the description as text, but only tooltip
 }: RenderItemProps): React$Node {
+
   const element = () => {
     const thisLabel = item.label || '?'
-    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}'`)
+    // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)
+
     switch (item.type) {
       case 'switch':
         return (
@@ -64,16 +71,17 @@ export function renderItem({
             key={`sw${index}`}
             label={thisLabel}
             checked={item.checked || false}
+            disabled={disabled}
             onChange={(e) => {
               if (item.key) {
-                logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
+                // logDebug('Switch', `onChange "${thisLabel}" (${item.key || ''}) was clicked`, e.target.checked)
                 item.key && handleFieldChange(item.key, e.target.checked)
                 item.key && handleSwitchChange(item.key, e)
               }
             }}
             labelPosition={labelPosition}
-            description={item.description || ''}
-            className={indent ? 'indent' : ''}
+            description={showDescAsTooltips ? item.description || '' : ''} // Only send the description if showDescAsTooltips is true, to show as a tooltip
+            className={className}
           />
         )
       case 'input':
@@ -83,6 +91,7 @@ export function renderItem({
             key={`ibx${index}`}
             label={thisLabel}
             value={item.value || ''}
+            disabled={disabled}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
@@ -93,7 +102,22 @@ export function renderItem({
             }}
             showSaveButton={showSaveButton}
             compactDisplay={item.compactDisplay || false}
-            className={indent ? 'indent' : ''}
+            className={className}
+          />
+        )
+      case 'input-readonly':
+        return (
+          <InputBox
+            inputType="text"
+            readOnly={true}
+            key={`ibxro${index}`}
+            label={thisLabel}
+            disabled={disabled}
+            value={item.value || ''}
+            onChange={() => { }}
+            showSaveButton={false}
+            compactDisplay={item.compactDisplay || false}
+            className={className}
           />
         )
       case 'number':
@@ -102,6 +126,7 @@ export function renderItem({
             inputType="number"
             key={`ibx${index}`}
             label={thisLabel}
+            disabled={disabled}
             value={item.value || ''}
             onChange={(e) => {
               item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
@@ -136,20 +161,47 @@ export function renderItem({
             key={`text${index}`}
             textType={item.textType || 'description'}
             label={thisLabel}
+            // className={className}
           />
         )
       case 'separator':
-        return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
+        return (
+          <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
+        )
       case 'heading':
-        return <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
+        return (
+          <>
+            <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
+            {item.description && (
+              <TextComponent
+                textType="description"
+                label={item.description}
+                key={`heddesc${index}`} />
+            )}
+          </>
+        )
+      case 'perspectiveList':
+        return (
+          <PerspectiveSettings
+            handleFieldChange={handleFieldChange}
+            className={className}
+          />
+        )
       default:
         return null
     }
   }
 
+  let classNameToUse = className
+  if (indent) classNameToUse += " indent"
+  if (disabled) classNameToUse += " disabled"
+
   return (
-    <div className={`ui-item ${className}`} key={`item${index}`} title={item.description || ''}>
+    <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
+      {!showDescAsTooltips && item.type !== 'hidden' && item.description && (
+        <div className="item-description">{item.description}</div>
+      )}
     </div>
   )
 }
