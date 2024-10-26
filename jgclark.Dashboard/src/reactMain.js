@@ -16,7 +16,7 @@ import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '@helpers/HTMLView'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
@@ -440,29 +440,6 @@ export async function refreshDashboardData(prevData?: any): any {
   return reactWindowData
 }
 
-/**
- * An example handler function that is called when someone clicks a button in the React Window
- * When someone clicks a "Submit" button in the React Window, it calls the router (onMessageFromHTMLView)
- * which sees the actionType === "onSubmitClick" so it routes to this function for processing
- * @param {any} data - the data sent from the React Window for the action 'onSubmitClick'
- * @param {any} reactWindowData - the current data in the React Window
- * @returns {any} - the updated data to send back to the React Window
- */
-async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): Promise<PassedData> {
-  const { index: clickedIndex } = data //in our example, the button click just sends the index of the row clicked
-  await sendBannerMessage(
-    WEBVIEW_WINDOW_ID,
-    `Plugin received an actionType: "onSubmitClick" command with data:<br/>${JSON.stringify(
-      data,
-    )}.<br/>Plugin then fired this message over the bridge to the React window and changed the data in the React window.`,
-  )
-  clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
-  // change the data in the React window for the row that was clicked (just an example)
-  // find the right row, even though rows could have been scrambled by the user inside the React Window
-  const index = reactWindowData.pluginData.tableRows.findIndex((row) => row.id === clickedIndex)
-  reactWindowData.pluginData.tableRows[index].textValue = `Item ${clickedIndex} was updated by the plugin (see changed data in the debug section below)`
-  return reactWindowData //updated data to send back to React Window
-}
 /**
  * Gather data you want passed to the React Window (e.g. what you you will use to display).
  * You will likely use this function to pull together your starting window data.
