@@ -7,7 +7,7 @@ import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.DataStore = DataStore
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 describe('search.js tests', () => {
@@ -37,11 +37,11 @@ describe('search.js tests', () => {
       expect(result).toEqual(false)
     })
     test('should not match ABC to "oneABCtwo"', () => {
-      const result = s.caseInsensitiveIncludes('ABC', ["oneABCtwo"])
+      const result = s.caseInsensitiveIncludes('ABC', ['oneABCtwo'])
       expect(result).toEqual(false)
     })
     test('should not match #project to #project/company', () => {
-      const result = s.caseInsensitiveIncludes('#project', ["#project/company"])
+      const result = s.caseInsensitiveIncludes('#project', ['#project/company'])
       expect(result).toEqual(false)
     })
   })
@@ -106,20 +106,20 @@ describe('search.js tests', () => {
 
   describe('getDedupedHashtagsFromList', () => {
     test('should want "#project/management/theory from longer set', () => {
-      const result = s.getDedupedHashtagsFromList(["#project", "#project/management", "#project/management/theory"])
-      expect(result).toEqual(["#project/management/theory"])
+      const result = s.getDedupedHashtagsFromList(['#project', '#project/management', '#project/management/theory'])
+      expect(result).toEqual(['#project/management/theory'])
     })
     test('should want "#project/management/theory from longer set', () => {
-      const result = s.getDedupedHashtagsFromList(["#project", "#project/management", "#project/startup", "#society", "#society/problems"])
-      expect(result).toEqual(["#project/management", "#project/startup", "#society/problems"])
+      const result = s.getDedupedHashtagsFromList(['#project', '#project/management', '#project/startup', '#society', '#society/problems'])
+      expect(result).toEqual(['#project/management', '#project/startup', '#society/problems'])
     })
     test('should not subset match "#project/management" from "#project/man" as break is in wrong place', () => {
-      const result = s.getDedupedHashtagsFromList(["#project/man", "#project/management"])
-      expect(result).toEqual(["#project/man", "#project/management"])
+      const result = s.getDedupedHashtagsFromList(['#project/man', '#project/management'])
+      expect(result).toEqual(['#project/man', '#project/management'])
     })
     test('should not subset match "#project/man" from "#project/management" as break is in wrong place', () => {
-      const result = s.getDedupedHashtagsFromList(["#project/management", "#project/man"])
-      expect(result).toEqual(["#project/management", "#project/man"])
+      const result = s.getDedupedHashtagsFromList(['#project/management', '#project/man'])
+      expect(result).toEqual(['#project/management', '#project/man'])
     })
   })
 
@@ -388,8 +388,16 @@ describe('search.js tests', () => {
       )
     })
     test('should return line that is all a markdown link', () => {
-      const output = s.trimAndHighlightTermInLine('[Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)', [''], true, false, '- ')
-      expect(output).toEqual('- [Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)')
+      const output = s.trimAndHighlightTermInLine(
+        '[Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)',
+        [''],
+        true,
+        false,
+        '- ',
+      )
+      expect(output).toEqual(
+        '- [Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)',
+      )
     })
 
     // TODO: Ran out of energy to do the detail on this ...
