@@ -9,7 +9,12 @@ module.exports = {
     '^NPTemplating/(.*)$': '<rootDir>/np.Templating/lib/NPTemplating',
     '^TemplatingEngine/(.*)$': '<rootDir>/np.Templating/lib/TemplatingEngine',
     '^NPGlobals/(.*)$': '<rootDir>/np.Globals/lib/NPGlobals',
+    '\\.css$': 'identity-obj-proxy', // Mock CSS modules
   },
   testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter', '<rootDir>/.history/'],
-  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"]
+  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  testEnvironment: 'jsdom', // Use jsdom for React/DOM-related tests
+  transform: {
+    '^.+\\.jsx?$': 'babel-jest',
+  },
 }
