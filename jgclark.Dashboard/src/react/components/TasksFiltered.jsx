@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
+import { DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logWarn } from '@helpers/react/reactDev.js'
@@ -18,11 +19,15 @@ type Props = {
  * Component for displaying a filter indicator.
  */
 const TasksFiltered = ({ item }: Props): Node => {
-  const { /*sendActionToPlugin, */ setDashboardSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings } = useAppContext()
 
   function handleLineClick(_e: MouseEvent) {
     // logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
-    setDashboardSettings((prevSettings) => ({ ...prevSettings, ['filterPriorityItems']: false }))
+    // setDashboardSettings((prevSettings) => ({ ...prevSettings, ['filterPriorityItems']: false }))
+    const newPayload = {
+      ...dashboardSettings, ['filterPriorityItems']: false
+    }
+    dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turnung off filterPriorityItems` })
   }
 
   return (

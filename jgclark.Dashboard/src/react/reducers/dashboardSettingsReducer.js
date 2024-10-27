@@ -12,9 +12,9 @@ export type TDashboardSettingsAction = {
 
 /**
  * Reducer for managing dashboard settings
- * @param {*} state
- * @param {*} action
- * @returns TDashboardSettings
+ * @param {TDashboardSettings} state
+ * @param {TDashboardSettingsAction} action
+ * @returns {TDashboardSettings}
  */
 export function dashboardSettingsReducer(state: TDashboardSettings, action: TDashboardSettingsAction): TDashboardSettings {
   const { type, payload, reason } = action
