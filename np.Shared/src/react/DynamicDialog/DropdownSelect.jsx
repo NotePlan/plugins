@@ -65,11 +65,14 @@ const DropdownSelect = ({
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
   const normalizedOptions: Array<Option> = options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option))
-  const foundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
+  let foundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
   if (foundOption) {
     if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
       foundOption.label = typeof value === 'string' ? value : value?.label
     }
+  } else {
+    logDebug('DropdownSelect: foundOption not found', value)
+    clo(options, 'DropdownSelect: options were')
   }
 
   const [isOpen, setIsOpen] = useState(false)

@@ -73,7 +73,7 @@ const PerspectiveSelector = (): React$Node => {
       case 'SET_PERSPECTIVE_OPTIONS': {
         logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS, Payload: ${JSON.stringify(action.payload)}${!action.payload ? ' (empty)' : ''}`)
         // Determine if "Save Perspective" should be included
-        const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings);
+        const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings)
         const dynamicOptions = thisPersp?.isModified
           ? [{ label: "Save Perspective", value: "Save Perspective" }]
           : []
@@ -350,12 +350,13 @@ const PerspectiveSelector = (): React$Node => {
   }
   const nameToDisplay = thisPersp ? formatNameWithModification(thisPersp) : ''
   const selectedValue = {label:nameToDisplay, value:activePerspectiveName }
+  logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
   return (
     <DropdownSelect
       style={customStyles}
       options={normalizedOptions}
       // value={normalizedOptions.find(o=>o.value === activePerspectiveName)?.label||''} // show the star if it's modified
-      value={selectedValue} // show the star if it's modified
+      value={selectedValue||{label:'-', value:'-'}} // show the star if it's modified
       onChange={handlePerspectiveChange}
       compactDisplay={true}
       label={'Persp'}
