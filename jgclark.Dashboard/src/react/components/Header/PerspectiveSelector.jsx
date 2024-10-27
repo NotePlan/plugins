@@ -79,7 +79,6 @@ const PerspectiveSelector = (): React$Node => {
           : []
         return {
           ...state,
-          // $FlowFixMe
           perspectiveNameOptions: [...staticOptions, ...dynamicOptions, ...action.payload],
           isLoading: false,
         }

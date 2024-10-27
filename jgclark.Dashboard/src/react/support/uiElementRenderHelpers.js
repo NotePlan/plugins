@@ -175,11 +175,13 @@ export function renderItem({
             {item.description && (
               <TextComponent
                 textType="description"
-                label={item.description}
+                // label={item.description}
+                label=""
                 key={`heddesc${index}`} />
             )}
           </>
         )
+      // $FlowIgnore[incompatible-type] don't understand this
       case 'perspectiveList':
         return (
           <PerspectiveSettings
@@ -199,6 +201,7 @@ export function renderItem({
   return (
     <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
+      {/* $FlowIgnore[incompatible-type] don't understand this */}
       {!showDescAsTooltips && item.type !== 'hidden' && item.description && (
         <div className="item-description">{item.description}</div>
       )}

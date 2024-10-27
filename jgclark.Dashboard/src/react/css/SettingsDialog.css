@@ -26,21 +26,21 @@
         font-weight: 600;
         text-align: start;
         line-height: 140%;
-        padding-top: 0.3rem;
-        padding-bottom: 0.3rem;
+        padding-top: 0rem; /* 0.3rem; */
+        padding-bottom: 0rem; /* 0.3rem; */
     }
 
     /* Style for container for Items in a section */
     .ui-item {
         /* turning all off (had been top:0.3rem) to give flexibility elsewhere */
-        padding: 0 0 0 0; 
+        padding: 0.2rem 0 0 0; 
     }
 
     /* Style for Item descriptions that follow the item */
     .item-description {
-        font-size: small;
+        font-size: smaller;
         color: var(--fg-alt-color);
-        /* margin-bottom: 0.4rem; */
+        margin-bottom: 0.2rem;
         /* opacity: 0.8; */
     }
 

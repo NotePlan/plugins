@@ -78,19 +78,21 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
     controlsOtherKeys: ['activePerspectiveName', 'perspectiveList'],
   },
+  // {
+  //   //$FlowIgnore[incompatible-type] don't understand the error
+  //   type: 'hidden',
+  //   key: 'activePerspectiveName',
+  //   label: 'Name of active Perspective',
+  //   description: 'The Perspective that is active.',
+  //   default: '',
+  //   dependsOnKey: 'showPerspectives',
+  // },
   {
-    type: 'hidden',
-    key: 'activePerspectiveName',
-    label: 'Name of active Perspective',
-    description: 'The Perspective that is active.',
-    default: '',
-    dependsOnKey: 'showPerspectives',
-  },
-  {
+    //$FlowIgnore[incompatible-type] don't understand the error
     type: 'perspectiveList',
     key: 'perspectiveList',
-    label: 'Name of active Perspective',
-    description: 'The Perspective that is active.',
+    label: 'Perspectives details',
+    description: 'Shows Perspective settings Component.',
     default: '',
     dependsOnKey: 'showPerspectives',
   },
@@ -317,7 +319,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Logging',
-    description: 'Please use the NotePlan Preferences Pane for the Dashboard Plugin to change logging settings.',
+    description: 'Please use the NotePlan Settings Pane for the Dashboard Plugin to change logging settings.',
   },
 ]
 
@@ -331,6 +333,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'separator',
         }
       case 'heading':
+      //$FlowIgnore[incompatible-type] don't understand the error
       case 'header':
         return {
           type: 'heading',
@@ -388,16 +391,20 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           compactDisplay: setting.compactDisplay ?? false,
           dependsOnKey: setting.dependsOnKey,
         }
+      //$FlowIgnore[incompatible-type] don't understand the error
       case 'hidden':
         return {
+          //$FlowIgnore[incompatible-call] don't understand the error
           type: 'hidden',
           label: setting.label || '',
           key: thisKey,
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
+      //$FlowIgnore[incompatible-type] don't understand the error
       case 'perspectiveList':
         return {
+          //$FlowIgnore[incompatible-call] don't understand the error
           type: 'perspectiveList',
           dependsOnKey: setting.dependsOnKey,
         }

@@ -100,15 +100,16 @@ const PerspectiveSettings = ({
           compactDisplay={true}
         />
         <TextComponent
-          textType={'description'}
-          key={'aPN'}
-          label={"The currently active Perspective (read-only: to change this use the dropdown on the main window). A '*' following indicates that the settings have been changed but not saved. The '-' Perspective is the default when no Perspective is active."}
+          textType='description'
+          key='aPN'
+          // label={"The currently active Perspective (read-only: to change this use the dropdown on the main window). A '*' following indicates that the settings have been changed but not saved. The '-' Perspective is the default when no Perspective is active."}
+          label="The currently active Perspective (read-only: to change this use the dropdown on the main window). The '-' Perspective is the default when no Perspective is active."
         />
         <label className="input-box-label">Perspective Definitions</label>
         <TextComponent
-          textType={'description'}
-          key={'json-description'}
-          label={"The underlying JSON definitions of the Perspective(s):"}
+          textType='description'
+          key='json-description'
+          label="The underlying JSON definitions of the Perspective(s):"
         />
 
         {/* TODO: Have a nice Editable Table with Add/Delete/Update buttons. Perhaps from https://codesandbox.io/s/react-table-add-edit-delete-v2-gmhuc */}
@@ -127,12 +128,6 @@ const PerspectiveSettings = ({
           showStringQuotes={true}
           showCollectionCount={"when-closed"}
         />
-
-        {/* Finally add a Separator */}
-        {/* <TextComponent
-          textType={'separator'}
-          label=''
-        /> */}
       </div>
     )
   } catch (error) {
