@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-09-06 for v2.0.6 by @jgclark
+// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -44,6 +44,7 @@ import {
 import {
   doMoveFromCalToCal,
   scheduleAllOverdueOpenToToday,
+  scheduleAllThisWeekNextWeek,
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday,
 } from './moveClickHandlers'
@@ -277,6 +278,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'scheduleAllOverdueToday': {
         result = await scheduleAllOverdueOpenToToday(data)
+        break
+      }
+      case 'moveAllThisWeekNextWeek': {
+        result = await scheduleAllThisWeekNextWeek(data)
         break
       }
       default: {
