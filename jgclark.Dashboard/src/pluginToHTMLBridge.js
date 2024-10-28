@@ -117,6 +117,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
         await incrementallyRefreshSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
+        result = { success: true }
         break
       }
       case 'windowReload': {
@@ -124,6 +125,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
         // TEST: trying Plugin command invocation instead
         DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
+        result = { success: true }
         return
       }
       case 'completeTask': {
