@@ -36,7 +36,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
     // and then filter lower-priority items (if wanted)
     const filteredItems = filterPriorityItems ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
-    logInfo('useSectionSortAndFilter', `After filter: ${String(priorityFilteringHappening)} and ${filteredItems.length} items`)
+    // logInfo('useSectionSortAndFilter', `After filter: ${String(priorityFilteringHappening)} and ${filteredItems.length} items`)
 
     // sort items
     filteredItems.sort((a, b) => {

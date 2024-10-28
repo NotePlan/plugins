@@ -133,9 +133,7 @@ const PerspectiveSelector = (): React$Node => {
     const diff = compareObjects(perspectiveNameOptions, [...staticOptions, ...options])
 
     if (diff) {
-      logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `perspectiveNameOptions changed. Updating options. diff=${JSON.stringify(diff)}`)
-      clo(perspectiveNameOptions, `PerspectiveSelector/useEffect perspectiveNameOptions`)
-      clo(options, `PerspectiveSelector/useEffect(perspectiveSettings) perspectiveSettings changed. updating options`)
+      logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `perspectiveNameOptions changed. Updating dropdown options. diff=${JSON.stringify(diff)}`)
       dispatchPerspectiveSelector({ type: 'SET_PERSPECTIVE_OPTIONS', payload: options })
       const thisPersp = getPerspectiveNamed(dashboardSettings.activePerspectiveName, perspectiveSettings)
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: thisPersp?.name || '' })
@@ -222,9 +220,11 @@ const PerspectiveSelector = (): React$Node => {
         const perspName = state.activePerspectiveName
         const thisPersp = getPerspectiveNamed(perspName, perspectiveSettings)
         if (thisPersp && thisPersp.isModified && thisPersp.name !== '-') {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `Saving perspective: ${thisPersp.name}`)
           // Save the currently modified settings into the proper perspective (but only the fields in the "clean" set)
           const settingsToSave = {...thisPersp, dashboardSettings: {...thisPersp.dashboardSettings, ...cleanDashboardSettings(dashboardSettings)}, isModified: false}
           const resetModified = perspectiveSettings.map(p=> p.name === perspName ? settingsToSave : ({ ...p, isModified: false }))
+          sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: resetModified, logMessage: `${thisPersp.name} saved!` }, `${thisPersp.name} saved!`)
           dispatchPerspectiveSettings(
             {
               type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
@@ -237,7 +237,6 @@ const PerspectiveSelector = (): React$Node => {
         }
         return
       }
-      //FIXME: do i need all this since i have done above ? ^^^ maybe i just duplicated all my code :()
 
       // Reset all to non-modified
       const resetModified = perspectiveSettings.map(p => ({ ...p, isModified: false }))

@@ -149,7 +149,7 @@ export const AppProvider = ({
         {
           actionType: 'dashboardSettingsChanged',
           settings: dashboardSettings,
-          perspectiveSettings: perspectiveSettings,
+          perspectiveSettings: perspectiveSettings, // Because when settings change we need to set isModified also in the perspectiveSettings
           logMessage: dashboardSettings.lastChange || '',
         },
         'Dashboard dashboardSettings updated',
