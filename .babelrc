@@ -1,10 +1,15 @@
 {
   "presets": [
-    "@babel/flow",
+    "@babel/preset-flow",
+    "@babel/preset-react",
     [
       "@babel/preset-env",
-      { "targets": { "safari": "11" } }
-    ],
-    "@babel/preset-react" // added to support JSX, esp for jest testing
+      {
+        "targets": {
+          "node": "current"
+        },
+        "modules": "auto"
+      }
+    ]
   ]
 }
