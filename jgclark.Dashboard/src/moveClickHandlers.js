@@ -1,7 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -124,9 +123,9 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     // Get list of open tasks/checklists from this calendar note
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
-    if (totalToMove !== prevTotalToMove) {
-      logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
-    }
+    // if (totalToMove !== prevTotalToMove) {
+    //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    // }
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
@@ -270,9 +269,9 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     // Get list of open tasks/checklists from this calendar note
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod('day', todaysNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
-    if (totalToMove !== prevTotalToMove) {
-      logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
-    }
+    // if (totalToMove !== prevTotalToMove) {
+    //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    // }
 
     // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
@@ -550,7 +549,8 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
 
     // Get paras for all overdue items in notes
     // Note: we need full TParagraphs, not ReducedParagraphs
-    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items. Note: turned off dedupe with yesterday's items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
@@ -604,7 +604,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
           // Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote, false)
         }
-        logDebug('scheduleAllOverdueOpenToToday', `rescheduled ${String(numberChanged)} overdue items to today's note (after ${timer(thisStartTime)})`)
+        logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `rescheduled ${String(numberChanged)} overdue items to today's note`)
       } else {
         // Determine if we need to use 'today' or schedule to the specific date.
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()

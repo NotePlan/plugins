@@ -1,7 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -1042,7 +1041,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
  * @param {boolean} [useDemoData=false]
  * @returns {Array<TSection>}
  */
-export function getTaggedSections(config: { [string]: mixed }, useDemoData: boolean = false): Array<TSection> {
+export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
   const tagSections = getTagSectionDetails(config)
   // clo(tagSections)
@@ -1098,7 +1097,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
-        if (config.ignoreFolders.includes(thisNoteFolder)) {
+        if (config.excludedFolders.includes(thisNoteFolder)) {
           // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
@@ -1114,15 +1113,15 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
         // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
 
-        // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
+        // Save this para, unless in matches the 'ignoreItemsWithTerms' setting
         for (const p of filteredTagParasFromNote) {
-          if (!config.ignoreTagMentionsWithPhrase || config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+          if (!config.ignoreItemsWithTerms || config.ignoreItemsWithTerms === '' || !p.content.includes(config.ignoreItemsWithTerms)) {
             filteredTagParas.push(p)
           } else {
-            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreItemsWithTerms}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreTagMentionsWithPhrase}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
+        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
       }
       // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
 
@@ -1455,14 +1454,12 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
       items.push({
         ID: thisID,
         itemType: 'project',
+        // $FlowIgnore[prop-missing]
         project: {
           title: p.title ?? '(error)',
           filename: thisFilename,
-          // $FlowIgnore[prop-missing]
           reviewInterval: p.reviewInterval ?? '',
-          // $FlowIgnore[prop-missing]
           percentComplete: p.percentComplete ?? NaN,
-          // $FlowIgnore[prop-missing]
           lastProgressComment: p.lastProgressComment ?? '',
         },
       })
@@ -1477,6 +1474,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
         items.push({
           ID: thisID,
           itemType: 'project',
+          // $FlowIgnore[prop-missing]
           project: {
             title: p.title,
             filename: p.filename,
