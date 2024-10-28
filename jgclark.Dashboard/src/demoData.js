@@ -1,7 +1,6 @@
-// @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin v2
-// Last updated 2024-09-27 for v2.0.6+ by @jgclark
+// Note: Now not using flow, as it is warning about so many deliberate prop-missing warning. I can't find a way to turn just that one warning off.
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -25,6 +24,7 @@ export const openTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
+    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Calendar',
       type: 'open',
@@ -39,6 +39,7 @@ export const openTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: "open",
+    // $FlowIgnore[prop-missing]
     para: {
       noteType: "Calendar",
       type: "open",
@@ -52,6 +53,7 @@ export const openTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
+    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Notes',
       type: 'open',
@@ -67,6 +69,7 @@ export const openTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'checklist',
+    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Calendar',
       type: 'checklist',
