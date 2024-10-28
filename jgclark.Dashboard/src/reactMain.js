@@ -52,9 +52,11 @@ export type PassedData = {
 // </script>
 // <script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
 // <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-// `
-
 // ------------------------------------------------------------
+
+const commsBridge = `
+  <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+`
 
 export async function showDemoDashboard(): Promise<void> {
   await showDashboardReact('full', true)
@@ -252,10 +254,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-      <script>
-        ${sendMessageToPluginFunction}
-        ${runPluginCommandFunction}
-      </script>
+      ${commsBridge}
       `
     const windowOptions = {
       windowTitle: data.title,

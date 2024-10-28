@@ -177,7 +177,10 @@ export function getActivePerspectiveDef(dashboardSettings: TDashboardSettings, p
  * @param {TDashboardSettings} perspectiveSettings
  * @returns {TPerspectiveDef | false}
  */
-export function getPerspectiveNamed(name: string, perspectiveSettings: Array<TPerspectiveDef>): TPerspectiveDef | null {
+export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TPerspectiveDef>): TPerspectiveDef | null {
+  if (!perspectiveSettings) {
+    return null
+  }
   return perspectiveSettings.find((s) => s.name === name) ?? null
 }
 

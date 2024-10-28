@@ -142,7 +142,8 @@ export const AppProvider = ({
     }
 
     if (shouldSendToPlugin && changedProps) {
-      logDebug(`AppContext/useEffect(dashboardSettings)`,`dashboardSettings. SENDING changes to plugin ${diff ? JSON.stringify(diff): ''}`)
+      logDebug(`AppContext/useEffect(dashboardSettings)`,`dashboardSettings. SENDING changes to plugin`)
+      clo(perspectiveSettings,`AppContext/useEffect(dashboardSettings) perspectiveSettings sending:`)
       sendActionToPlugin(
         'dashboardSettingsChanged',
         {
@@ -156,7 +157,7 @@ export const AppProvider = ({
       )
       lastSentDashboardSettingsRef.current = dashboardSettings
     } 
-  }, [dashboardSettings, sendActionToPlugin])
+  }, [dashboardSettings, sendActionToPlugin, perspectiveSettings])
 
   const contextValue: AppContextType = {
     sendActionToPlugin,

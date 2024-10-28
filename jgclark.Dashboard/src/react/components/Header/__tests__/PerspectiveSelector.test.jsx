@@ -24,10 +24,7 @@ describe('PerspectiveSelector Component', () => {
       dispatchDashboardSettings: mockDispatchDashboardSettings,
       dispatchPerspectiveSettings: mockDispatchPerspectiveSettings,
       sendActionToPlugin: mockSendActionToPlugin,
-      perspectiveSettings: [
-        { name: 'Default', isModified: false },
-        { name: 'Custom', isModified: true },
-      ],
+      perspectiveSettings: null, // Set to null to simulate initial state
     })
   })
 
@@ -35,15 +32,43 @@ describe('PerspectiveSelector Component', () => {
     jest.clearAllMocks()
   })
 
-  test('renders loading state initially', () => {
+  test('renders No Perspectives Available state initially', () => {
     render(<PerspectiveSelector />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('No Perspectives Available')).toBeInTheDocument()
   })
 
   test('renders perspective options when loaded', async () => {
+    useAppContext.mockReturnValue({
+      dashboardSettings: { activePerspectiveName: 'Default', lastChange: '2024-10-17' },
+      dispatchDashboardSettings: jest.fn(),
+      dispatchPerspectiveSettings: jest.fn(),
+      sendActionToPlugin: jest.fn(),
+      perspectiveSettings: [
+        { name: 'Default', isModified: false },
+        { name: 'Custom', isModified: false },
+      ],
+    })
+
     render(<PerspectiveSelector />)
     expect(screen.getByText('Default')).toBeInTheDocument()
-    expect(screen.getByText('Custom*')).toBeInTheDocument()
+    expect(screen.getByText('Custom')).toBeInTheDocument()
+  })
+
+  test('renders modified option with a star', async () => {
+    useAppContext.mockReturnValue({
+      dashboardSettings: { activePerspectiveName: 'Default', lastChange: '2024-10-17' },
+      dispatchDashboardSettings: jest.fn(),
+      dispatchPerspectiveSettings: jest.fn(),
+      sendActionToPlugin: jest.fn(),
+      perspectiveSettings: [
+        { name: 'Default', isModified: true },
+        { name: 'Custom', isModified: false },
+      ],
+    })
+
+    render(<PerspectiveSelector />)
+    expect(screen.getByText('Default*')).toBeInTheDocument()
+    expect(screen.getByText('Custom')).toBeInTheDocument()
   })
 
   test('handles perspective change', () => {

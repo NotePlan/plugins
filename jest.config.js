@@ -11,6 +11,9 @@ module.exports = {
     '^NPGlobals/(.*)$': '<rootDir>/np.Globals/lib/NPGlobals',
     '\\.css$': 'identity-obj-proxy', // Mock CSS modules
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!node-notifier|uuid)/', // Add exceptions for modules using ES module syntax
+  ],
   testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter', '<rootDir>/.history/'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
   testEnvironment: 'jsdom', // Use jsdom for React/DOM-related tests
