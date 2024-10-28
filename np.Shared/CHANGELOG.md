@@ -2,6 +2,14 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.2] @dwertheimer 2024-10-28
+
+- fix bug in Root where the pluginToHTMLCommsBridge.js was not being loaded and so sendMessageToPlugin was not working
+
+## [0.7.1] @dwertheimer 2024-10-24
+
+- fix bug in Root where banners were not being shown anymore
+
 ## [0.7.0] @dwertheimer 2024-09-14
 
 - Add DynamicDialog to Root to bring up a dialog

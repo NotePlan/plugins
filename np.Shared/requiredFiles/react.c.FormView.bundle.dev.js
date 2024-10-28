@@ -23,7 +23,6 @@ var WebViewBundle = (function (exports, React) {
     // Placeholder function, actual implementation below.
     updatePluginData: () => {} // Placeholder function, actual implementation below.
   };
-
   /**
    * Create the context with the default value.
    */
@@ -214,7 +213,7 @@ var WebViewBundle = (function (exports, React) {
 
   /**
    * Test _logLevel against logType to decide whether to output
-   * @param {string} logType 
+   * @param {string} logType
    * @returns {boolean}
    */
   const shouldOutputForLogLevel = logType => {
@@ -235,8 +234,8 @@ var WebViewBundle = (function (exports, React) {
   /**
    * Test if _logFunctionRE is set and matches the current log details.
    * Note: only works if DataStore is available.
-   * @param {any} pluginInfo 
-   * @returns 
+   * @param {any} pluginInfo
+   * @returns
    */
   const shouldOutputForFunctionName = pluginInfo => {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
@@ -593,7 +592,6 @@ var WebViewBundle = (function (exports, React) {
       };
       dispatch('UPDATE_DATA', newFullData, messageForLog); // save the data at the Root React Component level, which will give the plugin access to this data also
     };
-
     if (!pluginData.reactSettings) pluginData.reactSettings = {};
 
     /****************************************************************************************************************************

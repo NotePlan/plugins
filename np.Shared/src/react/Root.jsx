@@ -30,7 +30,6 @@ declare function sendMessageToPlugin(Array<string | any>): void
  *                             TYPES
  ****************************************************************************************************************************/
 
-
 /****************************************************************************************************************************
  *                             IMPORTS
  ****************************************************************************************************************************/
@@ -41,7 +40,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import DynamicDialog, {type TDynamicDialogProps} from './DynamicDialog'
+import DynamicDialog /*, { type TDynamicDialogProps } */ from './DynamicDialog'
 import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
@@ -121,8 +120,7 @@ export function Root(/* props: Props */): Node {
    */
   // eslint-disable-next-line no-unused-vars
   const dispatch = (action: string, data: any, actionDescriptionForLog?: string): void => {
-    // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    // logDebug(`Root`,`Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
+    const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
     // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
     const event = new MessageEvent('message', { data: { type: action, payload: data } })
     onMessageReceived(event)
@@ -264,13 +262,12 @@ export function Root(/* props: Props */): Node {
               break
             }
             case 'SHOW_BANNER':
-              if (npData.passThroughVars.lastWindowScrollTop) {
-                logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
-                setNPData((prevData) => {
-                  prevData.passThroughVars.lastWindowScrollTop = 0
-                  return { ...prevData, ...payload }
-                })
-              }
+              logDebug(`Root`, ` onMessageReceived: Showing banner, so we need to scroll the page up to the top so user sees it.`)
+              setNPData((prevData) => {
+                prevData.passThroughVars = prevData.passThroughVars ?? {}
+                prevData.passThroughVars.lastWindowScrollTop = 0
+                return { ...prevData, ...payload }
+              })
               showBanner(payload.msg, payload.color, payload.border)
               break
             case 'SEND_TO_PLUGIN':
@@ -328,6 +325,7 @@ export function Root(/* props: Props */): Node {
    */
   const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
     const warnObj = { warn: true, msg, color, border }
+    logDebug(`Root`, `showBanner zz: ${JSON.stringify(warnObj, null, 2)}`)
     setWarning(warnObj)
   }
 
@@ -413,23 +411,27 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            {dialogIsVisible && (
+            {dialogIsVisible ? (
               <>
                 {/* TODO: do not spread the props. put them all here individually once stable */}
                 <DynamicDialog {...reactSettings.dynamicDialog}>
                   <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
                 </DynamicDialog>
               </>
+            ) : (
+              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
             )}
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </Profiler>
         ) : (
           <>
-            {dialogIsVisible && (
+            {dialogIsVisible ? (
               <DynamicDialog {...reactSettings.dynamicDialog}>
                 {' '}
                 <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
               </DynamicDialog>
+            ) : (
+              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
             )}
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </>
