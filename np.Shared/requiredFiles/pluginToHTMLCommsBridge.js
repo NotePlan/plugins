@@ -7,8 +7,6 @@
  * Last updated 2023-02-18 @dwertheimer
  */
 
-import { logDebug } from '@helpers/dev'
-
 // rewrite that import as a require
 
 /**
@@ -36,8 +34,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
     .replace('%%commandName%%', commandName)
     .replace('%%pluginID%%', pluginID)
     .replace('%%commandArgs%%', JSON.stringify(commandArgs))
-  // logDebug(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
-  // logDebug(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
+  // console.log(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
+  // console.log(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
   if (window.webkit) {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: code,
@@ -45,7 +43,7 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
-    logDebug(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
   }
 }
 
@@ -72,10 +70,10 @@ const onMessageReceived = (event) => {
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
     if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
-    logDebug(`CommsBridge`, `onMessageReceived: received a message of type: ${type} with a payload=`, payload)
+    console.log(`CommsBridge`, `onMessageReceived: received a message of type: ${type} with a payload=`, payload)
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
-    logDebug(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)
+    console.log(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)
   }
 }
 
@@ -111,7 +109,7 @@ window.onerror =
         if (window.webkit) {
           window.webkit.messageHandlers.error.postMessage(message)
         } else {
-          logDebug('CommsBridge: JS Error:', message)
+          console.log('CommsBridge: JS Error:', message)
         }
       }
 
