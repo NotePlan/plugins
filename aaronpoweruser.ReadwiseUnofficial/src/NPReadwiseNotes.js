@@ -56,8 +56,8 @@ export async function parseHighlightsAndWriteToNote(highlightSource: any): Promi
       }
     }
     if (outputNote) {
-      await writeReadwiseSyncLogLine(noteTitle, highlightSource.highlights.length)
       await highlightSource.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, highlightSource.source, highlightSource.asin))
+      await writeReadwiseSyncLogLine(noteTitle, highlightSource.highlights.length)
     }
   } catch (error) {
     logError(pluginJson, error)
