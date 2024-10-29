@@ -77,7 +77,7 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
 
   if (highlight.tags !== null && highlight.tags !== '') {
     for (const tag of highlight.tags) {
-      if (tag.name !== null && tag.name !== '' && tag.name.toLowerCase().startsWith('h') && tag.name.length === 2) {
+      if (tag.name !== null && tag.name !== '' && tag.name.toLowerCase().startsWith('h') && tag.name.trim().length === 2) {
         const headingLevel = parseInt(tag.name.substring(1)) + 1
         if (headingLevel <= 8) {
           outputNote.insertHeading(removeNewlines(highlight.text), findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
