@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.8.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "0.7.0",
+  "plugin.version": "0.7.2",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",
   "plugin.dependencies": [],

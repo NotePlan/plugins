@@ -29,7 +29,7 @@ import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
-export type TSettingItemType = 
+export type TSettingItemType =
   | 'switch'
   | 'input'
   | 'combo' // the react-select version (ThemedSelect)
@@ -57,6 +57,8 @@ export type TSettingItem = {
   step?: number, // only applies to number type -- the increment/decrement amount
   noWrapOptions?: boolean, // truncate, do not wrap the label (for combo)
   focus?: boolean, // for input fields only, set focus to this field when dialog opens
+  controlsOtherKeys?: Array<string>, // if this item is changed, also change the items named in this array
+  displayDoneCounts?: boolean, // if true, then show the done counts in the dashboard
 }
 
 export type TDynamicDialogProps = {
@@ -139,7 +141,7 @@ const DynamicDialog = ({
   function shouldRenderItem(item: TSettingItem): boolean {
     if (!item) return false
     if (!item.dependsOnKey) return true
-    const yesRender = !item.dependsOnKey || !hideDependentItems || item.dependsOnKey && stateOfControllingSetting(item)
+    const yesRender = !item.dependsOnKey || !hideDependentItems || (item.dependsOnKey && stateOfControllingSetting(item))
     return yesRender
   }
 
@@ -269,23 +271,24 @@ const DynamicDialog = ({
         {children}
         {items.map((item, index) => (
           <div key={`ddc-${index}`}>
-            {(!item.key || shouldRenderItem(item)) && renderItem({
-              index,
-              item: {
-                ...item,
-                type: item.type,
-                value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
-                checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
-              },
-              disabled: (item.dependsOnKey) ? !stateOfControllingSetting(item) : false,
-              indent: Boolean(item.dependsOnKey),
-              handleFieldChange,
-              labelPosition,
-              showSaveButton: false, // Do not show save button
-              // $FlowIgnore
-              inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
-              className: '', // for future use
-            })}
+            {(!item.key || shouldRenderItem(item)) &&
+              renderItem({
+                index,
+                item: {
+                  ...item,
+                  type: item.type,
+                  value: typeof item.key === 'undefined' ? '' : updatedSettings[item.key] ?? '',
+                  checked: typeof item.key === 'undefined' ? false : updatedSettings[item.key] === true,
+                },
+                disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
+                indent: Boolean(item.dependsOnKey),
+                handleFieldChange,
+                labelPosition,
+                showSaveButton: false, // Do not show save button
+                // $FlowIgnore
+                inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                className: '', // for future use
+              })}
             {item.description && <div className="item-description">{item.description}</div>}
           </div>
         ))}
