@@ -208,20 +208,21 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
  * @returns {number} Numeric representation of version
  * @throws {Error} If version string is invalid
  */
-export function semverVersionToNumber(version: string): number {
+export function semverVersionToNumber(version: string): number | string {
   // Trim the version string at the first non-numeric, non-period character
   const trimmedVersion = version.split(/[^0-9.]/)[0]
 
   const parts = trimmedVersion.split('.').map((part) => {
     const numberPart = parseInt(part, 10)
     if (isNaN(numberPart) || numberPart < 0) {
-      throw new Error(`Invalid version part: ${part}`)
+      logError(`Invalid version part: version=${version} part=${part}`)
     }
     return numberPart
   })
 
   if (parts.length !== 3) {
-    throw new Error('Version string must have exactly three parts')
+    logError('Version string must have exactly three parts')
+    return 0
   }
 
   let numericVersion = 0
