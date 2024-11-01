@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.3.0",
-  "plugin.lastUpdateInfo": "1.3.0: adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "1.4.0",
+  "plugin.lastUpdateInfo": "1.4.0: adds first basic search-and-replace functionality. Adds case sensitive searching. Adds full-word searching.\n1.3.0: adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -117,6 +117,12 @@
       ]
     },
     {
+      "hidden": true,
+      "name": "refreshSavedSearch",
+      "description": "onOpen",
+      "jsFunction": "refreshSavedSearch"
+    },
+    {
       "name": "flexiSearch",
       "alias": [
         "fs",
@@ -129,8 +135,8 @@
       "comment": "Note: no arguments possible"
     },
     {
-      "name": "flexiSearchHandler",
       "hidden": true,
+      "name": "flexiSearchHandler",
       "description": "Called by flexiSearch dialog",
       "jsFunction": "flexiSearchHandler",
       "arguments": [
@@ -140,14 +146,8 @@
       ]
     },
     {
-      "name": "refreshSavedSearch",
       "hidden": true,
-      "description": "onOpen",
-      "jsFunction": "refreshSavedSearch"
-    },
-    {
       "name": "closeDialogWindow",
-      "hidden": true,
       "description": "Called by flexiSearch dialog",
       "jsFunction": "closeDialogWindow",
       "arguments": [
@@ -155,8 +155,22 @@
       ]
     },
     {
-      "name": "getPluginPreference",
+      "name": "replace",
+      "alias": [
+        "ss",
+        "save"
+      ],
+      "description": "Search and Replace over Calendar notes",
+      "jsFunction": "replaceOverCalendar",
+      "arguments": [
+        "search term",
+        "replace expression",
+        "paragraph types"
+      ]
+    },
+    {
       "hidden": true,
+      "name": "getPluginPreference",
       "description": "Called by flexiSearch dialog",
       "jsFunction": "getPluginPreference",
       "arguments": [
@@ -164,8 +178,8 @@
       ]
     },
     {
-      "name": "savePluginPreference",
       "hidden": true,
+      "name": "savePluginPreference",
       "description": "Called by flexiSearch dialog",
       "jsFunction": "savePluginPreference",
       "arguments": [
@@ -190,6 +204,22 @@
     {
       "type": "heading",
       "title": "Search Extensions settings"
+    },
+    {
+      "key": "caseSensitiveSearching",
+      "title": "Case Sensitive searches?",
+      "description": "By default searches in NotePlan ignore the case (capitalisation) of characters. This plugin will use case sensitive searching if this is turned on.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "fullWordSearching",
+      "title": "Match on full words?",
+      "description": "By default searches in NotePlan match on parts of words. This plugin will only match on full words if this is turned on.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "type": "separator"

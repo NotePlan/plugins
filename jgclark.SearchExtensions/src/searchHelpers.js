@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 26.12.2023 for v1.3.0, @jgclark
+// Last updated 2024-10-26 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -50,7 +50,7 @@ export type noteAndLine = {
 export type typedSearchTerm = {
   term: string, // (e.g. 'fixed')
   termRep: string, // short for termRepresentation (e.g. '-fixed')
-  type: 'must' | 'may' | 'not-line' | 'not-note',
+  type: 'must' | 'may' | 'not-line' | 'not-note' | 'regex',
 }
 
 export type resultObjectTypeV3 = {
@@ -91,6 +91,8 @@ export type SearchConfig = {
   autoSave: boolean,
   folderToStore: string,
   includeSpecialFolders: boolean,
+  caseSensitiveSearching: boolean,
+  fullWordSearching: boolean,
   foldersToExclude: Array<string>,
   headingLevel: headingLevelType,
   defaultSearchTerms: Array<string>,
@@ -216,8 +218,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
   const normalisedTerms = normaliseSearchTerms(searchArg)
   logDebug('validateAndTypeSearchTerms', `starting with ${String(normalisedTerms.length)} normalised terms: [${String(normalisedTerms)}]`)
 
-  // Don't allow 0 terms, apart from
-  // Special case for @JPR1972: allow negative or empty only
+  // Don't allow 0 terms, unless allowEmptyOrOnlyNegative set
   if (normalisedTerms.length === 0 && !allowEmptyOrOnlyNegative) {
     logError(pluginJson, `No search terms submitted. Stopping.`)
     return []
@@ -668,6 +669,7 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * @param {Array<ParagraphType>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
  * @param {string?} fromDateStr optional start date limit to pass to applySearchOperators
  * @param {string?} toDateStr optional end date limit to pass to applySearchOperators
+ * @param {boolean?} caseSensitive? searching (default is case insensitive)
  * @returns {resultOutputTypeV3} results optimised for output
  */
 export async function runSearchesV2(
@@ -677,6 +679,7 @@ export async function runSearchesV2(
   foldersToExclude: Array<string>,
   config: SearchConfig,
   paraTypesToInclude?: Array<ParagraphType> = [],
+  caseSensitive: boolean = false,
   fromDateStr?: string,
   toDateStr?: string,
 ): Promise<resultOutputTypeV3> {
@@ -695,7 +698,7 @@ export async function runSearchesV2(
       const innerStartTime = new Date()
 
       // do search for this search term, using configured options
-      const resultObject: resultObjectTypeV3 = await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude)
+      const resultObject: resultObjectTypeV3 = await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude, caseSensitive)
 
       // Save this search term and results as a new object in results array
       termsResults.push(resultObject)
@@ -752,6 +755,7 @@ export async function runSearchesV2(
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<ParagraphType>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
+ * @param {boolean?} caseSensitive? searching (default is case insensitive)
  * @returns {resultOutputTypeV3} combined result set optimised for output
  */
 export async function runSearchV2(
@@ -761,6 +765,7 @@ export async function runSearchV2(
   foldersToExclude: Array<string>,
   config: SearchConfig,
   paraTypesToInclude?: Array<ParagraphType> = [],
+  caseSensitive: boolean = false
 ): Promise<resultObjectTypeV3> {
   try {
     // const headingMarker = '#'.repeat(config.headingLevel)
@@ -769,16 +774,15 @@ export async function runSearchV2(
     let resultParas: Array<TParagraph> = []
     let multiWordSearch = false
     let wildcardedSearch = false
-    logDebug('runSearchV2', `Starting for [${searchTerm}]`)
+    logDebug('runSearchV2', `Starting for [${searchTerm}] with caseSensitive ${String(caseSensitive)}`)
 
     // V1: get list of matching paragraphs for this string by n.paragraphs.filter
     // ...
-    // V2: get list of matching paragraphs for this string by ???
+    // V2: get list of matching paragraphs for this string by (forgotten)
     // ...
     // V3: use DataStore.search() API call that's now available
     // ...
-    // V4: to deal with multi-word search terms, when the API doesn't,
-    // we will now just search for the first word in the search term
+    // V4: to deal with multi-word search terms, when the API doesn't, we will now just search for the first word in the search term
     if (searchTerm.includes(" ")) {
       multiWordSearch = true
       const words = searchTerm.split(' ')
@@ -788,13 +792,9 @@ export async function runSearchV2(
       logDebug('runSearchV2', `multi-word: will just use [${searchTerm}] for [${fullSearchTerm}], and then do fuller check on results`)
     }
 
-    // if search term includes * or ? then we need to do further wildcard filtering
-    // reduce search term to just the part before the wildcard
-    // const beforeWildcardSearchTerm = ''
-    // let wildcardOnwardsSearchTerm = ''
+    // if search term includes * or ? then we need to do further wildcard filtering: reduce search term to just the part before the wildcard
     if (searchTerm.includes("*") || searchTerm.includes("?")) {
       searchTerm = searchTerm.split(/[\*\?]/, 1)[0]
-      // wildcardOnwardsSearchTerm = fullSearchTerm.slice(searchTerm.length)
       wildcardedSearch = true
       logDebug('runSearchV2', `wildcard: will now use [${searchTerm}] for [${fullSearchTerm}]`)
     }
@@ -809,14 +809,15 @@ export async function runSearchV2(
     CommandBar.showLoading(false)
     //-------------------------------------------------------
 
-    // if we have a multi-word search, then filter out the results to those that just contain the full search term
-    if (multiWordSearch) {
-      logDebug('runSearchV2', `multi-word: before filtering: ${String(tempResult.length)}`)
+    // If we have a multi-word search, then filter out the results to those that just contain the full search term
+    // Same filter applies if we want case-sensitive searching
+    if (multiWordSearch || caseSensitive) {
+      logDebug('runSearchV2', `multi-word or case-sensitive: before filtering: ${String(tempResult.length)}`)
       tempResult = tempResult.filter(tr => tr.content.includes(fullSearchTerm))
-      logDebug('runSearchV2', `multi-word: after filtering: ${String(tempResult.length)}`)
+      logDebug('runSearchV2', `multi-word or case-sensitive: after filtering: ${String(tempResult.length)}`)
     }
 
-    // if search term includes * or ? then we need to do further wildcard filtering, but using regex version:
+    // If search term includes * or ? then we need to do further wildcard filtering, but using regex version:
     // - replace ? with .
     // - replace * with [^\s]*? (i.e. any anything within the same 'word')
     if (wildcardedSearch) {
@@ -1073,6 +1074,40 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
     logError('createFormattedResultLines', err.message)
     clo(resultSet)
     return [] // for completeness
+  }
+}
+
+/**
+ * Write to the log a basic display of 'resultSet', using settings from 'config'
+ * @author @jgclark
+ * @param {resultOutputTypeV2} resultSet
+ * @param {SearchConfig} config
+ */
+export function logBasicResultLines(resultSet: resultOutputTypeV3, config: SearchConfig): void {
+  try {
+    const resultOutputLines: Array<string> = []
+    const simplifyLine = true
+
+    // Get array of 'may' or 'must' search terms ready to display highlights
+    const mayOrMustTermsRep = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
+    // Take off leading + or ! if necessary
+    const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
+    const notEmptyMayOrMustTerms = mayOrMustTerms.filter((f) => f !== '')
+    logDebug(pluginJson, `${resultSet.resultCount} results [from ${notEmptyMayOrMustTerms.length} notEmptyMayOrMustTerms (${String(notEmptyMayOrMustTerms)}) / simplifyLine? ${String(simplifyLine)} / groupResultsByNote? ${String(config.groupResultsByNote)} / config.resultQuoteLength = ${String(config.resultQuoteLength)}]`)
+    // Add each result line to output array
+    let nc = 0
+    for (const rnal of resultSet.resultNoteAndLineArr) {
+      // Write each line without transformation, with filename prefixed
+      const thisFilename = rnal.noteFilename
+      const outputLine = trimAndHighlightTermInLine(rnal.line, notEmptyMayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+      resultOutputLines.push(`- ${String(nc)} ${thisFilename}: ${outputLine}`)
+      nc++
+    }
+    console.log(resultOutputLines.join('\n'))
+  }
+  catch (err) {
+    logError('logBasicResultLines', err.message)
+    clo(resultSet)
   }
 }
 

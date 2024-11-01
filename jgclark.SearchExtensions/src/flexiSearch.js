@@ -2,8 +2,9 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 4.10.2023 for v1.2.4, @jgclark
+// Last updated 2024-10-30 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
+// FIXME: go through and work out what change introduced since 1.3.0 gives the error noted below
 // TODO: fix Cancel button not working on iOS
 
 import pluginJson from '../plugin.json'
@@ -19,11 +20,11 @@ const flexiSearchDialogHTML = `
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
-		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="23" value="" autofocus tabindex="1" />&nbsp;
+		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="40" value="" autofocus tabindex="1" />&nbsp;
     <div class="tooltip">
       <i class="fa-regular fa-circle-question"></i>
       <div class="tooltipUnderLeft">
-      Searches are case-insensitive and match on whole or partial words.<br />
+      Searches match on whole or partial words.<br />
       Separate search terms by spaces; surround an exact phrase in double quotes.<br />
       Must find: <kbd>+term</kbd><br />
       Must not find in same line: <kbd>-term</kbd><br />
@@ -41,89 +42,89 @@ const flexiSearchDialogHTML = `
     <label for="notetype">Specific note</label>
   </div>
 
+	<div class="dialogSection">
+		<b>Case sensitive searching?</b>
+    <label for="casesens" class="switch">
+      <input type="checkbox" id="casesens" name="casesens" value="casesens"/>
+    </label>
+    <span class="gap-right"></span>
+    <b>Match full words?</b>
+    <label for="fullword" class="switch">
+      <input type="checkbox" id="fullword" name="fullword" value="fullword" />
+    </label>
+  </div>
+
   <div class="dialogSection">
 		<b>Include </b>
     <input type="checkbox" name="notetype" id="notes" value="notes" />
-    <label for="notetype">Regular notes</label>
+    <label for="notes">Regular notes</label>
     <input type="checkbox" name="notetype" id="calendar" value="calendar" />
-    <label for="notetype">Calendar notes</label>
+    <label for="calendar">Calendar notes</label>
     <!-- following will normally be hidden by CSS -->
     <span id="noteTypeWarning" class="validationWarning">[Please select at least one!]</span>
   </div>
 
   <div class="dialogSection">
 	<b>Line Types to include</b>
-	<table>
-		<tr>
-  		<td>
-				<ul class="dialogList">
-				<li>Tasks:</li>
-		<li>
-    <input type="checkbox" id="taskOpen" name="task"
-      value="open" />
-    <label for="task"><i class="fa-regular fa-circle"></i>Open</label>
-		</li>
-		<li>
-    <input type="checkbox" id="taskScheduled" name="task"
-      value="taskScheduled" />
-    <label for="task"><i class="fa-regular fa-clock"></i>Scheduled</label>
-		</li>
-		<li>
-    <input type="checkbox" id="taskDone" name="task" value="done"  />
-    <label for="task"><i class="fa-regular fa-circle-check"></i>Complete</label>
-		</li>
-		<li>
-    <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
-    <label for="task"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
-		</li>
-    </ul>
-	</td>
-	<td>
-	<ul class="dialogList">
-		<li>Checklists:</li>
-		<li>
-    <input type="checkbox" id="checklistOpen" name="checklist"
+
+  <div class="grid-container">
+    <div class="grid-item dialogList">Tasks:</div>
+    <div class="grid-item">
+      <input type="checkbox" id="taskOpen" name="task" value="open" />
+      <label for="taskOpen"><i class="fa-regular fa-circle"></i>Open</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" id="taskScheduled" name="task" value="taskScheduled" />
+      <label for="taskScheduled"><i class="fa-regular fa-clock"></i>Scheduled</label>
+		</div>
+		 <div class="grid-item">
+      <input type="checkbox" id="taskDone" name="task" value="done"  />
+      <label for="taskDone"><i class="fa-regular fa-circle-check"></i>Complete</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
+      <label for="taskCancelled"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
+		</div>
+
+    <div class="grid-item dialogList">Checklists:</div>
+		<div class="grid-item">
+      <input type="checkbox" id="checklistOpen" name="checklist"
       value="checklistOpen" checked />
-    <label for="checklist"><i class="fa-regular fa-square"></i>Open</label>
-		</li>
-		<li>
-    <input type="checkbox" id="checklistScheduled" name="checklist"
+      <label for="checklistOpen"><i class="fa-regular fa-square"></i>Open</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" id="checklistScheduled" name="checklist"
       value="checklistScheduled" />
-    <label for="checklist"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
-		</li>
-		<li>
-    <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
-    <label for="checklist"><i class="fa-regular fa-square-check"></i>Complete</label>
-		</li>
-		<li>
-    <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
-    <label for="checklist"><i class="fa-regular fa-square-xmark"></i>Cancelled</label>
-		</li>
-  </ul>
-	</td>
-	<td>
-	<ul class="dialogList">
-		<li>Other line types:</li>
-		<li>
-    <input type="checkbox" name="other" id="list" value="list" checked />
-    <label for="checklist"><kbd>-</kbd>Bullet lists</label>
-		</li>
-		<li>
-    <input type="checkbox" name="other" id="quote" value="quote" checked />
-    <label for="checklist"><kbd>&gt;</kbd>Quotations</label>
-		</li>
-		<li>
-    <input type="checkbox" name="other" id="headings" value="title" checked />
-    <label for="checklist"><kbd>#</kbd>Headings</label>
-		</li>
-		<li>
-    <input type="checkbox" name="other" id="text" value="text" checked />
-    <label for="checklist">Note lines</label>
-		</li>
-  </ul>
-			</td>
-		</tr>
-	</table>
+      <label for="checklistScheduled"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
+      <label for="checklistDone"><i class="fa-regular fa-square-check"></i>Complete</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
+      <label for="checklistCancelled"><i class="fa-regular fa-square-xmark"></i>Cancelled</label>
+		</div>
+
+    <div class="grid-item dialogList">Other line types:</div>
+    <div class="grid-item">
+      <input type="checkbox" name="other" id="list" value="list" checked />
+      <label for="list"><kbd>-</kbd>Bullet lists</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" name="other" id="quote" value="quote" checked />
+      <label for="quote"><kbd>&gt;</kbd>Quotations</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" name="other" id="headings" value="title" checked />
+      <label for="other"><kbd>#</kbd>Headings</label>
+		</div>
+		<div class="grid-item">
+      <input type="checkbox" name="other" id="text" value="text" checked />
+      <label for="text">Note lines</label>
+		</div>
+  </div>
+
   <!-- following will normally be hidden by CSS -->
   <span id="paraTypeWarning" class="validationWarning">[Please select at least one!]</span>
 	</div>
@@ -142,22 +143,21 @@ const flexiSearchDialogHTML = `
 // Script to send the search options to the plugin and start it
 const JSStartSearchInPlugin = JSON.stringify(`
 (async function() {
-  await DataStore.invokePluginCommandByName('flexiSearchHandler', 'jgclark.SearchExtensions', ['%%SEARCHTERMS%%', '%%SAVETYPE%%', '%%NOTETYPES%%', '%%PARATYPES%%'] )
+  await DataStore.invokePluginCommandByName('flexiSearchHandler', 'jgclark.SearchExtensions', ['%%SEARCHTERMS%%', '%%SAVETYPE%%', '%%CASE%%', '%%FULLWORD%%', '%%NOTETYPES%%', '%%PARATYPES%%'] )
 })()
 `)
 
 // Script to close the dialog box
 const JSCloseDialog = JSON.stringify(`
 (async function() {
-  await DataStore.invokePluginCommandByName('closeDialogWindow', 'jgclark.SearchExtensions', ['flexiSearchDialog'] )
-})()
+  await DataStore.invokePluginCommandByName('closeDialogWindow', 'jgclark.SearchExtensions', ['flexiSearchDialog']) })()
 `)
 
 // Script to save item to DataStore.preference
+// FIXME: TypeError: undefined is not an object (evaluating 'DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['fullWordSearching', ''] )') at line 2
 const JSUpdatePref = JSON.stringify(`
 (async function() {
-  await DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%'] )
-})()
+  await DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%']) })()
 `)
 
 const flexiSearchDialogPostBodyScripts = `
@@ -169,6 +169,8 @@ const flexiSearchDialogPostBodyScripts = `
 		// Note following code assumes case sensitive matching, and that the values are distinct and not subset strings of each other.
     // Their values are substituted before the script is loaded
     let saveType = '%%SAVETYPEPREF%%'
+    let caseSensitiveSearching = '%%CASEPREF%%'
+    let fullWordSearching = '%%FULLWORDPREF%%'
 		let noteTypesStr = '%%NOTETYPESSTRPREF%%'
 		let paraTypesStr = '%%PARATYPESSTRPREF%%'
     const formID = "searchOptions"
@@ -189,6 +191,12 @@ const flexiSearchDialogPostBodyScripts = `
         } else if (inputs[i].name === "savetype") {
           console.log('- setting saveType "'+ val +'" to ' + String(saveType === val))
           inputs[i].checked = (saveType === val)
+        } else if (inputs[i].name === "casesens") {
+          console.log('- setting caseSensitiveSearching "'+ val +'" to ' + String(caseSensitiveSearching === val))
+          inputs[i].checked = (caseSensitiveSearching === val)
+        } else if (inputs[i].name === "fullword") {
+          console.log('- setting fullWordSearching "'+ val +'" to ' + String(fullWordSearching === val))
+          inputs[i].checked = (fullWordSearching === val)
         } else if (inputs[i].type === "checkbox") {
           console.log('- setting paraTypesStr "'+ val +'" to ' + String(noteTypesStr.includes(val)))
           inputs[i].checked = paraTypesArr.includes(val)
@@ -202,11 +210,14 @@ const flexiSearchDialogPostBodyScripts = `
     // which get sent to hidden plugin command 'savePluginPreference'
 		function saveDialogState() {
 			console.log('saveDialogState()')
-			noteTypesStr = ''
-			paraTypesStr = ''
+      let saveType = ''
+			let caseSens = ''
+			let fullWord = ''
+			let noteTypesStr = ''
+			let paraTypesStr = ''
 			// Iterate over the optional controls
 			for (let i = 0; i < inputs.length; i++) {
-				// console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
+				console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
 				if (inputs[i].checked && inputs[i].name === "notetype") {
 					// Add this checked value to a CSV string
 					noteTypesStr += inputs[i].value + ','
@@ -215,14 +226,32 @@ const flexiSearchDialogPostBodyScripts = `
 					// Set this
 					saveType = inputs[i].value
 				}
+				if (inputs[i].checked && (inputs[i].name === "casesens")) {
+					// Set this
+					caseSens = inputs[i].value
+				}
+				if (inputs[i].checked && (inputs[i].name === "fullword")) {
+					// Set this
+					fullWord = inputs[i].value
+				}
 				if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
 					// Add this checked value to a CSV string
 					paraTypesStr += inputs[i].value + ','
 				}
 			}
-			console.log('Saving ' + saveType + ' / ' + noteTypesStr + ' / ' + paraTypesStr)
+			console.log('Saving ' + saveType + ' / ' + caseSens + ' / ' + fullWord + ' / ' + noteTypesStr + ' / ' + paraTypesStr)
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSUpdatePref}.replace('%%KEY%%', 'saveType').replace('%%VALUE%%', saveType),
+        onHandle: "neededDummyFunc",
+        id: "1"
+      })
+      window.webkit.messageHandlers.jsBridge.postMessage({
+        code: ${JSUpdatePref}.replace('%%KEY%%', 'caseSensitiveSearching').replace('%%VALUE%%', caseSens),
+        onHandle: "neededDummyFunc",
+        id: "1"
+      })
+      window.webkit.messageHandlers.jsBridge.postMessage({
+        code: ${JSUpdatePref}.replace('%%KEY%%', 'fullWordSearching').replace('%%VALUE%%', fullWord),
         onHandle: "neededDummyFunc",
         id: "1"
       })
@@ -293,6 +322,8 @@ const flexiSearchDialogPostBodyScripts = `
         code: ${JSStartSearchInPlugin}
           .replace('%%SEARCHTERMS%%', searchTerms)
           .replace('%%SAVETYPE%%', saveType)
+          .replace('%%CASE%%', caseSensitiveSearching)
+          .replace('%%FULLWORD%%', fullWordSearching)
           .replace('%%NOTETYPES%%', noteTypes)
           .replace('%%PARATYPES%%', paraTypes),
         onHandle: "neededDummyFunc",
@@ -330,13 +361,19 @@ const resourceLinksInHeader = `
 export async function flexiSearchRequest(
 ): Promise<void> {
   try {
-    // Look up the 3 preferences from local store
+    // Look up the 5 preferences from local store
     // Note: extra commas aren't typos
-    const saveType = String(DataStore.preference(pluginID + '.saveType')) ?? 'quick'
-    const noteTypesStr = String(DataStore.preference(pluginID + '.noteTypesStr')) ?? 'notes,calendar,'
-    const paraTypesStr = String(DataStore.preference(pluginID + '.paraTypesStr')) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
+    const saveType = String(DataStore.preference(`${pluginID}.saveType`)) ?? 'quick'
+    const caseSensitiveSearching = DataStore.preference(`${pluginID}.caseSensitiveSearching`) ?? false
+    const fullWordSearching = DataStore.preference(`${pluginID}.fullWordSearching`) ?? false
+    const noteTypesStr = String(DataStore.preference(`${pluginID}.noteTypesStr`)) ?? 'notes,calendar,'
+    const paraTypesStr = String(DataStore.preference(`${pluginID}.paraTypesStr`)) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
+      // $FlowIgnore[incompatible-call] not pretty, but works
+      .replace('%%CASEPREF%%', caseSensitiveSearching)
+      // $FlowIgnore[incompatible-call] not pretty, but works
+      .replace('%%FULLWORDPREF%%', fullWordSearching)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)
 
@@ -352,7 +389,7 @@ export async function flexiSearchRequest(
       postBodyScript: flexiSearchDialogPostBodyScriptsWithPrefValues,
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',
       width: 440,
-      height: 350,
+      height: 470,
       reuseUsersWindowRect: true,
       shouldFocus: true,
     }
@@ -360,29 +397,37 @@ export async function flexiSearchRequest(
     await showHTMLV2(flexiSearchDialogHTML, opts)
   }
   catch (err) {
-    logError(pluginJson, 'flexiSearcRequest: ' + err.message)
+    logError(pluginJson, `flexiSearcRequest: ${err.message}`)
   }
 }
 
-export function flexiSearchHandler(searchTerms: string, saveType: string, noteTypeToInclude: string, paraTypes: string): any {
+export function flexiSearchHandler(
+  searchTerms: string,
+  saveType: string,
+  caseSensitiveSearching: boolean,
+  fullWordSearching: boolean,
+  noteTypeToInclude: string,
+  paraTypes: string
+): any {
   try {
-    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${noteTypeToInclude} / ${paraTypes}`)
+    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${caseSensitiveSearching.toString()} / ${fullWordSearching.toString()} / ${noteTypeToInclude} / ${paraTypes}`)
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 
     // Take saveType and noteTypeToInclude add create originatorCommand from it
-    let originatorCommand =
+    const originatorCommand =
       (saveType === 'quick') ? 'quickSearch'
         : (noteTypeToInclude === 'notes') ? 'searchOverNotes'
           : (noteTypeToInclude === 'calendar') ? 'searchOverCalendar'
             : 'search' // which defaults to 'both'
 
     // Then call main saveSearch function (no need to await for it)
+    // TODO: need to work out how to pass new booleans
     saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching')
     return {} // apparently required to avoid error in log
   }
   catch (err) {
-    logError(pluginJson, 'flexiSearchHandler: ' + err.message)
+    logError(pluginJson, `flexiSearchHandler: ${err.message}`)
     return {}
   }
 }
@@ -401,7 +446,7 @@ export function closeDialogWindow(customId: string): any {
     return {} // apparently required to avoid error in log
   }
   catch (err) {
-    logError(pluginJson, 'closeDialogWindow: ' + err.message)
+    logError(pluginJson, `closeDialogWindow: ${err.message}`)
     return {}
   }
 }
@@ -410,19 +455,17 @@ export function closeDialogWindow(customId: string): any {
  * Helper function for HTML views to set a DataStore.preference value (as a string)
  * @param {string} key to set
  * @param {string} value to set
- * @returns {any}
  */
-export function savePluginPreference(key: string, value: string): any {
+export function savePluginPreference(key: string, value: string): void {
   try {
-    logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called for ${pluginID}`)
-    DataStore.setPreference(pluginID + '.' + key, value)
-    // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
+    // console.log(`savePluginPreference('${key}', '${value}') called for ${pluginID}`)
+    const prefName = `${pluginID}.${key}`
 
-    return {} // apparently required to avoid error in log
+    DataStore.setPreference(prefName, value)
+    console.log(`savedPreference '${prefName}' as '${String(DataStore.preference(prefName))}'`)
   }
   catch (err) {
-    logError(pluginJson, 'savePluginPreference: ' + err.message)
-    return {}
+    console.error(`savePluginPreference: ${err.message}`)
   }
 }
 
@@ -433,14 +476,13 @@ export function savePluginPreference(key: string, value: string): any {
  */
 export function getPluginPreference(key: string): any {
   try {
-    logDebug(pluginJson, `getPluginPreference('${key}') called for ${pluginID}`)
-    // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
-    return DataStore.preference(pluginID + '.' + key)
-
-    // return {} // apparently required to avoid error in log
+    const prefName = `${pluginID}.${key}`
+    const prefValue = DataStore.preference(prefName)
+    logDebug(pluginJson, `getPluginPreference('${key}') called for ${pluginID} → ${String(prefValue)}`)
+    return prefValue
   }
   catch (err) {
-    logError(pluginJson, 'getPluginPreference: ' + err.message)
+    logError(pluginJson, `getPluginPreference: ${err.message}`)
     return {}
   }
 }

@@ -1,9 +1,10 @@
+/* eslint-disable max-len */
 // @flow
 //-----------------------------------------------------------------------------
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 21.12.2023 for v1.3.0, @jgclark
+// Last updated 2024-10-26 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -190,8 +191,8 @@ export async function saveSearch(
     CommandBar.showLoading(true, `${commandNameToDisplay} ...`)
     await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: deliberately no await: this is resolved later
+    // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
 
     await CommandBar.onMainThread()
 

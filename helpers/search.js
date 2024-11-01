@@ -279,7 +279,7 @@ export function trimAndHighlightTermInLine(
 
     // If we have a single blank 'terms' then set a flag, so we can disable highlighting and simplify the regex
     const nonEmptyTerms = !(terms.length === 0 || (terms.length === 1 && terms[0] === ''))
-    logDebug('trimAndHighlight', `starting with [${String(terms)}] terms ${nonEmptyTerms ? '' : '(i.e. empty)'}; mainPart = <${mainPart}>`)
+    // logDebug('trimAndHighlight', `starting with [${String(terms)}] terms ${nonEmptyTerms ? '' : '(i.e. empty)'}; mainPart = <${mainPart}>`)
     let output = ''
     // As terms can include wildcards * or ?, we need to modify them slightly for the following regexes:
     // - replace ? with .
