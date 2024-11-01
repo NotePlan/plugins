@@ -2,9 +2,8 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2024-10-30 for v1.4.0, @jgclark
+// Last updated 2024-11-01 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
-// FIXME: go through and work out what change introduced since 1.3.0 gives the error noted below
 // TODO: fix Cancel button not working on iOS
 
 import pluginJson from '../plugin.json'
@@ -150,14 +149,15 @@ const JSStartSearchInPlugin = JSON.stringify(`
 // Script to close the dialog box
 const JSCloseDialog = JSON.stringify(`
 (async function() {
-  await DataStore.invokePluginCommandByName('closeDialogWindow', 'jgclark.SearchExtensions', ['flexiSearchDialog']) })()
+  await DataStore.invokePluginCommandByName('closeDialogWindow', 'jgclark.SearchExtensions', ['flexiSearchDialog'] )
+})()
 `)
 
 // Script to save item to DataStore.preference
-// FIXME: TypeError: undefined is not an object (evaluating 'DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['fullWordSearching', ''] )') at line 2
 const JSUpdatePref = JSON.stringify(`
 (async function() {
-  await DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%']) })()
+  await DataStore.invokePluginCommandByName('savePluginPreference', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%'] )
+})()
 `)
 
 const flexiSearchDialogPostBodyScripts = `
@@ -422,7 +422,6 @@ export function flexiSearchHandler(
             : 'search' // which defaults to 'both'
 
     // Then call main saveSearch function (no need to await for it)
-    // TODO: need to work out how to pass new booleans
     saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching')
     return {} // apparently required to avoid error in log
   }
@@ -455,17 +454,20 @@ export function closeDialogWindow(customId: string): any {
  * Helper function for HTML views to set a DataStore.preference value (as a string)
  * @param {string} key to set
  * @param {string} value to set
+ * @returns {any}
  */
-export function savePluginPreference(key: string, value: string): void {
+export function savePluginPreference(key: string, value: string): any {
   try {
-    // console.log(`savePluginPreference('${key}', '${value}') called for ${pluginID}`)
     const prefName = `${pluginID}.${key}`
-
+    logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called for ${pluginID}`)
     DataStore.setPreference(prefName, value)
-    console.log(`savedPreference '${prefName}' as '${String(DataStore.preference(prefName))}'`)
+    logDebug(pluginJson, `-> ${String(DataStore.preference(prefName))}`)
+
+    return {} // apparently required to avoid error in log
   }
   catch (err) {
-    console.error(`savePluginPreference: ${err.message}`)
+    logError(pluginJson, `savePluginPreference: ${err.message}`)
+    return {}
   }
 }
 
