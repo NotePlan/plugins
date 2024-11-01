@@ -13,7 +13,7 @@ jest.mock('../../AppContext.jsx', () => ({
   useAppContext: jest.fn(),
 }))
 
-describe.skip('PerspectiveSelector Component', () => {
+describe('PerspectiveSelector Component', () => {
   const mockDispatchDashboardSettings = jest.fn()
   const mockDispatchPerspectiveSettings = jest.fn()
   const mockSendActionToPlugin = jest.fn()
