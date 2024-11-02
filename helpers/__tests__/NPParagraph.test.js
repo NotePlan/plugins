@@ -3,7 +3,7 @@ import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
-import { getParagraphParentsOnly, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
+import { paragraphMatches, getParagraphParentsOnly, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
 
@@ -1093,6 +1093,65 @@ describe('NPParagraphs()', () => {
       }
       const result = p.getDaysToCalendarNote(para)
       expect(result).toBeNull()
+    })
+  })
+
+  describe('paragraphMatches()', () => {
+    test('should return true when all specified fields match exactly', () => {
+      const paragraph = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
+      const fieldsObject = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
+      const fields = ['rawContent', 'filename', 'lineIndex']
+      const result = paragraphMatches(paragraph, fieldsObject, fields)
+      expect(result).toBe(true)
+    })
+
+    test('should return false when any specified field does not match', () => {
+      const paragraph = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
+      const fieldsObject = { rawContent: 'Different content', filename: 'test.md', lineIndex: 1 }
+      const fields = ['rawContent', 'filename', 'lineIndex']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+    })
+
+    test('should return true when rawContent is truncated and matches the start', () => {
+      const paragraph = { rawContent: 'Test content with more text', filename: 'test.md' }
+      const fieldsObject = { rawContent: 'Test content...', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+
+    test('should return false when rawContent is truncated but does not match the start', () => {
+      const paragraph = { rawContent: 'Different content with more text', filename: 'test.md' }
+      const fieldsObject = { rawContent: 'Test content...', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+    })
+
+    test('should return true when rawContent was edited but originalRawContent matches content in the note', () => {
+      const paragraph = { rawContent: 'Original content', filename: 'test.md' }
+      const fieldsObject = { rawContent: 'Edited content', originalRawContent: 'Original content', filename: 'test.md' }
+      const fields = ['rawContent', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+
+    test('should throw an error if a field in fields is not present in paragraph', () => {
+      const paragraph = { rawContent: 'Test content', filename: 'test.md' }
+      const fieldsObject = { rawContent: 'Test content', filename: 'test.md' }
+      const fields = ['rawContent', 'filename', 'lineIndex']
+      expect(() => paragraphMatches(paragraph, fieldsObject, fields)).toThrow()
+    })
+
+    test('should return false if an incoming test field is undefined', () => {
+      const paragraph = { rawContent: 'Test content', filename: 'test.md' }
+      const fieldsObject = { rawContent: 'Test content', filename: undefined }
+      const fields = ['rawContent', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+    })
+
+    test('should return true when content is truncated and matches the start', () => {
+      const paragraph = { content: 'This is a long content that needs to be checked', filename: 'test.md' }
+      const fieldsObject = { content: 'This is a long content...', filename: 'test.md' }
+      const fields = ['content', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
   })
 })

@@ -1170,6 +1170,8 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 
 /**
  * Check a paragraph object against a plain object of fields to see if they match
+ * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * @param {TParagraph} paragraph object to check
  * @param {any} fieldsObject object with some fields
  * @param {Array<string>} fields list of field names to check in fieldsObject
@@ -1178,29 +1180,43 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
  */
 export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, fields: Array<string>): boolean {
   let match = true
-  const rawWasEdited = fields.indexOf('rawContent') > -1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+
+  // Check if rawContent is truncated with "..."
+  const rawWasEdited = fields.includes('rawContent') && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+  const isTruncated = fields.includes('rawContent') && typeof fieldsObject.rawContent === 'string' && fieldsObject.rawContent.endsWith('...')
+  const truncatedContent = isTruncated ? fieldsObject.rawContent.slice(0, -3) : fieldsObject.rawContent
+
   fields.forEach((field) => {
     if (field === 'rawContent' && rawWasEdited) {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject['originalRawContent']) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        match = false
+      }
+    } else if (field === 'rawContent' && isTruncated) {
+      // Use startsWith for truncated rawContent
+      if (!paragraph[field].startsWith(truncatedContent)) {
         match = false
       }
     } else {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+      // $FlowIgnore
       if (typeof paragraph[field] === 'undefined') {
-        throw `paragraphMatches: paragraph.${field} is undefined. you must pass in the correct fields to match. 'fields' is set to ${JSP(fields)} but paragraph=${JSP(
+        throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
         )}, which does not have all the fields`
       }
-      if (paragraph[field] !== fieldsObject[field]) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} -- paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+      // Check if the field value is truncated and use startsWith accordingly
+      if (typeof fieldsObject[field] === 'string' && fieldsObject[field].endsWith('...')) {
+        const fieldTruncatedContent = fieldsObject[field].slice(0, -3)
+        // $FlowIgnore
+        if (!paragraph[field].startsWith(fieldTruncatedContent)) {
+          match = false
+        }
+        // $FlowIgnore
+      } else if (paragraph[field] !== fieldsObject[field]) {
         match = false
       }
     }
   })
+
   return match
 }
 
@@ -1329,6 +1345,8 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
+ * If the content is truncated with "..." it will match if the truncated version is the same as the start of the content in a line in the note
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Project and Calendar notes.
  * @author @jgclark
@@ -1351,9 +1369,12 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
+        const isTruncated = content.endsWith('...')
+        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
+
         let c = 0
         for (const para of thisNote.paragraphs) {
-          if (para.content === content) {
+          if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
             // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
