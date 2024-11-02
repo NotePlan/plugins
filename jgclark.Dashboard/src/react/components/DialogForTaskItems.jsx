@@ -36,6 +36,7 @@ type DialogButtonProps = {
 
 const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
+  const [resetCalendar, setResetCalendar] = useState(false) // used to reset the calendar during IP processing if the date picker is open
   const inputRef: React$RefObject<?HTMLInputElement> = useRef <? HTMLInputElement > (null)
   const dialogRef: React$RefObject<?HTMLDivElement> = useRef <? HTMLDivElement > (null)
 
@@ -219,6 +220,9 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     // const isoDateStr = date.toISOString().split('T')[0]
     const isoDateStr = hyphenatedDateString(date) // to avoid TZ issues
     sendActionToPlugin(dateChangeFunctionToUse, { ...detailsMessageObject, actionType: dateChangeFunctionToUse, controlStr: isoDateStr }, `${isoDateStr} selected in date picker`, true)
+    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
+    setResetCalendar(true)
+    setTimeout(() => setResetCalendar(false), 0) 
     closeDialog()
   }
 
@@ -442,7 +446,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
                 </button>
               ))}
               {/* $FlowIgnore */}
-              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={() => positionDialog(dialogRef)} /> {/* FIXME: this positioning doesn't work */}
+              <CalendarPicker onSelectDate={handleDateSelect} positionFunction={() => positionDialog(dialogRef)} reset={resetCalendar} startingSelectedDate={null} /> {/* FIXME: this positioning doesn't work */}
               {/* TODO: when this does work, it needs copying to DialogForProjectItems as well */}
             </div>
             {/* </div> */}

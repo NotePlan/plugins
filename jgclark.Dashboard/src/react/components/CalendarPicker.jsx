@@ -4,7 +4,7 @@
 // Used in DialogFor*Items components.
 // Last updated 2024-08-14 for v2.1.0.a7 by @dbw
 //----------------------------------------------------------
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DayPicker } from 'react-day-picker'
 // Import styles directly into component
 import 'react-day-picker/dist/style.css' /* https://react-day-picker.js.org/basics/styling */
@@ -15,11 +15,12 @@ type Props = {
   onSelectDate: (date: Date) => void, // Callback function when date is selected
   numberOfMonths?: number, // Number of months to show in the calendar
   startingSelectedDate?: Date, // Date to start with selected
-  positionFunction?: ()=>{} // Function to call to reposition the dialog because it will be taller when calendar is open
+  positionFunction?: ()=>{}, // Function to call to reposition the dialog because it will be taller when calendar is open
+  reset?: boolean // Whether the calendar is open/shown or not
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction }: Props): React$Node => {
-  const [selectedDate, setSelectedDate] = useState(startingSelectedDate||new Date())
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, reset }: Props): React$Node => {
+  const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
   const [isOpen, setIsOpen] = useState(false)
 
 
@@ -34,6 +35,14 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
     if (!isOpen && positionFunction) callRepositionFunctionAfterOpening()
     setIsOpen(!isOpen)
   }
+
+  // Reset selectedDate when reset prop changes
+  useEffect(() => {
+    if (reset) {
+      setSelectedDate(null); // or any default value
+    }
+  }, [reset]);
+
   //     '--rdp-cell-size': '20px', // Size down the calendar cells (default is 40px)
 
   // TODO: looks like these could all move to CalendarPicker.css?

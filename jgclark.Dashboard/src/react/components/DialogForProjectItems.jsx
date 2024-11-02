@@ -35,6 +35,8 @@ type DialogButtonProps = {
 
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
+  const [resetCalendar, setResetCalendar] = useState(false)
+
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
   // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
@@ -113,6 +115,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
     sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
+    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
+    setResetCalendar(true)
+    setTimeout(() => setResetCalendar(false), 0) // Reset the calendar in the next render cycle
     closeDialog()
   }
 
@@ -205,7 +210,7 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                   ))}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} />
+              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} reset={resetCalendar} />
             </div>
 
             {/* line2 (macOS only) ---------------- */}
