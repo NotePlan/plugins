@@ -8,7 +8,7 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing. This can give "deferred date" functionality (see below).
 - all overdue tasks
 - all open items with an added priority
-- the next notes ready to review (if you use the "Projects and Reviews" plugin)
+- the next Project notes ready to review (if you use the "Projects and Reviews" plugin)
 
 ... and then gives you many controls, mostly in two edit dialogs, that let you quickly complete, cancel or move items to different time periods.
 
@@ -58,15 +58,20 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 You can also update the text of the item itself, which is saved whenever you press the `Update` button (or any of the other action buttons). You can press `ESC` key to close the dialog, or click on the `X` button.
 
 ### Interactive Processing
-??? ...
+In sections with more than 1 item, a `>> N` button is available (where `N` is the number of items). This brings up the above dialog, but in 'interactive processing' mode, wtith extra buttons in the header to move forward (or backward) between the items. This allows you to more quickly go through a set of items, and take different actions for each one.
+
+Notes:
+- you can break out from the sequence at any time by closing the dialog.
+- at the moment this only processes tasks that are currently shown -- so it won't process any ones of lower priority that you have hidden.
+- there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items
 <img src="add-buttons-2.0.0.png" align="right" width="200px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month.
 
 ### Move all item buttons
-??? ...
+Some sections have "All →  ..." buttons. They move all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
 
-- Note: be careful with this: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so this can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on both the notes the tasks were moved from and to.
+Note: _Please be careful with this_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so this can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on both the notes the tasks were moved from and to.
 
 ## Other notes about the Dashboard display
 - The Dashboard uses a flexible HTML-based display, that's entirely different technology from NotePlan's editors. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
@@ -90,6 +95,8 @@ The 'action buttons' available in this section are:
 - `🗓️` skips  to any date you choose, via a date picker
 - "Complete", "Cancel" and "Pause" Project buttons, that each mimic the same command from the Project & Reviews plugin
 - shows the latest 'Progress' comment for a project, and an `Add` button to add a new progress comment.
+
+The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.
 
 ### Priority section
 Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.

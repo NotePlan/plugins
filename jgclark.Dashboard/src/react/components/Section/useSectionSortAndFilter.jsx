@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
 // Filters and sorts items to be shown in a Section
-// Last updated 2024-07-21 for v2.1.0.a1 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -24,21 +24,23 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
 
   useEffect(() => {
     const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
-    const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
 
     // Find highest priority seen
-    let maxPrioritySeen = 0
+    let maxPrioritySeen = -1
     for (const i of items) {
       if (i.para?.priority && i.para.priority > maxPrioritySeen) {
         maxPrioritySeen = i.para.priority
       }
     }
     // and then filter lower-priority items (if wanted)
-    const filteredItems = filterPriorityItems ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen) : items.slice()
+    const filteredItems = filterPriorityItems
+      ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
+      : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
     // logInfo('useSectionSortAndFilter', `After filter: ${String(priorityFilteringHappening)} and ${filteredItems.length} items`)
 
     // sort items
+    // FIXME: Sort priority filtering of children
     filteredItems.sort((a, b) => {
       if (a.para?.startTime && b.para?.startTime) {
         const startTimeComparison = a.para.startTime.localeCompare(b.para.startTime)
@@ -69,24 +71,25 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       return titleA.localeCompare(titleB)
     })
 
+    // If more than limitToApply, then just keep the first items, otherwise keep all
+    const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
     const itemsToShow = limitToApply > 0 ? filteredItems.slice(0, limitToApply) : filteredItems.slice()
+    const limitApplied = items.length > itemsToShow.length
 
-    const numFilteredOut = items.length ? items.length - itemsToShow.length : items.length - itemsToShow.length
-    const limitApplied = (items.length ?? 0) > itemsToShow.length
-
+    // Add 'filtered out' display line if relevant
+    const numFilteredOut = items.length - itemsToShow.length
     if (numFilteredOut > 0) {
       itemsToShow.push({
         ID: `${section.ID}-Filter`,
         itemType: 'filterIndicator',
         para: {
-          content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${
-            numFilteredOut >= 2 ? 'items' : 'item'
-          } currently hidden`,
+          content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOut >= 2 ? 'items' : 'item'} currently hidden`,
           filename: '',
           type: 'text',
           noteType: 'Notes',
           rawContent: '',
           priority: -1,
+          indentLevel: 0
         },
       })
     }
