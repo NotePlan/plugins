@@ -56,10 +56,19 @@ export async function getRepeatSettings(): Promise<any> {
   }
 }
 
-export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentContent: string, completedDate: string): string {
+/**
+ * Generate the new repeat date from the completed date or due date in 'currentContent' and 'completedDate' from 'noteToUse'.
+ * 
+ * @param {CoreNoteFields} noteToUse - The note object containing core fields, used to determine the note's date.
+ * @param {string} currentContent - The current content of the note line, which may contain repeat information.
+ * @param {string} completedDate - The date when the task was completed, in the format 'YYYY-MM-DD'.
+ * @returns {string} - The new repeat date string calculated based on the interval and timeframe. Without '>'.
+ * @tests in jest file
+ */
+export function generateNewRepeatDate(noteToUse: CoreNoteFields, currentContent: string, completedDate: string): string {
   // get repeat to apply
-  const reReturnArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
-  let dateIntervalString: string = (reReturnArray.length > 0) ? reReturnArray[1] : ''
+  const reRepeatArray = currentContent.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
+  let dateIntervalString: string = (reRepeatArray.length > 0) ? reRepeatArray[1] : ''
 
   // decide style of new date: daily / weekly / monthly / etc.
   let outputTimeframe = 'day'
@@ -74,7 +83,7 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
   } else if (currentContent.match(RE_SCHEDULED_YEARLY_NOTE_LINK) || isYearlyNote(noteToUse)) {
     outputTimeframe = 'year'
   }
-  logDebug('generateUpdatedLineContent', `- date interval: '${dateIntervalString}', completedDate: ${completedDate}, timeframe: ${outputTimeframe}`)
+  logDebug('generateNewRepeatDate', `- date interval: '${dateIntervalString}', completedDate: ${completedDate}, outputTimeframe: ${outputTimeframe}`)
 
   let newRepeatDateStr = ''
   const output = currentContent
@@ -86,7 +95,7 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
       dateIntervalString.length,
     )
     newRepeatDateStr = calcOffsetDateStr(completedDate, dateIntervalString, outputTimeframe)
-    logDebug('generateUpdatedLineContent', `- adding from completed date -> ${newRepeatDateStr}`)
+    logDebug('generateNewRepeatDate', `- adding from completed date -> ${newRepeatDateStr}`)
   } else {
     // New repeat date = due date + interval
     // look for the due date (>YYYY-MM-DD) or other calendar types
@@ -104,14 +113,14 @@ export function generateUpdatedLineContent(noteToUse: CoreNoteFields, currentCon
               : []
     if (dueDateArray && dueDateArray[0] != null) {
       dueDate = dueDateArray[0].split('>')[1]
-      logDebug('generateUpdatedLineContent', `  due date match = ${dueDate}`)
+      logDebug('generateNewRepeatDate', `  due date match = ${dueDate}`)
     } else {
       // there is no due date, so try the note date, otherwise use completed date
       dueDate = noteToUse.date ? hyphenatedDateString(noteToUse.date) : completedDate
-      logDebug('generateUpdatedLineContent', `- no match => use note/completed date ${dueDate}`)
+      logDebug('generateNewRepeatDate', `- no due date match, so will use note/completed date ${dueDate}`)
     }
     newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString, outputTimeframe)
-    logDebug('generateUpdatedLineContent', `- adding from due date -> ${newRepeatDateStr}`)
+    logDebug('generateNewRepeatDate', `- adding from due date -> ${newRepeatDateStr}`)
   }
   return newRepeatDateStr
 }
