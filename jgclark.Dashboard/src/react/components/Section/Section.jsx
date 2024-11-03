@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated 2024-09-18 for v2.1.0.a11 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -14,7 +14,6 @@ import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
-// import useInteractiveProcessing from './useInteractiveProcessing.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
 import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
@@ -93,7 +92,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  const { /* filteredItems, */ itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -138,7 +137,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Render
   //----------------------------------------------------------------------
 
-  // $FlowFixMe[invalid-computed-prop] new flow error since 202
+  // $FlowIgnore[invalid-computed-prop]
   const hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false)
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'

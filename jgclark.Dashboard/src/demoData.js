@@ -1,3 +1,4 @@
+// @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin v2
 // Note: Now not using flow, as it is warning about so many deliberate prop-missing warning. I can't find a way to turn just that one warning off.
@@ -24,7 +25,6 @@ export const openTodayItems: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
-    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Calendar',
       type: 'open',
@@ -34,12 +34,13 @@ export const openTodayItems: Array<TSectionItem> = [
       content: 'task with timeblock 10:00-11:30',
       rawContent: 'task with timeblock 10:00-11:30',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: "open",
-    // $FlowIgnore[prop-missing]
     para: {
       noteType: "Calendar",
       type: "open",
@@ -48,12 +49,13 @@ export const openTodayItems: Array<TSectionItem> = [
       content: "reconcile bank statement @repeat(1m)",
       rawContent: "reconcile bank statement @repeat(1m)",
       prefix: "* ",
+      children: () => [],
+      indentLevel: 0,
     }
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'open',
-    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Notes',
       type: 'open',
@@ -64,12 +66,13 @@ export const openTodayItems: Array<TSectionItem> = [
       rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
       blockId: '^wazhht',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
     itemType: 'checklist',
-    // $FlowIgnore[prop-missing]
     para: {
       noteType: 'Calendar',
       type: 'checklist',
@@ -78,6 +81,8 @@ export const openTodayItems: Array<TSectionItem> = [
       content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -91,6 +96,8 @@ export const openTodayItems: Array<TSectionItem> = [
       content: "morning checklist 7:30AM",
       rawContent: "morning checklist 7:30AM",
       prefix: "+ ",
+      children: () => [],
+      indentLevel: 0,
     }
   },
 ]
@@ -108,6 +115,8 @@ export const refTodayItems: Array<TSectionItem> = [
       rawContent: 'Update display board 08:00-09:00',
       prefix: '* ',
       hasChild: true,
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -122,6 +131,8 @@ export const refTodayItems: Array<TSectionItem> = [
       prefix: "* ",
       content: "Pay in cash from cafe 2:30PM",
       rawContent: "Pay in cash from cafe 2:30PM",
+      children: () => [],
+      indentLevel: 0,
     }
   },
 ]
@@ -138,12 +149,61 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
-
       priority: 4,
       content: '>> #editvideo from CFL visit',
       rawContent: '>> #editvideo from CFL visit',
       prefix: '* ',
       hasChild: true,
+      children: () => [{ content: 'child of #editvideo', indents: 1 }],
+      indentLevel: 0,
+    },
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      priority: 0,
+      content: 'fix and level audio',
+      rawContent: 'fix and level audio',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      priority: 0,
+      content: 'trim and order shots',
+      rawContent: 'trim and order shots',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      priority: 0,
+      content: 'add titles',
+      rawContent: 'add titles',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -158,6 +218,8 @@ export const openYesterdayParas: Array<TSectionItem> = [
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
       prefix: '* ',
       hasChild: true,
+      children: () => [{ content: 'check contract with Bev', indents: 1 }],
+      indentLevel: 0,
     },
   },
 ]
@@ -175,6 +237,8 @@ export const refYesterdayParas: Array<TSectionItem> = [
       rawContent: 'write 5/3 sermon >2023-03-02',
       prefix: '* ',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -191,6 +255,8 @@ export const refYesterdayParas: Array<TSectionItem> = [
       rawContent: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       blockId: '^wazhht',
       hasChild: true,
+      children: () => [{ content: 'item 1 response', indents: 1 }],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -207,6 +273,8 @@ export const refYesterdayParas: Array<TSectionItem> = [
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
       priority: 1,
       hasChild: true,
+      children: () => [{ content: 'create presentation slides for 5/3', indents: 1 }],
+      indentLevel: 0,
     },
   },
 ]
@@ -229,6 +297,8 @@ export const openTomorrowParas: Array<TSectionItem> = [
       priority: 0,
       blockId: '^q9jzj4',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -250,6 +320,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: '!! Arrange EV charger repair',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -264,6 +336,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -278,6 +352,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: 'Contact @PeterS again',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -294,6 +370,8 @@ export const openWeekParas: Array<TSectionItem> = [
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
       hasChild: true,
+      children: () => [{ content: 'install printer drivers', indents: 1 }],
+      indentLevel: 0,
     },
   },
 ]
@@ -310,6 +388,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -325,6 +405,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Re-plant two shrubs in new blue pots >2023-W09',
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -340,6 +422,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Backup Mac - with an arrow date >2023-W09< reference',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -359,6 +443,8 @@ export const openMonthParas: Array<TSectionItem> = [
       content: 'Investigate alternative milkman',
       rawContent: 'Investigate alternative milkman',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -375,6 +461,8 @@ export const refMonthParas: Array<TSectionItem> = [
       content: 'Pay tax bill',
       rawContent: 'Pay tax bill',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -394,6 +482,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Open Deliveroo account #next',
       prefix: '+ ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -407,6 +497,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Make expenses claim #next',
       prefix: '* ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -420,6 +512,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Checklist item that can be hidden #test',
       prefix: '+ ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]

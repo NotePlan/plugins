@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
+// for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -98,7 +98,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(
-        `Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Preferences pane.`,
+        `Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Settings pane.`,
       )
     }
     const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
@@ -145,19 +145,20 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       // Note: Demo data gives .children not function returning children
       // So test to see if children() function is present, before trying to use it
       // $FlowFixMe[method-unbinding]
-      const anyChildren = p.children && typeof p.children === 'function' ? p.children() : p.children
+      // const anyChildren = p.children && typeof p.children === 'function' ? p.children() : p.children
+      const anyChildren = p.children()
       const hasChild = anyChildren.length > 0
       const isAChild = isAChildPara(p)
 
       // FIXME: debugging why sometimes hasChild is wrong
-      // if (hasChild) {
-      //   const pp = note.paragraphs || []
-      //   const nextLineIndex = p.lineIndex + 1
-      //   clo(p, `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
-      //   clo(p.contentRange, `contentRange for paragraph`)
-      //   clo(anyChildren, `Children of paragraph`)
-      //   clo(anyChildren[0].contentRange, `contentRange for child[0]`)
-      // }
+      if (hasChild) {
+        const pp = note.paragraphs || []
+        const nextLineIndex = p.lineIndex + 1
+        clo(p, `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+        clo(p.contentRange, `contentRange for paragraph`)
+        clo(anyChildren, `Children of paragraph`)
+        clo(anyChildren[0].contentRange, `contentRange for child[0]`)
+      }
 
       return {
         filename: note.filename,
