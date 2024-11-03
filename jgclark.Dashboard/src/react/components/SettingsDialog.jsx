@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import type { TSettingItem } from '../../types'
 import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
-import { setPerspectivesIfJSONChanged } from '../../perspectiveHelpers'
+import { setPerspectivesIfJSONChanged, getActivePerspectiveName } from '../../perspectiveHelpers'
 import { useAppContext } from './AppContext.jsx'
 // import PerspectiveSettings from './PerspectiveSettings.jsx'
 import '../css/SettingsDialog.css' // Import the CSS file
@@ -133,9 +133,9 @@ const SettingsDialog = ({
   const handleSave = () => {
     if (onSaveChanges) {
       const usingPerspectives = dashboardSettings.showPerspectives
-      logDebug(`SettingsDialog: handlesave showPerspectives=${String(usingPerspectives)} apn=${dashboardSettings.activePerspectiveName}`)
+      logDebug(`SettingsDialog: handlesave showPerspectives=${String(usingPerspectives)} apn=${getActivePerspectiveName(perspectiveSettings)}`)
       if (usingPerspectives) {
-        const apn = dashboardSettings.activePerspectiveName
+        const apn = getActivePerspectiveName(perspectiveSettings)
         dispatchPerspectiveSettings({
           type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
           payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true, lastChange: `${dt()}` } : { ...p, isModified: false })),

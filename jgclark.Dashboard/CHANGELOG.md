@@ -17,6 +17,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fixed edge case when filtering lower priority items from the display
 - fixed typos in "Move all to today" dialog<!-- from 2.1.0.a11-->
 <!-- fixed spinner icon not spinning<!-- from 2.1.0.a11, but not working for some reason here -->
+
+## [Perspectives.a14 - 2.1.0.a15] @dbw, 2024-10-27
+- Removed activePerspectiveName from dashboardSettings, and moved it to the perspectiveSettings (isActive flag)
+
 ## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
 - Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
 - Total refactor of interactive processing code to make it more maintainable and fix some bugs

@@ -10,9 +10,10 @@
 //----------------------------------------------------------
 // Imports
 //----------------------------------------------------------
-import React from 'react'
+import React, {useState,useEffect} from 'react'
 import { JsonEditor } from 'json-edit-react'
 import TextComponent from '../components/TextComponent.jsx'
+import { getActivePerspectiveName } from '../../perspectiveHelpers.js'
 import InputBox from '../components/InputBox.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
@@ -47,21 +48,19 @@ const PerspectiveSettings = ({
   className = ''
 }: PerspectiveSettingsProps): React$Node => {
   try {
+
+    //----------------------------------------------------------------------
+    // Context
+    //----------------------------------------------------------------------
     const { dashboardSettings, perspectiveSettings } = useAppContext()
     // only continue if we have Perspectives turned on
     if (!dashboardSettings.showPerspectives) return
 
     //----------------------------------------------------------------------
-    // Context
-    //----------------------------------------------------------------------
-
-    const activePerspectiveName = dashboardSettings.activePerspectiveName || ''
-    logDebug('PerspectiveSettings', `starting with '${activePerspectiveName}' active from ${String(perspectiveSettings.length)} perspectives: ${perspectiveSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
-
-
-    //----------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------
+    const [activePerspective, setActivePerspective] = useState(getActivePerspectiveName(perspectiveSettings))
+    logDebug('PerspectiveSettings', `starting with '${activePerspective||''}' active from ${String(perspectiveSettings.length)} perspectives: ${perspectiveSettings.map(p => `${p.name} (${Object.keys(p.dashboardSettings).length} settings)`).join(', ')}`)
 
     //----------------------------------------------------------------------
     // Handlers
@@ -78,6 +77,10 @@ const PerspectiveSettings = ({
     //----------------------------------------------------------------------
     // Effects
     //----------------------------------------------------------------------
+
+    useEffect(() => {
+      setActivePerspective(getActivePerspectiveName(perspectiveSettings))
+    }, [perspectiveSettings])
 
     //----------------------------------------------------------------------
     // Render
@@ -96,7 +99,7 @@ const PerspectiveSettings = ({
           readOnly={true}
           label={'Active Perspective'}
           onChange={() => { }}
-          value={activePerspectiveName}
+          value={activePerspective}
           compactDisplay={true}
         />
         <TextComponent

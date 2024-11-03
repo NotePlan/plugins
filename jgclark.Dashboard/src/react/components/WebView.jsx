@@ -82,7 +82,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  const initialPerspectiveSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || []).map(p=>({...p,showPerspectives:true}))
+  const initialPerspectiveSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || [])
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -131,10 +131,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
-
-  useEffect(() => {
-    logInfo('WebView', `React Dashboard Initialized and rendered.`)
-  }, [])
 
 
   /****************************************************************************************************************************

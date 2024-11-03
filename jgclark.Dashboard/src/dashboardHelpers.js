@@ -301,7 +301,6 @@ export function getOpenItemParasForCurrentTimePeriod(
     const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
     // $FlowIgnore[incompatible-call]
     refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
-    // logTimer('getOpenItemPFCTP', startTime, `- after Perspective '${dashboardSettings.activePerspectiveName}' folder filters: ${refOpenParas.length} para(s)`)
 
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)

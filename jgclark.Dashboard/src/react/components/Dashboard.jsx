@@ -15,7 +15,7 @@ import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGenerati
 import { allSectionDetails, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
-import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
+import { getActivePerspectiveName } from '../../perspectiveHelpers.js'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
 import Header from './Header'
 import Section from './Section/Section.jsx'
@@ -124,16 +124,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   // Effect to update dashboardSettings when pluginData.dashboardSettings changes (e.g. the plugin rewrote it)
   useEffect(() => {
-    // logDebug('WebView', `Detected change in pluginData.dashboardSettings.activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" - lastChange="${pluginData.dashboardSettings.lastChange}"`)
     pluginData.dashboardSettings?.perspectiveSettings ? logDebug(`WebView`, `dashboardSettings had a perspectiveSettings key. this probably should not be the case!!!`) : null
     if (dashboardSettings.lastChange !== "_WebView_DashboardDefaultSettings" && JSON.stringify(pluginData.dashboardSettings) !== JSON.stringify(dashboardSettings)) {
       let diff = compareObjects(pluginData.dashboardSettings,dashboardSettings)
-      diff && clo(diff,`Dashboard pluginData.dashboardSettings watcher diff`)
       if (diff && Object.keys(diff).length === 1 && diff.hasOwnProperty("lastChange")) {
         diff = null
-        logDebug(`Dashboard`, `useEffect(pluginData.dashboardSettings) - Only lastChange field was different. (old="${dashboardSettings.lastChange}" new="${pluginData.dashboardSettings.lastChange}") Ignoring.`)
       }
       if (diff) {
+        diff && logDebug(`Dashboard`,`Dashboard pluginData.dashboardSettings watcher diff: ${JSON.stringify(diff)}`)
         logDebug(`WebView`, `Looks like dashboardSettings are different. calling dispatchDashboardSettings()`)
         dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: pluginData.dashboardSettings })
       }
@@ -176,7 +174,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // create a new effect that sets perspectiveSettings when pluginData.perspectiveSettings changes in the plugin
   useEffect(() => {
     if (pluginData.perspectiveSettings && pluginData.perspectiveSettings.length > 0) {
-      // logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `changed: activePerspectiveName="${pluginData.dashboardSettings.activePerspectiveName}" dashboardSettings.lastChange="${pluginData.dashboardSettings.lastChange}"`)
       const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
       if (diff) {
         logDebug('Dashboard/useEffect(pluginData.perspectiveSettings)', `- Perspectives array changed: ${JSON.stringify(diff)}`)

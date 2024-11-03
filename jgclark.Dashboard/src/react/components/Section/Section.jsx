@@ -65,7 +65,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     if (!sectionItems || sectionItems.length === 0) {
       switch (section.ID) {
         case '0':
-          logDebug('Section', `Section 0 (DT) doesn't have any sectionItems, so display congrats message`)
+          // logDebug('Section', `Section 0 (DT) doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: '0-Congrats',
@@ -74,7 +74,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           ]
           break
         case '14':
-          logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
+          // logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: '14-Congrats',

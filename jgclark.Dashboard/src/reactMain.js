@@ -68,7 +68,6 @@ export async function showDemoDashboard(): Promise<void> {
  * FIXME: doesn't work for show*Sections
  * @param {string} key
  * @param {string} value
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=activePerspectiveName&arg1=Home
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=rescheduleNotMove&arg1=true
  * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=ignoreItemsWithTerms&arg1=#waiting
  */

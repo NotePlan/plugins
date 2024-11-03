@@ -13,7 +13,7 @@ import React, { createContext, useContext, useEffect, useReducer, useRef, type N
 import { PERSPECTIVE_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
-import { cleanDashboardSettings } from '../../perspectiveHelpers'
+import { cleanDashboardSettings, getActivePerspectiveName, replacePerspectiveDef } from '../../perspectiveHelpers'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import { compareObjects } from '@helpers/dev'
@@ -76,15 +76,11 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
    * @param {any} newDashboardSettings 
    * @param {Function} dispatchPerspectiveSettings 
    */
-  function saveDefaultPerspectiveData(perspectiveSettings: any, dashboardSettings: TDashboardSettings, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
-    const dashPerspectiveIndex = perspectiveSettings.findIndex(s => s.name === "-")
-    if (dashPerspectiveIndex > -1) {
-      perspectiveSettings[dashPerspectiveIndex] = { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) }
-    } else {
-      logDebug('Dashboard/saveDefaultPerspectiveData', `- Shared settings updated: "${newDashboardSettings.lastChange}" but could not find dashPerspectiveIndex; adding it to the end`, dashboardSettings)
-      perspectiveSettings.push({ name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings) })
-    }
-    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: perspectiveSettings, reason: `No perspective was set; saving default perspective info.` })
+  function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
+
+    const newPerspectiveDefs = replacePerspectiveDef(perspectiveSettings, { name: "-", isModified: false, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isActive: false })
+
+    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveDefs, reason: `No perspective was set; saving default perspective info.` })
   }
 
 
@@ -128,17 +124,20 @@ export const AppProvider = ({
 
   // Effect to call sendActionToPlugin when dashboardSettings change
   useEffect(() => {
-    const shouldSendToPlugin =
+    const shouldSendToPlugin = lastSentDashboardSettingsRef.current && dashboardSettings.lastChange && dashboardSettings.lastChange[0] !== '_' && JSON.stringify(dashboardSettings) !== JSON.stringify(lastSentDashboardSettingsRef.current)
       dashboardSettings.lastChange && dashboardSettings.lastChange[0] !== '_' && JSON.stringify(dashboardSettings) !== JSON.stringify(lastSentDashboardSettingsRef.current)
     const diff = compareObjects(dashboardSettings, lastSentDashboardSettingsRef.current)
     const changedProps = lastSentDashboardSettingsRef.current ? diff : dashboardSettings // first time thru .current is null so everything is changed
-    // logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
+    shouldSendToPlugin && logDebug('AppContext/useEffect(dashboardSettings)', `Changed properties: ${JSON.stringify(changedProps)}`)
     // clo(dashboardSettings,'AppContext/useEffect(dashboardSettings) dashboardSettings')
     // clo(lastSentDashboardSettingsRef.current,'AppContext/useEffect(dashboardSettings) lastSentDashboardSettingsRef.current')
-    if (diff && dashboardSettings.activePerspectiveName === "-" || !(dashboardSettings.activePerspectiveName)) {
-      // If the activePerspectiveName is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
+    const apn = getActivePerspectiveName(perspectiveSettings)
+    if (diff && apn === "-" || !apn) {
+      // If the apn is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
       logDebug('AppContext/useEffect(dashboardSettings)',`No named perspective set, so saving this change into the "-" perspective.`)
-      saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, cleanDashboardSettings(dashboardSettings), dispatchPerspectiveSettings)
+      if (dashboardSettings) {
+        saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, dispatchPerspectiveSettings)
+      }
     }
 
     if (shouldSendToPlugin && changedProps) {
@@ -158,6 +157,24 @@ export const AppProvider = ({
       lastSentDashboardSettingsRef.current = dashboardSettings
     } 
   }, [dashboardSettings, sendActionToPlugin, perspectiveSettings])
+
+  useEffect(() => {
+    // dbw note: this code is new after removing .activePerspectiveName from dashboardSettings
+    const diff = compareObjects(perspectiveSettings, pluginData.perspectiveSettings)
+    if (diff && perspectiveSettings.length > 0) {
+      logDebug('AppContext/useEffect(perspectiveSettings) watcher',`perspectiveSettings changed: ${JSON.stringify(diff)}`)
+      sendActionToPlugin(
+        'perspectiveSettingsChanged',
+        {
+          actionType: 'perspectiveSettingsChanged',
+          settings: perspectiveSettings, // Because when settings change we need to set isModified also in the perspectiveSettings
+          logMessage: 'perspectiveSettings changed',
+        },
+        'Dashboard dashboardSettings updated',
+        true,
+      )
+    }
+  }, [perspectiveSettings])
 
   const contextValue: AppContextType = {
     sendActionToPlugin,

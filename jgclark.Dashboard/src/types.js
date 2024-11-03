@@ -21,7 +21,6 @@ export type TNotePlanSettings = {
 
 export type TDashboardSettings = {
   showPerspectives: boolean,
-  activePerspectiveName: string,
   // perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
@@ -81,6 +80,7 @@ export type TPerspectiveDef = {
   name: string,
   dashboardSettings: TDashboardSettings,
   isModified: boolean,
+  isActive: boolean,
 }
 
 export type TPerspectiveSettings = Array<TPerspectiveDef>

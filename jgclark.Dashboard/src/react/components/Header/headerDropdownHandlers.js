@@ -7,8 +7,8 @@ import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTyp
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
 import { dashboardFilterDefs } from '../../../dashboardSettings'
+import { getActivePerspectiveName } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
-
 /**
  * Handles the click event for the refresh button, triggering a plugin refresh action.
  *
@@ -59,9 +59,8 @@ export const handleSwitchChange = (
 
       logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
       const usingPerspectives = dashboardSettings.showPerspectives
-      logDebug(`headerDropdownHandler: handlesave showPerspectives=${String(usingPerspectives)} apn=${dashboardSettings.activePerspectiveName}`)
       if (usingPerspectives) {
-        const apn = dashboardSettings.activePerspectiveName
+        const apn = getActivePerspectiveName(perspectiveSettings)
         dispatchPerspectiveSettings({
           type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
           payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),

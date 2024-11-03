@@ -20,7 +20,7 @@ describe.skip('PerspectiveSelector Component', () => {
 
   beforeEach(() => {
     useAppContext.mockReturnValue({
-      dashboardSettings: { activePerspectiveName: 'Default', lastChange: '2024-10-17' },
+      dashboardSettings: { lastChange: '2024-10-17' },
       dispatchDashboardSettings: mockDispatchDashboardSettings,
       dispatchPerspectiveSettings: mockDispatchPerspectiveSettings,
       sendActionToPlugin: mockSendActionToPlugin,
@@ -39,7 +39,7 @@ describe.skip('PerspectiveSelector Component', () => {
 
   test('renders perspective options when loaded', async () => {
     useAppContext.mockReturnValue({
-      dashboardSettings: { activePerspectiveName: 'Default', lastChange: '2024-10-17' },
+      dashboardSettings: { lastChange: '2024-10-17' },
       dispatchDashboardSettings: jest.fn(),
       dispatchPerspectiveSettings: jest.fn(),
       sendActionToPlugin: jest.fn(),
@@ -78,7 +78,7 @@ describe.skip('PerspectiveSelector Component', () => {
     expect(mockDispatchDashboardSettings).toHaveBeenCalledWith(
       expect.objectContaining({
         type: expect.any(String),
-        payload: expect.objectContaining({ activePerspectiveName: 'Custom' }),
+        payload: expect.objectContaining({ something:"here" }), //FIXME: unfinished
       }),
     )
   })

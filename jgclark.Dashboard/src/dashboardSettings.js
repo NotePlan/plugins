@@ -76,17 +76,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: true,
     compactDisplay: true,
-    controlsOtherKeys: ['activePerspectiveName', 'perspectiveList'],
+    controlsOtherKeys: ['perspectiveList'],
   },
-  // {
-  //   //$FlowIgnore[incompatible-type] don't understand the error
-  //   type: 'hidden',
-  //   key: 'activePerspectiveName',
-  //   label: 'Name of active Perspective',
-  //   description: 'The Perspective that is active.',
-  //   default: '',
-  //   dependsOnKey: 'showPerspectives',
-  // },
   {
     //$FlowIgnore[incompatible-type] don't understand the error
     type: 'perspectiveList',

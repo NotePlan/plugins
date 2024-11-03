@@ -646,7 +646,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   // if (settingName === 'dashboardSettings') {
   //   newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
   // }
-  logDebug(`doSettingsChanged`, `TOP saving: activePerspectiveName=${newSettings.activePerspectiveName} excluded (in the main dashboard settings)=${newSettings.excludedFolders}`)
+  logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
   if (data.perspectiveSettings) {
     const debugInfo = data.perspectiveSettings.map((ps) => `${ps.name}=[${ps.dashboardSettings.excludedFolders.toString()}`).join(`\n\t`)
@@ -655,8 +655,6 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
 
   DataStore.settings = combinedUpdatedSettings
-  const ds = JSON.parse(DataStore.settings.dashboardSettings)
-  logDebug(`doSettingsChanged`, `AFTER saving: activePerspectiveName=${ds.activePerspectiveName} excluded=${ds.excludedFolders}`)
   const updatedPluginData = { [settingName]: newSettings }
   if (data.perspectiveSettings) {
     // $FlowFixMe(incompatible-type)

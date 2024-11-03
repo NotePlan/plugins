@@ -22,7 +22,7 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
       const changedProps = compareObjects(state, payload)
-      logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
+      changedProps && logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
       return {
         ...state,
         ...payload,
