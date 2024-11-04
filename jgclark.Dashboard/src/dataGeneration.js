@@ -50,6 +50,7 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
+import { getParentPara } from '@helpers/NPParagraph'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask } from '@helpers/utils'
@@ -167,8 +168,9 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sortedItems.map((item) => {
         if (item.para) {
           const timeStr = getStartTimeFromPara(item.para)
-          // $FlowFixMe[incompatible-use] already checked item.para exists
+          // $FlowIgnore[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
+          // item.parentID = ''
         }
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, ...item })
@@ -187,11 +189,50 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         // logDebug('getDataForDashboard', `getOpenItemParasForCurrentTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // write items for first (or combined) section
-        sortedOrCombinedParas.map((p) => {
+        let lastIndent0ParentID = ''
+        let lastIndent1ParentID = ''
+        let lastIndent2ParentID = ''
+        let lastIndent3ParentID = ''
+        for (const socp of sortedOrCombinedParas) {
           const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID, p))
+          const thisSectionItemObject = getSectionItemObject(thisID, socp)
+          // Now add parentID where relevant
+          if (socp.isAChild) {
+            const parentParaID = (socp.indentLevel === 1)
+              ? lastIndent0ParentID
+              : (socp.indentLevel === 2)
+                ? lastIndent1ParentID
+                : (socp.indentLevel === 3)
+                  ? lastIndent2ParentID
+                  : (socp.indentLevel === 4)
+                    ? lastIndent3ParentID
+                    : '' // getting silly by this point, so stop
+            thisSectionItemObject.parentID = parentParaID
+            logInfo(``, `- found parentID ${parentParaID} for ID ${thisID}`)
+          }
+          if (socp.hasChild) {
+            switch (socp.indentLevel) {
+              case 0: {
+                lastIndent0ParentID = thisID
+                break
+              }
+              case 1: {
+                lastIndent1ParentID = thisID
+                break
+              }
+              case 2: {
+                lastIndent2ParentID = thisID
+                break
+              }
+              case 3: {
+                lastIndent3ParentID = thisID
+                break
+              }
+            }
+          }
+          items.push(thisSectionItemObject)
           itemCount++
-        })
+        }
       } else {
         logDebug('getDataForDashboard', `No daily note found using filename '${thisFilename}'`)
       }
@@ -345,7 +386,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sortedItems.map((item) => {
         if (item.para) {
           const timeStr = getStartTimeFromPara(item.para)
-          // $FlowFixMe[incompatible-use] already checked item.para exists
+          // $FlowIgnore[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
         }
         const thisID = `${sectionNum}-${itemCount}`

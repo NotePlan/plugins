@@ -142,10 +142,6 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
       const note = p.note
       if (!note) throw new Error(`No note found for para {${p.content}}`)
-      // Note: Demo data gives .children not function returning children
-      // So test to see if children() function is present, before trying to use it
-      // $FlowFixMe[method-unbinding]
-      // const anyChildren = p.children && typeof p.children === 'function' ? p.children() : p.children
       const anyChildren = p.children()
       const hasChild = anyChildren.length > 0
       const isAChild = isAChildPara(p)
@@ -168,13 +164,14 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         prefix: p.rawContent.replace(p.content, ''),
         content: p.content,
         rawContent: p.rawContent,
+        indentLevel: p.indents,
+        lineIndex: p.lineIndex,
         priority: getNumericPriorityFromPara(p),
         timeStr: getStartTimeFromPara(p),
         startTime: getStartTimeFromPara(p),
         changedDate: note?.changedDate,
         hasChild: hasChild,
         isAChild: isAChild,
-        indentLevel: p.indents,
       }
     })
     return dashboardParas
