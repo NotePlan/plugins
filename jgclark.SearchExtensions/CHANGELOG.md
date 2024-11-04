@@ -2,6 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [1.4.0] - 2024-10-26???
+### New
+- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation. You would have to use the Versions menu item in each note to roll it back.
+- Adds ability to search matching the case of words ("**case sensitively**"). This is different to NotePlan which only allows case-insensitive searching. There is a new setting to turn this on or off.
+- ??? flexi search screen
+- ??? regex searching
+
 ## [1.3.0] - 2023-12-26
 - Adds ability to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter.
 - Adds **wildcard operators `*` and `?`** in search terms. These match any number of characters (including none) and just 1 character respectively within a word. For example, `pos*e` matches "possible", "posie" and "pose"; `poli?e` matches "polite" and "police".

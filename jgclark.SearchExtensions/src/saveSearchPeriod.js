@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 14.7.2023 for v1.2.1, @jgclark
+// Last updated 2024-10-26 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -15,33 +15,23 @@ import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
-  makeAnySyncs,
-  type noteAndLine,
-  numberOfUniqueFilenames,
   type resultOutputTypeV3,
   runSearchesV2,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote
 } from './searchHelpers'
 import {
-  formatNoteDate,
-  getDateStringFromCalendarFilename,
-  getDateStrForStartofPeriodFromCalendarFilename,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
   unhyphenateString,
   unhyphenatedDate,
-  withinDateRange,
 } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { getPeriodStartEndDates } from '@helpers/NPdateTime'
 import { clo, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
-import {
-  createRunPluginCallbackUrl,
-  displayTitle, titleAsLink
-} from '@helpers/general'
+import { createRunPluginCallbackUrl } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-import { trimAndHighlightTermInLine } from '@helpers/search'
+// import { trimAndHighlightTermInLine } from '@helpers/search'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
@@ -72,7 +62,7 @@ export async function searchPeriod(
     const todayMom = new moment().startOf('day')
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether searchTermsArg is undefined
-    let calledNonInteractively = (searchTermsArg !== undefined)
+    const calledNonInteractively = (searchTermsArg !== undefined)
     logDebug(pluginJson, `Starting searchInPeriod()  ${calledNonInteractively ? "called non-interactively" : "called interactively"}`)
 
     // Get the search terms
@@ -130,6 +120,7 @@ export async function searchPeriod(
       // Otherwise ask user
       let fromDate: Date
       let toDate: Date
+      // eslint-disable-next-line no-unused-vars
       [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates(`What period shall I search over?`, false)
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed for requested time period')
@@ -159,7 +150,7 @@ export async function searchPeriod(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, config.caseSensitiveSearching, fromDateStr, toDateStr)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
@@ -190,7 +181,7 @@ export async function searchPeriod(
     //---------------------------------------------------------
     // End of main work started above
 
-    let resultSet = await resultsProm // here's where we resolve the promise
+    const resultSet = await resultsProm // here's where we resolve the promise
     CommandBar.showLoading(false)
 
     if (resultSet.resultCount === 0) {
@@ -202,7 +193,6 @@ export async function searchPeriod(
     //---------------------------------------------------------
     // Do output
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-    const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
     const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'searchInPeriod', [termsToMatchStr, fromDateStr, toDateStr, paraTypeFilterArg ?? '', destinationArg ?? ''])
 
     switch (destination) {

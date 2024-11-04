@@ -544,6 +544,23 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dt.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
       })
     })
+    describe('adapting output to week timeframe', () => {
+      beforeAll(() => {
+        // DataStore.settings['_logLevel'] = "DEBUG"
+      })
+      test('2024-11-02 +1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-11-02', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-11-02 1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-11-02', '1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 +1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-W44', '+1w', 'week')).toEqual('2024-W45')
+      })
+      test('2024-W44 1w -> 2024-W45', () => {
+        expect(dt.calcOffsetDateStr('2024-W44', '1w', 'week')).toEqual('2024-W45')
+      })
+    })
     describe('adapting output to offset durations', () => {
       beforeAll(() => {
         // DataStore.settings['_logLevel'] = "DEBUG"

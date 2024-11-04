@@ -338,13 +338,13 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available from v3.1
    * @param {string} json
    * @param {string} filename
-   * @return {boolean}
+   * @returns {boolean}
    */
   addTheme(json: string, filename: string): boolean;
   /**
    * Get the current system mode, either "dark" or "light.
    * Note: Available from NotePlan v3.6.2+
-   * @return {string}
+   * @returns {string}
    */
   +currentSystemMode: string;
 
@@ -394,6 +394,12 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
+/**
+ * Prevents the next "Delete future todos" dialog when deleting a line with a @repeat(...) tag. Will be reset automatically.
+ * Note: introduced in 3.15 build 1284/1230
+ * @param {boolean}
+ */
+skipNextRepeatDeletionCheck: boolean;
 }
 
 /**

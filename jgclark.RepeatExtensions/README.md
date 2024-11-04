@@ -18,7 +18,7 @@ Compared with the built-in functionality, it also allows you to easily change th
 ## Configuration
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 
-From plugin v0.8 there's a setting 'Delete completed item?', which when set deletes rather than keeps the completed repeated item.
+In the Plugin Settings pane you can set 'Delete completed item?', which deletes the completed repeated item.
 
 ## Running it Automatically
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:

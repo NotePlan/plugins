@@ -2,13 +2,13 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 14.6.2024 for v0.8.0
+// last updated 2024-11-02 for v0.8.2
 //-----------------------------------------------------------------------
 
 // import moment from 'moment'
 import pluginJson from "../plugin.json"
 import {
-  generateUpdatedLineContent,
+  generateNewRepeatDate,
   getRepeatSettings,
   type RepeatConfig,
 } from './repeatHelpers'
@@ -187,12 +187,17 @@ export async function generateRepeats(
         if (lineWithoutDoneTime.match(RE_EXTENDED_REPEAT)) {
           repeatCount++
 
-          // Create and add the new repeat line
-          let newRepeatDateStr = generateUpdatedLineContent(noteToUse, p.content, completedDate)
+          // Generate the new repeat date
+          let newRepeatDateStr = generateNewRepeatDate(noteToUse, p.content, completedDate)
+          logDebug('generateRepeats', `- newRepeatDateStr: "${newRepeatDateStr}"`)
+          if (newRepeatDateStr === completedDate) {
+            logWarn(`generateRepeats`, `newRepeatDateStr ${newRepeatDateStr} is same as completedDate ${completedDate}`)
+          }
           // Remove any >date and @done()
           let outputLine = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
           // logDebug('generateRepeats', `- outputLine: ${outputLine}`)
 
+          // Add the new date
           if (type === 'Notes') {
             // Add in same project note, including new scheduled date
             outputLine += ` >${newRepeatDateStr}`
@@ -244,12 +249,15 @@ export async function generateRepeats(
               } else {
                 await noteToUse.insertParagraphBeforeParagraph(outputLine, p, 'open')
               }
-              logInfo('generateRepeats', `- couldn't get futureNote, so instead inserted new para after line ${p.lineIndex} in original note`)
+              logWarn('generateRepeats', `- couldn't get futureNote, so instead inserted new para after line ${p.lineIndex} in original note`)
             }
           }
 
-          // delete the completed line entirely if 'deleteCompletedRepeat' true
+          // delete or update the completed item line (depending on 'deleteCompletedRepeat')
+          // but first turn off the repeat delete warning for this next operation (only effective from 3.15+ b1284/1230)
+          Editor.skipNextRepeatDeletionCheck = true
           if (config.deleteCompletedRepeat) {
+            // delete the completed line entirely
             logInfo('generateRepeats', `- removing para ${String(n + 1)}`)
             // Remove para from the mote
             // noteToUse.removeParagraph(p)
