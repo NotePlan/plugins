@@ -55,23 +55,6 @@ export const openTodayItems: Array<TSectionItem> = [
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Mission Partners.md',
-      title: 'Mission Partners',
-      priority: 0,
-      content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      blockId: '^wazhht',
-      prefix: '* ',
-      children: () => [],
-      indentLevel: 0,
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
@@ -111,8 +94,8 @@ export const refTodayItems: Array<TSectionItem> = [
       filename: 'CCC Areas/Mission Partners.md',
       title: 'Mission Partners',
       priority: 0,
-      content: 'Update display board 08:00-09:00',
-      rawContent: 'Update display board 08:00-09:00',
+      content: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
+      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
       prefix: '* ',
       hasChild: true,
       children: () => [],
@@ -144,6 +127,7 @@ thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-0',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
@@ -157,9 +141,11 @@ export const openYesterdayParas: Array<TSectionItem> = [
       children: () => [{ content: 'child of #editvideo', indents: 1 }],
       indentLevel: 0,
     },
+    parentID: '',
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-1',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
@@ -173,25 +159,29 @@ export const openYesterdayParas: Array<TSectionItem> = [
       children: () => [],
       indentLevel: 1,
     },
+    parentID: '2-0',
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-2',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
-      priority: 0,
-      content: 'trim and order shots',
-      rawContent: 'trim and order shots',
+      priority: 1,
+      content: '! trim and order shots',
+      rawContent: '! trim and order shots',
       prefix: '* ',
       hasChild: false,
       children: () => [],
       indentLevel: 1,
     },
+    parentID: '2-0',
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-3',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
@@ -205,9 +195,11 @@ export const openYesterdayParas: Array<TSectionItem> = [
       children: () => [],
       indentLevel: 1,
     },
+    parentID: '2-0',
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-4',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
@@ -221,28 +213,13 @@ export const openYesterdayParas: Array<TSectionItem> = [
       children: () => [{ content: 'check contract with Bev', indents: 1 }],
       indentLevel: 0,
     },
+    parentID: '',
   },
 ]
 export const refYesterdayParas: Array<TSectionItem> = [
   // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Services.md',
-      title: 'Services',
-      priority: 1,
-      content: 'write 5/3 sermon >2023-03-02',
-      rawContent: 'write 5/3 sermon >2023-03-02',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-      children: () => [],
-      indentLevel: 0,
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
+    ID: '2-5',
     itemType: 'open',
     para: {
       noteType: 'Notes',
@@ -258,24 +235,66 @@ export const refYesterdayParas: Array<TSectionItem> = [
       children: () => [{ content: 'item 1 response', indents: 1 }],
       indentLevel: 0,
     },
+    parentID: '',
   },
   // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-6',
     itemType: 'open',
     para: {
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Services.md',
       title: 'Services',
-      content: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
-      rawContent: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
+      content: '! prepare service for 5/3 >2023-03-02',
+      rawContent: '! prepare service for 5/3 >2023-03-02',
       prefix: '* ',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
       priority: 1,
       hasChild: true,
-      children: () => [{ content: 'create presentation slides for 5/3', indents: 1 }],
+      children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],
       indentLevel: 0,
     },
+    parentID: '',
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    ID: '2-7',
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Notes',
+      filename: 'CCC Areas/Services.md',
+      title: 'Services',
+      content: 'plan Something Different for 5/3',
+      rawContent: 'plan Something Different for 5/3',
+      prefix: '* ',
+      changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      priority: 0,
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-6',
+  },
+  // $FlowIgnore[prop-missing] ID gets added later
+  {
+    ID: '2-8',
+    itemType: 'open',
+    para: {
+      noteType: 'Notes',
+      type: 'open',
+      filename: 'CCC Areas/Services.md',
+      title: 'Services',
+      priority: 1,
+      content: '! write 5/3 sermon >2023-03-02',
+      rawContent: '! write 5/3 sermon >2023-03-02',
+      prefix: '* ',
+      changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-6',
   },
 ]
 

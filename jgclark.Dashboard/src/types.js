@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 2024-09-13 for v2.1.0.a10 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 // Types for Settings
 
@@ -116,10 +116,11 @@ export type TSectionItem = {
   ID: string,
   // sectionCode: TSectionCode, // might want this in future
   itemType: TItemType,
-  para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'project') */,
+  para?: TParagraphForDashboard, // where it is a paragraph-type item (not 'project')
   project?: TProjectForDashboard,
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
+  parentID?: string, // if this is a sub-task, this holds the ID of the parent task (required for sorting children with their parents in useSelectionSortAndFilter)
 }
 
 // reduced paragraph definition
@@ -131,6 +132,8 @@ export type TParagraphForDashboard = {
   prefix?: string,
   content: string,
   rawContent: string,
+  indentLevel: number, // indent level (i.e. children will be 1+)
+  lineIndex: number, // needed for child ordering processing
   priority: number,
   blockId?: string,
   timeStr?: string, // = used to order extended paragraphs. TODO: Can it be consolidated with .startTime?
@@ -139,7 +142,6 @@ export type TParagraphForDashboard = {
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
-  indentLevel: number, // indent level (i.e. children will be 1+)
 }
 
 // a project item within a section

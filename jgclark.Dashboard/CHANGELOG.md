@@ -1,22 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.0.7] 2024-10-23
-### New
-- new 'All -> Next Week' button in Week section. 
-- clicking on 'there are X items hidden' message lines now turns off filtering in all sections<!-- from 2.1.0.a9-->
-- added version number to end of Settings dialog<!-- from 2.1.0.a12-->
+## [Perspectives.a15 - 2.1.0.a15] underway
+- (jgc): Child tasks are now ordered following their parents, when sorted by priority
 
-### Changed
-- under-the-hood changes to match Project + Reviews Plugin v1.0 release.
-- stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working<!-- from 2.1.0.a11-->
-- changed Interactive Processing icon to not imply 'refresh'<!-- from 2.1.0.a11-->
-- add time to @done(...) when "completing then"<!-- from 2.1.0.a12 -->
-
-### Fixed
-- fixed edge case when filtering lower priority items from the display
-- fixed typos in "Move all to today" dialog<!-- from 2.1.0.a11-->
-<!-- fixed spinner icon not spinning<!-- from 2.1.0.a11, but not working for some reason here -->
 ## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
 - Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
 - Total refactor of interactive processing code to make it more maintainable and fix some bugs
@@ -157,6 +144,25 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [Perspectives.a1] 
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
 - started to add settings to define Perspectives
+
+<!-- ---------------------------------------------------------------------- -->
+
+## [2.0.7] 2024-10-23
+### New
+- new 'All -> Next Week' button in Week section. 
+- clicking on 'there are X items hidden' message lines now turns off filtering in all sections<!-- from 2.1.0.a9-->
+- added version number to end of Settings dialog<!-- from 2.1.0.a12-->
+
+### Changed
+- under-the-hood changes to match Project + Reviews Plugin v1.0 release.
+- stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working<!-- from 2.1.0.a11-->
+- changed Interactive Processing icon to not imply 'refresh'<!-- from 2.1.0.a11-->
+- add time to @done(...) when "completing then"<!-- from 2.1.0.a12 -->
+
+### Fixed
+- fixed edge case when filtering lower priority items from the display
+- fixed typos in "Move all to today" dialog<!-- from 2.1.0.a11-->
+<!-- fixed spinner icon not spinning<!-- from 2.1.0.a11, but not working for some reason here -->
 
 ## [2.0.6] 2024-09-06
 ### Changes
