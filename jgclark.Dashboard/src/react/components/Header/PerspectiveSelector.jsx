@@ -301,11 +301,11 @@ const PerspectiveSelector = (): React$Node => {
 
       // We can't use the perspectiveSettings here because our handle to it will be stale, so we need to update the settings before we send them  
       const updatedPerspSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
-      sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: updatedPerspSettings, logMessage: `${thisPersp?.name||''} saved!` }, `${thisPersp.name} saved!`)
+      sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: updatedPerspSettings, logMessage: `User switched to: ${thisPersp?.name||''}` }, `User switched to: ${thisPersp?.name||''}`)
 
       logDebug(
         'PerspectiveSelector/handlePerspectiveChange',
-        `Perspective changed to "${selectedOption.value}". Awaiting React to re-render components based on new settings for: "${updatedSettings.activePerspectiveName}"`
+        `Perspective changed to "${selectedOption.value}". Awaiting React to re-render components based on new settings for: "${selectedOption.value}"`
       )
     }, [perspectiveSettings,state,activePerspectiveName,dashboardSettings])
 

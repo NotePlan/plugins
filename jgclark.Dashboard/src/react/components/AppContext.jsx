@@ -10,11 +10,12 @@
 // @flow
 
 import React, { createContext, useContext, useEffect, useReducer, useRef, type Node } from 'react'
-import { PERSPECTIVE_ACTIONS } from '../reducers/actionTypes'
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSettings } from '../../types'
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
 import { cleanDashboardSettings, getActivePerspectiveName, replacePerspectiveDef } from '../../perspectiveHelpers'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
+import { useSyncWithPlugin } from '../customHooks/useSyncWithPlugin'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import { compareObjects } from '@helpers/dev'
 
@@ -109,10 +110,37 @@ export const AppProvider = ({
    */
   const lastSentDashboardSettingsRef = useRef<?TDashboardSettings>(null)
 
-  // Use useReducer for dashboardSettings
+/****************************************************************************************************************************
+ *                             STATE VARIABLES
+ ****************************************************************************************************************************/
+
   const [dashboardSettings, dispatchDashboardSettings] = useReducer(dashboardSettingsReducer, initialDashboardSettings)
 
   const [perspectiveSettings, dispatchPerspectiveSettings] = useReducer(perspectiveSettingsReducer, initialPerspectiveSettings)
+
+  /****************************************************************************************************************************
+ *                             HOOKS
+ ****************************************************************************************************************************/
+
+  // Syncing dashboardSettings with plugin when things change in front-end or the plugin sends a change in pluginData
+  useSyncWithPlugin(
+    dashboardSettings,
+    pluginData.dashboardSettings,
+    dispatchDashboardSettings,
+    DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+    sendActionToPlugin
+  )
+
+  // Syncing perspectiveSettings with plugin when things change in front-end or the plugin sends a change in pluginData
+  useSyncWithPlugin(
+    perspectiveSettings,
+    pluginData.perspectiveSettings,
+    dispatchPerspectiveSettings,
+    PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+    sendActionToPlugin
+  )
+
+  //FIXME:  (dbw) finish cutting things that don't need to be here
 
   useEffect(() => {
     const diff = compareObjects(perspectiveSettings, pluginData.perspectiveSettings)

@@ -189,8 +189,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     if (perspectiveSettings && perspectiveSettings.length > 0) {
       const diff = compareObjects(pluginData.perspectiveSettings, perspectiveSettings)
       if (diff) {
-        logDebug('Dashboard/useEffect(perspectiveSettings)', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(compareObjects(pluginData.perspectiveSettings,perspectiveSettings))}\n\tNOTE: Not currently sending this back to plugin because was circular. Need to find a better way.`, perspectiveSettings)
-        // sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
+        logDebug('Dashboard/useEffect(perspectiveSettings)', `Watcher for perspectiveSettings changes. perspective settings updated: ${JSON.stringify(diff)}\n\tNOTE: Not currently sending this back to plugin because was circular. Need to find a better way.`, perspectiveSettings)
+        sendActionToPlugin('perspectiveSettingsChanged', { actionType: 'perspectiveSettingsChanged', settings: perspectiveSettings, logMessage: `Perspectives array changed (${perspectiveSettings.length} items)` }, 'Dashboard perspectiveSettings updated', true)
       } else {
         logDebug('Dashboard/useEffect(perspectiveSettings)', `Watcher for perspectiveSettings changes. Settings match. Probably just newest perspective data sent from plugin. No need to send back again.`)
       }

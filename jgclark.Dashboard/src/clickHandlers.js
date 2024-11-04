@@ -112,8 +112,8 @@ export async function incrementallyRefreshSections(
   // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
     const start = new Date()
-    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
+    const result = await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
+    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}; sectionItems: ${result?.sectionItems || ''} total`)
   }
 
   const updates: any = { refreshing: false }
@@ -170,7 +170,10 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
   logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
-  return handlerResult(true)
+  // count sectionItems in all sections
+  const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
+  logDebug('refreshSomeSections', `Total section items: ${totalSectionItems}`)
+  return handlerResult(true, [], { sectionItems: totalSectionItems })
 }
 
 /**
