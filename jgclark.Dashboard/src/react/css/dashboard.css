@@ -317,6 +317,10 @@ button,
 	cursor: pointer;
 }
 
+.greyedText {
+	color: rgb(from var(--fg-sidebar-color) r g b / 0.5)
+}
+
 /* --------------------------------------------------------------- */
 /* Tooltips should render on macOS only */
 .macOS {

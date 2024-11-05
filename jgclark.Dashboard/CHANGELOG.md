@@ -4,6 +4,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [Perspectives.a15 - 2.1.0.a15] underway
 - (jgc): Child tasks are now ordered following their parents, when sorted by priority
 - (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  See what you think.
 
 ## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
 - Added setting for display of done counts to Dashboard (displayDoneCounts: default true)

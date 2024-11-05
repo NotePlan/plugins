@@ -29,10 +29,12 @@ const RefreshControl = (props: Props): React$Node => {
         <>
           {/* <i className={refreshing ? "fa-spinner fa-spin" : "fa-regular fa-arrow-rotate-right"}></i> */}
           <i className={refreshing ? 'fa-regular fa-arrow-rotate-right fa-spin' : 'fa-regular fa-arrow-rotate-right'}></i>
-          <span className="pad-left">{refreshing ? 'Refreshing' : 'Refresh'}</span>
+          {/* <span className="pad-left">{refreshing ? 'Refreshing' : 'Refresh'}</span> */}
+          <span className={refreshing ? "pad-left greyedText" : "pad-left"}>Refresh</span>
         </>
       }
       clickHandler={handleRefreshClick}
+      disabled={refreshing}
       className="HAButton refreshButton"
     />
   )
