@@ -38,6 +38,7 @@ type DropdownSelectProps = {
   styles?: Styles,
   fullWidthOptions?: boolean,
   showIndicatorOptionProp?: string,
+  allowNonMatchingLabel?: boolean,
 }
 
 /**
@@ -64,34 +65,11 @@ const DropdownSelect = ({
   showIndicatorOptionProp = '',
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
-  clo(
-    options.map((o) => (typeof o === 'string' ? o : o.label)),
-    'DropdownSelect options before=',
-  )
+
   const normalizeOption: (option: string | Option) => Option = (option) => {
     return typeof option === 'string' ? { label: option, value: option } : option
   }
   const normalizedOptions: Array<Option> = options.map(normalizeOption)
-
-  clo(
-    normalizedOptions.map((o) => o.label),
-    'DropdownSelect normalizedOptions after=',
-  )
-  // dbw commenting out because it was keeping me from having Work* in the selection but not in the options (which is what we want)
-  // const foundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
-  // if (foundOption) {
-  //   if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
-  //     foundOption.label = typeof value === 'string' ? value : value?.label
-  //   }
-  // } else {
-  //   logDebug('DropdownSelect: foundOption not found', value)
-  //   clo(options, 'DropdownSelect: options were')
-  // }
-  // FIXME: for some reason, the * shows up here
-  clo(
-    normalizedOptions.map((o) => o.label),
-    'DropdownSelect normalizedOptions after foundOption==',
-  )
 
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
@@ -123,13 +101,6 @@ const DropdownSelect = ({
   //----------------------------------------------------------------------
 
   useEffect(() => {
-    // const newFoundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
-    // if (newFoundOption) {
-    //   if (newFoundOption.label !== (typeof value === 'string' ? value : value?.label)) {
-    //     newFoundOption.label = typeof value === 'string' ? value : value?.label
-    //   }
-    // }
-    logDebug('DropdownSelect useEffect(value) changed', `value: ${JSON.stringify(value)}`)
     setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
   }, [value, normalizedOptions])
 
@@ -141,7 +112,6 @@ const DropdownSelect = ({
   }, [])
 
   const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
-    console.log('findScrollableAncestor called with el:', el)
     let currentEl: ?Element = el
     while (currentEl && currentEl.parentElement) {
       currentEl = currentEl.parentElement
@@ -150,12 +120,10 @@ const DropdownSelect = ({
         const overflowY = style.overflowY
         const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight
         if (isScrollable) {
-          console.log('Found scrollable ancestor:', currentEl)
           return currentEl
         }
       }
     }
-    console.log('No scrollable ancestor found')
     return null
   }
 
