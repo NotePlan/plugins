@@ -14,7 +14,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
-export type TPerspectiveOptionObject = { isModified: boolean, label: string, value: string }
+export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
 /* -----------------------------------------------------------------------------
    Design logic
@@ -484,7 +484,7 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
  */
 export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
-    let nameToUse = ''
+    let nameToUse = nameIn || ''
     const dashboardSettings = (await getDashboardSettings()) || {}
     const existingDefs = (await getPerspectiveSettings()) || []
     if (existingDefs.length === 0) {

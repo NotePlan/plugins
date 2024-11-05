@@ -9,7 +9,7 @@ import { clo, logDebug } from '@helpers/react/reactDev'
 
 declare var NP_THEME: any
 
-type Option = {
+export type Option = {
   label: string,
   value: string,
   [string]: any, // Allow additional properties
@@ -64,19 +64,37 @@ const DropdownSelect = ({
   showIndicatorOptionProp = '',
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
-  const normalizedOptions: Array<Option> = options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option))
-  let foundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
-  if (foundOption) {
-    if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
-      foundOption.label = typeof value === 'string' ? value : value?.label
-    }
-  } else {
-    logDebug('DropdownSelect: foundOption not found', value)
-    clo(options, 'DropdownSelect: options were')
+  clo(
+    options.map((o) => (typeof o === 'string' ? o : o.label)),
+    'DropdownSelect options before=',
+  )
+  const normalizeOption: (option: string | Option) => Option = (option) => {
+    return typeof option === 'string' ? { label: option, value: option } : option
   }
+  const normalizedOptions: Array<Option> = options.map(normalizeOption)
+
+  clo(
+    normalizedOptions.map((o) => o.label),
+    'DropdownSelect normalizedOptions after=',
+  )
+  // dbw commenting out because it was keeping me from having Work* in the selection but not in the options (which is what we want)
+  // const foundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
+  // if (foundOption) {
+  //   if (foundOption.label !== (typeof value === 'string' ? value : value?.label)) {
+  //     foundOption.label = typeof value === 'string' ? value : value?.label
+  //   }
+  // } else {
+  //   logDebug('DropdownSelect: foundOption not found', value)
+  //   clo(options, 'DropdownSelect: options were')
+  // }
+  // FIXME: for some reason, the * shows up here
+  clo(
+    normalizedOptions.map((o) => o.label),
+    'DropdownSelect normalizedOptions after foundOption==',
+  )
 
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedValue, setSelectedValue] = useState(foundOption)
+  const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
 
@@ -88,6 +106,7 @@ const DropdownSelect = ({
 
   const handleOptionClick = (option: Option) => {
     setSelectedValue(option)
+    // $FlowFixMe[incompatible-call]
     onChange(option)
     setIsOpen(false)
   }
@@ -104,13 +123,14 @@ const DropdownSelect = ({
   //----------------------------------------------------------------------
 
   useEffect(() => {
-    const newFoundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
-    if (newFoundOption) {
-      if (newFoundOption.label !== (typeof value === 'string' ? value : value?.label)) {
-        newFoundOption.label = typeof value === 'string' ? value : value?.label
-      }
-      setSelectedValue(newFoundOption)
-    }
+    // const newFoundOption = normalizedOptions.find((o) => o.value === (typeof value === 'string' ? value : value?.value))
+    // if (newFoundOption) {
+    //   if (newFoundOption.label !== (typeof value === 'string' ? value : value?.label)) {
+    //     newFoundOption.label = typeof value === 'string' ? value : value?.label
+    //   }
+    // }
+    logDebug('DropdownSelect useEffect(value) changed', `value: ${JSON.stringify(value)}`)
+    setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
   }, [value, normalizedOptions])
 
   useEffect(() => {
@@ -193,16 +213,18 @@ const DropdownSelect = ({
    * @param {Object} customStyles - Custom styles for the indicator.
    * @returns {Object} Style object for the dot.
    */
-  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}) => ({
-    backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
-    borderRadius: '50%',
-    height: 10,
-    width: 10,
-    marginRight: 8,
-    display: 'inline-block',
-    flexShrink: 0,
-    ...customStyles,
-  })
+  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}) =>
+    // $FlowFixMe[cannot-spread-indexer]
+    ({
+      backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
+      borderRadius: '50%',
+      height: 10,
+      width: 10,
+      marginRight: 8,
+      display: 'inline-block',
+      flexShrink: 0,
+      ...customStyles,
+    })
 
   return (
     <div

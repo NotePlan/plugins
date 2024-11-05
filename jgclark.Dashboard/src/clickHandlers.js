@@ -20,7 +20,7 @@ import {
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration' // FIXME: causing a circular dependency
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
 import { validateAndFlattenMessageObject } from './shared'
-import { addNewPerspective } from './perspectiveHelpers'
+import { addNewPerspective, deletePerspective } from './perspectiveHelpers'
 import {
   cancelItem,
   completeItem,
@@ -672,8 +672,17 @@ export async function doCommsBridgeTest(data: MessageDataObject): Promise<TBridg
   return await handlerResult(false, [], { errorMsg: `Success: This was sent from the plugin. Round trip works 5x5.` })
 }
 
-export async function doAddNewPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await addNewPerspective()
+  const updatesToPluginData = { perspectiveSettings: JSON.parse(DataStore.settings.perspectiveSettings) }
+  await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
+  return handlerResult(true, [])
+}
+
+export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  await deletePerspective(data.perspectiveName)
+  const updatesToPluginData = { perspectiveSettings: JSON.parse(DataStore.settings.perspectiveSettings) }
+  await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
 }
 

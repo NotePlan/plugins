@@ -255,6 +255,7 @@ export type MessageDataObject = {
   filename?: string /* only used when actionType = 'showNoteInEditorFromFilename', otherwise filename comes from the item */,
   logMessage?: string,
   userInputObj?: TAnyObject,
+  perspectiveName?: string,
 }
 
 /**
