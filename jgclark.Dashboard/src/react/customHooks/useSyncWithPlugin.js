@@ -34,9 +34,10 @@ export const useSyncWithPlugin = (
 
   // Handle receiving changes from the plugin which need dispatching to the front-end
   useEffect(() => {
+    logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ pluginSettings')
     const diff = compareFn(localSettings, pluginSettings)
     if (diff) {
-      logDebug('useSyncWithPlugin', `${actionType} changed from plugin: ${JSON.stringify(diff)}`)
+      logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ', `${actionType} changed from plugin: ${JSON.stringify(diff)}`)
       dispatch({
         type: actionType,
         payload: pluginSettings,
@@ -47,15 +48,26 @@ export const useSyncWithPlugin = (
 
   // Handle Dashboard front-end changes which need sending changes to the plugin
   useEffect(() => {
-    const shouldSendToPlugin = lastSentSettingsRef.current && JSON.stringify(localSettings) !== JSON.stringify(lastSentSettingsRef.current)
+    // FIXME: this is not triggering when it should
+    const diff = compareFn(localSettings, lastSentSettingsRef?.current || Array.isArray(localSettings) ? [] : {})
+    logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ localSettings', `\n\tdiff=${JSON.stringify(diff)}`)
+    if (!diff) {
+      logDebug(
+        'useSyncWithPlugin useEffect(pluginSettings) QQQ localSettings',
+        `No diff. Not sending ${actionType} to plugin. \n\tlocalSettings: ${JSON.stringify(localSettings)}\n\tlastSentSettingsRef?.current: ${JSON.stringify(
+          lastSentSettingsRef?.current || {},
+        )}`,
+      )
+      return
+    }
+    const shouldSendToPlugin = !lastSentSettingsRef.current || (lastSentSettingsRef.current && JSON.stringify(localSettings) !== JSON.stringify(lastSentSettingsRef.current))
 
-    const diff = compareFn(localSettings, lastSentSettingsRef.current)
     if (shouldSendToPlugin && diff) {
-      logDebug('useSyncWithPlugin', `Sending ${actionType} changes to plugin: ${JSON.stringify(diff)}`)
+      logDebug('useSyncWithPlugin useEffect(local dashboard settings) QQQ', `Sending ${actionType} changes to plugin: ${JSON.stringify(diff)}`)
       sendActionToPlugin(
-        `${actionType}Changed`,
+        actionType,
         {
-          actionType: `${actionType}Changed`,
+          actionType: actionType,
           settings: localSettings,
           logMessage: `${actionType} changed`,
         },

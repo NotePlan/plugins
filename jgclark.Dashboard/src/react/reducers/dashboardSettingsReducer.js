@@ -18,7 +18,6 @@ export type TDashboardSettingsAction = {
  */
 export function dashboardSettingsReducer(state: TDashboardSettings, action: TDashboardSettingsAction): TDashboardSettings {
   const { type, payload, reason } = action
-  logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - payload: ${JSON.stringify(payload)}`)
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
       const changedProps = compareObjects(state, payload)

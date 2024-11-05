@@ -145,7 +145,9 @@ export const AppProvider = ({
   useEffect(() => {
     const diff = compareObjects(perspectiveSettings, pluginData.perspectiveSettings)
     if (diff) {
-      logDebug('AppContext', `perspectiveSettings changed: ${JSON.stringify(diff)}`)
+      logDebug('AppContext', `perspectiveSettings changed: ${JSON.stringify(diff)} NOT DOING ANYTHING`)
+      return
+      //TODO: delete this effect
       dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: pluginData.perspectiveSettings, reason: `Perspective settings changed: ${JSON.stringify(diff)}` })
     }
   }, [pluginData.perspectiveSettings])
@@ -170,7 +172,9 @@ export const AppProvider = ({
 
     if (shouldSendToPlugin && changedProps) {
       logDebug(`AppContext/useEffect(dashboardSettings)`,`dashboardSettings. SENDING changes to plugin`)
-      clo(perspectiveSettings,`AppContext/useEffect(dashboardSettings) perspectiveSettings sending:`)
+      clo(perspectiveSettings,`AppContext/useEffect(dashboardSettings) perspectiveSettings NOT but would be sending:`)
+      return
+      //TODO: delete this effect
       sendActionToPlugin(
         'dashboardSettingsChanged',
         {
@@ -190,7 +194,9 @@ export const AppProvider = ({
     // dbw note: this code is new after removing .activePerspectiveName from dashboardSettings
     const diff = compareObjects(perspectiveSettings, pluginData.perspectiveSettings)
     if (diff && perspectiveSettings.length > 0) {
-      logDebug('AppContext/useEffect(perspectiveSettings) watcher',`perspectiveSettings changed: ${JSON.stringify(diff)}`)
+      logDebug('AppContext/useEffect(perspectiveSettings) watcher',`perspectiveSettings changed: ${JSON.stringify(diff)} NOT DOING ANYTTHING `)
+      return
+      //TODO: delete this effect
       sendActionToPlugin(
         'perspectiveSettingsChanged',
         {

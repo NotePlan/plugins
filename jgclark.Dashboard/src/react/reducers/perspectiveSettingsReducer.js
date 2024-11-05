@@ -30,7 +30,6 @@ export function perspectiveSettingsReducer(state: TPerspectiveSettings, action: 
       if (payload && typeof payload === 'object') {
         const changedProps = compareObjects(state, payload)
         logDebug('perspectiveSettingsReducer', `"${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
-        clo(payload, `perspectiveSettingsReducer HHH setting`)
         return payload
       }
       logError('perspectiveSettingsReducer', `"${reason || ''}" - SET_PERSPECTIVE_SETTINGS action received with non-object payload: ${payload}`)

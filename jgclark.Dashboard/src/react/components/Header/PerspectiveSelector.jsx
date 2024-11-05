@@ -72,7 +72,7 @@ const PerspectiveSelector = (): React$Node => {
   const reducer = (state: State, action: Action): State => {
     switch (action.type) {
       case 'SET_PERSPECTIVE_OPTIONS': {
-        logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS, Payload: ${JSON.stringify(action.payload)}${!action.payload ? ' (empty)' : ''}`)
+        logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS`)
         // Access activePerspectiveName from the current state
         const { activePerspectiveName } = state
 
@@ -118,7 +118,6 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Detected change in perspectiveSettings. dashboardSettings.lastChange="${dashboardSettings.lastChange}"`)
-    clo(perspectiveSettings, `PerspectiveSelector/useEffect(perspectiveSettings) HHH perspectiveSettings onj`)
 
     if (!perspectiveSettings) {
       logWarn('PerspectiveSelector/useEffect(perspectiveSettings)', 'perspectiveSettings is falsy. Exiting effect.')
@@ -153,7 +152,6 @@ const PerspectiveSelector = (): React$Node => {
       logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `perspectiveNameOptions changed. Updating dropdown options. diff=${JSON.stringify(diff)}`)
       dispatchPerspectiveSelector({ type: 'SET_PERSPECTIVE_OPTIONS', payload: options })
       const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-      logDebug(`PerspectiveSelector/useEffect(perspectiveSettings) HHH thisPersp=${JSON.stringify(thisPersp)}`)
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: thisPersp ? thisPersp?.name : '-' })
       if (thisPersp && thisPersp?.name !== activePerspectiveName) {
         logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Active perspective changed to: "${thisPersp?.name || '-'}"`)
@@ -182,7 +180,8 @@ const PerspectiveSelector = (): React$Node => {
   // Effect to Log State Changes (Optional, for Debugging)
   //----------------------------------------------------------------------
   useEffect(() => {
-    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${activePerspectiveName}"}`)
+    const thisPersp = getActivePerspectiveDef(perspectiveSettings)
+    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${formatNameWithStarIfModified(thisPersp)}"`)
   }, [perspectiveNameOptions, activePerspectiveName])
 
   // dbw commented out after moving .activePerspectiveName to perspectiveSettings.isActive -- DELETE SOON AFTER (2024-11-02)
@@ -369,20 +368,12 @@ const PerspectiveSelector = (): React$Node => {
   const normalizedOptions: Array<TPerspectiveOptionObject> = perspectiveNameOptions
     ? perspectiveNameOptions.map((option) => (typeof option === 'string' ? { label: option, value: option } : option))
     : []
-  clo(
-    normalizedOptions.map((o) => o.label),
-    'Perspective Selector normalizedOptions',
-  )
   const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
   if (!thisPersp) {
     logDebug('PerspectiveSelector', `Cannot find perspective definition for: "${activePerspectiveName}". Was it just created externally?".`)
   }
   const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
   const selectedValue = { label: nameToDisplay, value: activePerspectiveName || '-' }
-  clo(
-    normalizedOptions.map((o) => o.label),
-    'Perspective Selector normalizedOptions before calling DropdownSelect',
-  )
   // logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
   return (
     <DropdownSelect
