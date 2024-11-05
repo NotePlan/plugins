@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-10-11 for v2.1.0.a13, @jgclark
+// last updated for v2.1.0.a
 // ----------------------------------------------------------------------------
 
 /**
@@ -18,7 +18,6 @@ export { editSettings } from '@helpers/NPSettings'
 /**
  * Other imports/exports
  */
-
 export {
   decideWhetherToUpdateDashboard,
   refreshProjectSection, // called by Project & Reviews plugin

@@ -50,7 +50,6 @@ import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from 
 import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
-import { getParentPara } from '@helpers/NPParagraph'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask } from '@helpers/utils'

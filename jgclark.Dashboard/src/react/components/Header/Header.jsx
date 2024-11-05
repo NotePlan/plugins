@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -129,8 +129,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
 
       <div className="totalCounts">
-        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
-          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
+        {/* {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
+          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> */}
+        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount
+          ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} />
           : ''}
       </div>
 

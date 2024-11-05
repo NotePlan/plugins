@@ -121,7 +121,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'windowReload': {
-        const useDemoData = data.settings?.useDemoData ?? false
+        const useDemoData = false
         // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
         // TEST: trying Plugin command invocation instead
         DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
@@ -373,6 +373,13 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
+      }
+      if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
+        logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
+        reactWindowData.pluginData.totalDoneCount = incrementedCount
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
       }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []

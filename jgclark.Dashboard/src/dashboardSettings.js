@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -180,9 +180,9 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'displayDoneCounts',
-    label: 'Show estimated counts of completed tasks?',
+    label: 'Show completed task count?',
     description:
-      'Show the estimated counts of completed tasks in the Dashboard. This is useful to see how many tasks you have completed today. Requires that you have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
+      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
     type: 'switch',
     default: true,
   },
