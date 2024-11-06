@@ -1,7 +1,8 @@
 // @flow
+
 import { useEffect, useRef } from 'react'
-import { compareObjects } from '@helpers/dev'
 import { logDebug } from '@helpers/react/reactDev.js'
+import { compareObjects } from '@helpers/dev'
 
 type DispatchAction = {
   type: string,
@@ -9,12 +10,12 @@ type DispatchAction = {
   reason?: string,
 }
 
-type SendActionToPlugin = (command: string, dataToSend: any, details?: string, updateGlobalData?: boolean) => void
+type SendActionToPlugin = (actionType: string, data: any, methodName: string, showNotification?: boolean) => void
 
 type CompareFn = (a: any, b: any) => any
 
 /**
- * Custom hook to sync local settings with plugin settings.
+ * Custom hook to synchronize local settings with plugin settings.
  * @param {any} localSettings - The local settings state.
  * @param {any} pluginSettings - The settings from the plugin.
  * @param {Function} dispatch - Dispatch function to update local settings.
@@ -30,51 +31,51 @@ export const useSyncWithPlugin = (
   sendActionToPlugin: SendActionToPlugin,
   compareFn: CompareFn = compareObjects,
 ) => {
-  const lastSentSettingsRef = useRef<?any>(null)
+  const lastPluginSettingsRef = useRef<any>(pluginSettings)
+  const lastLocalSettingsRef = useRef<any>(localSettings)
 
   // Handle receiving changes from the plugin which need dispatching to the front-end
   useEffect(() => {
-    logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ pluginSettings')
-    const diff = compareFn(localSettings, pluginSettings)
-    if (diff) {
-      logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ', `${actionType} changed from plugin: ${JSON.stringify(diff)}`)
-      dispatch({
-        type: actionType,
-        payload: pluginSettings,
-        reason: `${actionType} changed from plugin: ${JSON.stringify(diff)}`,
-      })
+    logDebug('useSyncWithPlugin', 'useEffect(pluginSettings) - pluginSettings changed')
+
+    const pluginSettingsChanged = pluginSettings && compareFn(pluginSettings, lastPluginSettingsRef.current) !== null
+
+    if (pluginSettingsChanged) {
+      const diff = compareFn(pluginSettings, localSettings)
+      if (diff && Object.keys(diff).length > 0) {
+        logDebug('useSyncWithPlugin', `${actionType} changed from plugin: diff=${JSON.stringify(diff)}`)
+        dispatch({
+          type: actionType,
+          payload: pluginSettings,
+          reason: `${actionType} changed from plugin: ${JSON.stringify(diff)}`,
+        })
+        lastPluginSettingsRef.current = pluginSettings
+        lastLocalSettingsRef.current = pluginSettings
+      }
     }
-  }, [pluginSettings, dispatch, actionType, compareFn])
+  }, [pluginSettings, localSettings, dispatch, actionType, compareFn])
 
   // Handle Dashboard front-end changes which need sending changes to the plugin
   useEffect(() => {
-    // FIXME: this is not triggering when it should
-    const diff = compareFn(localSettings, lastSentSettingsRef?.current || Array.isArray(localSettings) ? [] : {})
-    logDebug('useSyncWithPlugin useEffect(pluginSettings) QQQ localSettings', `\n\tdiff=${JSON.stringify(diff)}`)
-    if (!diff) {
-      logDebug(
-        'useSyncWithPlugin useEffect(pluginSettings) QQQ localSettings',
-        `No diff. Not sending ${actionType} to plugin. \n\tlocalSettings: ${JSON.stringify(localSettings)}\n\tlastSentSettingsRef?.current: ${JSON.stringify(
-          lastSentSettingsRef?.current || {},
-        )}`,
-      )
-      return
-    }
-    const shouldSendToPlugin = !lastSentSettingsRef.current || (lastSentSettingsRef.current && JSON.stringify(localSettings) !== JSON.stringify(lastSentSettingsRef.current))
+    logDebug('useSyncWithPlugin', 'useEffect(localSettings) - React local settings changed')
+    const localSettingsChanged = localSettings && compareFn(localSettings, lastLocalSettingsRef.current) !== null
 
-    if (shouldSendToPlugin && diff) {
-      logDebug('useSyncWithPlugin useEffect(local dashboard settings) QQQ', `Sending ${actionType} changes to plugin: ${JSON.stringify(diff)}`)
-      sendActionToPlugin(
-        actionType,
-        {
-          actionType: actionType,
-          settings: localSettings,
-          logMessage: `${actionType} changed`,
-        },
-        `${actionType} updated`,
-        true,
-      )
-      lastSentSettingsRef.current = localSettings
+    if (localSettingsChanged) {
+      const diff = compareFn(localSettings, pluginSettings)
+      if (diff && Object.keys(diff).length > 0) {
+        logDebug('useSyncWithPlugin', `Sending ${actionType} changes to plugin: diff=${JSON.stringify(diff)}`)
+        sendActionToPlugin(
+          actionType,
+          {
+            actionType: actionType,
+            settings: localSettings,
+            logMessage: `${actionType} changed`,
+          },
+          `${actionType} updated`,
+          true,
+        )
+        lastLocalSettingsRef.current = localSettings
+      }
     }
-  }, [localSettings, sendActionToPlugin, actionType, compareFn])
+  }, [localSettings, pluginSettings, sendActionToPlugin, actionType, compareFn])
 }
