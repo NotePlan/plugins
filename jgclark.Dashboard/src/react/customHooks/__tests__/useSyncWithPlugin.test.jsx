@@ -310,3 +310,122 @@ describe('useSyncWithPlugin', () => {
     })
   })
 })
+
+/**
+ * Test suite for useSyncWithPlugin when using fieldsToIgnore in compareObjects.
+ */
+
+describe('useSyncWithPlugin with fieldsToIgnore in compareObjects', () => {
+  let dispatchMock
+  let sendActionToPluginMock
+
+  /**
+   * A test component that uses the custom hook with fieldsToIgnore in compareObjects.
+   * @param {Object} props Component props.
+   * @returns {null}
+   */
+  const TestComponentWithIgnoreFields = ({ localSettings, pluginSettings, fieldsToIgnore }) => {
+    const compareFn = (a, b) => compareObjects(a, b, fieldsToIgnore)
+    useSyncWithPlugin(localSettings, pluginSettings, dispatchMock, 'UPDATE_SETTINGS', sendActionToPluginMock, compareFn)
+    return null
+  }
+
+  beforeEach(() => {
+    dispatchMock = jest.fn()
+    sendActionToPluginMock = jest.fn()
+    global.DataStore = { settings: { _logLevel: 'none' } }
+  })
+
+  it('should not dispatch or send action if only ignored fields change', async () => {
+    const initialSettings = { theme: 'light', lastUpdated: '2021-01-01' }
+    const newPluginSettings = { theme: 'light', lastUpdated: '2021-02-01' }
+    const fieldsToIgnore = ['lastUpdated']
+
+    const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={initialSettings} fieldsToIgnore={fieldsToIgnore} />)
+
+    // Update pluginSettings prop with a change in the ignored field
+    await act(async () => {
+      rerender(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={newPluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+    })
+
+    // Wait for any effects to run
+    await waitFor(() => expect(true).toBe(true))
+
+    expect(dispatchMock).not.toHaveBeenCalled()
+    expect(sendActionToPluginMock).not.toHaveBeenCalled()
+  })
+
+  it('should dispatch action when a non-ignored field changes', async () => {
+    const initialSettings = { theme: 'light', lastUpdated: '2021-01-01' }
+    const newPluginSettings = { theme: 'dark', lastUpdated: '2021-02-01' }
+    const fieldsToIgnore = ['lastUpdated']
+
+    const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={initialSettings} fieldsToIgnore={fieldsToIgnore} />)
+
+    // Update pluginSettings prop with a change in a non-ignored field
+    await act(() => {
+      rerender(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={newPluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+    })
+
+    // Wait for the dispatch to occur
+    await waitFor(() => expect(dispatchMock).toHaveBeenCalled())
+
+    /** Calculate the expected diff */
+    const compareFn = (a, b) => compareObjects(a, b, fieldsToIgnore)
+    const expectedDiff = compareFn(newPluginSettings, initialSettings)
+
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'UPDATE_SETTINGS',
+      payload: newPluginSettings,
+      reason: `UPDATE_SETTINGS changed from plugin: ${JSON.stringify(expectedDiff)}`,
+    })
+  })
+
+  it('should send action to plugin when a non-ignored field in localSettings changes', async () => {
+    const initialLocalSettings = { theme: 'light', lastUpdated: '2021-01-01' }
+    const newLocalSettings = { theme: 'dark', lastUpdated: '2021-01-01' }
+    const pluginSettings = initialLocalSettings
+    const fieldsToIgnore = ['lastUpdated']
+
+    const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+
+    // Update localSettings prop with a change in a non-ignored field
+    await act(async () => {
+      rerender(<TestComponentWithIgnoreFields localSettings={newLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+    })
+
+    // Wait for the action to be sent to the plugin
+    await waitFor(() => expect(sendActionToPluginMock).toHaveBeenCalled())
+
+    expect(sendActionToPluginMock).toHaveBeenCalledWith(
+      'UPDATE_SETTINGS',
+      {
+        actionType: 'UPDATE_SETTINGS',
+        settings: newLocalSettings,
+        logMessage: 'UPDATE_SETTINGS changed',
+      },
+      'UPDATE_SETTINGS updated',
+      true,
+    )
+  })
+
+  it('should not send action to plugin when only an ignored field in localSettings changes', async () => {
+    const initialLocalSettings = { theme: 'light', lastUpdated: '2021-01-01' }
+    const newLocalSettings = { theme: 'light', lastUpdated: '2021-02-01' }
+    const pluginSettings = initialLocalSettings
+    const fieldsToIgnore = ['lastUpdated']
+
+    const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+
+    // Update localSettings prop with a change in the ignored field
+    await act(async () => {
+      rerender(<TestComponentWithIgnoreFields localSettings={newLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
+    })
+
+    // Wait for any effects to run
+    await waitFor(() => expect(true).toBe(true))
+
+    expect(sendActionToPluginMock).not.toHaveBeenCalled()
+    expect(dispatchMock).not.toHaveBeenCalled()
+  })
+})

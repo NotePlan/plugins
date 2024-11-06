@@ -127,12 +127,14 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
 
 /**
  * Compare two objects or arrays and return an object containing only the properties that have changed.
+ * Fields listed in fieldsToIgnore are ignored when comparing objects (does not apply to arrays).
  *
  * @param {Object|Array} oldObj - The original object or array to compare against.
  * @param {Object|Array} newObj - The new object or array with potential changes.
+ * @param {Array<string>} fieldsToIgnore - An array of field names to ignore when comparing objects.
  * @returns {Object|Array|null} - An object or array containing only the properties that have changed, or null if no changes.
  */
-export function compareObjects(oldObj: any, newObj: any): any {
+export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string> = []): any {
   if (oldObj === newObj) {
     return null // No changes
   }
@@ -152,7 +154,7 @@ export function compareObjects(oldObj: any, newObj: any): any {
     for (let i = 0; i < maxLength; i++) {
       const oldVal = oldObj[i]
       const newVal = newObj[i]
-      const diff = compareObjects(oldVal, newVal)
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore) // Pass fieldsToIgnore recursively
       if (diff !== null && diff !== undefined) {
         differences[i] = diff
       }
@@ -168,9 +170,12 @@ export function compareObjects(oldObj: any, newObj: any): any {
     const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
 
     for (const key of keys) {
+      if (fieldsToIgnore.includes(key)) {
+        continue // Ignore fields listed in fieldsToIgnore
+      }
       const oldVal = oldObj[key]
       const newVal = newObj[key]
-      const diff = compareObjects(oldVal, newVal)
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore) // Pass fieldsToIgnore recursively
       if (diff !== null && diff !== undefined) {
         differences[key] = diff
       }

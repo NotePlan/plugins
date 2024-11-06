@@ -1,5 +1,7 @@
 // @flow
 
+// FIXME: (dbw) This does seem to be sending a copy of dashboardSettings to the plugin, but then it's resetting it and sending back the old copy.
+
 import { useEffect, useRef } from 'react'
 import { logDebug } from '@helpers/react/reactDev.js'
 import { compareObjects } from '@helpers/dev'
