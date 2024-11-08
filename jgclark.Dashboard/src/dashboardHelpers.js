@@ -513,7 +513,11 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     // Reduce list to all notes that are not blank or in @ folders or excludedFolders
     let notesToCheck = projectNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
-    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+
+    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by `DataStore.projectNotes` (the call behind 'projectNotesFromFilteredFolders').
+    // Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+    // Note: JGC has asked EM to not return other sorts of files
+    // Note: this takes roughly 1ms per note for JGC.
     notesToCheck = notesToCheck.filter((n) => n.filename.match(/(.txt|.md)$/)).filter((n) => n.content && !isNaN(n.content.length) && n.content.length >= 1)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
 

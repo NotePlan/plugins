@@ -269,6 +269,7 @@ export type TActionOnReturn =
   | 'REFRESH_ALL_SECTIONS'
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
+  | 'INCREMENT_DONE_COUNT'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
@@ -307,7 +308,8 @@ export type TPluginData = {
   themeName: string /* the theme name used when generating the dashboard */,
   platform: string /* the platform used when generating the dashboard */,
   demoMode: boolean /* use fake content for demo purposes */,
-  totalDoneCounts?: TDoneCount,
+  // totalDoneCounts?: TDoneCount,
+  totalDoneCount: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
 }
 

@@ -3,11 +3,16 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated 2024-09-17 for v2.0.6+ by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import { buildListOfDoneTasksToday, getTotalDoneCounts, rollUpDoneCounts } from './countDoneTasks'
+import {
+  // buildListOfDoneTasksToday,
+  getTotalDoneCountsFromSections,
+  // rollUpDoneCounts,
+  updateDoneCountsFromChangedNotes
+} from './countDoneTasks'
 import {
   getDashboardSettings,
   getNotePlanSettings,
@@ -45,7 +50,7 @@ import { showMessage, processChosenHeading } from '@helpers/userInput'
 - Handlers should use the standard return type of TBridgeClickHandlerResult
 - handlerResult() can be used to create the result object
 - Types are defined in types.js
-    - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON'
+    - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER'
 
 /****************************************************************************************************************************
  *                             Data types + constants
@@ -70,7 +75,7 @@ export async function refreshAllSections(): Promise<void> {
     refreshing: false,
     sections: newSections,
     lastFullRefresh: new Date(),
-    totalDoneCounts: getTotalDoneCounts(newSections),
+    // totalDoneCounts: getTotalDoneCountsFromSections(newSections),
   }
   await setPluginData(changedData, 'Finished Refreshing all sections')
   logTimer('refreshAllSections', startTime, `at end for all sections`)
@@ -78,9 +83,15 @@ export async function refreshAllSections(): Promise<void> {
   // re-calculate all done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    // V1 method
+    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    // const changedData = {
+    //   totalDoneCounts: totalDoneCounts,
+    // }
+    // V2 method
+    const totalDoneCount = updateDoneCountsFromChangedNotes(`end of refreshAllSections()`)
     const changedData = {
-      totalDoneCounts: totalDoneCounts,
+      totalDoneCount: totalDoneCount,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
   }
@@ -122,12 +133,18 @@ export async function incrementallyRefreshSections(
   logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+  // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    // V1 method
+    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
+    // const changedData = {
+    //   totalDoneCounts: totalDoneCounts,
+    // }
+    // V2 method
+    const totalDoneCount = updateDoneCountsFromChangedNotes(`end of incrementallyRefreshSections([${sectionCodes.join(',')}])`)
     const changedData = {
-      totalDoneCounts: totalDoneCounts,
+      totalDoneCount: totalDoneCount,
     }
     await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSections')
   }
@@ -165,7 +182,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
   // TODO: turning off for now, as was being called too often? Need to figure this out.
-  // updates.totalDoneCounts = getTotalDoneCounts(mergedSections)
+  // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
@@ -238,7 +255,7 @@ export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResu
 
   if (typeof updatedParagraph !== 'boolean') {
     logDebug('doCompleteTask', `-> {${updatedParagraph.content}}`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
     logDebug('doCompleteTask', `-> failed`)
     return handlerResult(false)

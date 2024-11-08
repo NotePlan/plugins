@@ -2,12 +2,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 2024-10-24 for v2.0.7 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
-import { rollUpDoneCounts, getTotalDoneCounts, buildListOfDoneTasksToday } from './countDoneTasks'
+import {
+  // buildListOfDoneTasksToday,
+  // getTotalDoneCountsFromSections,
+  // rollUpDoneCounts,
+  updateDoneCountsFromChangedNotes
+} from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
@@ -238,7 +243,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
-    const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
+    // const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command // TEST: uncommenting as unused?
     const sendMessageToPluginFunction = `
       const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
     `
@@ -319,10 +324,12 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
 }
 
 /**
- * Gather data you want passed to the React Window (e.g. what you you will use to display)
- * You will likely use this function to pull together your starting window data
- * Must return an object, with any number of properties, however you cannot use the following reserved
- * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
+ * Gather data you want passed to the React Window (e.g. what you you will use to display).
+ * You will likely use this function to pull together your starting window data.
+ * Must return an object, with any number of properties, however you cannot use the following reserved properties:
+ * pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime.
+ * @param {TDashboardSettings} dashboardSettings
+ * @param {boolean?} useDemoData?
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
@@ -361,8 +368,13 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
 
   // Calculate all done task counts (if the appropriate setting is on)
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
-    pluginData.totalDoneCounts = totalDoneCounts
+    // V1 method
+    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
+    // pluginData.totalDoneCounts = totalDoneCounts
+    // V2 method
+    const totalDoneCount = updateDoneCountsFromChangedNotes("end of getInitialDataForReactWindow")
+
+    pluginData.totalDoneCount = totalDoneCount
   }
 
   return pluginData
@@ -481,8 +493,12 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
 
   // Calculate all done task counts (if the appropriate setting is on)
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCounts = rollUpDoneCounts([getTotalDoneCounts(sections)], buildListOfDoneTasksToday())
-    pluginData.totalDoneCounts = totalDoneCounts
+    // V1 method
+    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
+    // pluginData.totalDoneCounts = totalDoneCounts
+    // V2 method
+    const totalDoneCount = updateDoneCountsFromChangedNotes("end of getPluginData")
+    pluginData.totalDoneCount = totalDoneCount
   }
 
   return pluginData

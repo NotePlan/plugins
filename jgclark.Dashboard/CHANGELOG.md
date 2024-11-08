@@ -3,6 +3,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [Perspectives.a15 - 2.1.0.a15] underway
 - (jgc): Child tasks are now ordered following their parents, when sorted by priority
+- (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  See what you think.
 
 - (dbw): Removed activePerspectiveName from dashboardSettings, and moved it to the perspectiveSettings (isActive flag)
 - (dbw): Refactor to move syncing of dashboardSettings to and from the plugin to a single custom hook for better clarity

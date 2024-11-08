@@ -153,6 +153,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       </div>
 
       <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> : ''}</div>
+      <div className="totalCounts">
+        {/* {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
+          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> */}
+        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}
+      </div>
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}

@@ -1878,6 +1878,7 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
   }
   return parentsOnlyAtTop
 }
+
 /**
  * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
  * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
@@ -1911,6 +1912,29 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): 
   clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
 
   return childParas
+}
+
+/**
+ * Get the parent paragraph for a given paragraph.
+ * Note: not tested!
+ * Note: could be moved to helper/paragraph.js
+ * 
+ * @param {number} thisParaLineIndex - The paragraph index for which to find the parent.
+ * @param {Array<TParagraph>} paragraphs - The array of all paragraphs.
+ * @returns {TParagraph | null} - The parent paragraph or null if no parent is found.
+ */
+export function getParentPara(thisParaLineIndex: number, paragraphs: Array<TParagraph>): TParagraph | null {
+  const thisPara = paragraphs[thisParaLineIndex]
+  const paraIndentLevel = thisPara.indents
+
+  // Iterate backwards from the current paragraph to find the parent
+  for (let i = thisParaLineIndex - 1; i >= 0; i--) {
+    const potentialParent = paragraphs[i]
+    if (potentialParent.indents < paraIndentLevel) {
+      return potentialParent // Found the parent
+    }
+  }
+  return null // No parent found
 }
 
 /**
