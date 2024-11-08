@@ -210,7 +210,7 @@ var RootBundle = (function (exports, React$1) {
   const shouldOutputForFunctionName = pluginInfo => {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
     if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
-      const functionRE = new RegExp(pluginSettings['_logFunctionRE']);
+      const functionRE = new RegExp(pluginSettings['_logFunctionRE'], 'i');
       const infoStr = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo);
       return functionRE.test(infoStr);
     }

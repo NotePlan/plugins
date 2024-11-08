@@ -209,3 +209,13 @@
   margin-right: -12px;
   margin-top: -4px;
 }
+
+.dropdown .changes-pending {
+  font-size: x-small;
+  color: red;
+  /* margin-bottom: 4px; */
+  height: 20px; /* fixed height whether message is empty or not */
+  display: flex; /* Use flexbox to center content */
+  align-items: center; /* Vertically center the text */
+  justify-content: center; /* Horizontally center the text */
+}

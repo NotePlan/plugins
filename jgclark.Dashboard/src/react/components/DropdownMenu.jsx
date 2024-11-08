@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback, type Node } from 'react'
 import type { TSettingItem } from '../../types'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import '../css/DropdownMenu.css' // Import the CSS file
@@ -17,14 +17,16 @@ import { logDebug } from '@helpers/react/reactDev.js'
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
+type SwitchStateMap = { [key: string]: boolean }
+
 type DropdownMenuProps = {
   sectionItems?: Array<TSettingItem>,
   otherItems: Array<TSettingItem>,
-  handleSwitchChange?: (key: string, e: any) => void,
+  handleSwitchChange?: (key: string) => (e: any) => void,
   handleInputChange?: (key: string, e: any) => void,
   handleComboChange?: (key: string, e: any) => void,
-  handleSaveInput?: (key: string, newValue: string) => void,
-  onSaveChanges?: () => void,
+  handleSaveInput?: (key: string) => (newValue: string) => void,
+  onSaveChanges: (updatedSettings?: Object) => void,
   iconClass?: string,
   className?: string,
   labelPosition?: 'left' | 'right',
@@ -39,18 +41,17 @@ type DropdownMenuProps = {
 const DropdownMenu = ({
   sectionItems = [],
   otherItems,
-  handleSwitchChange = (key, e) => {},
-  handleInputChange = (key, e) => {},
-  handleComboChange = (key, e) => {},
-  handleSaveInput = (key, newValue) => {},
+  handleSwitchChange = (key: string) => (e: any) => {},
+  handleInputChange = (_key, _e) => {},
+  handleComboChange = (_key, _e) => {},
+  handleSaveInput = (key: string) => (newValue: string) => {},
   onSaveChanges,
   iconClass = 'fa-solid fa-filter',
-  className,
+  className = '',
   labelPosition = 'right',
   isOpen,
   toggleMenu,
-}: DropdownMenuProps): React$Node => {
-  // logDebug('DropdownMenu', `Starting with ${otherItems.length} otherItems and ${sectionItems ? sectionItems.length : 0} sectionItems`)
+}: DropdownMenuProps): Node => {
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
@@ -60,15 +61,65 @@ const DropdownMenu = ({
   // State
   //----------------------------------------------------------------------
   const [changesMade, setChangesMade] = useState(false)
+  const [localSwitchStates, setLocalSwitchStates] = useState<SwitchStateMap>(() => {
+    const initialStates: SwitchStateMap = {}
+    ;[...otherItems, ...sectionItems].forEach((item) => {
+      if (item.type === 'switch' && item.key) {
+        initialStates[item.key] = item.checked || false
+      }
+    })
+    return initialStates
+  })
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
+  const handleFieldChange = (key: string, value: any) => {
+    logDebug('DropdownMenu', `menu:"${className}" Field change detected for ${key} with value ${value}`)
+    setChangesMade(true)
+    setLocalSwitchStates((prevStates) => ({
+      ...prevStates,
+      [key]: value,
+    }))
+  }
+
+  const handleSaveChanges = useCallback(() => {
+    logDebug('DropdownMenu/handleSaveChanges:', `menu:"${className}"  changesMade = ${String(changesMade)}`)
+    if (changesMade && onSaveChanges) {
+      logDebug(
+        'DropdownMenu',
+        `handleSaveChanges: calling onSaveChanges with filterPriorityItems=${JSON.stringify(
+          localSwitchStates.filterPriorityItems,
+        )} localSwitchStates.filterPriorityItems=${JSON.stringify(localSwitchStates.filterPriorityItems)}`,
+      )
+      onSaveChanges(localSwitchStates)
+    }
+    setChangesMade(false)
+    toggleMenu()
+  }, [changesMade, localSwitchStates, onSaveChanges, toggleMenu])
+
+  const handleEscapeKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      logDebug('DropdownMenu', 'Escape key detected')
+      handleSaveChanges()
+    }
+  }
+
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      const isOutsideMenu = dropdownRef.current && !dropdownRef.current.contains((event.target: any))
+      logDebug('DropdownMenu', `menu:"${className}" click detected; isOutsideMenu=${String(isOutsideMenu)} changesMade=${String(changesMade)} `)
+      if (isOutsideMenu) {
+        logDebug('DropdownMenu', `menu:"${className}" Click outside detected and closing dropdown`)
+        handleSaveChanges()
+      }
+    },
+    [changesMade, handleSaveChanges, dropdownRef],
+  )
 
   //----------------------------------------------------------------------
   // Effects
   //----------------------------------------------------------------------
-  const handleClickOutside = (event: MouseEvent) => {
-    if ((dropdownRef.current && !(event.target instanceof Node)) || (dropdownRef.current && !dropdownRef.current.contains((event.target: any)))) {
-      handleSaveChanges()
-    }
-  }
 
   useEffect(() => {
     if (isOpen) {
@@ -82,46 +133,23 @@ const DropdownMenu = ({
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscapeKey)
     }
-  }, [isOpen])
-
-  //----------------------------------------------------------------------
-  // Handlers
-  //----------------------------------------------------------------------
-  const handleFieldChange = () => {
-    logDebug('DropdownMenu', 'Field change detected')
-    setChangesMade(true)
-  }
-
-  const handleSaveChanges = () => {
-    if (changesMade && onSaveChanges) {
-      onSaveChanges()
-      setChangesMade(false)
-    }
-    toggleMenu()
-  }
-
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      logDebug('DropdownMenu', 'Escape key detected')
-      handleSaveChanges()
-    }
-  }
+  }, [isOpen, handleSaveChanges])
 
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
   return (
-    <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
-      <i className={iconClass} onClick={toggleMenu}></i>
+    <div className={`dropdown ${className}`} ref={dropdownRef}>
+      <i className={iconClass} onClick={toggleMenu} onClick={handleSaveChanges}></i>
       <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
+        <div className="changes-pending">{changesMade ? `Changes pending. Will be applied when you close the menu.` : ''}</div>
         <div className="column">
           {otherItems.map((item, index) =>
             renderItem({
               index,
-              item,
+              item: { ...item, checked: localSwitchStates[item.key] },
               labelPosition,
               handleFieldChange,
-              handleSwitchChange,
               handleInputChange,
               handleComboChange,
               handleSaveInput,
@@ -134,10 +162,9 @@ const DropdownMenu = ({
             {sectionItems.map((item, index) =>
               renderItem({
                 index,
-                item,
+                item: { ...item, checked: localSwitchStates[item.key] },
                 labelPosition,
                 handleFieldChange,
-                handleSwitchChange,
                 handleInputChange,
                 handleComboChange,
                 handleSaveInput,

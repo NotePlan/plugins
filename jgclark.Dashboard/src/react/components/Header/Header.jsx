@@ -7,7 +7,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
@@ -15,12 +15,13 @@ import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
 import { useAppContext } from '../AppContext.jsx'
+import { allSectionCodes } from '../../../constants.js'
+import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
-import { handleSwitchChange, handleRefreshClick, handleSaveInput, handleDropdownFieldChange, onDropdownMenuChangesMade } from './headerDropdownHandlers.js'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 import './Header.css'
 
@@ -43,7 +44,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, perspectiveSettings, dispatchPerspectiveSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
 
   //----------------------------------------------------------------------
   // Hooks
@@ -54,7 +55,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   // State
   //----------------------------------------------------------------------
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
-  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)
+  const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
 
   //----------------------------------------------------------------------
@@ -64,65 +65,103 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    * Toggles the open/closed state of a dropdown menu.
    * @param {string} dropdown - The identifier of the dropdown menu to toggle.
    */
-  const handleToggleDropdownMenu = (dropdown: string) => {
-    setOpenDropdownMenu(openDropdownMenu === dropdown ? null : dropdown)
-  }
+  const handleToggleDropdownMenu = useCallback(
+    (dropdown: string) => {
+      if (openDropdownMenu === dropdown) {
+        // Closing the dropdown menu
+        logDebug('Header/handleToggleDropdownMenu', `Closing dropdown menu ${dropdown}`)
+        // handleChangesInSettings()
+        setOpenDropdownMenu(null)
+        setTempDashboardSettings({ ...dashboardSettings }) // Reset temp settings
+      } else {
+        // Opening a new dropdown menu
+        logDebug('Header/handleToggleDropdownMenu', `Opening dropdown menu ${dropdown}`)
+        setOpenDropdownMenu(dropdown)
+        setTempDashboardSettings({ ...dashboardSettings }) // Initialize temp settings
+      }
+    },
+    [openDropdownMenu, dashboardSettings],
+  )
 
   /**
-   * Effect hook that runs when openDropdownMenu or dropdownMenuChangesMade changes.
-   * Currently empty but can be used for side-effects.
+   * Handles changes in settings when user saves changes from the dropdown menu or settings dialog.
    */
-  useEffect(() => {
-    // Any necessary side-effects when openDropdownMenu or dropdownMenuChangesMade change
-  }, [openDropdownMenu, dropdownMenuChangesMade])
-
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
-      // FIXME: finish this
-      setDropdownMenuChangesMade(false)
-      if (updatedSettings) {
-        // this came from the SettingsDialog
-      } else {
-        // this came from the DropdownMenu
+      logDebug('Header/handleChangesInSettings', `Received updated settings: filterPriorityItems=${JSON.stringify(updatedSettings.filterPriorityItems)}`)
+      const newSettings = {
+        ...dashboardSettings,
+        ...tempDashboardSettings,
+        ...updatedSettings,
       }
-      logDebug('Header/handleChangesInSettings', `handleChangesInSettings called!`)
-      // let settingsToSave = updatedSettings
-      // if (updatedSettings.perspectiveSettings) {
-      //   logDebug(`SettingsDialog/handleSave`, `Updating perspectiveSettings from the dialog`)
-      //   // setPerspectivesIfJSONChanged will peel off perspectiveSettings if it has changed via the JSON editor and leave the rest to be saved as dashboardSettings
-      //   settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, dispatchPerspectiveSettings, `Dashboard Settings Panel updates`)
-      // }
-      // dispatchDashboardSettings({
-      //   type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
-      //   payload: settingsToSave,
-      //   reason: `Dashboard Settings saved from (modal or menu)`,
-      // })
-      // sendActionToPlugin(
-      //   'incrementallyRefreshSections',
-      //   { sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` },
-      //   `Refreshing b/c settings were changed`,
-      //   true,
-      // )
+      dispatchDashboardSettings({
+        type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+        payload: newSettings,
+        reason: `Dashboard Settings updated`,
+      })
+      // Update tempDashboardSettings with the new settings
+      setTempDashboardSettings(newSettings)
     },
-    [dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, perspectiveSettings],
+    [dashboardSettings, tempDashboardSettings, dispatchDashboardSettings],
   )
+
+  /**
+   * Handles switch change in the dropdown menu.
+   */
+  const handleLocalSwitchChange =
+    (key: string) =>
+    (e: any): void => {
+      const isChecked = e?.target?.checked || false
+      logDebug('Header/handleLocalSwitchChange', `Changing setting ${key} to ${isChecked}`)
+      setTempDashboardSettings((prevSettings) => ({
+        ...prevSettings,
+        [key]: isChecked,
+      }))
+    }
+
+  /**
+   * Handles input save in the dropdown menu.
+   */
+  const handleLocalSaveInput =
+    (key: string) =>
+    (newValue: string): void => {
+      logDebug('Header/handleLocalSaveInput', `Changing setting ${key} to ${newValue}`)
+      setTempDashboardSettings((prevSettings) => ({
+        ...prevSettings,
+        [key]: newValue,
+      }))
+    }
+
+  /**
+   * Handles the click event for the refresh button, triggering a plugin refresh action.
+   *
+   * @param {boolean} isHardRefresh - If true, performs a hard refresh.
+   * @returns {Function} - A function to handle the click event.
+   */
+  const handleRefreshClick =
+    (isHardRefresh: boolean = false): Function =>
+    (): void => {
+      const actionType = isHardRefresh ? 'windowReload' : 'refresh'
+      logDebug('Header', `Refresh button clicked; isHardRefresh:${String(isHardRefresh)} sending action:${actionType}`)
+      sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
+    }
 
   //----------------------------------------------------------------------
   // Constants
   //----------------------------------------------------------------------
   const { sections, logSettings } = pluginData
 
-  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(dashboardSettings)
+  const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
+
+  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(tempDashboardSettings)
   const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
-  const featureFlagItems = createFeatureFlagItems(dashboardSettings)
+  const featureFlagItems = createFeatureFlagItems(tempDashboardSettings)
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 650
   const updatedText = 'Updated'
-
-  const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
   //----------------------------------------------------------------------
   // Render
@@ -139,9 +178,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       )}
 
       <div className="refresh">
-        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, false, visibleSectionCodes)} />
+        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(false)} />
         {showHardRefreshButton && (
-          <button onClick={handleRefreshClick(sendActionToPlugin, true, visibleSectionCodes)} className="HAButton hardRefreshButton">
+          <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
             <i className={'fa-regular fa-arrows-retweet'}></i>
             <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
           </button>
@@ -152,12 +191,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 
-      <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> : ''}</div>
-      <div className="totalCounts">
-        {/* {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
-          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> */}
-        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}
-      </div>
+      <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
@@ -165,11 +199,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <DropdownMenu
             onSaveChanges={handleChangesInSettings}
             otherItems={featureFlagItems}
-            handleSwitchChange={(key, e) => {
-              handleDropdownFieldChange(setDropdownMenuChangesMade)()
-              handleSwitchChange(dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, perspectiveSettings, dispatchPerspectiveSettings)(key)(e)
-              onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
-            }}
+            handleSwitchChange={handleLocalSwitchChange}
             className={'feature-flags'}
             iconClass="fa-solid fa-flag"
             isOpen={openDropdownMenu === 'featureFlags'}
@@ -192,16 +222,8 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           onSaveChanges={handleChangesInSettings}
           sectionItems={dropdownSectionItems}
           otherItems={dropdownOtherItems}
-          handleSwitchChange={(key, e) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSwitchChange(dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, perspectiveSettings, dispatchPerspectiveSettings)(key)(e)
-            onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
-          }}
-          handleSaveInput={(key, newValue) => {
-            handleDropdownFieldChange(setDropdownMenuChangesMade)()
-            handleSaveInput(dispatchDashboardSettings)(key)(newValue)
-            onDropdownMenuChangesMade(setDropdownMenuChangesMade, sendActionToPlugin)() // Call here instead
-          }}
+          handleSwitchChange={handleLocalSwitchChange}
+          handleSaveInput={handleLocalSaveInput}
           className={'filter'}
           iconClass="fa-solid fa-filter"
           isOpen={openDropdownMenu === 'filter'}
