@@ -906,6 +906,15 @@ describe('NPParagraphs()', () => {
       const result = p.findParagraph(parasToLookIn, obj)
       expect(result).toEqual(null)
     })
+    test('find content with $$$', () => {
+      const parasToLookIn = [new Paragraph({ content: 'Send Alex the form and some $$$', rawContent: '* Send Alex the form and some $$$', filename: '20230210.md' })]
+      const obj = {
+        rawContent: '* Send Alex the form and some $$$',
+        filename: '20230210.md',
+      }
+      const result = p.findParagraph(parasToLookIn, obj)
+      expect(result).not.toEqual(null)
+    })
     test('should find a paragraph by filename and lineIndex', () => {
       const parasToLookIn = [
         new Paragraph({ lineIndex: 0, filename: '20230210.md' }),
@@ -1148,6 +1157,12 @@ describe('NPParagraphs()', () => {
     })
 
     test('should return true when content is truncated and matches the start', () => {
+      const paragraph = { content: 'Send Alex the form and some $$$', filename: 'test.md' }
+      const fieldsObject = { content: 'Send Alex the form and some $$$', filename: 'test.md' }
+      const fields = ['content', 'filename']
+      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+    })
+    test('should find content with $$$', () => {
       const paragraph = { content: 'This is a long content that needs to be checked', filename: 'test.md' }
       const fieldsObject = { content: 'This is a long content...', filename: 'test.md' }
       const fields = ['content', 'filename']

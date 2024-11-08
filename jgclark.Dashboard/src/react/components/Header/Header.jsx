@@ -2,13 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
@@ -19,16 +18,9 @@ import { useAppContext } from '../AppContext.jsx'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
-import PerspectiveSelector  from './PerspectiveSelector.jsx'
-import { useDropdownMenuHandler } from './useDropdownMenuHandler.jsx'
+import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
-import {
-  handleSwitchChange,
-  handleRefreshClick,
-  handleSaveInput,
-  handleDropdownFieldChange,
-  onDropdownMenuChangesMade
-} from './headerDropdownHandlers.js'
+import { handleSwitchChange, handleRefreshClick, handleSaveInput, handleDropdownFieldChange, onDropdownMenuChangesMade } from './headerDropdownHandlers.js'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 import './Header.css'
 
@@ -38,19 +30,15 @@ import './Header.css'
 
 type Props = {
   lastFullRefresh: Date,
-};
+}
 
-type DropdownMenuHandlerType = {
-  openDropdownMenu: string | null,
-  dropdownMenuChangesMade: boolean,
-  setDropdownMenuChangesMade: (value: boolean) => void,
-  handleToggleDropdownMenu: (dropdown: string) => void,
-};
-
-//--------------------------------------------------------------------------
-// Header Component
-//--------------------------------------------------------------------------
-
+/**
+ * Header Component to display the dashboard header.
+ * @component
+ * @param {Props} props - The props object.
+ * @param {Date} props.lastFullRefresh - The timestamp of the last full refresh.
+ * @returns {React.Node} The rendered Header component.
+ */
 const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
@@ -65,13 +53,59 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   //----------------------------------------------------------------------
   // State
   //----------------------------------------------------------------------
-  const dropdownMenuHandler: DropdownMenuHandlerType = useDropdownMenuHandler(() => {
-    // Removed the call to `onDropdownMenuChangesMade` here
-  })
-
-  const { openDropdownMenu, setDropdownMenuChangesMade, handleToggleDropdownMenu } = dropdownMenuHandler
-
+  const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
+  const [dropdownMenuChangesMade, setDropdownMenuChangesMade] = useState(false)
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
+
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
+  /**
+   * Toggles the open/closed state of a dropdown menu.
+   * @param {string} dropdown - The identifier of the dropdown menu to toggle.
+   */
+  const handleToggleDropdownMenu = (dropdown: string) => {
+    setOpenDropdownMenu(openDropdownMenu === dropdown ? null : dropdown)
+  }
+
+  /**
+   * Effect hook that runs when openDropdownMenu or dropdownMenuChangesMade changes.
+   * Currently empty but can be used for side-effects.
+   */
+  useEffect(() => {
+    // Any necessary side-effects when openDropdownMenu or dropdownMenuChangesMade change
+  }, [openDropdownMenu, dropdownMenuChangesMade])
+
+  const handleChangesInSettings = useCallback(
+    (updatedSettings?: Object) => {
+      // FIXME: finish this
+      setDropdownMenuChangesMade(false)
+      if (updatedSettings) {
+        // this came from the SettingsDialog
+      } else {
+        // this came from the DropdownMenu
+      }
+      logDebug('Header/handleChangesInSettings', `handleChangesInSettings called!`)
+      // let settingsToSave = updatedSettings
+      // if (updatedSettings.perspectiveSettings) {
+      //   logDebug(`SettingsDialog/handleSave`, `Updating perspectiveSettings from the dialog`)
+      //   // setPerspectivesIfJSONChanged will peel off perspectiveSettings if it has changed via the JSON editor and leave the rest to be saved as dashboardSettings
+      //   settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, dispatchPerspectiveSettings, `Dashboard Settings Panel updates`)
+      // }
+      // dispatchDashboardSettings({
+      //   type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
+      //   payload: settingsToSave,
+      //   reason: `Dashboard Settings saved from (modal or menu)`,
+      // })
+      // sendActionToPlugin(
+      //   'incrementallyRefreshSections',
+      //   { sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` },
+      //   `Refreshing b/c settings were changed`,
+      //   true,
+      // )
+    },
+    [dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, perspectiveSettings],
+  )
 
   //----------------------------------------------------------------------
   // Constants
@@ -84,20 +118,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
-  const isMobile = pluginData.platform !== "macOS"
+  const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 650
-  const updatedText = "Updated"
+  const updatedText = 'Updated'
 
   const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
   //----------------------------------------------------------------------
-  // Handlers
-  //----------------------------------------------------------------------
-
-  //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(" mins", "m").replace(" min", "m").replace(" hours", "h").replace(" hour", "h")
+  const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
 
   return (
     <div className="header">
@@ -109,17 +139,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       )}
 
       <div className="refresh">
-        <RefreshControl
-          refreshing={pluginData.refreshing === true}
-          handleRefreshClick={handleRefreshClick(sendActionToPlugin, false, visibleSectionCodes)}
-        />
+        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(sendActionToPlugin, false, visibleSectionCodes)} />
         {showHardRefreshButton && (
-          <button
-            onClick={handleRefreshClick(sendActionToPlugin, true, visibleSectionCodes)}
-            className="HAButton hardRefreshButton"
-          >
-            <i className={"fa-regular fa-arrows-retweet"}></i>
-            <span className="pad-left">{isNarrowWidth ? "HR" : "Hard Refresh"}</span>
+          <button onClick={handleRefreshClick(sendActionToPlugin, true, visibleSectionCodes)} className="HAButton hardRefreshButton">
+            <i className={'fa-regular fa-arrows-retweet'}></i>
+            <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
           </button>
         )}
       </div>
@@ -128,16 +152,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 
-      <div className="totalCounts">
-        {dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts
-          ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} />
-          : ''}
-      </div>
+      <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCounts ? <DoneCounts totalDoneCounts={pluginData.totalDoneCounts} /> : ''}</div>
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
         {isDevMode && (
           <DropdownMenu
+            onSaveChanges={handleChangesInSettings}
             otherItems={featureFlagItems}
             handleSwitchChange={(key, e) => {
               handleDropdownFieldChange(setDropdownMenuChangesMade)()
@@ -158,10 +179,12 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             className={'dashboard-settings'}
             isOpen={isDialogOpen}
             toggleDialog={handleToggleDialog}
+            onSaveChanges={handleChangesInSettings}
           />
         )}
         {/* Display toggles dropdown menu */}
         <DropdownMenu
+          onSaveChanges={handleChangesInSettings}
           sectionItems={dropdownSectionItems}
           otherItems={dropdownOtherItems}
           handleSwitchChange={(key, e) => {

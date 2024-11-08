@@ -649,7 +649,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   // if (settingName === 'dashboardSettings') {
   //   newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
   // }
-  logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders}`)
+  settingName === 'dashboardSettings' && logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
   if (data.perspectiveSettings) {
     const debugInfo = data.perspectiveSettings.map((ps) => `${ps.name}=[${ps.dashboardSettings.excludedFolders.toString()}`).join(`\n\t`)

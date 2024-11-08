@@ -58,15 +58,6 @@ export const handleSwitchChange = (
       const isChecked = e?.target?.checked || false
 
       logDebug('handleSwitchChange', `isSection: ${String(isSection)}, isChecked: ${isChecked}`)
-      const usingPerspectives = dashboardSettings.showPerspectives
-      if (usingPerspectives) {
-        const apn = getActivePerspectiveName(perspectiveSettings)
-        dispatchPerspectiveSettings({
-          type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-          payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),
-          reason: `Switch changed: ${key}=${isChecked}`,
-        })
-      }
 
       // This saves the change in local context, and then it will be picked up and sent to plugin
       if (dispatchDashboardSettings && dashboardSettings && dashboardSettings[key] !== isChecked) {

@@ -30,7 +30,7 @@ type DropdownMenuProps = {
   labelPosition?: 'left' | 'right',
   isOpen: boolean,
   toggleMenu: () => void,
-};
+}
 
 //--------------------------------------------------------------------------
 // DropdownMenu Component Definition
@@ -39,10 +39,10 @@ type DropdownMenuProps = {
 const DropdownMenu = ({
   sectionItems = [],
   otherItems,
-  handleSwitchChange = (key, e) => { },
-  handleInputChange = (key, e) => { },
-  handleComboChange = (key, e) => { },
-  handleSaveInput = (key, newValue) => { },
+  handleSwitchChange = (key, e) => {},
+  handleInputChange = (key, e) => {},
+  handleComboChange = (key, e) => {},
+  handleSaveInput = (key, newValue) => {},
   onSaveChanges,
   iconClass = 'fa-solid fa-filter',
   className,
@@ -54,7 +54,7 @@ const DropdownMenu = ({
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
-  const dropdownRef = useRef <? HTMLDivElement > (null)
+  const dropdownRef = useRef<?HTMLDivElement>(null)
 
   //----------------------------------------------------------------------
   // State
@@ -65,87 +65,90 @@ const DropdownMenu = ({
   // Effects
   //----------------------------------------------------------------------
   const handleClickOutside = (event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !(event.target instanceof Node) || (dropdownRef.current && !dropdownRef.current.contains((event.target: any)))
-    ) {
-  if (changesMade && onSaveChanges) {
-    onSaveChanges()
-  }
-  toggleMenu()
-}
+    if ((dropdownRef.current && !(event.target instanceof Node)) || (dropdownRef.current && !dropdownRef.current.contains((event.target: any)))) {
+      handleSaveChanges()
+    }
   }
 
-useEffect(() => {
-  if (isOpen) {
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleEscapeKey)
-  } else {
-    document.removeEventListener('mousedown', handleClickOutside)
-    document.removeEventListener('keydown', handleEscapeKey)
-  }
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside)
-    document.removeEventListener('keydown', handleEscapeKey)
-  }
-}, [isOpen])
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEscapeKey)
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isOpen])
 
-//----------------------------------------------------------------------
-// Handlers
-//----------------------------------------------------------------------
-const handleFieldChange = () => {
-  logDebug('DropdownMenu', 'Field change detected')
-  setChangesMade(true)
-}
+  //----------------------------------------------------------------------
+  // Handlers
+  //----------------------------------------------------------------------
+  const handleFieldChange = () => {
+    logDebug('DropdownMenu', 'Field change detected')
+    setChangesMade(true)
+  }
 
-const handleEscapeKey = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') {
-    logDebug('DropdownMenu', 'Escape key detected')
+  const handleSaveChanges = () => {
     if (changesMade && onSaveChanges) {
       onSaveChanges()
+      setChangesMade(false)
     }
     toggleMenu()
   }
-}
 
-//----------------------------------------------------------------------
-// Render
-//----------------------------------------------------------------------
-return (
-  <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
-    <i className={iconClass} onClick={toggleMenu}></i>
-    <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
-      <div className="column" >
-        {otherItems.map((item, index) => renderItem({
-          index,
-          item,
-          labelPosition,
-          handleFieldChange,
-          handleSwitchChange,
-          handleInputChange,
-          handleComboChange,
-          handleSaveInput,
-          showDescAsTooltips: true,
-        }))}
-      </div>
-      {sectionItems.length > 0 &&
-        <div className="column" >
-          {sectionItems.map((item, index) => renderItem({
-            index,
-            item,
-            labelPosition,
-            handleFieldChange,
-            handleSwitchChange,
-            handleInputChange,
-            handleComboChange,
-            handleSaveInput,
-            showDescAsTooltips: true,
-          }))}
+  const handleEscapeKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      logDebug('DropdownMenu', 'Escape key detected')
+      handleSaveChanges()
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Render
+  //----------------------------------------------------------------------
+  return (
+    <div className={`dropdown ${className || ''}`} ref={dropdownRef}>
+      <i className={iconClass} onClick={toggleMenu}></i>
+      <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
+        <div className="column">
+          {otherItems.map((item, index) =>
+            renderItem({
+              index,
+              item,
+              labelPosition,
+              handleFieldChange,
+              handleSwitchChange,
+              handleInputChange,
+              handleComboChange,
+              handleSaveInput,
+              showDescAsTooltips: true,
+            }),
+          )}
         </div>
-      }
+        {sectionItems.length > 0 && (
+          <div className="column">
+            {sectionItems.map((item, index) =>
+              renderItem({
+                index,
+                item,
+                labelPosition,
+                handleFieldChange,
+                handleSwitchChange,
+                handleInputChange,
+                handleComboChange,
+                handleSaveInput,
+                showDescAsTooltips: true,
+              }),
+            )}
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-)
+  )
 }
 
 export default DropdownMenu

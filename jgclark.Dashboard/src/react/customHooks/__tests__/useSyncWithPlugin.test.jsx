@@ -339,7 +339,7 @@ describe('useSyncWithPlugin with fieldsToIgnore in compareObjects', () => {
   it('should not dispatch or send action if only ignored fields change', async () => {
     const initialSettings = { theme: 'light', lastUpdated: '2021-01-01' }
     const newPluginSettings = { theme: 'light', lastUpdated: '2021-02-01' }
-    const fieldsToIgnore = ['lastUpdated']
+    const fieldsToIgnore = ['lastChange']
 
     const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={initialSettings} fieldsToIgnore={fieldsToIgnore} />)
 
@@ -358,7 +358,7 @@ describe('useSyncWithPlugin with fieldsToIgnore in compareObjects', () => {
   it('should dispatch action when a non-ignored field changes', async () => {
     const initialSettings = { theme: 'light', lastUpdated: '2021-01-01' }
     const newPluginSettings = { theme: 'dark', lastUpdated: '2021-02-01' }
-    const fieldsToIgnore = ['lastUpdated']
+    const fieldsToIgnore = ['lastChange']
 
     const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialSettings} pluginSettings={initialSettings} fieldsToIgnore={fieldsToIgnore} />)
 
@@ -385,7 +385,7 @@ describe('useSyncWithPlugin with fieldsToIgnore in compareObjects', () => {
     const initialLocalSettings = { theme: 'light', lastUpdated: '2021-01-01' }
     const newLocalSettings = { theme: 'dark', lastUpdated: '2021-01-01' }
     const pluginSettings = initialLocalSettings
-    const fieldsToIgnore = ['lastUpdated']
+    const fieldsToIgnore = ['lastChange']
 
     const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
 
@@ -413,7 +413,7 @@ describe('useSyncWithPlugin with fieldsToIgnore in compareObjects', () => {
     const initialLocalSettings = { theme: 'light', lastUpdated: '2021-01-01' }
     const newLocalSettings = { theme: 'light', lastUpdated: '2021-02-01' }
     const pluginSettings = initialLocalSettings
-    const fieldsToIgnore = ['lastUpdated']
+    const fieldsToIgnore = ['lastChange']
 
     const { rerender } = render(<TestComponentWithIgnoreFields localSettings={initialLocalSettings} pluginSettings={pluginSettings} fieldsToIgnore={fieldsToIgnore} />)
 

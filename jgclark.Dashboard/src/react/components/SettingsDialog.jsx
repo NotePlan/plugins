@@ -132,29 +132,8 @@ const SettingsDialog = ({
   // Handle "Save & Close" action
   const handleSave = () => {
     if (onSaveChanges) {
-      const usingPerspectives = dashboardSettings.showPerspectives
-      logDebug(`SettingsDialog: handlesave showPerspectives=${String(usingPerspectives)} apn=${getActivePerspectiveName(perspectiveSettings)}`)
-      if (usingPerspectives) {
-        const apn = getActivePerspectiveName(perspectiveSettings)
-        dispatchPerspectiveSettings({
-          type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-          payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true, lastChange: `${dt()}` } : { ...p, isModified: false })),
-          reason: `SettingsDialog: Save button clicked while active perspective was: ${apn}`,
-        })
-      }
       onSaveChanges(updatedSettings)
     }
-    let settingsToSave = updatedSettings
-    if (updatedSettings.perspectiveSettings) {
-      // setPerspectivesIfJSONChanged will peel off perspectiveSettings if it has changed via the JSON editor and leave the rest to be saved as dashboardSettings
-      settingsToSave = setPerspectivesIfJSONChanged(updatedSettings, dashboardSettings, dispatchPerspectiveSettings, `Dashboard Settings Panel updates`)
-    }
-    dispatchDashboardSettings({
-      type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
-      payload: settingsToSave,
-      reason: `Dashboard Settings saved from (modal or menu)`,
-    })
-
     toggleDialog()
   }
 
