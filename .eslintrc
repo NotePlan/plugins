@@ -2,6 +2,7 @@
   "extends": [
     "eslint:recommended",
     "plugin:import/recommended",
+    "plugin:prettier/recommended",
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:flowtype/recommended",
@@ -9,6 +10,7 @@
     "plugin:react/recommended"
   ],
   "plugins": [
+    "prettier",
     "import",
     "flowtype",
     "unused-imports",
