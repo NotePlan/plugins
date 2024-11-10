@@ -373,6 +373,10 @@ export function getTimeStringFromDate(date: Date): string {
   // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+export function getTimeStringFromHM(hours: number, minutes: number): string {
+  return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}`
+}
+
 /**
  * Take a date string from calendar note filename, and convert to NP display string. In practice this leaves week, month, quarter, year dates alone, but changes YYYYMMDD to YYYY-MM-DD.
  * @param {string} dateStrIn from filename
