@@ -28,6 +28,7 @@ export function perspectiveSettingsReducer(state: TPerspectiveSettings, action: 
   switch (type) {
     case PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS: {
       if (payload && typeof payload === 'object') {
+        // logDebug(`perspectiveSettingsReducer [${type}]`, `"${reason || ''}" - about to compare state and payload`)
         const changedProps = compareObjects(state, payload)
         logDebug('perspectiveSettingsReducer', `"${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
         return payload

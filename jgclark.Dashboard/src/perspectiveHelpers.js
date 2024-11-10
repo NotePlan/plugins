@@ -63,6 +63,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     isModified: false,
     // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {},
+    excludedFolders: ['THIS_IS_DASH'],
   },
   {
     name: 'Home',
@@ -70,7 +71,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     // $FlowFixMe[prop-missing]
     dashboardSettings: {
       includedFolders: 'Home, NotePlan',
-      excludedFolders: 'Readwise 📚, Saved Searches, Work',
+      excludedFolders: 'THIS_IS_HOME,Readwise 📚, Saved Searches, Work',
       ignoreItemsWithTerms: '#test, @church',
     },
   },
@@ -80,7 +81,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {
       includedFolders: 'Work, CCC, Ministry',
-      excludedFolders: 'Readwise 📚, Saved Searches, Home',
+      excludedFolders: 'THIS_IS_WORK,Readwise 📚, Saved Searches, Home',
       ignoreItemsWithTerms: '#test, @home',
     },
   },
@@ -93,7 +94,10 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
 export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys: boolean = false): void {
   for (const thisP of settingsArr) {
     const name = thisP.name === '-' ? 'Default (-)' : thisP.name
-    logDebug('getPerspectiveSettings', `- ${name}: ${thisP.isModified ? ' (modified)' : ''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`)
+    logDebug(
+      'getPerspectiveSettings',
+      `- ${name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`,
+    )
 
     if (showAllKeys) {
       clo(thisP.dashboardSettings, `getPerspectiveSettings: -`)
@@ -157,6 +161,10 @@ export function getActivePerspectiveName(perspectiveSettings: Array<TPerspective
  * @returns {TPerspectiveDef | false}
  */
 export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>): TPerspectiveDef | false {
+  if (!perspectiveSettings) {
+    logWarn('getActivePerspectiveDef', `No perspectiveSettings found. Returning false.`)
+    return false
+  }
   return perspectiveSettings.find((s) => s.isActive === true) || false
 }
 
@@ -177,14 +185,14 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
 }
 
 /**
- * Set the isActive flag for the perspective with the given name (and false for all others)
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
  * @param {string} name
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @returns {Array<TPerspectiveDef>}
  */
 export function setActivePerspective(name: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
   // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
-  return perspectiveSettings ? perspectiveSettings.map((s) => ({ ...s, isActive: s.name === name })) : []
+  return perspectiveSettings ? perspectiveSettings.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
 }
 
 /**
@@ -297,23 +305,33 @@ export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array
 
 /**
  * Switch to the perspective with the given name (updates isActive flag on that one and saves to DataStore.settings)
+ * Does not send the new PerspectiveSettings to the front end. Returns the new PerspectiveSettings or false if not found.
  * @param {string} name
  * @param {Array<TPerspectiveDef>} allDefs
  * @returns {boolean}
  */
-export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<boolean> {
+export async function switchToPerspective(name: string, allDefs: Array<TPerspectiveDef>): Promise<Array<TPerspectiveDef> | false> {
   // Check if perspective exists
-  logDebug('switchToPerspective', `Starting for name ${name}, with ...`)
+  logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
   logPerspectives(allDefs)
 
   const newPerspectiveSettings = setActivePerspective(name, allDefs)
+  const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
+  if (!newPerspectiveDef) {
+    logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
+    return false
+  }
+  logDebug(
+    'switchToPerspective',
+    `Found "${name}" Will save new perspectiveSettings: ${newPerspectiveDef.name} isModified=${String(newPerspectiveDef.isModified)} isActive=${String(
+      newPerspectiveDef.isActive,
+    )}`,
+  )
 
   // SAVE IT!
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
 
-  // Send this to front end
-  await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_End of switchToPerspective('${name}')`)
-  return true
+  return newPerspectiveSettings
 }
 
 /**
@@ -438,7 +456,7 @@ export async function addNewPerspective(): Promise<void> {
 
   const perspectiveNames = updatedPerspectives.map((p) => p.name).join(', ')
   // NOTE: make sure to use _ in front of the lastUpdate key to keep it from looping back thinking the setting had been updated by the user
-  await setPluginData({ perspectiveSettings: updatedPerspectives }, `_after adding Perspective ${name}; List of perspectives: [${perspectiveNames}]`)
+  await setPluginData({ perspectiveSettings: updatedPerspectives }, `after adding Perspective ${name}; List of perspectives: [${perspectiveNames}]`)
   logDebug('addPerspectiveSetting', `- After setPluginData`)
   // DBW commenting this out because it was causing a race condition whereby window data was not updated in time for the next call
   // const res2 = await switchToPerspective(name, updatedPerspectives)
@@ -591,4 +609,26 @@ export function setPerspectivesIfJSONChanged(
     delete settingsToSave.perspectiveSettings
   }
   return settingsToSave
+}
+
+/**
+ * If a perspective is not set, then save current settings to the default "-" perspective because we always
+ * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
+ * @param {any} perspectiveSettings
+ * @param {any} newDashboardSettings
+ * @param {Function} dispatchPerspectiveSettings
+ */
+export function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
+  const newPerspectiveDefs = replacePerspectiveDef(perspectiveSettings, {
+    name: '-',
+    isModified: false,
+    dashboardSettings: cleanDashboardSettings(newDashboardSettings),
+    isActive: false,
+  })
+
+  dispatchPerspectiveSettings({
+    type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+    payload: newPerspectiveDefs,
+    reason: `No perspective was set; saving default perspective info.`,
+  })
 }

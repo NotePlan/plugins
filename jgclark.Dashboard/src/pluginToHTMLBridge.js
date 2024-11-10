@@ -19,8 +19,11 @@ import {
   doDeleteItem,
   doMoveToNote,
   doSettingsChanged,
+  doSavePerspective,
+  doSavePerspectiveAs,
   doAddNewPerspective,
   doDeletePerspective,
+  doSwitchToPerspective,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -252,6 +255,18 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'deletePerspective': {
         result = await doDeletePerspective(data)
+        break
+      }
+      case 'switchToPerspective': {
+        result = await doSwitchToPerspective(data)
+        break
+      }
+      case 'savePerspective': {
+        result = await doSavePerspective(data)
+        break
+      }
+      case 'savePerspectiveAs': {
+        result = await doAddNewPerspective(data)
         break
       }
       // case 'setSpecificDate': {

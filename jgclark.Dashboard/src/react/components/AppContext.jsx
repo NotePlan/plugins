@@ -70,28 +70,6 @@ const AppContext = createContext<AppContextType>(defaultContextValue)
  *                             FUNCTIONS
  ****************************************************************************************************************************/
 
-/**
- * If a perspective is not set, then save current settings to the default "-" perspective because we always
- * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
- * @param {any} perspectiveSettings
- * @param {any} newDashboardSettings
- * @param {Function} dispatchPerspectiveSettings
- */
-function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
-  const newPerspectiveDefs = replacePerspectiveDef(perspectiveSettings, {
-    name: '-',
-    isModified: false,
-    dashboardSettings: cleanDashboardSettings(newDashboardSettings),
-    isActive: false,
-  })
-
-  dispatchPerspectiveSettings({
-    type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-    payload: newPerspectiveDefs,
-    reason: `No perspective was set; saving default perspective info.`,
-  })
-}
-
 /****************************************************************************************************************************
  *                             CONTEXT PROVIDER FUNCTIONS
  ****************************************************************************************************************************/
@@ -129,50 +107,45 @@ export const AppProvider = ({
    *                             HOOKS
    ****************************************************************************************************************************/
 
+  const compareFn = (oldObj: any, newObj: any) => compareObjects(oldObj, newObj, ['lastChange', 'activePerspectiveName', new RegExp('FFlag.*', 'ig')])
+
   // Syncing dashboardSettings with plugin when things change in front-end or the plugin sends a change in pluginData
-  useSyncWithPlugin(
-    dashboardSettings,
-    pluginData.dashboardSettings,
-    dispatchDashboardSettings,
-    DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
-    sendActionToPlugin,
-    (oldObj, newObj) => compareObjects(oldObj, newObj, ['lastChange']), // Pass compareObjects with fieldsToIgnore
-  )
+  useSyncWithPlugin(dashboardSettings, pluginData.dashboardSettings, dispatchDashboardSettings, DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, sendActionToPlugin, compareFn)
 
   // Syncing perspectiveSettings with plugin when things change in front-end or the plugin sends a change in pluginData
-  useSyncWithPlugin(perspectiveSettings, pluginData.perspectiveSettings, dispatchPerspectiveSettings, PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, sendActionToPlugin)
+  useSyncWithPlugin(perspectiveSettings, pluginData.perspectiveSettings, dispatchPerspectiveSettings, PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, null, compareFn) // for now do not allow sending to plugin
 
-  // Effect to update the default perspective "-" when dashboardSettings change
-  // FIXME: the idea behind this was to pick up dropdown/dashboard settings dialog changes, but it's also picking up when a perspective is changed and settings change, and that's ok
-  // but we can't be setting isModified to true in that case
-  // should we maybe set this in the SettingsDialog and the Dropdown instead? we need to set isMofified somewhere
-  useEffect(() => {
-    const diff = compareObjects(dashboardSettings, lastSeenDashboardSettingsRef.current || {}, ['lastChange'])
-    if (diff) {
-      logDebug('AppContext/useEffect(dashboardSettings)', `local dashboardSettings changed.`, dashboardSettings)
-      const apn = getActivePerspectiveName(perspectiveSettings)
-      if (apn === '-' || !apn) {
-        // If the apn is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
-        logDebug('AppContext/useEffect(dashboardSettings)', `No named perspective set, so saving this change into the "-" perspective.`)
-        if (dashboardSettings) {
-          saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, dispatchPerspectiveSettings)
-        }
-      } else {
-        logDebug('AppContext/useEffect(dashboardSettings)', `Named perspective is set but not saved. Change persp to .isModified=true`)
-        // const usingPerspectives = dashboardSettings.showPerspectives
-        // if (usingPerspectives) {
-        //   dispatchPerspectiveSettings({
-        //     type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-        //     payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),
-        //     reason: `AppContext useEffect picked it up`,
-        //   })
-        // } else {
-        //   logDebug('AppContext/useEffect(dashboardSettings)', `Perspectives are not being used, this would be strange!`)
-        // }
-      }
-    }
-    lastSeenDashboardSettingsRef.current = dashboardSettings
-  }, [dashboardSettings, perspectiveSettings])
+  // // Effect to update the default perspective "-" when dashboardSettings change
+  // // FIXME: the idea behind this was to pick up dropdown/dashboard settings dialog changes, but it's also picking up when a perspective is changed and settings change, and that's ok
+  // // but we can't be setting isModified to true in that case
+  // // should we maybe set this in the SettingsDialog and the Dropdown instead? we need to set isMofified somewhere
+  // useEffect(() => {
+  //   const diff = compareObjects(dashboardSettings, lastSeenDashboardSettingsRef.current || {}, ['lastChange', 'activePerspectiveName'])
+  //   if (diff) {
+  //     logDebug('AppContext/useEffect(dashboardSettings)', `local dashboardSettings changed.`, dashboardSettings)
+  //     const apn = getActivePerspectiveName(perspectiveSettings)
+  //     if (apn === '-' || !apn) {
+  //       // If the apn is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
+  //       logDebug('AppContext/useEffect(dashboardSettings)', `No named perspective set, so saving this change into the "-" perspective.`)
+  //       if (dashboardSettings) {
+  //         saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, dispatchPerspectiveSettings)
+  //       }
+  //     } else {
+  //       logDebug('AppContext/useEffect(dashboardSettings)', `Named perspective is set but not saved. Change persp to .isModified=true`)
+  //       // const usingPerspectives = dashboardSettings.showPerspectives
+  //       // if (usingPerspectives) {
+  //       //   dispatchPerspectiveSettings({
+  //       //     type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+  //       //     payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),
+  //       //     reason: `AppContext useEffect picked it up`,
+  //       //   })
+  //       // } else {
+  //       //   logDebug('AppContext/useEffect(dashboardSettings)', `Perspectives are not being used, this would be strange!`)
+  //       // }
+  //     }
+  //   }
+  //   lastSeenDashboardSettingsRef.current = dashboardSettings
+  // }, [dashboardSettings, perspectiveSettings])
 
   const contextValue: AppContextType = {
     sendActionToPlugin,

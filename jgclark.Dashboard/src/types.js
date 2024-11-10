@@ -214,6 +214,10 @@ export type TActionType =
   | 'windowResized'
   | 'addNewPerspective'
   | 'commsBridgeTest'
+  | 'switchToPerspective'
+  | 'deletePerspective'
+  | 'savePerspective'
+  | 'savePerspectiveAs'
 
 export type TControlString =
   | 't'

@@ -11,7 +11,7 @@ import {
   // buildListOfDoneTasksToday,
   getTotalDoneCountsFromSections,
   // rollUpDoneCounts,
-  updateDoneCountsFromChangedNotes
+  updateDoneCountsFromChangedNotes,
 } from './countDoneTasks'
 import {
   getDashboardSettings,
@@ -25,7 +25,15 @@ import {
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration' // FIXME: causing a circular dependency
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
 import { validateAndFlattenMessageObject } from './shared'
-import { addNewPerspective, deletePerspective } from './perspectiveHelpers'
+import {
+  addNewPerspective,
+  deletePerspective,
+  getActivePerspectiveDef,
+  getPerspectiveSettings,
+  replacePerspectiveDef,
+  cleanDashboardSettings,
+  switchToPerspective,
+} from './perspectiveHelpers'
 import {
   cancelItem,
   completeItem,
@@ -663,22 +671,35 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
-  // if (settingName === 'dashboardSettings') {
-  //   newSettings.lastChange = `_saved_` + String(newSettings.lastChange || '')
-  // }
-  settingName === 'dashboardSettings' && logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders}`)
+  // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
+  let perspectivesToSave = data.perspectiveSettings
+  if (settingName === 'dashboardSettings' && !perspectivesToSave) {
+    const perspectiveSettings = await getPerspectiveSettings()
+    const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
+    if (activePerspDef && activePerspDef.name !== '-') {
+      // ignore changes until it is saved explicitly so nothing we need to do here
+      // FIXME: need to set this perspective to be modified
+      perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
+    } else {
+      const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newSettings), isModified: false }
+      perspectivesToSave = replacePerspectiveDef(perspectiveSettings, dashDef)
+    }
+  }
+
+  settingName === 'dashboardSettings' &&
+    logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders} filterPriorityItems=${newSettings.filterPriorityItems}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
-  if (data.perspectiveSettings) {
-    const debugInfo = data.perspectiveSettings.map((ps) => `${ps.name}=[${ps.dashboardSettings.excludedFolders.toString()}`).join(`\n\t`)
+  if (perspectivesToSave) {
+    const debugInfo = perspectivesToSave.map((ps) => `${ps.name}=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}]`).join(`\n\t`)
     logDebug(`doSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
-    combinedUpdatedSettings.perspectiveSettings = JSON.stringify(data.perspectiveSettings)
+    combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
 
   DataStore.settings = combinedUpdatedSettings
   const updatedPluginData = { [settingName]: newSettings }
-  if (data.perspectiveSettings) {
+  if (perspectivesToSave) {
     // $FlowFixMe(incompatible-type)
-    updatedPluginData.perspectiveSettings = data.perspectiveSettings
+    updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
@@ -701,6 +722,43 @@ export async function doDeletePerspective(data: MessageDataObject): Promise<TBri
   const updatesToPluginData = { perspectiveSettings: JSON.parse(DataStore.settings.perspectiveSettings) }
   await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
+}
+
+export async function doSavePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const perspectiveSettings = await getPerspectiveSettings()
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+  if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
+  if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
+  const dashboardSettings = await getDashboardSettings()
+  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  const newDef = { ...activeDef, dashboardSettings: { ...activeDef.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }, isModified: false }
+  const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
+  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
+  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+  return handlerResult(true, [])
+}
+
+export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const switchToName = data?.perspectiveName || ''
+  if (!switchToName) {
+    logError('doSwitchToPerspective', `No perspective name provided.`)
+    return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
+  }
+  const revisedDefs = await switchToPerspective(switchToName, await getPerspectiveSettings())
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
+  const activeDef = getActivePerspectiveDef(revisedDefs)
+  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+  const prevDashboardSettings = await getDashboardSettings()
+  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  // apply the new perspective's settings to the main dashboard settings
+  const newDashboardSettings = { ...prevDashboardSettings, ...(activeDef.dashboardSettings || {}), lastChange: `_Switched to perspective ${switchToName}` }
+  logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
+  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+  const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings }
+  logDebug(`doSwitchToPerspective`, `sending revised perspectiveSettings and dashboardSettings to plugin after switching to ${data?.perspectiveName || ''}`)
+  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings`)
+  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
 // export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {

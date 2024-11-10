@@ -7,7 +7,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
@@ -154,7 +154,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
   const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(tempDashboardSettings)
-  const dashboardSettingsItems = createDashboardSettingsItems(dashboardSettings)
+  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(dashboardSettings), [dashboardSettings])
   const featureFlagItems = createFeatureFlagItems(tempDashboardSettings)
 
   const isDevMode = logSettings._logLevel === 'DEV'

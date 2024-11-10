@@ -20,7 +20,12 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
   const { type, payload, reason } = action
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
-      logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - payload.filterPriorityItems=${JSON.stringify(payload.filterPriorityItems)}`)
+      logDebug(
+        'dashboardSettingsReducer',
+        `${type} "${reason || ''}" - payload.lastChange=${payload.lastChange || ''} payload.filterPriorityItems=${JSON.stringify(
+          payload.filterPriorityItems,
+        )} payload.excludedFolders=${JSON.stringify(payload.excludedFolders)}; about to compare state and payload`,
+      )
       const changedProps = compareObjects(state, payload)
       changedProps && logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
       return {

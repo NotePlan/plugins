@@ -131,20 +131,23 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  *
  * @param {Object|Array} oldObj - The original object or array to compare against.
  * @param {Object|Array} newObj - The new object or array with potential changes.
- * @param {Array<string>} fieldsToIgnore - An array of field names to ignore when comparing objects.
+ * @param {Array<string | RegExp>} fieldsToIgnore - An array of field names to ignore when comparing objects.
+ * @param {boolean} logDiffDetails - If true, will log details of the differences.
  * @returns {Object|Array|null} - An object or array containing only the properties that have changed, or null if no changes.
  */
-export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string> = []): any {
+export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string | RegExp> = [], logDiffDetails: boolean = false): any {
   if (oldObj === newObj) {
     return null // No changes
   }
 
   if (typeof oldObj !== typeof newObj) {
+    // logDebug('compareObjects', 'Objects are of different types.')
     return newObj // Type has changed, consider as changed
   }
 
   if (Array.isArray(newObj)) {
     if (!Array.isArray(oldObj)) {
+      logDebug('compareObjects', 'Changed from non-array to array.')
       return newObj // Changed from non-array to array
     }
 
@@ -154,8 +157,9 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
     for (let i = 0; i < maxLength; i++) {
       const oldVal = oldObj[i]
       const newVal = newObj[i]
-      const diff = compareObjects(oldVal, newVal, fieldsToIgnore) // Pass fieldsToIgnore recursively
-      if (diff !== null && diff !== undefined) {
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore)
+      if (diff !== null) {
+        logDiffDetails && logDebug('compareObjects', `Array difference at index ${i}: ${JSON.stringify(diff)}`)
         differences[i] = diff
       }
     }
@@ -163,6 +167,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
     return differences.length > 0 ? differences : null
   } else if (typeof newObj === 'object' && newObj !== null) {
     if (typeof oldObj !== 'object' || oldObj === null) {
+      logDiffDetails && logDebug('compareObjects', 'Changed from non-object to object.')
       return newObj // Changed from non-object to object
     }
 
@@ -170,13 +175,25 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
     const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
 
     for (const key of keys) {
-      if (fieldsToIgnore.includes(key)) {
+      // Check if the key should be ignored
+      const shouldIgnore = fieldsToIgnore.some((ignore) => {
+        if (typeof ignore === 'string') {
+          return key === ignore
+        } else if (ignore instanceof RegExp) {
+          return ignore.test(key)
+        }
+        return false
+      })
+
+      if (shouldIgnore) {
         continue // Ignore fields listed in fieldsToIgnore
       }
+
       const oldVal = oldObj[key]
       const newVal = newObj[key]
-      const diff = compareObjects(oldVal, newVal, fieldsToIgnore) // Pass fieldsToIgnore recursively
-      if (diff !== null && diff !== undefined) {
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore)
+      if (diff !== null) {
+        logDiffDetails && logDebug('compareObjects', `Object difference: value[${key}]= "${oldVal}" !== "${newVal}"`)
         differences[key] = diff
       }
     }
@@ -184,7 +201,11 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
     return Object.keys(differences).length > 0 ? differences : null
   } else {
     // Primitives
-    return newObj !== oldObj ? newObj : null
+    const result = oldObj !== newObj ? newObj : null
+    if (result !== null) {
+      logDiffDetails && logDebug('compareObjects', `Primitive difference: oldVal=${oldObj}, newVal=${newObj}`)
+    }
+    return result
   }
 }
 
