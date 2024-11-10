@@ -333,8 +333,13 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           type: 'separator',
         }
       case 'heading':
-      //$FlowIgnore[incompatible-type] don't understand the error
-      case 'header':
+        return {
+          type: 'heading',
+          label: setting.label || '',
+          description: setting.description || '',
+        }
+      // $FlowIgnore[incompatible-type] don't understand the error
+      case 'header': // Note: deliberately the same as 'heading' above.
         return {
           type: 'heading',
           label: setting.label || '',

@@ -9,8 +9,9 @@ This plugin provides a **dashboard window** for your NotePlan data that in one p
 - all overdue tasks
 - all open items with an added priority
 - the next Project notes ready to review (if you use the "Projects and Reviews" plugin)
+- and at the start it shows any currently-active time block you've set.
 
-... and then gives you many controls, mostly in two edit dialogs, that let you quickly complete, cancel or move items to different time periods.
+... and then gives you many controls, mostly in an "edit dialog", that let you quickly complete, cancel or move items to different time periods.
 
 Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that shows v2.0 in action, and how he lives in the Dashboard throughout his day:
 
@@ -68,21 +69,35 @@ Notes:
 ### Add Task/Checklist items
 <img src="add-buttons-2.0.0.png" align="right" width="200px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month.
 
-### Move all item buttons
+### 'All → ...' Move buttons
 Some sections have "All →  ..." buttons. They move all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
 
-Note: _Please be careful with this_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so this can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on both the notes the tasks were moved from and to.
+Note: _Please be careful with this_: NotePlan doesn't provide a proper Undo/Redo mechanism for plugins, and so these Move operations can't easily be undone. If you do need to do so, then you'll need to use the 'Versions' feature on all the notes the tasks were moved from and to.
 
 ## Other notes about the Dashboard display
-- The Dashboard uses a flexible HTML-based display, that's entirely different technology from NotePlan's editors. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
-- The display is responsive: change the width of the window, and it will change from narrow to normal to multi-column layout.
-- Note: some of the buttons are hidden when running on iOS or iPadOS because of limitations in the environment the Dashboard runs in. We are hopeful these will be removed in time.
-- The items are shown sorted first by increasing time (where there is a time block), then by decreasing priority.
-- It de-dupes items that would appear twice in a list where the lines are sync'd together.
-- There's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having `>>`, `!!!`, `!!` or `!` at the beginning of the item.
-- The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
-- you can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spottig this use case.)
-- The count of tasks done today includes those completed in project notes, not just from the calendar sections shown. Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) To save space, this is not shown on iOS devices.
+The Dashboard uses a flexible HTML-based display, that's entirely different technology from NotePlan's editors. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
+
+The display is **responsive**: change the width of the window, and it will change from narrow to normal to multi-column layout. Note: some of the buttons are hidden when running on iOS or iPadOS because of limitations in the environment the Dashboard runs in. We are hopeful these will be removed in time.
+
+The items are shown **sorted** first by increasing time (where there is a time block), then by decreasing priority. And it **de-duplicates** items that would appear twice in a list where the lines are sync'd together.
+
+There's a UI toggle "**Filter out lower-priority items?**". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having `>>`, `!!!`, `!!` or `!` at the beginning of the item.
+
+The top bar has a **count of tasks done today** (apart from on narrow windows and on iOS). This includes all those completed in project notes, not just from the calendar sections shown. Note: this requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, it's not possible to count completed checklists.) When you complete a task in a project note, it will be included the next time the Dashboard is refreshed, automatically on manually.
+
+The display will **automatically refresh** in the background if you set the "Automatic Update frequency" to any number > 0. This number is the number of minutes after the window is idle when it will refresh the sections you want to display. You can also press the 'Refresh' button at any point, and/or you can set a trigger (see below).
+
+### Current Time Block section
+[Time blocks in NotePlan](https://help.noteplan.co/article/121-time-blocking) are a helpful way to help you plan your days. If you define some, they appear in the calendar sidebar.  If the current time is within a time block, then this section appears at the top of the Dashboard:
+
+<img src="timeblock-section-2.1.0.a15.png" width="800px" margin="8px" alt="project action buttons" />
+
+It always shows the time range first, minus any 'Text must contain' string that you have set in NP's 'Todo' settings pane. Where a time block is defined on a heading or list item, then the calendar+clock icon is shown in place of the task/checklist icon.
+
+### #tag/@mention sections
+The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
+
+You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spottig this use case.)
 
 ### Project section
 If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up the projects ready for review. It reads this from the hidden list that's updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  
@@ -99,19 +114,7 @@ The 'action buttons' available in this section are:
 The 'Start Reviews' button does the same as the button of the same name in the Project & Reviews plugin, and is the equivalent of its **/start reviews** command. See the documentation for how that works, and which commands to follow it with once you've done reviewed the note.
 
 ### Priority section
-Note: this will be slow to generate, as it can't use any of NotePlan's internal caches.
-
-### Updating the Dashboard automatically
-The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
-
-Or you can use the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/) which adds this:
-```yaml
----
-triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard
----
-```
-
-Note: If you use the 'Overdue Tasks' section, this can add some delay before the dashboard window is updated if you have hundreds of overdue tasks 🥺. So this section is deliberately not updated when a trigger has fired. In practice this shouldn't matter, as editing your daily note won't change any overdue tasks.
+Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches.
 
 ## Configuration Settings
 Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This will soon replace the method of going to the NotePlan Preference Pane, and finding the right Plugin.)
@@ -145,6 +148,18 @@ The Filter menu includes the following toggles:
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
+
+### Updating the Dashboard automatically with a trigger
+The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
+
+Or you can use the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/) which adds this:
+```yaml
+---
+triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard
+---
+```
+
+Note: If you use the 'Overdue Tasks' section, this can add some delay before the dashboard window is updated if you have hundreds of overdue tasks 🥺. So this section is deliberately not updated when a trigger has fired. In practice this shouldn't matter, as editing your daily note won't change any overdue tasks.
 
 ## Controlling from Shortcuts, Streamdeck etc.
 In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a number of 'callback's. 

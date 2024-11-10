@@ -1,12 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a15 - 2.1.0.a15] underway
+## [Perspectives.a15 = 2.1.0.a15] @jgc, 2024-11-10
+- (jgc): Added new 'Current Time Block' section at the top of the window. Prepared two slightly different layouts for it.
+- (jgc): Lots of refactoring of the timeblocks.js helper functions, added new ones, and made sure they respect NP's 'timeblockTextMustContain' NP preference, which was added after most of our plugin work on time blocks.
 - (jgc): Child tasks are now ordered following their parents, when sorted by priority
 - (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
-- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  See what you think.
+- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  _David, see what you think, please._
 
-## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
+## [Perspectives.a14 = 2.1.0.a14] @dbw, 2024-10-24
 - Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
 - Total refactor of interactive processing code to make it more maintainable and fix some bugs
 - Total refactor of Dashboard Settings and PerspectiveSettings components using useReducer for state management and improved visibility
