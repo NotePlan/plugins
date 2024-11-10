@@ -28,6 +28,7 @@ import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
+import TestRunner from './testing/TestRunner'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
@@ -64,7 +65,6 @@ type Props = {
 // FIXME(@dbw): move reactSettings out of webview or move some of the calculations in Hooks below to a useEffect to limit rerenders.
 // (Really needed: this is firing for every key press in the settings dialog, for example.)
 export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
-
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -82,7 +82,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
   // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
-  const initialPerspectiveSettings: Array<TPerspectiveDef> = (data.pluginData.perspectiveSettings || [])
+  const initialPerspectiveSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || []
 
   /****************************************************************************************************************************
    *                             VARIABLES
@@ -114,7 +114,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    */
   useEffect(() => {
     logDebug('WebView', `useEffect -> setReactSettings() for '_Webview_firstLoad'`)
-    clo(reactSettings, 'WebView useEffect -> reactSettings')
+    // clo(reactSettings, 'WebView useEffect -> reactSettings')
     setReactSettings((prev) => ({ ...prev, ...defaultReactSettings, lastChange: `_Webview_firstLoad` }))
   }, [])
 
@@ -131,7 +131,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
     }
     // dispatch('SHOW_BANNER', { msg: `Data was updated`, color: 'w3-pale-yellow', border: 'w3-border-yellow'  })
   }, [data])
-
 
   /****************************************************************************************************************************
    *                        HELPER FUNCTIONS
@@ -203,6 +202,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    *                             RENDER
    ****************************************************************************************************************************/
 
+  // @flow
+
   return (
     // $FlowIgnore
     <AppProvider
@@ -217,6 +218,8 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       perspectiveSettings={initialPerspectiveSettings}
     >
       <Dashboard pluginData={pluginData} />
+      <TestRunner defaultExpandedKeys={['Context Variables']} />
+      {pluginData?.logSettings?._logLevel === '_DEV' && <TestRunner />}
     </AppProvider>
   )
 }
