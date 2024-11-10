@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Demo data for Dashboard plugin v2
-// Note: Now not using flow, as it is warning about so many deliberate prop-missing warning. I can't find a way to turn just that one warning off.
+// Demo data for Dashboard plugin
+// Last updated 2024-11-06 for v2.1.0.a16 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -22,13 +22,14 @@ const today = new moment().toDate() // use moment instead of  `new Date` to ensu
 let thisDateStr: string = getTodaysDateUnhyphenated()
 let thisFilename: string = `${thisDateStr}.md`
 export const openTodayItems: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-0',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 0,
       title: thisDateStr,
       priority: 0,
       content: 'task with timeblock 10:00-11:30',
@@ -38,28 +39,30 @@ export const openTodayItems: Array<TSectionItem> = [
       indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-1',
     itemType: "open",
     para: {
       noteType: "Calendar",
       type: "open",
       filename: thisFilename,
+      lineIndex: 2,
       priority: 1,
-      content: "reconcile bank statement @repeat(1m)",
-      rawContent: "reconcile bank statement @repeat(1m)",
+      content: "reconcile bank statement @repeat(1m) at 20:00-23:00",
+      rawContent: "reconcile bank statement @repeat(1m) at 20:00-23:00",
       prefix: "* ",
       children: () => [],
       indentLevel: 0,
     }
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-2',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
       type: 'checklist',
       filename: thisFilename,
+      lineIndex: 3,
       priority: 0,
       content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
@@ -68,13 +71,14 @@ export const openTodayItems: Array<TSectionItem> = [
       indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-3',
     itemType: "checklist",
     para: {
       noteType: "Calendar",
       type: "checklist",
       filename: thisFilename,
+      lineIndex: 4,
       priority: 0,
       content: "morning checklist 7:30AM",
       rawContent: "morning checklist 7:30AM",
@@ -85,13 +89,14 @@ export const openTodayItems: Array<TSectionItem> = [
   },
 ]
 export const refTodayItems: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '1-0',
     itemType: 'open',
     para: {
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Mission Partners.md',
+      lineIndex: 5,
       title: 'Mission Partners',
       priority: 0,
       content: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
@@ -102,13 +107,14 @@ export const refTodayItems: Array<TSectionItem> = [
       indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '1-1',
     itemType: "open",
     para: {
       noteType: "Notes",
       title: 'Repair Café operation',
       filename: "Ministry Projects/Repair Café operation.md",
+      lineIndex: 10,
       type: "open",
       priority: 0,
       prefix: "* ",
@@ -125,7 +131,6 @@ const yesterday = new moment().subtract(1, 'days').toDate()
 thisDateStr = moment(yesterday).format('YYYYMMDD')
 thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-0',
     itemType: 'open',
@@ -133,6 +138,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 0,
       priority: 4,
       content: '>> #editvideo from CFL visit',
       rawContent: '>> #editvideo from CFL visit',
@@ -143,7 +149,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-1',
     itemType: 'open',
@@ -151,6 +156,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 1,
       priority: 0,
       content: 'fix and level audio',
       rawContent: 'fix and level audio',
@@ -161,7 +167,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '2-0',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-2',
     itemType: 'open',
@@ -169,6 +174,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 2,
       priority: 1,
       content: '! trim and order shots',
       rawContent: '! trim and order shots',
@@ -179,7 +185,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '2-0',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-3',
     itemType: 'open',
@@ -187,6 +192,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 3,
       priority: 0,
       content: 'add titles',
       rawContent: 'add titles',
@@ -197,7 +203,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '2-0',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-4',
     itemType: 'checklist',
@@ -205,6 +210,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       noteType: 'Calendar',
       type: 'checklist',
       filename: thisFilename,
+      lineIndex: 4,
       priority: 0,
       content: 'update contract for [[Staff Induction (SW)]] following review comments',
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
@@ -217,7 +223,6 @@ export const openYesterdayParas: Array<TSectionItem> = [
   },
 ]
 export const refYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-5',
     itemType: 'open',
@@ -225,6 +230,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       noteType: 'Notes',
       title: 'Repair Café operation',
       filename: "Ministry Projects/Repair Café operation.md",
+      lineIndex: 5,
       type: 'open',
       priority: 1,
       prefix: '* ',
@@ -237,7 +243,6 @@ export const refYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-6',
     itemType: 'open',
@@ -245,6 +250,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Services.md',
+      lineIndex: 6,
       title: 'Services',
       content: '! prepare service for 5/3 >2023-03-02',
       rawContent: '! prepare service for 5/3 >2023-03-02',
@@ -257,7 +263,6 @@ export const refYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-7',
     itemType: 'open',
@@ -265,6 +270,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Services.md',
+      lineIndex: 7,
       title: 'Services',
       content: 'plan Something Different for 5/3',
       rawContent: 'plan Something Different for 5/3',
@@ -277,7 +283,6 @@ export const refYesterdayParas: Array<TSectionItem> = [
     },
     parentID: '2-6',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
     ID: '2-8',
     itemType: 'open',
@@ -285,6 +290,7 @@ export const refYesterdayParas: Array<TSectionItem> = [
       noteType: 'Notes',
       type: 'open',
       filename: 'CCC Areas/Services.md',
+      lineIndex: 8,
       title: 'Services',
       priority: 1,
       content: '! write 5/3 sermon >2023-03-02',

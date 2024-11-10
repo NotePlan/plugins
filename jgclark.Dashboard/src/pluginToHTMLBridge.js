@@ -368,7 +368,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
       }
       if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+        const wantedsectionCodes = ['TB', 'DT', 'DY', 'DO', 'W', 'M', 'Q']
         for (const sectionCode of wantedsectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })

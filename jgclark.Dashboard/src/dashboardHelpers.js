@@ -21,7 +21,7 @@ import type {
   TSection,
 } from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
-import { getAPIDateStrFromDisplayDateStr, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
+import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
@@ -33,7 +33,12 @@ import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getTimeBlockString, isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_APP } from '@helpers/timeblocks'
+import {
+  getStartTimeObjFromParaContent,
+  getTimeBlockString,
+  isTypeThatCanHaveATimeBlock,
+  RE_TIMEBLOCK_IN_LINE
+} from '@helpers/timeblocks'
 import { chooseHeading, chooseNote, displayTitleWithRelDate } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -116,7 +121,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
  */
 export function getNotePlanSettings(): TNotePlanSettings {
   try {
-    logDebug(pluginJson, `Start of getNotePlanSettings()`)
+    // logDebug(pluginJson, `Start of getNotePlanSettings()`)
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
       timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString')) ?? '',
@@ -152,10 +157,11 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         const nextLineIndex = p.lineIndex + 1
         clo(p, `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
         clo(p.contentRange, `contentRange for paragraph`)
-        clo(anyChildren, `Children of paragraph`)
+        clof(anyChildren, `Children of paragraph`, ['lineIndex', 'content'])
         clo(anyChildren[0].contentRange, `contentRange for child[0]`)
       }
-
+      const startTime = getStartTimeObjFromParaContent(p.content)
+      const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
       return {
         filename: note.filename,
         noteType: note.type,
@@ -167,8 +173,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
         indentLevel: p.indents,
         lineIndex: p.lineIndex,
         priority: getNumericPriorityFromPara(p),
-        timeStr: getStartTimeFromPara(p),
-        startTime: getStartTimeFromPara(p),
+        // timeStr: startTime,
+        startTime: startTimeStr,
         changedDate: note?.changedDate,
         hasChild: hasChild,
         isAChild: isAChild,
@@ -402,7 +408,7 @@ function isTimeBlockLine(contentString: string, mustContainString: string = ''):
         return false
       }
     }
-    const res2 = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {
     console.log(err)
@@ -607,11 +613,11 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 /**
  * Note: Not currently used.
  * TODO: write tests
- * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times).
+ * Extend the paragraph objects with a .startTime property which comes from the start time of a time block, or else 'none' (which will then sort after times).
  * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
  * @param {Array<TParagraph | TParagraphForDashboard>} paras to extend
- * @returns {Array<TParagraph | TParagraphForDashboard>} paras extended by .timeStr
+ * @returns {Array<TParagraph | TParagraphForDashboard>} paras extended by .startTime
  */
 export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphForDashboard>): Array<TParagraph | TParagraphForDashboard> {
   try {
@@ -631,12 +637,12 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
         if (startTimeStr.endsWith('PM')) {
           startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
         }
-        logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
+        // logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
         // $FlowIgnore(prop-missing)
-        extendedPara.timeStr = startTimeStr
+        extendedPara.startTime = startTimeStr
       } else {
         // $FlowIgnore(prop-missing)
-        extendedPara.timeStr = 'none'
+        extendedPara.startTime = 'none'
       }
       extendedParas.push(extendedPara)
     }
@@ -652,7 +658,9 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
  * TODO: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
- * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * Copes with 'AM' and 'PM' suffixes. 
+ * Note: A version of this now lives in helpers/timeblocks.js
+ * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
  * @param {TParagraph| TParagraphForDashboard} para to process
  * @returns {string} time string found

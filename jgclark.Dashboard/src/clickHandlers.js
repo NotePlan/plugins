@@ -9,7 +9,7 @@ import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.Q
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   // buildListOfDoneTasksToday,
-  getTotalDoneCountsFromSections,
+  // getTotalDoneCountsFromSections,
   // rollUpDoneCounts,
   updateDoneCountsFromChangedNotes
 } from './countDoneTasks'
@@ -50,7 +50,7 @@ import { showMessage, processChosenHeading } from '@helpers/userInput'
 - Handlers should use the standard return type of TBridgeClickHandlerResult
 - handlerResult() can be used to create the result object
 - Types are defined in types.js
-    - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER'
+    - type TActionOnReturn = 'UPDATE_CONTENT' | 'REMOVE_LINE' | 'REFRESH_JSON' | 'START_DELAYED_REFRESH_TIMER' etc.
 
 /****************************************************************************************************************************
  *                             Data types + constants
@@ -186,7 +186,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
-  logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
+  logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`)
   return handlerResult(true)
 }
 

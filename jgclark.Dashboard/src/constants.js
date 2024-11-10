@@ -12,6 +12,7 @@ import type { TSectionDetails, TSectionCode } from "./types"
 export const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']}.main` // will be used as the customId for your window
 
 export const allSectionDetails: Array<TSectionDetails> = [
+  { sectionCode: 'TB', sectionName: 'Current time block', showSettingName: 'showTimeBlockSection' },
   { sectionCode: 'DT', sectionName: 'Today', showSettingName: '' }, // always show Today section
   { sectionCode: 'DY', sectionName: 'Yesterday', showSettingName: 'showYesterdaySection' },
   { sectionCode: 'DO', sectionName: 'Tomorrow', showSettingName: 'showTomorrowSection' },
@@ -29,8 +30,14 @@ export const allSectionDetails: Array<TSectionDetails> = [
 
 export const allSectionCodes: Array<TSectionCode> = allSectionDetails.map(s => s.sectionCode)
 
-export const allCalendarSectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
+export const allCalendarSectionCodes = ['TB', 'DT', 'DY', 'DO', 'W', 'M', 'Q']
 
-export const sectionDisplayOrder = ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
+export const sectionDisplayOrder = ['TB', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG', 'OVERDUE', 'PRIORITY', 'PROJ']
 
-export const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE'] // change this order to change which duplicate gets kept - the first on the list. Excludes PROJ as that deals in notes not items
+// change this order to change which duplicate gets kept - the first on the list. Should not include 'dontDedupeSectionCodes' below.
+export const sectionPriority = ['TAG', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'PRIORITY', 'OVERDUE']
+
+// Those sections we can't or shouldn't attempt to dedupe:
+// - TB as its for info only
+// - PROJ as it isn't about paragraphs, but notes
+export const dontDedupeSectionCodes = ['TB', 'PROJ']

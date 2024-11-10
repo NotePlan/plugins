@@ -88,7 +88,7 @@ dialog::backdrop {
 
 .sectionInfo {
 	display: block;
-	padding-block-start: 0.3rem;
+	padding-block-start: 4px;
 	padding-block-end: 0.2rem;
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
@@ -110,8 +110,7 @@ dialog::backdrop {
 	/* make noteTitles bold */
 	font-weight: 700;
 	margin: unset;
-	padding-top: 0px;
-	padding-bottom: 0.2rem;
+	padding: 3px 0px;
 }
 
 .sectionDescription {
@@ -193,8 +192,8 @@ dialog::backdrop {
 		/* now make this area grid column-based not row-based */
 		grid-template-columns: max-content max-content auto;
 		grid-column-gap: 0.1rem;
-		padding-top: 0.4rem;
-		/* padding-bottom: 0.3rem; */
+		padding: 0.3rem;
+		/* padding-bottom: 0.3rem 0px; */
 		/* put all items essentially on a baseline */
 		/* align-items: end; */
 		align-items: center;

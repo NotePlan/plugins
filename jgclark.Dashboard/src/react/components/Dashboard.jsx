@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -12,7 +12,7 @@ import React, { useEffect, useRef } from 'react'
 // import type { TDashboardSettings } from '../../types.js'
 import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import { allSectionDetails, sectionDisplayOrder, sectionPriority } from "../../constants.js"
+import { allSectionDetails, dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
@@ -46,7 +46,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } = useAppContext()
+  const {
+    reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData
+  } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -77,24 +79,25 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
 
   let sections = [...origSections]
-  let totalSectionItems = countTotalSectionItems(origSections)
-  // logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
+  let totalSectionItems = countTotalSectionItems(origSections, dontDedupeSectionCodes)
+  logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
   if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
     // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
-    const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dashboardSettings)
+    // But TB and PROJ sections need to be ignored here, as they have different item types
+    const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
     totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
 
     // logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
-    // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+    // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
     sections = deduplicatedSections
-    // logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections))} items`)
-    // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+    // logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
+    // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
   }
 
   sections = sortSections(sections, sectionDisplayOrder)
-  // logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections))} items`)
+  // logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
   // DBW says the 98 was to avoid scrollbars.
