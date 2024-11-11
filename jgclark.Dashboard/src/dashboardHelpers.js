@@ -21,6 +21,7 @@ import type {
   TSection,
 } from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
@@ -30,6 +31,7 @@ import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote, isTermInURL, parasToText, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
@@ -246,35 +248,38 @@ export function getOpenItemParasForCurrentTimePeriod(
     let openParas = dashboardSettings.ignoreChecklistItems
       ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    // logTimer('getstartTime, OpenItemPFCTP', `- after '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
+    // logTimer('OpenItemPFCTP', startTime, `- after '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
     const tempSize = openParas.length
 
     // Keep only non-empty open tasks not scheduled (other than >today)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
     openParas = openParas.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
-    // logTimer('getstartTime, OpenItemPFCTP', `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
+    // logTimer('OpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logTimer('getstartTime, OpenItemPFCTP', `- after 'future' filter: ${openParas.length} paras`)
+    // logTimer('OpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V1
+      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      // openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V2
+      openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
     } else {
-      // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      // logDebug('OpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-    // logTimer('getstartTime, OpenItemPFCTP', `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
+    // logDebug('OpenItemPFCTP', `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
     // Filter out checklists with timeblocks, if wanted
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    // logTimer('getstartTime, OpenItemPFCTP', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
+    // logTimer('OpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
@@ -313,8 +318,11 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      refOpenParas = refOpenParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V1
+      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      // refOpenParas = refOpenParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V2
+      refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
       // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
     } else {
       // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
@@ -453,8 +461,11 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${dashboardSettings.excludedFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V1
+      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      // filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V2
+      filteredOverdueParas = filteredOverdueParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
     } else {
       logDebug(
         'getRelevantOverdueTasks...',
@@ -540,8 +551,13 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     // Filter out anything from 'ignoreItemsWithTerms' setting
     let filteredPriorityParas = priorityParas
     if (config.ignoreItemsWithTerms) {
-      const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+      // V1
+      // const phrases: Array<string> = config.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
+      // filteredPriorityParas = filteredPriorityParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
+
+      // V2
+      filteredPriorityParas = filteredPriorityParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, config.ignoreItemsWithTerms))
+
       logDebug('getRelevantPriorityTasks', `- after 'config.ignoreItemsWithTerms'(${config.ignoreItemsWithTerms}) filter: ${filteredPriorityParas.length} paras`)
     }
 
@@ -558,6 +574,24 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     logError('getRelevantPriorityTasks', error.message)
     return []
   }
+}
+
+/**
+ * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention).
+ * Note: the match is case insensitive.
+ * @param {string} lineContent
+ * @param {string} ignoreItemsWithTerms
+ * @returns {boolean} true if disallowed
+ */
+function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
+  // Note: can't use simple .split(',') as it does unexpected things with empty strings
+  const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
+  logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
+
+  // const matchFound = ignoreTermsArr.some((t) => lineContent.includes(t))
+  const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
+  logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
+  return matchFound
 }
 
 /**

@@ -1148,14 +1148,13 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
 
         // Get the relevant paras from this note
         const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename} after ${timer(thisStartTime)}`)
-        // clo(tagParasFromNote, `tagParasFromNote for ${sectionDetail.sectionName} in ${n.filename}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename}`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
+        // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreItemsWithTerms' setting
         for (const p of filteredTagParasFromNote) {
@@ -1165,9 +1164,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreItemsWithTerms}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
       }
-      // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
+      // logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format("YYYYMMDD") : new moment().format("YYYYMMDD")
@@ -1183,7 +1182,6 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
         // Note: this is a quick operation
         // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
-        // logTimer('getTaggedSectionData',thisStartTime, `- after deduping overdue -> ${filteredReducedParas.length}`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a quick operation

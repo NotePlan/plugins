@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-11 on
+- (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)
+
 ## [Perspectives.a15 = 2.1.0.a15] @jgc, 2024-11-10
 - (jgc): Added new 'Current Time Block' section at the top of the window. Prepared two slightly different layouts for it.
 - (jgc): Lots of refactoring of the timeblocks.js helper functions, added new ones, and made sure they respect NP's 'timeblockTextMustContain' NP preference, which was added after most of our plugin work on time blocks.
@@ -17,7 +20,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Added some code back in to make BANNER messages display again at the top of the page when there are errors
 - Added a LOT of logging to ensure the right things are happening, but it's super noisy. Will delete most of it before final release.
 ### Todo
-- fix bug in taskdialog where priority markers are not being updated in interface
+- fix bug in task dialog where priority markers are not being updated in interface
 - (jgclark): fix the CSS selectors that are messing up the rollup build
 
 ## [Perspectives.a13] @jgc, 2024-10-11
