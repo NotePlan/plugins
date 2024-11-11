@@ -1,3 +1,4 @@
+// CollapsibleObjectViewer.jsx
 // @flow
 
 import React, { useState, useEffect } from 'react'
@@ -18,17 +19,11 @@ type HighlightedPaths = {
 }
 
 const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpanded = false, defaultExpandedKeys = [] }: Props): React.Node => {
-  const [collapsedPaths, setCollapsedPaths] = useState<CollapsedPaths>({})
-  const [highlightedPaths, setHighlightedPaths] = useState<HighlightedPaths>({})
-  const [initialData, setInitialData] = useState(data)
-
   const initializeCollapsedPaths = (obj: any, path: string): CollapsedPaths => {
-    let initialCollapsedPaths: CollapsedPaths = { ...collapsedPaths }
+    let initialCollapsedPaths: CollapsedPaths = {}
 
     const shouldExpand = defaultExpandedKeys.some((expandedKey) => expandedKey.startsWith(path))
-    if (!(path in initialCollapsedPaths)) {
-      initialCollapsedPaths[path] = startExpanded ? false : !shouldExpand
-    }
+    initialCollapsedPaths[path] = startExpanded ? false : !shouldExpand
 
     if (!obj || typeof obj !== 'object') {
       return initialCollapsedPaths
@@ -46,10 +41,18 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
     return initialCollapsedPaths
   }
 
+  const [collapsedPaths, setCollapsedPaths] = useState<CollapsedPaths>(() => initializeCollapsedPaths(data, name))
+  const [highlightedPaths, setHighlightedPaths] = useState<HighlightedPaths>({})
+  const [initialData, setInitialData] = useState(data)
+
   useEffect(() => {
-    setCollapsedPaths(initializeCollapsedPaths(data, name))
-    setInitialData(data)
-  }, [data, startExpanded, defaultExpandedKeys, name])
+    // Only reset collapsedPaths if data has significantly changed
+    if (JSON.stringify(data) !== JSON.stringify(initialData)) {
+      const newCollapsedPaths = initializeCollapsedPaths(data, name)
+      setCollapsedPaths(newCollapsedPaths)
+      setInitialData(data)
+    }
+  }, [name, startExpanded, defaultExpandedKeys])
 
   useEffect(() => {
     const newHighlightedPaths: HighlightedPaths = {}
@@ -64,8 +67,13 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
       })
     }
     checkChanges(data, name)
-    setHighlightedPaths(newHighlightedPaths)
-  }, [data, initialData])
+    setHighlightedPaths((prev) => {
+      if (JSON.stringify(prev) !== JSON.stringify(newHighlightedPaths)) {
+        return newHighlightedPaths
+      }
+      return prev
+    })
+  }, [data, initialData, name])
 
   const isObject = (obj: any): boolean => obj && typeof obj === 'object'
 

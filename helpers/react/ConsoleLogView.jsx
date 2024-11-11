@@ -2,10 +2,12 @@
 // @flow
 
 import React, { useState, useRef, useEffect } from 'react'
+import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
 
 type LogEntry = {
   message: string,
   timestamp: Date,
+  data?: any,
 }
 
 type Filter = {
@@ -245,6 +247,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
               }}
             >
               {isMatch ? <span dangerouslySetInnerHTML={{ __html: highlightMatch(line) }}></span> : line}
+              {log.data && <CollapsibleObjectViewer key={`log-${index}`} data={log.data} name={Array.isArray(log.data) ? 'Array' : 'Object'} />}
             </div>
           )
         })}

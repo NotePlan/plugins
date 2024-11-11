@@ -2,6 +2,7 @@
 
 import { expect } from '@helpers/testing/expect'
 import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
+import { clo, logDebug } from '@helpers/react/reactDev'
 
 type ContextType = {
   sendActionToPlugin: (command: string, dataToSend: any, details?: string, updateGlobalData?: boolean) => void,
@@ -17,7 +18,7 @@ type ContextType = {
  * @returns {Array<{name: string, test: () => Promise<void>}>} An array of test objects with names and test functions.
  */
 export const getTests = (context: ContextType): (Array<{ name: string, test: () => Promise<void> }>) => {
-  const { sendActionToPlugin } = context
+  const { sendActionToPlugin, perspectiveSettings, dashboardSettings } = context
 
   return [
     {
@@ -26,6 +27,7 @@ export const getTests = (context: ContextType): (Array<{ name: string, test: () 
         console.log('Sample log entries')
         await waitFor(1000)
         const foo = true
+        console.log('this is a debug log first field', '2nd field', dashboardSettings)
         expect(foo).toBe(true) // Example assertion
       },
     },
@@ -75,14 +77,16 @@ export const getTests = (context: ContextType): (Array<{ name: string, test: () 
       },
     },
     {
-      name: 'Test Set Dashboard Settings',
+      name: `Test Set Dashboard Settings - Toggle Projects Section ${dashboardSettings.showProjectSection}->${!dashboardSettings.showProjectSection}`,
       test: async (): Promise<void> => {
-        const mbo = { actionType: `dashboardSettingsChanged`, settings: { ...context.dashboardSettings, filterPriorityItems: true } }
+        const prevSetting = dashboardSettings.showProjectSection
+        const newSetting = !prevSetting
+        const mbo = { actionType: `dashboardSettingsChanged`, settings: { ...dashboardSettings, filterPriorityItems: newSetting } }
         sendActionToPlugin('dashboardSettingsChanged', mbo, `Setting filterPriorities in dashboard settings`)
 
-        await waitFor(() => context.dashboardSettings.filterPriorityItems === true, 1000) // Add a timeout to prevent indefinite waiting
-
-        expect(context.dashboardSettings.filterPriorityItems).toBe(true)
+        await waitFor(() => dashboardSettings.showProjectSection === newSetting, 2000) // Add a timeout to prevent indefinite waiting
+        console.log(`found the value i was looking for`)
+        expect(dashboardSettings.showProjectSection).toBe(newSetting)
       },
     },
   ]
@@ -98,3 +102,5 @@ export const runTestsSequentially = async (tests: Array<{ name: string, test: ()
     await test.test()
   }
 }
+
+// FIXME: have not implemented the memoize ->

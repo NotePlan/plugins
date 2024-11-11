@@ -11,6 +11,7 @@ import './DebugPanel.css'
 type LogEntry = {
   message: string,
   timestamp: Date,
+  data?: any,
 }
 
 type TestResult = {
@@ -48,13 +49,24 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
 
-  // Override global console.log to capture logs with timestamps
+  // Override global console.log to capture logs with timestamps and data
   useEffect(() => {
     const originalConsoleLog = console.log
     console.log = (...args) => {
-      const message = args.join(' ')
+      const messageParts = []
+      let data = null
+
+      args.forEach((arg) => {
+        if (typeof arg === 'object' && arg !== null) {
+          data = arg
+        } else {
+          messageParts.push(typeof arg === 'string' ? arg : JSON.stringify(arg))
+        }
+      })
+
+      const message = messageParts.join(' ')
       const timestamp = new Date()
-      setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp }])
+      setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data }])
       originalConsoleLog.apply(console, args)
     }
     return () => {
