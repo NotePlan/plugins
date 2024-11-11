@@ -55,9 +55,10 @@ export type TDashboardSettings = {
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
   updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
   useTodayDate: boolean,
-  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to
-  lookBackDaysForOverdue: number,
+  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to force full load in browser
+  FFlag_DebugPanel: boolean, // to show debug pane
   FFlag_HardRefreshButton: boolean,
+  lookBackDaysForOverdue: number,
   autoUpdateAfterIdleTime: number,
   moveSubItems: boolean,
   enableInteractiveProcessing: boolean,

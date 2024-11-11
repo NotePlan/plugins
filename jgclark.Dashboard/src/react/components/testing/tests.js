@@ -21,10 +21,20 @@ export const getTests = (context: ContextType): (Array<{ name: string, test: () 
 
   return [
     {
-      name: 'Sample Test will always pass after 2s',
+      name: 'Sample Test will always pass after 1s',
       test: async (): Promise<void> => {
-        await waitFor(2000)
+        console.log('Sample log entries')
+        await waitFor(1000)
         const foo = true
+        expect(foo).toBe(true) // Example assertion
+      },
+    },
+    {
+      name: 'Sample Test will always fail after 1s',
+      test: async (): Promise<void> => {
+        console.log('Sample log entries')
+        await waitFor(1000)
+        const foo = false
         expect(foo).toBe(true) // Example assertion
       },
     },
@@ -44,7 +54,8 @@ export const getTests = (context: ContextType): (Array<{ name: string, test: () 
         await waitFor(() => {
           const updatedSettings = context.perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true && p.isModified === false)
           return updatedSettings !== undefined
-        })
+        }, 1000) // Add a timeout to prevent indefinite waiting
+        console.log('got through 1')
         // then change it back to Work
         sendActionToPlugin(
           'switchToPerspective',
@@ -66,12 +77,24 @@ export const getTests = (context: ContextType): (Array<{ name: string, test: () 
     {
       name: 'Test Set Dashboard Settings',
       test: async (): Promise<void> => {
-        sendActionToPlugin('setDashboardSettings', { ...context.dashboardSettings, filterPriorityItems: true }, `Setting filterPriorities in dashboard settings`)
+        const mbo = { actionType: `dashboardSettingsChanged`, settings: { ...context.dashboardSettings, filterPriorityItems: true } }
+        sendActionToPlugin('dashboardSettingsChanged', mbo, `Setting filterPriorities in dashboard settings`)
 
-        await waitFor(() => context.dashboardSettings.filterPriorityItems === true)
+        await waitFor(() => context.dashboardSettings.filterPriorityItems === true, 1000) // Add a timeout to prevent indefinite waiting
 
         expect(context.dashboardSettings.filterPriorityItems).toBe(true)
       },
     },
   ]
+}
+
+/**
+ * Executes all tests sequentially.
+ *
+ * @param {Array<{name: string, test: () => Promise<void>}>} tests - The array of test objects.
+ */
+export const runTestsSequentially = async (tests: Array<{ name: string, test: () => Promise<void> }>) => {
+  for (const test of tests) {
+    await test.test()
+  }
 }

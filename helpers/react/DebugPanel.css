@@ -1,0 +1,48 @@
+.test-result .Logs {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+  }
+
+  .debug-panel {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+  }
+  
+  .pane {
+    overflow: auto;
+  }
+  
+  .resizer {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #ccc;
+  }
+  
+  .left-pane {
+    background-color: #f9f9f9;
+  }
+  
+  .middle-pane {
+    background-color: #e9f7ef;
+  }
+  
+  .right-pane {
+    background-color: #fce4ec;
+  }
+  
+  .resize-handle {
+    background-color: #eee;
+    cursor: col-resize;
+    width: 5px;
+  }
+
+  /* Log colors - based on first word of log message */
+
+  .Starting {
+    background-color: paleorange;
+  }
+  
+  .Ending {
+    background-color: paleorange;
+  }

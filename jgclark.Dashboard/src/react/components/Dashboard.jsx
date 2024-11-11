@@ -12,7 +12,7 @@ import React, { useEffect, useRef } from 'react'
 // import type { TDashboardSettings } from '../../types.js'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder, sectionPriority } from '../../constants.js'
-import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
+// import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
 import Header from './Header'
@@ -22,6 +22,8 @@ import IdleTimer from './IdleTimer.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import '../css/Dashboard.css'
+import DebugPanel from '@helpers/react/DebugPanel'
+import { getTests } from './testing/tests'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -43,8 +45,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
+  const context = useAppContext()
   const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
-    useAppContext()
+    context
+
   const { sections: origSections, lastFullRefresh } = pluginData
 
   const logSettings = pluginData.logSettings
@@ -52,7 +56,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Hooks
   //----------------------------------------------------------------------
-  useWatchForResizes(sendActionToPlugin)
+  // useWatchForResizes(sendActionToPlugin) // jgclark removed in plugin so commenting out here
   // 5s hack timer to work around cache not being reliable (only runs for users, not DEVs)
   const shortDelayTimerIsOn = logSettings._logLevel !== 'DEV'
   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: shortDelayTimerIsOn })
@@ -250,6 +254,17 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
+  // Extract context variables we want to show in the DebugPanel
+  const contextVariables = {
+    dashboardSettings,
+    perspectiveSettings,
+    reactSettings,
+    pluginData,
+    sendActionToPlugin, // we need this to run the tests
+  }
+
+  const showDebugPanel = pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel
+
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
@@ -268,6 +283,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
+      {showDebugPanel && <DebugPanel contextVariables={contextVariables} tests={getTests(contextVariables)} defaultExpandedKeys={['Context Variables']} />}
       <div id="tooltip-portal"></div>
     </div>
   )

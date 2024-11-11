@@ -273,12 +273,17 @@ const PerspectiveSelector = (): React$Node => {
       }
 
       // Otherwise, it's a normal perspective change so we process it
-
-      sendActionToPlugin(
-        'switchToPerspective',
-        { perspectiveName: selectedOption.value, actionType: 'switchToPerspective', logMessage: `Perspective changed to ${selectedOption.value}` },
-        `Perspective changed to ${selectedOption.value}`,
-      )
+      // but not if the option changed only because the plugin sent it to us (no user action)
+      const apn = getActivePerspectiveName(perspectiveSettings)
+      if (selectedOption.value !== apn) {
+        sendActionToPlugin(
+          'switchToPerspective',
+          { perspectiveName: selectedOption.value, actionType: 'switchToPerspective', logMessage: `Perspective changed to ${selectedOption.value}` },
+          `Perspective changed to ${selectedOption.value}`,
+        )
+      } else {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue "${selectedOption.value}" is the same as activePerspectiveName. No action taken.`)
+      }
     },
     [perspectiveSettings, state, activePerspectiveName, dashboardSettings],
   )

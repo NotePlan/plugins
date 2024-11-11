@@ -28,7 +28,6 @@ import React, { useEffect, useLayoutEffect, useState, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import type { TPerspectiveDef, TReactSettings, TSettingItem } from '../../types'
 import { createDashboardSettingsItems } from '../../dashboardSettings'
-import TestRunner from './testing/TestRunner'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
@@ -218,8 +217,6 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
       perspectiveSettings={initialPerspectiveSettings}
     >
       <Dashboard pluginData={pluginData} />
-      <TestRunner defaultExpandedKeys={['Context Variables']} />
-      {pluginData?.logSettings?._logLevel === '_DEV' && <TestRunner />}
     </AppProvider>
   )
 }

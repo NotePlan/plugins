@@ -20,7 +20,6 @@ import {
   doMoveToNote,
   doSettingsChanged,
   doSavePerspective,
-  doSavePerspectiveAs,
   doAddNewPerspective,
   doDeletePerspective,
   doSwitchToPerspective,
