@@ -379,7 +379,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
     'pluginID',
-    'showPerspectives',
+    'perspectivesEnabled',
     /FFlag_/,
     /separator\d/, // though JGC has never seen this on 'heading/d' in dashboardSettings?
     /heading\d/,

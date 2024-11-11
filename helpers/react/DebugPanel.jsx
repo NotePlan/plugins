@@ -1,7 +1,7 @@
 // DebugPanel.jsx
 // @flow
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
 import { timer } from '@helpers/dev'
 import ConsoleLogView from '@helpers/react/ConsoleLogView'
@@ -12,6 +12,7 @@ type LogEntry = {
   message: string,
   timestamp: Date,
   data?: any,
+  type: string,
 }
 
 type TestResult = {
@@ -37,7 +38,7 @@ type Props = {
 
 /**
  * DebugPanel component renders three columns: context variables, test definitions, and console logs.
- * It captures console logs globally and displays them in the ConsoleLogView.
+ * It captures console methods globally and displays them in the ConsoleLogView.
  *
  * @param {Props} props - The props for the component.
  * @returns {React.Node} The rendered DebugPanel component.
@@ -48,32 +49,56 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
   const [runningTest, setRunningTest] = useState<?string>(null)
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
+  const originalConsoleMethodsRef = useRef({})
 
-  // Override global console.log to capture logs with timestamps and data
   useEffect(() => {
-    const originalConsoleLog = console.log
-    console.log = (...args) => {
-      const messageParts = []
-      let data = null
+    console.log('DebugPanel: starting up before the console methods override')
 
-      args.forEach((arg) => {
-        if (typeof arg === 'object' && arg !== null) {
-          data = arg
-        } else {
-          messageParts.push(typeof arg === 'string' ? arg : JSON.stringify(arg))
+    const overrideConsoleMethod = (methodName: string) => {
+      const originalMethod = console[methodName]
+      originalConsoleMethodsRef.current[methodName] = originalMethod
+
+      console[methodName] = (...args) => {
+        const messageParts = []
+        let data = null
+
+        args.forEach((arg) => {
+          if (typeof arg === 'object' && arg !== null) {
+            data = arg
+          } else {
+            messageParts.push(typeof arg === 'string' ? arg : JSON.stringify(arg))
+          }
+        })
+
+        const message = messageParts.join(' ')
+        const timestamp = new Date()
+        setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data, type: methodName }])
+
+        // Call the original console method
+        originalMethod.apply(console, args)
+      }
+    }
+
+    // Methods to override
+    const methodsToOverride = ['log', 'error', 'info']
+
+    methodsToOverride.forEach((methodName) => {
+      overrideConsoleMethod(methodName)
+      console.log(`DebugPanel: console.${methodName} override is active`)
+    })
+
+    return () => {
+      console.log('DebugPanel: tearing down the console methods override')
+      methodsToOverride.forEach((methodName) => {
+        if (console[methodName] === originalConsoleMethodsRef.current[methodName]) {
+          console.log(`DebugPanel: console.${methodName} override is being removed`)
+          console[methodName] = originalConsoleMethodsRef.current[methodName]
         }
       })
-
-      const message = messageParts.join(' ')
-      const timestamp = new Date()
-      setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data }])
-      originalConsoleLog.apply(console, args)
-    }
-    return () => {
-      console.log = originalConsoleLog
     }
   }, [])
 
+  // Example of runTest function for context
   const runTest = async (testName: string, testFunction: () => Promise<void>): Promise<void> => {
     if (isRunning) return
     setIsRunning(true)
@@ -86,16 +111,18 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
       await testFunction()
       const durationStr = timer(startTime)
       const endTime = new Date()
-      console.log(`>>> Ending Test: ${testName} <<< Duration: ${durationStr}`)
       setResults((prev) => ({
         ...prev,
         [testName]: { status: 'Passed', durationStr, startTime, endTime },
       }))
+      console.log(`>>> Passed Test: ${testName} <<< Duration: ${durationStr}`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       const durationStr = timer(startTime)
       const endTime = new Date()
-      console.log(`>>> Ending Test: ${testName} <<< Duration: ${durationStr}`)
+      console.error(`>>> Failed Test: ${testName} <<< Duration: ${durationStr}`)
+      console.error(`Test failed: ${errorMessage}`)
+      console.error(error)
       setResults((prev) => ({
         ...prev,
         [testName]: {
@@ -222,33 +249,33 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
                         {isRunningTest && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
                       </button>
                       <div style={{ flex: 1 }}>
-                        <strong>{name}</strong>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span
-                          style={{
-                            color: testStatus === 'Passed' ? 'green' : testStatus === 'Failed' ? 'red' : '#000',
-                            marginRight: '10px',
-                          }}
-                        >
-                          {testStatus || ''}
-                          {durationStr}
-                        </span>
-                        {results[name] && (
-                          <button
-                            onClick={() => showTestLogs(name)}
+                        {name}
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span
                             style={{
-                              backgroundColor: '#e0e0e0',
-                              color: '#000',
-                              border: '1px solid #ccc',
-                              padding: '2px 5px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
+                              color: testStatus === 'Passed' ? 'green' : testStatus === 'Failed' ? 'red' : '#000',
+                              marginRight: '10px',
                             }}
                           >
-                            Show Logs
-                          </button>
-                        )}
+                            {testStatus || ''}
+                            {durationStr}
+                          </span>
+                          {results[name] && (
+                            <button
+                              onClick={() => showTestLogs(name)}
+                              style={{
+                                backgroundColor: '#e0e0e0',
+                                color: '#000',
+                                border: '1px solid #ccc',
+                                padding: '2px 5px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                              }}
+                            >
+                              Show Logs
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {results[name]?.error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{results[name].error}</div>}

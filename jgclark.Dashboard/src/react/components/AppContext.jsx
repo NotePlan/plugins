@@ -132,7 +132,7 @@ export const AppProvider = ({
   //       }
   //     } else {
   //       logDebug('AppContext/useEffect(dashboardSettings)', `Named perspective is set but not saved. Change persp to .isModified=true`)
-  //       // const usingPerspectives = dashboardSettings.showPerspectives
+  //       // const usingPerspectives = dashboardSettings.perspectivesEnabled
   //       // if (usingPerspectives) {
   //       //   dispatchPerspectiveSettings({
   //       //     type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,

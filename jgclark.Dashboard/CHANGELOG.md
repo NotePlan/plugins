@@ -59,7 +59,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - add tooltips to buttons in Task and Project dialogs
 
 ## [Perspectives.a9] @jgc, 2024-08-26
-- migrated FFlag_Perspectives to a main, visible, setting showPerspectives, defaulting to true.
+- migrated FFlag_Perspectives to a main, visible, setting perspectivesEnabled, defaulting to true.
 - new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown.
 - clicking on 'there are X items hidden' message lines now turns off filtering in all sections (started in a7)
 - more layout improvements in Header, including moving Perspective selector back to the left-hand side.

@@ -19,15 +19,19 @@ export type TNotePlanSettings = {
   timeblockMustContainString: string,
 }
 
+/*
+ * IMPORTANT:
+ * DO NOT USE THE WORD SHOW AT THE FRONT OF ANY SETTING NAME UNLESS IT IS A SECTION
+ */
 export type TDashboardSettings = {
-  showPerspectives: boolean,
+  perspectivesEnabled: boolean,
   // perspectives: Array<TPerspectiveDef>,
   separateSectionForReferencedNotes: boolean,
   filterPriorityItems: boolean, // also kept in a DataStore.preference key
   dashboardTheme: string,
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
-  showParentChildMarkers: boolean,
+  parentChildMarkersEnabled: boolean,
   ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
   ignoreChecklistItems: boolean,
   excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use

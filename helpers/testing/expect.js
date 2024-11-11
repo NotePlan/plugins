@@ -2,7 +2,7 @@
 
 import AssertionError from './CustomError'
 
-type MatcherFunction = (...args: Array<any>) => void
+type MatcherFunction = (expected: any, varNameOrMsg?: string) => void
 
 type Matchers = {
   toBe: MatcherFunction,
@@ -30,113 +30,135 @@ export const expect = (actual: any): Object => {
      * Asserts that the actual value is strictly equal to the expected value.
      *
      * @param {any} expected - The expected value.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBe: (expected: any): void => {
+    toBe: (expected: any, varNameOrMsg?: string): void => {
       if (actual !== expected) {
-        throw new AssertionError(`Expected ${String(actual)} to be ${String(expected)}`, expected, actual)
+        const message = `Expected ${varNameOrMsg || 'value'} to be ${String(expected)} but received ${String(actual)}`
+        throw new AssertionError(message, expected, actual)
       }
     },
     /**
      * Asserts that the actual value is deeply equal to the expected value.
      *
      * @param {any} expected - The expected value.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toEqual: (expected: any): void => {
+    toEqual: (expected: any, varNameOrMsg?: string): void => {
       const isEqual = JSON.stringify(actual) === JSON.stringify(expected)
       if (!isEqual) {
-        throw new Error(`Expected ${JSON.stringify(actual)} to equal ${JSON.stringify(expected)}`)
+        const message = `Expected ${varNameOrMsg || 'value'} to equal ${JSON.stringify(expected)} but received ${JSON.stringify(actual)}`
+        throw new AssertionError(message, expected, actual)
       }
     },
     /**
      * Asserts that the actual value is undefined.
      *
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeUndefined: (): void => {
+    toBeUndefined: (varNameOrMsg?: string): void => {
       if (actual !== undefined) {
-        throw new Error(`Expected ${String(actual)} to be undefined`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be undefined but received ${String(actual)}`
+        throw new AssertionError(message, undefined, actual)
       }
     },
     /**
      * Asserts that the actual value is null.
      *
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeNull: (): void => {
+    toBeNull: (varNameOrMsg?: string): void => {
       if (actual !== null) {
-        throw new Error(`Expected ${String(actual)} to be null`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be null but received ${String(actual)}`
+        throw new AssertionError(message, null, actual)
       }
     },
     /**
      * Asserts that the actual value is truthy.
      *
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeTruthy: (): void => {
+    toBeTruthy: (varNameOrMsg?: string): void => {
       if (!actual) {
-        throw new Error(`Expected ${String(actual)} to be truthy`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be truthy but received ${String(actual)}`
+        throw new AssertionError(message, true, actual)
       }
     },
     /**
      * Asserts that the actual value is falsy.
      *
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeFalsy: (): void => {
+    toBeFalsy: (varNameOrMsg?: string): void => {
       if (actual) {
-        throw new Error(`Expected ${String(actual)} to be falsy`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be falsy but received ${String(actual)}`
+        throw new AssertionError(message, false, actual)
       }
     },
     /**
      * Asserts that the actual array contains the specified item.
      *
      * @param {any} item - The item expected to be in the array.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toContain: (item: any): void => {
+    toContain: (item: any, varNameOrMsg?: string): void => {
       if (!Array.isArray(actual)) {
-        throw new Error(`Expected ${String(actual)} to be an array`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be an array but received ${String(actual)}`
+        throw new AssertionError(message, 'array', actual)
       }
       if (!actual.includes(item)) {
-        throw new Error(`Expected array ${JSON.stringify(actual)} to contain ${String(item)}`)
+        const message = `Expected array ${varNameOrMsg || 'value'} to contain ${String(item)} but it does not`
+        throw new AssertionError(message, item, actual)
       }
     },
     /**
      * Asserts that the actual value has the specified length.
      *
      * @param {number} length - The expected length.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toHaveLength: (length: number): void => {
+    toHaveLength: (length: number, varNameOrMsg?: string): void => {
       if (!actual || typeof actual.length !== 'number') {
-        throw new Error(`Expected ${String(actual)} to have a length property`)
+        const message = `Expected ${varNameOrMsg || 'value'} to have a length property but it does not`
+        throw new AssertionError(message, length, actual)
       }
       if (actual.length !== length) {
-        throw new Error(`Expected length ${actual.length} to be ${length}`)
+        const message = `Expected ${varNameOrMsg || 'value'} to have length ${length} but received ${actual.length}`
+        throw new AssertionError(message, length, actual.length)
       }
     },
     /**
      * Asserts that the actual value is greater than the specified value.
      *
      * @param {number} value - The value to compare against.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeGreaterThan: (value: number): void => {
+    toBeGreaterThan: (value: number, varNameOrMsg?: string): void => {
       if (typeof actual !== 'number' || actual <= value) {
-        throw new Error(`Expected ${String(actual)} to be greater than ${String(value)}`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be greater than ${String(value)} but received ${String(actual)}`
+        throw new AssertionError(message, value, actual)
       }
     },
     /**
      * Asserts that the actual value is less than the specified value.
      *
      * @param {number} value - The value to compare against.
-     * @throws {Error} If the assertion fails.
+     * @param {string} [varNameOrMsg] - An optional variable name or message.
+     * @throws {AssertionError} If the assertion fails.
      */
-    toBeLessThan: (value: number): void => {
+    toBeLessThan: (value: number, varNameOrMsg?: string): void => {
       if (typeof actual !== 'number' || actual >= value) {
-        throw new Error(`Expected ${String(actual)} to be less than ${String(value)}`)
+        const message = `Expected ${varNameOrMsg || 'value'} to be less than ${String(value)} but received ${String(actual)}`
+        throw new AssertionError(message, value, actual)
       }
     },
     // Add more matchers as needed
@@ -144,13 +166,14 @@ export const expect = (actual: any): Object => {
 
   const notMatchers: Matchers = {}
   for (const [key, matcher] of Object.entries(matchers)) {
-    notMatchers[key] = (...args: Array<any>): void => {
+    notMatchers[key] = (expected: any, varNameOrMsg?: string): void => {
       try {
-        matcher(...args)
+        matcher(expected, varNameOrMsg)
       } catch (error) {
         return
       }
-      throw new Error(`Expected ${String(actual)} not to ${key.replace('to', '').toLowerCase()} ${args.map(String).join(', ')}`)
+      const message = `Expected ${varNameOrMsg || 'value'} not to ${key.replace('to', '').toLowerCase()} ${String(expected)}`
+      throw new AssertionError(message, expected, actual)
     }
   }
 

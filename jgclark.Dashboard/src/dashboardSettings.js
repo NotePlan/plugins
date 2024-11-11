@@ -69,7 +69,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Perspectives',
   },
   {
-    key: 'showPerspectives',
+    key: 'perspectivesEnabled',
     label: 'Show Perspectives',
     description:
       "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
@@ -85,7 +85,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Perspectives details',
     description: 'Shows Perspective settings Component.',
     default: '',
-    dependsOnKey: 'showPerspectives',
+    dependsOnKey: 'perspectivesEnabled',
   },
   {
     type: 'separator',
@@ -194,7 +194,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
-    key: 'showParentChildMarkers',
+    key: 'parentChildMarkersEnabled',
     label: 'Show parent/child markers on items?',
     description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
     type: 'switch',

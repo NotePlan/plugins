@@ -1,13 +1,14 @@
 // ConsoleLogView.jsx
 // @flow
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
 
 type LogEntry = {
   message: string,
   timestamp: Date,
   data?: any,
+  type: string,
 }
 
 type Filter = {
@@ -35,15 +36,14 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const [searchText, setSearchText] = useState(initialSearch)
   const [useRegexFilter, setUseRegexFilter] = useState(false)
   const [useRegexSearch, setUseRegexSearch] = useState(false)
-  const [filteredLogs, setFilteredLogs] = useState<Array<LogEntry>>([])
   const [searchIndex, setSearchIndex] = useState(-1)
   const [autoScroll, setAutoScroll] = useState(true)
   const logContainerRef = useRef<?HTMLDivElement>(null)
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const filterInputRef = useRef<?HTMLInputElement>(null)
 
-  // Update filtered logs when logs, filterText, or filterFunction change
-  useEffect(() => {
+  // Memoize filtered logs
+  const filteredLogs = useMemo(() => {
     let newFilteredLogs = logs
     if (filter?.filterFunction) {
       newFilteredLogs = newFilteredLogs.filter(filter.filterFunction)
@@ -56,8 +56,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         // Invalid regex, ignore filter
       }
     }
-    setFilteredLogs(newFilteredLogs)
-    setSearchIndex(-1) // Reset search index when filter changes
+    return newFilteredLogs
   }, [filterText, useRegexFilter, logs, filter])
 
   // Auto-scroll to bottom when new logs arrive
@@ -100,7 +99,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
     }
   }, [searchIndex])
 
-  const findNext = () => {
+  const findNext = useCallback(() => {
     if (!searchText) return
     let index = searchIndex
     const total = filteredLogs.length
@@ -111,9 +110,9 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         return
       }
     }
-  }
+  }, [searchText, searchIndex, filteredLogs])
 
-  const findPrevious = () => {
+  const findPrevious = useCallback(() => {
     if (!searchText) return
     let index = searchIndex
     const total = filteredLogs.length
@@ -124,57 +123,91 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         return
       }
     }
-  }
+  }, [searchText, searchIndex, filteredLogs])
 
-  const matchesSearch = (line: string): boolean => {
-    try {
-      const regex = useRegexSearch ? new RegExp(searchText, 'i') : null
-      return regex ? regex.test(line) : line.toLowerCase().includes(searchText.toLowerCase())
-    } catch (e) {
-      return false
-    }
-  }
+  const matchesSearch = useCallback(
+    (line: string): boolean => {
+      try {
+        const regex = useRegexSearch ? new RegExp(searchText, 'i') : null
+        return regex ? regex.test(line) : line.toLowerCase().includes(searchText.toLowerCase())
+      } catch (e) {
+        return false
+      }
+    },
+    [searchText, useRegexSearch],
+  )
 
-  const handleFilterChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
+  const handleFilterChange = useCallback((e: SyntheticInputEvent<HTMLInputElement>) => {
     setFilterText(e.target.value)
-  }
+  }, [])
 
-  const handleSearchChange = (e: SyntheticInputEvent<HTMLInputElement>) => {
+  const handleSearchChange = useCallback((e: SyntheticInputEvent<HTMLInputElement>) => {
     setSearchText(e.target.value)
     setSearchIndex(-1)
-  }
+  }, [])
 
-  const highlightMatch = (line: string): string => {
-    if (!searchText) return line
-    try {
-      const regex = new RegExp(searchText, 'gi')
-      return line.replace(regex, (match) => `<mark>${match}</mark>`)
-    } catch (e) {
-      return line
-    }
-  }
+  const highlightMatch = useCallback(
+    (line: string): string => {
+      if (!searchText) return line
+      try {
+        const regex = new RegExp(searchText, 'gi')
+        return line.replace(regex, (match) => `<mark>${match}</mark>`)
+      } catch (e) {
+        return line
+      }
+    },
+    [searchText],
+  )
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilterText('')
     setSearchText('')
     setSearchIndex(-1)
-  }
+  }, [])
 
-  const toggleButtonStyle = (isActive: boolean) => ({
-    backgroundColor: isActive ? '#007bff' : 'unset',
-    color: isActive ? '#fff' : '#000',
-    border: '1px solid #ccc',
-    padding: '2px 5px',
-    cursor: 'pointer',
-    marginRight: '5px',
-    borderRadius: '3px',
-  })
+  const toggleButtonStyle = useCallback(
+    (isActive: boolean) => ({
+      backgroundColor: isActive ? '#007bff' : 'unset',
+      color: isActive ? '#fff' : '#000',
+      border: '1px solid #ccc',
+      padding: '2px 5px',
+      cursor: 'pointer',
+      marginRight: '5px',
+      borderRadius: '3px',
+    }),
+    [],
+  )
 
-  const getClassNameFromMessage = (message: string): string => {
+  const getClassNameFromMessage = useCallback((message: string): string => {
     const firstWord = message.split(' ')[0]
     // Ensure the class name is CSS legal by replacing non-alphanumeric characters with underscores
     return firstWord.replace(/[^a-zA-Z0-9_-]/g, '_')
-  }
+  }, [])
+
+  // Memoize rendered log entries
+  const renderedLogs = useMemo(() => {
+    return filteredLogs.map((log, index) => {
+      const line = log.message
+      const isMatch = matchesSearch(line)
+      const isSelected = index === searchIndex
+      const className = getClassNameFromMessage(line)
+      const color = log.type === 'error' ? 'red' : log.type === 'info' ? 'blue' : 'black'
+      return (
+        <div
+          key={index}
+          className={className}
+          style={{
+            backgroundColor: isSelected ? '#ffff99' : index % 2 === 0 ? '#ffffff' : '#f9f9f9',
+            padding: '2px 5px',
+            color,
+          }}
+        >
+          {isMatch ? <span dangerouslySetInnerHTML={{ __html: highlightMatch(line) }}></span> : line}
+          {log.data && <CollapsibleObjectViewer key={`log-${index}`} data={log.data} name={Array.isArray(log.data) ? 'Array' : 'Object'} />}
+        </div>
+      )
+    })
+  }, [filteredLogs, matchesSearch, searchIndex, highlightMatch, getClassNameFromMessage])
 
   return (
     <div style={{ fontFamily: 'monospace', fontSize: '11pt', width: '100%' }}>
@@ -232,25 +265,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
           border: '1px solid #ccc',
         }}
       >
-        {filteredLogs.map((log, index) => {
-          const line = log.message
-          const isMatch = matchesSearch(line)
-          const isSelected = index === searchIndex
-          const className = getClassNameFromMessage(line)
-          return (
-            <div
-              key={index}
-              className={className}
-              style={{
-                backgroundColor: isSelected ? '#ffff99' : index % 2 === 0 ? '#ffffff' : '#f9f9f9',
-                padding: '2px 5px',
-              }}
-            >
-              {isMatch ? <span dangerouslySetInnerHTML={{ __html: highlightMatch(line) }}></span> : line}
-              {log.data && <CollapsibleObjectViewer key={`log-${index}`} data={log.data} name={Array.isArray(log.data) ? 'Array' : 'Object'} />}
-            </div>
-          )
-        })}
+        {renderedLogs}
       </div>
     </div>
   )

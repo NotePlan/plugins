@@ -30,10 +30,7 @@ import {
   convertBoldAndItalicToHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
-import {
-  findLongestStringInArray,
-  RE_TIMEBLOCK_APP,
-} from '@helpers/timeblocks'
+import { findLongestStringInArray, RE_TIMEBLOCK_APP } from '@helpers/timeblocks'
 import { replaceArrowDatesInString } from '@helpers/dateTime'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
@@ -90,10 +87,10 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   // if hasChild, then set suitable icon
   // another version had 'fa-arrow-down-from-line' icon for parent
-  const possParentIcon = dashboardSettings.showParentChildMarkers && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
+  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
   // if isAChild, then set suitable icon
   // Note: now handled by flex layout and indent on ItemRow
-  // const possChildIcon = dashboardSettings.showParentChildMarkers && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
+  // const possChildIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
   const possChildIcon = ''
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
@@ -102,7 +99,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     setReactSettings((prev) => ({
       ...prev,
       lastChange: `_Dashboard-TaskDialogOpen`,
-      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
+      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition },
     }))
   }
 
@@ -111,7 +108,10 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   // return <div className="sectionItemContent sectionItem">{possParentIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
   // return <div className="sectionItemContent sectionItem">{possChildIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{possParentIcon}</div>
   return (
-    <div className="sectionItemContent">{possChildIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{possParentIcon}
+    <div className="sectionItemContent">
+      {possChildIcon}
+      <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
+      {possParentIcon}
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
       </a>
@@ -138,10 +138,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
  * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
  * @returns {string} HTML string
  */
-function makeParaContentToLookLikeNPDisplayInReact(
-  thisItem: TSectionItem,
-  truncateLength: number = 0,
-): string {
+function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, truncateLength: number = 0): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
@@ -301,7 +298,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
  */
 export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
   try {
-    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`) 
+    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`)
 
     // Pass request back to plugin
     // Note: no longer passing rawContent, as it's not needed
@@ -313,7 +310,6 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
     return '(makeNoteTitle... error)'
   }
 }
-
 
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.

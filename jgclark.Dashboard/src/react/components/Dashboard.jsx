@@ -260,7 +260,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     perspectiveSettings,
     reactSettings,
     pluginData,
-    sendActionToPlugin, // we need this to run the tests
+    /* functions */
+    sendActionToPlugin,
+    dispatchDashboardSettings,
+    dispatchPerspectiveSettings,
+    updatePluginData,
   }
 
   const showDebugPanel = pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel

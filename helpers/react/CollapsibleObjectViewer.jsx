@@ -122,7 +122,10 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
       })
     }
 
-    return Object.keys(obj).map((key) => {
+    // Sort the keys alphabetically
+    const sortedKeys = Object.keys(obj).sort()
+
+    return sortedKeys.map((key) => {
       const value = obj[key]
       const isExpandable = isObject(value)
       const currentPath = `${path}:${key}`

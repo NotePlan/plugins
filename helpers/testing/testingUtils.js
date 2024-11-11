@@ -52,8 +52,9 @@ export const runTestWithTiming = async (testFunction: () => Promise<TestResult>)
  * @param {number} [timeout=5000] - The maximum time to wait in milliseconds if a condition is provided.
  * @param {number} [interval=100] - The interval to check the condition in milliseconds.
  * @returns {Promise<void>} Resolves when the condition is met or the timeout occurs.
+ * @throws {Error} If the timeout occurs before the condition is met.
  */
-export const waitFor = async (conditionOrTime: number | (() => boolean), timeout: number = 5000, interval: number = 100): Promise<void> => {
+export const waitFor = async (conditionOrTime: number | (() => boolean), conditionDesc: string = '', timeout: number = 5000, interval: number = 100): Promise<void> => {
   if (typeof conditionOrTime === 'number') {
     await new Promise((resolve) => setTimeout(resolve, conditionOrTime))
     return
@@ -70,5 +71,5 @@ export const waitFor = async (conditionOrTime: number | (() => boolean), timeout
     elapsed = performance.now() - startTime
   }
 
-  throw new Error('Timeout waiting for condition')
+  throw new Error(`Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout} ms`)
 }
