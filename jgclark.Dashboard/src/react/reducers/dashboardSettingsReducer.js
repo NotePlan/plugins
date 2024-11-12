@@ -21,7 +21,7 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
       logDebug(
-        'dashboardSettingsReducer',
+        'dashboardSettingsReducer called to set dashboardSettings',
         `${type} "${reason || ''}" - payload.lastChange=${payload.lastChange || ''} payload.filterPriorityItems=${JSON.stringify(
           payload.filterPriorityItems,
         )} payload.excludedFolders=${JSON.stringify(payload.excludedFolders)}; about to compare state and payload`,

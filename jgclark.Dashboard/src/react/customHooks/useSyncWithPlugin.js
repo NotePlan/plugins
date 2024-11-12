@@ -39,7 +39,7 @@ export const useSyncWithPlugin = (
   // Handle receiving changes from the plugin which need dispatching to the front-end
   useEffect(() => {
     // logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `about to compare pluginSettings and lastPluginSettingsRef.current`)
-    const pluginSettingsChanged = pluginSettings && compareFn(pluginSettings, lastPluginSettingsRef.current) !== null
+    const pluginSettingsChanged = pluginSettings && compareFn(lastPluginSettingsRef.current, pluginSettings) !== null
 
     if (pluginSettingsChanged && (!pluginSettings.lastChange || pluginSettings.lastChange[0] !== '_')) {
       // If the pluginSettings were sent by us, then the plugin sends them back in the pluginData with a _in front of lastChange to tell us to ignore them
@@ -63,43 +63,51 @@ export const useSyncWithPlugin = (
 
   // Handle Dashboard front-end changes which need sending changes to the plugin
   useEffect(() => {
-    // logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `about to compare localSettings and lastLocalSettingsRef.current`)
-    const comparison = localSettings ? compareFn(localSettings, lastLocalSettingsRef.current) : null
-    // clo(localSettings, `useSyncWithPlugin/useEffect(localSettings): ${comparison ? 'changed' : 'not changed'} localSettings`, 2)
-    // clo(lastLocalSettingsRef.current, `useSyncWithPlugin/useEffect(localSettings): ${comparison ? 'changed' : 'not changed'} lastLocalSettingsRef.current`, 2)
-    logDebug(`useSyncWithPlugin/useEffect(localSettings) [${actionType}]`, `after comparison diff=${JSON.stringify(comparison)}`)
+    // logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `DW 05 about to compare localSettings and lastLocalSettingsRef.current`)
+    const diff = localSettings ? compareFn(lastLocalSettingsRef.current, localSettings) : null
+    // clo(localSettings, `useSyncWithPlugin/useEffect(localSettings): ${diff ? 'changed' : 'not changed'} localSettings`, 2)
+    // clo(lastLocalSettingsRef.current, `useSyncWithPlugin/useEffect(localSettings): ${diff ? 'changed' : 'not changed'} lastLocalSettingsRef.current`, 2)
+    logDebug(`useSyncWithPlugin/useEffect(localSettings)[${actionType}]`, `DW 08 after diff diff=${JSON.stringify(diff)}`)
     actionType === 'dashboardSettingsChanged' &&
       logDebug(
-        `useSyncWithPlugin/useEffect(localSettings) [${actionType}]: localSettings.filterPriorityItems=${JSON.stringify(
+        `useSyncWithPlugin/useEffect(localSettings) [${actionType}]: DW10 localSettings.filterPriorityItems=${JSON.stringify(
           localSettings.filterPriorityItems,
         )} lastLocal=${JSON.stringify(lastLocalSettingsRef.current.filterPriorityItems)}`,
       )
-    const localSettingsChanged = localSettings && comparison !== null
+    const localSettingsChanged = localSettings && diff !== null
     // DELETEME: this is temporary logging to help with debugging
     actionType === 'dashboardSettingsChanged' &&
       logDebug(
-        `useSyncWithPlugin/useEffect(localSettings) [${actionType}]`,
-        `type=${actionType}: Noticed localSettings change: localSettingsChanged=${String(localSettingsChanged)}; localSettings.filterPriorityItems=${JSON.stringify(
-          localSettings.filterPriorityItems,
-        )}`,
+        `useSyncWithPlugin/useEffect(localSettings) [${actionType}] DW13`,
+        `type=${actionType}: Noticed localSettings change: localSettingsChanged=${String(localSettingsChanged)})}`,
       )
 
     if (localSettingsChanged) {
-      const diff = compareFn(localSettings, pluginSettings)
-      logDebug(`useSyncWithPlugin/useEffect(localSettings) [${actionType}]`, `actionType=${actionType}; diff=${JSON.stringify(diff)}`)
+      // const diff = compareFn(pluginSettings, localSettings)
+      logDebug(`useSyncWithPlugin/useEffect(localSettings) [${actionType}]`, `DW 15 diff=${JSON.stringify(diff)}`)
+      logDebug(
+        `useSyncWithPlugin/useEffect(localSettings) [${actionType}]`,
+        `DW 16 diff? ${diff} typeof diff=${typeof diff} isArray=${Array.isArray(diff)} Object.keys(diff).length=${diff ? Object.keys(diff).length : 0} ${
+          diff ? Object.keys(diff).join(', ') : ''
+        }`,
+      )
       if (diff && Object.keys(diff).length > 0) {
-        logDebug(`useSyncWithPlugin [${actionType}]`, `${sendActionToPlugin ? 'Sending to plugin' : 'Just FYI Not sending to plugin'}: diff=${JSON.stringify(diff)}`)
-        sendActionToPlugin &&
-          sendActionToPlugin(
-            actionType,
-            {
-              actionType: actionType,
-              settings: localSettings,
-              logMessage: `${actionType} changed: ${JSON.stringify(diff)}`,
-            },
-            `${actionType} updated`,
-            true,
-          )
+        logDebug(`useSyncWithPlugin [${actionType}]`, `DW 18 ${sendActionToPlugin && diff ? 'Sending to plugin' : 'Just FYI Not sending to plugin'}: diff=${JSON.stringify(diff)}`)
+        if (localSettings.lastChange && localSettings.lastChange[0] !== '_') {
+          logDebug(`useSyncWithPlugin [${actionType}]`, `DW 19 NOT SENDING BECAUSE OF UNDERSCORE:localSettings.lastChange=${JSON.stringify(localSettings.lastChange)}`)
+        } else {
+          sendActionToPlugin &&
+            sendActionToPlugin(
+              actionType,
+              {
+                actionType: actionType,
+                settings: localSettings,
+                logMessage: `${actionType} changed: ${JSON.stringify(diff)}`,
+              },
+              `${actionType} updated`,
+              true,
+            )
+        }
         lastLocalSettingsRef.current = localSettings
       } else {
         logDebug(

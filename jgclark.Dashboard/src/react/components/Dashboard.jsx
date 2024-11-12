@@ -46,6 +46,16 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Context
   //----------------------------------------------------------------------
   const context = useAppContext()
+  const contextRef = useRef(context)
+
+  // Update ref when context changes (necessary for DebugPanel context variables)
+  useEffect(() => {
+    contextRef.current = context
+  }, [context])
+
+  // Define getContext function
+  const getContext = () => contextRef.current
+
   const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
     context
 
@@ -254,19 +264,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
-  // Extract context variables we want to show in the DebugPanel
-  const contextVariables = {
-    dashboardSettings,
-    perspectiveSettings,
-    reactSettings,
-    pluginData,
-    /* functions */
-    sendActionToPlugin,
-    dispatchDashboardSettings,
-    dispatchPerspectiveSettings,
-    updatePluginData,
-  }
-
   const showDebugPanel = pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel
 
   return (
@@ -287,7 +284,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {showDebugPanel && <DebugPanel contextVariables={contextVariables} tests={getTests(contextVariables)} defaultExpandedKeys={['Context Variables']} />}
+      {showDebugPanel && <DebugPanel contextVariables={context} tests={getTests(getContext)} defaultExpandedKeys={['Context Variables']} />}
       <div id="tooltip-portal"></div>
     </div>
   )

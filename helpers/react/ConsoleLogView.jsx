@@ -26,6 +26,26 @@ type Props = {
 }
 
 /**
+ * Returns styles for log messages based on their type.
+ *
+ * @param {string} type - The type of the log message.
+ * @returns {Object} The style object for the log message.
+ */
+const getLogStyle = (type: string): { backgroundColor: string, color: string } => {
+  switch (type) {
+    case 'error':
+      return { backgroundColor: 'white', color: 'red' }
+    case 'info':
+      return { backgroundColor: 'white', color: 'blue' }
+    case 'logStart':
+    case 'logEnd':
+      return { backgroundColor: 'paleyellow', color: 'black' }
+    default:
+      return { backgroundColor: 'white', color: 'black' }
+  }
+}
+
+/**
  * ConsoleLogView component displays console logs with filtering, searching, and auto-scrolling capabilities.
  *
  * @param {Props} props - The props for the component.
@@ -191,15 +211,15 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
       const isMatch = matchesSearch(line)
       const isSelected = index === searchIndex
       const className = getClassNameFromMessage(line)
-      const color = log.type === 'error' ? 'red' : log.type === 'info' ? 'blue' : 'black'
+      const style = getLogStyle(log.type)
       return (
         <div
           key={index}
           className={className}
           style={{
-            backgroundColor: isSelected ? '#ffff99' : index % 2 === 0 ? '#ffffff' : '#f9f9f9',
+            ...style,
+            backgroundColor: isSelected ? '#ffff99' : index % 2 === 0 ? style.backgroundColor : '#f9f9f9',
             padding: '2px 5px',
-            color,
           }}
         >
           {isMatch ? <span dangerouslySetInnerHTML={{ __html: highlightMatch(line) }}></span> : line}
@@ -208,6 +228,15 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
       )
     })
   }, [filteredLogs, matchesSearch, searchIndex, highlightMatch, getClassNameFromMessage])
+
+  const handleSearchKeyDown = useCallback(
+    (e: SyntheticKeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        findNext()
+      }
+    },
+    [findNext],
+  )
 
   return (
     <div style={{ fontFamily: 'monospace', fontSize: '11pt', width: '100%' }}>
@@ -224,7 +253,15 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         {/* Search */}
         <div style={{ marginRight: '20px', display: 'flex', alignItems: 'center' }}>
           <label style={{ marginRight: '5px' }}>Search:</label>
-          <input ref={searchInputRef} type="text" value={searchText} onChange={handleSearchChange} placeholder="Search logs" style={{ marginRight: '5px' }} />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchText}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search logs"
+            style={{ marginRight: '5px' }}
+          />
           <button onClick={() => setUseRegexSearch(!useRegexSearch)} style={toggleButtonStyle(useRegexSearch)}>
             .*
           </button>

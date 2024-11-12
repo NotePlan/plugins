@@ -1,6 +1,9 @@
 // DebugPanel.jsx
 // @flow
 
+// FIXME: (dbw): Tests lose context variables when they are run. context stays stale and wrong. Context is correct on next test run. Have tried AI and can't get it to work.
+// For now, use smaller sequential tests to set the states and then let the next test run to test the updated context variables.
+
 import React, { useState, useEffect, useRef } from 'react'
 import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
 import { timer } from '@helpers/dev'
@@ -30,6 +33,9 @@ type Results = {
   [string]: TestResult,
 }
 
+// Methods to override
+const methodsToOverride = ['log', 'error', 'info']
+
 type Props = {
   defaultExpandedKeys?: Array<string>,
   contextVariables: { [key: string]: any },
@@ -50,6 +56,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
   const originalConsoleMethodsRef = useRef({})
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     console.log('DebugPanel: starting up before the console methods override')
@@ -70,17 +77,18 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
           }
         })
 
-        const message = messageParts.join(' ')
+        const message = messageParts.join(', ')
         const timestamp = new Date()
-        setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data, type: methodName }])
+
+        // Defer the state update to avoid updating during render (was causing a warning -- this just allows a tick for rendering to finish before a setState is called)
+        setTimeout(() => {
+          setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data, type: methodName }])
+        }, 0)
 
         // Call the original console method
         originalMethod.apply(console, args)
       }
     }
-
-    // Methods to override
-    const methodsToOverride = ['log', 'error', 'info']
 
     methodsToOverride.forEach((methodName) => {
       overrideConsoleMethod(methodName)
@@ -168,8 +176,21 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
     return acc
   }, {})
 
+  // Scroll to bottom when a test starts and keep it there
+  useEffect(() => {
+    if (isRunning) {
+      const scrollToBottom = () => {
+        window.scrollTo(0, document.body.scrollHeight)
+      }
+      scrollToBottom()
+      const intervalId = setInterval(scrollToBottom, 100) // Keep scrolling to bottom every 100ms
+
+      return () => clearInterval(intervalId) // Clear interval when test stops
+    }
+  }, [isRunning])
+
   return (
-    <div style={{ height: '100vh', borderTop: '1px solid #ccc' }}>
+    <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
       <PanelGroup direction="horizontal">
         {/* Left Pane: Context Variables */}
         <Panel defaultSize={25} minSize={10}>
