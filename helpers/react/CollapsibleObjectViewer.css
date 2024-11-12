@@ -1,0 +1,27 @@
+/* CollapsibleObjectViewer.css */
+
+.collapsible-object-viewer {
+
+    .highlighted {
+        background-color: #fff064b7 !important; /* Yellow for search highlights */
+    }
+
+    .property {
+        margin-left: 10px;
+    }
+
+    .changed {
+        background-color: #ffcccc; /* Red for changes */
+    }
+
+
+
+    .value {
+        display: inline-block;
+    }
+
+    .expandable .toggle {
+        cursor: pointer;
+    }
+
+}

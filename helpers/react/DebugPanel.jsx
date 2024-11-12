@@ -10,6 +10,7 @@ import { timer } from '@helpers/dev'
 import ConsoleLogView from '@helpers/react/ConsoleLogView'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import './DebugPanel.css'
+import SearchBox from '@helpers/react/SearchBox'
 
 type LogEntry = {
   message: string,
@@ -57,6 +58,11 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
   const originalConsoleMethodsRef = useRef({})
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [highlightRegex, setHighlightRegex] = useState<string>('')
+  const [useRegex, setUseRegex] = useState<boolean>(false)
+  const [expandToShow, setExpandToShow] = useState<boolean>(false)
+  const [filter, setFilter] = useState<boolean>(true)
+  const resetViewerRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     console.log('DebugPanel: starting up before the console methods override')
@@ -189,6 +195,14 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
     }
   }, [isRunning])
 
+  const handleReset = () => {
+    setHighlightRegex('')
+    setUseRegex(false)
+    setExpandToShow(false)
+    setFilter(true)
+    resetViewerRef.current()
+  }
+
   return (
     <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
       <PanelGroup direction="horizontal">
@@ -203,7 +217,26 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
             }}
           >
             <h3>Context</h3>
-            <CollapsibleObjectViewer data={contextVariablesWithoutFunctions} name="Context Variables" startExpanded={false} defaultExpandedKeys={defaultExpandedKeys} />
+            <SearchBox
+              onSearchChange={setHighlightRegex}
+              onToggleRegex={setUseRegex}
+              onToggleExpand={setExpandToShow}
+              onToggleFilter={setFilter}
+              onReset={handleReset}
+              useRegex={useRegex}
+              expandToShow={expandToShow}
+              filter={filter}
+            />
+            <CollapsibleObjectViewer
+              data={contextVariablesWithoutFunctions}
+              name="Context Variables"
+              startExpanded={false}
+              defaultExpandedKeys={defaultExpandedKeys}
+              highlightRegex={highlightRegex}
+              expandToShowHighlight={expandToShow}
+              filter={filter}
+              onReset={(reset) => (resetViewerRef.current = reset)}
+            />
           </div>
         </Panel>
         <PanelResizeHandle />

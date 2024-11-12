@@ -4,12 +4,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import isEqual from 'lodash/isEqual'
 import { compareObjects } from '@helpers/dev'
+import './CollapsibleObjectViewer.css'
 
 type Props = {
   data: any,
   name?: string,
   startExpanded?: boolean,
   defaultExpandedKeys?: Array<string>,
+  highlightRegex?: string,
+  expandToShowHighlight?: boolean,
+  filter?: boolean,
+  onReset: () => void,
 }
 
 type CollapsedPaths = {
@@ -20,7 +25,16 @@ type HighlightedPaths = {
   [string]: boolean,
 }
 
-const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpanded = false, defaultExpandedKeys = [] }: Props): React.Node => {
+const CollapsibleObjectViewer = ({
+  data,
+  name = 'Context Variables',
+  startExpanded = false,
+  defaultExpandedKeys = [],
+  highlightRegex = '',
+  expandToShowHighlight = false,
+  filter = false,
+  onReset,
+}: Props): React.Node => {
   const initializeOpenedPaths = (obj: any, path: string): CollapsedPaths => {
     let openedPaths: CollapsedPaths = {}
 
@@ -46,6 +60,7 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
   }
 
   const [highlightedPaths, setHighlightedPaths] = useState<HighlightedPaths>({})
+  const [changedPaths, setChangedPaths] = useState<HighlightedPaths>({})
   const [tooltip, setTooltip] = useState<{ visible: boolean, content: string }>({
     visible: false,
     content: '',
@@ -56,65 +71,42 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
   // Memoize the data prop to prevent unnecessary re-renders
   const memoizedData = useMemo(() => data, [JSON.stringify(data)])
 
-  // TODO: We should clean up openedPaths when the data changes to keep paths that don't exist anymore out of the openedPaths
-  // But this was causing an endless loop because maybe data updates on every render, I don't know.
-  // may need to figure out if/why data changes on every render
-  // So for now, we'll just not clean up openedPaths.
-  // useEffect to clean up openedPaths
-  //   useEffect(() => {
-  //     console.log('COV Effect triggered: Cleaning up openedPaths')
-
-  //     const cleanOpenedPaths = (obj: any, path: string, paths: CollapsedPaths): CollapsedPaths => {
-  //       if (!obj || typeof obj !== 'object') {
-  //         console.log('COV Cleaning up openedPaths: Not an object')
-  //         return {}
-  //       }
-
-  //       let validPaths: CollapsedPaths = {}
-  //       Object.keys(obj).forEach((key) => {
-  //         const currentPath = `${path}:${key}`
-  //         if (paths[currentPath]) {
-  //           validPaths[currentPath] = true
-  //         }
-  //         validPaths = {
-  //           ...validPaths,
-  //           ...cleanOpenedPaths(obj[key], currentPath, paths),
-  //         }
-  //       })
-  //       return validPaths
-  //     }
-
-  //     const cleanedPaths = cleanOpenedPaths(memoizedData, name, openedPathsRef.current)
-
-  //     console.log('COV Current openedPaths:', openedPathsRef.current)
-  //     console.log('COV Cleaned paths:', cleanedPaths)
-
-  //     if (!isEqual(openedPathsRef.current, cleanedPaths)) {
-  //       console.log(`COV Updating openedPaths with cleaned paths ${compareObjects(openedPathsRef.current, cleanedPaths)}`)
-  //       openedPathsRef.current = cleanedPaths
-  //     }
-  //   }, [memoizedData, name]) // Dependencies include memoizedData and name
-
   useEffect(() => {
     const newHighlightedPaths: HighlightedPaths = {}
+    const newChangedPaths: HighlightedPaths = {}
+
     const checkChanges = (obj: any, path: string) => {
       if (!obj || typeof obj !== 'object') return
       Object.keys(obj).forEach((key) => {
         const currentPath = `${path}:${key}`
         if (JSON.stringify(obj[key]) !== JSON.stringify(memoizedData[key]) && memoizedData[key] !== undefined) {
+          newChangedPaths[currentPath] = true
+          setTimeout(() => {
+            setChangedPaths((prev) => {
+              const updated = { ...prev }
+              delete updated[currentPath]
+              return updated
+            })
+          }, 1000) // 1 second highlight
+        }
+        if ((highlightRegex && new RegExp(highlightRegex.trim(), 'i').test(key)) || new RegExp(highlightRegex.trim(), 'i').test(JSON.stringify(obj[key]))) {
           newHighlightedPaths[currentPath] = true
+          if (expandToShowHighlight) {
+            let pathParts = currentPath.split(':')
+            while (pathParts.length > 0) {
+              const partialPath = pathParts.join(':')
+              openedPathsRef.current[partialPath] = true
+              pathParts.pop()
+            }
+          }
         }
         checkChanges(obj[key], currentPath)
       })
     }
     checkChanges(memoizedData, name)
-    setHighlightedPaths((prev) => {
-      if (!isEqual(prev, newHighlightedPaths)) {
-        return newHighlightedPaths
-      }
-      return prev
-    })
-  }, [memoizedData, name])
+    setHighlightedPaths(newHighlightedPaths)
+    setChangedPaths(newChangedPaths)
+  }, [memoizedData, name, highlightRegex, expandToShowHighlight])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -169,7 +161,7 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
         console.log(`COV Toggling child: ${key}`)
         const currentPath = `${parentPath}:${key}`
         if (parentPath === path || toggleAll) {
-          openedPathsRef.current[currentPath] = !openedPathsRef.current[currentPath]
+          openedPathsRef.current[currentPath] = true // for now trying not a toggle but a force open. was: !openedPathsRef.current[currentPath]
         }
 
         if (toggleAll) {
@@ -194,43 +186,15 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
 
   const renderObject = (obj: any, path: string): React.Node => {
     if (!isObject(obj)) {
+      const isHighlighted = highlightedPaths[path]
+      const isChanged = changedPaths[path]
+      if (filter && !isHighlighted) return null
+
       return (
-        <div className={`${path.split(':')[0]} property-${path.replace(/:/g, '-')}`}>
-          <span>{JSON.stringify(obj)}</span>
+        <div className={`property-${path.replace(/:/g, '-')} ${isChanged ? 'changed' : ''}`}>
+          <div className="value">{JSON.stringify(obj)}</div>
         </div>
       )
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item, index) => {
-        const currentPath = `${path}:${index}`
-        const isExpandable = isObject(item)
-        const isCollapsed = !openedPathsRef.current[currentPath]
-
-        return (
-          <div
-            key={currentPath}
-            className={`${path.split(':')[0]} property-${currentPath.replace(/:/g, '-')}`}
-            style={{
-              marginLeft: 20,
-              backgroundColor: highlightedPaths[currentPath] ? '#ffffe0' : 'transparent',
-            }}
-          >
-            {isExpandable ? (
-              <div>
-                <div onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
-                  {isCollapsed ? '▶' : '▼'} [{index}]
-                </div>
-                {!isCollapsed && renderObject(item, currentPath)}
-              </div>
-            ) : (
-              <div>
-                [{index}]: <span>{JSON.stringify(item)}</span>
-              </div>
-            )}
-          </div>
-        )
-      })
     }
 
     // Sort the keys alphabetically
@@ -241,27 +205,34 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
       const isExpandable = isObject(value)
       const currentPath = `${path}:${key}`
       const isCollapsed = !openedPathsRef.current[currentPath]
+      const isHighlighted = highlightedPaths[currentPath]
+      const isChanged = changedPaths[currentPath]
 
+      if (filter && !isHighlighted && isCollapsed) return null
+      const classReplacer = (str: string) =>
+        str
+          .replace(/[^a-zA-Z]/g, '')
+          .replace(/ /g, '-')
+          .replace(/:/g, ' ')
       return (
         <div
           key={currentPath}
-          className={`property-${currentPath.replace(/:/g, '-')}`}
+          className={`property ${classReplacer(currentPath)}`}
           style={{
-            marginLeft: 20,
-            backgroundColor: highlightedPaths[currentPath] ? '#ffffe0' : 'transparent',
+            marginLeft: 10,
           }}
         >
           {isExpandable ? (
-            <div>
-              <div onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
+            <div className="expandable">
+              <div className="toggle" onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
                 {isCollapsed ? '▶' : '▼'} <strong>{key}</strong>
               </div>
               {!isCollapsed && renderObject(value, currentPath)}
             </div>
           ) : (
-            <div>
+            <div className={`property-line ${classReplacer(currentPath)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : ''}`}>
               <strong>{key}: </strong>
-              <span>{JSON.stringify(value)}</span>
+              <span className="value">{JSON.stringify(value)}</span>
             </div>
           )}
         </div>
@@ -271,8 +242,18 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
 
   const rootIsCollapsed = !openedPathsRef.current[name]
 
+  // Reset function to reset the opened paths
+  const reset = () => {
+    openedPathsRef.current = initializeOpenedPaths(data, name)
+  }
+
+  // Call the onReset function when the component mounts
+  useEffect(() => {
+    onReset && onReset()
+  }, [onReset])
+
   return (
-    <div onMouseEnter={() => setIsMouseOver(true)} onMouseLeave={() => setIsMouseOver(false)} style={{ position: 'relative' }}>
+    <div className="collapsible-object-viewer" onMouseEnter={() => setIsMouseOver(true)} onMouseLeave={() => setIsMouseOver(false)} style={{ position: 'relative' }}>
       {tooltip.visible && (
         <div
           style={{
@@ -292,7 +273,7 @@ const CollapsibleObjectViewer = ({ data, name = 'Context Variables', startExpand
       <div onClick={(e) => toggleCollapse(name, e)} style={{ cursor: 'pointer', fontWeight: 'bold' }}>
         {rootIsCollapsed ? '▶' : '▼'} {name}
       </div>
-      {!rootIsCollapsed && <div style={{ marginLeft: 20 }}>{renderObject(memoizedData, name)}</div>}
+      {!rootIsCollapsed && <div style={{ marginLeft: 10 }}>{renderObject(memoizedData, name)}</div>}
     </div>
   )
 }
