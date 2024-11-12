@@ -47,7 +47,7 @@ export const runTestWithTiming = async (testFunction: () => Promise<TestResult>)
 
 /**
  * Waits for a specified time or until a condition is met.
- *
+ * REMEMBER to get context variables again after the waitFor statement if you want to see updates
  * @param {number | () => boolean} conditionOrTime - The condition to check or the time to wait in milliseconds.
  * @param {string} [conditionDesc=''] - A description of the condition, used in error messages.
  * @param {number} [timeout=5000] - The maximum time to wait in milliseconds if a condition is provided.

@@ -1,5 +1,12 @@
 // @flow
 
+/*
+ * Tests for Dashboard
+ * NOTES:
+ * - do not destructure the context va
+ * - context variables are fixed at the test runtime. so if you have a waitFor statement, get the context variable again after it. See the sample test.
+ */
+
 import { expect } from '@helpers/testing/expect'
 import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
 import { clo, logDebug } from '@helpers/react/reactDev'
@@ -29,18 +36,19 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
     {
       name: 'Sample Test will always pass after 1s',
       test: async (): Promise<void> => {
-        const context = getContext()
-        console.log('Sample log entries')
-        await waitFor(1000)
+        let { dashboardSettings } = getContext()
+        console.log('Do some test here that updates dashboardSettings in some way') // then wait
+        await waitFor(1000) // After 1s context will be stale after this
+        dashboardSettings = getContext() // so get the latest context after the waitFor
         const foo = true
-        console.log('this is a debug log first field', '2nd field', context.dashboardSettings)
-        expect(foo).toBe(true, 'foo') // Example assertion
+        console.log('this is a debug log first field', '2nd field', dashboardSettings)
+        expect(foo).toBe(true, 'foo') // Example assertion (tell it the variable name in the 2nd parameter)
       },
     },
     {
-      name: 'Test Switch to Perspective to Home and then to Work',
+      name: 'Perspective: Switch to Home',
       test: async (): Promise<void> => {
-        const context = getContext()
+        let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
         sendActionToPlugin(
           'switchToPerspective',
@@ -52,37 +60,40 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
           `Perspective changed to Home`,
         )
         // wait for the perspective to be switched to Home
-        await waitFor(
-          () => {
-            const updatedSettings = context.perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true && p.isModified === false)
-            return updatedSettings !== undefined
-          },
-          `Wait for active perspective to be switched to Home`,
-          2000,
-        ) // Add a timeout to prevent indefinite waiting
-        console.log('got through 1')
-        // then change it back to Work
+        await waitFor(2000) // context will be stale after this
+        context = getContext() // so get the latest context after the waitFor
+        const updatedPerspective = context.perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true && p.isModified === false)
+        expect(updatedPerspective).not.toBeUndefined('Active home perspective')
+      },
+    },
+    {
+      name: 'Perspective: Switch to Work',
+      test: async (): Promise<void> => {
+        let context = getContext()
+        const sendActionToPlugin = context.sendActionToPlugin
+        // now change it back to Work
         sendActionToPlugin(
           'switchToPerspective',
           {
             perspectiveName: 'Work',
             actionType: 'switchToPerspective',
-            logMessage: `Perspective changed to Home`,
+            logMessage: `Perspective changed to Work`,
           },
           `Perspective changed to Work`,
         )
-        // this time wait 3s
-        await waitFor(3000)
-
+        await waitFor(2000)
+        context = getContext() // so get the latest context after the waitFor
         // check another way that the perspective is switched to Work
         const updatedSettings = context.perspectiveSettings.find((p) => p.name === 'Work' && p.isActive === true)
-        expect(updatedSettings).not.toBeUndefined('updatedSettings')
+        expect(updatedSettings).not.toBeUndefined('Work .isActive') // make sure Work is active
+        const updatedSettings2 = context.perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true)
+        expect(updatedSettings2).toBeUndefined('Home .isActive') // make sure Home is active
       },
     },
     {
       name: `Set Dashboard Settings in plugin (turn all sections off)`,
       test: async (): Promise<void> => {
-        const context = getContext()
+        let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
         const currentDashboardSettings = { ...context.dashboardSettings }
         // set all settings that start with show to false
@@ -102,7 +113,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
 
         // await waitFor(() => context.dashboardSettings.showProjectSection === newSetting, 2000) // Add a timeout to prevent indefinite waiting
         await waitFor(2000) // Add a timeout to prevent indefinite waiting
-
+        context = getContext() // so get the latest context after the waitFor
         console.log(`waitied for 2s and here is dashboardSettings`, context.dashboardSettings)
         expect(context.dashboardSettings.showProjectSection).toBe(false, 'dashboardSettings.showProjectSection')
       },
@@ -119,7 +130,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
             acc[key] = true
           }
           return acc
-        }, {})
+        }, currentDashboardSettings)
         newDashboardSettings.lastChange = `Turning all sections on`
         newDashboardSettings.showPrioritySection = false // this one is too slow to turn on
         const mbo = {
@@ -139,7 +150,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
     {
       name: `Set Dashboard Settings in react (turn all sections off -- false)`,
       test: async (): Promise<void> => {
-        const context = getContext()
+        let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
         const currentDashboardSettings = { ...context.dashboardSettings }
         // set all settings that start with show to false
@@ -155,6 +166,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
         // await waitFor(() => context.dashboardSettings.showProjectSection === newSetting, 2000) // Add a timeout to prevent indefinite waiting
         await waitFor(2000) // Add a timeout to prevent indefinite waiting
 
+        context = getContext()
         console.log(`waitied for 2s and here is dashboardSettings`, context.dashboardSettings)
         // check that all show* settings are false
         Object.keys(context.dashboardSettings).forEach((key) => {
@@ -168,7 +180,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
     {
       name: `Set Dashboard Settings in react (turn all sections on -- true)`,
       test: async (): Promise<void> => {
-        const context = getContext()
+        let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
         // Set all settings that start with 'show' to true
         const newDashboardSettings = {
@@ -193,21 +205,28 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
         await waitFor(1000)
         console.log('after 1s, here is dashboardSettings', context.dashboardSettings)
         // Wait for the dashboardSettings to update
-        await waitFor(
-          () => {
-            const updatedContext = getContext()
-            return Object.keys(updatedContext.dashboardSettings).every((key) => {
-              if (key.startsWith('show') && key !== 'showPrioritySection') {
-                console.log(`key: ${key}, current value: ${updatedContext.dashboardSettings[key]}`)
-                return updatedContext.dashboardSettings[key] === true
-              }
-              return true
-            })
-          },
-          'All show* settings to be true',
-          5000,
-          100,
-        )
+        // await waitFor(
+        //   () => {
+        //     const updatedContext = getContext()
+        //     return Object.keys(updatedContext.dashboardSettings).every((key) => {
+        //       if (key.startsWith('show') && key !== 'showPrioritySection') {
+        //         console.log(`key: ${key}, current value: ${updatedContext.dashboardSettings[key]}`)
+        //         return updatedContext.dashboardSettings[key] === true
+        //       }
+        //       return true
+        //     })
+        //   },
+        //   'All show* settings to be true',
+        //   5000,
+        //   100,
+        // )
+        context = getContext()
+        Object.keys(context.dashboardSettings).forEach((key) => {
+          if (key.startsWith('show') && key !== 'showPrioritySection') {
+            console.log(`key: ${key}, current value: ${context.dashboardSettings[key]}`)
+            expect(context.dashboardSettings[key]).toBe(true, `dashboardSettings.${key}`)
+          }
+        })
 
         console.log(`After waiting, here is dashboardSettings:`)
         console.log(context.dashboardSettings)
