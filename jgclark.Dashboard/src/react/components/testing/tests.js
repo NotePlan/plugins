@@ -36,12 +36,12 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
     {
       name: 'Sample Test will always pass after 1s',
       test: async (): Promise<void> => {
-        let { dashboardSettings } = getContext()
+        let context = getContext()
         console.log('Do some test here that updates dashboardSettings in some way') // then wait
         await waitFor(1000) // After 1s context will be stale after this
-        dashboardSettings = getContext() // so get the latest context after the waitFor
+        context = getContext() // get the latest context after the waitFor
         const foo = true
-        console.log('this is a debug log first field', '2nd field', dashboardSettings)
+        console.log('this is a debug log first field', '2nd field', context.dashboardSettings, getContext().dashboardSettings) // should be the same
         expect(foo).toBe(true, 'foo') // Example assertion (tell it the variable name in the 2nd parameter)
       },
     },
@@ -62,7 +62,8 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
         // wait for the perspective to be switched to Home
         await waitFor(2000) // context will be stale after this
         context = getContext() // so get the latest context after the waitFor
-        const updatedPerspective = context.perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true && p.isModified === false)
+        // or just include the call in the expect statement
+        const updatedPerspective = getContext().perspectiveSettings.find((p) => p.name === 'Home' && p.isActive === true && p.isModified === false)
         expect(updatedPerspective).not.toBeUndefined('Active home perspective')
       },
     },
@@ -243,7 +244,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
     {
       name: `Test Set Dashboard Settings - Toggle Projects Section (${getContext().dashboardSettings.showProjectSection} to ${!getContext().dashboardSettings.showProjectSection})`,
       test: async (): Promise<void> => {
-        const context = getContext()
+        let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
         const prevSetting = context.dashboardSettings.showProjectSection
         const newSetting = !prevSetting
@@ -259,11 +260,10 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
         console.log(`sending this mbo to the plugin`, mbo)
         sendActionToPlugin('dashboardSettingsChanged', mbo, `Changing showProjectSection setting to ${newSetting}`)
 
-        // Wait for the dashboardSettings to update
-        await waitFor(() => context.dashboardSettings.showProjectSection === newSetting, 5000)
+        // Wait for the dashboardSettings to update -- continue to wait until the condition is true (or default timeout of 5s)
+        await waitFor(() => getContext().dashboardSettings.showProjectSection === newSetting, 'dashboardSettings.showProjectSection')
 
-        console.log(`After wait, dashboardSettings:`, context.dashboardSettings)
-        expect(context.dashboardSettings.showProjectSection).toBe(newSetting, 'dashboardSettings.showProjectSection')
+        expect(getContext().dashboardSettings.showProjectSection).toBe(newSetting, 'dashboardSettings.showProjectSection')
       },
     },
   ]
