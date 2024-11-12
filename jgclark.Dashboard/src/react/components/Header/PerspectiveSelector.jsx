@@ -162,6 +162,10 @@ const PerspectiveSelector = (): React$Node => {
     } else {
       const thisPersp = getActivePerspectiveDef(perspectiveSettings)
       logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `perspectiveNameOptions unchanged. Not updating dropdown options.HHH thisPersp=${JSON.stringify(thisPersp)}`)
+      if (thisPersp && thisPersp?.name !== activePerspectiveName) {
+        logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Active perspective changed to: "${thisPersp?.name || '-'}"`)
+        dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: thisPersp?.name || '-' })
+      }
     }
   }, [perspectiveSettings])
 
