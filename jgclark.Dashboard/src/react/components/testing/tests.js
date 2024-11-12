@@ -46,7 +46,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
       },
     },
     {
-      name: 'Perspective: Switch to Home',
+      name: 'Perspective: Switch to Home (via plugin)',
       test: async (): Promise<void> => {
         let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
@@ -67,7 +67,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
       },
     },
     {
-      name: 'Perspective: Switch to Work',
+      name: 'Perspective: Switch to Work (via plugin)',
       test: async (): Promise<void> => {
         let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
