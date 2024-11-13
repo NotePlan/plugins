@@ -14,7 +14,7 @@ type Props = {
   highlightRegex?: string,
   expandToShowHighlight?: boolean,
   filter?: boolean,
-  onReset: () => void,
+  onReset?: (reset: () => void) => void,
 }
 
 type CollapsedPaths = {
@@ -25,6 +25,8 @@ type HighlightedPaths = {
   [string]: boolean,
 }
 
+const EXPAND_CHILDREN_OF_FILTERED_MATCH = true
+
 const CollapsibleObjectViewer = ({
   data,
   name = 'Context Variables',
@@ -33,7 +35,7 @@ const CollapsibleObjectViewer = ({
   highlightRegex = '',
   expandToShowHighlight = false,
   filter = false,
-  onReset,
+  onReset = () => {},
 }: Props): React.Node => {
   const initializeOpenedPaths = (obj: any, path: string): CollapsedPaths => {
     let openedPaths: CollapsedPaths = {}
@@ -67,6 +69,8 @@ const CollapsibleObjectViewer = ({
   })
   const [isMouseOver, setIsMouseOver] = useState<boolean>(false)
   const openedPathsRef = useRef<CollapsedPaths>(initializeOpenedPaths(data, name))
+  // Dummy state to force re-render
+  const [, setRenderTrigger] = useState(0)
 
   // Memoize the data prop to prevent unnecessary re-renders
   const memoizedData = useMemo(() => data, [JSON.stringify(data)])
@@ -75,11 +79,20 @@ const CollapsibleObjectViewer = ({
     const newHighlightedPaths: HighlightedPaths = {}
     const newChangedPaths: HighlightedPaths = {}
 
+    const trimmedRegex = highlightRegex.trim()
+    if (trimmedRegex === '') {
+      setHighlightedPaths({})
+      return
+    }
+
     const checkChanges = (obj: any, path: string) => {
       if (!obj || typeof obj !== 'object') return
       Object.keys(obj).forEach((key) => {
         const currentPath = `${path}:${key}`
-        if (JSON.stringify(obj[key]) !== JSON.stringify(memoizedData[key]) && memoizedData[key] !== undefined) {
+        const value = obj[key]
+
+        // Check for changes
+        if (JSON.stringify(value) !== JSON.stringify(memoizedData[key]) && memoizedData[key] !== undefined) {
           newChangedPaths[currentPath] = true
           setTimeout(() => {
             setChangedPaths((prev) => {
@@ -89,10 +102,27 @@ const CollapsibleObjectViewer = ({
             })
           }, 1000) // 1 second highlight
         }
-        if ((highlightRegex && new RegExp(highlightRegex.trim(), 'i').test(key)) || new RegExp(highlightRegex.trim(), 'i').test(JSON.stringify(obj[key]))) {
+
+        // Check for matches
+        const regex = new RegExp(trimmedRegex, 'i')
+        const isPathSearch = trimmedRegex.includes(':')
+        const pathMatch = isPathSearch && regex.test(currentPath)
+        const keyOrValueMatch = !isPathSearch && (regex.test(key) || (value && regex.test(String(value))))
+
+        if (pathMatch || keyOrValueMatch) {
+          console.log(`COV Highlighting path: "${currentPath} key=\"${key}\"" ${pathMatch ? 'pathMatch' : ''} ${keyOrValueMatch ? 'keyOrValueMatch' : ''}`)
           newHighlightedPaths[currentPath] = true
+
+          // Ensure all parent paths are highlighted
+          let pathParts = currentPath.split(':')
+          while (pathParts.length > 0) {
+            const partialPath = pathParts.join(':')
+            newHighlightedPaths[partialPath] = true
+            pathParts.pop()
+          }
+
           if (expandToShowHighlight) {
-            let pathParts = currentPath.split(':')
+            pathParts = currentPath.split(':')
             while (pathParts.length > 0) {
               const partialPath = pathParts.join(':')
               openedPathsRef.current[partialPath] = true
@@ -100,13 +130,14 @@ const CollapsibleObjectViewer = ({
             }
           }
         }
-        checkChanges(obj[key], currentPath)
+        checkChanges(value, currentPath)
       })
     }
     checkChanges(memoizedData, name)
     setHighlightedPaths(newHighlightedPaths)
     setChangedPaths(newChangedPaths)
-  }, [memoizedData, name, highlightRegex, expandToShowHighlight])
+    setRenderTrigger((prev) => prev + 1) // Trigger re-render
+  }, [memoizedData, name, highlightRegex, expandToShowHighlight, filter])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -197,7 +228,6 @@ const CollapsibleObjectViewer = ({
       )
     }
 
-    // Sort the keys alphabetically
     const sortedKeys = Object.keys(obj).sort()
 
     return sortedKeys.map((key) => {
@@ -208,7 +238,9 @@ const CollapsibleObjectViewer = ({
       const isHighlighted = highlightedPaths[currentPath]
       const isChanged = changedPaths[currentPath]
 
-      if (filter && !isHighlighted && isCollapsed) return null
+      // Ensure that paths leading to a match are shown
+      if (filter && !isHighlighted) return null
+
       const classReplacer = (str: string) =>
         str
           .replace(/[^a-zA-Z]/g, '')
@@ -217,7 +249,7 @@ const CollapsibleObjectViewer = ({
       return (
         <div
           key={currentPath}
-          className={`property ${classReplacer(currentPath)}`}
+          className={`property ${classReplacer(currentPath)} ${isHighlighted ? 'highlighted' : ''}`}
           style={{
             marginLeft: 10,
           }}
@@ -249,7 +281,7 @@ const CollapsibleObjectViewer = ({
 
   // Call the onReset function when the component mounts
   useEffect(() => {
-    onReset && onReset()
+    onReset(reset)
   }, [onReset])
 
   return (

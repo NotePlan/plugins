@@ -61,7 +61,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
   const [highlightRegex, setHighlightRegex] = useState<string>('')
   const [useRegex, setUseRegex] = useState<boolean>(false)
   const [expandToShow, setExpandToShow] = useState<boolean>(false)
-  const [filter, setFilter] = useState<boolean>(true)
+  const [filter, setFilter] = useState<boolean>(false)
   const resetViewerRef = useRef<() => void>(() => {})
 
   useEffect(() => {
@@ -98,7 +98,6 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
 
     methodsToOverride.forEach((methodName) => {
       overrideConsoleMethod(methodName)
-      console.log(`DebugPanel: console.${methodName} override is active`)
     })
 
     return () => {
@@ -199,8 +198,10 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
     setHighlightRegex('')
     setUseRegex(false)
     setExpandToShow(false)
-    setFilter(true)
-    resetViewerRef.current()
+    setFilter(false)
+    if (resetViewerRef.current) {
+      resetViewerRef.current()
+    }
   }
 
   return (
@@ -218,7 +219,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, tests }: Props
           >
             <h3>Context</h3>
             <SearchBox
-              onSearchChange={setHighlightRegex}
+              onSearchChange={(text) => setHighlightRegex(text.trim())}
               onToggleRegex={setUseRegex}
               onToggleExpand={setExpandToShow}
               onToggleFilter={setFilter}
