@@ -182,7 +182,6 @@ const CollapsibleObjectViewer = ({
       ...openedPathsRef.current,
       [path]: !openedPathsRef.current[path],
     }
-    console.log(`COV New state after toggle: ${Object.keys(openedPathsRef.current).length} keys`)
 
     const toggleChildren = (obj: any, parentPath: string, toggleAll: boolean) => {
       if (!isObject(obj)) return
@@ -228,7 +227,11 @@ const CollapsibleObjectViewer = ({
       )
     }
 
-    const sortedKeys = Object.keys(obj).sort()
+    // Determine if the object is an array
+    const isArray = Array.isArray(obj)
+    const sortedKeys = isArray
+      ? Object.keys(obj).sort((a, b) => Number(a) - Number(b)) // Sort numerically if it's an array
+      : Object.keys(obj).sort() // Sort alphabetically if it's an object
 
     return sortedKeys.map((key) => {
       const value = obj[key]
@@ -305,7 +308,7 @@ const CollapsibleObjectViewer = ({
       <div onClick={(e) => toggleCollapse(name, e)} style={{ cursor: 'pointer', fontWeight: 'bold' }}>
         {rootIsCollapsed ? '▶' : '▼'} {name}
       </div>
-      {!rootIsCollapsed && <div style={{ marginLeft: 10 }}>{renderObject(memoizedData, name)}</div>}
+      {!rootIsCollapsed && <div style={{ marginLeft: 15 }}>{renderObject(memoizedData, name)}</div>}
     </div>
   )
 }

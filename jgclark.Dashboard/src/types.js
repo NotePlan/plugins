@@ -223,6 +223,7 @@ export type TActionType =
   | 'deletePerspective'
   | 'savePerspective'
   | 'savePerspectiveAs'
+  | 'evaluateString'
 
 export type TControlString =
   | 't'
@@ -265,6 +266,7 @@ export type MessageDataObject = {
   logMessage?: string,
   userInputObj?: TAnyObject,
   perspectiveName?: string,
+  stringToEvaluate?: string,
 }
 
 /**

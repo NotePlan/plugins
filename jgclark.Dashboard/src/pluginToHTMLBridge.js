@@ -35,6 +35,7 @@ import {
   refreshSomeSections,
   incrementallyRefreshSections,
   doCommsBridgeTest,
+  doEvaluateString,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
@@ -205,6 +206,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addProgress': {
         result = await doAddProgressUpdate(data)
+        break
+      }
+      case 'evaluateString': {
+        result = await doEvaluateString(data)
         break
       }
       // case 'windowResized': {

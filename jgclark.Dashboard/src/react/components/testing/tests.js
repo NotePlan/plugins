@@ -7,6 +7,9 @@
  * - context variables are fixed at the test runtime. so if you have a waitFor statement, get the context variable again after it. See the sample test.
  */
 
+// TODO:
+// - make a test that adds a perspective with exclude folders, switches to it, reads it checks a property and deletes it
+
 import { expect } from '@helpers/testing/expect'
 import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
 import { clo, logDebug } from '@helpers/react/reactDev'
@@ -31,6 +34,7 @@ type ContextType = {
 export const getTests = (getContext: () => ContextType): (Array<{ name: string, test: () => Promise<void> }>) => {
   // IMPORTANT NOTE: DO NOT DESTRUCTURE ANY CONTEXT VARIABLES THAT COULD CHANGE DURING THE TESTS
   // BECAUSE ONCE YOU DESTRUCTURE, THE VALUES ARE LOCKED AT THE TIME OF DESTRUCTION AND WILL NOT REFLECT ANY FUTURE CHANGES
+  // If you use getContext() in a waitFor or an expect, make sure to use it like ()=>getContext().dashboardSettings.showProjectSection etc (anonymous function)
 
   return [
     {
@@ -96,14 +100,13 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
       test: async (): Promise<void> => {
         let context = getContext()
         const sendActionToPlugin = context.sendActionToPlugin
-        const currentDashboardSettings = { ...context.dashboardSettings }
         // set all settings that start with show to false
-        const newDashboardSettings = Object.keys(currentDashboardSettings).reduce((acc, key) => {
+        const newDashboardSettings = Object.keys(context.dashboardSettings).reduce((acc, key) => {
           if (key.startsWith('show')) {
             acc[key] = false
           }
           return acc
-        }, {})
+        }, context.dashboardSettings)
         newDashboardSettings.lastChange = `Turning all sections off`
         const mbo = {
           actionType: `dashboardSettingsChanged`,
@@ -160,7 +163,7 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
             acc[key] = false
           }
           return acc
-        }, {})
+        }, currentDashboardSettings)
         newDashboardSettings.lastChange = `Turning all sections off (false)`
         context.dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newDashboardSettings })
 
@@ -263,7 +266,53 @@ export const getTests = (getContext: () => ContextType): (Array<{ name: string, 
         // Wait for the dashboardSettings to update -- continue to wait until the condition is true (or default timeout of 5s)
         await waitFor(() => getContext().dashboardSettings.showProjectSection === newSetting, 'dashboardSettings.showProjectSection')
 
-        expect(getContext().dashboardSettings.showProjectSection).toBe(newSetting, 'dashboardSettings.showProjectSection')
+        expect(() => getContext().dashboardSettings.showProjectSection).toBe(newSetting, 'dashboardSettings.showProjectSection')
+      },
+    },
+    {
+      name: `Test Evaluate String (create overdue task in project note and find it in the dashboard sectionItems)`,
+      test: async (): Promise<void> => {
+        const context = getContext()
+        const sendActionToPlugin = context.sendActionToPlugin
+        // create a string with JS API code to create an overdue task in the project note
+        const taskContent = 'This is a test of the evaluateString command >2000-01-01'
+        // NOTE: \n needs to be escaped
+        const stringToEvaluate = `
+            Editor.openNoteByFilename('zDELETEME/test-evaluateString.md', true, 0, 0, false, true, "# Created by Dasboard Test\\n* ${taskContent}"); 
+        `
+        const mbo = { actionType: 'evaluateString', stringToEvaluate: stringToEvaluate.trim() }
+        sendActionToPlugin('evaluateString', mbo, `Evaluating string: Creating overdue task`)
+        await waitFor(2000)
+        // make sure overdue is on and everything else is off
+        const currentDashboardSettings = getContext().dashboardSettings
+        const newDashboardSettings = Object.keys(currentDashboardSettings).reduce((acc, key) => {
+          if (key.startsWith('show')) {
+            acc[key] = false
+          }
+          return acc
+        }, {})
+        newDashboardSettings.showOverdueSection = true
+        newDashboardSettings.lastChange = `Turning all sections off`
+        newDashboardSettings.includedFolders = 'zDELETEME'
+        newDashboardSettings.excludedFolders = '@Templates, @Trash'
+        console.log(`sending dashboardSettingsChanged sendActionToPlugin to the plugin`)
+        getContext().dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newDashboardSettings })
+        // sendActionToPlugin('refresh', { actionType: 'refresh', sectionCodes: ['DO'] }, 'Refresh button clicked', true) // refresh the overdue section
+        // start waiting for the task we created in NP to come over to the overdue section
+        const anonFunc = () =>
+          getContext()
+            .pluginData?.sections?.find((section) => section.sectionCode === 'OVERDUE')
+            ?.sectionItems?.find((s, i) => {
+              return s.para.content === taskContent
+            })
+        anonFunc() // just for now to get the log
+        await waitFor(anonFunc, 'find overdue task we created')
+        expect(() =>
+          getContext()
+            .pluginData.sections.find((section) => section.sectionCode === 'OVERDUE')
+            .sectionItems.find((s) => s.para.content === taskContent)
+            .not.toBeUndefined('overdue task we created'),
+        )
       },
     },
   ]

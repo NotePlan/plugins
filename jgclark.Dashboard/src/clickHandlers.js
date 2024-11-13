@@ -201,6 +201,23 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   return handlerResult(true, [], { sectionItems: totalSectionItems })
 }
 
+export async function doEvaluateString(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { stringToEvaluate } = data
+  if (!stringToEvaluate) {
+    logError('doEvaluateString', 'No stringToEvaluate provided')
+    return handlerResult(false)
+  }
+  logDebug('doEvaluateString', `Evaluating string: "${stringToEvaluate}"`)
+  // use JS eval to evaluate the string
+  try {
+    const result = await eval(stringToEvaluate)
+    return handlerResult(true, [], { result })
+  } catch (error) {
+    logError('doEvaluateString', error.message)
+    return handlerResult(false, [], { errorMsg: error.message })
+  }
+}
+
 /**
  * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for.
  * Note: It only writes to Calendar notes, as that's only what Dashboard needs.
