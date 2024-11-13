@@ -310,7 +310,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      debug: true, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
       dataMode: 'live', // or 'demo' or ?'test'?
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
@@ -422,7 +422,6 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       case 'SHOW_BANNER':
         sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
-      // WEBVIEW_WINDOW_ID
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:

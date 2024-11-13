@@ -139,6 +139,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
+    sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
     return sections
   } catch (error) {
     logError('getSomeSectionDetails', error.message)

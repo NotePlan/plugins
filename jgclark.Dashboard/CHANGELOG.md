@@ -1,7 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-11 on
+## [Perspectives.a17 = 2.1.0.a17] @jgc, 2024-11-13
+- (jgc): new response type called "REFRESH_ALL_ENABLED_SECTIONS" and using that in place of "REFRESH_ALL_SECTIONS" in
+  - doMoveToNote -- fallback option in case paragraph can't be found
+  - doRescheduleItem
+- (jgc): Removed REFRESH_ALL_SECTIONS at end of doSettingsChanged(), as that also does a setPluginData() call, which I think triggers updates. Needs checking by DBW
+- (jgc): changed Dashboard component "startup only" useEffect to now only generate enabled sections. Updated this to handle new TimeBlock section which is generated and shown before Today section, when enabled.
+
+## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-13
 - (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)
 - (jgc): Made the "Nothing left on your list for today: take a break" display line show in the colour of a completed task, and gave the background of the section a subtle hue of the completed task color as well.
 - (jgc): ItemGrid.jsx has a flag you can set to turn on all sections having a subtle background hue taken from their title color.

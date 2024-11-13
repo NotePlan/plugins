@@ -97,12 +97,12 @@ export async function refreshAllSections(): Promise<void> {
   }
 }
 
+// FIXME: DBW thinks this generates way more updates than necessary
 /**
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
- * Today loads first and then this function is automatically called from a useEffect in
- * Dashboard.jsx to load the rest.
+ * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
@@ -119,12 +119,13 @@ export async function incrementallyRefreshSections(
     logError('incrementallyRefreshSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
+  logDebug('incrementallyRefreshSections', `Starting for ${sectionCodes.length} sections ${String(sectionCodes)}`)
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
   // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
+    logTimer(`clickHandlers`, start, `incrementallyRefreshSections getting ${sectionCode})`)
   }
 
   const updates: any = { refreshing: false }
@@ -133,16 +134,10 @@ export async function incrementallyRefreshSections(
   logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
-  // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
-    // V1 method
-    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
-    // const changedData = {
-    //   totalDoneCounts: totalDoneCounts,
-    // }
     // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`end of incrementallyRefreshSections([${sectionCodes.join(',')}])`)
+    const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSections (for [${sectionCodes.join(',')}])`)
     const changedData = {
       totalDoneCount: totalDoneCount,
     }
@@ -559,8 +554,8 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
       logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
       return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
     } else {
-      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all sections :-(`)
-      return handlerResult(true, ['REFRESH_ALL_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
+      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
+      return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
     }
   } else {
     return handlerResult(false)
@@ -641,7 +636,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
 
     // refresh whole display, as we don't know which if any section the moved task might need to be added to
     // logDebug('doRescheduleItem', `------------ refresh ------------`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_SECTIONS'], { updatedParagraph: thePara })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doRescheduleItem', `- some other failure`)
     return handlerResult(false)
@@ -680,25 +675,19 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     updatedPluginData.perspectiveSettings = data.perspectiveSettings
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+
+  // TEST:Unsure whether either of these is needed, as well as the setPluginData above:
+  // return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+  // return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
+  return handlerResult(true, [])
 }
 
-export async function doCommsBridgeTest(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   // send a banner message by failing the handler
   return await handlerResult(false, [], { errorMsg: `Success: This was sent from the plugin. Round trip works 5x5.` })
 }
 
-export async function doAddNewPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await addNewPerspective()
   return handlerResult(true, [])
 }
-
-// export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
-//   logDebug('turnOffPriorityItemsFilter', `starting ...`)
-//   const currentSettings = await getDashboardSettings()
-//   const updatedDashboardSettings = { ...currentSettings, filterPriorityItems: false }
-//   clo(updatedDashboardSettings, 'updatedDashboardSettings=')
-//   DataStore.settings.dashboardSettings = updatedDashboardSettings
-//   logDebug('turnOffPriorityItemsFilter', `------------ refresh ------------`)
-//   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
-// }

@@ -151,14 +151,15 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
   sectionsToShow.push('DT') // always show this
   if (config.showYesterdaySection) sectionsToShow.push('DY')
-  if (config.showTomorrowSection) sectionsToShow.push('DY')
+  if (config.showTomorrowSection) sectionsToShow.push('DO')
   if (config.showWeekSection) sectionsToShow.push('W')
   if (config.showMonthSection) sectionsToShow.push('M')
   if (config.showQuarterSection) sectionsToShow.push('Q')
   if (config.showProjectSection) sectionsToShow.push('PROJ')
-  if (config.tagsToShow) sectionsToShow.push('DY')
+  if (config.tagsToShow) sectionsToShow.push('TAG')
   if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
   if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
+  logDebug('getListOfEnabledSections', `sectionsToShow: ${String(sectionsToShow)}`)
   return sectionsToShow
 }
 

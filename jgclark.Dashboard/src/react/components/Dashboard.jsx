@@ -9,19 +9,20 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef } from 'react'
-// import type { TDashboardSettings } from '../../types.js'
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
-import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import { allSectionDetails, dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority } from "../../constants.js"
 import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
-import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
-import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
-import Header from './Header'
-import Section from './Section/Section.jsx'
-import Dialog from './Dialog.jsx'
-import IdleTimer from './IdleTimer.jsx'
+import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
+import { dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority } from "../../constants.js"
+import { getListOfEnabledSections } from '../../dashboardHelpers'
+import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
+import type { TSectionCode } from '../../types.js'
+// import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { useAppContext } from './AppContext.jsx'
+import Dialog from './Dialog.jsx'
+import Header from './Header'
+import IdleTimer from './IdleTimer.jsx'
+import Section from './Section/Section.jsx'
+import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import {compareObjects}  from '@helpers/dev'
 import '../css/Dashboard.css'
@@ -50,6 +51,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData
   } = useAppContext()
   const { sections: origSections, lastFullRefresh } = pluginData
+
+  const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
 
   const logSettings = pluginData.logSettings
 
@@ -148,22 +151,30 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     (dashboardSettings && Object.keys(dashboardSettings).length > 0) ? logChanges('dashboardSettings', dashboardSettings) : null
   }, [dashboardSettings])
+
   useEffect(() => {
     logChanges('reactSettings', reactSettings)
   }, [reactSettings])
+
   useEffect(() => {
     logChanges('pluginData', pluginData)
   }, [pluginData])
 
   // Load the rest of the content (Today section loads first)
+  // DBW: "Just runs once when it loads"
   useEffect(() => {
-    // if we did a force reload (DEV only) of the full sections data, no need to load the rest
-    // but if we are doing a normal load, then get the rest of the section data incrementally
-    // this executes before globalSharedData is saved into state 
-    logDebug('Dashboard/useEffect [] (startup only)', `lastFullRefresh: ${lastFullRefresh.toString()} and and sections.length: ${sections.length}`)
-    if (origSections.length <= 2) {
-      const sectionCodes = allSectionDetails.slice(1).map(s => s.sectionCode)
-      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes, logMessage: 'Assuming incremental refresh b/c sections.length <= 2' }, 'Dashboard loaded', true)
+    // If we did a force reload (DEV only) of the full sections data, no need to load the rest.
+    // But if we are doing a normal load, then get the rest of the section data incrementally.
+    // This executes before globalSharedData is saved into state 
+    logInfo('Dashboard/useEffect [] (startup only)', `lastFullRefresh: ${lastFullRefresh.toString()} and sections.length: ${sections.length}`)
+
+    // Note: changed from "<= 2" to "=== 1"
+    // TODO: DBW had an idea about a cleaner way to trigger this
+    if (origSections.length === 1) {
+      // Send all enabledSection codes other than the first one already shown
+      const sectionCodesToAdd = enabledSectionCodes.filter(sc => sc !== origSections[0].sectionCode)
+      logInfo('Dashboard/useEffect [] (startup only)', `- initial section is ${origSections[0].sectionCode}. sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
+      sendActionToPlugin('incrementallyRefreshSections', { actionType: 'incrementallyRefreshSections', sectionCodes: sectionCodesToAdd, logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1` }, 'Dashboard loaded', true)
     }
   }, [])
 
