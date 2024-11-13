@@ -44,7 +44,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Constants
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
-  const titleStyle = sectionFilename ? { cursor: 'pointer' } : {}
 
   //----------------------------------------------------------------------
   // Effects
@@ -62,9 +61,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
     let sectionItems = section.sectionItems
     if (!sectionItems || sectionItems.length === 0) {
-      switch (section.ID) {
-        case '0':
-          logDebug('Section', `Section 0 (DT) doesn't have any sectionItems, so display congrats message`)
+      switch (section.sectionCode) {
+        case 'DT':
+        case 'W':
+          logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
               ID: '0-Congrats',
@@ -72,7 +72,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
             },
           ]
           break
-        case '14':
+        case 'PROJ':
           logDebug('Section', `Section 14 (PROJ) doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
@@ -148,9 +148,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     ? section.actionButtons
     : section.actionButtons?.filter((b) => b.actionName.startsWith('move') || b.actionName.startsWith('scheduleAllOverdue')) || []
 
-  // If we have no data items to show (other than a congrats message), don't show most buttons
-  if (section.actionButtons && numItemsToShow === 1 && (itemsToShow[0].itemType === 'itemCongrats' || section.sectionCode === 'PROJ')) {
-    section.actionButtons = section.actionButtons.filter((b) => b.actionName.startsWith('add'))
+  // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
+  if (section.actionButtons && numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
+    section.actionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add'))
   }
 
   // Decrement the number of items to show if the last one is the filterIndicator
@@ -183,14 +183,27 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
   }
 
+  // If we have no data items to show (other than a congrats message), don't show description
+  const descriptionDiv = numItemsToShow > 0 ? (
+    <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
+  ) : (
+    <div></div>
+  )
+
   // Pluralise item in description if neccesary
   if (descriptionToUse.includes('{s}')) {
-    if (numItemsToShow !== 1) {
+    if (numItemsToShow !== 0) {
       descriptionToUse = descriptionToUse.replace('{s}', `s`)
     } else {
       descriptionToUse = descriptionToUse.replace('{s}', ``)
     }
   }
+
+  const titleStyle: Object = sectionFilename
+    ? { cursor: 'pointer' } : {}
+  titleStyle.color = section.sectionTitleColorPart
+    ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})`
+    : 'var(--item-icon-color)'
 
   return hideSection ? null : (
     <div className="section">
@@ -201,16 +214,17 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           label={`${section.name}_Open Note Link`}
           enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
         >
-          <div className={`${section.sectionTitleClass} sectionName`} onClick={handleSectionClick} style={titleStyle}>
+          <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
             <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
             {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
             {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
           </div>{' '}
         </TooltipOnKeyPress>
-        <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
+        {/* <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> */}
+        {descriptionDiv}
         <div className="sectionButtons">
           {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
-          {numItemsToShow > 1 && itemsToShow[0].itemType !== 'itemCongrats' && section.sectionCode !== 'PROJ' && dashboardSettings.enableInteractiveProcessing && (
+          {numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) /**&& section.sectionCode !== 'PROJ'*/ && dashboardSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
                 {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}

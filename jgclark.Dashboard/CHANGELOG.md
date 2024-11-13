@@ -3,7 +3,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 ## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-11 on
 - (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)
-
+- (jgc): Made the "Nothing left on your list for today: take a break" display line show in the colour of a completed task, and gave the background of the section a subtle hue of the completed task color as well.
+- (jgc): ItemGrid.jsx has a flag you can set to turn on all sections having a subtle background hue taken from their title color.
+- (jgc): new getListOfEnabledSections() dashboardHelpers function.
+ 
 ## [Perspectives.a15 = 2.1.0.a15] @jgc, 2024-11-10
 - (jgc): Added new 'Current Time Block' section at the top of the window. Prepared two slightly different layouts for it.
 - (jgc): Lots of refactoring of the timeblocks.js helper functions, added new ones, and made sure they respect NP's 'timeblockTextMustContain' NP preference, which was added after most of our plugin work on time blocks.

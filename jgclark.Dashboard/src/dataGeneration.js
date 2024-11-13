@@ -16,6 +16,7 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers.
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   getDashboardSettings,
+  getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
@@ -75,19 +76,25 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     const config: any = await getDashboardSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
 
-    let sections: Array<TSection> = []
-    if (forceLoadAll || config.showTimeBlockSection) sections.push(getTimeBlockSectionData(config, useDemoData))
-    sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    // out of display order, but quicker to generate
-    if (forceLoadAll || config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
-    if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
-    if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+    // V1
+    // if (forceLoadAll || config.showTimeBlockSection) sections.push(getTimeBlockSectionData(config, useDemoData))
+    // sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+    // // out of display order, but quicker to generate
+    // if (forceLoadAll || config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
+    // if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+    // if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    // if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+
+    // V2
+    // Work out which sections to show
+    const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
+    logInfo('getAllSectionDetails', `${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
+    const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible)
 
     return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
   } catch (error) {
@@ -251,7 +258,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sectionCode: thisSectionCode,
       description: `{count} from ${todayDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-star',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
@@ -337,7 +344,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-star',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
@@ -428,7 +435,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sectionCode: thisSectionCode,
       description: `{count} from ${yesterdayDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-arrow-up',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -481,7 +488,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-star',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -568,7 +575,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       sectionCode: thisSectionCode,
       description: `{count} from ${tomorrowDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-arrow-down',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -611,7 +618,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${tomorrowDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-arrow-down',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -693,7 +700,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-week',
-      sectionTitleClass: 'sidebarWeekly',
+      sectionTitleColorPart: 'sidebarWeekly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -770,7 +777,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-week',
-        sectionTitleClass: 'sidebarWeekly',
+        sectionTitleColorPart: 'sidebarWeekly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -850,7 +857,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-range',
-      sectionTitleClass: 'sidebarMonthly',
+      sectionTitleColorPart: 'sidebarMonthly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -919,7 +926,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-range',
-        sectionTitleClass: 'sidebarMonthly',
+        sectionTitleColorPart: 'sidebarMonthly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -993,7 +1000,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-days',
-      sectionTitleClass: 'sidebarQuarterly',
+      sectionTitleColorPart: 'sidebarQuarterly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -1057,7 +1064,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-days',
-        sectionTitleClass: 'sidebarQuarterly',
+        sectionTitleColorPart: 'sidebarQuarterly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -1228,7 +1235,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
     sectionCode: thisSectionCode,
     description: tagSectionDescription,
     FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
-    sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
+    sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
     totalCount: totalCount, // Note: Now not sure how this is used (if it is)
@@ -1334,7 +1341,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       sectionCode: thisSectionCode,
       description: overdueSectionDescription,
       FAIconClass: 'fa-regular fa-alarm-exclamation',
-      sectionTitleClass: 'overdue',
+      // no sectionTitleColorPart, so will use default
       sectionFilename: '',
       sectionItems: items,
       generatedDate: new Date(),
@@ -1454,7 +1461,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       description: prioritySectionDescription,
       FAIconClass: 'fa-regular fa-angles-up',
       // FAIconClass: 'fa-light fa-star-exclamation',
-      sectionTitleClass: 'priority',
+      // no sectionTitleColorPart, so will use default
       sectionFilename: '',
       sectionItems: items,
       generatedDate: new Date(),
@@ -1544,7 +1551,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     sectionItems: items,
     FAIconClass: 'fa-regular fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
-    sectionTitleClass: 'projects',
+    // no sectionTitleColorPart, so will use default
     generatedDate: new Date(),
     actionButtons: [
       {
@@ -1632,7 +1639,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       sectionCode: thisSectionCode,
       description: '', //`current time block`,
       FAIconClass: 'fa-light fa-calendar-clock',
-      sectionTitleClass: 'sidebarYearly',
+      sectionTitleColorPart: 'sidebarYearly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),

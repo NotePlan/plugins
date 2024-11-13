@@ -19,6 +19,7 @@ import type {
   TNotePlanSettings,
   TParagraphForDashboard,
   TSection,
+  TSectionCode,
 } from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -138,6 +139,28 @@ export function getNotePlanSettings(): TNotePlanSettings {
 }
 
 //-----------------------------------------------------------------
+
+/**
+ * Get list of section codes, that are enabled in the display settings.
+ * @param {TDashboardSettings} config 
+ * @returns {Array<TSectionCode>}
+ */
+export function getListOfEnabledSections(config: TDashboardSettings): Array<TSectionCode> {
+  // Work out which sections to show
+  const sectionsToShow: Array<TSectionCode> = []
+  if (config.showTimeBlockSection) sectionsToShow.push('TB')
+  sectionsToShow.push('DT') // always show this
+  if (config.showYesterdaySection) sectionsToShow.push('DY')
+  if (config.showTomorrowSection) sectionsToShow.push('DY')
+  if (config.showWeekSection) sectionsToShow.push('W')
+  if (config.showMonthSection) sectionsToShow.push('M')
+  if (config.showQuarterSection) sectionsToShow.push('Q')
+  if (config.showProjectSection) sectionsToShow.push('PROJ')
+  if (config.tagsToShow) sectionsToShow.push('DY')
+  if (config.showOverdueSection) sectionsToShow.push('OVERDUE')
+  if (config.showPrioritySection) sectionsToShow.push('PRIORITY')
+  return sectionsToShow
+}
 
 /**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many)
@@ -586,11 +609,11 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
 function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
   // Note: can't use simple .split(',') as it does unexpected things with empty strings
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
-  logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
+  // logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
   // const matchFound = ignoreTermsArr.some((t) => lineContent.includes(t))
   const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
-  logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
+  // logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
   return matchFound
 }
 

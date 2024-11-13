@@ -75,11 +75,8 @@ dialog::backdrop {
 	grid-template-columns: [info] minmax(6rem, 11rem) [items] auto;
 	grid-template-rows: min-content;
 	/* grid-auto-flow: column; */
-
 	/* a little extra gap between first 2 cols */
-	grid-column-gap: 4px;
 	column-rule: 1px dotted var(--tint-color);
-
 	/* a little spacing at top and bottom of section */
 	/* padding: 2px 2px; */
 	/* turn on top border (from theme CSS) */
@@ -137,7 +134,7 @@ dialog::backdrop {
 	/* column-gap: 1rem; */
 	column-rule: 1px dotted var(--tint-color);
 	column-fill: auto;
-	padding-inline-start: 0.3rem; /* 2px; */
+	padding-inline-start: 0.5rem;
 	padding-block-start: 0.3rem; /* 4px; */
 	padding-block-end: 0.2rem; /* 4px; */
 }
@@ -474,33 +471,21 @@ button,
 }
 
 /* Some headings specified from measuring the colour of NP sidebar elements */
-/* TODO: move the font-size somewhere more sensible */
-.sidebarDaily {
-	/* font-size: 1.0rem; */
-	color: #d0703c;
+html {
+	--fg-sidebarDaily: #d0703c;
+	--fg-sidebarWeekly: #be23b6;
+	--fg-sidebarMonthly: #f5528b;
+	--fg-sidebarQuarterly: #e08008;
+	--fg-sidebarYearly: #efba13;
+	--fg-sidebarHashtag: var(--hashtag-color);
+	--fg-sidebarMention: var(--attag-color);
 }
+/* .priority, .overdue, .projects {
+	font-size: 1.0rem;
+	color: var(--item-icon-color);
+} */
 
-.sidebarWeekly {
-	/* font-size: 1.0rem; */
-	color: #be23b6;
-}
-
-.sidebarMonthly {
-	/* font-size: 1.0rem; */
-	color: #f5528b;
-}
-
-.sidebarQuarterly {
-	/* font-size: 1.0rem; */
-	color: #e08008;
-}
-
-.sidebarYearly {
-	/* font-size: 1.0rem; */
-	color: #efba13;
-}
-
-.sidebarHashtag {
+/* .sidebarHashtag {
 	font-size: 1.0rem;
 	color: var(--hashtag-color);
 }
@@ -508,17 +493,12 @@ button,
 .sidebarMention {
 	font-size: 1.0rem;
 	color: var(--attag-color);
-}
+} */
 
-.priority, .overdue, .projects {
-	font-size: 1.0rem;
-	color: var(--item-icon-color);
-}
 
-/* TODO: is this used? */
+/* Note: not currently used? */
 #error {
 	background-color: red;
-	padding-left: 10px;
 }
 
 /* --------------------------------------------------------------- */

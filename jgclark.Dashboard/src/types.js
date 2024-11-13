@@ -102,7 +102,7 @@ export type TSection = {
   description: string,
   sectionItems: Array<TSectionItem>,
   FAIconClass?: string, // CSS class to show FA Icons
-  sectionTitleClass: string, // CSS class
+  sectionTitleColorPart?: string, // `sidebarX` string to use in `var(--fg-...)` color, or if not given, will default to `var(--item-icon-color)`
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
@@ -268,6 +268,7 @@ export type TActionOnReturn =
   | 'REMOVE_LINE_FROM_JSON'
   | 'REFRESH_SECTION_IN_JSON'
   | 'REFRESH_ALL_SECTIONS'
+  | 'REFRESH_ALL_ENABLED_SECTIONS' // added for v2.1.0
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
   | 'INCREMENT_DONE_COUNT'
