@@ -48,6 +48,7 @@ import {
   filenameIsInFuture,
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -1149,7 +1150,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
-        if (config.excludedFolders.includes(thisNoteFolder)) {
+        if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
           // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }

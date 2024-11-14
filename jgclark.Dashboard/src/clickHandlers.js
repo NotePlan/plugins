@@ -7,12 +7,7 @@
 //-----------------------------------------------------------------------------
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import {
-  // buildListOfDoneTasksToday,
-  // getTotalDoneCountsFromSections,
-  // rollUpDoneCounts,
-  updateDoneCountsFromChangedNotes
-} from './countDoneTasks'
+import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
   getDashboardSettings,
   getNotePlanSettings,
@@ -22,7 +17,7 @@ import {
   moveItemToRegularNote,
   setPluginData,
 } from './dashboardHelpers'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration' // FIXME: causing a circular dependency
+import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import { addNewPerspective } from './perspectiveHelpers'

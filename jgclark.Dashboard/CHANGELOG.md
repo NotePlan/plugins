@@ -7,6 +7,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
   - doRescheduleItem
 - (jgc): Removed REFRESH_ALL_SECTIONS at end of doSettingsChanged(), as that also does a setPluginData() call, which I think triggers updates. Needs checking by DBW
 - (jgc): changed Dashboard component "startup only" useEffect to now only generate enabled sections. Updated this to handle new TimeBlock section which is generated and shown before Today section, when enabled.
+- (jgc): fixed background color issue from a16
+- (jgc): applied the stringListOrArrayToArray() to other places it was needed for excludedFolders 
 
 ## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-13
 - (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)

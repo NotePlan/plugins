@@ -9,7 +9,7 @@ import React from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
 import { useAppContext } from './AppContext.jsx'
-import { logDebug } from '@helpers/react/reactDev.js'
+import { logDebug, logInfo } from '@helpers/react/reactDev.js'
 
 // Set to true to see some subtle shading of section backgrounds
 const showColoredBackgrounds = false
@@ -32,7 +32,8 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
     ? `color-mix(in srgb, var(--bg-main-color), green 4%)`
     : showColoredBackgrounds && thisSection.sectionTitleColorPart
       ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
-      : 'none'
+      : 'var(--bg-main-color)'
+  logInfo('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(tasksToShow.length)} items`)
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`} style={{ backgroundColor: sectionBackgroundColor }}>

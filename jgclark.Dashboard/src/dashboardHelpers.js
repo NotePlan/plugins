@@ -326,7 +326,7 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Remove items referenced from items in 'excludedFolders'
     // v1
-    // const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map(folder => folder.trim()) : []
+    // const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',') : []
     // refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
     // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} para(s)`)
     // v2
@@ -479,10 +479,10 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
-    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
+    const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',') : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
-    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${dashboardSettings.excludedFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)
+    logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
       // V1
@@ -550,8 +550,8 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
 
     await CommandBar.onAsyncThread()
     // Get list of folders to ignore
-    const excludedFolders = config.excludedFolders ? config.excludedFolders.split(',').map((folder) => folder.trim()) : []
-    logInfo('getRelevantPriorityTasks', `excludedFolders: ${excludedFolders.toString()}`)
+    const excludedFolders = config.excludedFolders ? stringListOrArrayToArray(config.excludedFolders, ',') : []
+    logInfo('getRelevantPriorityTasks', `excludedFolders: ${String(excludedFolders)}`)
     // Reduce list to all notes that are not blank or in @ folders or excludedFolders
     let notesToCheck = projectNotesFromFilteredFolders(excludedFolders, true).concat(pastCalendarNotes())
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Reduced to ${String(notesToCheck.length)} non-special regular notes + past calendar notes to check`)
