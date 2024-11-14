@@ -97,9 +97,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
     const config: TDashboardSettings = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
-      throw new Error(
-        `Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Settings pane.`,
-      )
+      throw new Error(`Cannot find settings for the '${pluginID}' plugin from original plugin preferences. Please make sure you have installed it from the Plugin Settings pane.`)
     }
     const logBits = Object.fromEntries(Object.entries(config).filter(([key]) => key.startsWith('_log')))
     // $FlowIgnore
@@ -150,7 +148,12 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       if (hasChild) {
         const pp = note.paragraphs || []
         const nextLineIndex = p.lineIndex + 1
-        clo(p, `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type}} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`)
+        clo(
+          p,
+          `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
+            pp[nextLineIndex]?.type
+          }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
+        )
         clo(p.contentRange, `contentRange for paragraph`)
         clo(anyChildren, `Children of paragraph`)
         clo(anyChildren[0].contentRange, `contentRange for child[0]`)
@@ -440,7 +443,8 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
-    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
+    const excludedFolders =
+      dashboardSettings.excludedFolders && dashboardSettings.excludedFolders.length > 0 ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${dashboardSettings.excludedFolders.toString()}) filter: ${filteredOverdueParas.length} paras`)

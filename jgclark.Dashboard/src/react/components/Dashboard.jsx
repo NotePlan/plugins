@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useMemo } from 'react'
 // import type { TDashboardSettings } from '../../types.js'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import { allSectionDetails, sectionDisplayOrder, sectionPriority } from '../../constants.js'
@@ -23,7 +23,7 @@ import { useAppContext } from './AppContext.jsx'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import '../css/Dashboard.css'
 import DebugPanel from '@helpers/react/DebugPanel'
-import { getTests } from './testing/tests'
+import { getTestGroups } from './testing/tests'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -265,6 +265,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
   const showDebugPanel = pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel
+  const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
@@ -284,7 +285,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {showDebugPanel && <DebugPanel contextVariables={context} tests={getTests(getContext)} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />}
+      {showDebugPanel && <DebugPanel contextVariables={context} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />}
       <div id="tooltip-portal"></div>
     </div>
   )

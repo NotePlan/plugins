@@ -239,7 +239,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   )
 
   return (
-    <div style={{ fontFamily: 'monospace', fontSize: '11pt', width: '100%' }}>
+    <div className="console-log-view inner-panel-padding" style={{ fontFamily: 'monospace', fontSize: '11pt', width: '100%' }}>
       {/* Top Row: Filter and Search */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
         {/* Filter */}

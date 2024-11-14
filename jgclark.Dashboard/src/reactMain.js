@@ -11,7 +11,7 @@ import {
   // buildListOfDoneTasksToday,
   // getTotalDoneCountsFromSections,
   // rollUpDoneCounts,
-  updateDoneCountsFromChangedNotes
+  updateDoneCountsFromChangedNotes,
 } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
@@ -372,7 +372,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
     // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
     // pluginData.totalDoneCounts = totalDoneCounts
     // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes("end of getInitialDataForReactWindow")
+    const totalDoneCount = updateDoneCountsFromChangedNotes('end of getInitialDataForReactWindow')
 
     pluginData.totalDoneCount = totalDoneCount
   }
@@ -497,7 +497,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(sections)], buildListOfDoneTasksToday())
     // pluginData.totalDoneCounts = totalDoneCounts
     // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes("end of getPluginData")
+    const totalDoneCount = updateDoneCountsFromChangedNotes('end of getPluginData')
     pluginData.totalDoneCount = totalDoneCount
   }
 

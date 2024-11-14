@@ -20,8 +20,6 @@
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
-const consoleStyle = 'background: #222; color: #E14067' //dark pink
-
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
  * This command be used to run any plugin command, but it's better to use one single command: sendMessageToPlugin(args) for everything
@@ -29,21 +27,23 @@ const consoleStyle = 'background: #222; color: #E14067' //dark pink
  * @param {string} pluginID
  * @param {Array<any>} commandArgs? - optional parameters
  */
-const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginID%%', commandArgs = []) => {
-  const code = '(async function() { await DataStore.invokePluginCommandByName("%%commandName%%", "%%pluginID%%", %%commandArgs%%);})()'
-    .replace('%%commandName%%', commandName)
-    .replace('%%pluginID%%', pluginID)
-    .replace('%%commandArgs%%', JSON.stringify(commandArgs))
-  // console.log(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
-  // console.log(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
-  if (window.webkit) {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: code,
-      onHandle: '',
-      id: '1',
-    })
-  } else {
-    console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+if (typeof runPluginCommand === 'undefined') {
+  const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginID%%', commandArgs = []) => {
+    const code = '(async function() { await DataStore.invokePluginCommandByName("%%commandName%%", "%%pluginID%%", %%commandArgs%%);})()'
+      .replace('%%commandName%%', commandName)
+      .replace('%%pluginID%%', pluginID)
+      .replace('%%commandArgs%%', JSON.stringify(commandArgs))
+    // console.log(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
+    // console.log(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
+    if (window.webkit) {
+      window.webkit.messageHandlers.jsBridge.postMessage({
+        code: code,
+        onHandle: '',
+        id: '1',
+      })
+    } else {
+      console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    }
   }
 }
 

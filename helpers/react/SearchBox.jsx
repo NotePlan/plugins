@@ -43,7 +43,7 @@ const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilt
   })
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+    <div className="search-box" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
       <input type="text" value={searchText} onChange={handleSearchChange} placeholder="Search or path:key" style={{ marginRight: '5px' }} />
       <button onClick={() => onToggleRegex(!useRegex)} style={toggleButtonStyle(useRegex)}>
         .*
