@@ -2,9 +2,17 @@
 
 .collapsible-object-viewer {
 
-    .highlighted-off {
+    .property-line.highlighted {
         background-color: #fff064b7 !important; /* Yellow for search highlights */
     }
+
+    .parent-highlighted {
+        background-color: #f9f9f9; /* A very light gray for subtle highlighting */
+      }
+
+      .property-line {
+        display: inline-block; 
+      }
 
     .property {
         margin-left: 10px;

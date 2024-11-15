@@ -1,6 +1,6 @@
 // @flow
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { timer } from '@helpers/dev'
 import type { TestGroup, Results, LogEntry } from './DebugPanel'
 import './TestingPane.css'
@@ -10,22 +10,39 @@ type Props = {
   onTestLogsFiltered: (filter: ?{ filterName: string, filterFunction: (log: LogEntry) => boolean }) => void,
 }
 
+type CollapsedGroups = {
+  [groupName: string]: boolean,
+}
+
 const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
   const [results, setResults] = useState<Results>({})
-  const [isRunning, setIsRunning] = useState<boolean>(false)
-  const [runningTest, setRunningTest] = useState<?string>(null)
-  const [collapsedGroups, setCollapsedGroups] = useState(() => {
-    const initialCollapsedState = {}
+  const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
+  const [runningGroups, setRunningGroups] = useState<Set<string>>(new Set())
+  const [collapsedGroups, setCollapsedGroups] = useState<CollapsedGroups>(() => {
+    const initialCollapsedState: CollapsedGroups = {}
     testGroups.forEach((group) => {
       initialCollapsedState[group.groupName] = true // All groups start collapsed
     })
     return initialCollapsedState
   })
 
+  // Effect to automatically expand groups with failed tests
+  useEffect(() => {
+    testGroups.forEach((group) => {
+      const groupResults = group.tests.map((test) => results[test.name])
+      const anyFailed = groupResults.some((result) => result?.status === 'Failed')
+      if (anyFailed && collapsedGroups[group.groupName]) {
+        setCollapsedGroups((prev) => ({
+          ...prev,
+          [group.groupName]: false, // Expand the group if any test failed
+        }))
+      }
+    })
+  }, [results, testGroups, collapsedGroups])
+
   const runTest = async (testName: string, testFunction: () => Promise<void>): Promise<void> => {
-    if (isRunning) return
-    setIsRunning(true)
-    setRunningTest(testName)
+    if (runningTests.has(testName)) return
+    setRunningTests((prev) => new Set(prev).add(testName))
 
     const startTime = new Date()
     console.log(`>>> Starting Test: ${testName} <<<`)
@@ -57,12 +74,17 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
         },
       }))
     } finally {
-      setIsRunning(false)
-      setRunningTest(null)
+      setRunningTests((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(testName)
+        return newSet
+      })
     }
   }
 
   const runAllTestsInGroup = async (group: TestGroup) => {
+    if (runningGroups.has(group.groupName)) return
+    setRunningGroups((prev) => new Set(prev).add(group.groupName))
     setCollapsedGroups((prev) => ({
       ...prev,
       [group.groupName]: false, // Expand the group
@@ -70,12 +92,29 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
     for (const test of group.tests) {
       await runTest(test.name, test.test)
     }
+    setRunningGroups((prev) => {
+      const newSet = new Set(prev)
+      newSet.delete(group.groupName)
+      return newSet
+    })
   }
 
   const runAllTests = async () => {
     for (const group of testGroups) {
       await runAllTestsInGroup(group)
     }
+
+    // Collapse groups where all tests have passed
+    setCollapsedGroups((prev) => {
+      const newCollapsedState = { ...prev }
+      testGroups.forEach((group) => {
+        const allPassed = group.tests.every((test) => results[test.name]?.status === 'Passed')
+        if (allPassed) {
+          newCollapsedState[group.groupName] = true
+        }
+      })
+      return newCollapsedState
+    })
   }
 
   const showTestLogs = (testName: string) => {
@@ -84,13 +123,26 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
       console.log(`Filtering logs for test: ${testName}`)
       onTestLogsFiltered({
         filterName: testName,
-        filterFunction: (log) => log.timestamp >= testResult.startTime && log.timestamp <= testResult.endTime,
+        filterFunction: (log) => {
+          if (testResult.startTime && testResult.endTime) {
+            return log.timestamp >= testResult.startTime && log.timestamp <= testResult.endTime
+          }
+          return false
+        },
       })
     }
   }
 
   return (
-    <div className="full-height-pane inner-panel-padding" style={{ backgroundColor: '#f5f5f5' }}>
+    <div
+      className="inner-panel-padding"
+      style={{
+        backgroundColor: '#f5f5f5',
+        overflowY: 'auto',
+        height: '100%',
+        maxHeight: '100vh',
+      }}
+    >
       <div className="testing-pane-button-header">
         <h3></h3>
         <button
@@ -106,107 +158,123 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
           Run All Tests
         </button>
       </div>
-      {testGroups.map((group) => (
-        <div key={group.groupName}>
-          <div
-            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', backgroundColor: '#f5f5f5', padding: '5px 0px 5px 0px' }}
-            onClick={() =>
-              setCollapsedGroups((prev) => ({
-                ...prev,
-                [group.groupName]: !prev[group.groupName],
-              }))
-            }
-          >
-            <span style={{ marginRight: '5px' }}>{collapsedGroups[group.groupName] ? '▶' : '▼'}</span>
-            <h4 style={{ margin: 0, flex: 1 }}>{group.groupName}</h4>
-            <button
-              onClick={(e) => {
-                e.stopPropagation() // Prevent collapsing when clicking the button
-                runAllTestsInGroup(group)
-              }}
-              style={{
-                backgroundColor: '#e0e0e0',
-                color: '#000',
-                border: '1px solid #ccc',
-                padding: '3px 15px', // Adjusted padding for a more rectangular shape
-                cursor: 'pointer',
-                marginLeft: 'auto',
+      {testGroups.map((group) => {
+        const isGroupRunning = runningGroups.has(group.groupName)
+
+        // Compute group results
+        const groupResults = group.tests.map((test) => results[test.name])
+        const allPassed = group.tests.length > 0 && group.tests.every((test) => results[test.name]?.status === 'Passed')
+        const anyFailed = group.tests.some((test) => results[test.name]?.status === 'Failed')
+
+        // Determine group status message
+        const groupStatus = anyFailed ? 'Failed' : allPassed ? 'Passed' : ''
+
+        return (
+          <div key={group.groupName}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', backgroundColor: '#f5f5f5', padding: '5px 0px 5px 0px' }}
+              onClick={() => {
+                setCollapsedGroups((prev) => ({
+                  ...prev,
+                  [group.groupName]: !prev[group.groupName],
+                }))
               }}
             >
-              <i className="fa fa-play" style={{ color: isRunning ? 'orange' : 'black' }}></i>
-              {isRunning && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
-            </button>
-          </div>
-          {!collapsedGroups[group.groupName] && (
-            <ul style={{ listStyleType: 'none', padding: 0 }}>
-              {group.tests.map(({ name, test }) => {
-                const testStatus = results[name]?.status
-                const isRunningTest = runningTest === name
-                const iconColor = isRunningTest ? 'orange' : testStatus === 'Failed' ? 'red' : testStatus === 'Passed' ? 'green' : 'black'
-                const durationStr = results[name]?.durationStr ? ` (${results[name].durationStr})` : ''
+              <span style={{ marginRight: '5px' }}>{collapsedGroups[group.groupName] ? '▶' : '▼'}</span>
+              <h4 style={{ margin: 0, flex: 1 }}>
+                {group.groupName}
+                {groupStatus && <span style={{ marginLeft: '10px', color: groupStatus === 'Passed' ? 'green' : 'red', fontSize: '14px' }}>{groupStatus}</span>}
+              </h4>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation() // Prevent collapsing when clicking the button
+                  runAllTestsInGroup(group)
+                }}
+                style={{
+                  backgroundColor: '#e0e0e0',
+                  color: '#000',
+                  border: '1px solid #ccc',
+                  padding: '3px 15px', // Adjusted padding for a more rectangular shape
+                  cursor: 'pointer',
+                  marginLeft: 'auto',
+                }}
+              >
+                <i className="fa fa-play" style={{ color: isGroupRunning ? 'orange' : 'black' }}></i>
+                {isGroupRunning && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
+              </button>
+            </div>
+            {!collapsedGroups[group.groupName] && (
+              <ul style={{ listStyleType: 'none', padding: 0 }}>
+                {group.tests.map(({ name, test }) => {
+                  const testStatus = results[name]?.status
+                  const isRunningTest = runningTests.has(name)
+                  const iconColor = isRunningTest ? 'orange' : testStatus === 'Failed' ? 'red' : testStatus === 'Passed' ? 'green' : 'black'
+                  const durationStr = results[name]?.durationStr ? ` (${results[name].durationStr})` : ''
 
-                return (
-                  <li
-                    key={name}
-                    style={{
-                      marginBottom: '10px',
-                      borderBottom: '0.5px solid #eee',
-                      paddingBottom: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <button
-                        onClick={() => runTest(name, test)}
-                        style={{
-                          backgroundColor: '#e0e0e0',
-                          color: '#000',
-                          border: '1px solid #ccc',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          marginRight: '10px',
-                        }}
-                      >
-                        <i className="fa fa-play" style={{ color: iconColor }}></i>
-                        {isRunningTest && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
-                      </button>
-                      <div style={{ flex: 1 }}>
-                        {name}
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span
-                            style={{
-                              color: testStatus === 'Passed' ? 'green' : testStatus === 'Failed' ? 'red' : '#000',
-                              marginRight: '10px',
-                            }}
-                          >
-                            {testStatus || ''}
-                            {durationStr}
-                          </span>
-                          {results[name] && (
-                            <button
-                              onClick={() => showTestLogs(name)}
+                  return (
+                    <li
+                      key={name}
+                      style={{
+                        marginBottom: '10px',
+                        borderBottom: '0.5px solid #eee',
+                        paddingBottom: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <button
+                          onClick={() => runTest(name, test)}
+                          style={{
+                            backgroundColor: '#e0e0e0',
+                            color: '#000',
+                            border: '1px solid #ccc',
+                            padding: '5px 10px',
+                            cursor: 'pointer',
+                            marginRight: '10px',
+                          }}
+                        >
+                          <i className="fa fa-play" style={{ color: iconColor }}></i>
+                          {isRunningTest && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
+                        </button>
+                        <div style={{ flex: 1 }}>
+                          {name}
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span
                               style={{
-                                backgroundColor: '#e0e0e0',
-                                color: '#000',
-                                border: '1px solid #ccc',
-                                padding: '2px 5px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
+                                color: testStatus === 'Passed' ? 'green' : testStatus === 'Failed' ? 'red' : '#000',
+                                marginRight: '10px',
                               }}
                             >
-                              Show Logs
-                            </button>
-                          )}
+                              {testStatus || ''}
+                              {durationStr}
+                            </span>
+                            {results[name] &&
+                              !runningTests.has(name) && ( // Show Logs button only if test is not running
+                                <button
+                                  onClick={() => showTestLogs(name)}
+                                  style={{
+                                    backgroundColor: '#e0e0e0',
+                                    color: '#000',
+                                    border: '1px solid #ccc',
+                                    padding: '2px 5px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  Show Logs
+                                </button>
+                              )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {results[name]?.error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{results[name].error}</div>}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-      ))}
+                      {results[name]?.error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{results[name].error}</div>}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

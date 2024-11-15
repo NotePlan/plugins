@@ -59,12 +59,13 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
   const [filter, setFilter] = useState<boolean>(true)
   const resetViewerRef = useRef<() => void>(() => {})
 
+  // Set default state values (for now)
   useEffect(() => {
     const initialSearchValue = 'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'
     setHighlightRegex(initialSearchValue)
-    setUseRegex(false)
-    setExpandToShow(false)
-    setFilter(false)
+    setUseRegex(true)
+    setExpandToShow(true)
+    setFilter(true)
   }, [])
 
   useEffect(() => {
@@ -130,6 +131,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
     setUseRegex(false)
     setExpandToShow(false)
     setFilter(false)
+    setHighlightRegex('')
     if (resetViewerRef.current) {
       resetViewerRef.current()
     }
@@ -142,30 +144,33 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
           <div className="debug-pane-header consistent-header" style={{ backgroundColor: '#f5f5f5' }}>
             <h3>Context</h3>
           </div>
-          <SearchBox
-            onSearchChange={(text) => setHighlightRegex(text.trim())}
-            onToggleRegex={setUseRegex}
-            onToggleExpand={setExpandToShow}
-            onToggleFilter={setFilter}
-            onReset={handleReset}
-            useRegex={useRegex}
-            expandToShow={expandToShow}
-            filter={filter}
-            currentValue={'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'}
-          />
-          <CollapsibleObjectViewer
-            data={contextVariablesWithoutFunctions}
-            name="Context Variables"
-            startExpanded={false}
-            defaultExpandedKeys={defaultExpandedKeys}
-            highlightRegex={highlightRegex}
-            expandToShowHighlight={expandToShow}
-            filter={filter}
-            onReset={(reset) => (resetViewerRef.current = reset)}
-          />
+          <div className="inner-panel-padding">
+            <SearchBox
+              onSearchChange={(text) => setHighlightRegex(text.trim())}
+              onToggleRegex={setUseRegex}
+              onToggleExpand={setExpandToShow}
+              onToggleFilter={setFilter}
+              onReset={handleReset}
+              useRegex={useRegex}
+              expandToShow={expandToShow}
+              filter={filter}
+              currentValue={'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'}
+            />
+            <CollapsibleObjectViewer
+              data={contextVariablesWithoutFunctions}
+              name="Context Variables"
+              startExpanded={false}
+              defaultExpandedKeys={defaultExpandedKeys}
+              highlightRegex={highlightRegex}
+              expandToShowHighlight={expandToShow}
+              filter={filter}
+              onReset={(reset) => (resetViewerRef.current = reset)}
+              useRegex={useRegex}
+            />
+          </div>
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
-        <Panel defaultSize={25} minSize={10}>
+        <Panel className="context-vars-pane full-height-pane testing-pane" defaultSize={25} minSize={10}>
           <div className="testing-pane full-height-pane" style={{ backgroundColor: '#f5f5f5' }}>
             <div className="debug-pane-header consistent-header">
               <h3>Testing</h3>
@@ -174,7 +179,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
           </div>
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
-        <Panel defaultSize={50} minSize={10} className="console-pane full-height-pane inner-panel-padding">
+        <Panel defaultSize={50} minSize={10} className="console-pane full-height-pane">
           <div className="debug-pane-header consistent-header">
             <h3>Console</h3>
           </div>

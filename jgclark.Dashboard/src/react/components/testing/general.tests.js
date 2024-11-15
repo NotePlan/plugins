@@ -60,6 +60,7 @@ export default {
     },
     {
       name: 'Show banner (error - unknown click handler)',
+      skip: true, // keeps it from running in the runAllTestsInGroup mode
       test: async (getContext: () => AppContextType): Promise<void> => {
         let context = getContext()
         console.log('Sending an unknown click handler command. Should fail and show a banner to the user.')

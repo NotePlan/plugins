@@ -69,7 +69,6 @@ h3, h4 {
 
 .full-height-pane {
   height: 100%;
-  overflow-y: auto;
 }
 
 /* Resizer */

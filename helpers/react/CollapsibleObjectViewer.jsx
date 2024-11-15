@@ -13,6 +13,7 @@ type Props = {
   highlightRegex?: string,
   expandToShowHighlight?: boolean,
   filter?: boolean,
+  useRegex?: boolean,
   onReset?: (reset: () => void) => void,
 }
 
@@ -21,7 +22,7 @@ type CollapsedPaths = {
 }
 
 type HighlightedPaths = {
-  [string]: boolean,
+  [string]: 'match' | 'parent',
 }
 
 type TooltipState = {
@@ -30,7 +31,7 @@ type TooltipState = {
 }
 
 // Define isObject helper function
-const isObject = (obj: any): boolean %checks => obj !== null && typeof obj === 'object'
+const isObject = (obj: any): boolean => obj !== null && typeof obj === 'object'
 
 // Define classReplacer helper function
 const classReplacer = (str: string): string =>
@@ -48,15 +49,26 @@ function renderObject(
   filter: boolean,
   openedPathsRef: { current: CollapsedPaths },
   toggleCollapse: (path: string, event: SyntheticMouseEvent<HTMLDivElement>) => void,
+  parentMatches: boolean = false,
+  highlightRegex: string = '',
 ): React.Node {
   if (!isObject(obj)) {
-    const isHighlighted = highlightedPaths[path]
+    const highlightType = highlightedPaths[path]
     const isChanged = changedPaths[path]
-    if (filter && !isHighlighted) return null
+    const isHighlighted = highlightType === 'match'
+    const isParentHighlighted = highlightType === 'parent'
+    const currentMatches = Boolean(highlightType)
+    const isFilterActive = filter && highlightRegex.trim() !== ''
 
+    if (isFilterActive && !currentMatches && !parentMatches) {
+      return null
+    }
     return (
-      <div className={`property-${path.replace(/:/g, '-')} ${isChanged ? 'changed' : ''}`} key={path}>
-        <div className="value">{JSON.stringify(obj)}</div>
+      <div className={`property-${path.replace(/:/g, '-')}`} key={path} style={{ marginLeft: 10 }}>
+        <div className={`property-line ${classReplacer(path)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : ''}`}>
+          <strong>{path.split(':').pop()}: </strong>
+          <span className="value">{JSON.stringify(obj)}</span>
+        </div>
       </div>
     )
   }
@@ -72,16 +84,21 @@ function renderObject(
     const isExpandable = isObject(value)
     const currentPath = `${path}:${key}`
     const isCollapsed = !openedPathsRef.current[currentPath]
-    const isHighlighted = highlightedPaths[currentPath]
+    const highlightType = highlightedPaths[currentPath]
+    const isHighlighted = highlightType === 'match'
+    const isParentHighlighted = highlightType === 'parent'
     const isChanged = changedPaths[currentPath]
 
-    // Ensure that paths leading to a match are shown
-    if (filter && !isHighlighted) return null
+    if (filter && !highlightType) return null
+
+    const classNames = ['property', classReplacer(currentPath), isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : '']
+      .filter(Boolean)
+      .join(' ')
 
     return (
       <div
         key={currentPath}
-        className={`property ${classReplacer(currentPath)} ${isHighlighted ? 'highlighted' : ''}`}
+        className={classNames}
         style={{
           marginLeft: 10,
         }}
@@ -91,10 +108,10 @@ function renderObject(
             <div className="toggle" onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
               {isCollapsed ? '▶' : '▼'} <strong>{key}</strong>
             </div>
-            {!isCollapsed && renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse)}
+            {!isCollapsed && renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, parentMatches, highlightRegex)}
           </div>
         ) : (
-          <div className={`property-line ${classReplacer(currentPath)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : ''}`}>
+          <div className={`property-line ${classReplacer(currentPath)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : ''}`}>
             <strong>{key}: </strong>
             <span className="value">{JSON.stringify(value)}</span>
           </div>
@@ -112,6 +129,7 @@ const CollapsibleObjectViewer = ({
   highlightRegex = '',
   expandToShowHighlight = false,
   filter = false,
+  useRegex = false,
   onReset = () => {},
 }: Props): React.Node => {
   const openedPathsRef = useRef<CollapsedPaths>({})
@@ -165,49 +183,53 @@ const CollapsibleObjectViewer = ({
       return
     }
 
-    const regex = new RegExp(trimmedRegex, 'i')
-    const isPathSearch = trimmedRegex.includes(':')
+    try {
+      const regex = useRegex ? new RegExp(trimmedRegex) : new RegExp(trimmedRegex.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
 
-    const checkMatches = (obj: any, path: string) => {
-      if (!obj || typeof obj !== 'object') return
-      Object.keys(obj).forEach((key) => {
-        const currentPath = `${path}:${key}`
-        const value = obj[key]
+      const isPathSearch = trimmedRegex.includes(':')
 
-        const pathMatch = isPathSearch && regex.test(currentPath)
-        const keyOrValueMatch = !isPathSearch && (regex.test(key) || regex.test(String(value)))
+      const checkMatches = (obj: any, path: string) => {
+        if (!obj || typeof obj !== 'object') return
+        Object.keys(obj).forEach((key) => {
+          const currentPath = `${path}:${key}`
+          const value = obj[key]
 
-        if (pathMatch || keyOrValueMatch) {
-          newHighlightedPaths[currentPath] = true
+          const pathMatch = isPathSearch && regex.test(currentPath)
+          const keyOrValueMatch = !isPathSearch && (regex.test(key) || regex.test(String(value)))
 
-          // Ensure all parent paths are highlighted
-          let pathParts = currentPath.split(':')
-          while (pathParts.length > 0) {
-            const partialPath = pathParts.join(':')
-            newHighlightedPaths[partialPath] = true
-            pathParts.pop()
-          }
+          if (pathMatch || keyOrValueMatch) {
+            newHighlightedPaths[currentPath] = 'match'
 
-          if (expandToShowHighlight) {
-            pathParts = currentPath.split(':')
+            // Expand parent paths to show the highlighted item
+            let pathParts = currentPath.split(':')
+            pathParts.pop() // Remove the last part since currentPath is already highlighted
             while (pathParts.length > 0) {
               const partialPath = pathParts.join(':')
-              openedPathsRef.current[partialPath] = true
+              // Only set as 'parent' if not already a 'match'
+              if (newHighlightedPaths[partialPath] !== 'match') {
+                newHighlightedPaths[partialPath] = 'parent'
+              }
+              if (expandToShowHighlight) {
+                openedPathsRef.current[partialPath] = true
+              }
               pathParts.pop()
             }
           }
-        }
 
-        if (typeof value === 'object') {
-          checkMatches(value, currentPath)
-        }
-      })
+          if (typeof value === 'object') {
+            checkMatches(value, currentPath)
+          }
+        })
+      }
+
+      checkMatches(memoizedData, name)
+      setHighlightedPaths(newHighlightedPaths)
+      setRenderTrigger((prev) => prev + 1) // Trigger re-render
+    } catch (error) {
+      console.error('Invalid regex:', error)
+      setHighlightedPaths({})
     }
-
-    checkMatches(memoizedData, name)
-    setHighlightedPaths(newHighlightedPaths)
-    setRenderTrigger((prev) => prev + 1) // Trigger re-render
-  }, [memoizedData, name, highlightRegex, expandToShowHighlight, filter])
+  }, [memoizedData, name, highlightRegex, expandToShowHighlight, filter, useRegex])
 
   // Handle tooltip visibility based on keyboard events
   useEffect(() => {
@@ -217,6 +239,8 @@ const CollapsibleObjectViewer = ({
           setTooltip({ visible: true, content: 'Option key: Expand/collapse first-level children' })
         } else if (event.metaKey) {
           setTooltip({ visible: true, content: 'Command key: Expand/collapse entire hierarchy' })
+        } else {
+          setTooltip({ visible: false, content: '' })
         }
       }
     }
@@ -232,7 +256,7 @@ const CollapsibleObjectViewer = ({
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isMouseOver])
+  }, [])
 
   const getObjectByPath = (obj: any, path: string): any => {
     return path
@@ -316,7 +340,18 @@ const CollapsibleObjectViewer = ({
   }, [onReset, reset])
 
   return (
-    <div className="collapsible-object-viewer" onMouseEnter={() => setIsMouseOver(true)} onMouseLeave={() => setIsMouseOver(false)} style={{ position: 'relative' }}>
+    <div
+      className="collapsible-object-viewer"
+      onMouseEnter={() => {
+        setIsMouseOver(true)
+        setTooltip({ visible: false, content: '' })
+      }}
+      onMouseLeave={() => {
+        setIsMouseOver(false)
+        setTooltip({ visible: false, content: '' })
+      }}
+      style={{ position: 'relative', overflowY: 'auto', maxHeight: '100vh' }}
+    >
       {tooltip.visible && (
         <div
           style={{
@@ -336,7 +371,9 @@ const CollapsibleObjectViewer = ({
       <div onClick={(e) => toggleCollapse(name, e)} style={{ cursor: 'pointer', fontWeight: 'bold' }}>
         {rootIsCollapsed ? '▶' : '▼'} {name}
       </div>
-      {!rootIsCollapsed && <div style={{ marginLeft: 15 }}>{renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse)}</div>}
+      {!rootIsCollapsed && (
+        <div style={{ marginLeft: 15 }}>{renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, false, highlightRegex)}</div>
+      )}
     </div>
   )
 }
