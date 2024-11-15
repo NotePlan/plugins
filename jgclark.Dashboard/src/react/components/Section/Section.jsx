@@ -64,6 +64,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       switch (section.sectionCode) {
         case 'DT':
         case 'W':
+        case 'M':
+        case 'Q':
           logDebug('Section', `Section ${section.sectionCode} doesn't have any sectionItems, so display congrats message`)
           sectionItems = [
             {
@@ -144,13 +146,16 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   let numItemsToShow = itemsToShow.length
 
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  section.actionButtons = isDesktop
-    ? section.actionButtons
-    : section.actionButtons?.filter((b) => b.actionName.startsWith('move') || b.actionName.startsWith('scheduleAllOverdue')) || []
+  const addNewActionButtons = isDesktop
+    ? section.actionButtons?.filter((b) => b.actionName.startsWith('add'))
+    : []
+  let processActionButtons = isDesktop
+    ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))
+    : []
 
   // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
   if (section.actionButtons && numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
-    section.actionButtons = section.actionButtons?.filter((b) => b.actionName.startsWith('add'))
+    processActionButtons = []
   }
 
   // Decrement the number of items to show if the last one is the filterIndicator
@@ -205,26 +210,42 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})`
     : 'var(--item-icon-color)'
 
+  /**
+   * Layout of sectionInfo = 4 divs:
+   * - sectionInfoFirstLine = grid of sectionName div and addNewActionButtons div
+   * - sectionDescription
+   * - sectionProcessButtons = 0 or more processActionButtons
+   * On normal width screen these are a row-based grid (1x3).
+   * On narrow window, these are a column-based grid (3x1).
+   * Then <SectionGrid> which contains the actual data items.
+  */ 
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
-        <TooltipOnKeyPress
-          altKey={{ text: 'Open in Split View' }}
-          metaKey={{ text: 'Open in Floating Window' }}
-          label={`${section.name}_Open Note Link`}
-          enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
-        >
-          <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
-            <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
-            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
-            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
-          </div>{' '}
-        </TooltipOnKeyPress>
+        <div className="sectionInfoFirstLine">
+          <TooltipOnKeyPress
+            altKey={{ text: 'Open in Split View' }}
+            metaKey={{ text: 'Open in Floating Window' }}
+            label={`${section.name}_Open Note Link`}
+            enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
+          >
+            <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
+              <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
+              {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
+              {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
+            </div>
+          </TooltipOnKeyPress>
+          {/* {' '} */}
+          <div className={`addNewActionButtons ${section.sectionTitleColorPart ?? ''}`}>
+            {addNewActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}
+          </div>
+        </div>
+
         {/* <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> */}
         {descriptionDiv}
-        <div className="sectionButtons">
-          {section.actionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} />) ?? []}
-          {numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) /**&& section.sectionCode !== 'PROJ'*/ && dashboardSettings.enableInteractiveProcessing && (
+        <div className="sectionProcessButtons">
+          {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
+          {numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && dashboardSettings.enableInteractiveProcessing && (
             <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
                 {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}

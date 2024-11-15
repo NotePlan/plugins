@@ -12,12 +12,13 @@ import { logDebug, JSP, clo } from '@helpers/react/reactDev.js'
 type ButtonProps = {
   button: TActionButton,
   onClick: (button: TActionButton) => void, // send this button info back up
+  className: string,
   // param: string,
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin } = useAppContext()
-  const { button, onClick } = inputObj
+  const { button, onClick, className } = inputObj
 
   // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
 
@@ -49,9 +50,9 @@ function CommandButton(inputObj: ButtonProps): React$Node {
 
   return (
     <>
-      {' '}
+      {/* {' '} */}
       <button
-        className="PCButton tooltip"
+        className={`${className} tooltip`}
         data-tooltip={button.tooltip}
         onClick={handleButtonClick}
         dangerouslySetInnerHTML={{ __html: button.display }}

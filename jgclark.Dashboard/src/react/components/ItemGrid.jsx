@@ -33,7 +33,7 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
     : showColoredBackgrounds && thisSection.sectionTitleColorPart
       ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
       : 'var(--bg-main-color)'
-  logInfo('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(tasksToShow.length)} items`)
+  // logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(tasksToShow.length)} items`)
 
   return (
     <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`} style={{ backgroundColor: sectionBackgroundColor }}>

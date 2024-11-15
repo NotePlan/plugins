@@ -1,6 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a17 = 2.1.0.a18] @jgc, 2024-11-15
+- (jgc): new layout in section heading for the add buttons. Also colour them the same as the section title. 
+- (jgc): further tweaks to icons, including better optical matching of tasks and checklists
+- (jgc): now Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+
 ## [Perspectives.a17 = 2.1.0.a17] @jgc, 2024-11-13
 - (jgc): new response type called "REFRESH_ALL_ENABLED_SECTIONS" and using that in place of "REFRESH_ALL_SECTIONS" in
   - doMoveToNote -- fallback option in case paragraph can't be found

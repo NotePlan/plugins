@@ -60,19 +60,21 @@ dialog::backdrop {
 
 /* Specific alignment fixes for icons inside buttons or links */
 /* Inside a layer to make them lower priority than other  */
+/* TODO: I don't think this is needed anymore */
 @layer A {
 	.fa-regular,
 	.fa-solid {
 		/* Centers icon within its container, vertically and horizontally */
 		align-self: center;
 		margin: auto;
-		color: var(--tint-color);
+		/* color: var(--tint-color); */
 	}
 }
 
+/* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] minmax(6rem, 11rem) [items] auto;
+	grid-template-columns: [info] /* minmax(9rem, 11rem)*/ 12rem [items] auto;
 	grid-template-rows: min-content;
 	/* grid-auto-flow: column; */
 	/* a little extra gap between first 2 cols */
@@ -94,6 +96,13 @@ dialog::backdrop {
 	border-right: 1px solid var(--divider-color);
 }
 
+/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .addNewActionButtons */
+.sectionInfoFirstLine {
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 4px;
+}
+
 .sectionIcon {
 	font-size: 1.1rem;
 	/* font-weight: 400; */
@@ -108,21 +117,29 @@ dialog::backdrop {
 	font-weight: 700;
 	margin: unset;
 	padding: 3px 0px;
+	justify-self: start;
 }
 
+/* TODO: Ideally rationalise this with the 'dropdown' icon-buttons in the Header bar */
+.addNewActionButtons {
+	display: inline-flex;
+	gap: 0.3rem;
+	justify-self: end;
+	align-self: center;
+	border: 0px none;
+	box-shadow: none;
+	padding-top: 1px;
+}
+
+/* Next part of sectionInfo. */
 .sectionDescription {
 	/* a bit smaller */
 	font-size: 0.9rem;
 	/* give breathing room on right only */
-	margin: 0 0.5rem 0 0;
+	/* margin: 0 0.5rem 0 0; */
 	padding-top: 0.2rem;
 	/* align-self: self-end; */
 }
-
-/* turn on bottom border of last item (from theme CSS) */
-/* .section:last-child {
-	border-bottom: solid 1px var(--tint-color);
-} */
 
 /* Inner grid for details of a section */
 .sectionItemsGrid {
@@ -188,8 +205,8 @@ dialog::backdrop {
 		display: grid;
 		/* now make this area grid column-based not row-based */
 		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 0.1rem;
-		padding: 0.3rem;
+		grid-column-gap: 1.0rem;
+		/* padding: 0.3rem; */
 		/* padding-bottom: 0.3rem 0px; */
 		/* put all items essentially on a baseline */
 		/* align-items: end; */
@@ -203,6 +220,9 @@ dialog::backdrop {
 		padding-left: 1px;
 		/* some padding to right */
 		padding-right: 0.5rem;
+	}
+	.addNewActionButtons {
+		justify-self: start;
 	}
 }
 
@@ -227,6 +247,11 @@ dialog::backdrop {
 	/* and give a little nudge down to make things line up in practice */
 	padding-block-start: 1px;
 	cursor: pointer;
+}
+
+/* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
+.fa-square, .fa-square-plus, .fa-square-arrow-right {
+	font-size: 110%;
 }
 
 .projectIcon {
@@ -258,7 +283,7 @@ dialog::backdrop {
 
 /* --------------------------------------------------------------- */
 
-/* All buttons, but at lower priority */
+/* All buttons and inputs, but at lower priority */
 @layer A {
 	button,
 	input {
@@ -266,24 +291,42 @@ dialog::backdrop {
 		background-color: var(--bg-sidebar-color);
 		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
-	
-		/* set button/input backgrounds a little lighter on hover */
-		&:hover {
-			background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
-		}
+	}
+	/* set input backgrounds a little lighter on hover */
+	input &:hover {
+		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
 	}
 }
 
-/* For buttons in section info areas */
+/* For add buttons in section info areas */
+.addButton {
+	font-size: 0.95rem;
+	line-height: 1.2rem;
+	font-weight: 500;
+	border-style: none;
+	box-shadow: none;
+	/* a little margin to right */
+	margin: 1px 0px 0px 0px;
+	padding: 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
+}
+.addButton:hover {
+	/* FIXME: this 'currentcolor' is not working as advertised. The equivalent in dropbdownButtons is working ... */
+	color: hsl(from currentcolor h s calc(l*0.8));
+	/* mix-blend-mode: darken; doesn't work either */
+}
+
+/* For processing buttons in section info areas */
 .PCButton {
 	font-weight: 500;
 	border-style: solid;
 	border-width: 1px;
 	border-radius: 4px;
-	/* a little internal padding to right */
-	padding: 1px 2px 0px 2px; /* 0px 3px 0px 0px; */
-	/* a little external margin */
-	margin: 2px 4px 2px 0px; /* 2px 6px 0px 0px;*/
+	padding: 1px 2px 0px 3px;
+	margin: 2px 4px 2px 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
@@ -292,19 +335,16 @@ dialog::backdrop {
 	/* max-height: 1.3rem; */
 	line-height: 1.2rem;
 
-	/* fa-icons in HA Button */
-	&:i {
+	/* color FA icons in these Buttons */
+	i {
 		color: var(--tint-color);
 	}
+
+	/* set backgrounds a little lighter on hover */
+	&:hover {
+		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+	}
 }
-
-
-/* Set link text to plain (again).  Note: now internal calls used this is removed */
-/* .PCButton a {
-	font-size: 0.85rem;
-	text-decoration: none;
-	color: var(--fg-main-color);
-} */
 
 /* Show click pointer over buttons and equivalent */
 button,
@@ -480,6 +520,15 @@ html {
 	--fg-sidebarHashtag: var(--hashtag-color);
 	--fg-sidebarMention: var(--attag-color);
 }
+/* But still need these as named styles */
+.sidebarDaily {color: var(--fg-sidebarDaily);}
+.sidebarWeekly {color: var(--fg-sidebarWeekly);}
+.sidebarMonthly {color: var(--fg-sidebarMonthly);}
+.sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
+.sidebarYearly {color: var(--fg-sidebarYearly);}
+.sidebarHashtag {color: var(--hashtag-color);}
+.sidebarMention {color: var(--attag-color);}
+
 /* .priority, .overdue, .projects {
 	font-size: 1.0rem;
 	color: var(--item-icon-color);

@@ -22,8 +22,9 @@ const NoTasks = (): Node => {
       <div className="sectionItemContent sectionItem">
         <div className="checked">
           <i>
-            Nothing left on this list: take a break!
+            Nothing left on this list
             {/* <i className="fa-solid fa-mug pad-left"></i> */}
+            <i className="fa-light fa-champagne-glasses pad-left"></i>
           </i>
         </div>
       </div>
