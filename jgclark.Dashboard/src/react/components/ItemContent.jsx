@@ -1,12 +1,14 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to show the main item content in an ItemRow.
-// Last updated 2024-09-06 for v2.0.4+ by @jgclark
+// Dashboard React component to show the main item content in a TaskItem in a ItemRow.
+// Last updated v2.1.0.a
 //--------------------------------------------------------------------------
 import React from 'react'
-import type { TSectionItem } from '../../types.js'
+import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
-import { clo, logDebug, logError } from '@helpers/react/reactDev'
+import ItemNoteLink from './ItemNoteLink.jsx'
+import { replaceArrowDatesInString } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
@@ -22,31 +24,33 @@ import {
   convertMentionsToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
-  // convertTimeBlockToHTML,
+  convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
-import {
-  findLongestStringInArray,
-  RE_TIMEBLOCK_APP,
-} from '@helpers/timeblocks'
-import { replaceArrowDatesInString } from '@helpers/dateTime'
+// import { getTimeBlockString } from '@helpers/timeblocks'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
   item: TSectionItem,
-  children: Array<Node>
+  // children: Array<Node>,
+  thisSection: TSection,
 }
 
 /**
  * Represents the main content for a single item within a section
  */
-function ItemContent({ item, children }: Props): React$Node {
-  const { sendActionToPlugin, dashboardSettings } = useAppContext()
-  // const itemType = para.type
+function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
+  const { sendActionToPlugin, setReactSettings, dashboardSettings } = useAppContext()
+
+  const messageObject: MessageDataObject = {
+    item: item,
+    actionType: '(not yet set)',
+    sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
+  }
 
   // logDebug('ItemContent', `- for ${item.ID}: '${item.para?.content ?? '<null>'}'`)
 
@@ -64,7 +68,7 @@ function ItemContent({ item, children }: Props): React$Node {
     // Regex to match the entire <span>...</span> block and capture its content
     mainContent = mainContent.replace(/(<span[^>]*>)(.*?)(<\/span>)/g, (_match, startTag, content, endTag) => {
       // Replace exclamations or ">>" within the captured content
-      const replaced = content.replace(/(?:!+|>>)\s*/g, '')
+      const replaced = content.replace(/^(!{1,3}|>>)\s+/g, '')
       // Reconstruct the <span> block with the cleaned content
       return `${startTag}${replaced}${endTag}`
     })
@@ -81,9 +85,36 @@ function ItemContent({ item, children }: Props): React$Node {
 
   // console.log(`-> ${mainContent}`)
 
+  // if hasChild, then set suitable icon
+  // another version had 'fa-arrow-down-from-line' icon for parent
+  const possParentIcon = dashboardSettings.showParentChildMarkers && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
+  // if isAChild, then set suitable icon
+  // Note: now handled by flex layout and indent on ItemRow
+  // const possChildIcon = dashboardSettings.showParentChildMarkers && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
+  const possChildIcon = ''
+
+  const handleClickToOpenDialog = (e: MouseEvent): void => {
+    // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
+    const clickPosition = { clientY: e.clientY, clientX: e.clientX }
+    setReactSettings((prev) => ({
+      ...prev,
+      lastChange: `_Dashboard-TaskDialogOpen`,
+      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
+    }))
+  }
+
   // TODO(later): try not to live dangerously!
   // $FlowIgnore[incompatible-type] -- eventually we will remove the dangerousness
-  return <div className="sectionItemContent sectionItem"><a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
+  // return <div className="sectionItemContent sectionItem">{possParentIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{children}</div>
+  // return <div className="sectionItemContent sectionItem">{possChildIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{possParentIcon}</div>
+  return (
+    <div className="sectionItemContent">{possChildIcon}<a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>{possParentIcon}
+      <a className="dialogTriggerIcon">
+        <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
+      </a>
+      {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
+    </div>
+  )
 }
 
 /**
@@ -102,11 +133,13 @@ function ItemContent({ item, children }: Props): React$Node {
  * @author @jgclark
  * @param {SectionItem} thisItem
  * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
+ timeblockM @param {string?} mustContainString? if not given, then will attempt to read from NP app setting instead
  * @returns {string} HTML string
  */
 function makeParaContentToLookLikeNPDisplayInReact(
   thisItem: TSectionItem,
   truncateLength: number = 0,
+  timeblockTextMustContainString: string = ''
 ): string {
   try {
     const { para } = thisItem
@@ -156,8 +189,8 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // Display time blocks with .timeBlock style
     if (thisItem.para?.startTime && thisItem.para?.startTime !== 'none') {
-      // logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
-      output = convertTimeBlockToHTML(output)
+      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      output = convertTimeBlockToHTML(output, timeblockTextMustContainString)
     }
 
     // Display strikethrough with .strikethrough style
@@ -239,12 +272,19 @@ function makeParaContentToLookLikeNPDisplayInReact(
 
     // Add a child marker if relevant
     // Note: best done after truncation and adding priority style
-    if (para.hasChild) {
-      output += '<i class="childMarker fa-solid fa-block-quote pad-left"></i>'
-      // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
-    }
+    // if (para.isAChild) {
+    //   output += '<i class="parentMarker fa-solid fa-turn-down-right pad-right"></i>'
+    //   // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
+    // }
 
-    // console.log(`makeParaContet...: \n-> ${output}`)
+    // Add a parent marker if relevant
+    // Note: best done after truncation and adding priority style
+    // if (para.hasChild) {
+    //   output += '<i class="childMarker fa-solid fa-block-quote pad-left"></i>'
+    //   // clo(para,`makeParaContent...: - adding child marker for ${thisItem.ID}`)
+    // }
+
+    // logDebug('makeParaContet...', `\n-> ${output}`)
     return output
   } catch (error) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
@@ -260,7 +300,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
  */
 export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNamePart: string): string {
   try {
-    logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`)
+    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${folderNamePart} ${noteTitle}`) 
 
     // Pass request back to plugin
     // Note: no longer passing rawContent, as it's not needed
@@ -273,38 +313,15 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
   }
 }
 
-
-// Display time blocks with .timeBlock style
-// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
-// Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
-function convertTimeBlockToHTML(input: string): string {
-  const timeBlockPart = getTimeBlockString(input)
-  // logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
-  const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
-  // }
-  return output
-}
-
-/**
- * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
- * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
- * @tests available for jest
- * @author @dwertheimer
- *
- * @param {string} contentString
- * @returns {string} the time portion of the timeblock line
- */
-const getTimeBlockString = (contentString: string): string => {
-  // logDebug('getTimeBlockString', `for '${contentString}'...`)
-  const matchedStrings = []
-  if (contentString) {
-    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
-    if (contentString && reMatch && reMatch.length) {
-      matchedStrings.push(reMatch[0].trim())
-    }
-  }
-  // matchedStrings could have several matches, so find the longest one
-  return matchedStrings.length ? findLongestStringInArray(matchedStrings) : ''
-}
+// // Display time blocks with .timeBlock style
+// // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// // Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
+// function convertTimeBlockToHTML(input: string): string {
+//   const timeBlockPart = getTimeBlockString(input)
+//   // logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
+//   const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+//   // }
+//   return output
+// }
 
 export default ItemContent

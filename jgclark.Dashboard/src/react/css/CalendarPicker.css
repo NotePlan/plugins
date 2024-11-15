@@ -3,6 +3,26 @@
 
 /* NOTE: GENERALLY YOU HAVE TO SET !IMPORTANT TO GET THESE CALENDAR STYLES TO OVERRIDE THE SETTINGS */
 
+/* -------------- */
+
+.container { border: '1px solid #ccc';
+  margin-top: '0px';
+  padding-top: '0px'; }
+.caption { color: 'var(--tint-color)'; }
+.navButtonPrev { color: 'var(--tint-color)'; }
+.navButtonNext { color: 'var(--tint-color)'; }
+.weekdays { background-color: 'var(--bg-main-color)'; }
+.weekday { font-weight: 'bold'; }
+.weekend { background-color: 'var(--bg-alt-color)'; }
+.week { color: '#333'; }
+.day { color: 'var(--fg-main-color)'; }
+.today { color: 'var(--hashtag-color)';
+  background-color: 'var(--bg-alt-color)'; }
+.selected { color: 'var(--tint-color)';
+  background-color: 'var(--bg-alt-color)'; }
+
+/* -------------- */
+
 .rdp {
   --rdp-cell-size: '30px';
   box-shadow: none;

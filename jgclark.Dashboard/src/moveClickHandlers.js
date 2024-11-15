@@ -1,24 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 // import pluginJson from '../plugin.json'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import {
-  getOpenItemParasForCurrentTimePeriod,
-  getRelevantOverdueTasks,
-  getDashboardSettings,
-  moveItemBetweenCalendarNotes,
-  handlerResult,
-} from './dashboardHelpers'
+import { getOpenItemParasForCurrentTimePeriod, getRelevantOverdueTasks, getDashboardSettings, moveItemBetweenCalendarNotes, handlerResult } from './dashboardHelpers'
 import { validateAndFlattenMessageObject } from './shared'
-import {
-  type MessageDataObject,
-  type TBridgeClickHandlerResult,
-} from './types'
+import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
   calcOffsetDateStr,
@@ -29,7 +19,7 @@ import {
   RE_DATE,
   RE_DATE_INTERVAL,
   RE_NP_WEEK_SPEC,
-  replaceArrowDatesInString
+  replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNPWeekData } from '@helpers/NPdateTime'
@@ -47,6 +37,7 @@ const checkThreshold = 20 // number beyond which to check with user whether to p
  * Move an item from one calendar note to a different one.
  * The date to move to is indicated by controlStr, which is a relative date.
  * TODO: Extend to move sub-items as well, if wanted.
+ * Note: is similar but different to dashboardHelpers::moveItemBetweenCalendarNotes().
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
@@ -118,8 +109,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     // clo(reactWindowData)
 
     // Get paras for all open items in yesterday's note
-    // TODO: get this from reactWindowData.pluginData instead
-    // will be .pluginData.sections.name=Today.sectionItems
+    // Note: this could be taken from pluginData's DY section data, but it's very quick to generate, and guarantees that we're using fresh data
     const yesterdayDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
     const todayDateStr = getTodaysDateHyphenated()
     const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
@@ -131,14 +121,22 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
+    // if (totalToMove !== prevTotalToMove) {
+    //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    // }
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
-    if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`, ['Yes', 'No'], 'Move Yesterday to Today', false)
+    if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
+      const res = await showMessageYesNo(
+        `Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to today?`,
+        ['Yes', 'No'],
+        'Move Yesterday to Today',
+        false,
+      )
       if (res !== 'Yes') {
         logDebug('scheduleAllYesterdayOpenToToday', 'User cancelled operation.')
         return { success: false }
@@ -162,7 +160,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = replaceArrowDatesInString(p.content,`>${newDateStr}`)
+            p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
             p.note?.updateParagraph(p)
             DataStore.updateCache(p.note, false)
             numberScheduled++
@@ -213,7 +211,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = replaceArrowDatesInString(p.content,`>${newDateStr}`)
+            p.content = replaceArrowDatesInString(p.content, `>${newDateStr}`)
             logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content "${p.content}" `)
             thisNote.updateParagraph(p)
             numberScheduled++
@@ -233,9 +231,8 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `scheduleAllYesterdayOpenToToday finished `)
 
     // Update display of these 2 sections
-    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT'], }
-  }
-  catch (error) {
+    return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT'] }
+  } catch (error) {
     logError('scheduleAllYesterdayOpenToToday', JSP(error))
     return { success: false }
   }
@@ -249,7 +246,6 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
  */
 export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-
     let numberScheduled = 0
     const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
@@ -257,8 +253,8 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     const thisStartTime = new Date()
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
 
-    // Get paras for all open items in yesterday's note
-    // TODO: get this from reactWindowData.pluginData instead
+    // Get paras for all open items in today's note
+    // Note: this could be taken from pluginData's DT section data, but it's very quick to generate, and guarantees that we're using fresh data
     const todayDateStr = getTodaysDateUnhyphenated()
     const tomorrowDateStr = new moment().add(1, 'days').format('YYYYMMDD')
     const tomorrowISODateStr = new moment().add(1, 'days').format('YYYY-MM-DD')
@@ -271,13 +267,21 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod('day', todaysNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
+    // if (totalToMove !== prevTotalToMove) {
+    //   logDebug('scheduleAllTodayTomorrow', `- Excluding children reduced total to move from ${prevTotalToMove} to ${totalToMove}`)
+    // }
 
     // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
-    if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to tomorrow?`, ['Yes', 'No'], 'Move Today to Tomorrow', false)
+    if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
+      const res = await showMessageYesNo(
+        `Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to tomorrow?`,
+        ['Yes', 'No'],
+        'Move Today to Tomorrow',
+        false,
+      )
       if (res !== 'Yes') {
         logDebug('scheduleAllTodayTomorrow', 'User cancelled operation.')
         return { success: false }
@@ -298,7 +302,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = replaceArrowDatesInString(p.content,`>${tomorrowISODateStr}`)
+            p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
             p.note?.updateParagraph(p)
             DataStore.updateCache(p.note, false)
             numberScheduled++
@@ -341,7 +345,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           // Convert each reduced para back to the full one to update.
           const p = getParagraphFromStaticObject(dashboardPara)
           if (p) {
-            p.content = replaceArrowDatesInString(p.content,`>${tomorrowISODateStr}`)
+            p.content = replaceArrowDatesInString(p.content, `>${tomorrowISODateStr}`)
             logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para "${p.content}" from note ${thisNote.filename}`)
             thisNote.updateParagraph(p)
           } else {
@@ -363,8 +367,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     // Update display of these 2 sections
     logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO'] }
-  }
-  catch (error) {
+  } catch (error) {
     logError('dashboard / scheduleAllTodayTomorrow', error.message)
     return { success: false }
   }
@@ -378,7 +381,6 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
  */
 export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   try {
-
     let numberScheduled = 0
     const config = await getDashboardSettings()
     // Override one config item so we can work on separate dated vs scheduled items
@@ -402,14 +404,19 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
     }
 
     // Get list of open tasks/checklists from this calendar note
-    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("week", thisWeekNote, config)
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod('week', thisWeekNote, config)
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
-    if (NotePlan.environment.platform === "macOS" && totalToMove > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to next week?`, ['Yes', 'No'], 'Move This Week to Next Week', false)
+    if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
+      const res = await showMessageYesNo(
+        `Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'move'} ${totalToMove} items to next week?`,
+        ['Yes', 'No'],
+        'Move This Week to Next Week',
+        false,
+      )
       if (res !== 'Yes') {
         logDebug('scheduleAllThisWeekNextWeek', 'User cancelled operation.')
         return { success: false }
@@ -495,8 +502,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
     // Update display of these 2 sections
     logDebug('scheduleAllThisWeekNextWeek', `returning {true, REFRESH_SECTION_IN_JSON, [W]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['W'] }
-  }
-  catch (error) {
+  } catch (error) {
     logError('dashboard / scheduleAllThisWeekNextWeek', error.message)
     return { success: false }
   }
@@ -506,7 +512,8 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
 /**
  * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
- * Note: This uses an API call that doesn't include open checklist items
+ * Note: This uses an API call that doesn't include open checklist items.
+ * FIXME: This doesn't honour the useDemoData setting yet.
  * @param {MessageDataObject} data
  * @returns {TBridgeClickHandlerResult}
  */
@@ -519,34 +526,36 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
 
     // Get list of open tasks/checklists from yesterday note
     // Note: we need full TParagraphs, not ReducedParagraphs
-    const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-    const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    if (!yesterdaysNote) {
-      throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
-    }
-    // Override one setting so we can work on combined items
-    config.separateSectionForReferencedNotes = false
-    const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
-    // const yesterdaysCombinedSortedDashboardParas = yestCombinedSortedParas.concat(sortedRefParas)
+    // const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+    // const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
+    // if (!yesterdaysNote) {
+    //   throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
+    // }
+    // // Override one setting so we can work on combined items
+    // config.separateSectionForReferencedNotes = false
+    // const [yesterdaysCombinedSortedDashboardParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config, false)
+
+    // Now dedupe with Yesterday data
     // Now convert these back to full TParagraph
-    const yesterdaysCombinedSortedParas: Array<TParagraph> = []
-    for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
-      const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
-      if (p) {
-        yesterdaysCombinedSortedParas.push(p)
-      } else {
-        logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
-      }
-    }
+    // const yesterdaysCombinedSortedParas: Array<TParagraph> = []
+    // for (const yCSDP of yesterdaysCombinedSortedDashboardParas) {
+    //   const p: TParagraph | null = getParagraphFromStaticObject(yCSDP)
+    //   if (p) {
+    //     yesterdaysCombinedSortedDashboardParas.push(p)
+    //   } else {
+    //     logWarn('scheduleAllOverdueOpenToToday', `Couldn't find para matching "${yCSDP.content}"`)
+    //   }
+    // }
 
     // Get paras for all overdue items in notes
     // Note: we need full TParagraphs, not ReducedParagraphs
-    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    // const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
+    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, []) // Note: does not include open checklist items. Note: turned off dedupe with yesterday's items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logInfo('scheduleAllOverdueOpenToToday', `Can't find any overdue items; this can happen if all were from yesterday, and have been de-duped. Stopping.`)
       return { success: false }
-    }  
+    }
     logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `Found ${totalOverdue} overdue items to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} to today`)
 
     const todayDateStr = getTodaysDateHyphenated()
@@ -554,8 +563,15 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // If there are lots, then double check whether to proceed
     // TODO: get this from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
-    if (NotePlan.environment.platform === "macOS" && totalOverdue > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'rescheduleItem' : 'move'} ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`, ['Yes', 'No'], 'Move Overdue to Today', false)
+    if (NotePlan.environment.platform === 'macOS' && totalOverdue > checkThreshold) {
+      const res = await showMessageYesNo(
+        `Are you sure you want to ${
+          config.rescheduleNotMove ? 'rescheduleItem' : 'move'
+        } ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`,
+        ['Yes', 'No'],
+        'Move Overdue to Today',
+        false,
+      )
       if (res !== 'Yes') {
         logDebug('scheduleAllOverdueOpenToToday', 'User cancelled operation.')
         return { success: false }
@@ -564,7 +580,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
 
     let c = 0
     if (overdueParas.length > 0) {
-    // start a progress indicator
+      // start a progress indicator
       reactWindowData.pluginData.refreshing = ['OVERDUE']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for sections ${String(['OVERDUE'])}`)
 
@@ -581,15 +597,14 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
             continue
           }
           logDebug('scheduleAllOverdueOpenToToday', `Scheduling item ${c} to ${newDateStr}`)
-          para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
+          para.content = replaceArrowDatesInString(para.content, `>${newDateStr}`)
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para "${para.content}" from note ${para.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
           // Update cache to allow it to be re-read on refresh
           DataStore.updateCache(thisNote, false)
         }
-        logDebug('scheduleAllOverdueOpenToToday', `rescheduled ${String(numberChanged)} overdue items to today's note (after ${timer(thisStartTime)})`)
-
+        logTimer('scheduleAllOverdueOpenToToday', thisStartTime, `rescheduled ${String(numberChanged)} overdue items to today's note`)
       } else {
         // Determine if we need to use 'today' or schedule to the specific date.
         const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
@@ -614,7 +629,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
               logWarn('scheduleAllOverdueOpenToToday', `-> failed to moveFromCalToCal ${thisNoteDateStr} → ${todayDateStr}`)
             }
           } else {
-            para.content = replaceArrowDatesInString(para.content,`>${newDateStr}`)
+            para.content = replaceArrowDatesInString(para.content, `>${newDateStr}`)
             logDebug('scheduleAllOverdueOpenToToday', `- in note '${para.note?.filename ?? '?'}', so changing para to "${para.content}"`)
             numberChanged++
             thisNote.updateParagraph(para)
@@ -635,8 +650,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // Update display of this section (and Today)
     logDebug('scheduleAllOverdueOpenToToday', `✅ completed`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'OVERDUE'] }
-  }
-  catch (error) {
+  } catch (error) {
     logError('dashboard scheduleAllOverdueOpenToToday', error.message)
     return { success: false }
   }

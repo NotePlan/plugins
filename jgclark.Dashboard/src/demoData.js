@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Demo data for Dashboard plugin v2
-// Last updated 2024-09-27 for v2.0.6+ by @jgclark
+// Demo data for Dashboard plugin
+// Last updated 2024-11-06 for v2.1.0.a16 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -22,103 +22,106 @@ const today = new moment().toDate() // use moment instead of  `new Date` to ensu
 let thisDateStr: string = getTodaysDateUnhyphenated()
 let thisFilename: string = `${thisDateStr}.md`
 export const openTodayItems: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-0',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
+      lineIndex: 0,
       title: thisDateStr,
       priority: 0,
       content: 'task with timeblock 10:00-11:30',
       rawContent: 'task with timeblock 10:00-11:30',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-1',
     itemType: "open",
     para: {
       noteType: "Calendar",
       type: "open",
       filename: thisFilename,
+      lineIndex: 2,
       priority: 1,
-      content: "reconcile bank statement @repeat(1m)",
-      rawContent: "reconcile bank statement @repeat(1m)",
+      content: "reconcile bank statement @repeat(1m) at 20:00-23:00",
+      rawContent: "reconcile bank statement @repeat(1m) at 20:00-23:00",
       prefix: "* ",
+      children: () => [],
+      indentLevel: 0,
     }
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Mission Partners.md',
-      title: 'Mission Partners',
-      priority: 0,
-      content: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      rawContent: 'Edit video from CFL visit https://bcfd.org.uk 14:30-15:30',
-      blockId: '^wazhht',
-      prefix: '* ',
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
+    ID: '0-2',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
       type: 'checklist',
       filename: thisFilename,
+      lineIndex: 3,
       priority: 0,
       content: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       rawContent: 'check ==highlights==, `formatted` and ~~strike~~ text work OK',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '0-3',
     itemType: "checklist",
     para: {
       noteType: "Calendar",
       type: "checklist",
       filename: thisFilename,
+      lineIndex: 4,
       priority: 0,
       content: "morning checklist 7:30AM",
       rawContent: "morning checklist 7:30AM",
       prefix: "+ ",
+      children: () => [],
+      indentLevel: 0,
     }
   },
 ]
 export const refTodayItems: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '1-0',
     itemType: 'open',
     para: {
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Mission Partners.md',
+      lineIndex: 5,
       title: 'Mission Partners',
       priority: 0,
-      content: 'Update display board 08:00-09:00',
-      rawContent: 'Update display board 08:00-09:00',
+      content: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
+      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
       prefix: '* ',
       hasChild: true,
+      children: () => [],
+      indentLevel: 0,
     },
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '1-1',
     itemType: "open",
     para: {
       noteType: "Notes",
       title: 'Repair Café operation',
       filename: "Ministry Projects/Repair Café operation.md",
+      lineIndex: 10,
       type: "open",
       priority: 0,
       prefix: "* ",
       content: "Pay in cash from cafe 2:30PM",
       rawContent: "Pay in cash from cafe 2:30PM",
+      children: () => [],
+      indentLevel: 0,
     }
   },
 ]
@@ -128,59 +131,106 @@ const yesterday = new moment().subtract(1, 'days').toDate()
 thisDateStr = moment(yesterday).format('YYYYMMDD')
 thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-0',
     itemType: 'open',
     para: {
       noteType: 'Calendar',
       type: 'open',
       filename: thisFilename,
-
+      lineIndex: 0,
       priority: 4,
       content: '>> #editvideo from CFL visit',
       rawContent: '>> #editvideo from CFL visit',
       prefix: '* ',
       hasChild: true,
+      children: () => [{ content: 'child of #editvideo', indents: 1 }],
+      indentLevel: 0,
     },
+    parentID: '',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-1',
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      lineIndex: 1,
+      priority: 0,
+      content: 'fix and level audio',
+      rawContent: 'fix and level audio',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-0',
+  },
+  {
+    ID: '2-2',
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      lineIndex: 2,
+      priority: 1,
+      content: '! trim and order shots',
+      rawContent: '! trim and order shots',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-0',
+  },
+  {
+    ID: '2-3',
+    itemType: 'open',
+    para: {
+      noteType: 'Calendar',
+      type: 'open',
+      filename: thisFilename,
+      lineIndex: 3,
+      priority: 0,
+      content: 'add titles',
+      rawContent: 'add titles',
+      prefix: '* ',
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-0',
+  },
+  {
+    ID: '2-4',
     itemType: 'checklist',
     para: {
       noteType: 'Calendar',
       type: 'checklist',
       filename: thisFilename,
+      lineIndex: 4,
       priority: 0,
       content: 'update contract for [[Staff Induction (SW)]] following review comments',
       rawContent: 'update contract for [[Staff Induction (SW)]] following review comments',
       prefix: '* ',
       hasChild: true,
+      children: () => [{ content: 'check contract with Bev', indents: 1 }],
+      indentLevel: 0,
     },
+    parentID: '',
   },
 ]
 export const refYesterdayParas: Array<TSectionItem> = [
-  // $FlowIgnore[prop-missing] ID gets added later
   {
-    itemType: 'open',
-    para: {
-      noteType: 'Notes',
-      type: 'open',
-      filename: 'CCC Areas/Services.md',
-      title: 'Services',
-      priority: 1,
-      content: 'write 5/3 sermon >2023-03-02',
-      rawContent: 'write 5/3 sermon >2023-03-02',
-      prefix: '* ',
-      changedDate: new Date('2023-03-02T00:00:00.000Z'),
-    },
-  },
-  // $FlowIgnore[prop-missing] ID gets added later
-  {
+    ID: '2-5',
     itemType: 'open',
     para: {
       noteType: 'Notes',
       title: 'Repair Café operation',
       filename: "Ministry Projects/Repair Café operation.md",
+      lineIndex: 5,
       type: 'open',
       priority: 1,
       prefix: '* ',
@@ -188,23 +238,69 @@ export const refYesterdayParas: Array<TSectionItem> = [
       rawContent: '! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht',
       blockId: '^wazhht',
       hasChild: true,
+      children: () => [{ content: 'item 1 response', indents: 1 }],
+      indentLevel: 0,
     },
+    parentID: '',
   },
-  // $FlowIgnore[prop-missing] ID gets added later
   {
+    ID: '2-6',
     itemType: 'open',
     para: {
       type: 'open',
       noteType: 'Notes',
       filename: 'CCC Areas/Services.md',
+      lineIndex: 6,
       title: 'Services',
-      content: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
-      rawContent: 'write service leader segments plan Something Different for 5/3 >2023-03-02',
+      content: '! prepare service for 5/3 >2023-03-02',
+      rawContent: '! prepare service for 5/3 >2023-03-02',
       prefix: '* ',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
       priority: 1,
       hasChild: true,
+      children: () => [{ content: 'plan Something Different for 5/3', indents: 1 }],
+      indentLevel: 0,
     },
+    parentID: '',
+  },
+  {
+    ID: '2-7',
+    itemType: 'open',
+    para: {
+      type: 'open',
+      noteType: 'Notes',
+      filename: 'CCC Areas/Services.md',
+      lineIndex: 7,
+      title: 'Services',
+      content: 'plan Something Different for 5/3',
+      rawContent: 'plan Something Different for 5/3',
+      prefix: '* ',
+      changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      priority: 0,
+      hasChild: false,
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-6',
+  },
+  {
+    ID: '2-8',
+    itemType: 'open',
+    para: {
+      noteType: 'Notes',
+      type: 'open',
+      filename: 'CCC Areas/Services.md',
+      lineIndex: 8,
+      title: 'Services',
+      priority: 1,
+      content: '! write 5/3 sermon >2023-03-02',
+      rawContent: '! write 5/3 sermon >2023-03-02',
+      prefix: '* ',
+      changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 1,
+    },
+    parentID: '2-6',
   },
 ]
 
@@ -226,6 +322,8 @@ export const openTomorrowParas: Array<TSectionItem> = [
       priority: 0,
       blockId: '^q9jzj4',
       changedDate: new Date('2023-03-02T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -247,6 +345,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: '!! Arrange EV charger repair',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -261,6 +361,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: ' Get login for https://www.waverleyabbeyresources.org/resources-home/',
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -275,6 +377,8 @@ export const openWeekParas: Array<TSectionItem> = [
       rawContent: 'Contact @PeterS again',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -291,6 +395,8 @@ export const openWeekParas: Array<TSectionItem> = [
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
       hasChild: true,
+      children: () => [{ content: 'install printer drivers', indents: 1 }],
+      indentLevel: 0,
     },
   },
 ]
@@ -307,6 +413,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Test multi-part hashtags: #project/companyA and #one/two/three >2023-W09',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -322,6 +430,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Re-plant two shrubs in new blue pots >2023-W09',
       prefix: '* ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -337,6 +447,8 @@ export const refWeekParas: Array<TSectionItem> = [
       rawContent: 'Backup Mac - with an arrow date >2023-W09< reference',
       prefix: '+ ',
       changedDate: new Date('2023-02-27T00:00:00.000Z'),
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -356,6 +468,8 @@ export const openMonthParas: Array<TSectionItem> = [
       content: 'Investigate alternative milkman',
       rawContent: 'Investigate alternative milkman',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -372,6 +486,8 @@ export const refMonthParas: Array<TSectionItem> = [
       content: 'Pay tax bill',
       rawContent: 'Pay tax bill',
       prefix: '* ',
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]
@@ -391,6 +507,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Open Deliveroo account #next',
       prefix: '+ ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -404,6 +522,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Make expenses claim #next',
       prefix: '* ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
   // $FlowIgnore[prop-missing] ID gets added later
@@ -417,6 +537,8 @@ export const tagParasFromNote: Array<TSectionItem> = [
       rawContent: 'Checklist item that can be hidden #test',
       prefix: '+ ',
       priority: 0,
+      children: () => [],
+      indentLevel: 0,
     },
   },
 ]

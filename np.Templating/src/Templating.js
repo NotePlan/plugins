@@ -268,6 +268,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
 
 export async function templateNew(templateTitle: string = '', _folder?: string, args?: Object): Promise<void> {
   try {
+    clo(args, `🤵 DBWDELETEME NPTemplating.templateNew templateTitle=${templateTitle} _folder=${_folder || ''} args=`)
     let selectedTemplate // will be a filename
     if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
@@ -318,7 +319,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
           },
         },
       }
-
+      clo(data, `🤵 DBWDELETEME NPTemplating.templateNew2 before render filename=${filename} args=`)
       const templateResult = await NPTemplating.render(frontmatterBody, data)
 
       await Editor.openNoteByFilename(filename)

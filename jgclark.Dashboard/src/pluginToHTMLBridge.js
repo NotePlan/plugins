@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { allSectionCodes, WEBVIEW_WINDOW_ID } from "./constants"
+import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddItem,
   doCancelChecklist,
@@ -19,6 +19,7 @@ import {
   doDeleteItem,
   doMoveToNote,
   doSettingsChanged,
+  doAddNewPerspective,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -30,6 +31,8 @@ import {
   // refreshAllSections,
   refreshSomeSections,
   incrementallyRefreshSections,
+  doCommsBridgeTest,
+  // turnOffPriorityItemsFilter
 } from './clickHandlers'
 import {
   doAddProgressUpdate,
@@ -46,18 +49,14 @@ import {
   scheduleAllOverdueOpenToToday,
   scheduleAllThisWeekNextWeek,
   scheduleAllTodayTomorrow,
-  scheduleAllYesterdayOpenToToday,
+  scheduleAllYesterdayOpenToToday
 } from './moveClickHandlers'
-import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
-import { showDashboardReact } from './reactMain' // TODO: fix circ dep here
-import {
-  copyUpdatedSectionItemData, findSectionItems,
-} from './dataGeneration'
+import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
+// import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
+import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import {
-  sendToHTMLWindow, getGlobalSharedData,
-} from '@helpers/HTMLView'
+import { sendToHTMLWindow, getGlobalSharedData, sendBannerMessage } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { formatReactError } from '@helpers/react/reactDev'
 
@@ -99,7 +98,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`***************** bridgeClickDashboardItem: ${actionType}${logMessage?`: "${logMessage}"`:''} *****************`)
+    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
     // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -112,7 +111,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // update the content so it can be found in the cache now that it's changed - this is for all the cases below that don't use data for the content - TODO(later): ultimately delete this
         content = result.updatedParagraph?.content ?? ''
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
-        data.item?.para?.content ? data.item.para.content = content : null
+        data.item?.para?.content ? (data.item.para.content = content) : null
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
         // await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
@@ -120,12 +119,19 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     switch (actionType) {
       case 'refresh': {
-        // await refreshAllSections()
-        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes }, false, true)
+        const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : allSectionCodes
+        logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
+
+        await incrementallyRefreshSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
+        result = { success: true }
         break
       }
       case 'windowReload': {
-        showDashboardReact()
+        const useDemoData = false
+        // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
+        // TEST: trying Plugin command invocation instead
+        DataStore.invokePluginCommandByName('Show Dashboard', 'jgclark.Dashboard', ['full', useDemoData])
+        result = { success: true }
         return
       }
       case 'completeTask': {
@@ -237,15 +243,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doRescheduleItem(data)
         break
       }
-      // saving this for now 2024-07-11, but delete if it's been more than two weeks :)
-      // case 'reactSettingsChanged': {
-      //   // $FlowIgnore
-      //   if (typeof data.settings !== 'string') data.settings = JSON.stringify(data.settings)
-      //   result = await doSettingsChanged(data, 'reactSettings')
-      //   break
-      // }
       case 'dashboardSettingsChanged': {
-       result = await doSettingsChanged(data, 'dashboardSettings')
+        result = await doSettingsChanged(data, 'dashboardSettings')
+        break
+      }
+      case 'perspectiveSettingsChanged': {
+        result = await doSettingsChanged(data, 'perspectiveSettings')
+        break
+      }
+      case 'addNewPerspective': {
+        result = await doAddNewPerspective(data)
         break
       }
       // case 'setSpecificDate': {
@@ -257,6 +264,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'incrementallyRefreshSections': {
+        logInfo('bCDI / incrementallyRefreshSections', `calling incrementallyRefreshSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
+        clo(data, '(startup only) data arriving in bCDI / incrementallyRefreshSections')
         result = await incrementallyRefreshSections(data)
         break
       }
@@ -284,6 +293,14 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllThisWeekNextWeek(data)
         break
       }
+      case 'commsBridgeTest': {
+        result = await doCommsBridgeTest(data)
+        break
+      }
+      // case 'turnOffPriorityItemsFilter': {
+      //   result = await turnOffPriorityItemsFilter()
+      //   break
+      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -295,15 +312,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     } else {
       logWarn('bCDI', `false result from call`)
     }
-
   } catch (error) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
 }
 
 /**
- * One function to handle all actions on return from the various handlers
- * An attempt to reduce duplicated code in each
+ * One function to handle all actions on return from the various handlers.
  * @param {TBridgeClickHandlerResult} handlerResult
  * @param {MessageDataObject} data
  */
@@ -313,28 +328,36 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
     await checkForThemeChange()
     if (!handlerResult) return
 
-    const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
-    if (actionsOnSuccess.length === 0) {
-      logDebug('processActionOnReturn', `note: no post process actions to perform`)
-      return
-    }
     const { success, updatedParagraph } = handlerResult
-    const isProject = data.item?.itemType === 'project'
-    const actsOnALine = actionsOnSuccess.some(str => str.includes("LINE"))
-
-    const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
-    logDebug('processActionOnReturn', isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`)
-    if (actsOnALine && filename === '') {
-      logWarn('processActionOnReturn', `Starting with no filename`)
-    }
 
     if (success) {
+      const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
+      if (actionsOnSuccess.length === 0) {
+        logDebug('processActionOnReturn', `note: no post process actions to perform`)
+        return
+      }
+      const isProject = data.item?.itemType === 'project'
+      const actsOnALine = actionsOnSuccess.some((str) => str.includes('LINE'))
+
+      const filename: string = isProject ? data.item?.project?.filename ?? '' : data.item?.para?.filename ?? ''
+      logDebug(
+        'processActionOnReturn',
+        isProject ? `PROJECT: ${data.item?.project?.title || 'no project title'}` : `TASK: updatedParagraph "${updatedParagraph?.content ?? 'N/A'}"`,
+      )
+      if (actsOnALine && filename === '') {
+        logWarn('processActionOnReturn', `Starting with no filename`)
+      }
       if (filename !== '') {
         // update the cache for the note, as it might have changed
         const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
       }
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
-        logDebug('processActionOnReturn', `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID||''} ${data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content||''}"`}`)
+        logDebug(
+          'processActionOnReturn',
+          `REMOVE_LINE_FROM_JSON: calling updateReactWindowFLC() for ID:${data?.item?.ID || ''} ${
+            data.item?.project ? 'project:"${data.item?.project.title}"' : `task:"${data?.item?.para?.content || ''}"`
+          }`,
+        )
         await updateReactWindowFromLineChange(handlerResult, data, [])
       }
       if (actionsOnSuccess.includes('UPDATE_LINE_IN_JSON')) {
@@ -346,33 +369,51 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
       }
-      if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
+      if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
+        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+        const config: any = await getDashboardSettings()
+        const enabledSections = getListOfEnabledSections(config)
+        logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSections (for ${String(enabledSections)}) ...`)
+        await incrementallyRefreshSections({ ...data, sectionCodes: enabledSections })
+      }
+      else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
+        logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections ...`)
         // await refreshAllSections() // this works fine
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
       }
-      if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
-        for (const sectionCode of wantedsectionCodes) {
+      else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+        logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSections (for ${String(allCalendarSectionCodes)}) ..`)
+        for (const sectionCode of allCalendarSectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
       }
+      if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
+        logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
+        reactWindowData.pluginData.totalDoneCount = incrementedCount
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
+      }
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
-        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        logInfo('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
         // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
         await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
       }
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
+        logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
         const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
         reactWindowData.pluginData.startDelayedRefreshTimer = true
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
       }
     } else {
-      logDebug('processActionOnReturn', `-> failed handlerResult`)
+      logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
+      await sendBannerMessage(
+        WEBVIEW_WINDOW_ID,
+        `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
+      )
     }
   } catch (error) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
@@ -399,7 +440,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     }
     const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
     let sections = reactWindowData.pluginData.sections
-    const isProject = data.item?.itemType === "project"
+    const isProject = data.item?.itemType === 'project'
 
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
@@ -432,11 +473,11 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
         throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
       }
     } else if (isProject) {
-      // 
+      //
       const projFilename = data.item?.project?.filename
       if (!projFilename) throw new Error(`unable to find data.item.project.filename`)
       const indexes = findSectionItems(sections, ['itemType', 'project.filename'], {
-        itemType: "project",
+        itemType: 'project',
         'project.filename': projFilename,
       })
       logDebug('updateReactWindowFLC', `- filename '${projFilename}' actions: ${String(actionsOnSuccess ?? '-')}`)
@@ -472,8 +513,8 @@ export async function checkForThemeChange(): Promise<void> {
   const config = await getDashboardSettings()
 
   // logDebug('checkForThemeChange', `Editor.currentTheme: ${Editor.currentTheme?.name || '<no theme>'} config.dashboardTheme: ${config.dashboardTheme} themeInWindow: ${themeInWindow}`)
-  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')  
-  const currentTheme = (config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null)
+  // clo(NotePlan.editors.map((e,i)=>`"[${i}]: ${e?.title??''}": "${e.currentTheme.name}"`), 'checkForThemeChange: All NotePlan.editors themes')
+  const currentTheme = config.dashboardTheme ? config.dashboardTheme : Editor.currentTheme?.name || null
 
   // logDebug('checkForThemeChange', `currentTheme: "${currentTheme}", themeInReactWindow: "${themeInWindow}"`)
   if (!currentTheme) {
@@ -490,6 +531,9 @@ export async function checkForThemeChange(): Promise<void> {
     // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
 
     // ... so for now, force a reload instead
-    await showDashboardReact('full')
-  } 
+    // V1
+    // await showDashboardReact('full')
+    // V2: use callback to avoid creating circular dependency
+    DataStore.invokePluginCommandByName('showDashboardReact', 'jgclark.Dashboard', ['full'])
+  }
 }

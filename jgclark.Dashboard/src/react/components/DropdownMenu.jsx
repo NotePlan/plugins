@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dropdown menu with display toggles.
 // Called by Header component.
-// Last updated 2024-07-05 for v2.0.1 by @jgclark
+// Last updated 2024-08-27 for v2.1.a10 by @jgclark
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -125,6 +125,7 @@ return (
           handleInputChange,
           handleComboChange,
           handleSaveInput,
+          showDescAsTooltips: true,
         }))}
       </div>
       {sectionItems.length > 0 &&
@@ -138,6 +139,7 @@ return (
             handleInputChange,
             handleComboChange,
             handleSaveInput,
+            showDescAsTooltips: true,
           }))}
         </div>
       }

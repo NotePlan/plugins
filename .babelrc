@@ -1,9 +1,15 @@
 {
   "presets": [
-    "@babel/flow", 
+    "@babel/preset-flow",
+    "@babel/preset-react",
     [
       "@babel/preset-env",
-      { "targets": { "safari": "11" } }
+      {
+        "targets": {
+          "node": "current"
+        },
+        "modules": "auto"
+      }
     ]
   ]
 }

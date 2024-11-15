@@ -264,7 +264,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
         // Note: can't use this API as it doesn't recognise front matter  (as of 3.8.1): noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
 
         // work out what indicator to send to addParasAsText(), based on setting 'whereToAddInNote' (start or end)
-        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : ''
+        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : '<<bottom of note>>'
         addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
         // // add after title or frontmatter

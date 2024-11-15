@@ -183,7 +183,7 @@ var RootBundle = (function (exports, React$1) {
 
   /**
    * Test _logLevel against logType to decide whether to output
-   * @param {string} logType 
+   * @param {string} logType
    * @returns {boolean}
    */
   const shouldOutputForLogLevel = logType => {
@@ -204,8 +204,8 @@ var RootBundle = (function (exports, React$1) {
   /**
    * Test if _logFunctionRE is set and matches the current log details.
    * Note: only works if DataStore is available.
-   * @param {any} pluginInfo 
-   * @returns 
+   * @param {any} pluginInfo
+   * @returns
    */
   const shouldOutputForFunctionName = pluginInfo => {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;

@@ -9,7 +9,16 @@ module.exports = {
     '^NPTemplating/(.*)$': '<rootDir>/np.Templating/lib/NPTemplating',
     '^TemplatingEngine/(.*)$': '<rootDir>/np.Templating/lib/TemplatingEngine',
     '^NPGlobals/(.*)$': '<rootDir>/np.Globals/lib/NPGlobals',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter', '<rootDir>/.history/'],
-  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"]
+  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  testEnvironment: 'jsdom',
+  transform: {
+    '^.+\\.[tj]sx?$': 'babel-jest', // Handle .js, .jsx, .ts, .tsx files
+    '^.+\\.mjs$': 'babel-jest', // Use babel-jest for .mjs files as well
+  },
+  transformIgnorePatterns: [
+    '/node_modules/(?!node-notifier|uuid)/', // Ensure these modules are transformed
+  ],
 }

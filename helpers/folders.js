@@ -31,7 +31,12 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
       return []
     }
 
-    logDebug('getFoldersMatching', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(excludeSpecialFolders)}`)
+    logDebug(
+      'getFoldersMatching',
+      `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions: [${inclusions.toString()}] and exclusions [${exclusions.toString()}]. ESF? ${String(
+        excludeSpecialFolders,
+      )}`,
+    )
 
     // Remove root as a special case
     const rootIncluded = inclusions.some((f) => f === '/')
@@ -71,7 +76,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     }
 
     // now remove trailing slash characters
-    const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
+    const outputList = reducedTerminatedWithSlash.map((folder) => (folder.length > 1 && folder.endsWith('/') ? folder.slice(0, -1) : folder))
 
     // add '/' back in if it was there originally in inclusions AND NOT exclusions
     if (rootIncluded && !rootExcluded) {
@@ -100,7 +105,7 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
       throw new Error('No valid parentFolderPath given.')
     }
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
-    const subfolderList = DataStore.folders.filter(f => f.startsWith(parentFolderPath))
+    const subfolderList = DataStore.folders.filter((f) => f.startsWith(parentFolderPath))
 
     logDebug('folders / getSubFolders', `-> ${subfolderList.length} items: [${subfolderList.toString()}]`)
     return subfolderList

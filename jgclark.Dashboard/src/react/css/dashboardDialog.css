@@ -1,6 +1,6 @@
 /**
   CSS for the items Actions Dialog 
-  Last updated: 2024-08-25 for v2.0.6 by @jgclark
+  Last updated: 2024-08-25 for v2.1.0-a9 by @jgclark
   */
 
 dialog {
@@ -31,11 +31,10 @@ dialog:modal {
   border-block-end: 1px solid var(--divider-color);
   /* margin-block-end: 4px; */
   border-radius: 0.5rem 0.5rem 0px 0px; /* mimic the dialog border radius only at the top */
-  /* grid-template-columns: auto auto; */
   grid-template-columns: max-content auto max-content;
   /* vertically align content items in center */
   align-items: center; 
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
 }
 
 /* icons in title */
@@ -111,7 +110,7 @@ dialog:modal {
   border-radius: 4px;
   padding: 1px 4px 0px 4px;
   /* have margin to the right+top+bottom of buttons */
-  margin: 3px 4px 3px 0px;
+  margin: 0.2rem 0.3rem 0.2rem 0; /* 3px 4px 3px 0px; */
 }
 /* set FontAwesome icon colour to tint color */
 .dialogBody button i {
@@ -123,13 +122,13 @@ dialog:modal {
 }
 
 .fullTextInput {
-  width: calc(100% - 6rem); /* allow space for icon before and button after */
+  width: -webkit-fill-available; /* calc(100% - 3rem); */
   font-size: 0.9rem;
   font-weight: 600;
   padding: 1px 4px 1px 4px;
   border: 1px solid var(--divider-color);
   border-radius: 4px;
-  margin-left: 0.3rem;
+  /* margin-left: 0.3rem; */
   margin-right: 0.3rem;
 }
 
@@ -154,6 +153,11 @@ dialog:modal {
   pointer-events: none; /* Prevent placeholder text from being selectable */
 }
 
+.childDetails {
+  font-size: 0.9rem;
+  padding-left: 0.5rem;
+}
+
 .closeButton {
 	font-size: unset;
   color: var(--tint-color);
@@ -164,6 +168,7 @@ dialog:modal {
   outline: none;
   padding-top: 3px;
 }
+
 .skip-button {
 	font-size: unset;
   background-color: transparent;
@@ -177,7 +182,6 @@ dialog:modal {
   margin-right: 5px;
   margin-top: 2px;
 }
-
 
 /* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
  * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
@@ -195,3 +199,8 @@ dialog:modal {
     left: 5%;
   }
 } */
+
+/* Override items from main Dashboard.css for slightly different context this is used */
+.projectIcon {
+	margin-block-start: 3px !important;
+}

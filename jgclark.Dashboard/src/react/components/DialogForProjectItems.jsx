@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for Projects
 // Called by Dialog component
-// Last updated 2024-08-25 for v2.0.6 by @jgclark
+// Last updated 2024-09-21 for v2.1.0.a12 by @jgclark
 //--------------------------------------------------------------------------
 
 import React, { useRef, useEffect, useLayoutEffect, useState, type ElementRef } from 'react'
@@ -12,7 +12,7 @@ import { useAppContext } from './AppContext.jsx'
 import CalendarPicker from './CalendarPicker.jsx'
 import ProjectIcon from './ProjectIcon'
 import TooltipOnKeyPress from './ToolTipOnModifierPress.jsx'
-import { hyphenatedDateString } from '@helpers/dateTime'
+import { hyphenatedDateString, relativeDateFromNumber } from '@helpers/dateTime'
 import { clo, logDebug } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 import '../css/animation.css'
@@ -25,8 +25,18 @@ type Props = {
   positionDialog: (dialogRef: { current: HTMLDialogElement | null }) => void,
 }
 
+type DialogButtonProps = {
+  label: string,
+  controlStr: string,
+  handlingFunction?: string,
+  description?: string,
+  icons?: Array<{ className: string, position: 'left' | 'right' }>,
+}
+
 const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positionDialog }: Props): React$Node => {
   const [animationClass, setAnimationClass] = useState('')
+  const [resetCalendar, setResetCalendar] = useState(false)
+
   const dialogRef = useRef <? ElementRef < 'dialog' >> (null)
 
   // clo(detailsMessageObject, `DialogForProjectItems: starting, with details=`)
@@ -38,32 +48,37 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
   const { sendActionToPlugin, pluginData } = useAppContext()
   const isDesktop = pluginData.platform === 'macOS'
 
-  const reviewDetails = (thisItem.project?.reviewInterval) ? ` (review: ${thisItem.project.reviewInterval})` : ''
+  const reviewIntervalStr = (thisItem.project?.reviewInterval) ? `reviews: ${thisItem.project.reviewInterval}` : ''
+  const reviewDaysStr = (thisItem.project?.nextReviewDays) ? `due ${relativeDateFromNumber(thisItem.project.nextReviewDays, true)}` : ''
+  const reviewDetails = (reviewIntervalStr && reviewDaysStr)
+    ? `(${reviewIntervalStr}; ${reviewDaysStr})`
+    : (!reviewIntervalStr && !reviewDaysStr)
+      ? ''
+      : `(${reviewIntervalStr}${reviewDaysStr})`
 
   /**
    * Arrays of buttons to render.
    */
-  const reviewButtons = [
-    { label: 'Finish Review', controlStr: 'finish', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
-    { label: 'Skip 1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
-    { label: 'Skip 1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+  const reviewButtons: Array<DialogButtonProps> = [
+    { label: 'Finish Review', controlStr: 'finish', description: 'Update the @review(...) date on the project to today', handlingFunction: 'reviewFinished', icons: [{ className: 'fa-regular fa-calendar-check', position: 'left' }] },
+    { label: 'Skip 1w', controlStr: 'nr+1w', description: 'Add a @nextReview(...) date for 1 week to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 2w', controlStr: 'nr+2w', description: 'Add a @nextReview(...) date for 2 weeks to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1m', controlStr: 'nr+1m', description: 'Add a @nextReview(...) date for 1 month to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
+    { label: 'Skip 1q', controlStr: 'nr+1q', description: 'Add a @nextReview(...) date for 1 quarter to the project metadata', handlingFunction: 'setNextReviewDate', icons: [{ className: 'fa-solid fa-forward', position: 'left' }] },
   ]
 
   // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const projectButtons = [
-    { label: 'Complete', controlStr: 'complete', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
-    { label: 'Cancel', controlStr: 'cancel', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
-    { label: 'Pause', controlStr: 'cancel', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
+  const projectButtons: Array<DialogButtonProps> = [
+    { label: 'Complete', controlStr: 'complete', description: 'Add @completed(...) date to project metadata and remove from review lists', handlingFunction: 'completeProject', icons: [{ className: 'fa-solid fa-circle-check', position: 'left' }] },
+    { label: 'Cancel', controlStr: 'cancel', description: 'Add @cancelled(...) date to project metadata and remove from review lists', handlingFunction: 'cancelProject', icons: [{ className: 'fa-solid fa-circle-xmark', position: 'left' }] },
+    { label: 'Pause', controlStr: 'pause', 'description': 'Mark the project as paused', handlingFunction: 'togglePauseProject', icons: [{ className: 'fa-solid fa-circle-pause', position: 'left' }] },
     // TODO(later): I wanted this icon to be fa-solid fa-arrows-left-right-to-line, but it wasn't available when we made the build of icons.
-    // Will it become available if we switch to SVG delivery ?
-    { label: 'New Interval', controlStr: 'newint', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
+    { label: 'New Interval', controlStr: 'newint', description: 'Change the @review(...) interval for this project', handlingFunction: 'setNewReviewInterval', icons: [{ className: 'fa-solid fa-arrows-left-right', position: 'left' }] },
   ]
 
   // Note: These cannot currently be shown on iOS/iPadOS as the CommandBar is not available while the window is open. They get ignored below.
-  const progressButtons = [
-    { label: 'Add', controlStr: 'progress', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
+  const progressButtons: Array<DialogButtonProps> = [
+    { label: 'Add', controlStr: 'progress', description: 'Add a progress comment to the project', handlingFunction: 'addProgress', icons: [{ className: 'fa-solid fa-comment-lines', position: 'right' }] },
   ]
 
   useEffect(() => {
@@ -100,6 +115,9 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
 
     logDebug(`DialogForProjectItems`, `Specific Date selected: ${String(date)} isoDateStr:${isoDateStr}. Will use actionType ${actionType}`)
     sendActionToPlugin(actionType, { ...detailsMessageObject, actionType, controlStr: isoDateStr }, 'Date selected', true)
+    // reset the calendar picker after some time or in the next render cycle so it forgets the last selected date
+    setResetCalendar(true)
+    setTimeout(() => setResetCalendar(false), 0) // Reset the calendar in the next render cycle
     closeDialog()
   }
 
@@ -151,15 +169,17 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
       >
         {/* Title area ---------------- */}
         <div className="dialogTitle">
+          <div className="projectIcon">
           <ProjectIcon
             item={thisItem}
-          />
+            />
+          </div>
           <TooltipOnKeyPress
             altKey={{ text: 'Open in Split View' }}
             metaKey={{ text: 'Open in Floating Window' }}
             label={`Task Item Dialog for ${title}`}
           >
-            <span className="dialogFileParts" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
+            <span className="dialogFileParts pad-left pad-right" onClick={handleTitleClick} style={{ cursor: 'pointer' }}>            
               <span className="dialogItemNote" >{title}</span>
             </span>
             {reviewDetails}
@@ -177,17 +197,20 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             <div className="preText">Review:</div>
             <div>
               {reviewButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index}
+                  className="PCButton"
+                  title={button.description}
+                  onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-right`}></i>
                   ))}
                   {button.label}
                   {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-left`}></i>
                   ))}
                 </button>
               ))}
-              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} />
+              <CalendarPicker onSelectDate={handleDateSelect} numberOfMonths={1} reset={resetCalendar} />
             </div>
 
             {/* line2 (macOS only) ---------------- */}
@@ -196,13 +219,16 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
                 <div className="preText">Project:</div>
                 <div>
                   {projectButtons.map((button, index) => (
-                    <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                    <button key={index}
+                      className="PCButton"
+                      title={button.description}
+                      onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                       {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                        <i key={icon.className} className={`${icon.className} pad-right`}></i>
                       ))}
                       {button.label}
                       {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                        <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                        <i key={icon.className} className={`${icon.className} pad-left`}></i>
                       ))}
                     </button>
                   ))}
@@ -214,13 +240,16 @@ const DialogForProjectItems = ({ details: detailsMessageObject, onClose, positio
             <div className="preText">Progress:</div>
             <div>
               {progressButtons.map((button, index) => (
-                <button key={index} className="PCButton" onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction)}>
+                <button key={index}
+                  className="PCButton"
+                  title={button.description}
+                  onClick={(e) => handleButtonClick(e, button.controlStr, button.handlingFunction ?? '')}>
                   {button.icons?.filter((icon) => icon.position === 'left').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-left pad-right`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-right`}></i>
                   ))}
                   {button.label}
                   {button.icons?.filter((icon) => icon.position === 'right').map((icon) => (
-                    <i key={icon.className} className={`${icon.className} icon-right pad-left`}></i>
+                    <i key={icon.className} className={`${icon.className} pad-left`}></i>
                   ))}
                 </button>
               ))}

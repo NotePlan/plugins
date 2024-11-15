@@ -17,7 +17,6 @@ import { showMessage } from '@helpers/userInput'
  *
  */
 
-
 /**
  * NotePlan calls this function after the plugin is installed or updated.
  * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates
@@ -49,13 +48,16 @@ export function init(): void {
 
 /**
  * Log settings have been updated in the Preferences panel.
- * Note: It's only changes to the log settings that the front-end won't notice, and so re-render.
+
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
-  const logSettings = await getLogSettings()
-  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
-  await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
+  logDebug(
+    pluginJson,
+    `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Log settings are not being automaticallyupdated on the front-end, because of race conditions.`,
+  )
+  // dbw commenting this out because it was causing a race condition whereby window data was not updated in time for the next call
+  // const logSettings = await getLogSettings()
+  // await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
   return
 }
 
