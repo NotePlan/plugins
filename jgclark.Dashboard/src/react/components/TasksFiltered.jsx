@@ -25,8 +25,10 @@ const TasksFiltered = ({ item }: Props): Node => {
     // logDebug('TasksFiltered/handleLineClick', `Trying to update filterPriorityItems setting`)
     // setDashboardSettings((prevSettings) => ({ ...prevSettings, ['filterPriorityItems']: false }))
     const newPayload = {
-      ...dashboardSettings, ['filterPriorityItems']: false
+      ...dashboardSettings,
+      ['filterPriorityItems']: false,
     }
+    logDebug('TasksFiltered', `handleLineClick Calling UPDATE_DASHBOARD_SETTINGS`)
     dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newPayload, reason: `Turnung off filterPriorityItems` })
   }
 

@@ -64,6 +64,7 @@ export const handleSwitchChange = (
         logDebug('handleSwitchChange', `Updating dashboardSettings["${key}"]. Previous value: ${dashboardSettings[key]}. New value: ${isChecked}`, dashboardSettings)
         // was previously: dispatchDashboardSettings((prev) => ({ ...prev, [key]: isChecked, lastChange: `Dropdown value changed: ${key}=${isChecked}` }))
         const settingsToSave = { ...dashboardSettings, [key]: isChecked }
+        logDebug('handleSwitchChange', `Calling UPDATE_DASHBOARD_SETTINGS settingsToSave=`, settingsToSave)
         dispatchDashboardSettings({
           type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
           payload: settingsToSave,
@@ -111,7 +112,7 @@ export const handleSaveInput =
   (dispatchDashboardSettings: Function): Function =>
   (key: string) =>
   (newValue: string) => {
-    logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue}`)
+    logDebug('Header', `handleSaveInput: Saving input value for ${key} as ${newValue} Calling UPDATE_DASHBOARD_SETTINGS`)
     const newSettings = { [key]: newValue, lastChange: `inputValue changed: ${key}=${newValue}` }
     dispatchDashboardSettings({
       type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,

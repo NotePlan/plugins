@@ -2,7 +2,7 @@
 
 .collapsible-object-viewer {
 
-    .highlighted {
+    .highlighted-off {
         background-color: #fff064b7 !important; /* Yellow for search highlights */
     }
 

@@ -1,4 +1,5 @@
 // @flow
+import { logDebug } from '@helpers/react/reactDev'
 
 export type TestResult = {
   message: string,
@@ -56,12 +57,15 @@ export const runTestWithTiming = async (testFunction: () => Promise<TestResult>)
  * @throws {Error} If the timeout occurs before the condition is met.
  */
 export const waitFor = async (conditionOrTime: number | (() => boolean), conditionDesc: string = '', timeout: number = 5000, interval: number = 100): Promise<void> => {
+  const startTime = performance.now()
   if (typeof conditionOrTime === 'number') {
+    logDebug(`waitFor(${conditionOrTime} (${typeof conditionOrTime}), ${conditionDesc}, ${timeout}, ${interval}) started at ${startTime}`)
     await new Promise((resolve) => setTimeout(resolve, conditionOrTime))
+    const endTime = performance.now()
+    logDebug(`waitFor(${conditionOrTime} (${typeof conditionOrTime}), ${conditionDesc}, ${timeout}, ${interval}) completed at ${endTime}`)
     return
   }
 
-  const startTime = performance.now()
   let elapsed = 0
 
   while (elapsed < timeout) {

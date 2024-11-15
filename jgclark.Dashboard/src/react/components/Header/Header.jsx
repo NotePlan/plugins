@@ -1,13 +1,13 @@
 // @flow
-//--------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
-//--------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // Imports
-//--------------------------------------------------------------------------
-import React, { useState, useCallback, useMemo } from 'react'
+// --------------------------------------------------------------------------
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
@@ -25,9 +25,9 @@ import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 import './Header.css'
 
-//--------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // Type Definitions
-//--------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 
 type Props = {
   lastFullRefresh: Date,
@@ -41,26 +41,38 @@ type Props = {
  * @returns {React.Node} The rendered Header component.
  */
 const Header = ({ lastFullRefresh }: Props): React$Node => {
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   // Context
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   const { dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData } = useAppContext()
 
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   // Hooks
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   const timeAgo = useLastFullRefresh(lastFullRefresh)
 
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   // State
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   const [openDropdownMenu, setOpenDropdownMenu] = useState<string | null>(null)
   const [tempDashboardSettings, setTempDashboardSettings] = useState({ ...dashboardSettings }) // for queuing up changes from dropdown menu to be applied when it is closed
   const { isDialogOpen, handleToggleDialog } = useSettingsDialogHandler(sendActionToPlugin)
 
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // Effects
+  // ----------------------------------------------------------------------
+  /**
+   * Synchronize tempDashboardSettings with dashboardSettings when the dropdown menu is not open.
+   */
+  useEffect(() => {
+    if (!openDropdownMenu) {
+      setTempDashboardSettings({ ...dashboardSettings })
+    }
+  }, [dashboardSettings, openDropdownMenu])
+
+  // ----------------------------------------------------------------------
   // Handlers
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   /**
    * Toggles the open/closed state of a dropdown menu.
    * @param {string} dropdown - The identifier of the dropdown menu to toggle.
@@ -88,7 +100,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
-      logDebug('Header/handleChangesInSettings', `Received updated settings: filterPriorityItems=${JSON.stringify(updatedSettings.filterPriorityItems)}`)
+      logDebug('Header/handleChangesInSettings', `Received updated settings: updatedSettings.excludedFolders=${String(updatedSettings?.excludedFolders)}`)
       const newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
@@ -146,16 +158,17 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
       sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
     }
 
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   // Constants
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   const { sections, logSettings } = pluginData
 
   const visibleSectionCodes = getVisibleSectionCodes(dashboardSettings, sections)
 
-  const [dropdownSectionItems, dropdownOtherItems] = createFilterDropdownItems(tempDashboardSettings)
+  // Memoized dropdown items that update when tempDashboardSettings changes
+  const [dropdownSectionItems, dropdownOtherItems] = useMemo(() => createFilterDropdownItems(tempDashboardSettings), [tempDashboardSettings])
   const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(dashboardSettings), [dashboardSettings])
-  const featureFlagItems = createFeatureFlagItems(tempDashboardSettings)
+  const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   const isDevMode = logSettings._logLevel === 'DEV'
   const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
@@ -163,9 +176,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const isNarrowWidth = window.innerWidth <= 650
   const updatedText = 'Updated'
 
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   // Render
-  //----------------------------------------------------------------------
+  // ----------------------------------------------------------------------
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
 
   return (

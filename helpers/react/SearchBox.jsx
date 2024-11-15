@@ -12,6 +12,7 @@ type Props = {
   useRegex: boolean,
   expandToShow: boolean,
   filter: boolean,
+  currentValue: string,
 }
 
 /**
@@ -20,8 +21,8 @@ type Props = {
  * @param {Props} props - The props for the component.
  * @returns {React.Node} The rendered SearchBox component.
  */
-const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilter, onReset, useRegex, expandToShow, filter }: Props): React.Node => {
-  const [searchText, setSearchText] = useState('')
+const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilter, onReset, useRegex, expandToShow, filter, currentValue }: Props): React.Node => {
+  const [searchText, setSearchText] = useState(currentValue || '')
 
   const handleSearchChange = useCallback(
     (e: SyntheticInputEvent<HTMLInputElement>) => {

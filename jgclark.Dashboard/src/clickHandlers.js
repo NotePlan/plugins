@@ -47,7 +47,7 @@ import {
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { showMessage, processChosenHeading } from '@helpers/userInput'
@@ -707,7 +707,14 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders} filterPriorityItems=${newSettings.filterPriorityItems}`)
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
   if (perspectivesToSave) {
-    const debugInfo = perspectivesToSave.map((ps) => `${ps.name}=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}]`).join(`\n\t`)
+    const debugInfo = perspectivesToSave
+      .map(
+        (ps) =>
+          `${ps.name}.excludedFolders=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}] ${ps.isModified ? 'modified' : ''} ${
+            ps.isActive ? '<active>' : ''
+          }`,
+      )
+      .join(`\n\t`)
     logDebug(`doSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
@@ -769,12 +776,22 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const prevDashboardSettings = await getDashboardSettings()
   if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
-  const newDashboardSettings = { ...prevDashboardSettings, ...(activeDef.dashboardSettings || {}), lastChange: `_Switched to perspective ${switchToName}` }
+  const newDashboardSettings = {
+    ...prevDashboardSettings,
+    ...(activeDef.dashboardSettings || {}),
+    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
+  } // the ending "changed from plugin" is important because it keeps it from sending back
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
+  clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
   const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings }
-  logDebug(`doSwitchToPerspective`, `sending revised perspectiveSettings and dashboardSettings to plugin after switching to ${data?.perspectiveName || ''}`)
-  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings`)
+  logDebug(
+    `doSwitchToPerspective`,
+    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
+      newDashboardSettings.excludedFolders
+    }`,
+  )
+  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings $(dt()) changed in plugin`)
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 

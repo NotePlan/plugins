@@ -119,7 +119,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Detected change in perspectiveSettings.`)
-
+    clo(perspectiveSettings, `PerspectiveSelector Reducer perspectiveSettings=`)
     if (!perspectiveSettings) {
       logWarn('PerspectiveSelector/useEffect(perspectiveSettings)', 'perspectiveSettings is falsy. Exiting effect.')
       dispatchPerspectiveSelector({ type: 'LOG_STATE', payload: 'perspectiveSettings is falsy' })

@@ -20,6 +20,8 @@
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
+const consoleStyle = 'background: #222; color: #E14067' //dark pink
+
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
  * This command be used to run any plugin command, but it's better to use one single command: sendMessageToPlugin(args) for everything
@@ -27,23 +29,21 @@
  * @param {string} pluginID
  * @param {Array<any>} commandArgs? - optional parameters
  */
-if (typeof runPluginCommand === 'undefined') {
-  const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginID%%', commandArgs = []) => {
-    const code = '(async function() { await DataStore.invokePluginCommandByName("%%commandName%%", "%%pluginID%%", %%commandArgs%%);})()'
-      .replace('%%commandName%%', commandName)
-      .replace('%%pluginID%%', pluginID)
-      .replace('%%commandArgs%%', JSON.stringify(commandArgs))
-    // console.log(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
-    // console.log(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
-    if (window.webkit) {
-      window.webkit.messageHandlers.jsBridge.postMessage({
-        code: code,
-        onHandle: '',
-        id: '1',
-      })
-    } else {
-      console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
-    }
+const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginID%%', commandArgs = []) => {
+  const code = '(async function() { await DataStore.invokePluginCommandByName("%%commandName%%", "%%pluginID%%", %%commandArgs%%);})()'
+    .replace('%%commandName%%', commandName)
+    .replace('%%pluginID%%', pluginID)
+    .replace('%%commandArgs%%', JSON.stringify(commandArgs))
+  // console.log(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
+  // console.log(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
+  if (window.webkit) {
+    window.webkit.messageHandlers.jsBridge.postMessage({
+      code: code,
+      onHandle: '',
+      id: '1',
+    })
+  } else {
+    console.log(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
   }
 }
 
@@ -70,7 +70,7 @@ const onMessageReceived = (event) => {
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
     if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
-    console.log(`Root CommsBridge onMessageReceived: ${type} lastUpdated: "${payload?.lastUpdated?.msg || ''}"`)
+    console.log(`pluginToHTMLCommsBridge onMessageReceived: ${type} lastUpdated: "${payload?.lastUpdated?.msg || ''}"`)
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
     console.log(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)

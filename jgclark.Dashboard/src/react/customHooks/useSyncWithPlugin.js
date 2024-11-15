@@ -39,10 +39,10 @@ export const useSyncWithPlugin = (
 
   // Handle receiving changes from the plugin which need dispatching to the front-end
   useEffect(() => {
-    // logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `about to compare pluginSettings and lastPluginSettingsRef.current`)
     const pluginSettingsChanged = pluginSettings && compareFn(lastPluginSettingsRef.current, pluginSettings) !== null
+    logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `pluginSettingsChanged=${String(pluginSettingsChanged)}`)
 
-    if (pluginSettingsChanged && (!pluginSettings.lastChange || pluginSettings.lastChange[0] !== '_')) {
+    if (pluginSettingsChanged) {
       // If the pluginSettings were sent by us, then the plugin sends them back in the pluginData with a _in front of lastChange to tell us to ignore them
       // because we already applied them.
       // logDebug(`useSyncWithPlugin/useEffect(pluginSettings) [${actionType}]`, `about to compare pluginSettings and localSettings`)
@@ -75,7 +75,8 @@ export const useSyncWithPlugin = (
 
     if (localSettingsChanged) {
       if (diff && Object.keys(diff).length > 0) {
-        if (localSettings.lastChange && localSettings.lastChange[0] === '_') {
+        logDebug(`useSyncWithPlugin [${actionType}]`, `DW 06 diff=${JSON.stringify(diff)}`)
+        if (localSettings.lastChange && (localSettings.lastChange[0] === '_' || localSettings.lastChange.endsWith('changed from plugin'))) {
           logDebug(
             `useSyncWithPlugin [${actionType}]`,
             `DW 19 NOT SENDING BECAUSE OF UNDERSCORE:localSettings.lastChange=${JSON.stringify(localSettings.lastChange)} diff=${JSON.stringify(diff)}`,

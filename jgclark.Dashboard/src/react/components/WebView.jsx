@@ -31,6 +31,7 @@ import { createDashboardSettingsItems } from '../../dashboardSettings'
 import { createFilterDropdownItems } from './Header/filterDropdownItems.js'
 import Dashboard from './Dashboard.jsx'
 import { AppProvider } from './AppContext.jsx'
+import { dashboardSettingsDefaults } from '../support/settingsHelpers.js'
 import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 /**
@@ -39,14 +40,14 @@ import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
  * @param {Array<TSettingItem>} items - The array of dashboard settings items.
  * @returns {Object} - The resulting object with settings including defaults.
  */
-function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
-  return items.reduce((acc: { [key: string]: any }, item) => {
-    if (item.key) {
-      acc[item.key] = item.value || item.checked || ''
-    }
-    return acc
-  }, {})
-}
+// function getSettingsObjectFromArray(items: Array<TSettingItem>): { [key: string]: any } {
+//   return items.reduce((acc: { [key: string]: any }, item) => {
+//     if (item.key) {
+//       acc[item.key] = item.value || item.checked || ''
+//     }
+//     return acc
+//   }, {})
+// }
 
 /**
  * Root element for the Plugin's React Tree
@@ -70,16 +71,16 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
 
   // Note: DBW says this initialisation code could be brought back into the plugin side; it only lives here as this was where we was first needing the data.
 
-  // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
-  const dSettings = data.pluginData.dashboardSettings || {}
-  // logDebug('WebView', `found ${String(dSettings.length)} dSettings: ${JSON.stringify(dSettings, null, 2)}`)
-  const dSettingsItems = createDashboardSettingsItems(dSettings)
-  const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
-  const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
-  const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
-  const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
-  const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
-  // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
+  // // set up dashboardSettings state using defaults as the base and then overriding with any values from the plugin saved settings
+  // const dSettings = data.pluginData.dashboardSettings || {}
+  // // logDebug('WebView', `found ${String(dSettings.length)} dSettings: ${JSON.stringify(dSettings, null, 2)}`)
+  // const dSettingsItems = createDashboardSettingsItems(dSettings)
+  // const settingsDefaults = getSettingsObjectFromArray(dSettingsItems)
+  // const [sectionToggles, _otherToggles] = createFilterDropdownItems(dSettings)
+  // const filterSettingsDefaults = getSettingsObjectFromArray(sectionToggles)
+  // const otherSettingsDefaults = getSettingsObjectFromArray(_otherToggles)
+  // const dashboardSettingsOrDefaults = { ...settingsDefaults, ...filterSettingsDefaults, ...otherSettingsDefaults, ...dSettings, lastChange: `_WebView_DashboardDefaultSettings` }
+  // // logDebug('WebView', `dashboardSettingsOrDefaults: ${JSON.stringify(dashboardSettingsOrDefaults, null, 2)}`)
 
   const initialPerspectiveSettings: Array<TPerspectiveDef> = data.pluginData.perspectiveSettings || []
 
@@ -99,6 +100,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
   const defaultReactSettings = {
     dialogData: { isOpen: false, isTask: true, details: {} },
   }
+  const dashboardSettingsOrDefaults = { ...dashboardSettingsDefaults, ...pluginData.dashboardSettings }
 
   /****************************************************************************************************************************
    *                             HANDLERS

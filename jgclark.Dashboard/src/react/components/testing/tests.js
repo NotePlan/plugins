@@ -10,7 +10,11 @@
 // TODO:
 // - make a test that adds a perspective with exclude folders, switches to it, reads it checks a property and deletes it
 
+// Import test modules here and add them to the testGroups array
 import generalTests from './general.tests'
+import dashboardSettingsTests from './dashboardSettings.tests'
+import perspectivesTests from './perspectives.tests'
+
 import { logDebug } from '@helpers/react/reactDev'
 import type { AppContextType } from '../AppContext'
 
@@ -48,7 +52,7 @@ const createTestGroup = (testModule: { groupName: string, tests: Array<Test> }, 
  * @returns {Array<TestGroup>} An array of test groups with names and test functions.
  */
 export const getTestGroups = (getContext: () => AppContextType): Array<TestGroup> => {
-  const testModules = [generalTests] // Add new test modules here
+  const testModules = [generalTests, dashboardSettingsTests, perspectivesTests] // Add new test modules here
 
   const testGroups = testModules.map((testModule) => createTestGroup(testModule, getContext))
   return testGroups

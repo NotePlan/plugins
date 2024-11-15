@@ -54,10 +54,18 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
   const originalConsoleMethodsRef = useRef({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [highlightRegex, setHighlightRegex] = useState<string>('')
-  const [useRegex, setUseRegex] = useState<boolean>(false)
-  const [expandToShow, setExpandToShow] = useState<boolean>(false)
-  const [filter, setFilter] = useState<boolean>(false)
+  const [useRegex, setUseRegex] = useState<boolean>(true)
+  const [expandToShow, setExpandToShow] = useState<boolean>(true)
+  const [filter, setFilter] = useState<boolean>(true)
   const resetViewerRef = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    const initialSearchValue = 'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'
+    setHighlightRegex(initialSearchValue)
+    setUseRegex(false)
+    setExpandToShow(false)
+    setFilter(false)
+  }, [])
 
   useEffect(() => {
     console.log('DebugPanel: starting up before the console methods override')
@@ -85,7 +93,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
           setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data, type: methodName }].slice(-500))
         }, 0)
 
-        // originalMethod.apply(console, args)
+        originalMethod.apply(console, args)
       }
     }
 
@@ -143,6 +151,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
             useRegex={useRegex}
             expandToShow={expandToShow}
             filter={filter}
+            currentValue={'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'}
           />
           <CollapsibleObjectViewer
             data={contextVariablesWithoutFunctions}

@@ -69446,7 +69446,6 @@ var RootBundle = (function (exports, React$1) {
           if (!type) throw `onMessageReceived: event.data.type is undefined`, event.data;
           if (!payload) throw `onMessageReceived: event.data.payload is undefined`, event.data;
           if (type && payload) {
-            // logDebug(`Root`, ` onMessageReceived: ${type}`)
             // logDebug(`Root`, ` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             if (!payload.lastUpdated) payload.lastUpdated = {
               msg: '(no msg)'

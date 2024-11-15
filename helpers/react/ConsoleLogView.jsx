@@ -57,7 +57,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const [useRegexFilter, setUseRegexFilter] = useState(false)
   const [useRegexSearch, setUseRegexSearch] = useState(false)
   const [searchIndex, setSearchIndex] = useState(-1)
-  const [autoScroll, setAutoScroll] = useState(true)
+  const [autoScroll, setAutoScroll] = useState(false)
   const logContainerRef = useRef<?HTMLDivElement>(null)
   const searchInputRef = useRef<?HTMLInputElement>(null)
   const filterInputRef = useRef<?HTMLInputElement>(null)
