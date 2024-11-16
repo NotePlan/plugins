@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.0.8] 2024-11-16
+### New
+- new "Change Logging levels" command to give iPad/iPhone-only users a way to change these settings. (for @kanera)
+
 ## [2.0.7] 2024-10-23
 ### New
 - new 'All -> Next Week' button in Week section. 

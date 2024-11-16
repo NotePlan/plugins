@@ -526,7 +526,9 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           // }
         }
       }
-      // clo(winOptions, 'showHTMLV2 using winOptions:')
+      if (NotePlan.environment.platform !== 'macOS') {
+        clo(winOptions, 'showHTMLV2 using winOptions:')
+      }
 
       // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
       // Note: could also check window will be visible on screen and if not, move accordingly
