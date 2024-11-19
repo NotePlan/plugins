@@ -1,7 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a17 = 2.1.0.a18] @jgc, 2024-11-15
+## [Perspectives.a19 = 2.1.0.a19] @dbw, 2024-11-19
+- MASSIVE MERGE from main into main-perspectives-merge-with-debug branch. (Hopefully) merged your latest changes with the perspectives code which seems to be working fairly reliably.
+- In the process, I built a lot of debug tooling (see the DEV menu for FFlag Debug Panel). The testing code is still a WIP. What I find is that the refreshes that happen every time you make a change to settings go on for a long time and there's no way to know for sure when they are over. So it's hard to know when it's safe to test the "stable" state. But I wanted to provide this to you just to hopefully get us back on the same branch.
+- added React components react-resizable-panels
+- updated react to 18.3.1
+- updated chroma-js to 3.1.2
+
+## [Perspectives.a18 = 2.1.0.a18] @jgc, 2024-11-15
 - (jgc): new layout in section heading for the add buttons. Also colour them the same as the section title. 
 - (jgc): further tweaks to icons, including better optical matching of tasks and checklists
 - (jgc): now Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.

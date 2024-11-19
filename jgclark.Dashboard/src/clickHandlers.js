@@ -196,6 +196,12 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   return handlerResult(true, [], { sectionItems: totalSectionItems })
 }
 
+/**
+ * Evaluate JS string and return result
+ * WARNING: DO NOT USE THIS FOR ANYTHING OTHER THAN TESTING.
+ * @param {MessageDataObject} data 
+ * @returns 
+ */
 export async function doEvaluateString(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { stringToEvaluate } = data
   if (!stringToEvaluate) {
