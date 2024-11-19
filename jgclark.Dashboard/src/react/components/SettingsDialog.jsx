@@ -10,7 +10,7 @@
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
-import type { TSettingItem } from '../../types'
+import type { TSettingItem, TDashboardSettings } from '../../types'
 import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { renderItem } from '../support/uiElementRenderHelpers'
 import { setPerspectivesIfJSONChanged, getActivePerspectiveName } from '../../perspectiveHelpers'
@@ -52,9 +52,9 @@ const SettingsDialog = ({
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, pluginData, perspectiveSettings } = useAppContext()
+  const { dashboardSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, pluginData, perspectiveSettings, sendActionToPlugin } = useAppContext()
 
-  const pluginDisplayVersion = `v${pluginData.version}`
+  const pluginDisplayVersion = `v${pluginData?.version || ''}`
 
   //----------------------------------------------------------------------
   // State
@@ -132,7 +132,13 @@ const SettingsDialog = ({
   // Handle "Save & Close" action
   const handleSave = () => {
     if (onSaveChanges) {
-      onSaveChanges(updatedSettings)
+      // Because the settings dialog has the JSON editor for perspectives, which are not technically dashboard settings,
+      // we need to make sure it gets updated
+      let newSettings: TDashboardSettings = { ...updatedSettings }
+      if (updatedSettings?.perspectiveSettings) {
+        newSettings = setPerspectivesIfJSONChanged(newSettings, dashboardSettings, sendActionToPlugin, `Dashboard Settings updated`)
+      }
+      onSaveChanges(newSettings)
     }
     toggleDialog()
   }

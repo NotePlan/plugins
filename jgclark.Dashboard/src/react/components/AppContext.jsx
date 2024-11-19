@@ -15,7 +15,8 @@ import type { TDashboardSettings, TReactSettings, TPluginData, TPerspectiveSetti
 import { dashboardSettingsReducer } from '../reducers/dashboardSettingsReducer'
 import { cleanDashboardSettings, getActivePerspectiveName, replacePerspectiveDef } from '../../perspectiveHelpers'
 import { perspectiveSettingsReducer } from '../reducers/perspectiveSettingsReducer'
-import { useSyncWithPlugin } from '../customHooks/useSyncWithPlugin'
+import { useSyncDashboardSettingsWithPlugin } from '../customHooks/useSyncDashboardSettingsWithPlugin'
+import { useSyncPerspectivesWithPlugin } from '../customHooks/useSyncPerspectivesWithPlugin'
 import { clo, logDebug, logError } from '@helpers/react/reactDev.js'
 import { compareObjects } from '@helpers/dev'
 
@@ -109,43 +110,11 @@ export const AppProvider = ({
 
   const compareFn = (oldObj: any, newObj: any) => compareObjects(oldObj, newObj, ['lastChange', 'activePerspectiveName', new RegExp('FFlag.*', 'ig')])
 
-  // Syncing dashboardSettings with plugin when things change in front-end or the plugin sends a change in pluginData
-  useSyncWithPlugin(dashboardSettings, pluginData.dashboardSettings, dispatchDashboardSettings, DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, sendActionToPlugin, compareFn)
+  // Syncing dashboardSettings with plugin
+  useSyncDashboardSettingsWithPlugin(dashboardSettings, pluginData.dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, updatePluginData, compareFn)
 
-  // Syncing perspectiveSettings with plugin when things change in front-end or the plugin sends a change in pluginData
-  useSyncWithPlugin(perspectiveSettings, pluginData.perspectiveSettings, dispatchPerspectiveSettings, PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, null, compareFn) // for now do not allow sending to plugin
-
-  // // Effect to update the default perspective "-" when dashboardSettings change
-  // // FIXME: the idea behind this was to pick up dropdown/dashboard settings dialog changes, but it's also picking up when a perspective is changed and settings change, and that's ok
-  // // but we can't be setting isModified to true in that case
-  // // should we maybe set this in the SettingsDialog and the Dropdown instead? we need to set isMofified somewhere
-  // useEffect(() => {
-  //   const diff = compareObjects(dashboardSettings, lastSeenDashboardSettingsRef.current || {}, ['lastChange', 'activePerspectiveName'])
-  //   if (diff) {
-  //     logDebug('AppContext/useEffect(dashboardSettings)', `local dashboardSettings changed.`, dashboardSettings)
-  //     const apn = getActivePerspectiveName(perspectiveSettings)
-  //     if (apn === '-' || !apn) {
-  //       // If the apn is "-" (meaning default is set) then we need to constantly update that perspectives when any settings are changed
-  //       logDebug('AppContext/useEffect(dashboardSettings)', `No named perspective set, so saving this change into the "-" perspective.`)
-  //       if (dashboardSettings) {
-  //         saveDefaultPerspectiveData(perspectiveSettings, dashboardSettings, dispatchPerspectiveSettings)
-  //       }
-  //     } else {
-  //       logDebug('AppContext/useEffect(dashboardSettings)', `Named perspective is set but not saved. Change persp to .isModified=true`)
-  //       // const usingPerspectives = dashboardSettings.perspectivesEnabled
-  //       // if (usingPerspectives) {
-  //       //   dispatchPerspectiveSettings({
-  //       //     type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-  //       //     payload: perspectiveSettings.map((p) => (p.name === apn && p.name !== '-' ? { ...p, isModified: true } : { ...p, isModified: false })),
-  //       //     reason: `AppContext useEffect picked it up`,
-  //       //   })
-  //       // } else {
-  //       //   logDebug('AppContext/useEffect(dashboardSettings)', `Perspectives are not being used, this would be strange!`)
-  //       // }
-  //     }
-  //   }
-  //   lastSeenDashboardSettingsRef.current = dashboardSettings
-  // }, [dashboardSettings, perspectiveSettings])
+  // Syncing perspectiveSettings with plugin
+  useSyncPerspectivesWithPlugin(perspectiveSettings, pluginData.perspectiveSettings, dispatchPerspectiveSettings, compareFn)
 
   const contextValue: AppContextType = {
     sendActionToPlugin,

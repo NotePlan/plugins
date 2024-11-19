@@ -1,0 +1,147 @@
+/* ConsoleLogView.css */
+
+.console-log-view {
+    font-family: monospace;
+    font-size: 11pt;
+    width: 100%;
+  }
+  
+  .controls {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  .control-group {
+    margin-right: 20px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .control-group label {
+    margin-right: 5px;
+  }
+  
+  .control-group input[type="text"] {
+    margin-right: 5px;
+  }
+  
+  .button-group {
+    display: flex;
+    margin-left: auto;
+  }
+  
+  .button-group button {
+    margin-left: 10px;
+  }
+  
+  /* Log styling */
+  
+  .log-selected {
+    background-color: #ffff99;
+  }
+  
+  .log-highlighted {
+    background-color: #ffff99;
+  }
+  
+  .log-error {
+    background-color: #ffcccc;
+  }
+  
+  .log-info {
+    background-color: aqua;
+  }
+  
+  .log-aquamarine {
+    background-color: aquamarine;
+  }
+
+  .log-thistle {
+    background-color: thistle;
+  }
+  
+  .log-orange {
+    background-color: orange;
+  }
+  
+  .log-stripe-even {
+    background-color: white;
+  }
+  
+  .log-stripe-odd {
+    background-color: #f9f9f9;
+  }
+  
+  .log-container {
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border: 1px solid #ccc;
+  }
+  
+  /* Data container styles */
+  
+/* Data container styles */
+  /* Container for multiple data items */
+  .data-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    gap: 10px; /* Spacing between items */
+    width: 100%;
+  }
+  
+  .data-container.expanded {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+    /* Individual data item */
+    .data-item {
+        flex: 1; /* Allow items to share space evenly */
+        min-width: 200px; /* Minimum size for smaller screens */
+        max-width: 400px; /* Limit size to avoid excessive stretching */
+        word-break: break-word; /* Ensure text wraps even in long words */
+        overflow-wrap: break-word; /* Support for wrapping in other browsers */
+      }
+
+  .data-item.expanded {
+    flex: 1;
+  }
+  
+  /* Container for the entire log line */
+.log-line {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+  }
+  
+  /* Message with inline object toggle */
+  .log-message {
+    display: flex;
+    align-items: center;
+    white-space: pre-wrap; /* Wrap long text */
+    word-break: break-word; /* Wrap even in the middle of words */
+  }
+  
+  /* Object toggle indicator */
+  .log-object-toggle {
+    cursor: pointer;
+    margin-left: 10px;
+    font-weight: bold;
+    user-select: none;
+  }
+  
+  /* Expanded state: Object appears on a new line */
+  .log-line.expanded .log-message {
+    margin-bottom: 5px; /* Add spacing when expanded */
+  }
+  
+  .log-timestamp {
+    color: #cfcece;
+    padding-right: 10px;
+  }

@@ -72,6 +72,7 @@ export type TDashboardSettings = {
   displayDoneCounts: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
   lastChange: string, // not really a setting, but a way to track the last change made
+  lastModified?: number,
 }
 
 export type TDashboardPluginSettings = {
@@ -86,6 +87,7 @@ export type TPerspectiveDef = {
   dashboardSettings: TDashboardSettings,
   isModified: boolean,
   isActive: boolean,
+  lastModified?: number,
 }
 
 export type TPerspectiveSettings = Array<TPerspectiveDef>
@@ -318,6 +320,11 @@ export type TPluginData = {
   lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,
   themeName: string /* the theme name used when generating the dashboard */,
   platform: string /* the platform used when generating the dashboard */,
+  version: string,
+  serverPush: {
+    dashboardSettings?: boolean,
+    perspectiveSettings?: boolean,
+  },
   demoMode: boolean /* use fake content for demo purposes */,
   // totalDoneCounts?: TDoneCount,
   totalDoneCount: number,

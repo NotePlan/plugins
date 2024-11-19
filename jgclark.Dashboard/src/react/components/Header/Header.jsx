@@ -101,7 +101,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
       logDebug('Header/handleChangesInSettings', `Received updated settings: updatedSettings.excludedFolders=${String(updatedSettings?.excludedFolders)}`)
-      const newSettings = {
+      let newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,

@@ -4,6 +4,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import isEqual from 'lodash/isEqual'
 import './CollapsibleObjectViewer.css'
+import type { Node } from 'react'
+
+// Define a type for inline styles
+type Style = {
+  [key: string]: string | number,
+}
 
 type Props = {
   data: any,
@@ -15,6 +21,10 @@ type Props = {
   filter?: boolean,
   useRegex?: boolean,
   onReset?: (reset: () => void) => void,
+  sortKeys?: boolean,
+  scroll?: boolean,
+  style?: Style,
+  onToggle?: (isExpanded: boolean) => void,
 }
 
 type CollapsedPaths = {
@@ -51,6 +61,7 @@ function renderObject(
   toggleCollapse: (path: string, event: SyntheticMouseEvent<HTMLDivElement>) => void,
   parentMatches: boolean = false,
   highlightRegex: string = '',
+  sortKeys?: boolean = true,
 ): React.Node {
   if (!isObject(obj)) {
     const highlightType = highlightedPaths[path]
@@ -77,7 +88,9 @@ function renderObject(
   const isArray = Array.isArray(obj)
   const sortedKeys = isArray
     ? Object.keys(obj).sort((a, b) => Number(a) - Number(b)) // Sort numerically if it's an array
-    : Object.keys(obj).sort() // Sort alphabetically if it's an object
+    : sortKeys
+    ? Object.keys(obj).sort()
+    : Object.keys(obj) // Sort alphabetically if it's an object
 
   return sortedKeys.map((key) => {
     const value = obj[key]
@@ -108,7 +121,7 @@ function renderObject(
             <div className="toggle" onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
               {isCollapsed ? '▶' : '▼'} <strong>{key}</strong>
             </div>
-            {!isCollapsed && renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, parentMatches, highlightRegex)}
+            {!isCollapsed && renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, parentMatches, highlightRegex, sortKeys)}
           </div>
         ) : (
           <div className={`property-line ${classReplacer(currentPath)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : ''}`}>
@@ -131,6 +144,10 @@ const CollapsibleObjectViewer = ({
   filter = false,
   useRegex = false,
   onReset = () => {},
+  sortKeys = true,
+  scroll = false,
+  style = {},
+  onToggle,
 }: Props): React.Node => {
   const openedPathsRef = useRef<CollapsedPaths>({})
   const [highlightedPaths, setHighlightedPaths] = useState<HighlightedPaths>({})
@@ -145,32 +162,38 @@ const CollapsibleObjectViewer = ({
   // Memoize data to prevent unnecessary re-renders
   const memoizedData = useMemo(() => data, [data])
 
+  // Track previous data using useRef for comparison
+  const prevDataRef = useRef<any>()
+
   // Initialize opened paths only once
   useEffect(() => {
-    const initializeOpenedPaths = (obj: any, path: string): CollapsedPaths => {
-      let openedPaths: CollapsedPaths = {}
-      const shouldExpand = startExpanded || defaultExpandedKeys.some((expandedKey) => expandedKey.startsWith(path))
-      if (shouldExpand) {
-        openedPaths[path] = true
-      }
+    if (!isEqual(prevDataRef.current, data)) {
+      prevDataRef.current = data
+      const initializeOpenedPaths = (obj: any, path: string): CollapsedPaths => {
+        let openedPaths: CollapsedPaths = {}
+        const shouldExpand = startExpanded || defaultExpandedKeys.some((expandedKey) => expandedKey.startsWith(path))
+        if (shouldExpand) {
+          openedPaths[path] = true
+        }
 
-      if (!obj || typeof obj !== 'object') {
+        if (!obj || typeof obj !== 'object') {
+          return openedPaths
+        }
+
+        Object.keys(obj).forEach((key) => {
+          const currentPath = `${path}:${key}`
+          const nestedOpenedPaths = initializeOpenedPaths(obj[key], currentPath)
+          openedPaths = {
+            ...openedPaths,
+            ...nestedOpenedPaths,
+          }
+        })
+
         return openedPaths
       }
 
-      Object.keys(obj).forEach((key) => {
-        const currentPath = `${path}:${key}`
-        const nestedOpenedPaths = initializeOpenedPaths(obj[key], currentPath)
-        openedPaths = {
-          ...openedPaths,
-          ...nestedOpenedPaths,
-        }
-      })
-
-      return openedPaths
+      openedPathsRef.current = initializeOpenedPaths(data, name)
     }
-
-    openedPathsRef.current = initializeOpenedPaths(data, name)
   }, [data, name, startExpanded, defaultExpandedKeys])
 
   // Update highlighted paths when highlightRegex changes
@@ -339,6 +362,13 @@ const CollapsibleObjectViewer = ({
     onReset(reset)
   }, [onReset, reset])
 
+  const handleToggle = (isExpanded: boolean) => {
+    if (onToggle) {
+      onToggle(isExpanded)
+    }
+    // ... existing toggle logic ...
+  }
+
   return (
     <div
       className="collapsible-object-viewer"
@@ -350,7 +380,12 @@ const CollapsibleObjectViewer = ({
         setIsMouseOver(false)
         setTooltip({ visible: false, content: '' })
       }}
-      style={{ position: 'relative', overflowY: 'auto', maxHeight: '100vh' }}
+      style={{
+        ...style,
+        position: 'relative',
+        overflowY: scroll ? 'auto' : 'visible',
+        maxHeight: scroll ? '90vh' : 'unset',
+      }}
     >
       {tooltip.visible && (
         <div
@@ -372,7 +407,9 @@ const CollapsibleObjectViewer = ({
         {rootIsCollapsed ? '▶' : '▼'} {name}
       </div>
       {!rootIsCollapsed && (
-        <div style={{ marginLeft: 15 }}>{renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, false, highlightRegex)}</div>
+        <div style={{ marginLeft: 15 }}>
+          {renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, false, highlightRegex, sortKeys)}
+        </div>
       )}
     </div>
   )

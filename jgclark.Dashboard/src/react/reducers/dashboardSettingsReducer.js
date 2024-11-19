@@ -1,7 +1,7 @@
 // @flow
 import type { TDashboardSettings } from '../../../src/types'
 import { DASHBOARD_ACTIONS } from './actionTypes'
-import { compareObjects } from '@helpers/dev'
+import { compareObjects, getDiff } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/react/reactDev'
 
 export type TDashboardSettingsAction = {
@@ -20,18 +20,15 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
   const { type, payload, reason } = action
   switch (type) {
     case DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS: {
-      logDebug(
-        'dashboardSettingsReducer called to set dashboardSettings',
-        `${type} "${reason || ''}" - payload.lastChange=${payload.lastChange || ''} payload.filterPriorityItems=${JSON.stringify(
-          payload.filterPriorityItems,
-        )} payload.excludedFolders=${JSON.stringify(payload.excludedFolders)}; about to compare state and payload`,
-      )
+      // TODO: remove these diffs when debugging is complete
       const changedProps = compareObjects(state, payload)
-      changedProps && logDebug('dashboardSettingsReducer', `${type} "${reason || ''}" - Changed properties: ${JSON.stringify(changedProps)}`)
+      const diff = getDiff(state, payload)
+      changedProps && logDebug('dashboardSettingsReducer BB', `${type} "${reason || ''}" - Changed properties: ${Object.keys(changedProps).join(', ').length} keys changed`)
+      console.log(`...dashboardSettingsReducer BC ${type} - diff:`, diff)
       return {
         ...state,
         ...payload,
-        lastChange: reason || '',
+        lastChange: reason || state.lastChange,
       }
     }
     default:

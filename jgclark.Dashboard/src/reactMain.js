@@ -30,7 +30,7 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
   title?: string /* React Window Title */,
-  pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
+  pluginData: TPluginData /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
   dataMode: 'live' | 'demo' | 'test',
@@ -364,6 +364,10 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
+    serverPush: {
+      dashboardSettings: true,
+      perspectiveSettings: true,
+    },
   }
 
   // Calculate all done task counts (if the appropriate setting is on)
@@ -489,6 +493,11 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
     platform: NotePlan.environment.platform, // used in dialog positioning
     themeName: dashboardSettings.dashboardTheme ? dashboardSettings.dashboardTheme : Editor.currentTheme?.name || '<could not get theme>',
     version: pluginJson['plugin.version'],
+    serverPush: {
+      dashboardSettings: true,
+      perspectiveSettings: true,
+    },
+    totalDoneCount: 0,
   }
 
   // Calculate all done task counts (if the appropriate setting is on)

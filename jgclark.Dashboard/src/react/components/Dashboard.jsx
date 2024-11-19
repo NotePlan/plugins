@@ -285,7 +285,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {showDebugPanel && <DebugPanel contextVariables={context} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />}
+      {showDebugPanel && <DebugPanel getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />}
       <div id="tooltip-portal"></div>
     </div>
   )

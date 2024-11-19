@@ -1,5 +1,16 @@
 // @flow
 import { logDebug } from '@helpers/react/reactDev'
+import type { AppContextType } from '../../jgclark.Dashboard/src/react/components/AppContext'
+
+export type Test = {
+  name: string,
+  test: (getContext: () => AppContextType, utils: { pause: () => Promise<void> }) => Promise<void>,
+}
+
+export type TestGroup = {
+  groupName: string,
+  tests: Array<Test>,
+}
 
 export type TestResult = {
   message: string,
@@ -53,16 +64,21 @@ export const runTestWithTiming = async (testFunction: () => Promise<TestResult>)
  * @param {string} [conditionDesc=''] - A description of the condition, used in error messages.
  * @param {number} [timeout=5000] - The maximum time to wait in milliseconds if a condition is provided.
  * @param {number} [interval=100] - The interval to check the condition in milliseconds.
+ * @param {() => Promise<void>} [runOnFail] - A function to run if the condition is not met (could be used to log something)
  * @returns {Promise<void>} Resolves when the condition is met or the timeout occurs.
  * @throws {Error} If the timeout occurs before the condition is met.
  */
-export const waitFor = async (conditionOrTime: number | (() => boolean), conditionDesc: string = '', timeout: number = 5000, interval: number = 100): Promise<void> => {
+export const waitFor = async (
+  conditionOrTime: number | ((elapsed: number) => boolean),
+  conditionDesc: string = '',
+  timeout: number = 5000,
+  interval: number = 100,
+  runOnFail?: (elapsed: number) => Promise<void> = async () => {},
+): Promise<void> => {
   const startTime = performance.now()
   if (typeof conditionOrTime === 'number') {
-    logDebug(`waitFor(${conditionOrTime} (${typeof conditionOrTime}), ${conditionDesc}, ${timeout}, ${interval}) started at ${startTime}`)
     await new Promise((resolve) => setTimeout(resolve, conditionOrTime))
     const endTime = performance.now()
-    logDebug(`waitFor(${conditionOrTime} (${typeof conditionOrTime}), ${conditionDesc}, ${timeout}, ${interval}) completed at ${endTime}`)
     return
   }
 
@@ -70,12 +86,14 @@ export const waitFor = async (conditionOrTime: number | (() => boolean), conditi
 
   while (elapsed < timeout) {
     await new Promise((resolve) => setTimeout(resolve, 0)) // Yield control to event loop to allow it to update context variables if necessary
-    if (conditionOrTime()) {
+    if (conditionOrTime(elapsed)) {
+      console.log(`>>> PASSED waitFor "${conditionDesc}" condition met after ${elapsed.toFixed(0)}ms <<<`)
       return
     }
     await new Promise((resolve) => setTimeout(resolve, interval))
     elapsed = performance.now() - startTime
   }
-
-  throw new Error(`Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout} ms`)
+  if (runOnFail) await runOnFail(elapsed)
+  console.error(`!!! Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout}ms !!!`)
+  throw new Error(`!!! Timeout waiting for condition${conditionDesc ? ` (${conditionDesc})` : ''}: after ${timeout}ms !!!`)
 }

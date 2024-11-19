@@ -596,39 +596,21 @@ export const endsWithStar = (input: string): boolean => /\*$/.test(input)
 export function setPerspectivesIfJSONChanged(
   updatedSettings: any /*TDashboardSettings*/, // TODO: improve type - can be partial settings object
   dashboardSettings: TDashboardSettings,
-  dispatchPerspectiveSettings: Function,
+  sendActionToPlugin: Function,
   logMessage: string,
 ): TDashboardSettings {
   logDebug('setPerspectivesIfJSONChanged', `🥷 starting reason "${logMessage}"`)
   const settingsToSave = { ...dashboardSettings, ...updatedSettings }
   if (settingsToSave.perspectiveSettings) {
     // this should only be true if we are coming from the settings panel with the JSON editor
-    // so let's update the React state for perspectiveSettings but separate this from the other dashboardSettings
     logDebug(pluginJson, `BEWARE: adjustSettingsAndSave perspectiveSettings was set. this should only be true if we are coming from the settings panel with the JSON editor!`)
-    dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: settingsToSave.perspectiveSettings, reason: `JSON editor: ${logMessage}` })
+    sendActionToPlugin(
+      'perspectiveSettingsChanged',
+      { settings: settingsToSave.perspectiveSettings, actionType: 'perspectiveSettingsChanged', logMessage: `JSON editor: ${logMessage}` },
+      `Perspectives updated`,
+      true,
+    )
     delete settingsToSave.perspectiveSettings
   }
   return settingsToSave
-}
-
-/**
- * If a perspective is not set, then save current settings to the default "-" perspective because we always
- * want to have the last settings a user chose to be saved in the default perspective (unless they are in a perspective)
- * @param {any} perspectiveSettings
- * @param {any} newDashboardSettings
- * @param {Function} dispatchPerspectiveSettings
- */
-export function saveDefaultPerspectiveData(perspectiveSettings: any, newDashboardSettings: Partial<TDashboardSettings>, dispatchPerspectiveSettings: Function) {
-  const newPerspectiveDefs = replacePerspectiveDef(perspectiveSettings, {
-    name: '-',
-    isModified: false,
-    dashboardSettings: cleanDashboardSettings(newDashboardSettings),
-    isActive: false,
-  })
-
-  dispatchPerspectiveSettings({
-    type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
-    payload: newPerspectiveDefs,
-    reason: `No perspective was set; saving default perspective info.`,
-  })
 }

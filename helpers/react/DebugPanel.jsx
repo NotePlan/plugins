@@ -32,6 +32,7 @@ export type Results = {
 
 export type Test = {
   name: string,
+  skip?: boolean,
   test: () => Promise<void>,
 }
 
@@ -42,13 +43,13 @@ export type TestGroup = {
 
 type Props = {
   defaultExpandedKeys?: Array<string>,
-  contextVariables: { [key: string]: any },
   testGroups: Array<TestGroup>,
+  getContext: () => any,
 }
 
 const methodsToOverride = ['log', 'error', 'info']
 
-const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [] }: Props): React.Node => {
+const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext }: Props): React.Node => {
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
   const originalConsoleMethodsRef = useRef({})
@@ -77,11 +78,11 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
 
       console[methodName] = (...args) => {
         const messageParts = []
-        let data = null
+        const dataObjects = []
 
         args.forEach((arg) => {
           if (typeof arg === 'object' && arg !== null) {
-            data = arg
+            dataObjects.push(arg)
           } else {
             messageParts.push(typeof arg === 'string' ? arg : JSON.stringify(arg))
           }
@@ -91,7 +92,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
         const timestamp = new Date()
 
         setTimeout(() => {
-          setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data, type: methodName }].slice(-500))
+          setConsoleLogs((prevLogs) => [...prevLogs, { message, timestamp, data: dataObjects, type: methodName }].slice(-500))
         }, 0)
 
         originalMethod.apply(console, args)
@@ -118,13 +119,14 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
   }
 
   const contextVariablesWithoutFunctions = useMemo(() => {
+    const contextVariables = getContext()
     return Object.keys(contextVariables).reduce((acc: { [key: string]: any }, key) => {
       if (typeof contextVariables[key] !== 'function') {
         acc[key] = contextVariables[key]
       }
       return acc
     }, {})
-  }, [contextVariables])
+  }, [getContext])
 
   const handleReset = () => {
     setHighlightRegex('')
@@ -166,6 +168,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
               filter={filter}
               onReset={(reset) => (resetViewerRef.current = reset)}
               useRegex={useRegex}
+              scroll={true}
             />
           </div>
         </Panel>
@@ -173,9 +176,9 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
         <Panel className="context-vars-pane full-height-pane testing-pane" defaultSize={25} minSize={10}>
           <div className="testing-pane full-height-pane" style={{ backgroundColor: '#f5f5f5' }}>
             <div className="debug-pane-header consistent-header">
-              <h3>Testing</h3>
+              <h3>End-to-End Testing</h3>
             </div>
-            <TestingPane testGroups={testGroups} onTestLogsFiltered={setLogFilter} />
+            <TestingPane testGroups={testGroups} onLogsFiltered={setLogFilter} getContext={getContext} />
           </div>
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
@@ -183,7 +186,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], contextVariables, testGroups = [
           <div className="debug-pane-header consistent-header">
             <h3>Console</h3>
           </div>
-          <ConsoleLogView logs={consoleLogs} filter={logFilter} onClearLogs={() => setConsoleLogs([])} onShowAllLogs={showAllLogs} />
+          <ConsoleLogView showLogTimestamps={true} logs={consoleLogs} filter={logFilter} onClearLogs={() => setConsoleLogs([])} onShowAllLogs={showAllLogs} />
         </Panel>
       </PanelGroup>
     </div>

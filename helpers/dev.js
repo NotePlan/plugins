@@ -1,6 +1,11 @@
 // @flow
 // Development-related helper functions
 
+import isObject from 'lodash-es/isObject'
+import isArray from 'lodash-es/isArray'
+import isEqual from 'lodash-es/isEqual'
+import moment from 'moment'
+
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
  */
@@ -15,6 +20,18 @@ export const dt = (): string => {
   }
 
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`
+}
+
+/**
+ * Returns a local datetime timestamp with milliseconds.
+ * If a Date object is provided, it formats that date instead.
+ *
+ * @param {Date} [date] - Optional Date object to format.
+ * @returns {string} Formatted datetime string.
+ */
+export const dtl = (date?: Date): string => {
+  const momentDate = date ? moment(date) : moment()
+  return momentDate.format('YYYY-MM-DD HH:mm:ss.SSS')
 }
 
 /**
@@ -125,8 +142,14 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
+type DiffValue = { before: any, after: any } | DiffObject | DiffArray
+
+type DiffObject = { [key: string]: DiffValue }
+type DiffArray = Array<DiffValue | null>
+
 /**
- * Compare two objects or arrays and return an object containing only the properties that have changed.
+ * Compare two objects or arrays and return an object containing only the NEW properties that have changed.
+ * Note: dbw created a version below called getDiff that gives before and after values.
  * Fields listed in fieldsToIgnore are ignored when comparing objects (does not apply to arrays).
  *
  * @param {Object|Array} oldObj - The original object or array to compare against.
@@ -135,7 +158,7 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  * @param {boolean} logDiffDetails - If true, will log details of the differences.
  * @returns {Object|Array|null} - An object or array containing only the properties that have changed, or null if no changes.
  */
-export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string | RegExp> = [], logDiffDetails: boolean = false): any {
+export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string | RegExp> = [], logDiffDetails: boolean = false): any | null {
   if (oldObj === newObj) {
     return null // No changes
   }
@@ -206,6 +229,107 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
       logDiffDetails && logDebug('compareObjects', `Primitive difference: oldVal=${oldObj}, newVal=${newObj}`)
     }
     return result
+  }
+}
+
+/**
+ * Compares two objects and returns the differences.
+ * @param {Object} obj1 - The original object.
+ * @param {Object} obj2 - The modified object.
+ * @returns {Object|null} - An object representing the differences or null if no differences.
+ */
+function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
+  const diff = {}
+
+  const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)])
+
+  keys.forEach((key) => {
+    const val1 = obj1[key]
+    const val2 = obj2[key]
+
+    if (!isEqual(val1, val2)) {
+      if (isObject(val1) && isObject(val2) && !isArray(val1) && !isArray(val2)) {
+        // Recursively find differences in nested objects
+        const nestedDiff = getObjectDiff(val1, val2)
+        if (nestedDiff !== null) {
+          diff[key] = nestedDiff
+        }
+      } else if (isArray(val1) && isArray(val2)) {
+        // Handle arrays
+        const arrayDiff = getArrayDiff(val1, val2)
+        if (arrayDiff !== null) {
+          diff[key] = arrayDiff
+        }
+      } else {
+        // Primitive value or different types
+        diff[key] = {
+          before: val1,
+          after: val2,
+        }
+      }
+    }
+  })
+
+  return Object.keys(diff).length > 0 ? diff : null
+}
+
+/**
+ * Compares two arrays and returns the differences.
+ * @param {Array} arr1 - The original array.
+ * @param {Array} arr2 - The modified array.
+ * @returns {Array|null} - An array representing the differences or null if no differences.
+ */
+function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
+  const diff = []
+
+  const maxLength = Math.max(arr1.length, arr2.length)
+
+  for (let i = 0; i < maxLength; i++) {
+    const item1 = arr1[i]
+    const item2 = arr2[i]
+
+    if (!isEqual(item1, item2)) {
+      if (isObject(item1) && isObject(item2)) {
+        const nestedDiff = getObjectDiff(item1, item2)
+        if (nestedDiff !== null) {
+          diff[i] = nestedDiff
+        }
+      } else {
+        diff[i] = {
+          before: item1,
+          after: item2,
+        }
+      }
+    }
+  }
+
+  return diff.length > 0 ? diff : null
+}
+
+/**
+ * Wrapper function that determines whether to perform an object or array diff.
+ * Deals with the case where the two items are not the same type, e.g. an array and an object.
+ * Deals with
+ * Returns null if there are no differences.
+ * @param {*} data1 - The original data (object or array).
+ * @param {*} data2 - The modified data (object or array).
+ * @returns {*} - The differences or null if no differences.
+ * @usage const differences = getDiff(obj1, obj2);
+ */
+export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { before: any, after: any }) {
+  if (isArray(data1) && isArray(data2)) {
+    return getArrayDiff(data1, data2)
+  } else if (isObject(data1) && isObject(data2)) {
+    return getObjectDiff(data1, data2)
+  } else {
+    // If data types are different or not objects/arrays, perform a direct comparison
+    if (!isEqual(data1, data2)) {
+      return {
+        before: data1,
+        after: data2,
+      }
+    }
+    return null
   }
 }
 

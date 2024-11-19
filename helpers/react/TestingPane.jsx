@@ -1,23 +1,26 @@
 // @flow
 
-import React, { useState, useEffect } from 'react'
-import { timer } from '@helpers/dev'
+import React, { useState, useEffect, useRef } from 'react'
 import type { TestGroup, Results, LogEntry } from './DebugPanel'
+import { timer } from '@helpers/dev'
 import './TestingPane.css'
 
 type Props = {
   testGroups: Array<TestGroup>,
-  onTestLogsFiltered: (filter: ?{ filterName: string, filterFunction: (log: LogEntry) => boolean }) => void,
+  onLogsFiltered: (filter: ?{ filterName: string, filterFunction: (log: LogEntry) => boolean }) => void,
+  getContext: () => any, // Function to get the context
 }
 
 type CollapsedGroups = {
   [groupName: string]: boolean,
 }
 
-const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
+const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.Node => {
   const [results, setResults] = useState<Results>({})
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
   const [runningGroups, setRunningGroups] = useState<Set<string>>(new Set())
+  const [pausedTests, setPausedTests] = useState<{ [testName: string]: string }>({})
+  const pausedTestResolvers = useRef<{ [testName: string]: () => void }>({})
   const [collapsedGroups, setCollapsedGroups] = useState<CollapsedGroups>(() => {
     const initialCollapsedState: CollapsedGroups = {}
     testGroups.forEach((group) => {
@@ -25,6 +28,48 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
     })
     return initialCollapsedState
   })
+  const [showSpinner, setShowSpinner] = useState<boolean>(false)
+  const [waitingTest, setWaitingTest] = useState<string | null>(null)
+
+  /**
+   * Waits for a specified duration after the last console log entry.
+   * Sometimes processing is still happening after a test runs and we don't want to
+   * start a new test until things are quieted down and stable. because there is some console
+   * logging, that can be our indication of when we are ready to start the next test in a test
+   * group run or in an allTests run and between test groups.
+   * @param {number} waitTime - The time to wait in milliseconds after the last log entry.
+   * @returns {Promise<void>} Resolves when the wait time has passed without new log entries.
+   */
+  const waitForConsoleQuietness = (waitTime: number = 1000): Promise<void> => {
+    return new Promise((resolve) => {
+      let lastLogTime = Date.now()
+
+      const logListener = () => {
+        lastLogTime = Date.now()
+      }
+
+      const methodsToOverride = ['log', 'error', 'info']
+      methodsToOverride.forEach((methodName) => {
+        const originalMethod = console[methodName]
+        console[methodName] = (...args) => {
+          logListener()
+          originalMethod.apply(console, args)
+        }
+      })
+
+      const checkQuietness = () => {
+        if (Date.now() - lastLogTime >= waitTime) {
+          setShowSpinner(false) // Hide spinner when quietness is achieved
+          resolve()
+        } else {
+          setTimeout(checkQuietness, 100)
+        }
+      }
+
+      setShowSpinner(true) // Show spinner when starting to wait
+      checkQuietness()
+    })
+  }
 
   // Effect to automatically expand groups with failed tests
   useEffect(() => {
@@ -40,28 +85,44 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
     })
   }, [results, testGroups, collapsedGroups])
 
-  const runTest = async (testName: string, testFunction: () => Promise<void>): Promise<void> => {
+  /**
+   * Runs an individual test.
+   *
+   * @param {string} testName - The name of the test.
+   * @param {(getContext: () => AppContextType, utils: { pause: (msg?: string) => Promise<void> }) => Promise<void>} testFunction - The test function to execute.
+   * @returns {Promise<void>}
+   */
+  const runTest = async (testName: string, testFunction: (getContext: () => any, utils: { pause: (msg?: string) => Promise<void> }) => Promise<void>): Promise<void> => {
     if (runningTests.has(testName)) return
+    setWaitingTest(testName)
+    await waitForConsoleQuietness() // Wait for console to be quiet before running the test
+    setWaitingTest(null)
     setRunningTests((prev) => new Set(prev).add(testName))
 
     const startTime = new Date()
-    console.log(`>>> Starting Test: ${testName} <<<`)
+    console.log(`=== Starting Test: ${testName} ===`)
+
+    const pause = (msg: string = ''): Promise<void> =>
+      new Promise((resolve) => {
+        pausedTestResolvers.current[testName] = resolve
+        setPausedTests((prev) => ({ ...prev, [testName]: msg }))
+      })
 
     try {
-      await testFunction()
+      await testFunction(getContext, { pause })
       const durationStr = timer(startTime)
       const endTime = new Date()
       setResults((prev) => ({
         ...prev,
         [testName]: { status: 'Passed', durationStr, startTime, endTime },
       }))
-      console.log(`>>> Passed Test: ${testName} <<< Duration: ${durationStr}`)
+      console.log(`--- Passed Test: ${testName} Duration: ${durationStr} ---`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       const durationStr = timer(startTime)
       const endTime = new Date()
-      console.error(`>>> Failed Test: ${testName} <<< Duration: ${durationStr}`)
-      console.error(`Test failed: ${errorMessage}`)
+      console.error(`!!! Failed Test: ${testName} Duration: ${durationStr} !!!`)
+      console.error(`!!! Test failed: ${errorMessage} !!!`)
       console.error(error)
       setResults((prev) => ({
         ...prev,
@@ -82,7 +143,22 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
     }
   }
 
+  const resetGroupTestResults = (groupName: string) => {
+    setResults((prevResults) => {
+      const newResults = { ...prevResults }
+      testGroups
+        .find((group) => group.groupName === groupName)
+        ?.tests.forEach((test) => {
+          delete newResults[test.name]
+        })
+      return newResults
+    })
+    setRunningTests(new Set())
+    console.log(`Test results for group "${groupName}" have been reset.`)
+  }
+
   const runAllTestsInGroup = async (group: TestGroup) => {
+    resetGroupTestResults(group.groupName) // Reset results for the specific group
     if (runningGroups.has(group.groupName)) return
     setRunningGroups((prev) => new Set(prev).add(group.groupName))
     setCollapsedGroups((prev) => ({
@@ -90,8 +166,13 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
       [group.groupName]: false, // Expand the group
     }))
     for (const test of group.tests) {
-      await runTest(test.name, test.test)
+      if (!test.skip) {
+        // Skip tests with skip: true
+        setWaitingTest(test.name)
+        await runTest(test.name, test.test)
+      }
     }
+    setWaitingTest(null)
     setRunningGroups((prev) => {
       const newSet = new Set(prev)
       newSet.delete(group.groupName)
@@ -100,6 +181,7 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
   }
 
   const runAllTests = async () => {
+    resetGroupTestResults(testGroups[0].groupName) // Reset results for the first group
     for (const group of testGroups) {
       await runAllTestsInGroup(group)
     }
@@ -117,15 +199,24 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
     })
   }
 
-  const showTestLogs = (testName: string) => {
-    const testResult = results[testName]
-    if (testResult?.startTime && testResult?.endTime) {
-      console.log(`Filtering logs for test: ${testName}`)
-      onTestLogsFiltered({
-        filterName: testName,
+  /**
+   * Filters logs for a specific timeframe by capturing the start and end times.
+   *
+   * @param {string} name - The name of the filter.
+   */
+  const showLogsForTimeframe = (name: string) => {
+    const result = results[name]
+    if (result?.startTime && result?.endTime) {
+      const startTime = result.startTime
+      const endTime = result.endTime
+      console.log(`Filtering logs for: ${name}`)
+      onLogsFiltered({
+        filterName: name,
         filterFunction: (log) => {
-          if (testResult.startTime && testResult.endTime) {
-            return log.timestamp >= testResult.startTime && log.timestamp <= testResult.endTime
+          if (startTime && endTime && log.timestamp) {
+            return log.timestamp >= startTime && log.timestamp <= endTime
+          } else {
+            console.error(`!!! "${name}" has no valid start or end time for filtering logs !!!`)
           }
           return false
         },
@@ -205,10 +296,22 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
             </div>
             {!collapsedGroups[group.groupName] && (
               <ul style={{ listStyleType: 'none', padding: 0 }}>
-                {group.tests.map(({ name, test }) => {
+                {group.tests.map(({ name, test, skip }) => {
                   const testStatus = results[name]?.status
                   const isRunningTest = runningTests.has(name)
-                  const iconColor = isRunningTest ? 'orange' : testStatus === 'Failed' ? 'red' : testStatus === 'Passed' ? 'green' : 'black'
+                  const isPaused = pausedTests[name] !== undefined
+                  const isWaitingForQuietness = waitingTest === name
+                  const iconColor = isWaitingForQuietness
+                    ? 'black'
+                    : isPaused
+                    ? 'purple'
+                    : isRunningTest
+                    ? 'orange'
+                    : testStatus === 'Failed'
+                    ? 'red'
+                    : testStatus === 'Passed'
+                    ? 'green'
+                    : 'black'
                   const durationStr = results[name]?.durationStr ? ` (${results[name].durationStr})` : ''
 
                   return (
@@ -231,9 +334,10 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
                             cursor: 'pointer',
                             marginRight: '10px',
                           }}
+                          disabled={skip}
                         >
-                          <i className="fa fa-play" style={{ color: iconColor }}></i>
-                          {isRunningTest && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
+                          <i className={`fa ` + (isPaused ? 'fa-pause' : isWaitingForQuietness ? 'fa-hourglass fa-spin' : 'fa-play')} style={{ color: iconColor }}></i>
+                          {isRunningTest && !isPaused && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
                         </button>
                         <div style={{ flex: 1 }}>
                           {name}
@@ -250,7 +354,7 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
                             {results[name] &&
                               !runningTests.has(name) && ( // Show Logs button only if test is not running
                                 <button
-                                  onClick={() => showTestLogs(name)}
+                                  onClick={() => showLogsForTimeframe(name)}
                                   style={{
                                     backgroundColor: '#e0e0e0',
                                     color: '#000',
@@ -266,6 +370,34 @@ const TestingPane = ({ testGroups, onTestLogsFiltered }: Props): React.Node => {
                           </div>
                         </div>
                       </div>
+                      {isPaused && (
+                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center' }}>
+                          <span style={{ marginRight: '10px' }}>Paused: {pausedTests[name] || 'Test Paused.'}</span>
+                          <button
+                            onClick={() => {
+                              if (pausedTestResolvers.current[name]) {
+                                pausedTestResolvers.current[name]()
+                                delete pausedTestResolvers.current[name]
+                                setPausedTests((prev) => {
+                                  const newPausedTests = { ...prev }
+                                  delete newPausedTests[name]
+                                  return newPausedTests
+                                })
+                              }
+                            }}
+                            style={{
+                              backgroundColor: '#e0e0e0',
+                              color: '#000',
+                              border: '1px solid #ccc',
+                              padding: '2px 5px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </div>
+                      )}
                       {results[name]?.error && <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{results[name].error}</div>}
                     </li>
                   )
