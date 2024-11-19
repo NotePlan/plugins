@@ -36,7 +36,12 @@ import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getStartTimeObjFromParaContent, getTimeBlockString, isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE } from '@helpers/timeblocks'
+import {
+  getStartTimeObjFromParaContent,
+  getTimeBlockString,
+  isTypeThatCanHaveATimeBlock,
+  RE_TIMEBLOCK_IN_LINE
+} from '@helpers/timeblocks'
 import { chooseHeading, chooseNote, displayTitleWithRelDate } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
@@ -135,7 +140,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
 
 /**
  * Get list of section codes, that are enabled in the display settings.
- * @param {TDashboardSettings} config
+ * @param {TDashboardSettings} config 
  * @returns {Array<TSectionCode>}
  */
 export function getListOfEnabledSections(config: TDashboardSettings): Array<TSectionCode> {
@@ -476,7 +481,14 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `Found ${overdueParas.length} overdue items`)
 
     // Remove items referenced from items in 'excludedFolders' (but keep calendar note matches)
-    const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',').map((folder) => folder.trim()) : []
+<<<<<<< HEAD
+    const excludedFolders =
+      dashboardSettings.excludedFolders && dashboardSettings.excludedFolders.length > 0 ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
+||||||| 459ea967
+    const excludedFolders = dashboardSettings.excludedFolders ? dashboardSettings.excludedFolders.split(',').map((folder) => folder.trim()) : []
+=======
+    const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',') : []
+>>>>>>> 4c8b8f93cc4bc336398c80c261b38dbd66b9b97a
     // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
     let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, excludedFolders, true)
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
@@ -713,7 +725,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
  * TODO: write some tests for AM/PM
  * Return the start time in a given paragraph.
  * This is from the start time of a time block, or else 'none' (which will then sort after times)
- * Copes with 'AM' and 'PM' suffixes.
+ * Copes with 'AM' and 'PM' suffixes. 
  * Note: A version of this now lives in helpers/timeblocks.js
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js

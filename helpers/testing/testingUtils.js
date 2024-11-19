@@ -5,11 +5,13 @@ import type { AppContextType } from '../../jgclark.Dashboard/src/react/component
 export type Test = {
   name: string,
   test: (getContext: () => AppContextType, utils: { pause: () => Promise<void> }) => Promise<void>,
+  skip?: boolean,
 }
 
 export type TestGroup = {
   groupName: string,
   tests: Array<Test>,
+  skip?: boolean,
 }
 
 export type TestResult = {

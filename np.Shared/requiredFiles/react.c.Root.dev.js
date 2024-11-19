@@ -10178,7 +10178,7 @@ var RootBundle = (function (exports, React$1) {
 
 	/* import type { Interpolation, SerializedStyles } from '@emotion/utils' */
 
-	function css$2()
+	function css$3()
 	/*: SerializedStyles */
 	{
 	  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -10200,7 +10200,7 @@ var RootBundle = (function (exports, React$1) {
 	var keyframes = function
 	  /*: Keyframes */
 	keyframes() {
-	  var insertable = css$2.apply(void 0, arguments);
+	  var insertable = css$3.apply(void 0, arguments);
 	  var name = "animation-" + insertable.name;
 	  return {
 	    name: name,
@@ -40762,9 +40762,9 @@ var RootBundle = (function (exports, React$1) {
 	const sides = ['top', 'right', 'bottom', 'left'];
 	const alignments = ['start', 'end'];
 	const placements = /*#__PURE__*/sides.reduce((acc, side) => acc.concat(side, side + "-" + alignments[0], side + "-" + alignments[1]), []);
-	const min$4 = Math.min;
-	const max$4 = Math.max;
-	const round$7 = Math.round;
+	const min$5 = Math.min;
+	const max$5 = Math.max;
+	const round$6 = Math.round;
 	const floor$4 = Math.floor;
 	const createCoords = v => ({
 	  x: v,
@@ -40781,7 +40781,7 @@ var RootBundle = (function (exports, React$1) {
 	  end: 'start'
 	};
 	function clamp(start, value, end) {
-	  return max$4(start, min$4(value, end));
+	  return max$5(start, min$5(value, end));
 	}
 	function evaluate(value, param) {
 	  return typeof value === 'function' ? value(param) : value;
@@ -41008,8 +41008,8 @@ var RootBundle = (function (exports, React$1) {
 	    // If the padding is large enough that it causes the arrow to no longer be
 	    // centered, modify the padding so that it is centered.
 	    const largestPossiblePadding = clientSize / 2 - arrowDimensions[length] / 2 - 1;
-	    const minPadding = min$4(paddingObject[minProp], largestPossiblePadding);
-	    const maxPadding = min$4(paddingObject[maxProp], largestPossiblePadding);
+	    const minPadding = min$5(paddingObject[minProp], largestPossiblePadding);
+	    const maxPadding = min$5(paddingObject[maxProp], largestPossiblePadding);
 
 	    // Make sure the arrow doesn't overflow the floating element if the center
 	    // point is outside the floating element's bounds.
@@ -41337,10 +41337,10 @@ var RootBundle = (function (exports, React$1) {
 	};
 
 	function getBoundingRect(rects) {
-	  const minX = min$4(...rects.map(rect => rect.left));
-	  const minY = min$4(...rects.map(rect => rect.top));
-	  const maxX = max$4(...rects.map(rect => rect.right));
-	  const maxY = max$4(...rects.map(rect => rect.bottom));
+	  const minX = min$5(...rects.map(rect => rect.left));
+	  const minY = min$5(...rects.map(rect => rect.top));
+	  const maxX = max$5(...rects.map(rect => rect.right));
+	  const maxY = max$5(...rects.map(rect => rect.bottom));
 	  return {
 	    x: minX,
 	    y: minY,
@@ -41426,8 +41426,8 @@ var RootBundle = (function (exports, React$1) {
 	            };
 	          }
 	          const isLeftSide = getSide(placement) === 'left';
-	          const maxRight = max$4(...clientRects.map(rect => rect.right));
-	          const minLeft = min$4(...clientRects.map(rect => rect.left));
+	          const maxRight = max$5(...clientRects.map(rect => rect.right));
+	          const minLeft = min$5(...clientRects.map(rect => rect.left));
 	          const measureRects = clientRects.filter(rect => isLeftSide ? rect.left === minLeft : rect.right === maxRight);
 	          const top = measureRects[0].top;
 	          const bottom = measureRects[measureRects.length - 1].bottom;
@@ -41741,8 +41741,8 @@ var RootBundle = (function (exports, React$1) {
 	      }
 	      const maximumClippingHeight = height - overflow.top - overflow.bottom;
 	      const maximumClippingWidth = width - overflow.left - overflow.right;
-	      const overflowAvailableHeight = min$4(height - overflow[heightSide], maximumClippingHeight);
-	      const overflowAvailableWidth = min$4(width - overflow[widthSide], maximumClippingWidth);
+	      const overflowAvailableHeight = min$5(height - overflow[heightSide], maximumClippingHeight);
+	      const overflowAvailableWidth = min$5(width - overflow[widthSide], maximumClippingWidth);
 	      const noShift = !state.middlewareData.shift;
 	      let availableHeight = overflowAvailableHeight;
 	      let availableWidth = overflowAvailableWidth;
@@ -41753,14 +41753,14 @@ var RootBundle = (function (exports, React$1) {
 	        availableHeight = maximumClippingHeight;
 	      }
 	      if (noShift && !alignment) {
-	        const xMin = max$4(overflow.left, 0);
-	        const xMax = max$4(overflow.right, 0);
-	        const yMin = max$4(overflow.top, 0);
-	        const yMax = max$4(overflow.bottom, 0);
+	        const xMin = max$5(overflow.left, 0);
+	        const xMax = max$5(overflow.right, 0);
+	        const yMin = max$5(overflow.top, 0);
+	        const yMax = max$5(overflow.bottom, 0);
 	        if (isYAxis) {
-	          availableWidth = width - 2 * (xMin !== 0 || xMax !== 0 ? xMin + xMax : max$4(overflow.left, overflow.right));
+	          availableWidth = width - 2 * (xMin !== 0 || xMax !== 0 ? xMin + xMax : max$5(overflow.left, overflow.right));
 	        } else {
-	          availableHeight = height - 2 * (yMin !== 0 || yMax !== 0 ? yMin + yMax : max$4(overflow.top, overflow.bottom));
+	          availableHeight = height - 2 * (yMin !== 0 || yMax !== 0 ? yMin + yMax : max$5(overflow.top, overflow.bottom));
 	        }
 	      }
 	      await apply({
@@ -41899,7 +41899,7 @@ var RootBundle = (function (exports, React$1) {
 	  const hasOffset = isHTMLElement(element);
 	  const offsetWidth = hasOffset ? element.offsetWidth : width;
 	  const offsetHeight = hasOffset ? element.offsetHeight : height;
-	  const shouldFallback = round$7(width) !== offsetWidth || round$7(height) !== offsetHeight;
+	  const shouldFallback = round$6(width) !== offsetWidth || round$6(height) !== offsetHeight;
 	  if (shouldFallback) {
 	    width = offsetWidth;
 	    height = offsetHeight;
@@ -41926,8 +41926,8 @@ var RootBundle = (function (exports, React$1) {
 	    height,
 	    $
 	  } = getCssDimensions(domElement);
-	  let x = ($ ? round$7(rect.width) : rect.width) / width;
-	  let y = ($ ? round$7(rect.height) : rect.height) / height;
+	  let x = ($ ? round$6(rect.width) : rect.width) / width;
+	  let y = ($ ? round$6(rect.height) : rect.height) / height;
 
 	  // 0, NaN, or Infinity should always fallback to 1.
 
@@ -42055,7 +42055,7 @@ var RootBundle = (function (exports, React$1) {
 	    const rootMargin = -insetTop + "px " + -insetRight + "px " + -insetBottom + "px " + -insetLeft + "px";
 	    const options = {
 	      rootMargin,
-	      threshold: max$4(0, min$4(1, threshold)) || 1
+	      threshold: max$5(0, min$5(1, threshold)) || 1
 	    };
 	    let isFirstUpdate = true;
 	    function handleObserve(entries) {
@@ -43161,7 +43161,7 @@ var RootBundle = (function (exports, React$1) {
 	  var delay = _ref6.delay,
 	    offset = _ref6.offset;
 	  return jsx("span", {
-	    css: /*#__PURE__*/css$2({
+	    css: /*#__PURE__*/css$3({
 	      animation: "".concat(loadingDotAnimations, " 1s ease-in-out ").concat(delay, "ms infinite;"),
 	      backgroundColor: 'currentColor',
 	      borderRadius: '1em',
@@ -43547,7 +43547,7 @@ var RootBundle = (function (exports, React$1) {
 	};
 	var Placeholder$1 = Placeholder;
 
-	var css = function css(_ref, unstyled) {
+	var css$2 = function css(_ref, unstyled) {
 	  var isDisabled = _ref.isDisabled,
 	    _ref$theme = _ref.theme,
 	    spacing = _ref$theme.spacing,
@@ -44187,7 +44187,7 @@ var RootBundle = (function (exports, React$1) {
 	  return jsx("input", _extends({
 	    ref: innerRef
 	  }, filteredProps, {
-	    css: /*#__PURE__*/css$2({
+	    css: /*#__PURE__*/css$3({
 	      label: 'dummyInput',
 	      // get rid of any default styles
 	      background: 0,
@@ -44559,7 +44559,7 @@ var RootBundle = (function (exports, React$1) {
 	  noOptionsMessage: noOptionsMessageCSS,
 	  option: optionCSS,
 	  placeholder: placeholderCSS,
-	  singleValue: css,
+	  singleValue: css$2,
 	  valueContainer: valueContainerCSS
 	};
 
@@ -46285,8 +46285,10 @@ var RootBundle = (function (exports, React$1) {
 	});
 	var StateManagedSelect$1 = StateManagedSelect;
 
+	const { min: min$4, max: max$4 } = Math;
+
 	var limit = (x, low = 0, high = 1) => {
-	    return min$3(max$3(low, x), high);
+	    return min$4(max$4(low, x), high);
 	};
 
 	var clip_rgb = (rgb) => {
@@ -46335,7 +46337,7 @@ var RootBundle = (function (exports, React$1) {
 	    }
 	    // otherwise we just return the first argument
 	    // (which we suppose is an array of args)
-	    return args[0];
+	    return args[0].slice(0);
 	};
 
 	var last = (args) => {
@@ -46347,10 +46349,23 @@ var RootBundle = (function (exports, React$1) {
 
 	const { PI: PI$2, min: min$3, max: max$3 } = Math;
 
+	const rnd2 = (a) => Math.round(a * 100) / 100;
+	const rnd3 = (a) => Math.round(a * 100) / 100;
+
 	const TWOPI = PI$2 * 2;
 	const PITHIRD = PI$2 / 3;
 	const DEG2RAD = PI$2 / 180;
 	const RAD2DEG = 180 / PI$2;
+
+	/**
+	 * Reverse the first three elements of an array
+	 *
+	 * @param {any[]} arr
+	 * @returns {any[]}
+	 */
+	function reverse3(arr) {
+	    return [...arr.slice(0, 3).reverse(), ...arr.slice(3)];
+	}
 
 	var input = {
 	    format: {},
@@ -46373,10 +46388,12 @@ var RootBundle = (function (exports, React$1) {
 	        let autodetect = false;
 	        if (!mode) {
 	            autodetect = true;
+
 	            if (!input.sorted) {
 	                input.autodetect = input.autodetect.sort((a, b) => b.p - a.p);
 	                input.sorted = true;
 	            }
+
 	            // auto-detect format
 	            for (let chk of input.autodetect) {
 	                mode = chk.test(...args);
@@ -46402,883 +46419,13 @@ var RootBundle = (function (exports, React$1) {
 	}
 
 	// this gets updated automatically
-	const version = '2.6.0';
+	const version = '3.1.2';
 
 	const chroma = (...args) => {
-	    return new chroma.Color(...args);
+	    return new Color(...args);
 	};
 
-	chroma.Color = Color;
 	chroma.version = version;
-
-	const cmyk2rgb = (...args) => {
-	    args = unpack(args, 'cmyk');
-	    const [c, m, y, k] = args;
-	    const alpha = args.length > 4 ? args[4] : 1;
-	    if (k === 1) return [0, 0, 0, alpha];
-	    return [
-	        c >= 1 ? 0 : 255 * (1 - c) * (1 - k), // r
-	        m >= 1 ? 0 : 255 * (1 - m) * (1 - k), // g
-	        y >= 1 ? 0 : 255 * (1 - y) * (1 - k), // b
-	        alpha
-	    ];
-	};
-
-	const { max: max$2 } = Math;
-
-	const rgb2cmyk = (...args) => {
-	    let [r, g, b] = unpack(args, 'rgb');
-	    r = r / 255;
-	    g = g / 255;
-	    b = b / 255;
-	    const k = 1 - max$2(r, max$2(g, b));
-	    const f = k < 1 ? 1 / (1 - k) : 0;
-	    const c = (1 - r - k) * f;
-	    const m = (1 - g - k) * f;
-	    const y = (1 - b - k) * f;
-	    return [c, m, y, k];
-	};
-
-	Color.prototype.cmyk = function () {
-	    return rgb2cmyk(this._rgb);
-	};
-
-	chroma.cmyk = (...args) => new Color(...args, 'cmyk');
-
-	input.format.cmyk = cmyk2rgb;
-
-	input.autodetect.push({
-	    p: 2,
-	    test: (...args) => {
-	        args = unpack(args, 'cmyk');
-	        if (type(args) === 'array' && args.length === 4) {
-	            return 'cmyk';
-	        }
-	    }
-	});
-
-	const rnd = (a) => Math.round(a * 100) / 100;
-
-	/*
-	 * supported arguments:
-	 * - hsl2css(h,s,l)
-	 * - hsl2css(h,s,l,a)
-	 * - hsl2css([h,s,l], mode)
-	 * - hsl2css([h,s,l,a], mode)
-	 * - hsl2css({h,s,l,a}, mode)
-	 */
-	const hsl2css = (...args) => {
-	    const hsla = unpack(args, 'hsla');
-	    let mode = last(args) || 'lsa';
-	    hsla[0] = rnd(hsla[0] || 0);
-	    hsla[1] = rnd(hsla[1] * 100) + '%';
-	    hsla[2] = rnd(hsla[2] * 100) + '%';
-	    if (mode === 'hsla' || (hsla.length > 3 && hsla[3] < 1)) {
-	        hsla[3] = hsla.length > 3 ? hsla[3] : 1;
-	        mode = 'hsla';
-	    } else {
-	        hsla.length = 3;
-	    }
-	    return `${mode}(${hsla.join(',')})`;
-	};
-
-	/*
-	 * supported arguments:
-	 * - rgb2hsl(r,g,b)
-	 * - rgb2hsl(r,g,b,a)
-	 * - rgb2hsl([r,g,b])
-	 * - rgb2hsl([r,g,b,a])
-	 * - rgb2hsl({r,g,b,a})
-	 */
-	const rgb2hsl$1 = (...args) => {
-	    args = unpack(args, 'rgba');
-	    let [r, g, b] = args;
-
-	    r /= 255;
-	    g /= 255;
-	    b /= 255;
-
-	    const minRgb = min$3(r, g, b);
-	    const maxRgb = max$3(r, g, b);
-
-	    const l = (maxRgb + minRgb) / 2;
-	    let s, h;
-
-	    if (maxRgb === minRgb) {
-	        s = 0;
-	        h = Number.NaN;
-	    } else {
-	        s =
-	            l < 0.5
-	                ? (maxRgb - minRgb) / (maxRgb + minRgb)
-	                : (maxRgb - minRgb) / (2 - maxRgb - minRgb);
-	    }
-
-	    if (r == maxRgb) h = (g - b) / (maxRgb - minRgb);
-	    else if (g == maxRgb) h = 2 + (b - r) / (maxRgb - minRgb);
-	    else if (b == maxRgb) h = 4 + (r - g) / (maxRgb - minRgb);
-
-	    h *= 60;
-	    if (h < 0) h += 360;
-	    if (args.length > 3 && args[3] !== undefined) return [h, s, l, args[3]];
-	    return [h, s, l];
-	};
-
-	const { round: round$6 } = Math;
-
-	/*
-	 * supported arguments:
-	 * - rgb2css(r,g,b)
-	 * - rgb2css(r,g,b,a)
-	 * - rgb2css([r,g,b], mode)
-	 * - rgb2css([r,g,b,a], mode)
-	 * - rgb2css({r,g,b,a}, mode)
-	 */
-	const rgb2css = (...args) => {
-	    const rgba = unpack(args, 'rgba');
-	    let mode = last(args) || 'rgb';
-	    if (mode.substr(0, 3) == 'hsl') {
-	        return hsl2css(rgb2hsl$1(rgba), mode);
-	    }
-	    rgba[0] = round$6(rgba[0]);
-	    rgba[1] = round$6(rgba[1]);
-	    rgba[2] = round$6(rgba[2]);
-	    if (mode === 'rgba' || (rgba.length > 3 && rgba[3] < 1)) {
-	        rgba[3] = rgba.length > 3 ? rgba[3] : 1;
-	        mode = 'rgba';
-	    }
-	    return `${mode}(${rgba.slice(0, mode === 'rgb' ? 3 : 4).join(',')})`;
-	};
-
-	const { round: round$5 } = Math;
-
-	const hsl2rgb = (...args) => {
-	    args = unpack(args, 'hsl');
-	    const [h, s, l] = args;
-	    let r, g, b;
-	    if (s === 0) {
-	        r = g = b = l * 255;
-	    } else {
-	        const t3 = [0, 0, 0];
-	        const c = [0, 0, 0];
-	        const t2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
-	        const t1 = 2 * l - t2;
-	        const h_ = h / 360;
-	        t3[0] = h_ + 1 / 3;
-	        t3[1] = h_;
-	        t3[2] = h_ - 1 / 3;
-	        for (let i = 0; i < 3; i++) {
-	            if (t3[i] < 0) t3[i] += 1;
-	            if (t3[i] > 1) t3[i] -= 1;
-	            if (6 * t3[i] < 1) c[i] = t1 + (t2 - t1) * 6 * t3[i];
-	            else if (2 * t3[i] < 1) c[i] = t2;
-	            else if (3 * t3[i] < 2) c[i] = t1 + (t2 - t1) * (2 / 3 - t3[i]) * 6;
-	            else c[i] = t1;
-	        }
-	        [r, g, b] = [round$5(c[0] * 255), round$5(c[1] * 255), round$5(c[2] * 255)];
-	    }
-	    if (args.length > 3) {
-	        // keep alpha channel
-	        return [r, g, b, args[3]];
-	    }
-	    return [r, g, b, 1];
-	};
-
-	const RE_RGB = /^rgb\(\s*(-?\d+),\s*(-?\d+)\s*,\s*(-?\d+)\s*\)$/;
-	const RE_RGBA =
-	    /^rgba\(\s*(-?\d+),\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*([01]|[01]?\.\d+)\)$/;
-	const RE_RGB_PCT =
-	    /^rgb\(\s*(-?\d+(?:\.\d+)?)%,\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*\)$/;
-	const RE_RGBA_PCT =
-	    /^rgba\(\s*(-?\d+(?:\.\d+)?)%,\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*,\s*([01]|[01]?\.\d+)\)$/;
-	const RE_HSL =
-	    /^hsl\(\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*\)$/;
-	const RE_HSLA =
-	    /^hsla\(\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*,\s*([01]|[01]?\.\d+)\)$/;
-
-	const { round: round$4 } = Math;
-
-	const css2rgb = (css) => {
-	    css = css.toLowerCase().trim();
-	    let m;
-
-	    if (input.format.named) {
-	        try {
-	            return input.format.named(css);
-	            // eslint-disable-next-line
-	        } catch (e) {}
-	    }
-
-	    // rgb(250,20,0)
-	    if ((m = css.match(RE_RGB))) {
-	        const rgb = m.slice(1, 4);
-	        for (let i = 0; i < 3; i++) {
-	            rgb[i] = +rgb[i];
-	        }
-	        rgb[3] = 1; // default alpha
-	        return rgb;
-	    }
-
-	    // rgba(250,20,0,0.4)
-	    if ((m = css.match(RE_RGBA))) {
-	        const rgb = m.slice(1, 5);
-	        for (let i = 0; i < 4; i++) {
-	            rgb[i] = +rgb[i];
-	        }
-	        return rgb;
-	    }
-
-	    // rgb(100%,0%,0%)
-	    if ((m = css.match(RE_RGB_PCT))) {
-	        const rgb = m.slice(1, 4);
-	        for (let i = 0; i < 3; i++) {
-	            rgb[i] = round$4(rgb[i] * 2.55);
-	        }
-	        rgb[3] = 1; // default alpha
-	        return rgb;
-	    }
-
-	    // rgba(100%,0%,0%,0.4)
-	    if ((m = css.match(RE_RGBA_PCT))) {
-	        const rgb = m.slice(1, 5);
-	        for (let i = 0; i < 3; i++) {
-	            rgb[i] = round$4(rgb[i] * 2.55);
-	        }
-	        rgb[3] = +rgb[3];
-	        return rgb;
-	    }
-
-	    // hsl(0,100%,50%)
-	    if ((m = css.match(RE_HSL))) {
-	        const hsl = m.slice(1, 4);
-	        hsl[1] *= 0.01;
-	        hsl[2] *= 0.01;
-	        const rgb = hsl2rgb(hsl);
-	        rgb[3] = 1;
-	        return rgb;
-	    }
-
-	    // hsla(0,100%,50%,0.5)
-	    if ((m = css.match(RE_HSLA))) {
-	        const hsl = m.slice(1, 4);
-	        hsl[1] *= 0.01;
-	        hsl[2] *= 0.01;
-	        const rgb = hsl2rgb(hsl);
-	        rgb[3] = +m[4]; // default alpha = 1
-	        return rgb;
-	    }
-	};
-
-	css2rgb.test = (s) => {
-	    return (
-	        RE_RGB.test(s) ||
-	        RE_RGBA.test(s) ||
-	        RE_RGB_PCT.test(s) ||
-	        RE_RGBA_PCT.test(s) ||
-	        RE_HSL.test(s) ||
-	        RE_HSLA.test(s)
-	    );
-	};
-
-	Color.prototype.css = function (mode) {
-	    return rgb2css(this._rgb, mode);
-	};
-
-	chroma.css = (...args) => new Color(...args, 'css');
-
-	input.format.css = css2rgb;
-
-	input.autodetect.push({
-	    p: 5,
-	    test: (h, ...rest) => {
-	        if (!rest.length && type(h) === 'string' && css2rgb.test(h)) {
-	            return 'css';
-	        }
-	    }
-	});
-
-	input.format.gl = (...args) => {
-	    const rgb = unpack(args, 'rgba');
-	    rgb[0] *= 255;
-	    rgb[1] *= 255;
-	    rgb[2] *= 255;
-	    return rgb;
-	};
-
-	chroma.gl = (...args) => new Color(...args, 'gl');
-
-	Color.prototype.gl = function () {
-	    const rgb = this._rgb;
-	    return [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, rgb[3]];
-	};
-
-	const { floor: floor$3 } = Math;
-
-	/*
-	 * this is basically just HSV with some minor tweaks
-	 *
-	 * hue.. [0..360]
-	 * chroma .. [0..1]
-	 * grayness .. [0..1]
-	 */
-
-	const hcg2rgb = (...args) => {
-	    args = unpack(args, 'hcg');
-	    let [h, c, _g] = args;
-	    let r, g, b;
-	    _g = _g * 255;
-	    const _c = c * 255;
-	    if (c === 0) {
-	        r = g = b = _g;
-	    } else {
-	        if (h === 360) h = 0;
-	        if (h > 360) h -= 360;
-	        if (h < 0) h += 360;
-	        h /= 60;
-	        const i = floor$3(h);
-	        const f = h - i;
-	        const p = _g * (1 - c);
-	        const q = p + _c * (1 - f);
-	        const t = p + _c * f;
-	        const v = p + _c;
-	        switch (i) {
-	            case 0:
-	                [r, g, b] = [v, t, p];
-	                break;
-	            case 1:
-	                [r, g, b] = [q, v, p];
-	                break;
-	            case 2:
-	                [r, g, b] = [p, v, t];
-	                break;
-	            case 3:
-	                [r, g, b] = [p, q, v];
-	                break;
-	            case 4:
-	                [r, g, b] = [t, p, v];
-	                break;
-	            case 5:
-	                [r, g, b] = [v, p, q];
-	                break;
-	        }
-	    }
-	    return [r, g, b, args.length > 3 ? args[3] : 1];
-	};
-
-	const rgb2hcg = (...args) => {
-	    const [r, g, b] = unpack(args, 'rgb');
-	    const minRgb = min$3(r, g, b);
-	    const maxRgb = max$3(r, g, b);
-	    const delta = maxRgb - minRgb;
-	    const c = (delta * 100) / 255;
-	    const _g = (minRgb / (255 - delta)) * 100;
-	    let h;
-	    if (delta === 0) {
-	        h = Number.NaN;
-	    } else {
-	        if (r === maxRgb) h = (g - b) / delta;
-	        if (g === maxRgb) h = 2 + (b - r) / delta;
-	        if (b === maxRgb) h = 4 + (r - g) / delta;
-	        h *= 60;
-	        if (h < 0) h += 360;
-	    }
-	    return [h, c, _g];
-	};
-
-	Color.prototype.hcg = function () {
-	    return rgb2hcg(this._rgb);
-	};
-
-	chroma.hcg = (...args) => new Color(...args, 'hcg');
-
-	input.format.hcg = hcg2rgb;
-
-	input.autodetect.push({
-	    p: 1,
-	    test: (...args) => {
-	        args = unpack(args, 'hcg');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'hcg';
-	        }
-	    }
-	});
-
-	const RE_HEX = /^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-	const RE_HEXA = /^#?([A-Fa-f0-9]{8}|[A-Fa-f0-9]{4})$/;
-
-	const hex2rgb = (hex) => {
-	    if (hex.match(RE_HEX)) {
-	        // remove optional leading #
-	        if (hex.length === 4 || hex.length === 7) {
-	            hex = hex.substr(1);
-	        }
-	        // expand short-notation to full six-digit
-	        if (hex.length === 3) {
-	            hex = hex.split('');
-	            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-	        }
-	        const u = parseInt(hex, 16);
-	        const r = u >> 16;
-	        const g = (u >> 8) & 0xff;
-	        const b = u & 0xff;
-	        return [r, g, b, 1];
-	    }
-
-	    // match rgba hex format, eg #FF000077
-	    if (hex.match(RE_HEXA)) {
-	        if (hex.length === 5 || hex.length === 9) {
-	            // remove optional leading #
-	            hex = hex.substr(1);
-	        }
-	        // expand short-notation to full eight-digit
-	        if (hex.length === 4) {
-	            hex = hex.split('');
-	            hex =
-	                hex[0] +
-	                hex[0] +
-	                hex[1] +
-	                hex[1] +
-	                hex[2] +
-	                hex[2] +
-	                hex[3] +
-	                hex[3];
-	        }
-	        const u = parseInt(hex, 16);
-	        const r = (u >> 24) & 0xff;
-	        const g = (u >> 16) & 0xff;
-	        const b = (u >> 8) & 0xff;
-	        const a = Math.round(((u & 0xff) / 0xff) * 100) / 100;
-	        return [r, g, b, a];
-	    }
-
-	    // we used to check for css colors here
-	    // if _input.css? and rgb = _input.css hex
-	    //     return rgb
-
-	    throw new Error(`unknown hex color: ${hex}`);
-	};
-
-	const { round: round$3 } = Math;
-
-	const rgb2hex = (...args) => {
-	    let [r, g, b, a] = unpack(args, 'rgba');
-	    let mode = last(args) || 'auto';
-	    if (a === undefined) a = 1;
-	    if (mode === 'auto') {
-	        mode = a < 1 ? 'rgba' : 'rgb';
-	    }
-	    r = round$3(r);
-	    g = round$3(g);
-	    b = round$3(b);
-	    const u = (r << 16) | (g << 8) | b;
-	    let str = '000000' + u.toString(16); //#.toUpperCase();
-	    str = str.substr(str.length - 6);
-	    let hxa = '0' + round$3(a * 255).toString(16);
-	    hxa = hxa.substr(hxa.length - 2);
-	    switch (mode.toLowerCase()) {
-	        case 'rgba':
-	            return `#${str}${hxa}`;
-	        case 'argb':
-	            return `#${hxa}${str}`;
-	        default:
-	            return `#${str}`;
-	    }
-	};
-
-	Color.prototype.hex = function (mode) {
-	    return rgb2hex(this._rgb, mode);
-	};
-
-	chroma.hex = (...args) => new Color(...args, 'hex');
-
-	input.format.hex = hex2rgb;
-	input.autodetect.push({
-	    p: 4,
-	    test: (h, ...rest) => {
-	        if (
-	            !rest.length &&
-	            type(h) === 'string' &&
-	            [3, 4, 5, 6, 7, 8, 9].indexOf(h.length) >= 0
-	        ) {
-	            return 'hex';
-	        }
-	    }
-	});
-
-	const { cos: cos$4 } = Math;
-
-	/*
-	 * hue [0..360]
-	 * saturation [0..1]
-	 * intensity [0..1]
-	 */
-	const hsi2rgb = (...args) => {
-	    /*
-	    borrowed from here:
-	    http://hummer.stanford.edu/museinfo/doc/examples/humdrum/keyscape2/hsi2rgb.cpp
-	    */
-	    args = unpack(args, 'hsi');
-	    let [h, s, i] = args;
-	    let r, g, b;
-
-	    if (isNaN(h)) h = 0;
-	    if (isNaN(s)) s = 0;
-	    // normalize hue
-	    if (h > 360) h -= 360;
-	    if (h < 0) h += 360;
-	    h /= 360;
-	    if (h < 1 / 3) {
-	        b = (1 - s) / 3;
-	        r = (1 + (s * cos$4(TWOPI * h)) / cos$4(PITHIRD - TWOPI * h)) / 3;
-	        g = 1 - (b + r);
-	    } else if (h < 2 / 3) {
-	        h -= 1 / 3;
-	        r = (1 - s) / 3;
-	        g = (1 + (s * cos$4(TWOPI * h)) / cos$4(PITHIRD - TWOPI * h)) / 3;
-	        b = 1 - (r + g);
-	    } else {
-	        h -= 2 / 3;
-	        g = (1 - s) / 3;
-	        b = (1 + (s * cos$4(TWOPI * h)) / cos$4(PITHIRD - TWOPI * h)) / 3;
-	        r = 1 - (g + b);
-	    }
-	    r = limit(i * r * 3);
-	    g = limit(i * g * 3);
-	    b = limit(i * b * 3);
-	    return [r * 255, g * 255, b * 255, args.length > 3 ? args[3] : 1];
-	};
-
-	const { min: min$2, sqrt: sqrt$4, acos } = Math;
-
-	const rgb2hsi = (...args) => {
-	    /*
-	    borrowed from here:
-	    http://hummer.stanford.edu/museinfo/doc/examples/humdrum/keyscape2/rgb2hsi.cpp
-	    */
-	    let [r, g, b] = unpack(args, 'rgb');
-	    r /= 255;
-	    g /= 255;
-	    b /= 255;
-	    let h;
-	    const min_ = min$2(r, g, b);
-	    const i = (r + g + b) / 3;
-	    const s = i > 0 ? 1 - min_ / i : 0;
-	    if (s === 0) {
-	        h = NaN;
-	    } else {
-	        h = (r - g + (r - b)) / 2;
-	        h /= sqrt$4((r - g) * (r - g) + (r - b) * (g - b));
-	        h = acos(h);
-	        if (b > g) {
-	            h = TWOPI - h;
-	        }
-	        h /= TWOPI;
-	    }
-	    return [h * 360, s, i];
-	};
-
-	Color.prototype.hsi = function () {
-	    return rgb2hsi(this._rgb);
-	};
-
-	chroma.hsi = (...args) => new Color(...args, 'hsi');
-
-	input.format.hsi = hsi2rgb;
-
-	input.autodetect.push({
-	    p: 2,
-	    test: (...args) => {
-	        args = unpack(args, 'hsi');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'hsi';
-	        }
-	    }
-	});
-
-	Color.prototype.hsl = function () {
-	    return rgb2hsl$1(this._rgb);
-	};
-
-	chroma.hsl = (...args) => new Color(...args, 'hsl');
-
-	input.format.hsl = hsl2rgb;
-
-	input.autodetect.push({
-	    p: 2,
-	    test: (...args) => {
-	        args = unpack(args, 'hsl');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'hsl';
-	        }
-	    }
-	});
-
-	const { floor: floor$2 } = Math;
-
-	const hsv2rgb = (...args) => {
-	    args = unpack(args, 'hsv');
-	    let [h, s, v] = args;
-	    let r, g, b;
-	    v *= 255;
-	    if (s === 0) {
-	        r = g = b = v;
-	    } else {
-	        if (h === 360) h = 0;
-	        if (h > 360) h -= 360;
-	        if (h < 0) h += 360;
-	        h /= 60;
-
-	        const i = floor$2(h);
-	        const f = h - i;
-	        const p = v * (1 - s);
-	        const q = v * (1 - s * f);
-	        const t = v * (1 - s * (1 - f));
-
-	        switch (i) {
-	            case 0:
-	                [r, g, b] = [v, t, p];
-	                break;
-	            case 1:
-	                [r, g, b] = [q, v, p];
-	                break;
-	            case 2:
-	                [r, g, b] = [p, v, t];
-	                break;
-	            case 3:
-	                [r, g, b] = [p, q, v];
-	                break;
-	            case 4:
-	                [r, g, b] = [t, p, v];
-	                break;
-	            case 5:
-	                [r, g, b] = [v, p, q];
-	                break;
-	        }
-	    }
-	    return [r, g, b, args.length > 3 ? args[3] : 1];
-	};
-
-	const { min: min$1, max: max$1 } = Math;
-
-	/*
-	 * supported arguments:
-	 * - rgb2hsv(r,g,b)
-	 * - rgb2hsv([r,g,b])
-	 * - rgb2hsv({r,g,b})
-	 */
-	const rgb2hsl = (...args) => {
-	    args = unpack(args, 'rgb');
-	    let [r, g, b] = args;
-	    const min_ = min$1(r, g, b);
-	    const max_ = max$1(r, g, b);
-	    const delta = max_ - min_;
-	    let h, s, v;
-	    v = max_ / 255.0;
-	    if (max_ === 0) {
-	        h = Number.NaN;
-	        s = 0;
-	    } else {
-	        s = delta / max_;
-	        if (r === max_) h = (g - b) / delta;
-	        if (g === max_) h = 2 + (b - r) / delta;
-	        if (b === max_) h = 4 + (r - g) / delta;
-	        h *= 60;
-	        if (h < 0) h += 360;
-	    }
-	    return [h, s, v];
-	};
-
-	Color.prototype.hsv = function () {
-	    return rgb2hsl(this._rgb);
-	};
-
-	chroma.hsv = (...args) => new Color(...args, 'hsv');
-
-	input.format.hsv = hsv2rgb;
-
-	input.autodetect.push({
-	    p: 2,
-	    test: (...args) => {
-	        args = unpack(args, 'hsv');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'hsv';
-	        }
-	    }
-	});
-
-	var LAB_CONSTANTS = {
-	    // Corresponds roughly to RGB brighter/darker
-	    Kn: 18,
-
-	    // D65 standard referent
-	    Xn: 0.95047,
-	    Yn: 1,
-	    Zn: 1.08883,
-
-	    t0: 0.137931034, // 4 / 29
-	    t1: 0.206896552, // 6 / 29
-	    t2: 0.12841855, // 3 * t1 * t1
-	    t3: 0.008856452 // t1 * t1 * t1
-	};
-
-	const { pow: pow$a } = Math;
-
-	/*
-	 * L* [0..100]
-	 * a [-100..100]
-	 * b [-100..100]
-	 */
-	const lab2rgb = (...args) => {
-	    args = unpack(args, 'lab');
-	    const [l, a, b] = args;
-	    let x, y, z, r, g, b_;
-
-	    y = (l + 16) / 116;
-	    x = isNaN(a) ? y : y + a / 500;
-	    z = isNaN(b) ? y : y - b / 200;
-
-	    y = LAB_CONSTANTS.Yn * lab_xyz(y);
-	    x = LAB_CONSTANTS.Xn * lab_xyz(x);
-	    z = LAB_CONSTANTS.Zn * lab_xyz(z);
-
-	    r = xyz_rgb(3.2404542 * x - 1.5371385 * y - 0.4985314 * z); // D65 -> sRGB
-	    g = xyz_rgb(-0.969266 * x + 1.8760108 * y + 0.041556 * z);
-	    b_ = xyz_rgb(0.0556434 * x - 0.2040259 * y + 1.0572252 * z);
-
-	    return [r, g, b_, args.length > 3 ? args[3] : 1];
-	};
-
-	const xyz_rgb = (r) => {
-	    return 255 * (r <= 0.00304 ? 12.92 * r : 1.055 * pow$a(r, 1 / 2.4) - 0.055);
-	};
-
-	const lab_xyz = (t) => {
-	    return t > LAB_CONSTANTS.t1
-	        ? t * t * t
-	        : LAB_CONSTANTS.t2 * (t - LAB_CONSTANTS.t0);
-	};
-
-	const { pow: pow$9 } = Math;
-
-	const rgb2lab = (...args) => {
-	    const [r, g, b] = unpack(args, 'rgb');
-	    const [x, y, z] = rgb2xyz(r, g, b);
-	    const l = 116 * y - 16;
-	    return [l < 0 ? 0 : l, 500 * (x - y), 200 * (y - z)];
-	};
-
-	const rgb_xyz = (r) => {
-	    if ((r /= 255) <= 0.04045) return r / 12.92;
-	    return pow$9((r + 0.055) / 1.055, 2.4);
-	};
-
-	const xyz_lab = (t) => {
-	    if (t > LAB_CONSTANTS.t3) return pow$9(t, 1 / 3);
-	    return t / LAB_CONSTANTS.t2 + LAB_CONSTANTS.t0;
-	};
-
-	const rgb2xyz = (r, g, b) => {
-	    r = rgb_xyz(r);
-	    g = rgb_xyz(g);
-	    b = rgb_xyz(b);
-	    const x = xyz_lab(
-	        (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / LAB_CONSTANTS.Xn
-	    );
-	    const y = xyz_lab(
-	        (0.2126729 * r + 0.7151522 * g + 0.072175 * b) / LAB_CONSTANTS.Yn
-	    );
-	    const z = xyz_lab(
-	        (0.0193339 * r + 0.119192 * g + 0.9503041 * b) / LAB_CONSTANTS.Zn
-	    );
-	    return [x, y, z];
-	};
-
-	Color.prototype.lab = function () {
-	    return rgb2lab(this._rgb);
-	};
-
-	chroma.lab = (...args) => new Color(...args, 'lab');
-
-	input.format.lab = lab2rgb;
-
-	input.autodetect.push({
-	    p: 2,
-	    test: (...args) => {
-	        args = unpack(args, 'lab');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'lab';
-	        }
-	    }
-	});
-
-	const { sin: sin$3, cos: cos$3 } = Math;
-
-	const lch2lab = (...args) => {
-	    /*
-	    Convert from a qualitative parameter h and a quantitative parameter l to a 24-bit pixel.
-	    These formulas were invented by David Dalrymple to obtain maximum contrast without going
-	    out of gamut if the parameters are in the range 0-1.
-
-	    A saturation multiplier was added by Gregor Aisch
-	    */
-	    let [l, c, h] = unpack(args, 'lch');
-	    if (isNaN(h)) h = 0;
-	    h = h * DEG2RAD;
-	    return [l, cos$3(h) * c, sin$3(h) * c];
-	};
-
-	const lch2rgb = (...args) => {
-	    args = unpack(args, 'lch');
-	    const [l, c, h] = args;
-	    const [L, a, b_] = lch2lab(l, c, h);
-	    const [r, g, b] = lab2rgb(L, a, b_);
-	    return [r, g, b, args.length > 3 ? args[3] : 1];
-	};
-
-	const hcl2rgb = (...args) => {
-	    const hcl = unpack(args, 'hcl').reverse();
-	    return lch2rgb(...hcl);
-	};
-
-	const { sqrt: sqrt$3, atan2: atan2$2, round: round$2 } = Math;
-
-	const lab2lch = (...args) => {
-	    const [l, a, b] = unpack(args, 'lab');
-	    const c = sqrt$3(a * a + b * b);
-	    let h = (atan2$2(b, a) * RAD2DEG + 360) % 360;
-	    if (round$2(c * 10000) === 0) h = Number.NaN;
-	    return [l, c, h];
-	};
-
-	const rgb2lch = (...args) => {
-	    const [r, g, b] = unpack(args, 'rgb');
-	    const [l, a, b_] = rgb2lab(r, g, b);
-	    return lab2lch(l, a, b_);
-	};
-
-	Color.prototype.lch = function () {
-	    return rgb2lch(this._rgb);
-	};
-	Color.prototype.hcl = function () {
-	    return rgb2lch(this._rgb).reverse();
-	};
-
-	chroma.lch = (...args) => new Color(...args, 'lch');
-	chroma.hcl = (...args) => new Color(...args, 'hcl');
-
-	input.format.lch = lch2rgb;
-	input.format.hcl = hcl2rgb;
-	['lch', 'hcl'].forEach((m) =>
-	    input.autodetect.push({
-	        p: 2,
-	        test: (...args) => {
-	            args = unpack(args, m);
-	            if (type(args) === 'array' && args.length === 3) {
-	                return m;
-	            }
-	        }
-	    })
-	);
 
 	/**
 		X11 color names
@@ -47443,6 +46590,88 @@ var RootBundle = (function (exports, React$1) {
 	    yellowgreen: '#9acd32'
 	};
 
+	const RE_HEX = /^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+	const RE_HEXA = /^#?([A-Fa-f0-9]{8}|[A-Fa-f0-9]{4})$/;
+
+	const hex2rgb = (hex) => {
+	    if (hex.match(RE_HEX)) {
+	        // remove optional leading #
+	        if (hex.length === 4 || hex.length === 7) {
+	            hex = hex.substr(1);
+	        }
+	        // expand short-notation to full six-digit
+	        if (hex.length === 3) {
+	            hex = hex.split('');
+	            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+	        }
+	        const u = parseInt(hex, 16);
+	        const r = u >> 16;
+	        const g = (u >> 8) & 0xff;
+	        const b = u & 0xff;
+	        return [r, g, b, 1];
+	    }
+
+	    // match rgba hex format, eg #FF000077
+	    if (hex.match(RE_HEXA)) {
+	        if (hex.length === 5 || hex.length === 9) {
+	            // remove optional leading #
+	            hex = hex.substr(1);
+	        }
+	        // expand short-notation to full eight-digit
+	        if (hex.length === 4) {
+	            hex = hex.split('');
+	            hex =
+	                hex[0] +
+	                hex[0] +
+	                hex[1] +
+	                hex[1] +
+	                hex[2] +
+	                hex[2] +
+	                hex[3] +
+	                hex[3];
+	        }
+	        const u = parseInt(hex, 16);
+	        const r = (u >> 24) & 0xff;
+	        const g = (u >> 16) & 0xff;
+	        const b = (u >> 8) & 0xff;
+	        const a = Math.round(((u & 0xff) / 0xff) * 100) / 100;
+	        return [r, g, b, a];
+	    }
+
+	    // we used to check for css colors here
+	    // if _input.css? and rgb = _input.css hex
+	    //     return rgb
+
+	    throw new Error(`unknown hex color: ${hex}`);
+	};
+
+	const { round: round$5 } = Math;
+
+	const rgb2hex = (...args) => {
+	    let [r, g, b, a] = unpack(args, 'rgba');
+	    let mode = last(args) || 'auto';
+	    if (a === undefined) a = 1;
+	    if (mode === 'auto') {
+	        mode = a < 1 ? 'rgba' : 'rgb';
+	    }
+	    r = round$5(r);
+	    g = round$5(g);
+	    b = round$5(b);
+	    const u = (r << 16) | (g << 8) | b;
+	    let str = '000000' + u.toString(16); //#.toUpperCase();
+	    str = str.substr(str.length - 6);
+	    let hxa = '0' + round$5(a * 255).toString(16);
+	    hxa = hxa.substr(hxa.length - 2);
+	    switch (mode.toLowerCase()) {
+	        case 'rgba':
+	            return `#${str}${hxa}`;
+	        case 'argb':
+	            return `#${hxa}${str}`;
+	        default:
+	            return `#${str}`;
+	    }
+	};
+
 	Color.prototype.name = function () {
 	    const hex = rgb2hex(this._rgb, 'rgb');
 	    for (let n of Object.keys(w3cx11)) {
@@ -47466,273 +46695,6 @@ var RootBundle = (function (exports, React$1) {
 	    }
 	});
 
-	const num2rgb = (num) => {
-	    if (type(num) == 'number' && num >= 0 && num <= 0xffffff) {
-	        const r = num >> 16;
-	        const g = (num >> 8) & 0xff;
-	        const b = num & 0xff;
-	        return [r, g, b, 1];
-	    }
-	    throw new Error('unknown num color: ' + num);
-	};
-
-	const rgb2num = (...args) => {
-	    const [r, g, b] = unpack(args, 'rgb');
-	    return (r << 16) + (g << 8) + b;
-	};
-
-	Color.prototype.num = function () {
-	    return rgb2num(this._rgb);
-	};
-
-	chroma.num = (...args) => new Color(...args, 'num');
-
-	input.format.num = num2rgb;
-
-	input.autodetect.push({
-	    p: 5,
-	    test: (...args) => {
-	        if (
-	            args.length === 1 &&
-	            type(args[0]) === 'number' &&
-	            args[0] >= 0 &&
-	            args[0] <= 0xffffff
-	        ) {
-	            return 'num';
-	        }
-	    }
-	});
-
-	const { round: round$1 } = Math;
-
-	Color.prototype.rgb = function (rnd = true) {
-	    if (rnd === false) return this._rgb.slice(0, 3);
-	    return this._rgb.slice(0, 3).map(round$1);
-	};
-
-	Color.prototype.rgba = function (rnd = true) {
-	    return this._rgb.slice(0, 4).map((v, i) => {
-	        return i < 3 ? (rnd === false ? v : round$1(v)) : v;
-	    });
-	};
-
-	chroma.rgb = (...args) => new Color(...args, 'rgb');
-
-	input.format.rgb = (...args) => {
-	    const rgba = unpack(args, 'rgba');
-	    if (rgba[3] === undefined) rgba[3] = 1;
-	    return rgba;
-	};
-
-	input.autodetect.push({
-	    p: 3,
-	    test: (...args) => {
-	        args = unpack(args, 'rgba');
-	        if (
-	            type(args) === 'array' &&
-	            (args.length === 3 ||
-	                (args.length === 4 &&
-	                    type(args[3]) == 'number' &&
-	                    args[3] >= 0 &&
-	                    args[3] <= 1))
-	        ) {
-	            return 'rgb';
-	        }
-	    }
-	});
-
-	/*
-	 * Based on implementation by Neil Bartlett
-	 * https://github.com/neilbartlett/color-temperature
-	 */
-
-	const { log: log$1 } = Math;
-
-	const temperature2rgb = (kelvin) => {
-	    const temp = kelvin / 100;
-	    let r, g, b;
-	    if (temp < 66) {
-	        r = 255;
-	        g =
-	            temp < 6
-	                ? 0
-	                : -155.25485562709179 -
-	                  0.44596950469579133 * (g = temp - 2) +
-	                  104.49216199393888 * log$1(g);
-	        b =
-	            temp < 20
-	                ? 0
-	                : -254.76935184120902 +
-	                  0.8274096064007395 * (b = temp - 10) +
-	                  115.67994401066147 * log$1(b);
-	    } else {
-	        r =
-	            351.97690566805693 +
-	            0.114206453784165 * (r = temp - 55) -
-	            40.25366309332127 * log$1(r);
-	        g =
-	            325.4494125711974 +
-	            0.07943456536662342 * (g = temp - 50) -
-	            28.0852963507957 * log$1(g);
-	        b = 255;
-	    }
-	    return [r, g, b, 1];
-	};
-
-	/*
-	 * Based on implementation by Neil Bartlett
-	 * https://github.com/neilbartlett/color-temperature
-	 **/
-	const { round } = Math;
-
-	const rgb2temperature = (...args) => {
-	    const rgb = unpack(args, 'rgb');
-	    const r = rgb[0],
-	        b = rgb[2];
-	    let minTemp = 1000;
-	    let maxTemp = 40000;
-	    const eps = 0.4;
-	    let temp;
-	    while (maxTemp - minTemp > eps) {
-	        temp = (maxTemp + minTemp) * 0.5;
-	        const rgb = temperature2rgb(temp);
-	        if (rgb[2] / rgb[0] >= b / r) {
-	            maxTemp = temp;
-	        } else {
-	            minTemp = temp;
-	        }
-	    }
-	    return round(temp);
-	};
-
-	Color.prototype.temp =
-	    Color.prototype.kelvin =
-	    Color.prototype.temperature =
-	        function () {
-	            return rgb2temperature(this._rgb);
-	        };
-
-	chroma.temp =
-	    chroma.kelvin =
-	    chroma.temperature =
-	        (...args) => new Color(...args, 'temp');
-
-	input.format.temp =
-	    input.format.kelvin =
-	    input.format.temperature =
-	        temperature2rgb;
-
-	const { pow: pow$8, sign: sign$1 } = Math;
-
-	/*
-	 * L* [0..100]
-	 * a [-100..100]
-	 * b [-100..100]
-	 */
-	const oklab2rgb = (...args) => {
-	    args = unpack(args, 'lab');
-	    const [L, a, b] = args;
-
-	    const l = pow$8(L + 0.3963377774 * a + 0.2158037573 * b, 3);
-	    const m = pow$8(L - 0.1055613458 * a - 0.0638541728 * b, 3);
-	    const s = pow$8(L - 0.0894841775 * a - 1.291485548 * b, 3);
-
-	    return [
-	        255 * lrgb2rgb(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
-	        255 * lrgb2rgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
-	        255 * lrgb2rgb(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
-	        args.length > 3 ? args[3] : 1
-	    ];
-	};
-
-	function lrgb2rgb(c) {
-	    const abs = Math.abs(c);
-	    if (abs > 0.0031308) {
-	        return (sign$1(c) || 1) * (1.055 * pow$8(abs, 1 / 2.4) - 0.055);
-	    }
-	    return c * 12.92;
-	}
-
-	const { cbrt, pow: pow$7, sign } = Math;
-
-	const rgb2oklab = (...args) => {
-	    // OKLab color space implementation taken from
-	    // https://bottosson.github.io/posts/oklab/
-	    const [r, g, b] = unpack(args, 'rgb');
-	    const [lr, lg, lb] = [
-	        rgb2lrgb(r / 255),
-	        rgb2lrgb(g / 255),
-	        rgb2lrgb(b / 255)
-	    ];
-	    const l = cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-	    const m = cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-	    const s = cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
-
-	    return [
-	        0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-	        1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-	        0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s
-	    ];
-	};
-
-	function rgb2lrgb(c) {
-	    const abs = Math.abs(c);
-	    if (abs < 0.04045) {
-	        return c / 12.92;
-	    }
-	    return (sign(c) || 1) * pow$7((abs + 0.055) / 1.055, 2.4);
-	}
-
-	Color.prototype.oklab = function () {
-	    return rgb2oklab(this._rgb);
-	};
-
-	chroma.oklab = (...args) => new Color(...args, 'oklab');
-
-	input.format.oklab = oklab2rgb;
-
-	input.autodetect.push({
-	    p: 3,
-	    test: (...args) => {
-	        args = unpack(args, 'oklab');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'oklab';
-	        }
-	    }
-	});
-
-	const oklch2rgb = (...args) => {
-	    args = unpack(args, 'lch');
-	    const [l, c, h] = args;
-	    const [L, a, b_] = lch2lab(l, c, h);
-	    const [r, g, b] = oklab2rgb(L, a, b_);
-	    return [r, g, b, args.length > 3 ? args[3] : 1];
-	};
-
-	const rgb2oklch = (...args) => {
-	    const [r, g, b] = unpack(args, 'rgb');
-	    const [l, a, b_] = rgb2oklab(r, g, b);
-	    return lab2lch(l, a, b_);
-	};
-
-	Color.prototype.oklch = function () {
-	    return rgb2oklch(this._rgb);
-	};
-
-	chroma.oklch = (...args) => new Color(...args, 'oklch');
-
-	input.format.oklch = oklch2rgb;
-
-	input.autodetect.push({
-	    p: 3,
-	    test: (...args) => {
-	        args = unpack(args, 'oklch');
-	        if (type(args) === 'array' && args.length === 3) {
-	            return 'oklch';
-	        }
-	    }
-	});
-
 	Color.prototype.alpha = function (a, mutate = false) {
 	    if (a !== undefined && type(a) === 'number') {
 	        if (mutate) {
@@ -47748,10 +46710,306 @@ var RootBundle = (function (exports, React$1) {
 	    return this._rgb._clipped || false;
 	};
 
+	const labConstants = {
+	    // Corresponds roughly to RGB brighter/darker
+	    Kn: 18,
+
+	    // D65 standard referent
+	    labWhitePoint: 'd65',
+	    Xn: 0.95047,
+	    Yn: 1,
+	    Zn: 1.08883,
+
+	    t0: 0.137931034, // 4 / 29
+	    t1: 0.206896552, // 6 / 29
+	    t2: 0.12841855, // 3 * t1 * t1
+	    t3: 0.008856452, // t1 * t1 * t1,
+
+	    kE: 216.0 / 24389.0,
+	    kKE: 8.0,
+	    kK: 24389.0 / 27.0,
+
+	    RefWhiteRGB: {
+	        // sRGB
+	        X: 0.95047,
+	        Y: 1,
+	        Z: 1.08883
+	    },
+
+	    MtxRGB2XYZ: {
+	        m00: 0.4124564390896922,
+	        m01: 0.21267285140562253,
+	        m02: 0.0193338955823293,
+	        m10: 0.357576077643909,
+	        m11: 0.715152155287818,
+	        m12: 0.11919202588130297,
+	        m20: 0.18043748326639894,
+	        m21: 0.07217499330655958,
+	        m22: 0.9503040785363679
+	    },
+
+	    MtxXYZ2RGB: {
+	        m00: 3.2404541621141045,
+	        m01: -0.9692660305051868,
+	        m02: 0.055643430959114726,
+	        m10: -1.5371385127977166,
+	        m11: 1.8760108454466942,
+	        m12: -0.2040259135167538,
+	        m20: -0.498531409556016,
+	        m21: 0.041556017530349834,
+	        m22: 1.0572251882231791
+	    },
+
+	    // used in rgb2xyz
+	    As: 0.9414285350000001,
+	    Bs: 1.040417467,
+	    Cs: 1.089532651,
+
+	    MtxAdaptMa: {
+	        m00: 0.8951,
+	        m01: -0.7502,
+	        m02: 0.0389,
+	        m10: 0.2664,
+	        m11: 1.7135,
+	        m12: -0.0685,
+	        m20: -0.1614,
+	        m21: 0.0367,
+	        m22: 1.0296
+	    },
+
+	    MtxAdaptMaI: {
+	        m00: 0.9869929054667123,
+	        m01: 0.43230526972339456,
+	        m02: -0.008528664575177328,
+	        m10: -0.14705425642099013,
+	        m11: 0.5183602715367776,
+	        m12: 0.04004282165408487,
+	        m20: 0.15996265166373125,
+	        m21: 0.0492912282128556,
+	        m22: 0.9684866957875502
+	    }
+	};
+
+	// taken from https://de.mathworks.com/help/images/ref/whitepoint.html
+	const ILLUMINANTS = new Map([
+	    // ASTM E308-01
+	    ['a', [1.0985, 0.35585]],
+	    // Wyszecki & Stiles, p. 769
+	    ['b', [1.0985, 0.35585]],
+	    // C ASTM E308-01
+	    ['c', [0.98074, 1.18232]],
+	    // D50 (ASTM E308-01)
+	    ['d50', [0.96422, 0.82521]],
+	    // D55 (ASTM E308-01)
+	    ['d55', [0.95682, 0.92149]],
+	    // D65 (ASTM E308-01)
+	    ['d65', [0.95047, 1.08883]],
+	    // E (ASTM E308-01)
+	    ['e', [1, 1, 1]],
+	    // F2 (ASTM E308-01)
+	    ['f2', [0.99186, 0.67393]],
+	    // F7 (ASTM E308-01)
+	    ['f7', [0.95041, 1.08747]],
+	    // F11 (ASTM E308-01)
+	    ['f11', [1.00962, 0.6435]],
+	    ['icc', [0.96422, 0.82521]]
+	]);
+
+	function setLabWhitePoint(name) {
+	    const ill = ILLUMINANTS.get(String(name).toLowerCase());
+	    if (!ill) {
+	        throw new Error('unknown Lab illuminant ' + name);
+	    }
+	    labConstants.labWhitePoint = name;
+	    labConstants.Xn = ill[0];
+	    labConstants.Zn = ill[1];
+	}
+
+	function getLabWhitePoint() {
+	    return labConstants.labWhitePoint;
+	}
+
+	/*
+	 * L* [0..100]
+	 * a [-100..100]
+	 * b [-100..100]
+	 */
+	const lab2rgb = (...args) => {
+	    args = unpack(args, 'lab');
+	    const [L, a, b] = args;
+	    const [x, y, z] = lab2xyz(L, a, b);
+	    const [r, g, b_] = xyz2rgb(x, y, z);
+	    return [r, g, b_, args.length > 3 ? args[3] : 1];
+	};
+
+	const lab2xyz = (L, a, b) => {
+	    const { kE, kK, kKE, Xn, Yn, Zn } = labConstants;
+
+	    const fy = (L + 16.0) / 116.0;
+	    const fx = 0.002 * a + fy;
+	    const fz = fy - 0.005 * b;
+
+	    const fx3 = fx * fx * fx;
+	    const fz3 = fz * fz * fz;
+
+	    const xr = fx3 > kE ? fx3 : (116.0 * fx - 16.0) / kK;
+	    const yr = L > kKE ? Math.pow((L + 16.0) / 116.0, 3.0) : L / kK;
+	    const zr = fz3 > kE ? fz3 : (116.0 * fz - 16.0) / kK;
+
+	    const x = xr * Xn;
+	    const y = yr * Yn;
+	    const z = zr * Zn;
+
+	    return [x, y, z];
+	};
+
+	const compand = (linear) => {
+	    /* sRGB */
+	    const sign = Math.sign(linear);
+	    linear = Math.abs(linear);
+	    return (
+	        (linear <= 0.0031308
+	            ? linear * 12.92
+	            : 1.055 * Math.pow(linear, 1.0 / 2.4) - 0.055) * sign
+	    );
+	};
+
+	const xyz2rgb = (x, y, z) => {
+	    const { MtxAdaptMa, MtxAdaptMaI, MtxXYZ2RGB, RefWhiteRGB, Xn, Yn, Zn } =
+	        labConstants;
+
+	    const As = Xn * MtxAdaptMa.m00 + Yn * MtxAdaptMa.m10 + Zn * MtxAdaptMa.m20;
+	    const Bs = Xn * MtxAdaptMa.m01 + Yn * MtxAdaptMa.m11 + Zn * MtxAdaptMa.m21;
+	    const Cs = Xn * MtxAdaptMa.m02 + Yn * MtxAdaptMa.m12 + Zn * MtxAdaptMa.m22;
+
+	    const Ad =
+	        RefWhiteRGB.X * MtxAdaptMa.m00 +
+	        RefWhiteRGB.Y * MtxAdaptMa.m10 +
+	        RefWhiteRGB.Z * MtxAdaptMa.m20;
+	    const Bd =
+	        RefWhiteRGB.X * MtxAdaptMa.m01 +
+	        RefWhiteRGB.Y * MtxAdaptMa.m11 +
+	        RefWhiteRGB.Z * MtxAdaptMa.m21;
+	    const Cd =
+	        RefWhiteRGB.X * MtxAdaptMa.m02 +
+	        RefWhiteRGB.Y * MtxAdaptMa.m12 +
+	        RefWhiteRGB.Z * MtxAdaptMa.m22;
+
+	    const X1 =
+	        (x * MtxAdaptMa.m00 + y * MtxAdaptMa.m10 + z * MtxAdaptMa.m20) *
+	        (Ad / As);
+	    const Y1 =
+	        (x * MtxAdaptMa.m01 + y * MtxAdaptMa.m11 + z * MtxAdaptMa.m21) *
+	        (Bd / Bs);
+	    const Z1 =
+	        (x * MtxAdaptMa.m02 + y * MtxAdaptMa.m12 + z * MtxAdaptMa.m22) *
+	        (Cd / Cs);
+
+	    const X2 =
+	        X1 * MtxAdaptMaI.m00 + Y1 * MtxAdaptMaI.m10 + Z1 * MtxAdaptMaI.m20;
+	    const Y2 =
+	        X1 * MtxAdaptMaI.m01 + Y1 * MtxAdaptMaI.m11 + Z1 * MtxAdaptMaI.m21;
+	    const Z2 =
+	        X1 * MtxAdaptMaI.m02 + Y1 * MtxAdaptMaI.m12 + Z1 * MtxAdaptMaI.m22;
+
+	    const r = compand(
+	        X2 * MtxXYZ2RGB.m00 + Y2 * MtxXYZ2RGB.m10 + Z2 * MtxXYZ2RGB.m20
+	    );
+	    const g = compand(
+	        X2 * MtxXYZ2RGB.m01 + Y2 * MtxXYZ2RGB.m11 + Z2 * MtxXYZ2RGB.m21
+	    );
+	    const b = compand(
+	        X2 * MtxXYZ2RGB.m02 + Y2 * MtxXYZ2RGB.m12 + Z2 * MtxXYZ2RGB.m22
+	    );
+
+	    return [r * 255, g * 255, b * 255];
+	};
+
+	const rgb2lab = (...args) => {
+	    const [r, g, b, ...rest] = unpack(args, 'rgb');
+	    const [x, y, z] = rgb2xyz(r, g, b);
+	    const [L, a, b_] = xyz2lab(x, y, z);
+	    return [L, a, b_, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	function xyz2lab(x, y, z) {
+	    const { Xn, Yn, Zn, kE, kK } = labConstants;
+	    const xr = x / Xn;
+	    const yr = y / Yn;
+	    const zr = z / Zn;
+
+	    const fx = xr > kE ? Math.pow(xr, 1.0 / 3.0) : (kK * xr + 16.0) / 116.0;
+	    const fy = yr > kE ? Math.pow(yr, 1.0 / 3.0) : (kK * yr + 16.0) / 116.0;
+	    const fz = zr > kE ? Math.pow(zr, 1.0 / 3.0) : (kK * zr + 16.0) / 116.0;
+
+	    return [116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz)];
+	}
+
+	function gammaAdjustSRGB(companded) {
+	    const sign = Math.sign(companded);
+	    companded = Math.abs(companded);
+	    const linear =
+	        companded <= 0.04045
+	            ? companded / 12.92
+	            : Math.pow((companded + 0.055) / 1.055, 2.4);
+	    return linear * sign;
+	}
+
+	const rgb2xyz = (r, g, b) => {
+	    // normalize and gamma adjust
+	    r = gammaAdjustSRGB(r / 255);
+	    g = gammaAdjustSRGB(g / 255);
+	    b = gammaAdjustSRGB(b / 255);
+
+	    const { MtxRGB2XYZ, MtxAdaptMa, MtxAdaptMaI, Xn, Yn, Zn, As, Bs, Cs } =
+	        labConstants;
+
+	    let x = r * MtxRGB2XYZ.m00 + g * MtxRGB2XYZ.m10 + b * MtxRGB2XYZ.m20;
+	    let y = r * MtxRGB2XYZ.m01 + g * MtxRGB2XYZ.m11 + b * MtxRGB2XYZ.m21;
+	    let z = r * MtxRGB2XYZ.m02 + g * MtxRGB2XYZ.m12 + b * MtxRGB2XYZ.m22;
+
+	    const Ad = Xn * MtxAdaptMa.m00 + Yn * MtxAdaptMa.m10 + Zn * MtxAdaptMa.m20;
+	    const Bd = Xn * MtxAdaptMa.m01 + Yn * MtxAdaptMa.m11 + Zn * MtxAdaptMa.m21;
+	    const Cd = Xn * MtxAdaptMa.m02 + Yn * MtxAdaptMa.m12 + Zn * MtxAdaptMa.m22;
+
+	    let X = x * MtxAdaptMa.m00 + y * MtxAdaptMa.m10 + z * MtxAdaptMa.m20;
+	    let Y = x * MtxAdaptMa.m01 + y * MtxAdaptMa.m11 + z * MtxAdaptMa.m21;
+	    let Z = x * MtxAdaptMa.m02 + y * MtxAdaptMa.m12 + z * MtxAdaptMa.m22;
+
+	    X *= Ad / As;
+	    Y *= Bd / Bs;
+	    Z *= Cd / Cs;
+
+	    x = X * MtxAdaptMaI.m00 + Y * MtxAdaptMaI.m10 + Z * MtxAdaptMaI.m20;
+	    y = X * MtxAdaptMaI.m01 + Y * MtxAdaptMaI.m11 + Z * MtxAdaptMaI.m21;
+	    z = X * MtxAdaptMaI.m02 + Y * MtxAdaptMaI.m12 + Z * MtxAdaptMaI.m22;
+
+	    return [x, y, z];
+	};
+
+	Color.prototype.lab = function () {
+	    return rgb2lab(this._rgb);
+	};
+
+	const lab$1 = (...args) => new Color(...args, 'lab');
+	Object.assign(chroma, { lab: lab$1, getLabWhitePoint, setLabWhitePoint });
+
+	input.format.lab = lab2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'lab');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'lab';
+	        }
+	    }
+	});
+
 	Color.prototype.darken = function (amount = 1) {
 	    const me = this;
 	    const lab = me.lab();
-	    lab[0] -= LAB_CONSTANTS.Kn * amount;
+	    lab[0] -= labConstants.Kn * amount;
 	    return new Color(lab, 'lab').alpha(me.alpha(), true);
 	};
 
@@ -47864,10 +47122,82 @@ var RootBundle = (function (exports, React$1) {
 	    }
 	};
 
+	const { sin: sin$3, cos: cos$4 } = Math;
+
+	const lch2lab = (...args) => {
+	    /*
+	    Convert from a qualitative parameter h and a quantitative parameter l to a 24-bit pixel.
+	    These formulas were invented by David Dalrymple to obtain maximum contrast without going
+	    out of gamut if the parameters are in the range 0-1.
+
+	    A saturation multiplier was added by Gregor Aisch
+	    */
+	    let [l, c, h] = unpack(args, 'lch');
+	    if (isNaN(h)) h = 0;
+	    h = h * DEG2RAD;
+	    return [l, cos$4(h) * c, sin$3(h) * c];
+	};
+
+	const lch2rgb = (...args) => {
+	    args = unpack(args, 'lch');
+	    const [l, c, h] = args;
+	    const [L, a, b_] = lch2lab(l, c, h);
+	    const [r, g, b] = lab2rgb(L, a, b_);
+	    return [r, g, b, args.length > 3 ? args[3] : 1];
+	};
+
+	const hcl2rgb = (...args) => {
+	    const hcl = reverse3(unpack(args, 'hcl'));
+	    return lch2rgb(...hcl);
+	};
+
+	const { sqrt: sqrt$4, atan2: atan2$2, round: round$4 } = Math;
+
+	const lab2lch = (...args) => {
+	    const [l, a, b] = unpack(args, 'lab');
+	    const c = sqrt$4(a * a + b * b);
+	    let h = (atan2$2(b, a) * RAD2DEG + 360) % 360;
+	    if (round$4(c * 10000) === 0) h = Number.NaN;
+	    return [l, c, h];
+	};
+
+	const rgb2lch = (...args) => {
+	    const [r, g, b, ...rest] = unpack(args, 'rgb');
+	    const [l, a, b_] = rgb2lab(r, g, b);
+	    const [L, c, h] = lab2lch(l, a, b_);
+	    return [L, c, h, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	Color.prototype.lch = function () {
+	    return rgb2lch(this._rgb);
+	};
+	Color.prototype.hcl = function () {
+	    return reverse3(rgb2lch(this._rgb));
+	};
+
+	const lch$1 = (...args) => new Color(...args, 'lch');
+	const hcl = (...args) => new Color(...args, 'hcl');
+
+	Object.assign(chroma, { lch: lch$1, hcl });
+
+	input.format.lch = lch2rgb;
+	input.format.hcl = hcl2rgb;
+	['lch', 'hcl'].forEach((m) =>
+	    input.autodetect.push({
+	        p: 2,
+	        test: (...args) => {
+	            args = unpack(args, m);
+	            if (type(args) === 'array' && args.length === 3) {
+	                return m;
+	            }
+	        }
+	    })
+	);
+
 	Color.prototype.saturate = function (amount = 1) {
 	    const me = this;
 	    const lch = me.lch();
-	    lch[1] += LAB_CONSTANTS.Kn * amount;
+	    lch[1] += labConstants.Kn * amount;
 	    if (lch[1] < 0) lch[1] = 0;
 	    return new Color(lch, 'lch').alpha(me.alpha(), true);
 	};
@@ -47925,7 +47255,7 @@ var RootBundle = (function (exports, React$1) {
 	    return mix(this, 'black', f, ...rest);
 	};
 
-	const rgb = (col1, col2, f) => {
+	const rgb$1 = (col1, col2, f) => {
 	    const xyz0 = col1._rgb;
 	    const xyz1 = col2._rgb;
 	    return new Color(
@@ -47937,17 +47267,17 @@ var RootBundle = (function (exports, React$1) {
 	};
 
 	// register interpolator
-	index.rgb = rgb;
+	index.rgb = rgb$1;
 
-	const { sqrt: sqrt$2, pow: pow$5 } = Math;
+	const { sqrt: sqrt$3, pow: pow$5 } = Math;
 
 	const lrgb = (col1, col2, f) => {
 	    const [x1, y1, z1] = col1._rgb;
 	    const [x2, y2, z2] = col2._rgb;
 	    return new Color(
-	        sqrt$2(pow$5(x1, 2) * (1 - f) + pow$5(x2, 2) * f),
-	        sqrt$2(pow$5(y1, 2) * (1 - f) + pow$5(y2, 2) * f),
-	        sqrt$2(pow$5(z1, 2) * (1 - f) + pow$5(z2, 2) * f),
+	        sqrt$3(pow$5(x1, 2) * (1 - f) + pow$5(x2, 2) * f),
+	        sqrt$3(pow$5(y1, 2) * (1 - f) + pow$5(y2, 2) * f),
+	        sqrt$3(pow$5(z1, 2) * (1 - f) + pow$5(z2, 2) * f),
 	        'rgb'
 	    );
 	};
@@ -48035,6 +47365,45 @@ var RootBundle = (function (exports, React$1) {
 	index.lch = lch;
 	index.hcl = lch;
 
+	const num2rgb = (num) => {
+	    if (type(num) == 'number' && num >= 0 && num <= 0xffffff) {
+	        const r = num >> 16;
+	        const g = (num >> 8) & 0xff;
+	        const b = num & 0xff;
+	        return [r, g, b, 1];
+	    }
+	    throw new Error('unknown num color: ' + num);
+	};
+
+	const rgb2num = (...args) => {
+	    const [r, g, b] = unpack(args, 'rgb');
+	    return (r << 16) + (g << 8) + b;
+	};
+
+	Color.prototype.num = function () {
+	    return rgb2num(this._rgb);
+	};
+
+	const num$1 = (...args) => new Color(...args, 'num');
+
+	Object.assign(chroma, { num: num$1 });
+
+	input.format.num = num2rgb;
+
+	input.autodetect.push({
+	    p: 5,
+	    test: (...args) => {
+	        if (
+	            args.length === 1 &&
+	            type(args[0]) === 'number' &&
+	            args[0] >= 0 &&
+	            args[0] <= 0xffffff
+	        ) {
+	            return 'num';
+	        }
+	    }
+	});
+
 	const num = (col1, col2, f) => {
 	    const c1 = col1.num();
 	    const c2 = col2.num();
@@ -48044,12 +47413,195 @@ var RootBundle = (function (exports, React$1) {
 	// register interpolator
 	index.num = num;
 
+	const { floor: floor$3 } = Math;
+
+	/*
+	 * this is basically just HSV with some minor tweaks
+	 *
+	 * hue.. [0..360]
+	 * chroma .. [0..1]
+	 * grayness .. [0..1]
+	 */
+
+	const hcg2rgb = (...args) => {
+	    args = unpack(args, 'hcg');
+	    let [h, c, _g] = args;
+	    let r, g, b;
+	    _g = _g * 255;
+	    const _c = c * 255;
+	    if (c === 0) {
+	        r = g = b = _g;
+	    } else {
+	        if (h === 360) h = 0;
+	        if (h > 360) h -= 360;
+	        if (h < 0) h += 360;
+	        h /= 60;
+	        const i = floor$3(h);
+	        const f = h - i;
+	        const p = _g * (1 - c);
+	        const q = p + _c * (1 - f);
+	        const t = p + _c * f;
+	        const v = p + _c;
+	        switch (i) {
+	            case 0:
+	                [r, g, b] = [v, t, p];
+	                break;
+	            case 1:
+	                [r, g, b] = [q, v, p];
+	                break;
+	            case 2:
+	                [r, g, b] = [p, v, t];
+	                break;
+	            case 3:
+	                [r, g, b] = [p, q, v];
+	                break;
+	            case 4:
+	                [r, g, b] = [t, p, v];
+	                break;
+	            case 5:
+	                [r, g, b] = [v, p, q];
+	                break;
+	        }
+	    }
+	    return [r, g, b, args.length > 3 ? args[3] : 1];
+	};
+
+	const rgb2hcg = (...args) => {
+	    const [r, g, b] = unpack(args, 'rgb');
+	    const minRgb = min$3(r, g, b);
+	    const maxRgb = max$3(r, g, b);
+	    const delta = maxRgb - minRgb;
+	    const c = (delta * 100) / 255;
+	    const _g = (minRgb / (255 - delta)) * 100;
+	    let h;
+	    if (delta === 0) {
+	        h = Number.NaN;
+	    } else {
+	        if (r === maxRgb) h = (g - b) / delta;
+	        if (g === maxRgb) h = 2 + (b - r) / delta;
+	        if (b === maxRgb) h = 4 + (r - g) / delta;
+	        h *= 60;
+	        if (h < 0) h += 360;
+	    }
+	    return [h, c, _g];
+	};
+
+	Color.prototype.hcg = function () {
+	    return rgb2hcg(this._rgb);
+	};
+
+	const hcg$1 = (...args) => new Color(...args, 'hcg');
+	chroma.hcg = hcg$1;
+
+	input.format.hcg = hcg2rgb;
+
+	input.autodetect.push({
+	    p: 1,
+	    test: (...args) => {
+	        args = unpack(args, 'hcg');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'hcg';
+	        }
+	    }
+	});
+
 	const hcg = (col1, col2, f) => {
 	    return interpolate_hsx(col1, col2, f, 'hcg');
 	};
 
 	// register interpolator
 	index.hcg = hcg;
+
+	const { cos: cos$3 } = Math;
+
+	/*
+	 * hue [0..360]
+	 * saturation [0..1]
+	 * intensity [0..1]
+	 */
+	const hsi2rgb = (...args) => {
+	    /*
+	    borrowed from here:
+	    http://hummer.stanford.edu/museinfo/doc/examples/humdrum/keyscape2/hsi2rgb.cpp
+	    */
+	    args = unpack(args, 'hsi');
+	    let [h, s, i] = args;
+	    let r, g, b;
+
+	    if (isNaN(h)) h = 0;
+	    if (isNaN(s)) s = 0;
+	    // normalize hue
+	    if (h > 360) h -= 360;
+	    if (h < 0) h += 360;
+	    h /= 360;
+	    if (h < 1 / 3) {
+	        b = (1 - s) / 3;
+	        r = (1 + (s * cos$3(TWOPI * h)) / cos$3(PITHIRD - TWOPI * h)) / 3;
+	        g = 1 - (b + r);
+	    } else if (h < 2 / 3) {
+	        h -= 1 / 3;
+	        r = (1 - s) / 3;
+	        g = (1 + (s * cos$3(TWOPI * h)) / cos$3(PITHIRD - TWOPI * h)) / 3;
+	        b = 1 - (r + g);
+	    } else {
+	        h -= 2 / 3;
+	        g = (1 - s) / 3;
+	        b = (1 + (s * cos$3(TWOPI * h)) / cos$3(PITHIRD - TWOPI * h)) / 3;
+	        r = 1 - (g + b);
+	    }
+	    r = limit(i * r * 3);
+	    g = limit(i * g * 3);
+	    b = limit(i * b * 3);
+	    return [r * 255, g * 255, b * 255, args.length > 3 ? args[3] : 1];
+	};
+
+	const { min: min$2, sqrt: sqrt$2, acos } = Math;
+
+	const rgb2hsi = (...args) => {
+	    /*
+	    borrowed from here:
+	    http://hummer.stanford.edu/museinfo/doc/examples/humdrum/keyscape2/rgb2hsi.cpp
+	    */
+	    let [r, g, b] = unpack(args, 'rgb');
+	    r /= 255;
+	    g /= 255;
+	    b /= 255;
+	    let h;
+	    const min_ = min$2(r, g, b);
+	    const i = (r + g + b) / 3;
+	    const s = i > 0 ? 1 - min_ / i : 0;
+	    if (s === 0) {
+	        h = NaN;
+	    } else {
+	        h = (r - g + (r - b)) / 2;
+	        h /= sqrt$2((r - g) * (r - g) + (r - b) * (g - b));
+	        h = acos(h);
+	        if (b > g) {
+	            h = TWOPI - h;
+	        }
+	        h /= TWOPI;
+	    }
+	    return [h * 360, s, i];
+	};
+
+	Color.prototype.hsi = function () {
+	    return rgb2hsi(this._rgb);
+	};
+
+	const hsi$1 = (...args) => new Color(...args, 'hsi');
+	chroma.hsi = hsi$1;
+
+	input.format.hsi = hsi2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'hsi');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'hsi';
+	        }
+	    }
+	});
 
 	const hsi = (col1, col2, f) => {
 	    return interpolate_hsx(col1, col2, f, 'hsi');
@@ -48058,6 +47610,99 @@ var RootBundle = (function (exports, React$1) {
 	// register interpolator
 	index.hsi = hsi;
 
+	const hsl2rgb = (...args) => {
+	    args = unpack(args, 'hsl');
+	    const [h, s, l] = args;
+	    let r, g, b;
+	    if (s === 0) {
+	        r = g = b = l * 255;
+	    } else {
+	        const t3 = [0, 0, 0];
+	        const c = [0, 0, 0];
+	        const t2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
+	        const t1 = 2 * l - t2;
+	        const h_ = h / 360;
+	        t3[0] = h_ + 1 / 3;
+	        t3[1] = h_;
+	        t3[2] = h_ - 1 / 3;
+	        for (let i = 0; i < 3; i++) {
+	            if (t3[i] < 0) t3[i] += 1;
+	            if (t3[i] > 1) t3[i] -= 1;
+	            if (6 * t3[i] < 1) c[i] = t1 + (t2 - t1) * 6 * t3[i];
+	            else if (2 * t3[i] < 1) c[i] = t2;
+	            else if (3 * t3[i] < 2) c[i] = t1 + (t2 - t1) * (2 / 3 - t3[i]) * 6;
+	            else c[i] = t1;
+	        }
+	        [r, g, b] = [c[0] * 255, c[1] * 255, c[2] * 255];
+	    }
+	    if (args.length > 3) {
+	        // keep alpha channel
+	        return [r, g, b, args[3]];
+	    }
+	    return [r, g, b, 1];
+	};
+
+	/*
+	 * supported arguments:
+	 * - rgb2hsl(r,g,b)
+	 * - rgb2hsl(r,g,b,a)
+	 * - rgb2hsl([r,g,b])
+	 * - rgb2hsl([r,g,b,a])
+	 * - rgb2hsl({r,g,b,a})
+	 */
+	const rgb2hsl$1 = (...args) => {
+	    args = unpack(args, 'rgba');
+	    let [r, g, b] = args;
+
+	    r /= 255;
+	    g /= 255;
+	    b /= 255;
+
+	    const minRgb = min$3(r, g, b);
+	    const maxRgb = max$3(r, g, b);
+
+	    const l = (maxRgb + minRgb) / 2;
+	    let s, h;
+
+	    if (maxRgb === minRgb) {
+	        s = 0;
+	        h = Number.NaN;
+	    } else {
+	        s =
+	            l < 0.5
+	                ? (maxRgb - minRgb) / (maxRgb + minRgb)
+	                : (maxRgb - minRgb) / (2 - maxRgb - minRgb);
+	    }
+
+	    if (r == maxRgb) h = (g - b) / (maxRgb - minRgb);
+	    else if (g == maxRgb) h = 2 + (b - r) / (maxRgb - minRgb);
+	    else if (b == maxRgb) h = 4 + (r - g) / (maxRgb - minRgb);
+
+	    h *= 60;
+	    if (h < 0) h += 360;
+	    if (args.length > 3 && args[3] !== undefined) return [h, s, l, args[3]];
+	    return [h, s, l];
+	};
+
+	Color.prototype.hsl = function () {
+	    return rgb2hsl$1(this._rgb);
+	};
+
+	const hsl$1 = (...args) => new Color(...args, 'hsl');
+	chroma.hsl = hsl$1;
+
+	input.format.hsl = hsl2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'hsl');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'hsl';
+	        }
+	    }
+	});
+
 	const hsl = (col1, col2, f) => {
 	    return interpolate_hsx(col1, col2, f, 'hsl');
 	};
@@ -48065,12 +47710,223 @@ var RootBundle = (function (exports, React$1) {
 	// register interpolator
 	index.hsl = hsl;
 
+	const { floor: floor$2 } = Math;
+
+	const hsv2rgb = (...args) => {
+	    args = unpack(args, 'hsv');
+	    let [h, s, v] = args;
+	    let r, g, b;
+	    v *= 255;
+	    if (s === 0) {
+	        r = g = b = v;
+	    } else {
+	        if (h === 360) h = 0;
+	        if (h > 360) h -= 360;
+	        if (h < 0) h += 360;
+	        h /= 60;
+
+	        const i = floor$2(h);
+	        const f = h - i;
+	        const p = v * (1 - s);
+	        const q = v * (1 - s * f);
+	        const t = v * (1 - s * (1 - f));
+
+	        switch (i) {
+	            case 0:
+	                [r, g, b] = [v, t, p];
+	                break;
+	            case 1:
+	                [r, g, b] = [q, v, p];
+	                break;
+	            case 2:
+	                [r, g, b] = [p, v, t];
+	                break;
+	            case 3:
+	                [r, g, b] = [p, q, v];
+	                break;
+	            case 4:
+	                [r, g, b] = [t, p, v];
+	                break;
+	            case 5:
+	                [r, g, b] = [v, p, q];
+	                break;
+	        }
+	    }
+	    return [r, g, b, args.length > 3 ? args[3] : 1];
+	};
+
+	const { min: min$1, max: max$2 } = Math;
+
+	/*
+	 * supported arguments:
+	 * - rgb2hsv(r,g,b)
+	 * - rgb2hsv([r,g,b])
+	 * - rgb2hsv({r,g,b})
+	 */
+	const rgb2hsl = (...args) => {
+	    args = unpack(args, 'rgb');
+	    let [r, g, b] = args;
+	    const min_ = min$1(r, g, b);
+	    const max_ = max$2(r, g, b);
+	    const delta = max_ - min_;
+	    let h, s, v;
+	    v = max_ / 255.0;
+	    if (max_ === 0) {
+	        h = Number.NaN;
+	        s = 0;
+	    } else {
+	        s = delta / max_;
+	        if (r === max_) h = (g - b) / delta;
+	        if (g === max_) h = 2 + (b - r) / delta;
+	        if (b === max_) h = 4 + (r - g) / delta;
+	        h *= 60;
+	        if (h < 0) h += 360;
+	    }
+	    return [h, s, v];
+	};
+
+	Color.prototype.hsv = function () {
+	    return rgb2hsl(this._rgb);
+	};
+
+	const hsv$1 = (...args) => new Color(...args, 'hsv');
+	chroma.hsv = hsv$1;
+
+	input.format.hsv = hsv2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'hsv');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'hsv';
+	        }
+	    }
+	});
+
 	const hsv = (col1, col2, f) => {
 	    return interpolate_hsx(col1, col2, f, 'hsv');
 	};
 
 	// register interpolator
 	index.hsv = hsv;
+
+	// from https://www.w3.org/TR/css-color-4/multiply-matrices.js
+	function multiplyMatrices(A, B) {
+	    let m = A.length;
+
+	    if (!Array.isArray(A[0])) {
+	        // A is vector, convert to [[a, b, c, ...]]
+	        A = [A];
+	    }
+
+	    if (!Array.isArray(B[0])) {
+	        // B is vector, convert to [[a], [b], [c], ...]]
+	        B = B.map((x) => [x]);
+	    }
+
+	    let p = B[0].length;
+	    let B_cols = B[0].map((_, i) => B.map((x) => x[i])); // transpose B
+	    let product = A.map((row) =>
+	        B_cols.map((col) => {
+	            if (!Array.isArray(row)) {
+	                return col.reduce((a, c) => a + c * row, 0);
+	            }
+
+	            return row.reduce((a, c, i) => a + c * (col[i] || 0), 0);
+	        })
+	    );
+
+	    if (m === 1) {
+	        product = product[0]; // Avoid [[a, b, c, ...]]
+	    }
+
+	    if (p === 1) {
+	        return product.map((x) => x[0]); // Avoid [[a], [b], [c], ...]]
+	    }
+
+	    return product;
+	}
+
+	const oklab2rgb = (...args) => {
+	    args = unpack(args, 'lab');
+	    const [L, a, b, ...rest] = args;
+	    const [X, Y, Z] = OKLab_to_XYZ([L, a, b]);
+	    const [r, g, b_] = xyz2rgb(X, Y, Z);
+	    return [r, g, b_, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	// from https://www.w3.org/TR/css-color-4/#color-conversion-code
+	function OKLab_to_XYZ(OKLab) {
+	    // Given OKLab, convert to XYZ relative to D65
+	    var LMStoXYZ = [
+	        [1.2268798758459243, -0.5578149944602171, 0.2813910456659647],
+	        [-0.0405757452148008, 1.112286803280317, -0.0717110580655164],
+	        [-0.0763729366746601, -0.4214933324022432, 1.5869240198367816]
+	    ];
+	    var OKLabtoLMS = [
+	        [1.0, 0.3963377773761749, 0.2158037573099136],
+	        [1.0, -0.1055613458156586, -0.0638541728258133],
+	        [1.0, -0.0894841775298119, -1.2914855480194092]
+	    ];
+
+	    var LMSnl = multiplyMatrices(OKLabtoLMS, OKLab);
+	    return multiplyMatrices(
+	        LMStoXYZ,
+	        LMSnl.map((c) => c ** 3)
+	    );
+	}
+
+	const rgb2oklab = (...args) => {
+	    const [r, g, b, ...rest] = unpack(args, 'rgb');
+	    const xyz = rgb2xyz(r, g, b);
+	    const oklab = XYZ_to_OKLab(xyz);
+	    return [...oklab, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	// from https://www.w3.org/TR/css-color-4/#color-conversion-code
+	function XYZ_to_OKLab(XYZ) {
+	    // Given XYZ relative to D65, convert to OKLab
+	    const XYZtoLMS = [
+	        [0.819022437996703, 0.3619062600528904, -0.1288737815209879],
+	        [0.0329836539323885, 0.9292868615863434, 0.0361446663506424],
+	        [0.0481771893596242, 0.2642395317527308, 0.6335478284694309]
+	    ];
+	    const LMStoOKLab = [
+	        [0.210454268309314, 0.7936177747023054, -0.0040720430116193],
+	        [1.9779985324311684, -2.4285922420485799, 0.450593709617411],
+	        [0.0259040424655478, 0.7827717124575296, -0.8086757549230774]
+	    ];
+
+	    const LMS = multiplyMatrices(XYZtoLMS, XYZ);
+	    // JavaScript Math.cbrt returns a sign-matched cube root
+	    // beware if porting to other languages
+	    // especially if tempted to use a general power function
+	    return multiplyMatrices(
+	        LMStoOKLab,
+	        LMS.map((c) => Math.cbrt(c))
+	    );
+	    // L in range [0,1]. For use in CSS, multiply by 100 and add a percent
+	}
+
+	Color.prototype.oklab = function () {
+	    return rgb2oklab(this._rgb);
+	};
+
+	const oklab$1 = (...args) => new Color(...args, 'oklab');
+	Object.assign(chroma, { oklab: oklab$1 });
+
+	input.format.oklab = oklab2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'oklab');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'oklab';
+	        }
+	    }
+	});
 
 	const oklab = (col1, col2, f) => {
 	    const xyz0 = col1.oklab();
@@ -48086,12 +47942,12 @@ var RootBundle = (function (exports, React$1) {
 	// register interpolator
 	index.oklab = oklab;
 
-	const oklch = (col1, col2, f) => {
+	const oklch$1 = (col1, col2, f) => {
 	    return interpolate_hsx(col1, col2, f, 'oklch');
 	};
 
 	// register interpolator
-	index.oklch = oklch;
+	index.oklch = oklch$1;
 
 	const { pow: pow$4, sqrt: sqrt$1, PI: PI$1, cos: cos$2, sin: sin$2, atan2: atan2$1 } = Math;
 
@@ -48650,6 +48506,45 @@ var RootBundle = (function (exports, React$1) {
 	    return f;
 	};
 
+	const { round: round$3 } = Math;
+
+	Color.prototype.rgb = function (rnd = true) {
+	    if (rnd === false) return this._rgb.slice(0, 3);
+	    return this._rgb.slice(0, 3).map(round$3);
+	};
+
+	Color.prototype.rgba = function (rnd = true) {
+	    return this._rgb.slice(0, 4).map((v, i) => {
+	        return i < 3 ? (rnd === false ? v : round$3(v)) : v;
+	    });
+	};
+
+	const rgb = (...args) => new Color(...args, 'rgb');
+	Object.assign(chroma, { rgb });
+
+	input.format.rgb = (...args) => {
+	    const rgba = unpack(args, 'rgba');
+	    if (rgba[3] === undefined) rgba[3] = 1;
+	    return rgba;
+	};
+
+	input.autodetect.push({
+	    p: 3,
+	    test: (...args) => {
+	        args = unpack(args, 'rgba');
+	        if (
+	            type(args) === 'array' &&
+	            (args.length === 3 ||
+	                (args.length === 4 &&
+	                    type(args[3]) == 'number' &&
+	                    args[3] >= 0 &&
+	                    args[3] <= 1))
+	        ) {
+	            return 'rgb';
+	        }
+	    }
+	});
+
 	/*
 	 * interpolates between a set of colors uzing a bezier spline
 	 * blend mode formulas taken from https://web.archive.org/web/20180110014946/http://www.venture-ware.com/kevin/coding/lets-learn-math-photoshop-blend-modes/
@@ -48798,7 +48693,7 @@ var RootBundle = (function (exports, React$1) {
 	    return new Color(code, 'hex');
 	};
 
-	const { log, pow: pow$1, floor, abs: abs$1 } = Math;
+	const { log: log$1, pow: pow$1, floor, abs: abs$1 } = Math;
 
 	function analyze(data, key = null) {
 	    const r = {
@@ -48862,8 +48757,8 @@ var RootBundle = (function (exports, React$1) {
 	                'Logarithmic scales are only possible for values > 0'
 	            );
 	        }
-	        const min_log = Math.LOG10E * log(min);
-	        const max_log = Math.LOG10E * log(max);
+	        const min_log = Math.LOG10E * log$1(min);
+	        const max_log = Math.LOG10E * log$1(max);
 	        limits.push(min);
 	        for (let i = 1; i < num; i++) {
 	            limits.push(pow$1(10, min_log + (i / num) * (max_log - min_log)));
@@ -48998,7 +48893,73 @@ var RootBundle = (function (exports, React$1) {
 	    return l1 > l2 ? (l1 + 0.05) / (l2 + 0.05) : (l2 + 0.05) / (l1 + 0.05);
 	};
 
-	const { sqrt, pow, min, max, atan2, abs, cos, sin, exp, PI } = Math;
+	/**
+	 * @license
+	 *
+	 * The APCA contrast prediction algorithm is based of the formulas published
+	 * in the APCA-1.0.98G specification by Myndex. The specification is available at:
+	 * https://raw.githubusercontent.com/Myndex/apca-w3/master/images/APCAw3_0.1.17_APCA0.0.98G.svg
+	 *
+	 * Note that the APCA implementation is still beta, so please update to
+	 * future versions of chroma.js when they become available.
+	 *
+	 * You can read more about the APCA Readability Criterion at
+	 * https://readtech.org/ARC/
+	 */
+
+	// constants
+	const W_offset = 0.027;
+	const P_in = 0.0005;
+	const P_out = 0.1;
+	const R_scale = 1.14;
+	const B_threshold = 0.022;
+	const B_exp = 1.414;
+
+	var contrastAPCA = (text, bg) => {
+	    // parse input colors
+	    text = new Color(text);
+	    bg = new Color(bg);
+	    // if text color has alpha, blend against background
+	    if (text.alpha() < 1) {
+	        text = mix(bg, text, text.alpha(), 'rgb');
+	    }
+	    const l_text = lum(...text.rgb());
+	    const l_bg = lum(...bg.rgb());
+
+	    // soft clamp black levels
+	    const Y_text =
+	        l_text >= B_threshold
+	            ? l_text
+	            : l_text + Math.pow(B_threshold - l_text, B_exp);
+	    const Y_bg =
+	        l_bg >= B_threshold ? l_bg : l_bg + Math.pow(B_threshold - l_bg, B_exp);
+
+	    // normal polarity (dark text on light background)
+	    const S_norm = Math.pow(Y_bg, 0.56) - Math.pow(Y_text, 0.57);
+	    // reverse polarity (light text on dark background)
+	    const S_rev = Math.pow(Y_bg, 0.65) - Math.pow(Y_text, 0.62);
+	    // clamp noise then scale
+	    const C =
+	        Math.abs(Y_bg - Y_text) < P_in
+	            ? 0
+	            : Y_text < Y_bg
+	              ? S_norm * R_scale
+	              : S_rev * R_scale;
+	    // clamp minimum contrast then offset
+	    const S_apc = Math.abs(C) < P_out ? 0 : C > 0 ? C - W_offset : C + W_offset;
+	    // scale to 100
+	    return S_apc * 100;
+	};
+
+	function lum(r, g, b) {
+	    return (
+	        0.2126729 * Math.pow(r / 255, 2.4) +
+	        0.7151522 * Math.pow(g / 255, 2.4) +
+	        0.072175 * Math.pow(b / 255, 2.4)
+	    );
+	}
+
+	const { sqrt, pow, min, max: max$1, atan2, abs, cos, sin, exp, PI } = Math;
 
 	function deltaE (a, b, Kl = 1, Kc = 1, Kh = 1) {
 	    // Delta E (CIE 2000)
@@ -49057,7 +49018,7 @@ var RootBundle = (function (exports, React$1) {
 	            pow(deltaHp / (Kh * sh), 2) +
 	            Rt * (deltaCp / (Kc * sc)) * (deltaHp / (Kh * sh))
 	    );
-	    return max(0, min(100, result));
+	    return max$1(0, min(100, result));
 	}
 
 	// simple Euclidean distance
@@ -49160,30 +49121,630 @@ var RootBundle = (function (exports, React$1) {
 	    Pastel1: ['#fbb4ae', '#b3cde3', '#ccebc5', '#decbe4', '#fed9a6', '#ffffcc', '#e5d8bd', '#fddaec', '#f2f2f2']
 	};
 
-	// add lowercase aliases for case-insensitive matches
-	for (let key of Object.keys(colorbrewer)) {
-	    colorbrewer[key.toLowerCase()] = colorbrewer[key];
-	}
+	const colorbrewerTypes = Object.keys(colorbrewer);
+	const typeMap = new Map(colorbrewerTypes.map((key) => [key.toLowerCase(), key]));
+
+	// use Proxy to allow case-insensitive access to palettes
+	const colorbrewerProxy =
+	    typeof Proxy === 'function'
+	        ? new Proxy(colorbrewer, {
+	              get(target, prop) {
+	                  const lower = prop.toLowerCase();
+	                  if (typeMap.has(lower)) {
+	                      return target[typeMap.get(lower)];
+	                  }
+	              },
+	              getOwnPropertyNames() {
+	                  return Object.getOwnPropertyNames(colorbrewerTypes);
+	              }
+	          })
+	        : colorbrewer;
+
+	const cmyk2rgb = (...args) => {
+	    args = unpack(args, 'cmyk');
+	    const [c, m, y, k] = args;
+	    const alpha = args.length > 4 ? args[4] : 1;
+	    if (k === 1) return [0, 0, 0, alpha];
+	    return [
+	        c >= 1 ? 0 : 255 * (1 - c) * (1 - k), // r
+	        m >= 1 ? 0 : 255 * (1 - m) * (1 - k), // g
+	        y >= 1 ? 0 : 255 * (1 - y) * (1 - k), // b
+	        alpha
+	    ];
+	};
+
+	const { max } = Math;
+
+	const rgb2cmyk = (...args) => {
+	    let [r, g, b] = unpack(args, 'rgb');
+	    r = r / 255;
+	    g = g / 255;
+	    b = b / 255;
+	    const k = 1 - max(r, max(g, b));
+	    const f = k < 1 ? 1 / (1 - k) : 0;
+	    const c = (1 - r - k) * f;
+	    const m = (1 - g - k) * f;
+	    const y = (1 - b - k) * f;
+	    return [c, m, y, k];
+	};
+
+	Color.prototype.cmyk = function () {
+	    return rgb2cmyk(this._rgb);
+	};
+
+	const cmyk = (...args) => new Color(...args, 'cmyk');
+	Object.assign(chroma, { cmyk });
+
+	input.format.cmyk = cmyk2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'cmyk');
+	        if (type(args) === 'array' && args.length === 4) {
+	            return 'cmyk';
+	        }
+	    }
+	});
+
+	/*
+	 * supported arguments:
+	 * - hsl2css(h,s,l)
+	 * - hsl2css(h,s,l,a)
+	 * - hsl2css([h,s,l], mode)
+	 * - hsl2css([h,s,l,a], mode)
+	 * - hsl2css({h,s,l,a}, mode)
+	 */
+	const hsl2css = (...args) => {
+	    const hsla = unpack(args, 'hsla');
+	    let mode = last(args) || 'lsa';
+	    hsla[0] = rnd2(hsla[0] || 0) + 'deg';
+	    hsla[1] = rnd2(hsla[1] * 100) + '%';
+	    hsla[2] = rnd2(hsla[2] * 100) + '%';
+	    if (mode === 'hsla' || (hsla.length > 3 && hsla[3] < 1)) {
+	        hsla[3] = '/ ' + (hsla.length > 3 ? hsla[3] : 1);
+	        mode = 'hsla';
+	    } else {
+	        hsla.length = 3;
+	    }
+	    return `${mode.substr(0, 3)}(${hsla.join(' ')})`;
+	};
+
+	/*
+	 * supported arguments:
+	 * - lab2css(l,a,b)
+	 * - lab2css(l,a,b,alpha)
+	 * - lab2css([l,a,b], mode)
+	 * - lab2css([l,a,b,alpha], mode)
+	 */
+	const lab2css = (...args) => {
+	    const laba = unpack(args, 'lab');
+	    let mode = last(args) || 'lab';
+	    laba[0] = rnd2(laba[0]) + '%';
+	    laba[1] = rnd2(laba[1]);
+	    laba[2] = rnd2(laba[2]);
+	    if (mode === 'laba' || (laba.length > 3 && laba[3] < 1)) {
+	        laba[3] = '/ ' + (laba.length > 3 ? laba[3] : 1);
+	    } else {
+	        laba.length = 3;
+	    }
+	    return `lab(${laba.join(' ')})`;
+	};
+
+	/*
+	 * supported arguments:
+	 * - lab2css(l,a,b)
+	 * - lab2css(l,a,b,alpha)
+	 * - lab2css([l,a,b], mode)
+	 * - lab2css([l,a,b,alpha], mode)
+	 */
+	const lch2css = (...args) => {
+	    const lcha = unpack(args, 'lch');
+	    let mode = last(args) || 'lab';
+	    lcha[0] = rnd2(lcha[0]) + '%';
+	    lcha[1] = rnd2(lcha[1]);
+	    lcha[2] = isNaN(lcha[2]) ? 'none' : rnd2(lcha[2]) + 'deg'; // add deg unit to hue
+	    if (mode === 'lcha' || (lcha.length > 3 && lcha[3] < 1)) {
+	        lcha[3] = '/ ' + (lcha.length > 3 ? lcha[3] : 1);
+	    } else {
+	        lcha.length = 3;
+	    }
+	    return `lch(${lcha.join(' ')})`;
+	};
+
+	const oklab2css = (...args) => {
+	    const laba = unpack(args, 'lab');
+	    laba[0] = rnd2(laba[0] * 100) + '%';
+	    laba[1] = rnd3(laba[1]);
+	    laba[2] = rnd3(laba[2]);
+	    if (laba.length > 3 && laba[3] < 1) {
+	        laba[3] = '/ ' + (laba.length > 3 ? laba[3] : 1);
+	    } else {
+	        laba.length = 3;
+	    }
+	    return `oklab(${laba.join(' ')})`;
+	};
+
+	const rgb2oklch = (...args) => {
+	    const [r, g, b, ...rest] = unpack(args, 'rgb');
+	    const [l, a, b_] = rgb2oklab(r, g, b);
+	    const [L, c, h] = lab2lch(l, a, b_);
+	    return [L, c, h, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	const oklch2css = (...args) => {
+	    const lcha = unpack(args, 'lch');
+	    lcha[0] = rnd2(lcha[0] * 100) + '%';
+	    lcha[1] = rnd3(lcha[1]);
+	    lcha[2] = isNaN(lcha[2]) ? 'none' : rnd2(lcha[2]) + 'deg'; // add deg unit to hue
+	    if (lcha.length > 3 && lcha[3] < 1) {
+	        lcha[3] = '/ ' + (lcha.length > 3 ? lcha[3] : 1);
+	    } else {
+	        lcha.length = 3;
+	    }
+	    return `oklch(${lcha.join(' ')})`;
+	};
+
+	const { round: round$2 } = Math;
+
+	/*
+	 * supported arguments:
+	 * - rgb2css(r,g,b)
+	 * - rgb2css(r,g,b,a)
+	 * - rgb2css([r,g,b], mode)
+	 * - rgb2css([r,g,b,a], mode)
+	 * - rgb2css({r,g,b,a}, mode)
+	 */
+	const rgb2css = (...args) => {
+	    const rgba = unpack(args, 'rgba');
+	    let mode = last(args) || 'rgb';
+	    if (mode.substr(0, 3) === 'hsl') {
+	        return hsl2css(rgb2hsl$1(rgba), mode);
+	    }
+	    if (mode.substr(0, 3) === 'lab') {
+	        // change to D50 lab whitepoint since this is what W3C is using for CSS Lab colors
+	        const prevWhitePoint = getLabWhitePoint();
+	        setLabWhitePoint('d50');
+	        const cssColor = lab2css(rgb2lab(rgba), mode);
+	        setLabWhitePoint(prevWhitePoint);
+	        return cssColor;
+	    }
+	    if (mode.substr(0, 3) === 'lch') {
+	        // change to D50 lab whitepoint since this is what W3C is using for CSS Lab colors
+	        const prevWhitePoint = getLabWhitePoint();
+	        setLabWhitePoint('d50');
+	        const cssColor = lch2css(rgb2lch(rgba), mode);
+	        setLabWhitePoint(prevWhitePoint);
+	        return cssColor;
+	    }
+	    if (mode.substr(0, 5) === 'oklab') {
+	        return oklab2css(rgb2oklab(rgba));
+	    }
+	    if (mode.substr(0, 5) === 'oklch') {
+	        return oklch2css(rgb2oklch(rgba));
+	    }
+	    rgba[0] = round$2(rgba[0]);
+	    rgba[1] = round$2(rgba[1]);
+	    rgba[2] = round$2(rgba[2]);
+	    if (mode === 'rgba' || (rgba.length > 3 && rgba[3] < 1)) {
+	        rgba[3] = '/ ' + (rgba.length > 3 ? rgba[3] : 1);
+	        mode = 'rgba';
+	    }
+	    return `${mode.substr(0, 3)}(${rgba.slice(0, mode === 'rgb' ? 3 : 4).join(' ')})`;
+	};
+
+	const oklch2rgb = (...args) => {
+	    args = unpack(args, 'lch');
+	    const [l, c, h, ...rest] = args;
+	    const [L, a, b_] = lch2lab(l, c, h);
+	    const [r, g, b] = oklab2rgb(L, a, b_);
+	    return [r, g, b, ...(rest.length > 0 && rest[0] < 1 ? [rest[0]] : [])];
+	};
+
+	const INT_OR_PCT = /((?:-?\d+)|(?:-?\d+(?:\.\d+)?)%|none)/.source;
+	const FLOAT_OR_PCT = /((?:-?(?:\d+(?:\.\d*)?|\.\d+)%?)|none)/.source;
+	const PCT = /((?:-?(?:\d+(?:\.\d*)?|\.\d+)%)|none)/.source;
+	const RE_S = /\s*/.source;
+	const SEP = /\s+/.source;
+	const COMMA = /\s*,\s*/.source;
+	const ANLGE = /((?:-?(?:\d+(?:\.\d*)?|\.\d+)(?:deg)?)|none)/.source;
+	const ALPHA = /\s*(?:\/\s*((?:[01]|[01]?\.\d+)|\d+(?:\.\d+)?%))?/.source;
+
+	// e.g. rgb(250 20 0), rgb(100% 50% 20%), rgb(100% 50% 20% / 0.5)
+	const RE_RGB = new RegExp(
+	    '^rgba?\\(' +
+	        RE_S +
+	        [INT_OR_PCT, INT_OR_PCT, INT_OR_PCT].join(SEP) +
+	        ALPHA +
+	        '\\)$'
+	);
+	const RE_RGB_LEGACY = new RegExp(
+	    '^rgb\\(' +
+	        RE_S +
+	        [INT_OR_PCT, INT_OR_PCT, INT_OR_PCT].join(COMMA) +
+	        RE_S +
+	        '\\)$'
+	);
+	const RE_RGBA_LEGACY = new RegExp(
+	    '^rgba\\(' +
+	        RE_S +
+	        [INT_OR_PCT, INT_OR_PCT, INT_OR_PCT, FLOAT_OR_PCT].join(COMMA) +
+	        RE_S +
+	        '\\)$'
+	);
+
+	const RE_HSL = new RegExp(
+	    '^hsla?\\(' + RE_S + [ANLGE, PCT, PCT].join(SEP) + ALPHA + '\\)$'
+	);
+	const RE_HSL_LEGACY = new RegExp(
+	    '^hsl?\\(' + RE_S + [ANLGE, PCT, PCT].join(COMMA) + RE_S + '\\)$'
+	);
+	const RE_HSLA_LEGACY =
+	    /^hsla\(\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*,\s*([01]|[01]?\.\d+)\)$/;
+
+	const RE_LAB = new RegExp(
+	    '^lab\\(' +
+	        RE_S +
+	        [FLOAT_OR_PCT, FLOAT_OR_PCT, FLOAT_OR_PCT].join(SEP) +
+	        ALPHA +
+	        '\\)$'
+	);
+	const RE_LCH = new RegExp(
+	    '^lch\\(' +
+	        RE_S +
+	        [FLOAT_OR_PCT, FLOAT_OR_PCT, ANLGE].join(SEP) +
+	        ALPHA +
+	        '\\)$'
+	);
+	const RE_OKLAB = new RegExp(
+	    '^oklab\\(' +
+	        RE_S +
+	        [FLOAT_OR_PCT, FLOAT_OR_PCT, FLOAT_OR_PCT].join(SEP) +
+	        ALPHA +
+	        '\\)$'
+	);
+	const RE_OKLCH = new RegExp(
+	    '^oklch\\(' +
+	        RE_S +
+	        [FLOAT_OR_PCT, FLOAT_OR_PCT, ANLGE].join(SEP) +
+	        ALPHA +
+	        '\\)$'
+	);
+
+	const { round: round$1 } = Math;
+
+	const roundRGB = (rgb) => {
+	    return rgb.map((v, i) => (i <= 2 ? limit(round$1(v), 0, 255) : v));
+	};
+
+	const percentToAbsolute = (pct, min = 0, max = 100, signed = false) => {
+	    if (typeof pct === 'string' && pct.endsWith('%')) {
+	        pct = parseFloat(pct.substring(0, pct.length - 1)) / 100;
+	        if (signed) {
+	            // signed percentages are in the range -100% to 100%
+	            pct = min + (pct + 1) * 0.5 * (max - min);
+	        } else {
+	            pct = min + pct * (max - min);
+	        }
+	    }
+	    return +pct;
+	};
+
+	const noneToValue = (v, noneValue) => {
+	    return v === 'none' ? noneValue : v;
+	};
+
+	const css2rgb = (css) => {
+	    css = css.toLowerCase().trim();
+
+	    if (css === 'transparent') {
+	        return [0, 0, 0, 0];
+	    }
+
+	    let m;
+
+	    if (input.format.named) {
+	        try {
+	            return input.format.named(css);
+	            // eslint-disable-next-line
+	        } catch (e) {}
+	    }
+
+	    // rgb(250 20 0) or rgb(250,20,0)
+	    if ((m = css.match(RE_RGB)) || (m = css.match(RE_RGB_LEGACY))) {
+	        let rgb = m.slice(1, 4);
+	        for (let i = 0; i < 3; i++) {
+	            rgb[i] = +percentToAbsolute(noneToValue(rgb[i], 0), 0, 255);
+	        }
+	        rgb = roundRGB(rgb);
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha; // default alpha
+	        return rgb;
+	    }
+
+	    // rgba(250,20,0,0.4)
+	    if ((m = css.match(RE_RGBA_LEGACY))) {
+	        const rgb = m.slice(1, 5);
+	        for (let i = 0; i < 4; i++) {
+	            rgb[i] = +percentToAbsolute(rgb[i], 0, 255);
+	        }
+	        return rgb;
+	    }
+
+	    // hsl(0,100%,50%)
+	    if ((m = css.match(RE_HSL)) || (m = css.match(RE_HSL_LEGACY))) {
+	        const hsl = m.slice(1, 4);
+	        hsl[0] = +noneToValue(hsl[0].replace('deg', ''), 0);
+	        hsl[1] = +percentToAbsolute(noneToValue(hsl[1], 0), 0, 100) * 0.01;
+	        hsl[2] = +percentToAbsolute(noneToValue(hsl[2], 0), 0, 100) * 0.01;
+	        const rgb = roundRGB(hsl2rgb(hsl));
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha;
+	        return rgb;
+	    }
+
+	    // hsla(0,100%,50%,0.5)
+	    if ((m = css.match(RE_HSLA_LEGACY))) {
+	        const hsl = m.slice(1, 4);
+	        hsl[1] *= 0.01;
+	        hsl[2] *= 0.01;
+	        const rgb = hsl2rgb(hsl);
+	        for (let i = 0; i < 3; i++) {
+	            rgb[i] = round$1(rgb[i]);
+	        }
+	        rgb[3] = +m[4]; // default alpha = 1
+	        return rgb;
+	    }
+
+	    if ((m = css.match(RE_LAB))) {
+	        const lab = m.slice(1, 4);
+	        lab[0] = percentToAbsolute(noneToValue(lab[0], 0), 0, 100);
+	        lab[1] = percentToAbsolute(noneToValue(lab[1], 0), -125, 125, true);
+	        lab[2] = percentToAbsolute(noneToValue(lab[2], 0), -125, 125, true);
+	        // convert to D50 Lab whitepoint
+	        const wp = getLabWhitePoint();
+	        setLabWhitePoint('d50');
+	        const rgb = roundRGB(lab2rgb(lab));
+	        // convert back to original Lab whitepoint
+	        setLabWhitePoint(wp);
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha;
+	        return rgb;
+	    }
+
+	    if ((m = css.match(RE_LCH))) {
+	        const lch = m.slice(1, 4);
+	        lch[0] = percentToAbsolute(lch[0], 0, 100);
+	        lch[1] = percentToAbsolute(noneToValue(lch[1], 0), 0, 150, false);
+	        lch[2] = +noneToValue(lch[2].replace('deg', ''), 0);
+	        // convert to D50 Lab whitepoint
+	        const wp = getLabWhitePoint();
+	        setLabWhitePoint('d50');
+	        const rgb = roundRGB(lch2rgb(lch));
+	        // convert back to original Lab whitepoint
+	        setLabWhitePoint(wp);
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha;
+	        return rgb;
+	    }
+
+	    if ((m = css.match(RE_OKLAB))) {
+	        const oklab = m.slice(1, 4);
+	        oklab[0] = percentToAbsolute(noneToValue(oklab[0], 0), 0, 1);
+	        oklab[1] = percentToAbsolute(noneToValue(oklab[1], 0), -0.4, 0.4, true);
+	        oklab[2] = percentToAbsolute(noneToValue(oklab[2], 0), -0.4, 0.4, true);
+	        const rgb = roundRGB(oklab2rgb(oklab));
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha;
+	        return rgb;
+	    }
+
+	    if ((m = css.match(RE_OKLCH))) {
+	        const oklch = m.slice(1, 4);
+	        oklch[0] = percentToAbsolute(noneToValue(oklch[0], 0), 0, 1);
+	        oklch[1] = percentToAbsolute(noneToValue(oklch[1], 0), 0, 0.4, false);
+	        oklch[2] = +noneToValue(oklch[2].replace('deg', ''), 0);
+	        const rgb = roundRGB(oklch2rgb(oklch));
+	        const alpha = m[4] !== undefined ? +percentToAbsolute(m[4], 0, 1) : 1;
+	        rgb[3] = alpha;
+	        return rgb;
+	    }
+	};
+
+	css2rgb.test = (s) => {
+	    return (
+	        // modern
+	        RE_RGB.test(s) ||
+	        RE_HSL.test(s) ||
+	        RE_LAB.test(s) ||
+	        RE_LCH.test(s) ||
+	        RE_OKLAB.test(s) ||
+	        RE_OKLCH.test(s) ||
+	        // legacy
+	        RE_RGB_LEGACY.test(s) ||
+	        RE_RGBA_LEGACY.test(s) ||
+	        RE_HSL_LEGACY.test(s) ||
+	        RE_HSLA_LEGACY.test(s) ||
+	        s === 'transparent'
+	    );
+	};
+
+	Color.prototype.css = function (mode) {
+	    return rgb2css(this._rgb, mode);
+	};
+
+	const css = (...args) => new Color(...args, 'css');
+	chroma.css = css;
+
+	input.format.css = css2rgb;
+
+	input.autodetect.push({
+	    p: 5,
+	    test: (h, ...rest) => {
+	        if (!rest.length && type(h) === 'string' && css2rgb.test(h)) {
+	            return 'css';
+	        }
+	    }
+	});
+
+	input.format.gl = (...args) => {
+	    const rgb = unpack(args, 'rgba');
+	    rgb[0] *= 255;
+	    rgb[1] *= 255;
+	    rgb[2] *= 255;
+	    return rgb;
+	};
+
+	const gl = (...args) => new Color(...args, 'gl');
+	chroma.gl = gl;
+
+	Color.prototype.gl = function () {
+	    const rgb = this._rgb;
+	    return [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, rgb[3]];
+	};
+
+	Color.prototype.hex = function (mode) {
+	    return rgb2hex(this._rgb, mode);
+	};
+
+	const hex = (...args) => new Color(...args, 'hex');
+	chroma.hex = hex;
+
+	input.format.hex = hex2rgb;
+	input.autodetect.push({
+	    p: 4,
+	    test: (h, ...rest) => {
+	        if (
+	            !rest.length &&
+	            type(h) === 'string' &&
+	            [3, 4, 5, 6, 7, 8, 9].indexOf(h.length) >= 0
+	        ) {
+	            return 'hex';
+	        }
+	    }
+	});
+
+	/*
+	 * Based on implementation by Neil Bartlett
+	 * https://github.com/neilbartlett/color-temperature
+	 */
+
+	const { log } = Math;
+
+	const temperature2rgb = (kelvin) => {
+	    const temp = kelvin / 100;
+	    let r, g, b;
+	    if (temp < 66) {
+	        r = 255;
+	        g =
+	            temp < 6
+	                ? 0
+	                : -155.25485562709179 -
+	                  0.44596950469579133 * (g = temp - 2) +
+	                  104.49216199393888 * log(g);
+	        b =
+	            temp < 20
+	                ? 0
+	                : -254.76935184120902 +
+	                  0.8274096064007395 * (b = temp - 10) +
+	                  115.67994401066147 * log(b);
+	    } else {
+	        r =
+	            351.97690566805693 +
+	            0.114206453784165 * (r = temp - 55) -
+	            40.25366309332127 * log(r);
+	        g =
+	            325.4494125711974 +
+	            0.07943456536662342 * (g = temp - 50) -
+	            28.0852963507957 * log(g);
+	        b = 255;
+	    }
+	    return [r, g, b, 1];
+	};
+
+	/*
+	 * Based on implementation by Neil Bartlett
+	 * https://github.com/neilbartlett/color-temperature
+	 **/
+	const { round } = Math;
+
+	const rgb2temperature = (...args) => {
+	    const rgb = unpack(args, 'rgb');
+	    const r = rgb[0],
+	        b = rgb[2];
+	    let minTemp = 1000;
+	    let maxTemp = 40000;
+	    const eps = 0.4;
+	    let temp;
+	    while (maxTemp - minTemp > eps) {
+	        temp = (maxTemp + minTemp) * 0.5;
+	        const rgb = temperature2rgb(temp);
+	        if (rgb[2] / rgb[0] >= b / r) {
+	            maxTemp = temp;
+	        } else {
+	            minTemp = temp;
+	        }
+	    }
+	    return round(temp);
+	};
+
+	Color.prototype.temp =
+	    Color.prototype.kelvin =
+	    Color.prototype.temperature =
+	        function () {
+	            return rgb2temperature(this._rgb);
+	        };
+
+	const temp = (...args) => new Color(...args, 'temp');
+	Object.assign(chroma, { temp, kelvin: temp, temperature: temp });
+
+	input.format.temp =
+	    input.format.kelvin =
+	    input.format.temperature =
+	        temperature2rgb;
+
+	Color.prototype.oklch = function () {
+	    return rgb2oklch(this._rgb);
+	};
+
+	const oklch = (...args) => new Color(...args, 'oklch');
+	Object.assign(chroma, { oklch });
+
+	input.format.oklch = oklch2rgb;
+
+	input.autodetect.push({
+	    p: 2,
+	    test: (...args) => {
+	        args = unpack(args, 'oklch');
+	        if (type(args) === 'array' && args.length === 3) {
+	            return 'oklch';
+	        }
+	    }
+	});
+
+	// feel free to comment out anything to rollup
 
 	Object.assign(chroma, {
+	    analyze,
 	    average,
 	    bezier: bezier$1,
 	    blend,
-	    cubehelix,
-	    mix,
-	    interpolate: mix,
-	    random: random$1,
-	    scale,
-	    analyze,
+	    brewer: colorbrewerProxy,
+	    Color,
+	    colors: w3cx11,
 	    contrast,
+	    contrastAPCA,
+	    cubehelix,
 	    deltaE,
 	    distance,
-	    limits,
-	    valid,
-	    scales,
 	    input,
-	    colors: w3cx11,
-	    brewer: colorbrewer
+	    interpolate: mix,
+	    limits,
+	    mix,
+	    random: random$1,
+	    scale,
+	    scales,
+	    valid
 	});
 
 	// DBW NOTE: HAVE SPENT MANY HOURS TRYING TO STYLE THIS COMPONENT. IT'S ALMOST IMPOSSIBLE. I AM USIN

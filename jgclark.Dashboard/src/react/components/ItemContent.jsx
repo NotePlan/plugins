@@ -139,11 +139,7 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
  timeblockM @param {string?} mustContainString? if not given, then will attempt to read from NP app setting instead
  * @returns {string} HTML string
  */
-function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, truncateLength: number = 0): string {
-  thisItem: TSectionItem,
-  truncateLength: number = 0,
-  timeblockTextMustContainString: string = ''
-): string {
+function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, truncateLength: number = 0, timeblockTextMustContainString: string = ''): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
@@ -325,6 +321,6 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
 //   const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
 //   // }
 //   return output
-  // }
+// }
 
 export default ItemContent

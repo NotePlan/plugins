@@ -13,7 +13,6 @@ import {
   // rollUpDoneCounts,
   updateDoneCountsFromChangedNotes,
 } from './countDoneTasks'
-import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
   getDashboardSettings,
   getNotePlanSettings,
@@ -107,11 +106,13 @@ export async function refreshAllSections(): Promise<void> {
 }
 
 // FIXME: DBW thinks this generates way more updates than necessary
+
 /**
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
- * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
+ * Today loads first and then this function is automatically called from a useEffect in
+ * Dashboard.jsx to load the rest.
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
@@ -128,7 +129,6 @@ export async function incrementallyRefreshSections(
     logError('incrementallyRefreshSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
-  logDebug('incrementallyRefreshSections', `Starting for ${sectionCodes.length} sections ${String(sectionCodes)}`)
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
   // loop through sectionCodes
   for (const sectionCode of sectionCodes) {
@@ -136,7 +136,7 @@ export async function incrementallyRefreshSections(
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
     logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
   }
-
+  logDebug('incrementallyRefreshSections', `Starting for ${sectionCodes.length} sections ${String(sectionCodes)}`)
   const updates: any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
@@ -145,7 +145,6 @@ export async function incrementallyRefreshSections(
   // re-calculate done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
-    // V2 method
     const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSections (for [${sectionCodes.join(',')}])`)
     const changedData = {
       totalDoneCount: totalDoneCount,
@@ -191,7 +190,27 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   if (!pluginData.refreshing === true) updates.refreshing = false
   await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
   logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
-  return handlerResult(true)
+  // count sectionItems in all sections
+  const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
+  logDebug('refreshSomeSections', `Total section items: ${totalSectionItems}`)
+  return handlerResult(true, [], { sectionItems: totalSectionItems })
+}
+
+export async function doEvaluateString(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const { stringToEvaluate } = data
+  if (!stringToEvaluate) {
+    logError('doEvaluateString', 'No stringToEvaluate provided')
+    return handlerResult(false)
+  }
+  logDebug('doEvaluateString', `Evaluating string: "${stringToEvaluate}"`)
+  // use JS eval to evaluate the string
+  try {
+    const result = await eval(stringToEvaluate)
+    return handlerResult(true, [], { result })
+  } catch (error) {
+    logError('doEvaluateString', error.message)
+    return handlerResult(false, [], { errorMsg: error.message })
+  }
 }
 
 /**
@@ -645,7 +664,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
 
     // refresh whole display, as we don't know which if any section the moved task might need to be added to
     // logDebug('doRescheduleItem', `------------ refresh ------------`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doRescheduleItem', `- some other failure`)
     return handlerResult(false)
@@ -704,6 +723,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
+  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
@@ -740,6 +760,38 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
   return handlerResult(true, [])
+}
+
+export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  const switchToName = data?.perspectiveName || ''
+  if (!switchToName) {
+    logError('doSwitchToPerspective', `No perspective name provided.`)
+    return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
+  }
+  const revisedDefs = await switchToPerspective(switchToName, await getPerspectiveSettings())
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
+  const activeDef = getActivePerspectiveDef(revisedDefs)
+  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+  const prevDashboardSettings = await getDashboardSettings()
+  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  // apply the new perspective's settings to the main dashboard settings
+  const newDashboardSettings = {
+    ...prevDashboardSettings,
+    ...(activeDef.dashboardSettings || {}),
+    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
+  } // the ending "changed from plugin" is important because it keeps it from sending back
+  logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
+  clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
+  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+  const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings, serverPush: { dashboardSettings: true, perspectiveSettings: true } }
+  logDebug(
+    `doSwitchToPerspective`,
+    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
+      newDashboardSettings.excludedFolders
+    }`,
+  )
+  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
+  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
 }
 
 // export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
