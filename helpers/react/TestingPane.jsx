@@ -334,7 +334,6 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
                             cursor: 'pointer',
                             marginRight: '10px',
                           }}
-                          disabled={skip}
                         >
                           <i className={`fa ` + (isPaused ? 'fa-pause' : isWaitingForQuietness ? 'fa-hourglass fa-spin' : 'fa-play')} style={{ color: iconColor }}></i>
                           {isRunningTest && !isPaused && <i className="fa fa-spinner fa-spin" style={{ marginLeft: '5px' }}></i>}
