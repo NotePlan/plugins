@@ -36,12 +36,15 @@ Tip: This is most easily done by using the **/add trigger to note** command from
 
 Alternatively, the separate [Tidy Up plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) has a **/Generate @repeats in recent notes** command, which runs over all recently-changed notes, generating any new @repeats that are required. It does _not_ require triggers to be in place.
 
+## Running it on all/many notes
+The separate **Tidy Plugin** has a "Generate @repeats in recent notes" command.  How far back this goes can be changed in the Tidy Plugins' settings.
+
 ## Running it Manually
 On the _currently open note_, open the command bar and type the **/generate repeats** command.
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
 - When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
 
-## Specifiying the Intervals
+## Specifying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
 - `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country)
 - `d` or `D`: days

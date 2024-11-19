@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.14.3] - 2024-11-17 @jgclark
+- Stop lots of popups appearing when running **/Generate @repeats in recent notes** command.
+
 ## [0.14.2] - 2024-09-25 @jgclark
 - **/file root notes** command can now create a new folder as one of the possible options (for @dwertheimer)
 
