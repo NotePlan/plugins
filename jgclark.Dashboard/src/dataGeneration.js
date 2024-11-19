@@ -1600,6 +1600,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
         title: getTodaysDateHyphenated(),
         filename: `${filenameDateStr}.md`
       }
+      clo(fakeTodayNote, `fakeTodayNote`)
       timeblockPara = getCurrentTimeBlockPara(fakeTodayNote, true, mustContainString)
     } else {
       // Get list of open tasks/checklists from current daily note (if it exists)

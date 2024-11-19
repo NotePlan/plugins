@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- ## [Perspectives.a20 = 2.1.0.a20] @jgc, 2024-11-???
+- TODO: fix time block section not being generated -->
+
 ## [Perspectives.a19 = 2.1.0.a19] @dbw, 2024-11-19
 - MASSIVE MERGE from main into main-perspectives-merge-with-debug branch. (Hopefully) merged your latest changes with the perspectives code which seems to be working fairly reliably.
 - In the process, I built a lot of debug tooling (see the DEV menu for FFlag Debug Panel). The testing code is still a WIP. What I find is that the refreshes that happen every time you make a change to settings go on for a long time and there's no way to know for sure when they are over. So it's hard to know when it's safe to test the "stable" state. But I wanted to provide this to you just to hopefully get us back on the same branch.

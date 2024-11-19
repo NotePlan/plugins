@@ -166,12 +166,15 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
 export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
     // Get the setting from arg or from NP setting
-    const mustContainString = (mustContainStringArg && typeof mustContainStringArg === "string") ? mustContainStringArg : DataStore.preference("timeblockTextMustContainString")
-    // logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: mustContainString = ${String(mustContainString)}`)
+    // FIXME: this goes wrong, and the mustContainString is undefined
+    // const mustContainString = (mustContainStringArg && typeof mustContainStringArg === "string") ? mustContainStringArg : DataStore.preference("timeblockTextMustContainString") ?? ''
+    const mustContainString = 'at'
+    logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: for {${contentString}} mustContainString = ${String(mustContainString)}`)
     // Following works around a bug when the preference isn't being set at all at the start.
     if (typeof mustContainString === "string" && mustContainString !== '') {
       const res1 = contentString.includes(mustContainString)
       if (!res1) {
+        logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: not found must string`)
         return false
       }
     }
@@ -383,6 +386,8 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
           // logDebug('getCurrentTimeBlock', `Found current timeblock ${timeBlockString} in para {${para.content}}`)
           return para
         }
+      } else {
+        // logDebug('getCurrentTimeBlock', `- ignored line {${para.content}} as it is not a timeblock line`)
       }
     }
     // None found
