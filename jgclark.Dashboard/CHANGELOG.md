@@ -1,15 +1,37 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a15 - 2.1.0.a15] underway
-- (jgc): Child tasks are now ordered following their parents, when sorted by priority
-- (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
-- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  See what you think.
-
+## [Perspectives.a17 = 2.1.0.a18] @jgc, 2024-11-15
+- (jgc): new layout in section heading for the add buttons. Also colour them the same as the section title. 
+- (jgc): further tweaks to icons, including better optical matching of tasks and checklists
+- (jgc): now Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
 - (dbw): Removed activePerspectiveName from dashboardSettings, and moved it to the perspectiveSettings (isActive flag)
 - (dbw): Refactor to move syncing of dashboardSettings to and from the plugin to a single custom hook for better clarity
+- (dbw): Built out some testing infrastructure: DebugPanel etc.
 
-## [Perspectives.a14 - 2.1.0.a14] @dbw, 2024-10-24
+## [Perspectives.a17 = 2.1.0.a17] @jgc, 2024-11-13
+- (jgc): new response type called "REFRESH_ALL_ENABLED_SECTIONS" and using that in place of "REFRESH_ALL_SECTIONS" in
+  - doMoveToNote -- fallback option in case paragraph can't be found
+  - doRescheduleItem
+- (jgc): Removed REFRESH_ALL_SECTIONS at end of doSettingsChanged(), as that also does a setPluginData() call, which I think triggers updates. Needs checking by DBW
+- (jgc): changed Dashboard component "startup only" useEffect to now only generate enabled sections. Updated this to handle new TimeBlock section which is generated and shown before Today section, when enabled.
+- (jgc): fixed background color issue from a16
+- (jgc): applied the stringListOrArrayToArray() to other places it was needed for excludedFolders 
+
+## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-13
+- (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)
+- (jgc): Made the "Nothing left on your list for today: take a break" display line show in the colour of a completed task, and gave the background of the section a subtle hue of the completed task color as well.
+- (jgc): ItemGrid.jsx has a flag you can set to turn on all sections having a subtle background hue taken from their title color.
+- (jgc): new getListOfEnabledSections() dashboardHelpers function.
+ 
+## [Perspectives.a15 = 2.1.0.a15] @jgc, 2024-11-10
+- (jgc): Added new 'Current Time Block' section at the top of the window. Prepared two slightly different layouts for it.
+- (jgc): Lots of refactoring of the timeblocks.js helper functions, added new ones, and made sure they respect NP's 'timeblockTextMustContain' NP preference, which was added after most of our plugin work on time blocks.
+- (jgc): Child tasks are now ordered following their parents, when sorted by priority
+- (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  _David, see what you think, please._
+
+## [Perspectives.a14 = 2.1.0.a14] @dbw, 2024-10-24
 - Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
 - Total refactor of interactive processing code to make it more maintainable and fix some bugs
 - Total refactor of Dashboard Settings and PerspectiveSettings components using useReducer for state management and improved visibility
@@ -18,7 +40,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - Added some code back in to make BANNER messages display again at the top of the page when there are errors
 - Added a LOT of logging to ensure the right things are happening, but it's super noisy. Will delete most of it before final release.
 ### Todo
-- fix bug in taskdialog where priority markers are not being updated in interface
+- fix bug in task dialog where priority markers are not being updated in interface
 - (jgclark): fix the CSS selectors that are messing up the rollup build
 
 ## [Perspectives.a13] @jgc, 2024-10-11

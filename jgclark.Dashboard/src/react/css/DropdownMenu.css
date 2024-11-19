@@ -1,6 +1,6 @@
 /**
  * CSS for the Dropdown menus
- * Last updated 2024-07-17 for v2.0.3 by @jgclark
+ * Last updated for v2.1.0.a
  */
 
 /* Content in just 1 column */
@@ -10,6 +10,7 @@
   grid-template-columns: unset;
   grid-template-areas: "justTheOne";
   position: absolute;
+  color: var(--fg-main-color);
   background-color: var(--bg-alt-color);
   /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
   box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
@@ -29,6 +30,7 @@
   grid-template-areas: "left right";
   grid-gap: 1.5rem;
   position: absolute;
+  color: var(--fg-main-color);
   background-color: var(--bg-alt-color);
   /* box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); */
   box-shadow: 0px 1px 1px 1px rgb(from var(--fg-main-color) r g b / 0.5);
@@ -95,6 +97,7 @@
 .dropdown {
   position: relative;
   display: inline-block;
+  color: var(--tint-color);
 }
 
 /* Style for switch-line */

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 import type { TSection, TDashboardSettings, TSectionCode, TSectionDetails } from '../../../types.js'
@@ -84,20 +84,22 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
  * @param {Array<TSection>} sections - The sections to filter.
  * @returns {Array<TSectionCode>} - Filtered and prioritized section codes.
  */
-function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings: TDashboardSettings, sections: Array<TSection>): Array<TSectionCode> {
+function getUseFirstButVisible(
+  useFirst: Array<TSectionCode>, dashboardSettings: TDashboardSettings, sections: Array<TSection>
+): Array<TSectionCode> {
   const useFirstButVisible = dashboardSettings
     ? useFirst.filter((sectionCode) => {
-        const section = sections.find((section) => section.sectionCode === sectionCode)
-        if (section) {
-          const isVisible = sectionIsVisible(section, dashboardSettings)
-          // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
-          return section && isVisible
-        } else {
-          // TAG sections are a special case, so don't log an error if not found
-          // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
-          return false
-        }
-      })
+      const section = sections.find((section) => section.sectionCode === sectionCode)
+      if (section) {
+        const isVisible = sectionIsVisible(section, dashboardSettings)
+        // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+        return section && isVisible
+      } else {
+        // TAG sections are a special case, so don't log an error if not found
+        // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
+        return false
+      }
+    })
     : useFirst
   // logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
@@ -110,6 +112,7 @@ function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings:
  * @param {Array<TSection>} _sections - The sections to filter.
  * @param {Array<string>} paraMatcherFields - The fields (on the underlying para) to match for duplicates.
  * @param {Array<TSectionCode>} useFirst - Priority order of sectionCode names to determine retention priority.
+ * @param {Array<TSectionCode>} dontDedupeList - sectionCodes to ignore in this.
  * @param {TDashboardSettings} dashboardSettings - Shared settings to determine visibility of sections.
  * @returns {Array<TSection>} - The sections with duplicates removed according to the rules.
  */
@@ -117,6 +120,7 @@ export function getSectionsWithoutDuplicateLines(
   _sections: Array<TSection>,
   paraMatcherFields: Array<string>,
   useFirst: Array<TSectionCode>,
+  dontDedupeList: Array<TSectionCode>,
   dashboardSettings: TDashboardSettings,
 ): Array<TSection> {
   if (!paraMatcherFields) return _sections
@@ -124,8 +128,7 @@ export function getSectionsWithoutDuplicateLines(
   // Deep copy the sections to avoid mutating the original data
   const sections = JSON.parse(JSON.stringify(_sections))
 
-  // Get ordered sections based on visibility and priority
-  // These are just sectionCodes
+  // Get ordered list of sectionCodes based on visibility and priority
   const useFirstVisibleOnly: Array<TSectionCode> = getUseFirstButVisible(useFirst, dashboardSettings, sections)
 
   // Create an array of ordered sections based on the `useFirstVisibleOnly` priority list.
@@ -135,8 +138,8 @@ export function getSectionsWithoutDuplicateLines(
   // This ensures `orderedSections` contains all sections, ordered by `useFirstVisibleOnly` with duplicates included.
   // because there could be multiples (e.g. TAGs or Today/>Today with the same sectionCode)
   const orderedSections = useFirstVisibleOnly.flatMap((st) => sections.filter((section) => section.sectionCode === st))
-  const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections)
-  // logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
+  const totalItemsBeforeDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+  logDebug('getSectionsWithoutDuplicateLines', `Starting with useFirstVisibleOnly: ${useFirstVisibleOnly.join('-')}  with ${totalItemsBeforeDedupe} items`)
 
   // Include sections not listed in useFirst at the end of the array
   orderedSections.push(...sections.filter((section) => !useFirst.includes(section.sectionCode)))
@@ -144,10 +147,10 @@ export function getSectionsWithoutDuplicateLines(
   const itemMap: any = new Map()
 
   // Now we are working with actual TSection objects, not sectionCodes anymore
-  // Process each section (but not if it's a "PROJ" section, because it doesn't have paragraph-level items)
+  // Process each section (but not if it's a "TB" or "PROJ" section, because they have different sorts of items)
   orderedSections.forEach((section) => {
-    // logInfo('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
-    if (section.sectionCode === 'PROJ') return
+    logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
+    if (dontDedupeList.includes(section.sectionCode)) return
 
     // If the item has a synced line, use the blockId for the key, not the constructed key
     // because we want to delete duplicates that are in different sections of synced lines also
@@ -165,21 +168,25 @@ export function getSectionsWithoutDuplicateLines(
     })
     // logInfo('getSectionsWithoutDuplicateLines', `- ${section.sectionCode} ends with ${section.sectionItems.length} items`) // OK
   })
-  const totalItemsAfterDedupe = countTotalSectionItems(orderedSections)
-  // logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
+  const totalItemsAfterDedupe = countTotalSectionItems(orderedSections, dontDedupeList)
+  logDebug('getSectionsWithoutDuplicateLines', ` ${orderedSections.length} sections ${String(orderedSections.map((s) => s.name))} with ${totalItemsAfterDedupe} items`)
 
   // Return the orderedSections instead of the original sections
   return orderedSections
 }
 
 /**
- * Counts the total number of sectionItems in an array of TSection objects
+ * Counts the total number of sectionItems in an array of TSection objects. 
+ * Ignore the dontDedupeList sections
  * @param {Array<TSection>} sections - The array of TSection objects
+ * @param {Array<TSectionCode>} ignoreList - array of TSectionCodes
  * @returns {number} The total number of sectionItems
  */
-export const countTotalSectionItems = (sections: Array<TSection>): number => {
-  // sections.forEach(section => section.sectionItems ? logDebug('sectionHelpers', `countTotalSectionItems ${section.name} has ${section.sectionItems.length} items`) : null)
-  return sections.reduce((total, section) => total + section.sectionItems.length, 0)
+export const countTotalSectionItems = (sections: Array<TSection>, ignoreList: Array<TSectionCode>): number => {
+  logDebug(`countTotalSectionItems`, `Starting with ${sections.length} sections and ignoreList ${String(ignoreList)}`)
+  return sections
+    .filter(section => !ignoreList.includes(section.sectionCode))
+    .reduce((total, section) => total + section.sectionItems?.length ?? 0, 0)
 }
 
 /**

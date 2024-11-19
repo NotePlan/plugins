@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -563,22 +563,6 @@ export function isNoteInAllowedFolderList(note: TNote, folderList: Array<string>
   // Is note a Calendar note or is in folderList?
   const matchFound = (allowAllCalendarNotes && note.type === 'Calendar') || folderList.some((f) => note.filename.includes(f))
   // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
-  return matchFound
-}
-
-/**
- * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention)
- * @param {string} lineContent
- * @param {string} ignoreItemsWithTerms
- * @returns {boolean} true if disallowed
- */
-export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
-  // Note: can't use simple .split(',') as it does unexpected things with empty strings
-  const excludedTagArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
-  // logDebug('isLineDisallowedByExcludedTerms', `using ${String(includedTagArr.length)} inclusions [${includedFolderArr.toString()}] and ${String(excludedTagArr.length)} exclusions [${excludedTagArr.toString()}]`)
-
-  const matchFound = excludedTagArr.some((t) => lineContent.includes(t))
-  // logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
   return matchFound
 }
 

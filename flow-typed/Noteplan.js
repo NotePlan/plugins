@@ -493,7 +493,7 @@ declare class DataStore {
    *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
    *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
-   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line. JGC notes that this is case sensitive and must match on a whole word.
    *   "openAIKey" // Optional user's openAIKey (from v3.9.3 build 1063)
    * Others can be set by plugins.
    * Note: these keys and values do not sync across a user's devices; they are only local.

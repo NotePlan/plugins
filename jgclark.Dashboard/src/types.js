@@ -46,6 +46,7 @@ export type TDashboardSettings = {
   // autoAddTrigger: boolean, // Note: removed in v2.1
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
+  showTimeBlockSection: boolean,
   showYesterdaySection: boolean,
   showTomorrowSection: boolean,
   showWeekSection: boolean,
@@ -95,7 +96,7 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB'  // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -108,7 +109,7 @@ export type TSection = {
   description: string,
   sectionItems: Array<TSectionItem>,
   FAIconClass?: string, // CSS class to show FA Icons
-  sectionTitleClass: string, // CSS class
+  sectionTitleColorPart?: string, // `sidebarX` string to use in `var(--fg-...)` color, or if not given, will default to `var(--item-icon-color)`
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
   generatedDate?: Date, // note different from lastFullRefresh on whole project
@@ -116,7 +117,7 @@ export type TSection = {
   doneCounts?: TDoneCount, // number of tasks and checklists completed today etc.
 }
 
-export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator'
+export type TItemType = 'open' | 'checklist' | 'itemCongrats' | 'project' | 'projectCongrats' | 'filterIndicator' | 'timeblock'
 
 // an item within a section, with optional TParagraphForDashboard
 export type TSectionItem = {
@@ -143,12 +144,13 @@ export type TParagraphForDashboard = {
   lineIndex: number, // needed for child ordering processing
   priority: number,
   blockId?: string,
-  timeStr?: string, // = used to order extended paragraphs. TODO: Can it be consolidated with .startTime?
+  // timeStr?: string, // = used to order extended paragraphs. TEST: Can it be consolidated with .startTime?
   startTime?: string, // this is still definitely used to style time blocks
   endTime?: string,
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
+  children?: Object // function
 }
 
 // a project item within a section
@@ -280,6 +282,7 @@ export type TActionOnReturn =
   | 'REMOVE_LINE_FROM_JSON'
   | 'REFRESH_SECTION_IN_JSON'
   | 'REFRESH_ALL_SECTIONS'
+  | 'REFRESH_ALL_ENABLED_SECTIONS' // added for v2.1.0
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
   | 'INCREMENT_DONE_COUNT'
@@ -327,8 +330,9 @@ export type TPluginData = {
   },
   demoMode: boolean /* use fake content for demo purposes */,
   // totalDoneCounts?: TDoneCount,
-  totalDoneCount: number,
+  totalDoneCount?: number,
   startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
+  version: string, // plugin version string
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList'

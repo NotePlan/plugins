@@ -3,8 +3,10 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
-import { logDebug } from './dev'
-import { isTermInURL } from './paragraph'
+import moment from 'moment/min/moment-with-locales'
+import { clo, JSP, logDebug, logInfo, logError } from './dev'
+import { isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { findLongestStringInArray } from './utils'
 
 // import { getTime } from "date-fns";
 
@@ -16,11 +18,13 @@ export const RE_MINUTES = '[0-5]\\d'
 export const RE_TIME = `${RE_HOURS}:${RE_MINUTES}`
 export const RE_TIME_EXT = `${RE_HOURS_EXT}:${RE_MINUTES}`
 // export const RE_AMPM = `(A\\.M\\.|P\\.M\\.|AM?|PM?)`
-export const RE_AMPM = `(AM|am|PM|pm)` // logic changed in v3.4
+export const RE_AMPM = `\\s?(AM|am|PM|pm)` // logic changed in v3.4
 export const RE_AMPM_OPT = `${RE_AMPM}?`
-export const RE_TIME_TO = `\\s*(\\-|\\–|\\~|\\〜|to)\\s*`
+export const RE_TIME_TO = `\\s?(\\-|\\–|\\~)\\s?`
 // export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)` // this is now a near dupe of helpers/dateTime
 // export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)` // this is now a dupe of helpers/dateTime
+const RE_START_OF_LINE = `(?:^|\\s)`
+const RE_END_OF_LINE = `(?=\\s|$)`
 
 //-----------------------------------------------------------------------------
 // NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
@@ -123,28 +127,35 @@ export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list', 'checklist
 // - A = more lax match following 'at' or 'from'
 // - B = tighter match requiring some form of X-YPM
 // - C = tight match requiring HH:MM[-HH:MM]
-const RE_START_APP_LINE = `(?:^|\\s)`
-const RE_END_APP_LINE = `(?=\\s|$)`
-export const RE_TIMEBLOCK_PART_A = `(at|from)\\s+${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT}))?`
-export const RE_TIMEBLOCK_PART_B = `(${RE_HOURS_EXT}(:${RE_MINUTES})?\\s*${RE_AMPM_OPT}(${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM})))`
-export const RE_TIMEBLOCK_PART_C = `(${RE_TIME_EXT}\\s*${RE_AMPM_OPT})(${RE_TIME_TO}${RE_TIME_EXT})?`
-export const RE_TIMEBLOCK = `(${RE_TIMEBLOCK_PART_A}|${RE_TIMEBLOCK_PART_B}|${RE_TIMEBLOCK_PART_C})`
-export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}${RE_END_APP_LINE}`
-// console.log(RE_TIMEBLOCK_APP)
+// const RE_START_OF_LINE = `(?:^|\\s)`
+// const RE_END_OF_LINE = `(?=\\s|$)`
+// export const RE_TIMEBLOCK_PART_A = `(at|from)\\s+${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT})(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(\\s*${RE_AMPM_OPT}))?`
+// export const RE_TIMEBLOCK_PART_B = `(${RE_HOURS_EXT}(:${RE_MINUTES})?\\s*${RE_AMPM_OPT}(${RE_TIME_TO}${RE_HOURS_EXT}(:${RE_MINUTES})?(\\s*${RE_AMPM})))`
+// export const RE_TIMEBLOCK_PART_C = `(${RE_TIME_EXT}\\s*${RE_AMPM_OPT})(${RE_TIME_TO}${RE_TIME_EXT})?`
+// export const RE_TIMEBLOCK = `(${RE_TIMEBLOCK_PART_A}|${RE_TIMEBLOCK_PART_B}|${RE_TIMEBLOCK_PART_C})`
+// // Put all together
+// export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}${RE_END_OF_LINE}`
+// // console.log(RE_TIMEBLOCK_IN_LINE)
+
+//-----------------------------------------------------------------------------
+
+// In late 2024 got round to updating all this with the much tighter TB detection in NP. Now just:
+// - tight match requiring HH:MM[A][-HH:MM[A]] with possible spaces before the am/pm
+export const RE_TIMEBLOCK = `${RE_TIME}${RE_AMPM_OPT}(${RE_TIME_TO}${RE_TIME}${RE_AMPM_OPT})?`
+export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
+
+// console.log(RE_TIMEBLOCK_IN_LINE)
 
 //-----------------------------------------------------------------------------
 // THEMES
-// Note: The logic required in NotePlan **themes** is slightly more complex, as it must work out whether it's the correct line type, as it has no access to the API.
-// It also appears to match case sensitively, which therefore requires the main regex to include both versions after all :-(
-// Note: added checklist line starts for NP 3.8
-export const RE_ALLOWED_TIME_BLOCK_LINE_START = `(^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])|\\-(?!\\h+\\[[\\-\\>]\\])|\\+(?!\\h+\\[[\\-\\>]\\])|[\\d+]\\.|\\#{1,5}))(\\[\\s\\])?(?=\\s).*?\\s`
-export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_TIMEBLOCK}(?=\\s|$)`
-// console.log(RE_TIMEBLOCK_FOR_THEMES)
+// This section is now removed, as NP handles theming of TBs itself now.
 
 // ------------------------------------------------------------------------------------
 
 /**
  * Decide whether this line contains an active time block.
+ * WARNING: can only be used from HTMLWindow if the second parameter is given (which can be the empty string), as otherwise it calls DataStore.preference("timeblockTextMustContainString").
+ * Also now defeats on timeblock in middle of a [...](filename) or URL.
  * @tests available for jest
  * @author @dwertheimer
  *
@@ -164,7 +175,11 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
         return false
       }
     }
-    const res2 = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    const tbString = getTimeBlockString(contentString)
+    if (isTermInMarkdownPath(tbString, contentString) || isTermInURL(tbString, contentString)) {
+      return false
+    }
+    const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   }
   catch (err) {
@@ -174,7 +189,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
 }
 
 /**
- * Decide whether this paragraph contains an open task
+ * Decide whether this paragraph contains an open task.
  * v2, following news about earlier change of definition (Discord, 3.1.2022)
  * @tests available for jest
  * @author @jgclark
@@ -188,37 +203,22 @@ export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
 
 /**
  * Decide whether this paragraph contains an active time block.
- * Also now defeats on timeblock in middle of a [...](filename) or URL
+ * Note: Needs 'timeblockTextMustContainString' (which may be empty), to avoid calling DataStore function.
  * @tests available for jest
  * @author @jgclark
  *
  * @param {TParagraph} para
+ * @param {string} timeblockTextMustContainString which may be empty.
  * @returns {boolean}
  */
-export function isTimeBlockPara(para: TParagraph): boolean {
-  if (isTypeThatCanHaveATimeBlock(para) && isTimeBlockLine(para.content)) {
-    // now check to see the timeblock isn't inside a URL or the path of a [!][link](path)
-    const tbString = getTimeBlockString(para.content)
-    return (!isTermInURL(tbString, para.content))
-  } else {
-    return false
-  }
+export function isTimeBlockPara(para: TParagraph, timeblockTextMustContainString: string = ''): boolean {
+  // To keep the code simpler, this now just calls a very similar function
+  return isTimeBlockLine(para.content, timeblockTextMustContainString)
 }
 
 /**
- * Find longest string from array of strings
- * @tests available for jest
- * @author @dwertheimer
- *
- * @param {Array<string>} arr
- * @returns {string}
- */
-export const findLongestStringInArray = (arr: Array<string>): string =>
-  arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
-
-/**
- * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
- * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
+ * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line).
+ * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line).
  * @tests available for jest
  * @author @dwertheimer
  *
@@ -228,11 +228,214 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
 export const getTimeBlockString = (contentString: string): string => {
   const matchedStrings = []
   if (contentString) {
-    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
+    // logDebug('getTimeBlockString', `reMatch: ${String(reMatch)} for '${contentString}'`)
     if (contentString && reMatch && reMatch.length) {
       matchedStrings.push(reMatch[0].trim())
     }
   }
   // matchedStrings could have several matches, so find the longest one
+  // logDebug('getTimeBlockString', `matchedStrings: ${String(matchedStrings)}`)
   return matchedStrings.length ? findLongestStringInArray(matchedStrings) : ''
+}
+
+/**
+ * Return the start time of a time block in a given paragraph, or else 'none' (which will then sort after times).
+ * @param {string} content to process
+ * @returns {string} e.g. 3:45PM (or 'none' or 'error')
+ */
+export function getStartTimeStrFromParaContent(content: string): string {
+  try {
+    let startTimeStr = 'none'
+    const thisTimeStr = getTimeBlockString(content)
+    startTimeStr = thisTimeStr.split('-')[0]
+    return startTimeStr
+  } catch (error) {
+    logError('getStartTimeStrFromParaContent', `${JSP(error)}`)
+    return 'error'
+  }
+}
+
+/**
+ * Return the end time (if present) of a time block in a given paragraph, or else ''.
+ * @param {string} content to process
+ * @returns {string} e.g. 3:45PM (or '' or 'error')
+ */
+export function getEndTimeStrFromParaContent(content: string): string {
+  try {
+    let endTimeStr = ''
+    const thisTimeStr = getTimeBlockString(content)
+    endTimeStr = thisTimeStr.split('-')[1]
+    return endTimeStr
+  } catch (error) {
+    logError('getEndTimeStrFromParaContent', `${JSP(error)}`)
+    return 'error'
+  }
+}
+
+/**
+ * Return the start time of a time block in a given paragraph, or else 'none' (which will then sort after times)
+ * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * @param {string} content to process
+ * @returns {?{number, number}} {hours, minutes} in 24 hour clock, or null
+ */
+export function getStartTimeObjFromParaContent(content: string): ?{ hours: number, mins: number } {
+  try {
+    let startTimeStr = 'none'
+    let hours = NaN
+    let mins = NaN
+    if (content !== '') {
+      const thisTimeStr = getTimeBlockString(content)
+      if (thisTimeStr !== '') {
+        startTimeStr = thisTimeStr.split('-')[0]
+        const [timeStr, ampm] = startTimeStr.split(RE_AMPM_OPT)
+        if (timeStr.includes(":")) {
+          [hours, mins] = timeStr.split(':').map(Number)
+        } else {
+          hours = Number(timeStr)
+        }
+        if (ampm && ampm.toLowerCase() === 'pm' && hours !== 12) {
+          hours += 12
+        } else if (ampm && ampm.toLowerCase() === 'am' && hours === 12) {
+          hours = 0
+        }
+        logDebug('getStartTimeObjFromParaContent', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
+      } else {
+        return
+      }
+    }
+    const startTime = { hours: hours, mins: mins }
+    return startTime
+  } catch (error) {
+    logError('getStartTimeObjFromParaContent', `${JSP(error)}`)
+    return //{ hours: NaN, mins: NaN }
+  }
+}
+
+/**
+ * Return the end time of time block in a given paragraph, or else 'none' (which will then sort after times)
+ * Copes with 'AM' and 'PM' suffixes. Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * @param {string} content to process
+ * @returns {{number, number}} {hours, minutes} in 24 hour clock
+ */
+export function getEndTimeObjFromParaContent(content: string): { hours: number, mins: number } {
+  try {
+    let endTimeStr = 'none'
+    let hours = NaN
+    let mins = NaN
+    if (content !== '') {
+      const thisTimeStr = getTimeBlockString(content)
+      if (thisTimeStr !== '') {
+        endTimeStr = thisTimeStr.split('-')[1]
+        const [timeStr, ampm] = endTimeStr.split(RE_AMPM_OPT)
+        if (timeStr.includes(":")) {
+          [hours, mins] = timeStr.split(':').map(Number)
+        } else {
+          hours = Number(timeStr)
+        }
+        if (ampm.toLowerCase() === 'pm' && hours !== 12) {
+          hours += 12
+        } else if (ampm.toLowerCase() === 'am' && hours === 12) {
+          hours = 0
+        }
+        logDebug('getEndTimeObjFromParaContent', `timeStr = ${endTimeStr} from timeblock ${thisTimeStr}`)
+      }
+    }
+    const startTime = { hours: hours, mins: mins }
+    return startTime
+  } catch (error) {
+    logError('getEndTimeObjFromParaContent', `${JSP(error)}`)
+    return { hours: NaN, mins: NaN }
+  }
+}
+
+/**
+ * Retrieves the first para in the note that has a timeblock that covers the current time. It ignores done/cancelled tasks or checklist lines.
+ * Note: Dates are ignored in the check.
+ * 
+ * @param {TNote} note - The note object containing paragraphs to search for time blocks.
+ * @param {boolean?} excludeClosedParas? (default: false)
+ * @returns {?TParagraph}
+ */
+export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean = false, mustContainString: string = ''): ?TParagraph {
+  try {
+    const currentTimeMom = moment()
+    // logDebug('getCurrentTimeBlock', `currentTimeMom: ${currentTimeMom.format('HH:mm:ss')}`)
+
+    for (const para of note.paragraphs) {
+      // Ignore completed and text paras 
+      if (excludeClosedParas && ['done', 'cancelled', 'checklistDone', 'checklistCancelled', 'text'].includes(para.type)) {
+        // logDebug('getCurrentTimeBlock', `- ignored {${para.content}} as its of type ${para.type}`)
+        continue
+      }
+      if (isTimeBlockLine(para.content, mustContainString)) {
+        // const timeBlockString = getTimeBlockString(para.content)
+
+        // V3 using Moment
+        const startTimeStr = getStartTimeStrFromParaContent(para.content)
+        const endTimeStr = getEndTimeStrFromParaContent(para.content)
+        const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+        const endTimeMom = moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+        // logDebug('getCurrentTimeBlock', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${timeBlockString}`)
+
+        // See if this is between those times (including start time but excluding end time)
+        if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')) {
+          // logDebug('getCurrentTimeBlock', `Found current timeblock ${timeBlockString} in para {${para.content}}`)
+          return para
+        }
+      }
+    }
+    // None found
+    return null
+  } catch (err) {
+    logError('getCurrentTimeBlock', err.message)
+    return null
+  }
+}
+
+/**
+ * Retrieves the details of the current active time block from a note.
+ * See getCurrentTimeBlockPara() above for details of how it works.
+ * If a matching time block is found, it returns the time block string and the content of the paragraph without the time block.
+ * 
+ * @param {TNote} note - The note object containing paragraphs to search for time blocks
+ * @param {string} timeblockTextMustContainString which may be empty
+ * @returns {[string, string]} A tuple of the time block string, and the paragraph content without the time block (and any mustContainString). Returns an empty tuple if no current time block is found.
+ */
+export function getCurrentTimeBlockDetails(note: TNote, timeblockTextMustContainString: string = ''): [string, string] {
+  try {
+    const matchingPara = getCurrentTimeBlockPara(note, true, timeblockTextMustContainString)
+
+    if (matchingPara) {
+      const timeBlockParaContent = matchingPara.content
+      const [timeBlockString, contentWithoutTimeBlock] = getTimeBlockDetails(timeBlockParaContent, timeblockTextMustContainString)
+      return [timeBlockString, contentWithoutTimeBlock]
+    } else {
+      return ['', ''] // Return an empty tuple if no current time block is found
+    }
+  } catch (err) {
+    logError('getCurrentTimeBlockDetails', err.message)
+    return ['', ''] // Return an empty tuple as a fallback
+  }
+}
+
+/**
+ * Retrieves the details of the time block in the given content string.
+ * See getCurrentTimeBlockPara() above for details of how it works.
+ * If a matching time block is found, it returns the time block string and the content of the paragraph without the time block.
+ * 
+ * @param {string} content - The found timeblock
+ * @param {string} timeblockTextMustContainString which may be empty
+ * @returns {[string, string]} A tuple of the time block string, and the paragraph content without the time block (and any mustContainString). Returns an empty tuple if no current time block is found.
+ */
+export function getTimeBlockDetails(content: string, timeblockTextMustContainString: string = ''): [string, string] {
+  try {
+    const timeBlockString = getTimeBlockString(content)
+    const contentWithoutTimeBlock = content.replace(timeBlockString, '').replace(timeblockTextMustContainString, '').trim()
+    logDebug('getTimeBlockDetails', `${timeBlockString} / ${timeblockTextMustContainString} / ${contentWithoutTimeBlock}`)
+    return [timeBlockString, contentWithoutTimeBlock]
+  } catch (err) {
+    logError('getTimeBlockDetails', err.message)
+    return ['', ''] // Return an empty tuple as a fallback
+  }
 }

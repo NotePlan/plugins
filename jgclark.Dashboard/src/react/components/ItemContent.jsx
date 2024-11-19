@@ -1,13 +1,14 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated 2024-09-13 for v2.1.0.a11 by @jgclark
+// Last updated v2.1.0.a
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
-import { clo, logDebug, logError } from '@helpers/react/reactDev'
+import { replaceArrowDatesInString } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo } from '@helpers/react/reactDev'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
@@ -23,15 +24,14 @@ import {
   convertMentionsToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
-  // convertTimeBlockToHTML,
+  convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
 } from '@helpers/HTMLView'
 import { RE_SCHEDULED_DATES_G } from '@helpers/regex'
-import { findLongestStringInArray, RE_TIMEBLOCK_APP } from '@helpers/timeblocks'
-import { replaceArrowDatesInString } from '@helpers/dateTime'
+// import { getTimeBlockString } from '@helpers/timeblocks'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 type Props = {
@@ -136,9 +136,14 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
  * @author @jgclark
  * @param {SectionItem} thisItem
  * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
+ timeblockM @param {string?} mustContainString? if not given, then will attempt to read from NP app setting instead
  * @returns {string} HTML string
  */
 function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, truncateLength: number = 0): string {
+  thisItem: TSectionItem,
+  truncateLength: number = 0,
+  timeblockTextMustContainString: string = ''
+): string {
   try {
     const { para } = thisItem
     if (!para || !para.content) {
@@ -187,8 +192,8 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display time blocks with .timeBlock style
     if (thisItem.para?.startTime && thisItem.para?.startTime !== 'none') {
-      // logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
-      output = convertTimeBlockToHTML(output)
+      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      output = convertTimeBlockToHTML(output, timeblockTextMustContainString)
     }
 
     // Display strikethrough with .strikethrough style
@@ -311,37 +316,15 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
   }
 }
 
-// Display time blocks with .timeBlock style
-// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
-// Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
-function convertTimeBlockToHTML(input: string): string {
-  const timeBlockPart = getTimeBlockString(input)
-  // logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
-  const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+// // Display time blocks with .timeBlock style
+// // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// // Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
+// function convertTimeBlockToHTML(input: string): string {
+//   const timeBlockPart = getTimeBlockString(input)
+//   // logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
+//   const output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+//   // }
+//   return output
   // }
-  return output
-}
-
-/**
- * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
- * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
- * @tests available for jest
- * @author @dwertheimer
- *
- * @param {string} contentString
- * @returns {string} the time portion of the timeblock line
- */
-const getTimeBlockString = (contentString: string): string => {
-  // logDebug('getTimeBlockString', `for '${contentString}'...`)
-  const matchedStrings = []
-  if (contentString) {
-    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
-    if (contentString && reMatch && reMatch.length) {
-      matchedStrings.push(reMatch[0].trim())
-    }
-  }
-  // matchedStrings could have several matches, so find the longest one
-  return matchedStrings.length ? findLongestStringInArray(matchedStrings) : ''
-}
 
 export default ItemContent

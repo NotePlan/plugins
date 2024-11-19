@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2024-10-23 for v2.0.7 by @jgclark
+// Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
+import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddItem,
   doCancelChecklist,
@@ -48,8 +48,14 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import { doMoveFromCalToCal, scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveClickHandlers'
-import { getDashboardSettings, makeDashboardParas } from './dashboardHelpers'
+import {
+  doMoveFromCalToCal,
+  scheduleAllOverdueOpenToToday,
+  scheduleAllThisWeekNextWeek,
+  scheduleAllTodayTomorrow,
+  scheduleAllYesterdayOpenToToday
+} from './moveClickHandlers'
+import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
@@ -282,6 +288,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'incrementallyRefreshSections': {
+        logInfo('bCDI / incrementallyRefreshSections', `calling incrementallyRefreshSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
+        clo(data, '(startup only) data arriving in bCDI / incrementallyRefreshSections')
         result = await incrementallyRefreshSections(data)
         break
       }
@@ -334,8 +342,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 }
 
 /**
- * One function to handle all actions on return from the various handlers
- * An attempt to reduce duplicated code in each
+ * One function to handle all actions on return from the various handlers.
  * @param {TBridgeClickHandlerResult} handlerResult
  * @param {MessageDataObject} data
  */
@@ -386,14 +393,21 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
       }
-      if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logDebug('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections()`)
+      if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
+        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
+        const config: any = await getDashboardSettings()
+        const enabledSections = getListOfEnabledSections(config)
+        logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSections (for ${String(enabledSections)}) ...`)
+        await incrementallyRefreshSections({ ...data, sectionCodes: enabledSections })
+      }
+      else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
+        logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections ...`)
         // await refreshAllSections() // this works fine
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
       }
-      if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        const wantedsectionCodes = ['DT', 'DY', 'DO', 'W', 'M', 'Q']
-        for (const sectionCode of wantedsectionCodes) {
+      else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+        logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSections (for ${String(allCalendarSectionCodes)}) ..`)
+        for (const sectionCode of allCalendarSectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
@@ -408,12 +422,12 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
-        logDebug('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData(['${String(wantedsectionCodes)}']`)
+        logInfo('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
         // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
         await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
       }
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-        logDebug('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
+        logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
         const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
         reactWindowData.pluginData.startDelayedRefreshTimer = true
         await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
@@ -541,6 +555,9 @@ export async function checkForThemeChange(): Promise<void> {
     // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Theme Changed; Changing reactWindowData.themeName`)
 
     // ... so for now, force a reload instead
-    await showDashboardReact('full')
+    // V1
+    // await showDashboardReact('full')
+    // V2: use callback to avoid creating circular dependency
+    DataStore.invokePluginCommandByName('showDashboardReact', 'jgclark.Dashboard', ['full'])
   }
 }

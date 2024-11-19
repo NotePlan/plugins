@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dialog for tasks
 // Called by TaskItem component
-// Last updated 2024-09-20 for v2.1.0.a12 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 // Notes:
 // - onClose & detailsMessageObject are passed down from Dashboard.jsx::handleDialogClose
@@ -177,7 +177,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   }
 
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
-    logDebug(`DialogForTaskItems 🥸 scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
+    logDebug(`DialogForTaskItems`, `🥸 scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
       console.log('DialogForTaskItems 🥸 scheduleClose() after timout reactSettings; looking for interactiveProcessing', reactSettings)
       // $FlowIgnore 
@@ -243,14 +243,13 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
 
   // handle a single item (and its children) being processed in interactive processing
   const handleIPItemProcessed = (skippedItem?: boolean = false, skipForward?: boolean = true) => {
-    console.log('DialogForTaskItems 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings:', reactSettings)
+    clo(reactSettings, `DialogForTaskItems: 🥸 handleIPItemProcessed calling handleIPItemProcessed; reactSettings=`)
     const { visibleItems, currentIPIndex } = (reactSettings?.interactiveProcessing || {})
-    console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleIPItemProcessed function', reactSettings)
     if (!visibleItems) return
     if (typeof currentIPIndex !== 'number') return
 
     if (!skippedItem) visibleItems[currentIPIndex].processed = true
-    logDebug('Section', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
+    logDebug('DialogForTaskItems', `handleIPItemProcessed currentIPIndex=${String(currentIPIndex)}`)
     // check if there are children to skip over
     if (!skippedItem && visibleItems[currentIPIndex].para?.hasChild && visibleItems.length > currentIPIndex) {
       // also remove any children of the first item
@@ -267,7 +266,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     }
     const newIPIndex = getNextIPIndex(!skipForward)
     if (newIPIndex !== -1) {
-      logDebug('Section', `newIPIndex=${String(newIPIndex)}; visibleItems.length=${String(visibleItems.length)}; about to save to reactSettings`)
+      logDebug('DialogForTaskItems', `newIPIndex=${String(newIPIndex)}; visibleItems.length=${String(visibleItems.length)}; about to save to reactSettings`)
       setReactSettings(prevSettings => ({
         ...prevSettings,
         interactiveProcessing: { ...prevSettings.interactiveProcessing, currentIPIndex: newIPIndex, visibleItems },
@@ -275,7 +274,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
         lastChange: `_Dashboard-handleIPItemProcessed more IP items to process`,
       }))
     } else {
-      logDebug('Section', `newIPIndex=${String(newIPIndex)}>${visibleItems.length}; about to save to reactSettings`)
+      logDebug('DialogForTaskItems', `newIPIndex=${String(newIPIndex)}>${visibleItems.length}; about to save to reactSettings`)
       setReactSettings(prevSettings => ({
         ...prevSettings,
         interactiveProcessing: null,
@@ -299,7 +298,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
       altKey,
     )} ctrlKey: ${String(ctrlKey)} shiftKey: ${String(shiftKey)}`,
     )
-    // $FlowIgnore
+    // $FlowIgnore[prop-missing]
     const updatedContent = inputRef?.current?.getValue() || ''
     if (controlStr === 'update') {
       logDebug(`DialogForTaskItems`, `handleButtonClick - orig content: {${currentContent}} / updated content: {${updatedContent}}`)

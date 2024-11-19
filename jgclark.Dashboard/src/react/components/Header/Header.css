@@ -1,5 +1,5 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2024-08-26 for v2.1.0.a9 by @jgclark */
+/* Last updated for v2.1.0.a */
 /* Note: until 2.1.0.a8 was grid-based. But from a9 realised that flex is the natural, and thus easier, tool to use. */
 
 /* Settings for flex-based layout */
@@ -92,7 +92,8 @@
 		cursor: pointer;
 		/* Make button a little darker on hover */
 		&:hover {
-			color: hsl(from var(--tint-color) h s calc(l*0.8));
+			/* color: hsl(from var(--tint-color) h s calc(l*0.8)); */
+			color: hsl(from currentcolor h s calc(l*0.8));
 		}
 	}
 }
@@ -104,6 +105,7 @@
 }
 
 /* For buttons in header area */
+/* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
 .HAButton {
 	font-size: 0.92rem;
 	font-weight: 500;
@@ -119,8 +121,8 @@
 	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
 
-	/* fa-icons in HA Button */
-	&:i {
+	/* color FA icons in these Buttons */
+	i {
 		color: var(--tint-color);
 	}
 }

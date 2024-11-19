@@ -243,7 +243,8 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
-    // const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command // TEST: uncommenting as unused?
+    // TODO: appear unused ...
+    // const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
     const sendMessageToPluginFunction = `
       const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
     `
@@ -278,7 +279,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
         </script>
       `,
     }
-    //TODO: add the loglevle to the template and the dialog test
+    //TODO: add the loglevel to the template and the dialog test
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
@@ -308,8 +309,8 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       pluginData,
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
-      dataMode: 'live', // or 'demo' or 'test' TODO:
+      debug: true, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      dataMode: 'live', // or 'demo' or ?'test'?
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
@@ -345,8 +346,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
-
+  // - then once the HTML Window is available, Dashboard.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
   const sections =
     dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
       ? await getAllSectionsData(useDemoData, true, true)
@@ -354,6 +354,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
 
   const NPSettings = getNotePlanSettings()
 
+  // $FlowFixMe[prop-missing] TODO(@dwertheimer): is it OK this is missing perpsectiveSections?
   const pluginData: TPluginData = {
     sections: sections,
     lastFullRefresh: new Date(),
@@ -424,7 +425,6 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       case 'SHOW_BANNER':
         sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SHOW_BANNER', dataToSend)
         break
-      // WEBVIEW_WINDOW_ID
       // Note: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:

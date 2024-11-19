@@ -3,16 +3,17 @@
 // Represents a row item within a section.
 // Could be: Task, Review Item, Filtered Indicator, No Tasks left or No Projects.
 // Called by ItemGrid component.
-// Last updated 2024-09-12 for v2.1.0.a10 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 import React, { type Node } from 'react'
 import type { TSectionItem, TSection } from '../../types.js'
+import NoProjects from './NoProjects.jsx'
+import NoTasks from './NoTasks.jsx'
 import ProjectItem from './ProjectItem.jsx'
 import TaskItem from './TaskItem.jsx'
 import TasksFiltered from './TasksFiltered.jsx'
-import NoTasks from './NoTasks.jsx'
-import NoProjects from './NoProjects.jsx'
+import TimeBlockInfo from './TimeBlockInfo.jsx'
 import { logDebug, logInfo } from '@helpers/react/reactDev'
 
 type Props = {
@@ -37,6 +38,8 @@ function ItemRow({ item, thisSection }: Props): Node {
         <TasksFiltered item={item} />
       ) : itemType === 'itemCongrats' ? (
         <NoTasks />
+            ) : itemType === 'timeblock' ? (
+              <TimeBlockInfo item={item} thisSection={thisSection} />
       ) : (
         <TaskItem item={item} thisSection={thisSection} />
       )}

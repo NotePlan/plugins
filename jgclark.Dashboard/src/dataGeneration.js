@@ -13,6 +13,7 @@ import { getTagSectionDetails } from './react/components/Section/sectionHelpers.
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   getDashboardSettings,
+  getListOfEnabledSections,
   getNotePlanSettings,
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
@@ -39,16 +40,19 @@ import {
   getNPMonthStr,
   getNPQuarterStr,
   getNPWeekStr,
+  getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   filenameIsInFuture,
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
+import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { getCurrentTimeBlockPara, getTimeBlockDetails } from '@helpers/timeblocks'
 import { isOpen, isOpenTask } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -70,18 +74,25 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     const config: any = await getDashboardSettings()
     // clo(config, 'getAllSectionsData config is currently',2)
 
-    let sections: Array<TSection> = []
-    sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
-    if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
-    // out of display order, but quicker to generate
-    if (forceLoadAll || config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
-    if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
-    if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
-    if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+    // V1
+    // if (forceLoadAll || config.showTimeBlockSection) sections.push(getTimeBlockSectionData(config, useDemoData))
+    // sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
+    // // out of display order, but quicker to generate
+    // if (forceLoadAll || config.showProjectSection) sections.push(await getProjectSectionData(config, useDemoData))
+    // if (forceLoadAll || config.tagsToShow) sections = sections.concat(getTaggedSections(config, useDemoData))
+    // if (forceLoadAll || config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
+    // if (forceLoadAll || config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
+
+    // V2
+    // Work out which sections to show
+    const sectionsToShow: Array<TSectionCode> = forceLoadAll ? allSectionCodes : getListOfEnabledSections(config)
+    logInfo('getAllSectionDetails', `${String(sectionsToShow.length)} sections to show: ${String(sectionsToShow)}`)
+    const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible)
 
     return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
   } catch (error) {
@@ -107,6 +118,7 @@ export async function getSomeSectionsData(
     const config: TDashboardSettings = await getDashboardSettings()
 
     let sections: Array<TSection> = []
+    if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DO') && config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
@@ -125,6 +137,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('OVERDUE') && config.showOverdueSection) sections.push(await getOverdueSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('PRIORITY') && config.showPrioritySection) sections.push(await getPrioritySectionData(config, useDemoData))
 
+    sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
     return sections
   } catch (error) {
     logError('getSomeSectionDetails', error.message)
@@ -155,8 +168,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     // const thisFilename = currentDailyNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} --------`)
-    const startTime = new Date() // for timing only
+    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} --------`)
+    const timer = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section items
@@ -177,12 +190,12 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       if (currentDailyNote) {
         // const filenameDateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(filenameDateStr)) {
-          logError('getDataForDashboard', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
+          logError('getTodaySectionData', `- found filename '${thisFilename}' but '${filenameDateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
-        // logDebug('getDataForDashboard', `getOpenItemParasForCurrentTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
+        [sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
+        // logDebug('getTodaySectionData', `getOpenItemParasForCurrentTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // write items for first (or combined) section
         let lastIndent0ParentID = ''
@@ -231,7 +244,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           itemCount++
         }
       } else {
-        logDebug('getDataForDashboard', `No daily note found using filename '${thisFilename}'`)
+        logDebug('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
       }
     }
 
@@ -245,7 +258,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sectionCode: thisSectionCode,
       description: `{count} from ${todayDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-star',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
@@ -331,7 +344,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${todayDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-star',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
@@ -340,7 +353,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       sections.push(section)
     }
 
-    logDebug('getDataForDashboard', `- found ${itemCount} daily items from ${filenameDateStr} in ${timer(startTime)}`)
+    logTimer('getTodaySectionData', timer, `- found ${itemCount} daily items from ${filenameDateStr}`)
 
     return sections
   } catch (error) {
@@ -373,7 +386,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} ----------`)
+    logInfo('getDataForDashboard', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -421,7 +434,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sectionCode: thisSectionCode,
       description: `{count} from ${yesterdayDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-arrow-up',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -474,7 +487,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${yesterdayDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-star',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -484,7 +497,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
       sections.push(section)
     }
 
-    logDebug('getDataForDashboard', `- found ${itemCount} yesterday items from ${filenameDateStr} in ${timer(startTime)}`)
+    logTimer('getDataForDashboard', startTime, `- found ${itemCount} yesterday items from ${filenameDateStr}`)
     return sections
   } catch (error) {
     logError(`getYesterdaySectionData`, error.message)
@@ -561,7 +574,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
       sectionCode: thisSectionCode,
       description: `{count} from ${tomorrowDateLocale}`,
       FAIconClass: 'fa-light fa-calendar-arrow-down',
-      sectionTitleClass: 'sidebarDaily',
+      sectionTitleColorPart: 'sidebarDaily',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -604,7 +617,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${tomorrowDateLocale}`,
         FAIconClass: 'fa-light fa-calendar-arrow-down',
-        sectionTitleClass: 'sidebarDaily',
+        sectionTitleColorPart: 'sidebarDaily',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -686,7 +699,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-week',
-      sectionTitleClass: 'sidebarWeekly',
+      sectionTitleColorPart: 'sidebarWeekly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -763,7 +776,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-week',
-        sectionTitleClass: 'sidebarWeekly',
+        sectionTitleColorPart: 'sidebarWeekly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -843,7 +856,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-range',
-      sectionTitleClass: 'sidebarMonthly',
+      sectionTitleColorPart: 'sidebarMonthly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -912,7 +925,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-range',
-        sectionTitleClass: 'sidebarMonthly',
+        sectionTitleColorPart: 'sidebarMonthly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -986,7 +999,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
       sectionCode: thisSectionCode,
       description: `{count} from ${dateStr}`,
       FAIconClass: 'fa-light fa-calendar-days',
-      sectionTitleClass: 'sidebarQuarterly',
+      sectionTitleColorPart: 'sidebarQuarterly',
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
@@ -1050,7 +1063,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         sectionCode: thisSectionCode,
         description: `{count} scheduled to ${dateStr}`,
         FAIconClass: 'fa-light fa-calendar-days',
-        sectionTitleClass: 'sidebarQuarterly',
+        sectionTitleColorPart: 'sidebarQuarterly',
         sectionFilename: thisFilename,
         sectionItems: items,
         generatedDate: new Date(),
@@ -1134,21 +1147,20 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
       for (const n of notesWithTag) {
         // Don't continue if this note is in an excluded folder
         const thisNoteFolder = getFolderFromFilename(n.filename)
-        if (config.excludedFolders.includes(thisNoteFolder)) {
+        if (stringListOrArrayToArray(config.excludedFolders, ',').includes(thisNoteFolder)) {
           // logDebug('getTaggedSectionData', `- ignoring note '${n.filename}' as it is in an ignored folder`)
           continue
         }
 
         // Get the relevant paras from this note
         const tagParasFromNote = n.paragraphs.filter((p) => p.content?.includes(sectionDetail.sectionName))
-        // logDebug('getTaggedSectionData', `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename} after ${timer(thisStartTime)}`)
-        // clo(tagParasFromNote, `tagParasFromNote for ${sectionDetail.sectionName} in ${n.filename}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- found ${tagParasFromNote.length} paras containing ${sectionDetail.sectionName} in ${n.filename}`)
 
         // Further filter out checklists and otherwise empty items
         const filteredTagParasFromNote = config.ignoreChecklistItems
           ? tagParasFromNote.filter((p) => isOpenTask(p) && p.content.trim() !== '')
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
-        // logDebug('getTaggedSectionData', `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras, after ${timer(thisStartTime)}`)
+        // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
         // Save this para, unless in matches the 'ignoreItemsWithTerms' setting
         for (const p of filteredTagParasFromNote) {
@@ -1158,9 +1170,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
             // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreItemsWithTerms}'`)
           }
         }
-        // logDebug('getTaggedSectionData', `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras, after ${timer(thisStartTime)}`)
+        logTimer('getTaggedSectionData', thisStartTime, `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
       }
-      // logDebug('getTaggedSectionData', `- ${filteredTagParas.length} paras (after ${timer(thisStartTime)})`)
+      // logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')
@@ -1176,7 +1188,6 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
         // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
         // Note: this is a quick operation
         // const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
-        // logTimer('getTaggedSectionData',thisStartTime, `- after deduping overdue -> ${filteredReducedParas.length}`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
         // Note: this is a quick operation
@@ -1223,7 +1234,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
     sectionCode: thisSectionCode,
     description: tagSectionDescription,
     FAIconClass: isHashtag ? 'fa-light fa-hashtag' : 'fa-light fa-at',
-    sectionTitleClass: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
+    sectionTitleColorPart: isHashtag ? 'sidebarHashtag' : 'sidebarMention',
     sectionFilename: '',
     sectionItems: items,
     totalCount: totalCount, // Note: Now not sure how this is used (if it is)
@@ -1329,7 +1340,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
       sectionCode: thisSectionCode,
       description: overdueSectionDescription,
       FAIconClass: 'fa-regular fa-alarm-exclamation',
-      sectionTitleClass: 'overdue',
+      // no sectionTitleColorPart, so will use default
       sectionFilename: '',
       sectionItems: items,
       generatedDate: new Date(),
@@ -1447,7 +1458,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
       description: prioritySectionDescription,
       FAIconClass: 'fa-regular fa-angles-up',
       // FAIconClass: 'fa-light fa-star-exclamation',
-      sectionTitleClass: 'priority',
+      // no sectionTitleColorPart, so will use default
       sectionFilename: '',
       sectionItems: items,
       generatedDate: new Date(),
@@ -1536,7 +1547,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
     sectionItems: items,
     FAIconClass: 'fa-regular fa-chart-gantt',
     // FAIconClass: 'fa-light fa-square-kanban',
-    sectionTitleClass: 'projects',
+    // no sectionTitleColorPart, so will use default
     generatedDate: new Date(),
     actionButtons: [
       {
@@ -1551,6 +1562,104 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   // console.log(JSON.stringify(section))
   logTimer('getProjectSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
   return section
+}
+
+/**
+ * Get the current time block paras from Today's note if it exists. Ignore any time block paras that are done or cancelled.
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData?
+ * @returns {Array<TSection>} 
+ */
+export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData: boolean = false): TSection {
+  try {
+    const sectionNum = '16'
+    const thisSectionCode = 'TB'
+    const items: Array<TSectionItem> = []
+    const NPSettings = getNotePlanSettings()
+    const mustContainString = NPSettings.timeblockMustContainString
+    const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
+    const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+    const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
+    logInfo('getTimeBlockSectionData', `--------- Gathering${useDemoData ? ' DEMO' : ''} time blocks from ${filenameDateStr} --------`)
+    const startTime = new Date() // for timing only
+    let timeblockPara: ?TParagraph
+
+    if (useDemoData) {
+      const fakeTodayNoteParagraphs: Array<TParagraphForDashboard> = []
+      for (const item of openTodayItems) {
+        if (item.para) fakeTodayNoteParagraphs.push(item.para)
+      }
+      // $FlowFixMe[prop-missing] 
+      // $FlowFixMe[incompatible-type]
+      const fakeTodayNote: TNote = {
+        // $FlowFixMe[incompatible-type]
+        // $FlowFixMe[prop-missing] 
+        // $FlowFixMe[incompatible-exact]
+        paragraphs: fakeTodayNoteParagraphs,
+        type: 'Calendar',
+        title: getTodaysDateHyphenated(),
+        filename: `${filenameDateStr}.md`
+      }
+      timeblockPara = getCurrentTimeBlockPara(fakeTodayNote, true, mustContainString)
+    } else {
+      // Get list of open tasks/checklists from current daily note (if it exists)
+      if (currentDailyNote) {
+        timeblockPara = getCurrentTimeBlockPara(currentDailyNote, true, mustContainString)
+      } else {
+        logDebug('getTimeBlockSectionData', `No daily note found using filename '${filenameDateStr}'`)
+      }
+    }
+
+    if (!timeblockPara) {
+      logDebug('getTimeBlockSectionData', `-> none`)
+    } else {
+      const timeBlockParaContent = timeblockPara?.content ?? ''
+      const [timeBlockString, contentWithoutTimeBlock] = getTimeBlockDetails(timeBlockParaContent, mustContainString)
+      logDebug('getTimeBlockSectionData', `-> ${timeBlockString} / ${contentWithoutTimeBlock}`)
+
+      // write item for section
+      const thisID = `${sectionNum}-0`
+      const thisDPara = makeDashboardParas([timeblockPara])[0]
+      // change text so that time details are always at the front
+      // If this timeblock is on a task or checklist line, leave the type alone, otherwise make it type 'timeblock'. This affects StatusIcon.
+      thisDPara.content = `${timeBlockString} ${contentWithoutTimeBlock}`
+      const thisSectionItemObject = { ID: thisID, itemType: 'timeblock', para: thisDPara }
+      // $FlowFixMe[incompatible-call]
+      items.push(thisSectionItemObject)
+    }
+
+    const section: TSection = {
+      ID: sectionNum,
+      name: 'Current time block',
+      showSettingName: 'showTimeBlockSection',
+      sectionCode: thisSectionCode,
+      description: '', //`current time block`,
+      FAIconClass: 'fa-light fa-calendar-clock',
+      sectionTitleColorPart: 'sidebarYearly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      actionButtons: [
+        // {
+        //   // TODO Perhaps 'change times'?
+        //   actionName: 'addTask',
+        //   actionParam: thisFilename,
+        //   actionPluginID: `${pluginJson["plugin.id"]}`,
+        //   display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+        //   tooltip: "Add a new task to today's note",
+        //   postActionRefresh: ['DT'],
+        // },
+      ],
+    }
+    // clo(section)
+    logTimer('getTimeBlockSectionData', startTime, `- found Current Time Block from ${filenameDateStr}`)
+
+  return section
+  } catch (error) {
+    logError(`getTimeBlockSectionData`, error.message)
+    // $FlowFixMe[incompatible-return]
+    return null
+  }
 }
 
 /**

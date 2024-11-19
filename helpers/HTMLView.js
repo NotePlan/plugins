@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-12 by @jgclark
+// Last updated 2024-11-09 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -930,11 +930,11 @@ export function convertHighlightsToHTML(input: string): string {
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
 // WARNING: can't be used from React, as this calls a DataStore function
-export function convertTimeBlockToHTML(input: string): string {
+export function convertTimeBlockToHTML(input: string, timeblockTextMustContainString: string = ''): string {
   let output = input
-  if (isTimeBlockLine(input)) {
-    const timeBlockPart = getTimeBlockString(input)
-    logDebug(`found time block '${timeBlockPart}'`)
+  if (isTimeBlockLine(input, timeblockTextMustContainString)) {
+    const timeBlockPart = getTimeBlockString(input, timeblockTextMustContainString)
+    logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
     output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   }
   return output

@@ -244,11 +244,10 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           labelPosition="left"
         />
         {/* Cog Icon for opening the settings dialog */}
-        <div>
+        <div className="dropdown">
           <i
             className="fa-solid fa-gear"
             onClick={handleToggleDialog}
-            // style={{ cursor: 'pointer' }}
           ></i>
         </div>
       </div>
