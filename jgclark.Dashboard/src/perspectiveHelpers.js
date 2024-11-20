@@ -13,6 +13,7 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -105,6 +106,14 @@ export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys
   }
 }
 
+function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
+  if (perspectiveSettings.find((s) => s.name === '-') === undefined) {
+    // $FlowFixMe[prop-missing] // an empty dashboardSettings is ok but does not match TDashboardSettings
+    return [...perspectiveSettings, { name: '-', isModified: false, dashboardSettings: dashboardSettingsDefaults, isActive: false }]
+  }
+  return perspectiveSettings
+}
+
 //-----------------------------------------------------------------------------
 // Getters
 //-----------------------------------------------------------------------------
@@ -127,9 +136,8 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
-      const settingsArr = parseSettings(perspectiveSettingsStr) ?? []
-      logPerspectives(settingsArr)
-      return settingsArr
+      perspectiveSettings = parseSettings(perspectiveSettingsStr) ?? []
+      logPerspectives(perspectiveSettings)
     } else {
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
@@ -137,8 +145,8 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
 
       // persist and return
       savePerspectiveSettings(perspectiveSettings)
-      return perspectiveSettings
     }
+    return ensureDefaultPerspectiveExists(perspectiveSettings)
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []

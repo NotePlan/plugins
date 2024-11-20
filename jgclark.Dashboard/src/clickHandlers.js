@@ -199,8 +199,8 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 /**
  * Evaluate JS string and return result
  * WARNING: DO NOT USE THIS FOR ANYTHING OTHER THAN TESTING.
- * @param {MessageDataObject} data 
- * @returns 
+ * @param {MessageDataObject} data
+ * @returns
  */
 export async function doEvaluateString(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const { stringToEvaluate } = data
@@ -740,14 +740,25 @@ export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBrid
 
 export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await addNewPerspective()
-  const updatesToPluginData = { perspectiveSettings: JSON.parse(DataStore.settings.perspectiveSettings) }
+  const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
   await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
 }
 
 export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await deletePerspective(data.perspectiveName)
-  const updatesToPluginData = { perspectiveSettings: JSON.parse(DataStore.settings.perspectiveSettings) }
+  let perspectiveSettings = await getPerspectiveSettings()
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  if (!activeDef) {
+    const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
+    if (newPerspSettings) {
+      perspectiveSettings = newPerspSettings
+    } else {
+      logError('doDeletePerspective', `switchToPerspective('-', perspectiveSettings) failed after deleting ${data.perspectiveName || ''}`)
+      return handlerResult(false, [], { errorMsg: `switchToPerspective('-', perspectiveSettings) failed` })
+    }
+  }
+  const updatesToPluginData = { perspectiveSettings: perspectiveSettings, dashboardSettings: await getDashboardSettings() }
   await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
 }
