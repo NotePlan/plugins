@@ -86,12 +86,7 @@ const DropdownMenu = ({
   const handleSaveChanges = useCallback(() => {
     logDebug('DropdownMenu/handleSaveChanges:', `menu:"${className}"  changesMade = ${String(changesMade)}`)
     if (changesMade && onSaveChanges) {
-      logDebug(
-        'DropdownMenu',
-        `handleSaveChanges: calling onSaveChanges with filterPriorityItems=${JSON.stringify(
-          localSwitchStates.filterPriorityItems,
-        )} localSwitchStates.filterPriorityItems=${JSON.stringify(localSwitchStates.filterPriorityItems)}`,
-      )
+      console.log('DropdownMenu', `handleSaveChanges: calling onSaveChanges`, { localSwitchStates })
       onSaveChanges(localSwitchStates)
     }
     setChangesMade(false)

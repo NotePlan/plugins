@@ -73,7 +73,7 @@ export type TDashboardSettings = {
   displayDoneCounts: boolean,
   // sharedSettings: any, // Note: no longer needed after settings refactor
   lastChange: string, // not really a setting, but a way to track the last change made
-  lastModified?: number,
+  lastModified?: string,
 }
 
 export type TDashboardPluginSettings = {
@@ -96,7 +96,7 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB'  // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -150,7 +150,7 @@ export type TParagraphForDashboard = {
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
-  children?: Object // function
+  children?: Object, // function
 }
 
 // a project item within a section

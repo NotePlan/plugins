@@ -127,19 +127,22 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const filterInputRef = useRef<?HTMLInputElement>(null)
   const [activeLogFilter, setActiveLogFilter] = useState<?string>(null)
   const [currentFilter, setCurrentFilter] = useState<?string>(null)
+  const [searchMatches, setSearchMatches] = useState<Array<number>>([])
+  const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1)
 
   const highlightSearchTerm = (text: string, searchTerm: string): React.Node => {
     if (!searchTerm) return text
 
     const regex = useRegexSearch ? new RegExp(searchTerm, 'gi') : new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
     const parts = text.split(regex)
+    const matches = text.match(regex)
 
     return parts.reduce((acc: Array<React.Node>, part: string, index: number) => {
       if (index < parts.length - 1) {
         acc.push(
           part,
           <span key={index} className="highlight">
-            {text.match(regex)?.[index]}
+            {matches ? matches[index] : ''}
           </span>,
         )
       } else {
@@ -180,10 +183,36 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
     setFilterText(e.target.value)
   }, [])
 
-  const handleSearchChange = useCallback((e: SyntheticInputEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value)
-    setSearchIndex(-1)
-  }, [])
+  const handleSearchChange = useCallback(
+    (e: SyntheticInputEvent<HTMLInputElement>) => {
+      const searchValue = e.target.value
+      setSearchText(searchValue)
+      setSearchIndex(-1)
+      const matches = filteredLogs.reduce((acc, log, index) => {
+        const regex = useRegexSearch ? new RegExp(searchValue, 'i') : null
+        if (regex ? regex.test(log.message) : log.message.toLowerCase().includes(searchValue.toLowerCase())) {
+          acc.push(index)
+        }
+        return acc
+      }, [])
+      setSearchMatches(matches)
+      setCurrentMatchIndex(matches.length > 0 ? 0 : -1)
+    },
+    [filteredLogs, useRegexSearch],
+  )
+
+  const navigateSearchMatches = (direction: 'next' | 'prev') => {
+    if (searchMatches.length === 0) return
+    setCurrentMatchIndex((prevIndex) => {
+      const newIndex = direction === 'next' ? prevIndex + 1 : prevIndex - 1
+      const wrappedIndex = (newIndex + searchMatches.length) % searchMatches.length
+      const logElement = document.getElementById(`log-${filteredLogs[searchMatches[wrappedIndex]].timestamp.toISOString()}`)
+      if (logElement) {
+        logElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      return wrappedIndex
+    })
+  }
 
   const clearFilters = useCallback(() => {
     setFilterText('')
@@ -252,7 +281,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const renderedLogs = useMemo(() => {
     return filteredLogs.map((log, index) => {
       const uniqueKey = log.timestamp.toISOString()
-      const isSelected = index === searchIndex
+      const isSelected = searchMatches.includes(index) && index === searchMatches[currentMatchIndex]
       const logClassName = getLogClassName(log.type, log.message, isSelected, index)
 
       return (
@@ -263,7 +292,27 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         </div>
       )
     })
-  }, [filteredLogs, searchText, searchIndex])
+  }, [filteredLogs, searchText, searchMatches, currentMatchIndex])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'f') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      } else if (e.metaKey && e.key === 'g') {
+        e.preventDefault()
+        navigateSearchMatches('next')
+      } else if (e.metaKey && e.shiftKey && e.key === 'G') {
+        e.preventDefault()
+        navigateSearchMatches('prev')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [navigateSearchMatches])
 
   return (
     <div className="console-log-view inner-panel-padding">
@@ -278,6 +327,8 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
           <label>Search:</label>
           <input ref={searchInputRef} type="text" value={searchText} onChange={handleSearchChange} placeholder="Search logs" />
           <button onClick={() => setUseRegexSearch(!useRegexSearch)}>.*</button>
+          <button onClick={() => navigateSearchMatches('prev')}>Prev</button>
+          <button onClick={() => navigateSearchMatches('next')}>Next</button>
         </div>
         <div className="button-group">
           <button onClick={clearFilters}>Clear Filters</button>

@@ -79,6 +79,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleToggleDropdownMenu = useCallback(
     (dropdown: string) => {
+      console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${openDropdownMenu}`)
       if (openDropdownMenu === dropdown) {
         // Closing the dropdown menu
         logDebug('Header/handleToggleDropdownMenu', `Closing dropdown menu ${dropdown}`)
@@ -100,12 +101,13 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
-      logDebug('Header/handleChangesInSettings', `Received updated settings: updatedSettings.excludedFolders=${String(updatedSettings?.excludedFolders)}`)
+      console.log('Header/handleChangesInSettings', `Received updated settings`, { updatedSettings })
       let newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,
       }
+      clo(newSettings, 'Header/handleChangesInSettings about to dispatch newSettings=')
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: newSettings,
@@ -245,10 +247,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         />
         {/* Cog Icon for opening the settings dialog */}
         <div className="dropdown">
-          <i
-            className="fa-solid fa-gear"
-            onClick={handleToggleDialog}
-          ></i>
+          <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
         </div>
       </div>
     </div>

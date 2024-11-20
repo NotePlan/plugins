@@ -21,7 +21,7 @@ import { backupCurrentSettings, restoreSettings, getDashboardSettingsWithShowVar
     try {
       // Create a single perspective with a modified timestamp
       const perspectiveName = 'Template Perspective'
-      const now = Date.now()
+      const now = dtl()
       const perspective = {
         name: perspectiveName,
         isActive: true,

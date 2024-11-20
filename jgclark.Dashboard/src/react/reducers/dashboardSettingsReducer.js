@@ -1,7 +1,7 @@
 // @flow
 import type { TDashboardSettings } from '../../../src/types'
 import { DASHBOARD_ACTIONS } from './actionTypes'
-import { compareObjects, getDiff } from '@helpers/dev'
+import { compareObjects, getDiff, dtl } from '@helpers/dev'
 import { logDebug, logError } from '@helpers/react/reactDev'
 
 export type TDashboardSettingsAction = {
@@ -23,12 +23,13 @@ export function dashboardSettingsReducer(state: TDashboardSettings, action: TDas
       // TODO: remove these diffs when debugging is complete
       const changedProps = compareObjects(state, payload)
       const diff = getDiff(state, payload)
-      changedProps && logDebug('dashboardSettingsReducer BB', `${type} "${reason || ''}" - Changed properties: ${Object.keys(changedProps).join(', ').length} keys changed`)
+      changedProps && logDebug('dashboardSettingsReducer BB', `${type} "${reason || ''}" - Changed properties: ${Object.keys(changedProps).join(', ')} keys changed`)
       console.log(`...dashboardSettingsReducer BC ${type} - diff:`, diff)
       return {
         ...state,
         ...payload,
         lastChange: reason || state.lastChange,
+        lastModified: dtl(),
       }
     }
     default:
