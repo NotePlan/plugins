@@ -34,7 +34,7 @@ const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilt
   )
 
   const toggleButtonStyle = (isActive: boolean) => ({
-    backgroundColor: isActive ? '#007bff' : 'unset',
+    backgroundColor: isActive ? 'var(--tint-color)' : 'unset',
     color: isActive ? '#fff' : '#000',
     border: '1px solid #ccc',
     padding: '2px 5px',

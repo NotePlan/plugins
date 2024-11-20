@@ -147,5 +147,6 @@
   }
 
   button.active {
-    background-color: #007bff;
+    background-color: var(--tint-color);
+    color: #fff;
   }
