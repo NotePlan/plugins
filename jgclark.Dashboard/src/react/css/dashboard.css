@@ -116,7 +116,7 @@ dialog::backdrop {
 	/* make noteTitles bold */
 	font-weight: 700;
 	margin: unset;
-	padding: 3px 0px;
+	padding: 3px 0px 0px;
 	justify-self: start;
 }
 
@@ -128,7 +128,7 @@ dialog::backdrop {
 	align-self: center;
 	border: 0px none;
 	box-shadow: none;
-	padding-top: 1px;
+	padding-top: 3px;
 }
 
 /* Next part of sectionInfo. */

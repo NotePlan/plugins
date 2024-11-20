@@ -87,7 +87,7 @@ export default {
             getContext()
               .pluginData?.sections?.find((section) => section.sectionCode === 'OVERDUE')
               ?.sectionItems?.find((s, i) => {
-                return s.para.content === taskContent
+                return s.para?.content === taskContent
               })
           await waitFor(anonFunc, 'find overdue section with task we created', 20000)
         } catch (error) {
