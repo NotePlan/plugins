@@ -163,7 +163,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         const regex = useRegexFilter ? new RegExp(filterText, 'i') : null
         newFilteredLogs = newFilteredLogs.filter((log) => (regex ? regex.test(log.message) : log.message.toLowerCase().includes(filterText.toLowerCase())))
       } catch (e) {
-        // Invalid regex, ignore filter
+        console.error('Invalid regex:', e)
       }
     }
     return newFilteredLogs
@@ -321,12 +321,16 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
         <div className="control-group">
           <label>Filter:</label>
           <input ref={filterInputRef} type="text" value={filterText} onChange={handleFilterChange} placeholder="Filter logs" />
-          <button onClick={() => setUseRegexFilter(!useRegexFilter)}>.*</button>
+          <button onClick={() => setUseRegexFilter(!useRegexFilter)} className={useRegexFilter ? 'active' : ''}>
+            .*
+          </button>
         </div>
         <div className="control-group">
           <label>Search:</label>
           <input ref={searchInputRef} type="text" value={searchText} onChange={handleSearchChange} placeholder="Search logs" />
-          <button onClick={() => setUseRegexSearch(!useRegexSearch)}>.*</button>
+          <button onClick={() => setUseRegexSearch(!useRegexSearch)} className={useRegexSearch ? 'active' : ''}>
+            .*
+          </button>
           <button onClick={() => navigateSearchMatches('prev')}>Prev</button>
           <button onClick={() => navigateSearchMatches('next')}>Next</button>
         </div>

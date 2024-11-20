@@ -107,7 +107,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         ...tempDashboardSettings,
         ...updatedSettings,
       }
-      clo(newSettings, 'Header/handleChangesInSettings about to dispatch newSettings=')
+      console.log('Header/handleChangesInSettings about to dispatch newSettings=', { newSettings })
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: newSettings,

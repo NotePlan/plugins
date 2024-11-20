@@ -12,7 +12,7 @@ import { TSettingItem } from '../../types'
  * Mock implementation of renderItem used in DropdownMenu.
  * Adjust this mock as per your actual implementation.
  */
-jest.mock('../../support/uiElementRenderHelpersq', () => ({
+jest.mock('../../support/uiElementRenderHelpers', () => ({
   renderItem: jest.fn(({ item }) => <div>{item.label}</div>),
 }))
 

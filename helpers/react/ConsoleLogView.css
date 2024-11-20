@@ -145,3 +145,7 @@
     color: #cfcece;
     padding-right: 10px;
   }
+
+  button.active {
+    background-color: #007bff;
+  }

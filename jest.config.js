@@ -19,6 +19,6 @@ module.exports = {
     '^.+\\.mjs$': 'babel-jest', // Use babel-jest for .mjs files as well
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!node-notifier|uuid)/', // Ensure these modules are transformed
+    '/node_modules/(?!(node-notifier|uuid|lodash-es)/)', // Ensure these modules are transformed
   ],
 }
