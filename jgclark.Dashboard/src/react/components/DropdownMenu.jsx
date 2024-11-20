@@ -83,33 +83,39 @@ const DropdownMenu = ({
     }))
   }
 
-  const handleSaveChanges = useCallback(() => {
-    logDebug('DropdownMenu/handleSaveChanges:', `menu:"${className}"  changesMade = ${String(changesMade)}`)
-    if (changesMade && onSaveChanges) {
-      console.log('DropdownMenu', `handleSaveChanges: calling onSaveChanges`, { localSwitchStates })
-      onSaveChanges(localSwitchStates)
-    }
-    setChangesMade(false)
-    toggleMenu()
-  }, [changesMade, localSwitchStates, onSaveChanges, toggleMenu])
-
-  const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      logDebug('DropdownMenu', 'Escape key detected')
-      handleSaveChanges()
-    }
-  }
+  const handleSaveChanges = useCallback(
+    (shouldToggleMenu: boolean = true) => {
+      logDebug('DropdownMenu/handleSaveChanges:', `menu:"${className}"  changesMade = ${String(changesMade)}`)
+      if (changesMade && onSaveChanges) {
+        console.log('DropdownMenu', `handleSaveChanges: calling onSaveChanges`, { localSwitchStates })
+        onSaveChanges(localSwitchStates)
+      }
+      setChangesMade(false)
+      if (shouldToggleMenu && isOpen) {
+        toggleMenu()
+      }
+    },
+    [changesMade, localSwitchStates, onSaveChanges, toggleMenu, isOpen],
+  )
 
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
-      const isOutsideMenu = dropdownRef.current && !dropdownRef.current.contains((event.target: any))
-      logDebug('DropdownMenu', `menu:"${className}" click detected; isOutsideMenu=${String(isOutsideMenu)} changesMade=${String(changesMade)} `)
-      if (isOutsideMenu) {
-        logDebug('DropdownMenu', `menu:"${className}" Click outside detected and closing dropdown`)
+      if (dropdownRef.current && !dropdownRef.current.contains((event.target: any))) {
+        logDebug('DropdownMenu', 'Click outside detected')
         handleSaveChanges()
       }
     },
-    [changesMade, handleSaveChanges, dropdownRef],
+    [handleSaveChanges],
+  )
+
+  const handleEscapeKey = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        logDebug('DropdownMenu', 'Escape key detected')
+        handleSaveChanges()
+      }
+    },
+    [handleSaveChanges],
   )
 
   //----------------------------------------------------------------------
@@ -120,22 +126,27 @@ const DropdownMenu = ({
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       document.addEventListener('keydown', handleEscapeKey)
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscapeKey)
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscapeKey)
     }
-  }, [isOpen, handleSaveChanges])
+  }, [isOpen, handleClickOutside, handleEscapeKey])
+
+  // Added useEffect to detect when isOpen changes from true to false
+  useEffect(() => {
+    if (!isOpen && changesMade) {
+      logDebug('DropdownMenu', 'Menu is closing; calling handleSaveChanges')
+      handleSaveChanges(false) // We pass false to avoid toggling the menu again
+    }
+  }, [isOpen, changesMade, handleSaveChanges])
 
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
   return (
     <div className={`dropdown ${className}`} ref={dropdownRef}>
-      <i className={iconClass} onClick={toggleMenu} onClick={handleSaveChanges}></i>
+      <i className={iconClass} onClick={toggleMenu}></i>
       <div className={`dropdown-content  ${isOpen ? 'show' : ''}`}>
         <div className="changes-pending">{changesMade ? `Changes pending. Will be applied when you close the menu.` : ''}</div>
         <div className="column">
