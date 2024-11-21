@@ -262,7 +262,7 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
  * Get list of all Perspective names
  * @param {Array<TPerspectiveDef>} allDefs
  * @param {boolean} includeDefaultOption? (optional; default = true)
- * @returns {Array<string>}
+ * @returns {Array<{ label: string, value: string, isModified: boolean }>}
  */
 export function getDisplayListOfPerspectiveNames(
   allDefs: Array<TPerspectiveDef>,
@@ -278,6 +278,9 @@ export function getDisplayListOfPerspectiveNames(
     let options = allDefs.map((def) => ({ label: def.name, value: def.name, isModified: def.isModified || false }))
     if (!includeDefaultOption) {
       options = options.filter((obj) => obj.label !== '-')
+    } else {
+      // re-order so that '-' is first
+      options = [...options.filter((obj) => obj.label === '-'), ...options.filter((obj) => obj.label !== '-')]
     }
 
     return options
