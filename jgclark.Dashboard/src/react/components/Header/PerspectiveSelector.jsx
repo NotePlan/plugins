@@ -222,10 +222,13 @@ const PerspectiveSelector = (): React$Node => {
       // Otherwise, it's a normal perspective change so we process it
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
-      if (selectedOption.value !== apn) {
+      if (selectedOption.label !== apn) {
+        // using label so that the star will differentiate it and force an update
         // The ground truth is set by the plugin and will be returned in pluginData
         // but for now, we will do an optimistic update so the UI is updated immediately
         console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
+        const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
+        dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
         dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })
         logDebug('PerspectiveSelector/handlePerspectiveChange', `Switching to perspective "${selectedOption.value}" sendActionToPlugin: "switchToPerspective"`)
         sendActionToPlugin(
