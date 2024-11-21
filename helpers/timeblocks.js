@@ -75,7 +75,6 @@ export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list', 'checklist
 //     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?" +
 //   "(?=\\W|$)"
 
-
 // ------------------------------------------------------------------------------------
 // @jgclark's newer regex to find time blocks, based on those original ones.
 // These are much more extensive that the brief documentation implies, or now
@@ -167,14 +166,17 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
   try {
     // Get the setting from arg or from NP setting
     // FIXME: this goes wrong, and the mustContainString is undefined
-    // const mustContainString = (mustContainStringArg && typeof mustContainStringArg === "string") ? mustContainStringArg : DataStore.preference("timeblockTextMustContainString") ?? ''
-    const mustContainString = 'at'
-    logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: for {${contentString}} mustContainString = ${String(mustContainString)}`)
+    const mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : DataStore.preference('timeblockTextMustContainString') ?? ''
+    // const mustContainString = 'at'
     // Following works around a bug when the preference isn't being set at all at the start.
-    if (typeof mustContainString === "string" && mustContainString !== '') {
-      const res1 = contentString.includes(mustContainString)
+    if (typeof mustContainString === 'string' && mustContainString !== '') {
+      // Normalize both strings to ensure consistent Unicode representation
+      const normalizedContent = contentString.normalize('NFC')
+      const normalizedMustContain = mustContainString.normalize('NFC')
+
+      const res1 = normalizedContent.includes(normalizedMustContain)
       if (!res1) {
-        logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: not found must string`)
+        logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: did not find ${normalizedMustContain} in ${normalizedContent}`)
         return false
       }
     }
@@ -184,8 +186,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
     }
     const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err)
     return false
   }
@@ -292,8 +293,8 @@ export function getStartTimeObjFromParaContent(content: string): ?{ hours: numbe
       if (thisTimeStr !== '') {
         startTimeStr = thisTimeStr.split('-')[0]
         const [timeStr, ampm] = startTimeStr.split(RE_AMPM_OPT)
-        if (timeStr.includes(":")) {
-          [hours, mins] = timeStr.split(':').map(Number)
+        if (timeStr.includes(':')) {
+          ;[hours, mins] = timeStr.split(':').map(Number)
         } else {
           hours = Number(timeStr)
         }
@@ -331,8 +332,8 @@ export function getEndTimeObjFromParaContent(content: string): { hours: number, 
       if (thisTimeStr !== '') {
         endTimeStr = thisTimeStr.split('-')[1]
         const [timeStr, ampm] = endTimeStr.split(RE_AMPM_OPT)
-        if (timeStr.includes(":")) {
-          [hours, mins] = timeStr.split(':').map(Number)
+        if (timeStr.includes(':')) {
+          ;[hours, mins] = timeStr.split(':').map(Number)
         } else {
           hours = Number(timeStr)
         }
@@ -355,7 +356,7 @@ export function getEndTimeObjFromParaContent(content: string): { hours: number, 
 /**
  * Retrieves the first para in the note that has a timeblock that covers the current time. It ignores done/cancelled tasks or checklist lines.
  * Note: Dates are ignored in the check.
- * 
+ *
  * @param {TNote} note - The note object containing paragraphs to search for time blocks.
  * @param {boolean?} excludeClosedParas? (default: false)
  * @returns {?TParagraph}
@@ -366,7 +367,7 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
     // logDebug('getCurrentTimeBlock', `currentTimeMom: ${currentTimeMom.format('HH:mm:ss')}`)
 
     for (const para of note.paragraphs) {
-      // Ignore completed and text paras 
+      // Ignore completed and text paras
       if (excludeClosedParas && ['done', 'cancelled', 'checklistDone', 'checklistCancelled', 'text'].includes(para.type)) {
         // logDebug('getCurrentTimeBlock', `- ignored {${para.content}} as its of type ${para.type}`)
         continue
@@ -402,7 +403,7 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
  * Retrieves the details of the current active time block from a note.
  * See getCurrentTimeBlockPara() above for details of how it works.
  * If a matching time block is found, it returns the time block string and the content of the paragraph without the time block.
- * 
+ *
  * @param {TNote} note - The note object containing paragraphs to search for time blocks
  * @param {string} timeblockTextMustContainString which may be empty
  * @returns {[string, string]} A tuple of the time block string, and the paragraph content without the time block (and any mustContainString). Returns an empty tuple if no current time block is found.
@@ -428,7 +429,7 @@ export function getCurrentTimeBlockDetails(note: TNote, timeblockTextMustContain
  * Retrieves the details of the time block in the given content string.
  * See getCurrentTimeBlockPara() above for details of how it works.
  * If a matching time block is found, it returns the time block string and the content of the paragraph without the time block.
- * 
+ *
  * @param {string} content - The found timeblock
  * @param {string} timeblockTextMustContainString which may be empty
  * @returns {[string, string]} A tuple of the time block string, and the paragraph content without the time block (and any mustContainString). Returns an empty tuple if no current time block is found.

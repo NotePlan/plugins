@@ -201,6 +201,9 @@ describe(`${HELPER_NAME}`, () => {
       test('6: yes: ... at 3:00 ..., at', () => {
         expect(tb.isTimeBlockLine('bob at 3:00 ok', 'at')).toEqual(true)
       })
+      test('25c: yes: do something 12:30, with emoji 🕑', () => {
+        expect(tb.isTimeBlockLine('do something 12:30, with emoji 🕑', '🕑')).toEqual(true)
+      })
     })
   })
 
@@ -313,15 +316,10 @@ describe(`${HELPER_NAME}`, () => {
 
   describe('getCurrentTimeBlockPara', () => {
     const note = {
-      paragraphs: [
-        { content: 'Meeting 1:00PM-2:00PM' },
-        { content: 'Lunch 12:00-1:00PM' },
-        { content: 'Review 14:00-15:00' },
-        { content: 'Gaming 3:00PM-4:00PM' }
-      ]
+      paragraphs: [{ content: 'Meeting 1:00PM-2:00PM' }, { content: 'Lunch 12:00-1:00PM' }, { content: 'Review 14:00-15:00' }, { content: 'Gaming 3:00PM-4:00PM' }],
     }
     // Get today's ISO date
-    const thisISODate = (new Date()).toISOString().slice(0, 10)
+    const thisISODate = new Date().toISOString().slice(0, 10)
     test('13:30: should return the Meeting 1 time block', () => {
       // Mock the current time
       jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T13:30:00`))
@@ -373,11 +371,11 @@ describe(`${HELPER_NAME}`, () => {
         { content: 'Review 14:00-15:00' },
         { content: 'Gaming 3:00PM-4:00PM' },
         { content: 'Dinner at 5:00PM-6:00PM' },
-        { content: 'Games from 6:00PM-7:00PM' }
-      ]
+        { content: 'Games from 6:00PM-7:00PM' },
+      ],
     }
     // Get today's ISO date
-    const thisISODate = (new Date()).toISOString().slice(0, 10)
+    const thisISODate = new Date().toISOString().slice(0, 10)
 
     test('13:30: should return the Meeting 1 time block', () => {
       // Mock the current time
