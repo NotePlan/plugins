@@ -195,7 +195,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
       const searchValue = e.target.value
       setSearchText(searchValue)
       setSearchIndex(-1)
-      const matches = filteredLogs.reduce((acc, log, index) => {
+      const matches = filteredLogs.reduce((acc: Array<number>, log: LogEntry, index: number) => {
         const regex = useRegexSearch ? new RegExp(searchValue, 'i') : null
         if (regex ? regex.test(log.message) : log.message.toLowerCase().includes(searchValue.toLowerCase())) {
           acc.push(index)
@@ -250,34 +250,32 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   )
 
   // Attach the keypress event to the search input
+
   useEffect(() => {
     const searchInput = searchInputRef.current
     if (searchInput) {
-      searchInput.addEventListener('keydown', handleSearchKeyPress)
-    }
-    return () => {
-      if (searchInput) {
-        searchInput.removeEventListener('keydown', handleSearchKeyPress)
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          const index = filteredLogs.findIndex((log) => {
+            const regex = useRegexSearch ? new RegExp(searchText, 'i') : null
+            return regex ? regex.test(log.message) : log.message.toLowerCase().includes(searchText.toLowerCase())
+          })
+          setSearchIndex(index)
+          if (index !== -1 && logContainerRef.current) {
+            const logElement = document.getElementById(`log-${filteredLogs[index].timestamp.toISOString()}`)
+            if (logElement) {
+              logElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+          }
+        }
+      }
+
+      searchInput.addEventListener('keydown', handleKeyPress)
+      return () => {
+        searchInput.removeEventListener('keydown', handleKeyPress)
       }
     }
   }, [handleSearchKeyPress])
-
-  const showTestLogs = (testName: string) => {
-    const testResult = results[testName]
-    if (testResult?.startTime && testResult?.endTime) {
-      console.log(`Filtering logs for test: ${testName}`)
-      setCurrentFilter(`Showing logs for test: ${testName}`)
-      onTestLogsFiltered({
-        filterName: testName,
-        filterFunction: (log) => {
-          if (testResult.startTime && testResult.endTime && log.timestamp) {
-            return log.timestamp >= testResult.startTime && log.timestamp <= testResult.endTime
-          }
-          return false
-        },
-      })
-    }
-  }
 
   const clearLogFilter = () => {
     setCurrentFilter(null)
@@ -287,9 +285,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const getTimeDiv = (time: Date, text: string = ''): React.Node => {
     const dtlTime = dtl(time)
     // dtlTime looks like 2024-11-20 17:29:35.148
-    const noMs = dtlTime.split('.')
-    // reduce redundancy if this is a logdebug that already shows the time
-    const secs = text.includes(noMs[0]) ? noMs[1] : dtlTime.split(':')[2]
+    const secs = dtlTime.split(':')[2]
     return (
       <span title={dtlTime} className="log-timestamp">
         {secs}

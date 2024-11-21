@@ -112,11 +112,11 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
       await testFunction(getContext, { pause })
       const durationStr = timer(startTime)
       const endTime = new Date()
+      console.log(`--- Passed Test: ${testName} Duration: ${durationStr} ---`)
       setResults((prev) => ({
         ...prev,
         [testName]: { status: 'Passed', durationStr, startTime, endTime },
       }))
-      console.log(`--- Passed Test: ${testName} Duration: ${durationStr} ---`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       const durationStr = timer(startTime)
