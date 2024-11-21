@@ -23,7 +23,7 @@ import {
   setPluginData,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
 import { validateAndFlattenMessageObject } from './shared'
 import {
   addNewPerspective,
@@ -678,46 +678,74 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
 }
 
 /**
+ * Set the dashboard settings for the "-" perspective, and set isModified and isActive to false for all other perspectives
+ * @param {TDashboardSettings} newDashboardSettings
+ * @param {TPerspectiveSettings} perspectiveSettings
+ * @returns {TPerspectiveSettings}
+ */
+function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings) {
+  logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
+  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isModified: false }
+  return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
+}
+
+/**
  * Update a single key in DataStore.settings
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
  */
 export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
-  // clo(data, `doSettingsChanged() starting with data = `)
+  clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings) {
     throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
   }
   // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
   let perspectivesToSave = data.perspectiveSettings
-  if (settingName === 'dashboardSettings' && !perspectivesToSave) {
+  if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
+    let needToSetDash = false
     const perspectiveSettings = await getPerspectiveSettings()
-    const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
-    if (activePerspDef && activePerspDef.name !== '-') {
-      // ignore dashboard changes in the perspective definition until it is saved explicitly
-      // but we need to set the isModified flag on the perspective
-      perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
+    if (newSettings.perspectivesEnabled) {
+      // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
+      const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
+      logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')}`)
+      if (activePerspDef && activePerspDef.name !== '-') {
+        // ignore dashboard changes in the perspective definition until it is saved explicitly
+        // but we need to set the isModified flag on the perspective
+        logDebug(`doSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
+        perspectivesToSave = perspectiveSettings.map((p) => (p.name === activePerspDef.name ? { ...p, isModified: true } : { ...p, isModified: false }))
+      } else {
+        needToSetDash = true
+      }
     } else {
-      logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective`)
-      const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newSettings), isModified: false }
-      perspectivesToSave = replacePerspectiveDef(perspectiveSettings, dashDef)
+      needToSetDash = true
+    }
+    if (needToSetDash) {
+      if (typeof newSettings === 'object' && newSettings !== null && !Array.isArray(newSettings)) {
+        perspectivesToSave = setDashPerspectiveSettings(newSettings, perspectiveSettings)
+      } else {
+        logError(`doSettingsChanged`, `newSettings is not an object: ${JSP(newSettings)}`)
+      }
     }
   }
 
   settingName === 'dashboardSettings' &&
     logDebug(`doSettingsChanged`, `TOP saving: excluded (in the main dashboard settings)=${newSettings.excludedFolders} filterPriorityItems=${newSettings.filterPriorityItems}`)
+
   const combinedUpdatedSettings = { ...DataStore.settings, [settingName]: JSON.stringify(newSettings) }
+
   if (perspectivesToSave) {
     const debugInfo = perspectivesToSave
       .map(
         (ps) =>
-          `${ps.name}.excludedFolders=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}] ${ps.isModified ? 'modified' : ''} ${
+          `${ps.name} excludedFolders=[${ps.dashboardSettings?.excludedFolders && ps.dashboardSettings?.excludedFolders?.toString()}] ${ps.isModified ? 'modified' : ''} ${
             ps.isActive ? '<active>' : ''
           }`,
       )
       .join(`\n\t`)
     logDebug(`doSettingsChanged`, `Saving perspectiveSettings also\n\t${debugInfo}`)
+
     combinedUpdatedSettings.perspectiveSettings = JSON.stringify(perspectivesToSave)
   }
 

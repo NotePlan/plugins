@@ -179,7 +179,7 @@ const PerspectiveSelector = (): React$Node => {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `User selected newValue: "${selectedOption.value}". Current activePerspectiveName: "${activePerspectiveName}".`)
 
       if (selectedOption.value === 'separator') {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue "${selectedOption.value}" is the same as activePerspectiveName. No action taken.`)
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `clicked on separator option. No action taken.`)
         return
       }
 
@@ -237,7 +237,10 @@ const PerspectiveSelector = (): React$Node => {
           `Perspective changed to ${selectedOption.value}`,
         )
       } else {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue "${selectedOption.value}" is the same as activePerspectiveName. No action taken.`)
+        logDebug(
+          'PerspectiveSelector/handlePerspectiveChange',
+          `newValue "${selectedOption.label}" is the same as activePerspectiveName:${activePerspectiveName}. No action taken.`,
+        )
       }
     },
     [perspectiveSettings, state, activePerspectiveName, dashboardSettings],
