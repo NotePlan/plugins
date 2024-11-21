@@ -92,46 +92,59 @@ function renderObject(
     ? Object.keys(obj).sort()
     : Object.keys(obj) // Sort alphabetically if it's an object
 
-  return sortedKeys.map((key) => {
-    const value = obj[key]
-    const isExpandable = isObject(value)
-    const currentPath = `${path}:${key}`
-    const isCollapsed = !openedPathsRef.current[currentPath]
-    const highlightType = highlightedPaths[currentPath]
-    const isHighlighted = highlightType === 'match'
-    const isParentHighlighted = highlightType === 'parent'
-    const isChanged = changedPaths[currentPath]
+  // Check if the object or array is empty
+  const isEmpty = sortedKeys.length === 0
 
-    if (filter && !highlightType) return null
+  return (
+    <div>
+      {!isEmpty &&
+        sortedKeys.map((key) => {
+          const value = obj[key]
+          const isExpandable = isObject(value) && Object.keys(value).length > 0
+          const currentPath = `${path}:${key}`
+          const isCollapsed = !openedPathsRef.current[currentPath]
+          const highlightType = highlightedPaths[currentPath]
+          const isHighlighted = highlightType === 'match'
+          const isParentHighlighted = highlightType === 'parent'
+          const isChanged = changedPaths[currentPath]
 
-    const classNames = ['property', classReplacer(currentPath), isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : '']
-      .filter(Boolean)
-      .join(' ')
+          if (filter && !highlightType) return null
 
-    return (
-      <div
-        key={currentPath}
-        className={classNames}
-        style={{
-          marginLeft: 10,
-        }}
-      >
-        {isExpandable ? (
-          <div className="expandable">
-            <div className="toggle" onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
-              {isCollapsed ? '▶' : '▼'} <strong>{key}</strong>
+          const classNames = ['property', classReplacer(currentPath), isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : '']
+            .filter(Boolean)
+            .join(' ')
+
+          return (
+            <div
+              key={currentPath}
+              className={classNames}
+              style={{
+                marginLeft: 10,
+              }}
+            >
+              {isExpandable ? (
+                <div className="expandable">
+                  <div className="toggle" onClick={(e) => toggleCollapse(currentPath, e)} style={{ cursor: 'pointer' }}>
+                    {isCollapsed ? '▶' : '▼'} <strong>{key}</strong>
+                  </div>
+                  {!isCollapsed &&
+                    renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, parentMatches, highlightRegex, sortKeys)}
+                </div>
+              ) : (
+                <div
+                  className={`property-line ${classReplacer(currentPath)} ${
+                    isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : ''
+                  }`}
+                >
+                  <strong>{key}: </strong>
+                  <span className="value">{JSON.stringify(value)}</span>
+                </div>
+              )}
             </div>
-            {!isCollapsed && renderObject(value, currentPath, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, parentMatches, highlightRegex, sortKeys)}
-          </div>
-        ) : (
-          <div className={`property-line ${classReplacer(currentPath)} ${isChanged ? 'changed' : isHighlighted ? 'highlighted' : isParentHighlighted ? 'parent-highlighted' : ''}`}>
-            <strong>{key}: </strong>
-            <span className="value">{JSON.stringify(value)}</span>
-          </div>
-        )}
-      </div>
-    )
-  })
+          )
+        })}
+    </div>
+  )
 }
 
 const CollapsibleObjectViewer = ({

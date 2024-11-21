@@ -67,25 +67,32 @@ const LogData = ({ data, uniqueKey }: { data: any, uniqueKey: string }) => {
           let itemName = 'Object'
           let itemData = item
 
+          const keys = Object.keys(item)
           if (Array.isArray(item)) {
             itemName = 'Array'
           } else if (typeof item === 'object' && item !== null) {
-            const keys = Object.keys(item)
             if (keys.length === 1) {
               itemName = keys[0]
               itemData = item[itemName]
+            } else if (keys.length === 0) {
+              itemName = '(Empty Object)'
             }
           }
 
-          return (
+          return keys.length ? (
             <div key={`data-${uniqueKey}-${idx}`} className="data-item">
               <CollapsibleObjectViewer startExpanded={false} sortKeys={true} data={itemData} name={itemName} />
+            </div>
+          ) : (
+            <div key={`data-${uniqueKey}-${idx}`} className="data-item">
+              {itemName}
             </div>
           )
         })}
       </div>
     )
   }
+
   return null
 }
 
@@ -277,6 +284,19 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
     onShowAllLogs()
   }
 
+  const getTimeDiv = (time: Date, text: string = ''): React.Node => {
+    const dtlTime = dtl(time)
+    // dtlTime looks like 2024-11-20 17:29:35.148
+    const noMs = dtlTime.split('.')
+    // reduce redundancy if this is a logdebug that already shows the time
+    const secs = text.includes(noMs[0]) ? noMs[1] : dtlTime.split(':')[2]
+    return (
+      <span title={dtlTime} className="log-timestamp">
+        {secs}
+      </span>
+    )
+  }
+
   // Memoize rendered log entries
   const renderedLogs = useMemo(() => {
     return filteredLogs.map((log, index) => {
@@ -286,7 +306,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
 
       return (
         <div key={`${index}-${uniqueKey}`} id={`log-${uniqueKey}`} className={logClassName}>
-          {showLogTimestamps && log.timestamp && <span className="log-timestamp">{dtl(log.timestamp)}</span>}
+          {showLogTimestamps && log.timestamp && getTimeDiv(log.timestamp, log.message)}
           {highlightSearchTerm(log.message, searchText)}
           {log.data && <LogData data={log.data} uniqueKey={uniqueKey} />}
         </div>

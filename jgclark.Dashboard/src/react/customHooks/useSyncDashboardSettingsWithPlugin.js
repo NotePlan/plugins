@@ -75,6 +75,7 @@ export const useSyncDashboardSettingsWithPlugin = (
     // console.log(`useSyncDashboardSettingsWithPlugin pluginData changed`, `AB dashboardSettingsChanged: ${String(dashboardSettingsChanged)}`, dashboardSettings)
     // console.log(`useSyncDashboardSettingsWithPlugin pluginData changed`, `AC diff=${JSON.stringify(diff)}`, realDiff)
     if (dashboardSettingsChanged) {
+      console.log(`useSyncDashboardSettingsWithPlugin pluginData changed BB dashboardSettingsChanged: ${String(dashboardSettingsChanged)}`, { dashboardSettings, realDiff })
       // check if this change was caused by a server push or a user event
       if (pluginData.serverPush.dashboardSettings) {
         const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }

@@ -108,7 +108,7 @@ export const AppProvider = ({
    *                             HOOKS
    ****************************************************************************************************************************/
 
-  const compareFn = (oldObj: any, newObj: any) => compareObjects(oldObj, newObj, ['lastChange', 'activePerspectiveName', new RegExp('FFlag.*', 'ig')])
+  const compareFn = (oldObj: any, newObj: any) => compareObjects(oldObj, newObj, ['lastChange', 'lastModified', 'activePerspectiveName' /* , new RegExp('FFlag.*', 'ig') */])
 
   // Syncing dashboardSettings with plugin
   useSyncDashboardSettingsWithPlugin(dashboardSettings, pluginData.dashboardSettings, dispatchDashboardSettings, sendActionToPlugin, pluginData, updatePluginData, compareFn)

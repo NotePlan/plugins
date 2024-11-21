@@ -43,7 +43,7 @@ export const useSyncPerspectivesWithPlugin = (
       const diff = compareFn(pluginDataPerspectives, perspectiveSettings)
       const realDiff = getDiff(pluginDataPerspectives, perspectiveSettings)
       console.log(`useSyncPerspectivesWithPlugin`, `CD pluginDataPerspectivesChanged: ${String(pluginDataPerspectivesChanged)}`, { pluginDataPerspectives })
-      console.log(`useSyncPerspectivesWithPlugin`, `realDiff=`, realDiff)
+      console.log(`useSyncPerspectivesWithPlugin pluginDataPerspectivesChanged realDiff=`, realDiff)
       if (diff && Object.keys(diff).length > 0) {
         console.log(`useSyncPerspectivesWithPlugin Dispatching to front-end to update perspectives: diff=`, diff)
         lastPerspectiveSettingsRef.current = pluginDataPerspectives

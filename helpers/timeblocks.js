@@ -184,7 +184,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
     const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {
-    console.log(err)
+    console.log(`helpers/isTimeBlockLine err`, err)
     return false
   }
 }

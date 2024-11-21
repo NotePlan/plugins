@@ -440,7 +440,7 @@ function isTimeBlockLine(contentString: string, mustContainString: string = ''):
     const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {
-    console.log(err)
+    console.log(`isTimeBlockLine error`, err)
     return false
   }
 }

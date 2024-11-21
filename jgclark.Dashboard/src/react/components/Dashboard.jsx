@@ -163,7 +163,10 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     // If we did a force reload (DEV only) of the full sections data, no need to load the rest.
     // But if we are doing a normal load, then get the rest of the section data incrementally.
     // This executes before globalSharedData is saved into state
-    logInfo('Dashboard/useEffect [] (startup only)', `lastFullRefresh: ${lastFullRefresh.toString()} and sections.length: ${sections.length}`)
+    logInfo(
+      'Dashboard/useEffect [] (startup only)',
+      `lastFullRefresh: ${lastFullRefresh.toString()} and sections.length: ${sections.length}: ${sections.map((s) => s.sectionCode).join(', ')}`,
+    )
 
     // Note: changed from "<= 2" to "=== 1"
     // TODO: DBW had an idea about a cleaner way to trigger this
