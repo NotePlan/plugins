@@ -165,18 +165,15 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
 export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
     // Get the setting from arg or from NP setting
-    // FIXME: this goes wrong, and the mustContainString is undefined
     const mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : DataStore.preference('timeblockTextMustContainString') ?? ''
-    // const mustContainString = 'at'
     // Following works around a bug when the preference isn't being set at all at the start.
     if (typeof mustContainString === 'string' && mustContainString !== '') {
       // Normalize both strings to ensure consistent Unicode representation
       const normalizedContent = contentString.normalize('NFC')
       const normalizedMustContain = mustContainString.normalize('NFC')
-
       const res1 = normalizedContent.includes(normalizedMustContain)
       if (!res1) {
-        logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: did not find ${normalizedMustContain} in ${normalizedContent}`)
+        // logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: did not find ${normalizedMustContain} in ${normalizedContent}`)
         return false
       }
     }
