@@ -1,10 +1,13 @@
 // @flow
 // Development-related helper functions
 
+import isEqual from 'lodash-es/isEqual'
 import isObject from 'lodash-es/isObject'
 import isArray from 'lodash-es/isArray'
-import isEqual from 'lodash-es/isEqual'
 import moment from 'moment'
+
+// const isObject = (value: any): boolean => typeof value === 'object' && value !== null
+// const isArray = (value: any): boolean => Array.isArray(value)
 
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
