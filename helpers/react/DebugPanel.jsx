@@ -45,11 +45,12 @@ type Props = {
   defaultExpandedKeys?: Array<string>,
   testGroups: Array<TestGroup>,
   getContext: () => any,
+  isVisible: boolean,
 }
 
 const methodsToOverride = ['log', 'error', 'info']
 
-const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext }: Props): React.Node => {
+const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.Node => {
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
   const originalConsoleMethodsRef = useRef({})
@@ -138,7 +139,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext }: P
       resetViewerRef.current()
     }
   }
-
+  if (!isVisible) return null
   return (
     <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
       <PanelGroup direction="horizontal">

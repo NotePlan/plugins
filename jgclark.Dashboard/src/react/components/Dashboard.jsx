@@ -303,7 +303,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
-      {showDebugPanel && <DebugPanel getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />}
+      {pluginData?.logSettings?._logLevel === 'DEV' && (
+        <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
+      )}
       <div id="tooltip-portal"></div>
     </div>
   )
