@@ -6,7 +6,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import DropdownMenu from '../DropdownMenu.jsx'
-import { TSettingItem } from '../../types'
+import type { TSettingItem } from '../../../types'
 
 /**
  * Mock implementation of renderItem used in DropdownMenu.
