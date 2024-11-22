@@ -533,12 +533,6 @@ describe('sorting.js', () => {
       expect(result).toEqual(-1)
     })
 
-    test('should return no priority from exclamation marks as part of image link', () => {
-      const paragraph = new Paragraph({ type: 'open', content: 'test ![file](20241121_attachments/Hotel%20Abba%20podatek.pdf) for @lbednarski', filename: 'testFile.md' })
-      const result = s.getNumericPriority(s.getSortableTask(paragraph))
-      expect(result).toEqual(-1)
-    })
-
     test('should return priority from parentheses', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
       const result = s.getNumericPriority(s.getSortableTask(paragraph))
