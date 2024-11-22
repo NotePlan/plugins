@@ -3,10 +3,18 @@ import colors from 'chalk'
 import * as tb from '../timeblocks'
 import { DataStore } from '@mocks/index'
 
+const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset
+
 beforeAll(() => {
   global.DataStore = DataStore
   DataStore.settings['_logLevel'] = 'DEBUG' // change between none and DEBUG to see more console output during test runs
+  Date.prototype.getTimezoneOffset = jest.fn(() => 0) // make sure the timezone is always UTC/GMT
 })
+
+afterAll(() => {
+  Date.prototype.getTimezoneOffset = originalGetTimezoneOffset
+})
+
 const HELPER_NAME = `📙 ${colors.yellow('helpers/timeblocks')}`
 const section = colors.blue
 // const method = colors.magenta.bold
@@ -318,7 +326,7 @@ describe(`${HELPER_NAME}`, () => {
   describe('getCurrentTimeBlockPara with timeblockTextMustContainString override', () => {
     const note = {
       paragraphs: [
-        { content: 'Meeting 1:00PM-2:00PM' },
+        { content: 'Meeting at 1:00PM-2:00PM' },
         { content: 'Lunch 12:00-1:00PM' },
         { content: 'Review 14:00-15:00' },
         { content: 'Gaming 3:00PM-4:00PM' },
@@ -342,12 +350,12 @@ describe(`${HELPER_NAME}`, () => {
         // remove the mock implementation
         DataStore.preference.mockRestore()
       })
-      test('13:30: should return the Meeting 1 time block', () => {
+      test('13:30: should return the Meeting at 1:00PM-2:00PM time block with override', () => {
         // Mock the current time
         jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T13:30:00`))
         const tbPara = tb.getCurrentTimeBlockPara(note)
         expect(tbPara).not.toBeNull()
-        expect(tbPara.content).toBe('Meeting 1:00PM-2:00PM')
+        expect(tbPara.content).toBe('Meeting at 1:00PM-2:00PM')
       })
     })
     // END TESTS FOR PREFERENCE SET TO "at"
