@@ -232,7 +232,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
-export function getOpenItemParasForCurrentTimePeriod(
+export function getOpenItemParasForTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
   dashboardSettings: TDashboardSettings,
@@ -378,7 +378,7 @@ export function getOpenItemParasForCurrentTimePeriod(
       return [combinedSortedParas, []]
     }
   } catch (err) {
-    logError('getOpenItemParasForCurrentTimePeriod', err.message)
+    logError('getOpenItemParasForTimePeriod', err.message)
     return [[], []] // for completeness
   }
 }

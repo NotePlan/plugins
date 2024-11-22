@@ -2,12 +2,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2024-07-26 for v2.1.0 by @jgclark
+// Last updated  for v2.1.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { incrementallyRefreshSections, refreshSomeSections } from './clickHandlers'
+import { incrementallyRefreshSections, refreshSomeSections } from './refreshClickHandlers'
 import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TSectionCode } from './types'
@@ -142,7 +142,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       if (openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
-        // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function
+        // Instead we test for Editor in the dataGeneration::getOpenItemParasForTimePeriod() function
 
         // Update the dashboard
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)

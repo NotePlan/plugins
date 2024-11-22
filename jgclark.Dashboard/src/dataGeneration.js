@@ -15,7 +15,7 @@ import {
   getDashboardSettings,
   getListOfEnabledSections,
   getNotePlanSettings,
-  getOpenItemParasForCurrentTimePeriod,
+  getOpenItemParasForTimePeriod,
   getRelevantOverdueTasks,
   getRelevantPriorityTasks,
   getStartTimeFromPara,
@@ -79,6 +79,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     // sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     // if (forceLoadAll || config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     // if (forceLoadAll || config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    // if (forceLoadAll || config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     // if (forceLoadAll || config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     // if (forceLoadAll || config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     // if (forceLoadAll || config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
@@ -122,6 +123,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DO') && config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('Q') && config.showQuarterSection) sections.push(...getThisQuarterSectionData(config, useDemoData, useEditorWherePossible))
@@ -194,8 +196,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         }
 
         // Get list of open tasks/checklists from this calendar note
-        [sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
-        // logDebug('getTodaySectionData', `getOpenItemParasForCurrentTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
+        [sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
+        // logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // write items for first (or combined) section
         let lastIndent0ParentID = ''
@@ -412,7 +414,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
 
         // write items for first (or combined) section
         sortedOrCombinedParas.map((p) => {
@@ -553,7 +555,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
 
         // write items for first or combined section
         sortedOrCombinedParas.map((p) => {
@@ -672,11 +674,11 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         // const thisFilename = currentWeeklyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
-          logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
+          logError('getThisWeekSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
 
         // write one combined section
         sortedOrCombinedParas.map((p) => {
@@ -792,6 +794,137 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     return []
   }
 }
+
+/**
+ * Get open items from Last Week's note
+ * @param {TDashboardSettings} config
+ * @param {boolean} useDemoData?
+ * @param {boolean} useEditorWherePossible?
+ * @returns {TSection} data
+ */
+export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
+  try {
+    let sectionNum = '19' // FIXME: remove sectionNums
+    const thisSectionCode = 'LW'
+    const sections: Array<TSection> = []
+    const items: Array<TSectionItem> = []
+    let itemCount = 0
+    const NPSettings = getNotePlanSettings()
+    const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const dateStr = new moment().subtract(1, 'week').format('YYYY-[W]WW')
+    const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
+    // const thisFilename = DataStore.calendarNoteByDate(new moment().subtract(1, 'week').toDate(), 'week')?.filename ?? '(error)'
+
+    let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
+    let sortedRefParas: Array<TParagraphForDashboard> = []
+    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${thisFilename} ------------`)
+    const startTime = new Date() // for timing only
+
+    if (useDemoData) {
+      // write first or combined section
+      const sortedParas = config.separateSectionForReferencedNotes ? openWeekParas : openWeekParas.concat(refWeekParas)
+      sortedParas.map((item) => {
+        const thisID = `${sectionNum}-${itemCount}`
+        items.push({ ID: thisID, ...item })
+        itemCount++
+      })
+    } else {
+      const lastWeeklyNote = DataStore.calendarNoteByDateString(dateStr)
+      if (lastWeeklyNote) {
+        // const thisFilename = lastWeeklyNote?.filename ?? '(error)'
+        const dateStr = getDateStringFromCalendarFilename(thisFilename)
+        if (!thisFilename.includes(dateStr)) {
+          logError('getLastWeekSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
+        }
+
+        // Get list of open tasks/checklists from this calendar note
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', lastWeeklyNote, config, useEditorWherePossible)
+
+        // write one combined section
+        sortedOrCombinedParas.map((p) => {
+          const thisID = `${sectionNum}-${itemCount}`
+          items.push(getSectionItemObject(thisID, p))
+          itemCount++
+        })
+        // logDebug('getLastWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
+      } else {
+        logDebug('getLastWeekSectionData', `No weekly note found for filename '${thisFilename}'`)
+      }
+    }
+
+    const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
+    const section: TSection = {
+      ID: sectionNum,
+      name: 'Last Week',
+      showSettingName: 'showLastWeekSection',
+      sectionCode: thisSectionCode,
+      description: `{count} from ${dateStr}`,
+      FAIconClass: 'fa-light fa-calendar-week',
+      sectionTitleColorPart: 'sidebarWeekly',
+      sectionFilename: thisFilename,
+      sectionItems: items,
+      generatedDate: new Date(),
+      doneCounts: doneCountData,
+      actionButtons: [
+        {
+          actionName: 'moveAllLastWeekThisWeek',
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          tooltip: 'Move or schedule all open items from last week to this week',
+          display: 'All <i class="fa-solid fa-right-long"></i> This Week',
+          actionParam: 'true', // refresh afterwards
+          postActionRefresh: ['LW', 'W'], // refresh the week section afterwards
+        },
+      ],
+    }
+    sections.push(section)
+
+    // If we want this separated from the referenced items, then form a second section
+    if (config.separateSectionForReferencedNotes) {
+      const items: Array<TSectionItem> = []
+      sectionNum = '7'
+      if (useDemoData) {
+        const sortedRefParas = refWeekParas
+        sortedRefParas.map((item) => {
+          const thisID = `${sectionNum}-${itemCount}`
+          items.push({ ID: thisID, ...item })
+          itemCount++
+        })
+      } else {
+        // Get list of open tasks/checklists from current weekly note (if it exists)
+        if (sortedRefParas.length > 0) {
+          // make a sectionItem for each item, and then make a section too.
+          sortedRefParas.map((p) => {
+            const thisID = `${sectionNum}-${itemCount}`
+            items.push(getSectionItemObject(thisID, p))
+            itemCount++
+          })
+        }
+      }
+      const section: TSection = {
+        ID: sectionNum,
+        name: '>Last Week',
+        showSettingName: 'showWeekSection',
+        sectionCode: thisSectionCode,
+        description: `{count} scheduled to ${dateStr}`,
+        FAIconClass: 'fa-light fa-calendar-week',
+        sectionTitleColorPart: 'sidebarWeekly',
+        sectionFilename: thisFilename,
+        sectionItems: items,
+        generatedDate: new Date(),
+        actionButtons: [],
+      }
+      sections.push(section)
+    }
+
+    logDebug('getLastWeekSectionData', `- found ${itemCount} weekly items from ${thisFilename} in ${timer(startTime)}`)
+    return sections
+  } catch (error) {
+    logError('getLastWeekSectionData', `ERROR: ${error.message}`)
+    return []
+  }
+}
+
 /**
  * Get open items from this Month's note
  * @param {TDashboardSettings} config
@@ -829,11 +962,11 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         // const thisFilename = currentMonthlyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
-          logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
+          logError('getThisMonthSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('month', currentMonthlyNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('month', currentMonthlyNote, config, useEditorWherePossible)
 
         // write one combined section
         sortedOrCombinedParas.map((p) => {
@@ -972,11 +1105,11 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
-          logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
+          logError('getThisQuarterSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
         }
 
         // Get list of open tasks/checklists from this calendar note
-        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod('quarter', currentQuarterlyNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('quarter', currentQuarterlyNote, config, useEditorWherePossible)
 
         // write one combined section
         sortedOrCombinedParas.map((p) => {
@@ -1580,7 +1713,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
     const thisFilename = `${getTodaysDateUnhyphenated()}.${NPSettings.defaultFileExtension}`
     const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
-    logInfo('getTimeBlockSectionData', `--------- Gathering${useDemoData ? ' DEMO' : ''} time blocks from ${filenameDateStr} --------`)
+    logInfo('getTimeBlockSectionData', `--------- Gathering${useDemoData ? ' DEMO' : ''} time blocks from ${filenameDateStr} with mCS ${mustContainString} ----------`)
     const startTime = new Date() // for timing only
     let timeblockPara: ?TParagraph
 
@@ -1620,11 +1753,18 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
 
       // write item for section
       const thisID = `${sectionNum}-0`
+      // I was trying to reorder the display of the timeblock para content, but that makes life very difficult for editing or checking off time block items
       const thisDPara = makeDashboardParas([timeblockPara])[0]
-      // change text so that time details are always at the front
-      // If this timeblock is on a task or checklist line, leave the type alone, otherwise make it type 'timeblock'. This affects StatusIcon.
-      thisDPara.content = `${timeBlockString} ${contentWithoutTimeBlock}`
-      const thisSectionItemObject = { ID: thisID, itemType: 'timeblock', para: thisDPara }
+      // // change text so that time details are always at the front
+      // // If this timeblock is on a task or checklist line, leave the type alone, otherwise make it type 'timeblock'. This affects StatusIcon.
+      // thisDPara.content = `${timeBlockString} ${contentWithoutTimeBlock}`
+      // // handle priority markers
+      // if (thisDPara.priority > 0) {
+      //   const priorityMarker = ['!', '!!', '!!!', '>>'][thisDPara.priority - 1]
+      //   thisDPara.content = `${priorityMarker} ${thisDPara.content}`
+      // }
+      const itemTypeToUse = (thisDPara.type === 'open' || thisDPara.type === 'checklist') ? thisDPara.type : 'timeblock'
+      const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
       // $FlowFixMe[incompatible-call]
       items.push(thisSectionItemObject)
     }
@@ -1641,15 +1781,6 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       sectionItems: items,
       generatedDate: new Date(),
       actionButtons: [
-        // {
-        //   // TODO Perhaps 'change times'?
-        //   actionName: 'addTask',
-        //   actionParam: thisFilename,
-        //   actionPluginID: `${pluginJson["plugin.id"]}`,
-        //   display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
-        //   tooltip: "Add a new task to today's note",
-        //   postActionRefresh: ['DT'],
-        // },
       ],
     }
     // clo(section)

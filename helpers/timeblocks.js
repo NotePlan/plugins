@@ -159,32 +159,46 @@ export const RE_TIMEBLOCK_IN_LINE = `${RE_START_OF_LINE}${RE_TIMEBLOCK}`
  * @author @dwertheimer
  *
  * @param {string} contentString
- * @param {string?} mustContainStringArg? if not given, then will read from NP app setting instead
+ * @param {string?} mustContainStringArg? if not given, then will read from NP app setting instead (if available)
  * @returns {boolean}
  */
 export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
     // Get the setting from arg or from NP setting
-    const mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : DataStore.preference('timeblockTextMustContainString') ?? ''
-    // Following works around a bug when the preference isn't being set at all at the start.
-    if (typeof mustContainString === 'string' && mustContainString !== '') {
+    // console.log(typeof mustContainStringArg, typeof DataStore)
+    let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string'
+      ? mustContainStringArg : ''
+    if (mustContainString === '') {
+      let preference: string
+      // If DataStore.preference gives an error, or is not available, or gives an undefined answer, then treat as an empty string
+      try {
+        mustContainString = String(DataStore?.preference('timeblockTextMustContainString'))
+      } catch (error) {
+        // ignore error
+        mustContainString = ''
+      }
+    }
+    // Check for the mustContainString (if given)
+    const normalizedContent = contentString.normalize('NFC')
+    logDebug('isTimeBlockLine', `- with '${mustContainString}' for {${normalizedContent}}`)
+
+    if (mustContainString !== '') {
       // Normalize both strings to ensure consistent Unicode representation
-      const normalizedContent = contentString.normalize('NFC')
-      const normalizedMustContain = mustContainString.normalize('NFC')
+      const normalizedMustContain = mustContainString.normalize('NFC') ?? ''
       const res1 = normalizedContent.includes(normalizedMustContain)
       if (!res1) {
-        // logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: did not find ${normalizedMustContain} in ${normalizedContent}`)
+        // logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: did not find {${normalizedMustContain}} in ${normalizedContent}`)
         return false
       }
     }
-    const tbString = getTimeBlockString(contentString)
-    if (isTermInMarkdownPath(tbString, contentString) || isTermInURL(tbString, contentString)) {
+    const tbString = getTimeBlockString(normalizedContent)
+    if (isTermInMarkdownPath(tbString, normalizedContent) || isTermInURL(tbString, normalizedContent)) {
       return false
     }
-    const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
+    const res2 = normalizedContent.match(RE_TIMEBLOCK_IN_LINE) ?? []
     return res2.length > 0
   } catch (err) {
-    console.log(`helpers/isTimeBlockLine err: ${err.message}`)
+    console.log(`helpers/isTimeBlockLine ❗️ err: ${err.message}`)
     return false
   }
 }

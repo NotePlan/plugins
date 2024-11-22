@@ -49,6 +49,7 @@ export type TDashboardSettings = {
   showTimeBlockSection: boolean,
   showYesterdaySection: boolean,
   showTomorrowSection: boolean,
+  showLastWeekSection: boolean,
   showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
@@ -96,7 +97,7 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 
@@ -190,8 +191,9 @@ export type TActionType =
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
   | 'deleteItem'
-  | 'moveAllThisWeekNextWeek'
   | 'incrementallyRefreshSections'
+  | 'moveAllLastWeekThisWeek'
+  | 'moveAllThisWeekNextWeek'
   | 'moveAllTodayToTomorrow'
   | 'moveAllYesterdayToToday'
   | 'moveFromCalToCal'

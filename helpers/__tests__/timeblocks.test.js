@@ -315,8 +315,12 @@ describe(`${HELPER_NAME}`, () => {
   })
 
   describe('getCurrentTimeBlockPara', () => {
+    // WARNING: the emoji test fails if it is in single quotes not double quotes!
     const note = {
-      paragraphs: [{ content: 'Meeting 1:00PM-2:00PM' }, { content: 'Lunch 12:00-1:00PM' }, { content: 'Review 14:00-15:00' }, { content: 'Gaming 3:00PM-4:00PM' }],
+      paragraphs: [{ content: 'Meeting 1:00PM-2:00PM' }, { content: 'Lunch 12:00-1:00PM' }, { content: 'Review 14:00-15:00' }, { content: 'Gaming 3:00PM-4:00PM' },
+      { content: "Test time block 🤔 at 17:00-23:30" },
+      { content: "test without mustContainString 18:00-23:00" },
+      ],
     }
     // Get today's ISO date
     const thisISODate = new Date().toISOString().slice(0, 10)
@@ -350,10 +354,22 @@ describe(`${HELPER_NAME}`, () => {
       const tbPara = tb.getCurrentTimeBlockPara(note)
       expect(tbPara).toBe(null)
     })
+    test('21:00: should return the emoji time block', () => {
+      // Mock the current time
+      jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T21:00:00`))
+      const tbPara = tb.getCurrentTimeBlockPara(note)
+      expect(tbPara.content).toBe("Test time block 🤔 at 17:00-23:30")
+    })
+    test("11:00: should not return time block as missing mustContainString 'at'", () => {
+      // Mock the current time
+      jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T11:00:00`))
+      const tbPara = tb.getCurrentTimeBlockPara(note, false, 'at')
+      expect(tbPara).toBe(null)
+    })
 
     test('should return null if current time is after all blocks', () => {
       // Mock the current time
-      jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T22:30:00`))
+      jest.useFakeTimers().setSystemTime(new Date(`${thisISODate}T23:45:00`))
       const tbPara = tb.getCurrentTimeBlockPara(note)
       expect(tbPara).toBe(null)
     })

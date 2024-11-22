@@ -1,6 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to show a Time Block item for info.Called by ItemRow or ItemContent.
+// Dashboard React component to show a Time Block item for info.
+// Called by ItemRow or ItemContent.
 // Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
@@ -52,7 +53,7 @@ function TimeBlockInfo({ item, thisSection }: Props): Node {
         messageObject.actionType = 'showNoteInEditorFromFilename'
         break
       default:
-        logDebug(`ItemRow`, `ERROR - handleIconClick: unknown itemType: ${underlyingItemType}`)
+        logDebug(`TimeBlockInfo`, `ERROR - handleIconClick: unknown itemType: ${underlyingItemType}`)
         break
     }
     logDebug('TimeBlockInfo/handleIconClick', `-> actionType:${messageObject.actionType} for itemType:${underlyingItemType} and i.p.content = ${item.para?.content ?? '-'}`)

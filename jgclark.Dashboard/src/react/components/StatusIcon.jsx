@@ -49,7 +49,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
         return 'fa-regular fa-circle-check'
       case 'deleted':
         return 'fa-regular fa-trash-xmark'
-      case 'timeblock':
+      case 'timeblock': // for non-task/checklist timeblock lines
         return 'fa-regular fa-calendar-clock'
       default:
         return '' // default case if none of the types match

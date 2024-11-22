@@ -70,21 +70,12 @@ export async function getDashboardSettings(): Promise<TDashboardSettings> {
     clo(pluginSettings, `getDashboardSettings (older lookup): pluginSettings loaded from settings.json`)
   }
   if (!pluginSettings.dashboardSettings) {
-    // Note: sharedSettings now dropped, so this is removed.
-    // if (pluginSettings.sharedSettings) {
-    //   logDebug('getDashboardSettings', `no dashboardSettings found in pluginSettings, so using sharedSettings instead.`)
-    //   pluginSettings.dashboardSettings = pluginSettings.sharedSettings
-    //   delete pluginSettings.sharedSettings
-    //   logDebug('getDashboardSettings', `now deleted sharedSettings.`)
-    //   DataStore.settings = pluginSettings
-    // } else {
     throw (
       (pluginSettings,
       `getDashboardSettings (older lookup): dashboardSettings not found this way either; should be there by default. here's the full settings for ${
         pluginSettings.pluginID || ''
       } plugin: `)
     )
-    // }
   }
 
   return parseSettings(pluginSettings.dashboardSettings)
@@ -107,7 +98,7 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
     return logBits
   } catch (err) {
     logError('getLogSettings', `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return] reason for suppression
+    // $FlowFixMe[incompatible-return]
     return
   }
 }
@@ -117,7 +108,6 @@ export async function getLogSettings(): Promise<TDashboardLoggingConfig> {
  */
 export function getNotePlanSettings(): TNotePlanSettings {
   try {
-    // logDebug(pluginJson, `Start of getNotePlanSettings()`)
     // Extend settings with value we might want to use when DataStore isn't available etc.
     return {
       timeblockMustContainString: String(DataStore.preference('timeblockTextMustContainString')) ?? '',
@@ -126,7 +116,7 @@ export function getNotePlanSettings(): TNotePlanSettings {
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
-    // $FlowFixMe[incompatible-return] reason for suppression
+    // $FlowFixMe[incompatible-return]
     return
   }
 }
@@ -227,7 +217,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * @param {boolean} useEditorWherePossible? use the open Editor to read from if it happens to be open
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
-export function getOpenItemParasForCurrentTimePeriod(
+export function getOpenItemParasForTimePeriod(
   timePeriodName: string,
   timePeriodNote: TNote,
   dashboardSettings: TDashboardSettings,
@@ -373,7 +363,7 @@ export function getOpenItemParasForCurrentTimePeriod(
       return [combinedSortedParas, []]
     }
   } catch (err) {
-    logError('getOpenItemParasForCurrentTimePeriod', err.message)
+    logError('getOpenItemParasForTimePeriod', err.message)
     return [[], []] // for completeness
   }
 }

@@ -1,8 +1,24 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- ## [Perspectives.a20 = 2.1.0.a20] @jgc, 2024-11-???
-- TODO: fix time block section not being generated -->
+## [Perspectives.a20 = 2.1.0.a20] @jgc, 2024-11-22
+- (jgc): fix time block section not being generated -- really an error in NP settings, grr
+- (jgc): taken out the tweaking of the time block line display, to make it easy to edit and complete etc. 
+- (jgc): de-dupe time block section with Today section
+- (jgc): on any type of refresh include the TB section (if enabled) to ensure it gets updated as often as possible to catch start/end of TBs
+- (jgc): split up clickHandlers file -- now 6 of them
+- (dbw): fixed FeatureFlags settings not persisting
+- (jgc): yet more tweaking of section and item layout
+- (jgc): added new 'Last Week' section and related 'move all' button
+- (jgc): fix wrong description for 'Folders to Include' section
+- (dbw): fix to '-' perspective updating
+- (dbw): fix to add perspective
+- (dbw): fix to delete perspective
+- (dbw): fixes to new console log view
+- (dbw): fixes to PerspectiveSelector
+- (dbw): fix babel to work for jest and rollup for the app
+- (dbw): improve logging
+- (jgc): change priority detection to ignore ! not at start of content
 
 ## [Perspectives.a19 = 2.1.0.a19] @dbw, 2024-11-19
 - MASSIVE MERGE from main into main-perspectives-merge-with-debug branch. (Hopefully) merged your latest changes with the perspectives code which seems to be working fairly reliably.

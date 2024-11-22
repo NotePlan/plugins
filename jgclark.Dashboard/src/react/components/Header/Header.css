@@ -42,8 +42,8 @@
 	align-items: center;
 	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
 	/* width: 9rem; */
-
 }
+
 /* Turn fixed width off on narrow screens */
 @media screen and (max-width: 600px) {
 	.lastFullRefresh {
@@ -125,4 +125,10 @@
 	i {
 		color: var(--tint-color);
 	}
+}
+
+/* Give a little space to left of hardRefreshButton */
+/* Note: needs to come after HAButton definition above */
+.hardRefreshButton {
+	margin-left: 0.2rem;
 }

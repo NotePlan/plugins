@@ -87,8 +87,8 @@ dialog::backdrop {
 
 .sectionInfo {
 	display: block;
-	padding-block-start: 4px;
-	padding-block-end: 0.2rem;
+	padding-block-start: 0.4rem;
+	/* padding-block-end: 0.2rem; */
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
 	color: var(--fg-sidebar-color);
@@ -116,7 +116,7 @@ dialog::backdrop {
 	/* make noteTitles bold */
 	font-weight: 700;
 	margin: unset;
-	padding: 3px 0px 0px;
+	/* padding: 3px 0px 0px; */
 	justify-self: start;
 }
 
@@ -128,7 +128,7 @@ dialog::backdrop {
 	align-self: center;
 	border: 0px none;
 	box-shadow: none;
-	padding-top: 3px;
+	padding-top: 0px;
 }
 
 /* Next part of sectionInfo. */
@@ -152,8 +152,8 @@ dialog::backdrop {
 	column-rule: 1px dotted var(--tint-color);
 	column-fill: auto;
 	padding-inline-start: 0.5rem;
-	padding-block-start: 0.3rem; /* 4px; */
-	padding-block-end: 0.2rem; /* 4px; */
+	padding-block-start: 0.4rem; /* 0.3rem; */
+	/* padding-block-end: 0.2rem; */
 }
 
 .sectionItemRow {
@@ -163,7 +163,7 @@ dialog::backdrop {
 	/* grid-template-columns: [icon] 1.1rem [item-details] auto; */
 	display: flex;
 	/* no bottom padding */
-	padding: 3px 4px 0px 0px;
+	padding: 0px 4px 3px 0px;
 	border: 0px none;
 	column-gap: 3px;
 	/* vertical in containing block */
@@ -206,8 +206,8 @@ dialog::backdrop {
 		/* now make this area grid column-based not row-based */
 		grid-template-columns: max-content max-content auto;
 		grid-column-gap: 1.0rem;
-		/* padding: 0.3rem; */
-		/* padding-bottom: 0.3rem 0px; */
+		padding-top: 0.2rem;
+		padding-bottom: 0.2rem;
 		/* put all items essentially on a baseline */
 		/* align-items: end; */
 		align-items: center;
@@ -221,8 +221,11 @@ dialog::backdrop {
 		/* some padding to right */
 		padding-right: 0.5rem;
 	}
+
+	/* TODO: Ideally rationalise this with the 'dropdown' icon-buttons in the Header bar */
 	.addNewActionButtons {
 		justify-self: start;
+		padding-top: 2px;
 	}
 }
 
@@ -252,6 +255,12 @@ dialog::backdrop {
 /* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
 .fa-square, .fa-square-plus, .fa-square-arrow-right {
 	font-size: 110%;
+}
+
+/* Override the theme definition of a completed task a little */
+.checked {
+	padding-top: 1px !important;
+	margin-bottom: 0px !important;
 }
 
 .projectIcon {

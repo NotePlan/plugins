@@ -11,18 +11,17 @@ import {
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
+  doCommsBridgeTest,
   doCompleteTask,
   doCompleteTaskThen,
   doCompleteChecklist,
   doCyclePriorityStateDown,
   doCyclePriorityStateUp,
   doDeleteItem,
+  doEvaluateString,
   doMoveToNote,
+  doRescheduleItem,
   doSettingsChanged,
-  doSavePerspective,
-  doAddNewPerspective,
-  doDeletePerspective,
-  doSwitchToPerspective,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
   doShowLineInEditorFromFilename,
@@ -30,14 +29,18 @@ import {
   // doSetSpecificDate,
   doToggleType,
   doUnscheduleItem,
-  doRescheduleItem,
-  // refreshAllSections,
-  refreshSomeSections,
-  incrementallyRefreshSections,
-  doCommsBridgeTest,
-  doEvaluateString,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
+import {
+  doAddNewPerspective,
+  doDeletePerspective,
+  doSavePerspective,
+  doSwitchToPerspective,
+} from './perspectiveClickHandlers'
+import {
+  incrementallyRefreshSections,
+  refreshSomeSections,
+} from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -48,13 +51,16 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
+import { doMoveFromCalToCal } from './moveClickHandlers'
 import {
-  doMoveFromCalToCal,
   scheduleAllOverdueOpenToToday,
-  scheduleAllThisWeekNextWeek,
   scheduleAllTodayTomorrow,
   scheduleAllYesterdayOpenToToday
-} from './moveClickHandlers'
+} from './moveDayClickHandlers'
+import {
+  scheduleAllLastWeekThisWeek,
+  scheduleAllThisWeekNextWeek,
+} from './moveWeekClickHandlers'
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
@@ -103,7 +109,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
     logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
-    // clo(data.item, 'bridgeClickDashboardItem received data object; data.item=')
+    // clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
@@ -313,6 +319,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await scheduleAllOverdueOpenToToday(data)
         break
       }
+      case 'moveAllLastWeekThisWeek': {
+        result = await scheduleAllLastWeekThisWeek(data)
+        break
+      }
       case 'moveAllThisWeekNextWeek': {
         result = await scheduleAllThisWeekNextWeek(data)
         break
@@ -346,13 +356,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
  * @param {TBridgeClickHandlerResult} handlerResult
  * @param {MessageDataObject} data
  */
-async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, data: MessageDataObject) {
+async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult, data: MessageDataObject) {
   try {
     // check to see if the theme has changed and if so, update it
     await checkForThemeChange()
-    if (!handlerResult) return
-
+    if (!handlerResultIn) return
+    const handlerResult = handlerResultIn
     const { success, updatedParagraph } = handlerResult
+    const config: any = await getDashboardSettings()
+    const enabledSections = getListOfEnabledSections(config)
 
     if (success) {
       const actionsOnSuccess = handlerResult.actionsOnSuccess ?? []
@@ -393,10 +405,17 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
           await updateReactWindowFromLineChange(handlerResult, data, ['filename', 'itemType', 'para'])
         }
       }
+
+      if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
+        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
+        logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
+        reactWindowData.pluginData.totalDoneCount = incrementedCount
+        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
+      }
+
       if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
         // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        const config: any = await getDashboardSettings()
-        const enabledSections = getListOfEnabledSections(config)
         logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSections (for ${String(enabledSections)}) ...`)
         await incrementallyRefreshSections({ ...data, sectionCodes: enabledSections })
       }
@@ -412,13 +431,23 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
       }
-      if (actionsOnSuccess.includes('INCREMENT_DONE_COUNT')) {
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        const incrementedCount = reactWindowData.pluginData.totalDoneCount + 1
-        logDebug('processActionOnReturn', `INCREMENT_DONE_COUNT to ${String(incrementedCount)}`)
-        reactWindowData.pluginData.totalDoneCount = incrementedCount
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Incrementing done counts (ahead of proper background refresh)`)
+      else {
+        // At least update TB section (if enabled) to make sure its as up to date as possible
+        if (enabledSections.includes('TB')) {
+          logInfo('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
+          if (!actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
+            actionsOnSuccess.push('REFRESH_SECTION_IN_JSON')
+            if (!handlerResult.sectionCodes) {
+              handlerResult.sectionCodes = []
+            }
+            if (!handlerResult.sectionCodes.includes('TB')) {
+              handlerResult.sectionCodes?.push('TB')
+            }
+          }
+          logInfo('processActionOnReturn', `... -> ${String(handlerResult.sectionCodes)}`)
+        }
       }
+
       if (actionsOnSuccess.includes('REFRESH_SECTION_IN_JSON')) {
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
@@ -426,6 +455,7 @@ async function processActionOnReturn(handlerResult: TBridgeClickHandlerResult, d
         // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
         await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
       }
+
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
         logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
         const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)

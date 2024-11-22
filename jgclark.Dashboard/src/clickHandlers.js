@@ -1,16 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // clickHandlers.js
-// Handler functions for dashboard clicks that come over the bridge
+// Handler functions for some dashboard clicks that come over the bridge.
+// There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
 // Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
-  // buildListOfDoneTasksToday,
   getTotalDoneCountsFromSections,
-  // rollUpDoneCounts,
   updateDoneCountsFromChangedNotes,
 } from './countDoneTasks'
 import {
@@ -18,13 +17,11 @@ import {
   getNotePlanSettings,
   handlerResult,
   mergeSections,
-  // moveItemBetweenCalendarNotes,
   moveItemToRegularNote,
   setPluginData,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
-import { validateAndFlattenMessageObject } from './shared'
+import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import {
   addNewPerspective,
   deletePerspective,
@@ -34,6 +31,8 @@ import {
   cleanDashboardSettings,
   switchToPerspective,
 } from './perspectiveHelpers'
+import { validateAndFlattenMessageObject } from './shared'
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
 import {
   cancelItem,
   completeItem,
@@ -67,134 +66,6 @@ import { showMessage, processChosenHeading } from '@helpers/userInput'
 /****************************************************************************************************************************
  *                             HANDLERS
  ****************************************************************************************************************************/
-
-/**
- * Tell the React window to update by re-generating all Sections
- */
-export async function refreshAllSections(): Promise<void> {
-  const startTime = new Date()
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  // show refreshing message until done
-  await setPluginData({ refreshing: true }, 'Starting Refreshing all sections')
-
-  // refresh all sections' data
-  const newSections = await getAllSectionsData(reactWindowData.demoMode, false, false)
-  const changedData = {
-    refreshing: false,
-    sections: newSections,
-    lastFullRefresh: new Date(),
-    // totalDoneCounts: getTotalDoneCountsFromSections(newSections),
-  }
-  await setPluginData(changedData, 'Finished Refreshing all sections')
-  logTimer('refreshAllSections', startTime, `at end for all sections`)
-
-  // re-calculate all done task counts (if the appropriate setting is on)
-  const NPSettings = await getNotePlanSettings()
-  if (NPSettings.doneDatesAvailable) {
-    // V1 method
-    // const totalDoneCounts = rollUpDoneCounts([getTotalDoneCountsFromSections(reactWindowData.pluginData.sections)], buildListOfDoneTasksToday())
-    // const changedData = {
-    //   totalDoneCounts: totalDoneCounts,
-    // }
-    // V2 method
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`end of refreshAllSections()`)
-    const changedData = {
-      totalDoneCount: totalDoneCount,
-    }
-    await setPluginData(changedData, 'Updating doneCounts at end of refreshAllSections')
-  }
-}
-
-// FIXME: DBW thinks this generates way more updates than necessary
-
-/**
- * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
- * This is used on first launch to improve the UX and speed of first render.
- * Each section is returned to React as it's generated.
- * Today loads first and then this function is automatically called from a useEffect in
- * Dashboard.jsx to load the rest.
- * @param {MessageDataObject} data
- * @param {boolean} calledByTrigger? (default: false)
- * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
- * @returns {TBridgeClickHandlerResult}
- */
-export async function incrementallyRefreshSections(
-  data: MessageDataObject,
-  calledByTrigger: boolean = false,
-  setFullRefreshDate: boolean = false,
-): Promise<TBridgeClickHandlerResult> {
-  const incrementalStart = new Date()
-  const { sectionCodes } = data
-  if (!sectionCodes) {
-    logError('incrementallyRefreshSections', 'No sectionCodes provided')
-    return handlerResult(false)
-  }
-  await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
-  // loop through sectionCodes
-  for (const sectionCode of sectionCodes) {
-    const start = new Date()
-    await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
-  }
-  logDebug('incrementallyRefreshSections', `Starting for ${sectionCodes.length} sections ${String(sectionCodes)}`)
-  const updates: any = { refreshing: false }
-  if (setFullRefreshDate) updates.lastFullRefresh = new Date()
-  await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
-  logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
-
-  // re-calculate done task counts (if the appropriate setting is on)
-  const NPSettings = await getNotePlanSettings()
-  if (NPSettings.doneDatesAvailable) {
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSections (for [${sectionCodes.join(',')}])`)
-    const changedData = {
-      totalDoneCount: totalDoneCount,
-    }
-    await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSections')
-  }
-
-  return handlerResult(true)
-}
-
-/**
- * Tell the React window to update by re-generating a subset of Sections.
- * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time.
- * @param {MessageDataObject} data
- * @param {boolean} calledByTrigger? (default: false)
- * @returns {TBridgeClickHandlerResult}
- */
-export async function refreshSomeSections(data: MessageDataObject, calledByTrigger: boolean = false): Promise<TBridgeClickHandlerResult> {
-  const start = new Date()
-  const { sectionCodes } = data
-  if (!sectionCodes) {
-    logError('refreshSomeSections', 'No sectionCodes provided')
-    return handlerResult(false)
-  }
-  logDebug('refreshSomeSections', `Starting for ${String(sectionCodes)}`)
-  const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-  const pluginData: TPluginData = reactWindowData.pluginData
-  // show refreshing message until done
-  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${String(sectionCodes)}`)
-  const existingSections = pluginData.sections
-
-  // force the section refresh for the wanted sections
-  const newSections = await getSomeSectionsData(sectionCodes, pluginData.demoMode, calledByTrigger)
-  // logDebug('refreshSomeSections', `- after getSomeSectionsData(): ${timer(start)}`)
-  const mergedSections = mergeSections(existingSections, newSections)
-  // logDebug('refreshSomeSections', `- after mergeSections(): ${timer(start)}`)
-
-  const updates: TAnyObject = { sections: mergedSections }
-  // and update the total done counts
-  // TODO: turning off for now, as was being called too often? Need to figure this out.
-  // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
-
-  if (!pluginData.refreshing === true) updates.refreshing = false
-  await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
-  logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
-  // count sectionItems in all sections
-  const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)
-  logDebug('refreshSomeSections', `Total section items: ${totalSectionItems}`)
-  return handlerResult(true, [], { sectionItems: totalSectionItems })
-}
 
 /**
  * Evaluate JS string and return result
@@ -275,15 +146,15 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content } = validateAndFlattenMessageObject(data)
+  const { filename, content, item } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
-  // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`) // ✅
+  // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`)
 
   if (typeof updatedParagraph !== 'boolean') {
     logDebug('doCompleteTask', `-> {${updatedParagraph.content}}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'INCREMENT_DONE_COUNT', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
-    logDebug('doCompleteTask', `-> failed`)
+    logWarn('doCompleteTask', `-> failed`)
     return handlerResult(false)
   }
 }
@@ -300,7 +171,7 @@ export function doCompleteTaskThen(data: MessageDataObject): TBridgeClickHandler
     logDebug('doCompleteTaskThen', `-> {${updatedParagraph.content}}`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
   } else {
-    logDebug('doCompleteTaskThen', `-> failed`)
+    logWarn('doCompleteTaskThen', `-> failed`)
     return handlerResult(false)
   }
 }
@@ -320,7 +191,7 @@ export function doCancelTask(data: MessageDataObject): TBridgeClickHandlerResult
   } else {
     updatedParagraph = possiblePara || {}
   }
-  logDebug('doCancelTask', `-> ${String(res)}`)
+  logDebug('doCancelTask', `-> ${res ? 'success' : 'failed'}`)
   return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
@@ -349,7 +220,7 @@ export async function doDeleteItem(data: MessageDataObject): Promise<TBridgeClic
   // Grab a copy of the paragraph before deleting it, so React can remove the right line. (It's not aware the paragraph has disappeared on the back end.)
   const updatedParagraph = findParaFromStringAndFilename(filename, content)
   const res = await deleteItem(filename, content)
-  logDebug('doDeleteItem', `-> ${String(res)}`)
+  logDebug('doDeleteItem', `-> ${res ? 'success' : 'failed'}`)
   return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
@@ -368,14 +239,14 @@ export function doCancelChecklist(data: MessageDataObject): TBridgeClickHandlerR
   } else {
     updatedParagraph = possiblePara || {}
   }
-  // logDebug('doCancelChecklist', `-> ${String(res)}`)
+  logDebug('doCancelChecklist', `-> ${res ? 'success' : 'failed'}`)
   return handlerResult(res, ['REMOVE_LINE_FROM_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph })
 }
 
 /**
  * Updates content based on provided data.
  * @param {MessageDataObject} data - The data object containing information for content update.
- * @returns {TBridgeClickHandlerResult} The result of the content update operation.
+ * @returns {TBridgeClickHandlerResult} The result
  */
 export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
@@ -401,7 +272,11 @@ export function doContentUpdate(data: MessageDataObject): TBridgeClickHandlerRes
   return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: para })
 }
 
-// Send a request to toggleType to plugin
+/**
+ * Send a request to toggleType to plugin
+ * @param {MessageDataObject} data - The data object containing item info
+ * @returns{TBridgeClickHandlerResult} The result
+ */
 export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult {
   try {
     const { filename, content, sectionCodes } = validateAndFlattenMessageObject(data)
@@ -437,7 +312,11 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
   }
 }
 
-// Send a request to unscheduleItem to plugin
+/**
+ * Send a request to unscheduleItem to plugin
+ * @param {MessageDataObject} data - The data object containing item info
+ * @returns {TBridgeClickHandlerResult} The result
+ */
 export function doUnscheduleItem(data: MessageDataObject): TBridgeClickHandlerResult {
   const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = unscheduleItem(filename, content)
@@ -525,7 +404,7 @@ export async function doShowNoteInEditorFromTitle(data: MessageDataObject): Prom
     logDebug('bridgeClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+    logWarn('bridgeClickDashboardItem', `-> failed to open title ${wantedTitle} in Editor`)
     return handlerResult(false)
   }
 }
@@ -549,7 +428,7 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
     )
     return handlerResult(true)
   } else {
-    logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
+    logWarn('bridgeClickDashboardItem', `-> failed to open filename ${filename} in Editor`)
     return handlerResult(false)
   }
 }
@@ -678,18 +557,6 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
 }
 
 /**
- * Set the dashboard settings for the "-" perspective, and set isModified and isActive to false for all other perspectives
- * @param {TDashboardSettings} newDashboardSettings
- * @param {TPerspectiveSettings} perspectiveSettings
- * @returns {TPerspectiveSettings}
- */
-function setDashPerspectiveSettings(newDashboardSettings: TDashboardSettings, perspectiveSettings: TPerspectiveSettings) {
-  logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
-  const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isModified: false }
-  return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
-}
-
-/**
  * Update a single key in DataStore.settings
  * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
  * @param {string} settingName - the single key to set to the value of data.settings
@@ -765,86 +632,3 @@ export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBrid
   // send a banner message by failing the handler
   return await handlerResult(false, [], { errorMsg: `Success: This was sent from the plugin. Round trip works 5x5.` })
 }
-
-export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  await addNewPerspective()
-  const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
-  await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
-  return handlerResult(true, [])
-}
-
-export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  await deletePerspective(data.perspectiveName)
-  let perspectiveSettings = await getPerspectiveSettings()
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  if (!activeDef) {
-    const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
-    if (newPerspSettings) {
-      perspectiveSettings = newPerspSettings
-    } else {
-      logError('doDeletePerspective', `switchToPerspective('-', perspectiveSettings) failed after deleting ${data.perspectiveName || ''}`)
-      return handlerResult(false, [], { errorMsg: `switchToPerspective('-', perspectiveSettings) failed` })
-    }
-  }
-  const updatesToPluginData = { perspectiveSettings: perspectiveSettings, dashboardSettings: await getDashboardSettings() }
-  await setPluginData(updatesToPluginData, `_Deleted perspective in DataStore.settings & reloaded perspectives`)
-  return handlerResult(true, [])
-}
-
-export async function doSavePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doSavePerspective starting ... with mbo`)
-  const perspectiveSettings = await getPerspectiveSettings()
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
-  if (!activeDef.isModified) return handlerResult(false, [], { errorMsg: `Perspective ${activeDef.name} is not modified. Not saving.` })
-  if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
-  const dashboardSettings = await getDashboardSettings()
-  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const newDef = { ...activeDef, dashboardSettings: { ...activeDef.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }, isModified: false }
-  const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
-  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
-  return handlerResult(true, [])
-}
-
-export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const switchToName = data?.perspectiveName || ''
-  if (!switchToName) {
-    logError('doSwitchToPerspective', `No perspective name provided.`)
-    return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
-  }
-  const revisedDefs = await switchToPerspective(switchToName, await getPerspectiveSettings())
-  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
-  const activeDef = getActivePerspectiveDef(revisedDefs)
-  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
-  const prevDashboardSettings = await getDashboardSettings()
-  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  // apply the new perspective's settings to the main dashboard settings
-  const newDashboardSettings = {
-    ...prevDashboardSettings,
-    ...(activeDef.dashboardSettings || {}),
-    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
-  } // the ending "changed from plugin" is important because it keeps it from sending back
-  logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
-  clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
-  const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings, serverPush: { dashboardSettings: true, perspectiveSettings: true } }
-  logDebug(
-    `doSwitchToPerspective`,
-    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
-      newDashboardSettings.excludedFolders
-    }`,
-  )
-  await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
-  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
-}
-
-// export async function turnOffPriorityItemsFilter(): Promise<TBridgeClickHandlerResult> {
-//   logDebug('turnOffPriorityItemsFilter', `starting ...`)
-//   const currentSettings = await getDashboardSettings()
-//   const updatedDashboardSettings = { ...currentSettings, filterPriorityItems: false }
-//   clo(updatedDashboardSettings, 'updatedDashboardSettings=')
-//   DataStore.settings.dashboardSettings = updatedDashboardSettings
-//   logDebug('turnOffPriorityItemsFilter', `------------ refresh ------------`)
-//   return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
-// }

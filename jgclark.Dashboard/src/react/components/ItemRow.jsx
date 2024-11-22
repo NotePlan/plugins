@@ -38,8 +38,8 @@ function ItemRow({ item, thisSection }: Props): Node {
         <TasksFiltered item={item} />
       ) : itemType === 'itemCongrats' ? (
         <NoTasks />
-            ) : itemType === 'timeblock' ? (
-              <TimeBlockInfo item={item} thisSection={thisSection} />
+              // ) : itemType === 'timeblock' ? (
+              //   <TimeBlockInfo item={item} thisSection={thisSection} />
       ) : (
         <TaskItem item={item} thisSection={thisSection} />
       )}

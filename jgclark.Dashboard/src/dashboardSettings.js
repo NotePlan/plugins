@@ -98,7 +98,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includedFolders',
     label: 'Folders to include when finding items',
     description:
-      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
+      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. It works in conjunction with 'Folders to ignore' below.",
     type: 'input',
     default: '/',
     compactDisplay: true,

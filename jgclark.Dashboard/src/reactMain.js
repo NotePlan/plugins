@@ -28,15 +28,15 @@ import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 export type PassedData = {
-  startTime?: Date /* used for timing/debugging */,
-  title?: string /* React Window Title */,
   pluginData: TPluginData /* Your plugin's data to pass on first launch (or edited later) */,
-  ENV_MODE?: 'development' | 'production',
+  returnPluginCommand: { id: string, command: string }, /* plugin jsFunction that will receive comms back from the React window */
+  componentPath: string, /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */
+  startTime?: Date, /* used for timing/debugging */
+  title?: string, /* React Window Title */
   debug: boolean /* set based on ENV_MODE above */,
-  dataMode: 'live' | 'demo' | 'test',
-  returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
-  componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
-  passThroughVars?: any /* any data you want to pass through to the React Window */,
+  ENV_MODE?: 'development' | 'production',
+  dataMode: 'live' | 'demo' | 'test', /* TODO(dbw): describe this */
+  passThroughVars?: any, /* any data you want to pass through to the React Window */
   windowID?: string,
 }
 
@@ -307,12 +307,12 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
-      title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-      ENV_MODE,
-      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
-      dataMode: 'live', // or 'demo' or ?'test'?
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       componentPath: `../${pluginJson['plugin.id']}/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+      debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
+      title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
+      ENV_MODE,
+      dataMode: 'live', // or 'demo' or ?'test'?
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }
