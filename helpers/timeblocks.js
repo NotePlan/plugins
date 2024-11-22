@@ -166,13 +166,13 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
   try {
     // Get the setting from arg or from NP setting
     // console.log(typeof mustContainStringArg, typeof DataStore)
-    let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string'
-      ? mustContainStringArg : ''
+    let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : ''
     if (mustContainString === '') {
       let preference: string
       // If DataStore.preference gives an error, or is not available, or gives an undefined answer, then treat as an empty string
       try {
-        mustContainString = String(DataStore?.preference('timeblockTextMustContainString'))
+        const preferenceValue = DataStore?.preference('timeblockTextMustContainString')
+        mustContainString = preferenceValue && typeof preferenceValue === 'string' ? preferenceValue : ''
       } catch (error) {
         // ignore error
         mustContainString = ''
