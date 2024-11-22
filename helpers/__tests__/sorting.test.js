@@ -483,11 +483,11 @@ describe('sorting.js', () => {
       const result = s.getSortableTask(paragraph)
       expect(result).toHaveProperty('mentions', ['foo'])
     })
-    test('should have exclamation mark priority', () => {
+    test('should not have exclamation mark priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
       const result = s.getSortableTask(paragraph)
-      expect(result).toHaveProperty('priority', 3)
-      expect(result).toHaveProperty('exclamations', ['!!!'])
+      expect(result).toHaveProperty('priority', -1)
+      expect(result).toHaveProperty('exclamations', [])
     })
     test('should have parens priority', () => {
       const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
@@ -499,6 +499,68 @@ describe('sorting.js', () => {
       const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2020-01-01', filename: 'testFile.md' })
       const result = s.getSortableTask(paragraph)
       expect(result).toHaveProperty('calculatedType', 'checklistScheduled')
+    })
+  })
+
+  describe('getNumericPriority()', () => {
+    test('should return -1 for empty paragraph', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
+    })
+
+    test('should return -1 from exclamation marks in words', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
+    })
+
+    test('should return -1 from exclamation marks in words', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
+    })
+
+    test('should return priority 3 from exclamation marks (even with 6 in line)', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '!!! test content !!!', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(3)
+    })
+
+    test('should return no priority from exclamation marks at end', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
+    })
+
+    test('should return priority from parentheses', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(2)
+    })
+
+    test('should return priority 4 from starting >>', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '>> test content', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(4)
+    })
+
+    test('should return priority 4 from included (W)', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '(W) test content', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(4)
+    })
+
+    test('should return no priority from ending >>', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content >>', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
+    })
+
+    test('should return -1 for unknown priority', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content ??', filename: 'testFile.md' })
+      const result = s.getNumericPriority(s.getSortableTask(paragraph))
+      expect(result).toEqual(-1)
     })
   })
 })
