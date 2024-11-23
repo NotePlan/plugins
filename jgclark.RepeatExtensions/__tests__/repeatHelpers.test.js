@@ -1,5 +1,4 @@
 /* global describe, expect, test, beforeAll */
-// @flow
 import { generateNewRepeatDate } from '../src/repeatHelpers'
 // import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 

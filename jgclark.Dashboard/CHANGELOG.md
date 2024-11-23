@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [Perspectives.a21 = 2.1.0.a21] @jgc, 2024-11-23
+- (jgc): remove the 'JSON control' and tidy up the area in the settings dialog around where it used to be.
+- (jgc): updated README with basic info on Perspectives, ready for limited alpha testing.
+
 ## [Perspectives.a20 = 2.1.0.a20] @jgc, 2024-11-22
 - (jgc): fix time block section not being generated -- really an error in NP settings, grr
 - (jgc): taken out the tweaking of the time block line display, to make it easy to edit and complete etc. 

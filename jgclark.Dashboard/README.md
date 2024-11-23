@@ -4,7 +4,7 @@
 This plugin provides a **dashboard window** for your NotePlan data that in one place shows a compact list of:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
-- similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)
+- similarly for yesterday's note, tomorrow's note, this week's and last week's notes, and monthly and quarterly notes too (if used)
 - all open tasks and checklists that contain a particular  `#tags` or `@mention`s of your choosing. This can give "deferred date" functionality (see below).
 - all overdue tasks
 - all open items with an added priority
@@ -30,8 +30,14 @@ From v2, the top right has icons for two menus:
 
 _This Plugin requires the separate 'Shared Resources' plugin to be installed._
 
-## What's improved in v2.0?
-Lots! See the [CHANGELOG](./CHANGELOG.md) for details.
+## Perspectives (new in v2.1)
+A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).
+
+To change between the various Perspectives click on this dropdown menu:
+
+<img src="perspectives-selector-2.1.0.png" width="300px" margin="8px" alt="perspectives selector" />
+
+Use the Settings dialog to change your settings for the current perspective. When it notices you've changed something, it adds a `*` to the end of the perspective name. To update the definition of this perspective, select 'Save Perspective' from the dropdown menu.
 
 ## Interacting with items in the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square.  The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing **⌘ (command)** button when clicking on the open circle or square.
@@ -67,7 +73,7 @@ Notes:
 - there are 3 settings that control aspects of this in the Dashboard Settings dialog.
 
 ### Add Task/Checklist items
-<img src="add-buttons-2.0.0.png" align="right" width="200px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month.
+<img src="add-buttons-2.1.0.png" align="right" width="200px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note. A second pair adds tasks and checklists but to the *next* day/week/month.
 
 ### 'All → ...' Move buttons
 Some sections have "All →  ..." buttons. They move all the items in that section to the destination (e.g. from Today to Tomorrow's daily note), including any hidden as lower-priority items. If there are more than 20 items to move, then (on macOS) it will first check whether you want to proceed.
@@ -232,18 +238,21 @@ For both callbacks, the names of the possible settings (described above), and th
 
 As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the callback URL based on your current settings. This is copied to the clipboard.
 
-## Support
-The Dashboard requires the **Shared Resources** plugin to be installed as well, to work and display properly. The Dashboard should automatically offer to install it if it isn't already.
-
-Do join  the excellent Discord community around NotePlan, where the plugins and much more, is discussed and ideas shared. If you find an issue with this plugin, or would like to suggest new features for it, as well as commenting there you can raise an ['Issue' of a Bug or Feature Request on GitHub](https://github.com/NotePlan/plugins/issues).
-
-I'm not part of the NotePlan team, but I've spent at least 10 working weeks on this particular plugin. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
+## Team
+I'm just a hobby coder, and not part of the NotePlan team, but I have spent at least 2 working months on this particular plugin. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
-David Wertheimer has contributed much knowledge and code to v2.0, which is a complete re-write using the React framework for Javascript.  George Crump has contributed many suggestions, bug reports, and several great explainer videos.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
+David Wertheimer has contributed much knowledge and code to v2.0 onwards, which is a complete re-write using the React framework for Javascript.  George Crump has contributed many suggestions, bug reports, and several great explainer videos.  And of course, thanks to Eduard for continually improving NotePlan itself, and the APIs I've used to build my various Plugins.
 
 Thanks, team!
+
+## Support
+The Dashboard requires the **Shared Resources** plugin to be installed as well, to work and display properly. The Dashboard should automatically offer to install it if it isn't already.
+
+Do join the excellent Discord community around NotePlan, where the plugins and much more, is discussed and ideas shared. If you find an issue with this plugin, or would like to suggest new features for it, as well as commenting there you can raise an ['Issue' of a Bug or Feature Request on GitHub](https://github.com/NotePlan/plugins/issues).
+
+iOS/iPadOS users: if you need support, and we ask for more logs, you can change the logging level by running the "/Change Logging levels" command. For technical reasons, this is not available through the main Settings menu inside the Dashboard.
 
 ## History
 Please see the [CHANGELOG](CHANGELOG.md).

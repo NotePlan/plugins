@@ -67,26 +67,26 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Perspectives',
+    description: "A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
     key: 'perspectivesEnabled',
-    label: 'Show Perspectives',
-    description:
-      "Activate Perspective filtering of Dashboard views. A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, and which sections to show.",
+    label: 'Enable Perspectives',
+    description: '',
     type: 'switch',
     default: true,
     compactDisplay: true,
-    controlsOtherKeys: ['perspectiveList'],
+    controlsOtherKeys: [], //['perspectiveList'],
   },
-  {
-    //$FlowIgnore[incompatible-type] don't understand the error
-    type: 'perspectiveList',
-    key: 'perspectiveList',
-    label: 'Perspectives details',
-    description: 'Shows Perspective settings Component.',
-    default: '',
-    dependsOnKey: 'perspectivesEnabled',
-  },
+  // {
+  //   //$FlowIgnore[incompatible-type] don't understand the error
+  //   type: 'perspectiveList',
+  //   key: 'perspectiveList',
+  //   label: 'Perspectives details',
+  //   description: 'Shows Perspective settings Component.',
+  //   default: '',
+  //   dependsOnKey: 'perspectivesEnabled',
+  // },
   {
     type: 'separator',
   },
