@@ -267,9 +267,7 @@ const PerspectiveSelector = (): React$Node => {
 
   const customStyles = {
     container: {
-      minWidth: '45px',
-      width: '51px', // Half the default width of 400px
-      height: '21px', // Three-quarters the default height of 60px
+      minWidth: '60px',
     },
   }
 

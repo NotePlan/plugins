@@ -12,7 +12,7 @@ declare var NP_THEME: any
 export type Option = {
   label: string,
   value: string,
-  [string]: any, // Allow additional properties
+  [string]: any, // Allow additional properties (e.g. isModified)
 }
 
 type Styles = {
@@ -39,6 +39,7 @@ type DropdownSelectProps = {
   fullWidthOptions?: boolean,
   showIndicatorOptionProp?: string,
   allowNonMatchingLabel?: boolean,
+  noWrapOptions: boolean,
 }
 
 /**
@@ -63,6 +64,7 @@ const DropdownSelect = ({
   styles = {},
   fullWidthOptions = false,
   showIndicatorOptionProp = '',
+  noWrapOptions = false, // TODO: need to implement this when needed (force option to be one line)
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
