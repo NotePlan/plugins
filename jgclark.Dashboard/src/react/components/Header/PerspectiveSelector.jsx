@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
+import type { TPerspectiveDef } from '../../../types.js'
 import React, { useReducer, useEffect, useCallback } from 'react'
 import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import { setActivePerspective } from '../../../perspectiveHelpers'
@@ -53,7 +54,7 @@ const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspec
  * @param {boolean} item.isModified - Indicates if the perspective or option is modified.
  * @returns {string} The formatted name.
  */
-const formatNameWithStarIfModified = (item: { name: string, isModified: boolean, [string]: mixed }): string => {
+const formatNameWithStarIfModified = (item: TPerspectiveDef): string => {
   return item.isModified ? `${item.name}*` : item.name
 }
 
@@ -167,7 +168,9 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   useEffect(() => {
     const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${formatNameWithStarIfModified(thisPersp)}"`)
+    if (thisPersp) {
+      logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${formatNameWithStarIfModified(thisPersp)}"`)
+    }
   }, [perspectiveNameOptions, activePerspectiveName])
 
   //----------------------------------------------------------------------
@@ -175,7 +178,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
 
   const handlePerspectiveChange = useCallback(
-    (selectedOption: Option) => {
+    (selectedOption: TPerspectiveOptionObject) => {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `User selected newValue: "${selectedOption.value}". Current activePerspectiveName: "${activePerspectiveName}".`)
 
       if (selectedOption.value === 'separator') {
@@ -270,9 +273,6 @@ const PerspectiveSelector = (): React$Node => {
     },
   }
 
-  const normalizedOptions: Array<TPerspectiveOptionObject> = perspectiveNameOptions
-    ? perspectiveNameOptions.map((option) => (typeof option === 'string' ? { label: option, value: option } : option))
-    : []
   const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
   if (!thisPersp) {
     logError('PerspectiveSelector', `Cannot find perspective definition for: "${activePerspectiveName}". Was it just created externally?".`)
@@ -283,10 +283,11 @@ const PerspectiveSelector = (): React$Node => {
   // logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
   return (
     <DropdownSelect
-      style={customStyles}
-      options={normalizedOptions}
-      // value={normalizedOptions.find(o=>o.value === activePerspectiveName)?.label||''} // show the star if it's modified
-      value={selectedValue || { label: '-', value: '-' }} // show the star if it's modified
+      styles={customStyles}
+      // $FlowIgnore
+      options={perspectiveNameOptions}
+      value={selectedValue || { label: '-', value: '-' }}
+      // $FlowIgnore
       onChange={handlePerspectiveChange}
       compactDisplay={true}
       label={'Persp'}

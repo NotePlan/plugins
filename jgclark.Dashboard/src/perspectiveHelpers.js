@@ -63,8 +63,8 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     name: '-',
     isModified: false,
     // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: {},
-    excludedFolders: ['THIS_IS_DASH'],
+    dashboardSettings: { excludedFolders: 'THIS_IS_DASH' },
+    isActive: true,
   },
   {
     name: 'Home',
@@ -75,6 +75,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
       excludedFolders: 'THIS_IS_HOME,Readwise 📚, Saved Searches, Work',
       ignoreItemsWithTerms: '#test, @church',
     },
+    isActive: false,
   },
   {
     name: 'Work',
@@ -85,6 +86,7 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
       excludedFolders: 'THIS_IS_WORK,Readwise 📚, Saved Searches, Home',
       ignoreItemsWithTerms: '#test, @home',
     },
+    isActive: false,
   },
 ]
 
@@ -166,14 +168,14 @@ export function getActivePerspectiveName(perspectiveSettings: Array<TPerspective
 /**
  * Get active Perspective definition
  * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {TPerspectiveDef | false}
+ * @returns {TPerspectiveDef | null}
  */
-export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>): TPerspectiveDef | false {
+export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>): TPerspectiveDef | null {
   if (!perspectiveSettings) {
-    logWarn('getActivePerspectiveDef', `No perspectiveSettings found. Returning false.`)
-    return false
+    logWarn('getActivePerspectiveDef', `No perspectiveSettings found. Returning null.`)
+    return null
   }
-  return perspectiveSettings.find((s) => s.isActive === true) || false
+  return perspectiveSettings.find((s) => s.isActive === true) || null
 }
 
 /**
@@ -264,32 +266,30 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
  * @param {boolean} includeDefaultOption? (optional; default = true)
  * @returns {Array<{ label: string, value: string, isModified: boolean }>}
  */
-export function getDisplayListOfPerspectiveNames(
-  allDefs: Array<TPerspectiveDef>,
-  includeDefaultOption: boolean = true,
-): Array<{ label: string, value: string, isModified: boolean }> {
+export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>, includeDefaultOption: boolean = true): Array<TPerspectiveOptionObject> {
   try {
-    // Get all perspective names
     if (!allDefs || allDefs.length === 0) {
       throw new Error(`No existing Perspective settings found.`)
     }
 
-    // Form list of options, removing "-" from the list if wanted
-    let options = allDefs.map((def) => ({ label: def.name, value: def.name, isModified: def.isModified || false }))
+    let options = allDefs.map((def) => ({
+      label: def.name,
+      value: def.name,
+      isModified: Boolean(def.isModified || false), // Ensure isModified is always a boolean
+    }))
+
     if (!includeDefaultOption) {
       options = options.filter((obj) => obj.label !== '-')
     } else {
-      // re-order so that '-' is first
       options = [...options.filter((obj) => obj.label === '-'), ...options.filter((obj) => obj.label !== '-')]
     }
-
+    // $FlowIgnore
     return options
   } catch (err) {
     logError('getDisplayListOfPerspectiveNames', err.message)
     return [{ label: '-', value: '-', isModified: false }]
   }
 }
-
 /**
  * FIXME: (@jgclark): This does not seem to be called anywhere. dbw updated it to use the new perspectiveSettings but I don't think it's used anywhere.
  * Get all folders that are allowed in the current Perspective.
@@ -354,16 +354,18 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
 export async function updateCurrentPerspectiveDef(): Promise<boolean> {
   try {
     const allDefs = await getPerspectiveSettings()
-    const activeDef = getActivePerspectiveDef(allDefs)
+    const activeDef: TPerspectiveDef | null = getActivePerspectiveDef(allDefs)
 
     if (!activeDef) {
       logWarn('updateCurrentPerspectiveDef', `Couldn't find definition for active perspective`)
       return false
     }
     activeDef.isModified = false
-    activeDef.dashboardSettings = await getDashboardSettings()
-    const newDefs = replacePerspectiveDef(allDefs, activeDef.name)
-    logDebug('updateCurrentPerspectiveDef', `Will update def '${apn}'`)
+    // $FlowIgnore // doesn't like the partial settings
+    const dSet: Partial<TDashboardSettings> = await getDashboardSettings()
+    activeDef.dashboardSettings = dSet
+    const newDefs = replacePerspectiveDef(allDefs, activeDef)
+    logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
     const res = savePerspectiveSettings(newDefs)
     return true
   } catch (error) {
@@ -378,7 +380,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * @param {TDashboardSettings} settingsIn
  * @returns {TDashboardSettings}
  */
-export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboardSettings {
+export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<TDashboardSettings> {
   // Define keys or patterns to remove from the settings
   const patternsToRemove = [
     'lastChange',
@@ -405,8 +407,9 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): TDashboa
   }
 
   // Reduce the settings object by excluding keys that match any pattern in patternsToRemove
-  return Object.keys(settingsIn).reduce((acc, key) => {
+  return Object.keys(settingsIn).reduce((acc: Partial<TDashboardSettings>, key) => {
     if (!shouldRemoveKey(key)) {
+      // $FlowIgnore[incompatible-type]
       acc[key] = settingsIn[key]
     }
     return acc
@@ -532,10 +535,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
       logInfo('deletePerspective', `Will delete perspective '${nameToUse}' passed as parameter`)
     } else {
       logInfo('deletePerspective', `Asking user to pick perspective to delete (apart from default)`)
-      const displayList = getDisplayListOfPerspectiveNames(existingDefs, false)
-      const options = displayList.map((pn) => {
-        return { label: pn, value: pn }
-      })
+      const options = getDisplayListOfPerspectiveNames(existingDefs, false).map((o) => ({ label: o.label, value: o.value }))
       const res = await chooseOption('Please pick the Perspective to delete', options)
       if (!res) {
         logInfo('deletePerspective', `User cancelled operation.`)

@@ -61,9 +61,6 @@ export type TDashboardSettings = {
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
   updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
   useTodayDate: boolean,
-  FFlag_ForceInitialLoadForBrowserDebugging: boolean, // to force full load in browser
-  FFlag_DebugPanel: boolean, // to show debug pane
-  FFlag_HardRefreshButton: boolean,
   lookBackDaysForOverdue: number,
   autoUpdateAfterIdleTime: number,
   moveSubItems: boolean,
@@ -75,6 +72,9 @@ export type TDashboardSettings = {
   // sharedSettings: any, // Note: no longer needed after settings refactor
   lastChange: string, // not really a setting, but a way to track the last change made
   lastModified?: string,
+  FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
+  FFlag_DebugPanel?: boolean, // to show debug pane
+  FFlag_HardRefreshButton?: boolean,
 }
 
 export type TDashboardPluginSettings = {
@@ -86,7 +86,7 @@ export type TDashboardPluginSettings = {
 
 export type TPerspectiveDef = {
   name: string,
-  dashboardSettings: TDashboardSettings,
+  dashboardSettings: Partial<TDashboardSettings>,
   isModified: boolean,
   isActive: boolean,
   lastModified?: number,
