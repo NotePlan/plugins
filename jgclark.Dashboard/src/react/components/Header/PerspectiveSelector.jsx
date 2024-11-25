@@ -45,6 +45,7 @@ type Action =
 const separatorOption = [{ label: '-------------------------------', value: '_separator_' }]
 
 const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspective' }]
+const renamePerspective = [{ label: 'Rename Perspective...', value: 'Rename Perspective' }]
 
 /**
  * Formats the name of a perspective or option by appending an asterisk if it is modified.
@@ -83,7 +84,7 @@ const PerspectiveSelector = (): React$Node => {
         const deletePersp = activePerspectiveName && activePerspectiveName !== '-' ? [{ label: 'Delete Perspective', value: 'Delete Perspective' }] : []
         return {
           ...state,
-          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...deletePersp],
+          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...deletePersp],
         }
       }
       case 'SET_ACTIVE_PERSPECTIVE':
@@ -223,30 +224,32 @@ const PerspectiveSelector = (): React$Node => {
         return
       }
 
+      if (selectedOption.value === 'Rename Perspective') {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `renamePerspective "${selectedOption.value}".`)
+        sendActionToPlugin(
+          'renamePerspective',
+          { actionType: 'renamePerspective', perspectiveName: selectedOption.value, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
+          `Rename Perspective (${selectedOption.value}) selected from dropdown`,
+        )
+        return
+      }
+
       // Otherwise, it's a normal perspective change so we process it
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
-      const thisDef = getPerspectiveNamed(selectedOption.value, perspectiveSettings)
-      if (thisDef?.isModified) {
-        // The perspectives ground truth is set by the plugin and will be returned in pluginData
-        // but for now, we will do an optimistic update so the UI is updated immediately
-        console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
-        const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
-        dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
-        dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `Switching to perspective "${selectedOption.value}" sendActionToPlugin: "switchToPerspective"`)
-        sendActionToPlugin(
-          'switchToPerspective',
-          { perspectiveName: selectedOption.value, actionType: 'switchToPerspective', logMessage: `Perspective changed to ${selectedOption.value}` },
-          `Perspective changed to ${selectedOption.value}`,
-        )
-      } else {
-        logDebug(
-          'PerspectiveSelector/handlePerspectiveChange',
-          `newValue "${selectedOption.label}" is the same as activePerspectiveName:${activePerspectiveName}. No action taken.`,
-        )
-      }
+      // The perspectives ground truth is set by the plugin and will be returned in pluginData
+      // but for now, we will do an optimistic update so the UI is updated immediately
+      console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
+      const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
+      dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
+      dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `Switching to perspective "${selectedOption.value}" sendActionToPlugin: "switchToPerspective"`)
+      sendActionToPlugin(
+        'switchToPerspective',
+        { perspectiveName: selectedOption.value, actionType: 'switchToPerspective', logMessage: `Perspective changed to ${selectedOption.value}` },
+        `Perspective changed to ${selectedOption.value}`,
+      )
     },
     [perspectiveSettings, state, activePerspectiveName, dashboardSettings],
   )
