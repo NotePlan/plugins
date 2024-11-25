@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import CollapsibleObjectViewer from '@helpers/react/CollapsibleObjectViewer'
-import { dtl } from '@helpers/dev'
+import { dtl, LOG_LEVEL_STRINGS } from '@helpers/dev'
 import './ConsoleLogView.css'
 
 type LogEntry = {
@@ -39,11 +39,13 @@ type Props = {
  */
 const getLogClassName = (type: string, message: string, isSelected: boolean, index: number): string => {
   if (isSelected) return 'log-selected'
+  if (type === 'warn') return 'log-warn'
+  if (type === 'info') return 'log-info'
+  if (type === 'error' || message.startsWith('!!!')) return 'log-error'
+  if (type === 'info' || message.startsWith('___')) return 'log-orange'
   if (message.startsWith('===')) return 'log-highlighted'
-  if (message.startsWith('!!!')) return 'log-error'
-  if (message.startsWith('>>>')) return 'log-info'
+  if (message.startsWith('>>>')) return 'log-cyan'
   if (message.startsWith('---')) return 'log-aquamarine'
-  if (message.startsWith('___')) return 'log-orange'
   if (message.startsWith('~~~')) return 'log-thistle'
   return index % 2 === 0 ? 'log-stripe-even' : 'log-stripe-odd'
 }
@@ -288,7 +290,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
     const secs = dtlTime.split(':')[2]
     return (
       <span title={dtlTime} className="log-timestamp">
-        {secs}
+        {secs}&nbsp;
       </span>
     )
   }
@@ -299,11 +301,18 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
       const uniqueKey = log.timestamp.toISOString()
       const isSelected = searchMatches.includes(index) && index === searchMatches[currentMatchIndex]
       const logClassName = getLogClassName(log.type, log.message, isSelected, index)
+      const timeStr = dtl(log.timestamp).split('.')[0]
+      const LOG_LEVEL_REGEX = LOG_LEVEL_STRINGS.slice(0, -1)
+        .map((l) => l.replace(/[|]/g, '\\|'))
+        .join('|')
+      const regexStr = `${timeStr}\\s*(${LOG_LEVEL_REGEX})\\s*`
+      const msgWithoutDuplicateTime = log.message.replace(new RegExp(regexStr), '')
 
       return (
         <div key={`${index}-${uniqueKey}`} id={`log-${uniqueKey}`} className={logClassName}>
           {showLogTimestamps && log.timestamp && getTimeDiv(log.timestamp, log.message)}
-          {highlightSearchTerm(log.message, searchText)}
+
+          {highlightSearchTerm(msgWithoutDuplicateTime, searchText)}
           {log.data && <LogData data={log.data} uniqueKey={uniqueKey} />}
         </div>
       )

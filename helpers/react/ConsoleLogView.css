@@ -41,6 +41,10 @@
     background-color: #ffff99;
   }
   
+  .log-warn {
+    background-color: #fafcda;
+  }
+
   .log-highlighted {
     background-color: #ffff99;
   }
@@ -50,7 +54,11 @@
   }
   
   .log-info {
-    background-color: aqua;
+    background-color: rgb(193, 241, 241);
+  }
+
+  .log-cyan {
+    background-color: rgb(132, 250, 250);
   }
   
   .log-aquamarine {

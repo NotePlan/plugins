@@ -48,7 +48,7 @@ type Props = {
   isVisible: boolean,
 }
 
-const methodsToOverride = ['log', 'error', 'info']
+const methodsToOverride = ['log', 'error', 'info', 'warn']
 
 const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.Node => {
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])

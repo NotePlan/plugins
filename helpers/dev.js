@@ -534,7 +534,7 @@ const _message = (message: any): string => {
 }
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
-const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
+export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none']
 
 /**
  * Test _logLevel against logType to decide whether to output
@@ -543,7 +543,7 @@ const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERR
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   let userLogLevel = 1
-  const thisMessageLevel = LOG_LEVELS.indexOf(logType)
+  const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   // Note: Performing a null change against a value that is `undefined` will be true
   // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
@@ -572,6 +572,12 @@ export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   return false
 }
 
+export function getLogDateAndTypeString(type: string): string {
+  const thisMessageLevel = LOG_LEVELS.indexOf(type.toUpperCase())
+  const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
+  return `${dt().padEnd(19)} ${thisIndicator}`
+}
+
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
  * @author @codedungeon extended by @jgclark
@@ -583,23 +589,23 @@ export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
   let msg = ''
   if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
-    const thisMessageLevel = LOG_LEVELS.indexOf(type)
-    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
     let pluginId = ''
     let pluginVersion = ''
     const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
 
+    const ldts = getLogDateAndTypeString(type)
+
     if (isPluginJson) {
       pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
       pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
+      msg = `${ldts} ${pluginId} v${pluginVersion} :: ${_message(message)}`
     } else {
       if (message.length > 0) {
         // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
-        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
+        msg = `${ldts} ${pluginInfo} :: ${_message(message)}`
       } else {
         // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
-        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
+        msg = `${ldts} ${_message(pluginInfo)}`
       }
     }
     console.log(msg)

@@ -7,7 +7,7 @@
  */
 // eslint-disable-next-line no-unused-vars
 
-import { logDebug as ogLogDebug, shouldOutputForLogLevel, logError as ogLogError, logInfo as ogLogInfo } from '@helpers/dev'
+import { logDebug as ogLogDebug, shouldOutputForLogLevel, getLogDateAndTypeString, logError as ogLogError, logInfo as ogLogInfo, clo } from '@helpers/dev'
 
 export function decodeHTMLEntities(text: string): string {
   const textArea = document.createElement('textarea')
@@ -71,14 +71,39 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
 
 /**
  * Logs information to the console.
- * If this is in a browser, use colors
  * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
  * @param {string} componentName - The name of the component.
  * @param {string} [detail] - Additional detail about the log.
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-const log = (logType: string, componentName: string, detail?: string, ...args: any[]): void => {
+export const log = (logType: string, componentName: string, detail?: string, ...args: any[]): void => {
+  if (!componentName || componentName === '') throw `Logs should always have some identifier to help us find them later ==> ${componentName} ${detail || ''}`
+  if (shouldOutputForLogLevel(logType)) {
+    const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase()
+    // $FlowIgnore
+    if (consoleType && typeof consoleType === 'string' && console && console[consoleType]) {
+      const timeAndType = getLogDateAndTypeString(logType)
+      const argsToSend = detail && detail.length ? [detail, ...args] : args
+      // $FlowIgnore
+      console[consoleType](`${timeAndType} ${componentName}`, ...argsToSend)
+    } else {
+      console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentName} ${detail || ''} `)
+    }
+  }
+}
+
+/**
+ * (unused for now because of new debugPanel logs)
+ * Logs information to the console.
+ * If this is in a browser, use colors to help identify each component
+ * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
+ * @param {string} componentName - The name of the component.
+ * @param {string} [detail] - Additional detail about the log.
+ * @param {...any} args - Additional arguments to log.
+ * @returns {void}
+ */
+const logWithColorConsole = (logType: string, componentName: string, detail?: string, ...args: any[]): void => {
   if (shouldOutputForLogLevel(logType)) {
     const isNotePlanConsole = !!window.webkit
     let arg1, arg2
@@ -90,8 +115,30 @@ const log = (logType: string, componentName: string, detail?: string, ...args: a
       // We are in the browser, so can use colors
       arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`
       arg2 = `color: #000; background: ${stringToColor(componentName)}`
-      console[logType.toLowerCase()](arg1, arg2, ...args)
+      const consoleType = logType.toLowerCase()
+      if (consoleType && typeof consoleType === 'string') {
+        // $FlowIgnore
+        console[consoleType](arg1, arg2, ...args)
+      }
     }
+  }
+}
+
+const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+  let detailToSend = detail || ''
+  let argsToSend = args
+  if (detail && typeof detail !== 'string') {
+    argsToSend = [detail, ...args]
+    detailToSend = ''
+  }
+  if (typeof detailToSend === 'string') {
+    if (argsToSend.length > 0) {
+      log(logType, componentName, detailToSend, ...argsToSend)
+    } else {
+      log(logType, componentName, detailToSend)
+    }
+  } else {
+    console.log(`error in logWithObjectsMaybe ${logType}:${componentName}`)
   }
 }
 
@@ -99,13 +146,13 @@ const log = (logType: string, componentName: string, detail?: string, ...args: a
  * A prettier version of logDebug
  * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text.
  * Uses the same color for each call in a component (based on the first param).
- * @param {string} componentName - The name of the component.
+ * @param {string} componentName - The name of the component or some identifying text. Must be a string
  * @param {string} detail - Additional detail about the log.
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const logDebug = (componentName: string, detail?: string, ...args: any[]): void => {
-  log('DEBUG', componentName, detail, ...args)
+export const logDebug = (componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+  logWithObjectsMaybe('DEBUG', componentName, detail, ...args)
 }
 
 /**
@@ -117,7 +164,7 @@ export const logDebug = (componentName: string, detail?: string, ...args: any[])
  * @returns {void}
  */
 export const logError = (componentName: string, detail?: string, ...args: any[]): void => {
-  log('ERROR', componentName, detail, ...args)
+  logWithObjectsMaybe('ERROR', componentName, detail, ...args)
 }
 
 /**
@@ -129,7 +176,7 @@ export const logError = (componentName: string, detail?: string, ...args: any[])
  * @returns {void}
  */
 export const logInfo = (componentName: string, detail?: string, ...args: any[]): void => {
-  log('INFO', componentName, detail, ...args)
+  logWithObjectsMaybe('INFO', componentName, detail, ...args)
 }
 
 /**
@@ -141,7 +188,7 @@ export const logInfo = (componentName: string, detail?: string, ...args: any[]):
  * @returns {void}
  */
 export const logWarn = (componentName: string, detail?: string, ...args: any[]): void => {
-  log('WARN', componentName, detail, ...args)
+  logWithObjectsMaybe('WARN', componentName, detail, ...args)
 }
 
 /**
@@ -176,4 +223,4 @@ export const formatReactError = (error: any, cs: string = ''): any => {
   }
 }
 
-export { clo, JSP, clof, timer, log } from '@helpers/dev'
+export { JSP, clof, timer, clo } from '@helpers/dev'
