@@ -77,8 +77,8 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const log = (logType: string, componentNameAndInfo:string, ...args: any[]): void => {
-  if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentName} ${detail || ''}`
+export const log = (logType: string, componentNameAndInfo: string, ...args: any[]): void => {
+  if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentNameAndInfo}`
   if (shouldOutputForLogLevel(logType)) {
     const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase()
     // $FlowIgnore
@@ -87,7 +87,7 @@ export const log = (logType: string, componentNameAndInfo:string, ...args: any[]
       // $FlowIgnore
       console[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args)
     } else {
-      console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentName} ${detail || ''} `)
+      console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentNameAndInfo}`)
     }
   }
 }
@@ -123,7 +123,7 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
   }
 }
 
-const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+export const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
   let componentNameAndInfo = componentName
   let detailToSend = detail || ''
   let argsToSend = args
@@ -131,16 +131,13 @@ const logWithObjectsMaybe = (logType: string, componentName: string, detail?: st
     argsToSend = [detail, ...args]
     detailToSend = ''
   }
-  if (typeof detailToSend === 'string') {
+  if (detailToSend && typeof detailToSend === 'string') {
     componentNameAndInfo = `${componentName}, ${detailToSend}`
   }
-    if (argsToSend.length > 0) {
-      log(logType, `${componentName}, ${detailToSend}`, '', ...argsToSend)
-    } else {
-      log(logType, componentName, detailToSend)
-    }
+  if (argsToSend.length > 0) {
+    log(logType, `${componentNameAndInfo}`, '', ...argsToSend)
   } else {
-    console.log(`error in logWithObjectsMaybe ${logType}:${componentName}`)
+    log(logType, componentNameAndInfo)
   }
 }
 
