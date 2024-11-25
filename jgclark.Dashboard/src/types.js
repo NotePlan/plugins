@@ -24,57 +24,67 @@ export type TNotePlanSettings = {
  * DO NOT USE THE WORD SHOW AT THE FRONT OF ANY SETTING NAME UNLESS IT IS A SECTION
  */
 export type TDashboardSettings = {
+  /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
   perspectivesEnabled: boolean,
-  // perspectives: Array<TPerspectiveDef>,
-  separateSectionForReferencedNotes: boolean,
-  filterPriorityItems: boolean, // also kept in a DataStore.preference key
+  FFlag_DebugPanel?: boolean, // to show debug pane
+  FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
+  FFlag_HardRefreshButton?: boolean,
+
+  /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
+  defaultFileExtension?: string,
+  doneDatesAvailable?: boolean,
+  lastChange: string, // not really a setting, but a way to track the last change made
+  migratedSettingsFromOriginalDashboard?: boolean,
+  pluginID?: string,
+  timeblockMustContainString?: string,
+  triggerLogging?: boolean,
+  updateTagMentionsOnTrigger?: boolean, // TODO(later): now marked as deprecated
+
+  /* PERSPECTIVE-SPECIFIC SETTINGS */
+  // autoAddTrigger: boolean, // Note: removed in v2.1
+  // sharedSettings: any, // Note: no longer needed after settings refactor
+  autoUpdateAfterIdleTime: number,
   dashboardTheme: string,
+  displayDoneCounts: boolean,
+  enableInteractiveProcessing: boolean,
+  enableInteractiveProcessingTransitions: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
+  excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  excludeTasksWithTimeblocks: boolean,
+  filterPriorityItems: boolean, // also kept in a DataStore.preference key
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
-  parentChildMarkersEnabled: boolean,
-  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
   ignoreChecklistItems: boolean,
-  excludedFolders: string, // Note: Run through stringListOrArrayToArray() before use
+  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includeFolderName: boolean, // TODO(later): ideally rename to show...
   includeScheduledDates: boolean, // TODO(later): ideally rename to show...
   includeTaskContext: boolean, // TODO(later): ideally rename to show...
-  rescheduleNotMove: boolean,
-  useRescheduleMarker: boolean,
+  interactiveProcessingHighlightTask: boolean,
+  lastModified?: string,
+  lookBackDaysForOverdue: number,
+  maxItemsToShowInSection: number,
+  moveSubItems: boolean,
   newTaskSectionHeading: string,
   newTaskSectionHeadingLevel: number,
-  // autoAddTrigger: boolean, // Note: removed in v2.1
-  excludeChecklistsWithTimeblocks: boolean,
-  excludeTasksWithTimeblocks: boolean,
-  showTimeBlockSection: boolean,
-  showYesterdaySection: boolean,
-  showTomorrowSection: boolean,
+  overdueSortOrder: string,
+  parentChildMarkersEnabled: boolean,
+  rescheduleNotMove: boolean,
+  separateSectionForReferencedNotes: boolean,
+  settingsMigrated: boolean,
   showLastWeekSection: boolean,
-  showWeekSection: boolean,
   showMonthSection: boolean,
-  showQuarterSection: boolean,
   showOverdueSection: boolean,
   showPrioritySection: boolean,
   showProjectSection: boolean,
-  maxItemsToShowInSection: number,
-  overdueSortOrder: string,
+  showQuarterSection: boolean,
+  showTimeBlockSection: boolean,
+  showTomorrowSection: boolean,
+  showWeekSection: boolean,
+  showYesterdaySection: boolean,
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
-  updateTagMentionsOnTrigger: boolean, // TODO(later): now marked as deprecated
+  useRescheduleMarker: boolean,
   useTodayDate: boolean,
-  lookBackDaysForOverdue: number,
-  autoUpdateAfterIdleTime: number,
-  moveSubItems: boolean,
-  enableInteractiveProcessing: boolean,
-  interactiveProcessingHighlightTask: boolean,
-  enableInteractiveProcessingTransitions: boolean,
-  settingsMigrated: boolean,
-  displayDoneCounts: boolean,
-  // sharedSettings: any, // Note: no longer needed after settings refactor
-  lastChange: string, // not really a setting, but a way to track the last change made
-  lastModified?: string,
-  FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
-  FFlag_DebugPanel?: boolean, // to show debug pane
-  FFlag_HardRefreshButton?: boolean,
 }
 
 export type TDashboardPluginSettings = {

@@ -383,22 +383,22 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
 export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<TDashboardSettings> {
   // Define keys or patterns to remove from the settings
   const patternsToRemove = [
+    'perspectivesEnabled', // this is the only user-settable global setting
+    // vvv global settings for DEVs only:
+    /FFlag_/,
+    // vvv these are set by the plugin and should not be saved by perspective
+    /_log/,
+    'pluginID',
     'lastChange',
-    'activePerspectiveName',
     'timeblockMustContainString',
-    'updateTagMentionsOnTrigger',
+    'updateTagMentionsOnTrigger', // FIXME: (@jgclark): is this still needed?
     'defaultFileExtension',
     'doneDatesAvailable',
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
-    'pluginID',
-    'perspectivesEnabled',
-    /FFlag_/,
+    // vvv these exist in the plugin settings array and let's just make sure we don't save them by mistake
     /separator\d/, // though JGC has never seen this on 'heading/d' in dashboardSettings?
     /heading\d/,
-    /_logLevel/,
-    /_logTimer/,
-    /_logFunctionRE/,
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
 
   // Function to check if a key matches any of the patterns
