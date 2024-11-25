@@ -229,6 +229,7 @@ export type TActionType =
   | 'deletePerspective'
   | 'savePerspective'
   | 'savePerspectiveAs'
+  | 'renamePerspective'
   | 'evaluateString'
 
 export type TControlString =

@@ -26,6 +26,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
+import { showDialog } from '@helpers/react/userInput'
 import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
@@ -179,7 +180,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
 
   const handlePerspectiveChange = useCallback(
-    (selectedOption: TPerspectiveOptionObject) => {
+    async (selectedOption: TPerspectiveOptionObject) => {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `User selected newValue: "${selectedOption.value}". Current activePerspectiveName: "${activePerspectiveName}".`)
 
       if (selectedOption.value === 'separator') {
@@ -226,12 +227,19 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Rename Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `renamePerspective "${selectedOption.value}".`)
-        sendActionToPlugin(
-          'renamePerspective',
-          { actionType: 'renamePerspective', perspectiveName: selectedOption.value, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
-          `Rename Perspective (${selectedOption.value}) selected from dropdown`,
-        )
-        return
+        const formFields = [{ type: 'input', label: 'New Name:', key: 'newName' }]
+        const userInputObj = await showDialog({ items: formFields, title: `Rename Perspective "${state.activePerspectiveName}"`, submitOnEnter: true })
+        if (userInputObj) {
+          userInputObj.oldName = state.activePerspectiveName
+          logDebug('PerspectiveSelector/handlePerspectiveChange renamePerspective', { userInputObj })
+
+          sendActionToPlugin(
+            'renamePerspective',
+            { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
+            `Rename Perspective (${selectedOption.value}) selected from dropdown`,
+          )
+          return
+        }
       }
 
       // Otherwise, it's a normal perspective change so we process it
