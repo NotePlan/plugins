@@ -187,7 +187,7 @@ const PerspectiveSelector = (): React$Node => {
       }
 
       if (selectedOption.value === 'Add New Perspective') {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue "${selectedOption.value}".`)
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `addNewPersp user selected "${selectedOption.value}".`)
         sendActionToPlugin(
           'addNewPerspective',
           { actionType: 'addNewPerspective', logMessage: 'Add New Perspective selected from dropdown' },
@@ -197,7 +197,7 @@ const PerspectiveSelector = (): React$Node => {
       }
 
       if (selectedOption.value === 'Delete Perspective') {
-        logDebug('PerspectiveSelector/handlePerspectiveChange', `newValue "${selectedOption.value}".`)
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `deletePerspective "${selectedOption.value}".`)
         sendActionToPlugin(
           'deletePerspective',
           { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete  Perspective (${activePerspectiveName}) selected from dropdown` },
@@ -207,6 +207,7 @@ const PerspectiveSelector = (): React$Node => {
       }
 
       if (selectedOption.value === 'Save Perspective') {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `savePerspective "${selectedOption.value}".`)
         const perspName = state.activePerspectiveName
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         if (thisPersp && thisPersp.isModified && thisPersp.name !== '-') {
@@ -225,9 +226,10 @@ const PerspectiveSelector = (): React$Node => {
       // Otherwise, it's a normal perspective change so we process it
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
-      if (selectedOption.label !== apn) {
-        // using label so that the star will differentiate it and force an update
-        // The ground truth is set by the plugin and will be returned in pluginData
+      logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
+      const thisDef = getPerspectiveNamed(selectedOption.value, perspectiveSettings)
+      if (thisDef?.isModified) {
+        // The perspectives ground truth is set by the plugin and will be returned in pluginData
         // but for now, we will do an optimistic update so the UI is updated immediately
         console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
         const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)

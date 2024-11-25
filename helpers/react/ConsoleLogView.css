@@ -78,7 +78,7 @@
   }
   
   .log-stripe-odd {
-    background-color: #f9f9f9;
+    background-color: #f6f4f4;
   }
   
   .log-container {
@@ -88,12 +88,11 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     border: 1px solid #ccc;
+    padding-bottom: 10px;
   }
-  
-  /* Data container styles */
-  
+    
 /* Data container styles */
-  /* Container for multiple data items */
+  /* Container for multiple attached data items */
   .data-container {
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line */
