@@ -77,16 +77,15 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
  * @param {...any} args - Additional arguments to log.
  * @returns {void}
  */
-export const log = (logType: string, componentName: string, detail?: string, ...args: any[]): void => {
-  if (!componentName || componentName === '') throw `Logs should always have some identifier to help us find them later ==> ${componentName} ${detail || ''}`
+export const log = (logType: string, componentNameAndInfo:string, ...args: any[]): void => {
+  if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentName} ${detail || ''}`
   if (shouldOutputForLogLevel(logType)) {
     const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase()
     // $FlowIgnore
     if (consoleType && typeof consoleType === 'string' && console && console[consoleType]) {
       const timeAndType = getLogDateAndTypeString(logType)
-      const argsToSend = detail && detail.length ? [detail, ...args] : args
       // $FlowIgnore
-      console[consoleType](`${timeAndType} ${componentName}`, ...argsToSend)
+      console[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args)
     } else {
       console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentName} ${detail || ''} `)
     }
@@ -125,6 +124,7 @@ const logWithColorConsole = (logType: string, componentName: string, detail?: st
 }
 
 const logWithObjectsMaybe = (logType: string, componentName: string, detail?: string | TAnyObject, ...args: any[]): void => {
+  let componentNameAndInfo = componentName
   let detailToSend = detail || ''
   let argsToSend = args
   if (detail && typeof detail !== 'string') {
@@ -132,8 +132,10 @@ const logWithObjectsMaybe = (logType: string, componentName: string, detail?: st
     detailToSend = ''
   }
   if (typeof detailToSend === 'string') {
+    componentNameAndInfo = `${componentName}, ${detailToSend}`
+  }
     if (argsToSend.length > 0) {
-      log(logType, componentName, detailToSend, ...argsToSend)
+      log(logType, `${componentName}, ${detailToSend}`, '', ...argsToSend)
     } else {
       log(logType, componentName, detailToSend)
     }
