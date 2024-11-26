@@ -190,11 +190,15 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Add New Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `addNewPersp user selected "${selectedOption.value}".`)
-        sendActionToPlugin(
-          'addNewPerspective',
-          { actionType: 'addNewPerspective', logMessage: 'Add New Perspective selected from dropdown' },
-          'Add New Perspective selected from dropdown',
-        )
+        const formFields = [{ type: 'input', label: 'Name:', key: 'newName', focus: true }]
+        const userInputObj = await showDialog({ items: formFields, title: `Save as New Perspective`, submitOnEnter: true })
+        if (userInputObj) {
+          sendActionToPlugin(
+            'addNewPerspective',
+            { actionType: 'addNewPerspective', perspectiveName: userInputObj ? userInputObj.newName : '', logMessage: 'Add New Perspective selected from dropdown' },
+            'Add New Perspective selected from dropdown',
+          )
+        }
         return
       }
 

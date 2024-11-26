@@ -255,18 +255,18 @@ export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TP
 
 /**
  * Save all perspective definitions as a stringified array, to suit the forced type of the hidden setting.
- * TODO: from this NP automatically triggers NPHooks::onSettingsUpdated(). This might or might not be desirable.
- * TODO: ideally this should trigger updates in the front end too, but I don't know how.
+ * NOTE: from this NP automatically triggers NPHooks::onSettingsUpdated()
  * @param {Array<TPerspectiveDef>} allDefs perspective definitions
  * @return {boolean} true if successful
  */
 export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolean {
   try {
+    logDebug(`savePerspectiveSettings saving ${allDefs.length} perspectives in DataStore.settings`)
     const perspectiveSettingsStr = JSON.stringify(allDefs) ?? ''
     const pluginSettings = DataStore.settings
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
     DataStore.settings = pluginSettings
-    clof(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`, [], true)
+    clof(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`, ['dashboardSettings', 'excludeFolders'], true)
     logDebug('savePerspectiveSettings', `Apparently saved OK. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return true
   } catch (error) {
@@ -436,7 +436,7 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
  */
 export async function addNewPerspective(nameArg?: string): Promise<void> {
   let allDefs = await getPerspectiveSettings()
-  logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspectives ...`)
+  logInfo('addPerspectiveSetting', `nameArg="${nameArg || ''}" Found ${allDefs.length} existing Perspectives ...`)
 
   // Get user input, if no arg passed
   let name = ''

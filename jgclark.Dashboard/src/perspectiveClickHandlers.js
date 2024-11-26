@@ -61,7 +61,8 @@ import { showMessage, processChosenHeading } from '@helpers/userInput'
  ****************************************************************************************************************************/
 
 export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  await addNewPerspective()
+  clo(_data, `doAddNewPerspective starting ...`)
+  await addNewPerspective(_data?.perspectiveName || '')
   const updatesToPluginData = { perspectiveSettings: await getPerspectiveSettings() }
   await setPluginData(updatesToPluginData, `_Added perspective in DataStore.settings & reloaded perspectives`)
   return handlerResult(true, [])
@@ -96,7 +97,8 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   const newDef = { ...activeDef, dashboardSettings: { ...activeDef.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }, isModified: false }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
-  DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
+  const result = await savePerspectiveSettings(revisedDefs)
+  if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
   return handlerResult(true, [])
 }
