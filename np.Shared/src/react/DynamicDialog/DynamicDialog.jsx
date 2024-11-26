@@ -10,6 +10,7 @@
  * - add "disabled" to all elements
  * - Dropdown always visible is not working
  * - Make dialog draggable?
+ * - focus first input field when dialog opens
  * - Send processing template name to plugin in pluginData
  * - Processing command should be np.Templating,templateRunner
  * - Template-side processing, use: overrideSettingsWithTypedArgs (somehow needs to identify that this is a JSON self-runner, __isJSON__ = true or something)

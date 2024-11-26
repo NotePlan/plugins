@@ -21,12 +21,12 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   const { button, onClick, className } = inputObj
 
   // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
+  clo(button.formFields, `CommandButton: formFields for button ${button.display}`)
 
-  // For adding icons to button display, tried this approach but decided it's not flexible enough:
+  // Note: For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
   // Instead will use dangerouslySetInnerHTML, so we can set anything.
-
 
   const sendButtonAction = (button: TActionButton, userInputObj: Object) => {
     sendActionToPlugin(button.actionPluginID, {

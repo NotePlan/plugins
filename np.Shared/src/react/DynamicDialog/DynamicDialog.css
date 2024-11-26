@@ -40,31 +40,37 @@
 .dynamic-dialog-header {
     background-color: var(--bg-alt-color);
     display: flex;
+    /* Needed to center the header */
     align-items: center;
     justify-content: space-between;
     padding: 0.3rem;
     border-bottom: 1px solid #ddd;
     position: relative;
-    /* Needed to center the header */
     /* Adjusted height for better visibility */
     /* height: 40px; */
 }
 
+/* Heading style for settings dialog */
+.dynamic-dialog-heading {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--tint-color);
+    padding-top: 0.3rem;
+    padding-bottom: 0.2rem;
+}
+
 /* Style for the centered header */
 .dynamic-dialog-title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: large;
+    /* position: absolute; */
+    /* left: 50%; */
+    /* transform: translateX(-50%); */
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--tint-color);
     text-align: center;
-    line-height: 40px;
-    /* Match the height of the buttons container */
 }
 
 .dynamic-dialog {
-
     /* Base button styles */
     .PCButton {
         font-weight: 500;
@@ -156,94 +162,244 @@
         left: 0.8rem;
         box-shadow: -2px 4px 3px rgba(0, 0, 0, 0.1);
     }
+
+    /* Style for switch-line */
+    .switch-line {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: flex-start;
+        /* Left justify */
+    }
+
+    /* Style for switch-input */
+    .switch-input {
+        margin: 0;
+    }
+
+    /* Style for switch-label */
+    .switch-label {
+        font-weight: 500;
+        color: var(--fg-alt-color);
+        /* flex-shrink: 0; */
+    }
+
+    /* Style for input-box-container */
+    .input-box-container {
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+        /* width: 98%; */
+    }
+
+    /* Style for input-box-container (compact version) */
+    .input-box-container-compact {
+        display: flex;
+        flex-direction: row;
+        align-items: end;
+        gap: 0.5rem;
+        /* width: 98%; */
+    }
+
+    /* Style for input-box-wrapper - TODO: remove later */
+    .input-box-wrapper {
+        display: flex;
+        align-items: end;
+        /* gap: 10px; */
+    }
+
+    /* Style for input-box-label */
+    .input-box-label {
+        font-weight: 500;
+        color: var(--fg-alt-color);
+        /* margin-bottom: 0.3rem; */
+        margin-bottom: 0.5rem;
+    }
+
+    /* Style for input-box-input */
+    .input-box-input {
+        flex: 1;
+        padding: 4px 8px;
+        /* border: 1px solid #ddd; */
+        border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+        background-color: var(--bg-main-color);
+        border-radius: 4px;
+        font-family: system-ui;
+        font-size: 0.85rem;
+        /* vertical spacing above and below */
+        margin: 0.3rem 0rem;
+    }
+    /* Apply styles for read-only input fields */
+    .input-box-input:read-only {
+        border-color: var(--divider-color); /* Set the border color when readonly */
+        background-color: inherit; /* Maintain the background color */
+        outline: none; /* Remove the focus outline */
+    }
+
+    /* Ensure the border remains unchanged when the read-only input is focused */
+    .input-box-input:read-only:focus {
+        border-color: var(--divider-color); /* Keep the same border color on focus */
+        outline: none; /* Remove any outline on focus */
+        box-shadow: none; /* Remove any potential box-shadow on focus */
+    }
+        
+    /* Make number boxes a little narrower */
+    .input-box-input-number {
+        width: 6rem;
+    }
+
+    /* Style for input box with invalid input */
+    .input-box-input:invalid {
+        border: 1px solid #faa;
+    }
+
+    /* Focus style for non-readonly input-box-input */
+    .input-box-input:not(:read-only):focus {
+        border-color: var(--hashtag-color);
+        outline: none;
+        box-shadow: 0 0 3px var(--hashtag-color);
+    }
+
+    /* For optional 'save' button on Input Box */
+    .input-box-save {
+        padding: 6px 12px;
+        /* Reduce height to 75% */
+        border: none;
+        border-radius: 4px;
+        background-color: var(--tint-color);
+        color: var(--bg-main-color);
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s, box-shadow 0.3s;
+        height: 30px;
+        /* Set height to 75% of the container height */
+        align-self: center;
+        /* Ensure buttons are centered vertically */
+    }
+
+    /* Disabled style for input-box-save */
+    .input-box-save:disabled {
+        background-color: #ccc;
+        color: #aaa;
+        cursor: not-allowed;
+        box-shadow: none;
+        display: none;
+    }
+
+    /* Hover style for enabled input-box-save */
+    .input-box-save:not(:disabled):hover {
+        background-color: #0056b3;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Style for dropdown-container */
+    .dropdown-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Style for dropdown-container (compact version) */
+    .dropdown-container-compact {
+        display: flex;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    /* Style for dropdown-wrapper */
+    .dropdown-wrapper {
+        display: flex;
+        align-items: end;
+        gap: 10px;
+        position: relative;
+        width: fit-content;
+    }
+
+    /* Style for dropdown-label */
+    .dropdown-label {
+        font-weight: 500;
+        color: var(--fg-alt-color);
+        margin-right: 0.1rem;
+        margin-bottom: 0.3rem;
+    }
+
+    /* Style for dropdown-input */
+    .dropdown-input {
+        flex: 1;
+        padding: 4px 8px;
+        background-color: var(--bg-main-color);
+        border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
+        border-radius: 4px;
+        font-family: system-ui;
+        font-size: 0.9rem;
+        /* width: 100%; */
+        /* box-sizing: border-box; */
+    }
+
+    /* Focus style for dropdown-input */
+    .dropdown-input:focus {
+        border-color: var(--hashtag-color);
+        outline: none;
+        box-shadow: 0 0 3px var(--hashtag-color);
+    }
+
+    /* Style for dropdown-arrow */
+    .dropdown-arrow {
+        position: absolute;
+        right: 0.8rem;
+        pointer-events: none;
+        font-size: x-large;
+        color: var(--tint-color);
+        align-self: center;
+    }
+
+    /* Style for item description */
+    .item-description {
+        font-size: small;
+        color: var(--fg-alt-color);
+        /* margin-top: 0.3rem; */
+        opacity: 0.8;
+    }
+
+    /* Style for Section headings */
+    .ui-heading {
+        font-size: 130%;
+        color: var(--tint-color);
+        /* padding-bottom: 0.3rem; */
+        font-weight: 600;
+        text-align: start;
+        line-height: 140%;
+    }
+
+    .ui-separator {
+        border: none; /* Remove the default border */
+        border-top: 1px solid var(--divider-color); /* Add a top border with the desired color */
+        margin: 1em 0; /* Optional: Adjust spacing as needed */  
+    }
+
+    /* Make disabled settings lower opacity */
+    .disabled {
+        opacity: 0.6;
+    }
+
+    /* Make settings that depend on another slightly indented */
+    .indent {
+        margin-left: 1rem;
+    }
+
+    /* Header style for settings dialog */
+    /* TODO: is this used? */
+    .dynamic-dialog-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--tint-color);
+        margin: 0;
+        background: none;
+        line-height: 40px;
+        /* Match the height of the buttons container */
+    }
 }
 
-
-/* Style for switch-line */
-.dynamic-dialog .switch-line {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    justify-content: flex-start;
-    /* Left justify */
-}
-
-/* Style for switch-input */
-.dynamic-dialog .switch-input {
-    margin: 0;
-}
-
-/* Style for switch-label */
-.dynamic-dialog .switch-label {
-    font-weight: 500;
-    color: var(--fg-alt-color);
-    /* flex-shrink: 0; */
-}
-
-/* Style for input-box-container */
-.dynamic-dialog .input-box-container {
-    display: flex;
-    flex-direction: column;
-    align-items: left;
-    /* width: 98%; */
-}
-
-/* Style for input-box-container (compact version) */
-.dynamic-dialog .input-box-container-compact {
-    display: flex;
-    flex-direction: row;
-    align-items: end;
-    gap: 0.5rem;
-    /* width: 98%; */
-}
-
-/* Style for input-box-wrapper - TODO: remove later */
-.dynamic-dialog .input-box-wrapper {
-    display: flex;
-    align-items: end;
-    /* gap: 10px; */
-}
-
-/* Style for input-box-label */
-.dynamic-dialog .input-box-label {
-    font-weight: 500;
-    color: var(--fg-alt-color);
-    /* margin-bottom: 0.3rem; */
-    margin-bottom: 0.5rem;
-}
-
-/* Style for input-box-input */
-.dynamic-dialog .input-box-input {
-    flex: 1;
-    padding: 4px 8px;
-    /* border: 1px solid #ddd; */
-    border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
-    background-color: var(--bg-main-color);
-    border-radius: 4px;
-    font-family: system-ui;
-    font-size: 0.85rem;
-    /* vertical spacing above and below */
-    margin: 0.3rem 0rem;
-}
-/* Apply styles for read-only input fields */
-.dynamic-dialog .input-box-input:read-only {
-    border-color: var(--divider-color); /* Set the border color when readonly */
-    background-color: inherit; /* Maintain the background color */
-    outline: none; /* Remove the focus outline */
-}
-
-/* Ensure the border remains unchanged when the read-only input is focused */
-.dynamic-dialog .input-box-input:read-only:focus {
-    border-color: var(--divider-color); /* Keep the same border color on focus */
-    outline: none; /* Remove any outline on focus */
-    box-shadow: none; /* Remove any potential box-shadow on focus */
-}
-    
-/* Make number boxes a little narrower */
-.dynamic-dialog .input-box-input-number {
-    width: 6rem;
-}
-  
 /* Hide increment and decrement buttons for number input */
 .hide-step-buttons::-webkit-outer-spin-button,
 .hide-step-buttons::-webkit-inner-spin-button {
@@ -253,111 +409,6 @@
 
 .hide-step-buttons {
   -moz-appearance: textfield; /* Firefox */
-}
-
-/* Style for input box with invalid input */
-.dynamic-dialog .input-box-input:invalid {
-    border: 1px solid #faa;
-}
-
-/* Focus style for non-readonly input-box-input */
-.dynamic-dialog .input-box-input:not(:read-only):focus {
-    border-color: var(--hashtag-color);
-    outline: none;
-    box-shadow: 0 0 3px var(--hashtag-color);
-}
-
-/* For optional 'save' button on Input Box */
-.dynamic-dialog .input-box-save {
-    padding: 6px 12px;
-    /* Reduce height to 75% */
-    border: none;
-    border-radius: 4px;
-    background-color: var(--tint-color);
-    color: var(--bg-main-color);
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s, box-shadow 0.3s;
-    height: 30px;
-    /* Set height to 75% of the container height */
-    align-self: center;
-    /* Ensure buttons are centered vertically */
-}
-
-/* Disabled style for input-box-save */
-.dynamic-dialog .input-box-save:disabled {
-    background-color: #ccc;
-    color: #aaa;
-    cursor: not-allowed;
-    box-shadow: none;
-    display: none;
-}
-
-/* Hover style for enabled input-box-save */
-.dynamic-dialog .input-box-save:not(:disabled):hover {
-    background-color: #0056b3;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Style for dropdown-container */
-.dynamic-dialog .dropdown-container {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Style for dropdown-container (compact version) */
-.dynamic-dialog .dropdown-container-compact {
-    display: flex;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 0.5rem;
-}
-
-/* Style for dropdown-wrapper */
-.dynamic-dialog .dropdown-wrapper {
-    display: flex;
-    align-items: end;
-    gap: 10px;
-    position: relative;
-    width: fit-content;
-}
-
-/* Style for dropdown-label */
-.dynamic-dialog .dropdown-label {
-    font-weight: 500;
-    color: var(--fg-alt-color);
-    margin-right: 0.1rem;
-    margin-bottom: 0.3rem;
-}
-
-/* Style for dropdown-input */
-.dynamic-dialog .dropdown-input {
-    flex: 1;
-    padding: 4px 8px;
-    background-color: var(--bg-main-color);
-    border: 0.5px solid rgb(from var(--fg-main-color) r g b / 0.3);
-    border-radius: 4px;
-    font-family: system-ui;
-    font-size: 0.9rem;
-    /* width: 100%; */
-    /* box-sizing: border-box; */
-}
-
-/* Focus style for dropdown-input */
-.dynamic-dialog .dropdown-input:focus {
-    border-color: var(--hashtag-color);
-    outline: none;
-    box-shadow: 0 0 3px var(--hashtag-color);
-}
-
-/* Style for dropdown-arrow */
-.dynamic-dialog .dropdown-arrow {
-    position: absolute;
-    right: 0.8rem;
-    pointer-events: none;
-    font-size: x-large;
-    color: var(--tint-color);
-    align-self: center;
 }
 
 /* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */
@@ -387,61 +438,7 @@
     color: var(--fg-alt-color);
 }
 
-/* Heading style for settings dialog */
-.dynamic-dialog-heading {
-    font-size: large;
-    font-weight: 500;
-    color: var(--tint-color);
-    padding-top: 0.3rem;
-    padding-bottom: 0.2rem;
-}
-
-/* Header style for settings dialog */
-.dynamic-dialog .dynamic-dialog-header {
-    font-size: large;
-    font-weight: 600;
-    color: var(--tint-color);
-    margin: 0;
-    background: none;
-    line-height: 40px;
-    /* Match the height of the buttons container */
-}
-
 .iOS .dynamic-dialog .dynamic-dialog-header {
     font-size: 1rem;
     line-height: 1rem;
-}
-
-/* Style for item description */
-.dynamic-dialog .item-description {
-    font-size: small;
-    color: var(--fg-alt-color);
-    /* margin-top: 0.3rem; */
-    opacity: 0.8;
-}
-
-/* Style for Section headings */
-.dynamic-dialog .ui-heading {
-    font-size: 130%;
-    color: var(--tint-color);
-    /* padding-bottom: 0.3rem; */
-    font-weight: 600;
-    text-align: start;
-    line-height: 140%;
-}
-
-.dynamic-dialog .ui-separator {
-    border: none; /* Remove the default border */
-    border-top: 1px solid var(--divider-color); /* Add a top border with the desired color */
-    margin: 1em 0; /* Optional: Adjust spacing as needed */  
-}
-
-/* Make disabled settings lower opacity */
-.dynamic-dialog .disabled {
-    opacity: 0.6;
-}
-
-/* Make settings that depend on another slightly indented */
-.dynamic-dialog .indent {
-    margin-left: 1rem;
 }

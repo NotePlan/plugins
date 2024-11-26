@@ -1,5 +1,5 @@
 /* CSS specific to Settings Dialog from jgclark.Dashboard plugin */
-/* Last updated 2024-08-26 for v2.1.0.a9 by @jgclark */
+/* Last updated for v2.1.0.a */
 
 /* Style for the settings dialog */
 .settings-dialog {
@@ -9,7 +9,7 @@
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -48%); /* second param needs to be a little lower than 50% to avoid hiding the Header bar, as we want to see Perspective name */
     width: 80%;
     max-width: 600px;
     border: none;
@@ -356,15 +356,13 @@
 }
 
 .settings-dialog-title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    /* position: absolute; */
+    /* left: 50%; */
+    /* transform: translateX(-50%); */
     font-size: large;
     font-weight: 600;
     color: var(--tint-color);
     text-align: center;
-    /* Match the height of the buttons container */
-    line-height: 40px;
 }
 
 /* Heading style for settings dialog */

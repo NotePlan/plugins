@@ -285,7 +285,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
-  const showDebugPanel = pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel
+  const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
   const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
   return (

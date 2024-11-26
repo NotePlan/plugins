@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-05-29 for v2.0.5 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -107,7 +107,7 @@ export function renderItem({
           <InputBox
             inputType="text"
             readOnly={true}
-            focus={item.focus || false}
+            focus={false}
             key={`ibxro${index}`}
             label={thisLabel}
             disabled={disabled}

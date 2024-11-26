@@ -88,7 +88,7 @@ dialog::backdrop {
 .sectionInfo {
 	display: block;
 	padding-block-start: 0.4rem;
-	/* padding-block-end: 0.2rem; */
+	padding-block-end: 0.2rem;
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
 	color: var(--fg-sidebar-color);

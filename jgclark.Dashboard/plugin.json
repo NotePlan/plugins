@@ -5,7 +5,7 @@
   "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.1.0.a21",
+  "plugin.version": "2.1.0.a22",
   "plugin.hidden": false,
   "plugin.lastUpdateInfo": "2.1.0: Add Perspectives, a new 'Last Week' section, and many other improvements and fixes.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
   "plugin.dependencies": [],

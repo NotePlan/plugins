@@ -113,13 +113,20 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: false,
   },
   {
-    // Note: replaces eearlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
+    // Note: replaces earlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
     key: 'ignoreItemsWithTerms',
     label: 'Ignore items in calendar sections with phrase(s)',
     description:
       'If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.',
     type: 'input',
     default: '#waiting',
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
+    label: 'Moving/Scheduling Items',
   },
   {
     key: 'newTaskSectionHeading',
@@ -139,6 +146,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     compactDisplay: true,
   },
   {
+    key: 'moveSubItems',
+    label: 'Move sub-items with the item?',
+    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
+    type: 'switch',
+    default: true,
+  },
+  {
     key: 'rescheduleNotMove',
     label: 'Reschedule items in place, rather than move?',
     description: 'When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.',
@@ -154,13 +168,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: true,
     dependsOnKey: 'rescheduleNotMove',
-  },
-  {
-    key: 'moveSubItems',
-    label: 'Move sub-items with the item?',
-    description: 'If set, then indented sub-items of an item will be moved if the item is moved to a different note.',
-    type: 'switch',
-    default: true,
   },
   {
     key: 'useTodayDate',

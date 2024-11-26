@@ -98,12 +98,12 @@ export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys
   for (const thisP of settingsArr) {
     const name = thisP.name === '-' ? 'Default (-)' : thisP.name
     logDebug(
-      'getPerspectiveSettings',
+      'logPerspectives',
       `- ${name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`,
     )
 
     if (showAllKeys) {
-      clo(thisP.dashboardSettings, `getPerspectiveSettings: -`)
+      clo(thisP.dashboardSettings, `logPerspectives: -`)
     }
   }
 }
@@ -181,16 +181,22 @@ export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveD
 /**
  * Replace the perspective definition with the given name with the new definition and return the revised full array
  * If it doesn't exist, then add it to the end of the array
+ * TODO: Could this have an extra param to take a new name => rename ?
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
  * @returns {Array<TPerspectiveDef>}
  */
 export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
   // if there is no existing definition with the same name, then add it to the end of the array
+  clo(newDef, `replacePerspectiveDef: newDef =`)
   const existingIndex = perspectiveSettings.findIndex((s) => s.name === newDef.name)
   if (existingIndex === -1) {
+    logDebug('replacePerspectiveDef', `Didn't find perspective ${newDef.name} to update. List is now:`)
+    logPerspectives(perspectiveSettings)
     return [...perspectiveSettings, newDef]
   }
+  logDebug('replacePerspectiveDef', `Found perspective to update: ${newDef.name}. List is now:`)
+  logPerspectives(perspectiveSettings)
   return perspectiveSettings.map((s) => (s.name === newDef.name ? newDef : s))
 }
 
@@ -209,7 +215,7 @@ export function setActivePerspective(name: string, perspectiveSettings: Array<TP
  *
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
- * @returns
+ * @returns {Array<TPerspectiveDef>}
  */
 export function addPerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>, newDef: TPerspectiveDef): Array<TPerspectiveDef> {
   return [...perspectiveSettings, newDef]
@@ -251,7 +257,7 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
     const pluginSettings = DataStore.settings
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
     DataStore.settings = pluginSettings
-    clo(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`)
+    clof(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`, [], true)
     logDebug('savePerspectiveSettings', `Apparently saved OK. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return true
   } catch (error) {
@@ -419,15 +425,23 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
 /**
  * Add a new Perspective setting. User just gives it a name, and otherwise uses the currently active settings.
  */
-export async function addNewPerspective(): Promise<void> {
+export async function addNewPerspective(nameArg?: string): Promise<void> {
   let allDefs = await getPerspectiveSettings()
   logInfo('addPerspectiveSetting', `Found ${allDefs.length} existing Perspectives ...`)
 
-  // Get user input
-  const name = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
-  if (typeof name === 'boolean') {
-    logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
-    return
+  // Get user input, if no arg passed
+  let name = ''
+  if (nameArg && nameArg !== '') {
+    logDebug('addPerspectiveSetting', `Will use name "${nameArg}" passed from argument`)
+    name = nameArg
+  }
+  else {
+    const res = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
+    if (typeof name === 'boolean') {
+      logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)
+      return
+    }
+    name = String(res)
   }
   if (name === '-') {
     logWarn('addPerspectiveSetting', `Cannot add default Perspective '-'.`)
@@ -548,12 +562,18 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     // if this is the active perspective, then set the activePerspectiveName to default
     const activeDef = getActivePerspectiveDef(existingDefs)
     if (activeDef && nameToUse === activeDef.name) {
+      // delete and then switch
       logDebug('deletePerspective', `Deleting active perspective, so will need to switch to default Perspective ("-")`)
+      const newDefs = deletePerspectiveDef(existingDefs, nameToUse)
+      savePerspectiveSettings(newDefs)
+      await switchToPerspective('-', newDefs)
+    } else {
+      // just delete
       const newDefs = deletePerspectiveDef(existingDefs, nameToUse)
       savePerspectiveSettings(newDefs)
     }
 
-    clo(DataStore.settings, `deletePerspective at end DataStore.settings =`) // ✅
+    clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
   } catch (error) {
     logError('deletePerspective', error.message)
   }

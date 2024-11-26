@@ -149,7 +149,7 @@ export function getSectionsWithoutDuplicateLines(
   // Now we are working with actual TSection objects, not sectionCodes anymore
   // Process each section (but not if it's a "TB" or "PROJ" section, because they have different sorts of items)
   orderedSections.forEach((section) => {
-    logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
+    // logDebug('getSectionsWithoutDuplicateLines', `- Checking section ${section.sectionCode}. Starts with ${section.sectionItems.length} items`)
     if (dontDedupeList.includes(section.sectionCode)) return
 
     // If the item has a synced line, use the blockId for the key, not the constructed key

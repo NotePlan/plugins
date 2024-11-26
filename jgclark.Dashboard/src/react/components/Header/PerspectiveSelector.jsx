@@ -227,7 +227,7 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Rename Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `renamePerspective "${selectedOption.value}".`)
-        const formFields = [{ type: 'input', label: 'New Name:', key: 'newName' }]
+        const formFields = [{ type: 'input', label: 'New Name:', key: 'newName', focus: true }]
         const userInputObj = await showDialog({ items: formFields, title: `Rename Perspective "${state.activePerspectiveName}"`, submitOnEnter: true })
         if (userInputObj) {
           userInputObj.oldName = state.activePerspectiveName

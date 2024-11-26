@@ -34,6 +34,7 @@ import {
 import {
   doAddNewPerspective,
   doDeletePerspective,
+  doRenamePerspective,
   doSavePerspective,
   doSwitchToPerspective,
 } from './perspectiveClickHandlers'
@@ -283,6 +284,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'savePerspectiveAs': {
         result = await doAddNewPerspective(data)
+        break
+      }
+      case 'renamePerspective': {
+        result = await doRenamePerspective(data)
         break
       }
       // case 'setSpecificDate': {

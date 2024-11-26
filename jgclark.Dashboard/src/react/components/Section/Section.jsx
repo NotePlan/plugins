@@ -15,7 +15,7 @@ import ItemGrid from '../ItemGrid.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
-import { logDebug, logError, JSP, clo } from '@helpers/react/reactDev'
+import { logDebug, logError, logInfo, JSP, clo } from '@helpers/react/reactDev'
 import { extractModifierKeys } from '@helpers/react/reactMouseKeyboard.js'
 
 //--------------------------------------------------------------------------
@@ -153,8 +153,16 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))
     : []
 
+  // Add formFields to addNewActionButtons
+  // TODO: finish this.  Commenting out for now as I can't figure out the handleCommandButtonClick.
+  // if (addNewActionButtons) {
+  //   for (const button of addNewActionButtons) {
+  //     button.formFields = [{ type: 'input', label: 'Item:', key: 'newContent', focus: true }]
+  //   }
+  // }
+
   // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
-  if (section.actionButtons && numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
+  if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
 
@@ -188,13 +196,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     descriptionToUse = descriptionToUse.replace('{totalCount}', `<span id='section${section.ID}TotalCount'}>${String(totalCount)}</span>`)
   }
 
-  // If we have no data items to show (other than a congrats message), don't show description
-  const descriptionDiv = numItemsToShow > 0 ? (
-    <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
-  ) : (
-    <div></div>
-  )
-
   // Pluralise item in description if neccesary
   if (descriptionToUse.includes('{s}')) {
     if (numItemsToShow !== 0) {
@@ -203,6 +204,13 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       descriptionToUse = descriptionToUse.replace('{s}', ``)
     }
   }
+
+  // If we have no data items to show (other than a congrats message), don't show description
+  const descriptionDiv = numItemsToShow > 0 ? (
+    <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
+  ) : (
+    <div></div>
+  )
 
   const titleStyle: Object = sectionFilename
     ? { cursor: 'pointer' } : {}
@@ -218,6 +226,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * On normal width screen these are a row-based grid (1x3).
    * On narrow window, these are a column-based grid (3x1).
    * Then <SectionGrid> which contains the actual data items.
+   * 
+   * TODO: add fields to CommandButton to allow use of the react input component, not the command bar
   */ 
   return hideSection ? null : (
     <div className="section">

@@ -24,11 +24,14 @@ import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, 
 import { validateAndFlattenMessageObject } from './shared'
 import {
   addNewPerspective,
+  cleanDashboardSettings,
   deletePerspective,
   getActivePerspectiveDef,
+  getPerspectiveNamed,
   getPerspectiveSettings,
+  logPerspectives,
   replacePerspectiveDef,
-  cleanDashboardSettings,
+  setActivePerspective,
   switchToPerspective,
 } from './perspectiveHelpers'
 import {
@@ -103,6 +106,35 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
   await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+  return handlerResult(true, [])
+}
+
+export async function doRenamePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doRenamePerspective starting ... with mbo`)
+  const origName = data.userInputObj?.oldName ?? ''
+  const newName = data.userInputObj?.newName ?? ''
+  if (origName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: origName is empty` })
+  if (newName === '') return handlerResult(false, [], { errorMsg: `doRenamePerspective: newName is empty` })
+  if (origName === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" cannot be renamed` })
+  if (newName === '-') return handlerResult(false, [], { errorMsg: `Perspectives cannot be renamed to "-".` })
+  const perspectiveSettings = await getPerspectiveSettings()
+  const existingDef = getPerspectiveNamed(origName, perspectiveSettings)
+  if (!existingDef) return handlerResult(false, [], { errorMsg: `can't get definition for perspective ${origName}` })
+
+  const dashboardSettings = await getDashboardSettings()
+  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  // Just change the name of this def
+  const newDef = { ...existingDef, dashboardSettings: { ...existingDef.dashboardSettings }, name: newName }
+
+  await addNewPerspective(newName)
+  await deletePerspective(origName)
+  // FIXME: Race condition, sigh.
+  // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
+
+  // But as a double check set it to active
+  const updatedDefs = setActivePerspective(newName, perspectiveSettings)
+  logPerspectives(updatedDefs, false)
+  await setPluginData({ perspectiveSettings: updatedDefs }, `_Saved renamed perspective ${existingDef.name}`)
   return handlerResult(true, [])
 }
 
