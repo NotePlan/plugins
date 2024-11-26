@@ -181,7 +181,6 @@ export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveD
 /**
  * Replace the perspective definition with the given name with the new definition and return the revised full array
  * If it doesn't exist, then add it to the end of the array
- * TODO: Could this have an extra param to take a new name => rename ?
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
  * @returns {Array<TPerspectiveDef>}
@@ -209,6 +208,16 @@ export function replacePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef
 export function setActivePerspective(name: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
   // map over perspectiveSettings, setting isActive to true for the one with name === name, and false for all others
   return perspectiveSettings ? perspectiveSettings.map((s) => ({ ...s, isActive: s.name === name, isModified: false })) : []
+}
+
+/**
+ * Set the isActive flag for the perspective with the given name (and false for all others) & reset isModified flag on all
+ * @param {string} name
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {Array<TPerspectiveDef>}
+ */
+export function renamePerspective(oldName: string, newName: string, perspectiveSettings: Array<TPerspectiveDef>): Array<TPerspectiveDef> {
+  return perspectiveSettings.map((s) => ({ ...s, name: s.name === oldName ? newName : s.name }))
 }
 
 /**
@@ -434,8 +443,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
   if (nameArg && nameArg !== '') {
     logDebug('addPerspectiveSetting', `Will use name "${nameArg}" passed from argument`)
     name = nameArg
-  }
-  else {
+  } else {
     const res = await getInputTrimmed('Enter name of new Perspective:', 'OK', 'Add Perspective', 'Test')
     if (typeof name === 'boolean') {
       logWarn('addPerspectiveSetting', `Cancelled adding new Perspective`)

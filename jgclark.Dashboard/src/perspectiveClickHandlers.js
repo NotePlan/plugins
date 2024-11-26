@@ -7,18 +7,8 @@
 //-----------------------------------------------------------------------------
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import {
-  getTotalDoneCountsFromSections,
-  updateDoneCountsFromChangedNotes,
-} from './countDoneTasks'
-import {
-  getDashboardSettings,
-  getNotePlanSettings,
-  handlerResult,
-  mergeSections,
-  moveItemToRegularNote,
-  setPluginData,
-} from './dashboardHelpers'
+import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import { getDashboardSettings, getNotePlanSettings, handlerResult, mergeSections, moveItemToRegularNote, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
 import { validateAndFlattenMessageObject } from './shared'
@@ -33,6 +23,8 @@ import {
   replacePerspectiveDef,
   setActivePerspective,
   switchToPerspective,
+  renamePerspective,
+  savePerspectiveSettings,
 } from './perspectiveHelpers'
 import {
   cancelItem,
@@ -120,21 +112,10 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   const perspectiveSettings = await getPerspectiveSettings()
   const existingDef = getPerspectiveNamed(origName, perspectiveSettings)
   if (!existingDef) return handlerResult(false, [], { errorMsg: `can't get definition for perspective ${origName}` })
-
-  const dashboardSettings = await getDashboardSettings()
-  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  // Just change the name of this def
-  const newDef = { ...existingDef, dashboardSettings: { ...existingDef.dashboardSettings }, name: newName }
-
-  await addNewPerspective(newName)
-  await deletePerspective(origName)
-  // FIXME: Race condition, sigh.
-  // DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs) }
-
-  // But as a double check set it to active
-  const updatedDefs = setActivePerspective(newName, perspectiveSettings)
-  logPerspectives(updatedDefs, false)
-  await setPluginData({ perspectiveSettings: updatedDefs }, `_Saved renamed perspective ${existingDef.name}`)
+  const revisedDefs = renamePerspective(origName, newName, perspectiveSettings)
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
+  await savePerspectiveSettings(revisedDefs)
+  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${newName}`)
   return handlerResult(true, [])
 }
 
@@ -162,7 +143,8 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings, serverPush: { dashboardSettings: true, perspectiveSettings: true } }
   logDebug(
     `doSwitchToPerspective`,
-    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${newDashboardSettings.excludedFolders
+    `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
+      newDashboardSettings.excludedFolders
     }`,
   )
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
