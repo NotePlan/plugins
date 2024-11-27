@@ -27,6 +27,7 @@ export type TDashboardSettings = {
   /* "GLOBAL" SETTINGS WHICH APPLY TO ALL PERSPECTIVES */
   perspectivesEnabled: boolean,
   FFlag_DebugPanel?: boolean, // to show debug pane
+  FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
 

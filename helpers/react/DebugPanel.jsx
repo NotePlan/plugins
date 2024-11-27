@@ -60,6 +60,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   const [expandToShow, setExpandToShow] = useState<boolean>(true)
   const [filter, setFilter] = useState<boolean>(true)
   const resetViewerRef = useRef<() => void>(() => {})
+  const FFlag_ShowTestingPanel = getContext().dashboardSettings?.FFlag_ShowTestingPanel
 
   // Set default state values (for now)
   useEffect(() => {
@@ -143,7 +144,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   return (
     <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
       <PanelGroup direction="horizontal">
-        <Panel className="context-vars-pane full-height-pane" defaultSize={25} minSize={10}>
+        <Panel className="context-vars-pane full-height-pane" defaultSize={FFlag_ShowTestingPanel ? 25 : 50} minSize={10}>
           <div className="debug-pane-header consistent-header" style={{ backgroundColor: '#f5f5f5' }}>
             <h3>Context</h3>
           </div>
@@ -173,17 +174,21 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
             />
           </div>
         </Panel>
+        {FFlag_ShowTestingPanel && (
+          <>
+            <PanelResizeHandle className="panel-resize-handle" />
+            <Panel className="context-vars-pane full-height-pane testing-pane" defaultSize={25} minSize={10}>
+              <div className="testing-pane full-height-pane" style={{ backgroundColor: '#f5f5f5' }}>
+                <div className="debug-pane-header consistent-header">
+                  <h3>End-to-End Testing</h3>
+                </div>
+                <TestingPane testGroups={testGroups} onLogsFiltered={setLogFilter} getContext={getContext} />
+              </div>
+            </Panel>
+          </>
+        )}
         <PanelResizeHandle className="panel-resize-handle" />
-        <Panel className="context-vars-pane full-height-pane testing-pane" defaultSize={25} minSize={10}>
-          <div className="testing-pane full-height-pane" style={{ backgroundColor: '#f5f5f5' }}>
-            <div className="debug-pane-header consistent-header">
-              <h3>End-to-End Testing</h3>
-            </div>
-            <TestingPane testGroups={testGroups} onLogsFiltered={setLogFilter} getContext={getContext} />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="panel-resize-handle" />
-        <Panel defaultSize={50} minSize={10} className="console-pane full-height-pane">
+        <Panel defaultSize={FFlag_ShowTestingPanel ? 50 : 50} minSize={10} className="console-pane full-height-pane">
           <div className="debug-pane-header consistent-header">
             <h3>Console</h3>
           </div>
