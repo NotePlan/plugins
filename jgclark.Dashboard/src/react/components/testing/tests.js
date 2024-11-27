@@ -43,12 +43,3 @@ export const getTestGroups = (getContext: () => AppContextType): Array<TestGroup
   const testGroups = testModules.map((testModule) => createTestGroup(testModule, getContext))
   return testGroups
 }
-
-export type TestGroup = {
-  groupName: string,
-  tests: Array<{
-    name: string,
-    skip?: boolean,
-    test: () => Promise<void>,
-  }>,
-}
