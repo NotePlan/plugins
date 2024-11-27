@@ -20,7 +20,7 @@ type Filter = {
 
 type Props = {
   logs: Array<LogEntry>,
-  filter?: Filter,
+  filter?: Filter | null,
   initialFilter?: string,
   initialSearch?: string,
   onClearLogs: () => void,

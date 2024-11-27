@@ -51,6 +51,7 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
       const methodsToOverride = ['log', 'error', 'info']
       methodsToOverride.forEach((methodName) => {
         const originalMethod = console[methodName]
+        // $FlowIgnore
         console[methodName] = (...args) => {
           logListener()
           originalMethod.apply(console, args)
@@ -148,11 +149,11 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    *
    * @param {Array<{ name: string }>} tests - The tests to reset.
    */
-  const resetTestResults = (tests: Array<{ name: string }>) => {
+  const resetTestResults = (tests: Array<{ name: string, skip?: boolean, test?: Function }>) => {
     setResults((prevResults) => {
       const newResults = { ...prevResults }
       tests.forEach((test) => {
-        newResults[test.name] = { status: '', error: null, durationStr: '' }
+        newResults[test.name] = { status: '', error: '', durationStr: '' }
       })
       return newResults
     })
@@ -166,7 +167,8 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    * @param {TestGroup} group - The group of tests to run.
    */
   const runAllTestsInGroup = async (group: TestGroup) => {
-    resetTestResults(group.tests) // Reset results for the specific group
+    // $FlowIgnore
+    resetTestResults(group?.tests ?? []) // Reset results for the specific group
     if (runningGroups.has(group.groupName)) return
     setRunningGroups((prev) => new Set(prev).add(group.groupName))
     setCollapsedGroups((prev) => ({
@@ -191,6 +193,7 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
    * Runs all tests across all groups.
    */
   const runAllTests = async () => {
+    // $FlowIgnore
     testGroups.forEach((group) => resetTestResults(group.tests)) // Reset results for all groups
     for (const group of testGroups) {
       await runAllTestsInGroup(group)

@@ -53,7 +53,7 @@ const methodsToOverride = ['log', 'error', 'info', 'warn']
 const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.Node => {
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
-  const originalConsoleMethodsRef = useRef({})
+  const originalConsoleMethodsRef = useRef<{ [string]: Function }>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [highlightRegex, setHighlightRegex] = useState<string>('')
   const [useRegex, setUseRegex] = useState<boolean>(true)
@@ -62,7 +62,6 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   const resetViewerRef = useRef<() => void>(() => {})
   const FFlag_ShowTestingPanel = getContext().dashboardSettings?.FFlag_ShowTestingPanel
 
-  // Set default state values (for now)
   useEffect(() => {
     const initialSearchValue = 'pluginData:dashboardSettings:excludedFolders|dashboardSettings:excludedFolders|isActive|name|isModified'
     setHighlightRegex(initialSearchValue)
@@ -75,10 +74,12 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
     console.log('DebugPanel: starting up before the console methods override')
 
     const overrideConsoleMethod = (methodName: string) => {
+      // $FlowIgnore
       const originalMethod = console[methodName]
       originalConsoleMethodsRef.current[methodName] = originalMethod
 
-      console[methodName] = (...args) => {
+      // $FlowIgnore
+      console[methodName] = (...args: Array<any>) => {
         const messageParts = []
         const dataObjects = []
 
@@ -110,6 +111,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
       methodsToOverride.forEach((methodName) => {
         if (console[methodName] === originalConsoleMethodsRef.current[methodName]) {
           console.log(`DebugPanel: console.${methodName} override is being removed`)
+          // $FlowIgnore
           console[methodName] = originalConsoleMethodsRef.current[methodName]
         }
       })
@@ -168,6 +170,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
               highlightRegex={highlightRegex}
               expandToShowHighlight={expandToShow}
               filter={filter}
+              // $FlowIgnore
               onReset={(reset) => (resetViewerRef.current = reset)}
               useRegex={useRegex}
               scroll={true}
