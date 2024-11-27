@@ -143,22 +143,30 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
     }
   }
 
-  const resetGroupTestResults = (groupName: string) => {
+  /**
+   * Resets the test results for a given set of tests.
+   *
+   * @param {Array<{ name: string }>} tests - The tests to reset.
+   */
+  const resetTestResults = (tests: Array<{ name: string }>) => {
     setResults((prevResults) => {
       const newResults = { ...prevResults }
-      testGroups
-        .find((group) => group.groupName === groupName)
-        ?.tests.forEach((test) => {
-          delete newResults[test.name]
-        })
+      tests.forEach((test) => {
+        newResults[test.name] = { status: '', error: null, durationStr: '' }
+      })
       return newResults
     })
     setRunningTests(new Set())
-    console.log(`Test results for group "${groupName}" have been reset.`)
+    console.log('Test results have been reset.')
   }
 
+  /**
+   * Runs all tests in a specific group.
+   *
+   * @param {TestGroup} group - The group of tests to run.
+   */
   const runAllTestsInGroup = async (group: TestGroup) => {
-    resetGroupTestResults(group.groupName) // Reset results for the specific group
+    resetTestResults(group.tests) // Reset results for the specific group
     if (runningGroups.has(group.groupName)) return
     setRunningGroups((prev) => new Set(prev).add(group.groupName))
     setCollapsedGroups((prev) => ({
@@ -167,7 +175,6 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
     }))
     for (const test of group.tests) {
       if (!test.skip) {
-        // Skip tests with skip: true
         setWaitingTest(test.name)
         await runTest(test.name, test.test)
       }
@@ -180,8 +187,11 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
     })
   }
 
+  /**
+   * Runs all tests across all groups.
+   */
   const runAllTests = async () => {
-    resetGroupTestResults(testGroups[0].groupName) // Reset results for the first group
+    testGroups.forEach((group) => resetTestResults(group.tests)) // Reset results for all groups
     for (const group of testGroups) {
       await runAllTestsInGroup(group)
     }
@@ -311,8 +321,11 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
                     ? 'red'
                     : testStatus === 'Passed'
                     ? 'green'
+                    : skip
+                    ? 'grey'
                     : 'black'
                   const durationStr = results[name]?.durationStr ? ` (${results[name].durationStr})` : ''
+                  const statusText = skip ? 'Skipped' : testStatus || ''
 
                   return (
                     <li
@@ -347,7 +360,7 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
                                 marginRight: '10px',
                               }}
                             >
-                              {testStatus || ''}
+                              {statusText}
                               {durationStr}
                             </span>
                             {results[name] &&
