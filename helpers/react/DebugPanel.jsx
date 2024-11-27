@@ -146,7 +146,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   return (
     <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
       <PanelGroup direction="horizontal">
-        <Panel className="context-vars-pane full-height-pane" defaultSize={FFlag_ShowTestingPanel ? 25 : 50} minSize={10}>
+        <Panel className="context-vars-pane full-height-pane" defaultSize={25} minSize={10}>
           <div className="debug-pane-header consistent-header" style={{ backgroundColor: '#f5f5f5' }}>
             <h3>Context</h3>
           </div>
@@ -191,7 +191,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
           </>
         )}
         <PanelResizeHandle className="panel-resize-handle" />
-        <Panel defaultSize={FFlag_ShowTestingPanel ? 50 : 50} minSize={10} className="console-pane full-height-pane">
+        <Panel defaultSize={FFlag_ShowTestingPanel ? 50 : 75} minSize={10} className="console-pane full-height-pane">
           <div className="debug-pane-header consistent-header">
             <h3>Console</h3>
           </div>
