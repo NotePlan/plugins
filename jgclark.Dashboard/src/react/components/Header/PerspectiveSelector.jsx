@@ -46,7 +46,6 @@ type Action =
 const separatorOption = [{ label: '-------------------------------', value: '_separator_' }]
 
 const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspective' }]
-const renamePerspective = [{ label: 'Rename Perspective...', value: 'Rename Perspective' }]
 
 /**
  * Formats the name of a perspective or option by appending an asterisk if it is modified.
@@ -82,7 +81,10 @@ const PerspectiveSelector = (): React$Node => {
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         const saveModifiedOption = thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
-        const deletePersp = activePerspectiveName && activePerspectiveName !== '-' ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
+        const notIsDash = activePerspectiveName && activePerspectiveName !== '-'
+        const deletePersp = notIsDash ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
+        const renamePerspective = notIsDash ? [{ label: 'Rename Perspective...', value: 'Rename Perspective' }] : []
+
         return {
           ...state,
           perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...deletePersp],
@@ -245,8 +247,8 @@ const PerspectiveSelector = (): React$Node => {
             { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
             `Rename Perspective (${selectedOption.value}) selected from dropdown`,
           )
-          return
         }
+        return
       }
 
       // Otherwise, it's a normal perspective change so we process it
