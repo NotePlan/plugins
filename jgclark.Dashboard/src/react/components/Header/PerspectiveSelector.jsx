@@ -26,7 +26,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
-import { showDialog } from '@helpers/react/userInput'
+import { showDialog, showConfirmationDialog } from '@helpers/react/userInput'
 import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
@@ -82,7 +82,7 @@ const PerspectiveSelector = (): React$Node => {
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         const saveModifiedOption = thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
-        const deletePersp = activePerspectiveName && activePerspectiveName !== '-' ? [{ label: 'Delete Perspective', value: 'Delete Perspective' }] : []
+        const deletePersp = activePerspectiveName && activePerspectiveName !== '-' ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
         return {
           ...state,
           perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...deletePersp],
@@ -204,11 +204,14 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Delete Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `deletePerspective "${selectedOption.value}".`)
-        sendActionToPlugin(
-          'deletePerspective',
-          { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete  Perspective (${activePerspectiveName}) selected from dropdown` },
-          `Delete  Perspective (${activePerspectiveName}) selected from dropdown`,
-        )
+        const confirmation = await showConfirmationDialog({ message: `Are you sure you want to delete the perspective "${activePerspectiveName}"?` })
+        if (confirmation) {
+          sendActionToPlugin(
+            'deletePerspective',
+            { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete  Perspective (${activePerspectiveName}) selected from dropdown` },
+            `Delete  Perspective (${activePerspectiveName}) selected from dropdown`,
+          )
+        }
         return
       }
 

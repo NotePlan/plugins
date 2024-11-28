@@ -18,6 +18,8 @@ import ThemedSelect from './ThemedSelect.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
+import type { Option } from './DropdownSelect.jsx'
+import { Button, ButtonGroup } from './ButtonComponents.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -36,6 +38,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean, // Add disabled prop
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
 }
 
 /**
@@ -58,6 +61,7 @@ export function renderItem({
   disabled,
   indent = false,
   className = '',
+  handleButtonClick = (key, value) => {}, // Add handleButtonClick prop
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -164,14 +168,29 @@ export function renderItem({
             disabled={disabled}
             key={`cmb${index}`}
             label={thisLabel}
-            options={item.options || []}
+            options={
+              item.options
+                ? item.options.map((option) => {
+                    if (typeof option === 'string') {
+                      return { label: option, value: option }
+                    } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+                      return option
+                    }
+                    return { label: '', value: '' } // Fallback for invalid options
+                  })
+                : []
+            }
             value={item.value || ''}
-            onChange={(option: string) => {
-              item.key && handleFieldChange(item.key, option)
-              item.key && handleComboChange(item.key, { target: { value: option } })
+            onChange={(selectedOption: Option | null) => {
+              if (selectedOption && typeof selectedOption.value === 'string') {
+                const value = selectedOption.value
+                item.key && handleFieldChange(item.key, value)
+                item.key && handleComboChange(item.key, value)
+              }
             }}
-            inputRef={inputRef} // Pass inputRef
+            inputRef={inputRef}
             compactDisplay={item.compactDisplay || false}
+            noWrapOptions={item.noWrapOptions || false}
           />
         )
       case 'text':
@@ -238,6 +257,39 @@ export function renderItem({
           </div>
         )
       }
+      case 'button':
+        return (
+          <Button
+            key={`btn${index}`}
+            label={item.label || 'Button'}
+            value={item.value || ''}
+            isDefault={item.isDefault}
+            disabled={disabled}
+            onClick={(value) => {
+              if (item.key) {
+                handleButtonClick(item.key, value)
+              } else {
+                console.error('Button item is missing a key')
+              }
+            }}
+          />
+        )
+      case 'button-group':
+        return (
+          <ButtonGroup
+            key={`btn-group${index}`}
+            options={item.options || []}
+            disabled={disabled}
+            onClick={(value) => {
+              if (item.key) {
+                handleButtonClick(item.key, value)
+              } else {
+                console.error('Button group item is missing a key')
+              }
+            }}
+            vertical={item.vertical}
+          />
+        )
       default:
         return null
     }

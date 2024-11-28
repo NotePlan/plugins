@@ -41,6 +41,8 @@ export type TSettingItemType =
   | 'heading'
   | 'input-readonly'
   | 'json'
+  | 'button'
+  | 'button-group'
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -48,7 +50,7 @@ export type TSettingItem = {
   value?: string,
   label?: string,
   checked?: boolean,
-  options?: Array<string>,
+  options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
   default?: any,
@@ -60,6 +62,8 @@ export type TSettingItem = {
   focus?: boolean, // for input fields only, set focus to this field when dialog opens
   controlsOtherKeys?: Array<string>, // if this item is changed, also change the items named in this array
   displayDoneCounts?: boolean, // if true, then show the done counts in the dashboard
+  vertical?: boolean, // Add vertical property for button-group
+  isDefault?: boolean, // Add isDefault property for button items
 }
 
 export type TDynamicDialogProps = {
@@ -78,6 +82,8 @@ export type TDynamicDialogProps = {
   hideDependentItems?: boolean,
   submitOnEnter?: boolean,
   children?: React$Node, // children nodes (primarily for banner message)
+  hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
 }
 
 //--------------------------------------------------------------------------
@@ -98,6 +104,8 @@ const DynamicDialog = ({
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
   hideDependentItems,
   submitOnEnter = true,
+  hideHeaderButtons = false,
+  handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || [
@@ -154,7 +162,7 @@ const DynamicDialog = ({
   // State
   //----------------------------------------------------------------------
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
-  const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
+  const dropdownRef = useRef<?HTMLInputElement>(null)
   const [changesMade, setChangesMade] = useState(allowEmptySubmit)
   const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
   const updatedSettingsRef = useRef(updatedSettings)
@@ -256,16 +264,18 @@ const DynamicDialog = ({
   const dialogContents = (
     <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
       <div className="dynamic-dialog-header">
-        <button className="PCButton cancel-button" onClick={onCancel}>
-          Cancel
-        </button>
+        {!hideHeaderButtons && (
+          <button className="PCButton cancel-button" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
         <span className="dynamic-dialog-title">{title || ''}</span>
-        {changesMade ? (
+        {!hideHeaderButtons && changesMade ? (
           <button className="PCButton save-button" onClick={handleSave}>
             Submit
           </button>
         ) : (
-          <button className="PCButton save-button-inactive">Submit</button>
+          !hideHeaderButtons && <button className="PCButton save-button-inactive">Submit</button>
         )}
       </div>
       <div className="dynamic-dialog-content">
@@ -284,9 +294,9 @@ const DynamicDialog = ({
                 disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
                 indent: Boolean(item.dependsOnKey),
                 handleFieldChange,
+                handleButtonClick, // Pass handleButtonClick
                 labelPosition,
                 showSaveButton: false, // Do not show save button
-                // $FlowIgnore
                 inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
                 className: '', // for future use
               })}
