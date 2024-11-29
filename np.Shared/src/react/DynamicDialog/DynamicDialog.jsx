@@ -263,7 +263,7 @@ const DynamicDialog = ({
   if (!updatedSettings) return null
   const dialogContents = (
     <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
-      <div className="dynamic-dialog-header">
+      <div className={`dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`}>
         {!hideHeaderButtons && (
           <button className="PCButton cancel-button" onClick={onCancel}>
             Cancel
