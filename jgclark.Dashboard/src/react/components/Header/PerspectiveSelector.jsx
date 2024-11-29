@@ -241,7 +241,12 @@ const PerspectiveSelector = (): React$Node => {
         if (userInputObj) {
           userInputObj.oldName = state.activePerspectiveName
           logDebug('PerspectiveSelector/handlePerspectiveChange renamePerspective', { userInputObj })
-
+          // set the activePerspectiveName optimistically  so the UI updates immediately, but the perspectiveSettings will be updated later in pluginData
+          dispatchPerspectiveSettings({
+            type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS,
+            payload: perspectiveSettings.map((persp) => ({ ...persp, name: persp.name === state.activePerspectiveName ? userInputObj.newName : persp.name })),
+          })
+          dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: userInputObj.newName })
           sendActionToPlugin(
             'renamePerspective',
             { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
