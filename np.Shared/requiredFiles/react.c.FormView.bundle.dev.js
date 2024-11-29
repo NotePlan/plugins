@@ -5883,7 +5883,7 @@ var WebViewBundle = (function (exports, React) {
     return logMessage;
   };
   const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none'];
-  const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none'];
+  const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none'];
 
   /**
    * Test _logLevel against logType to decide whether to output
@@ -5892,7 +5892,7 @@ var WebViewBundle = (function (exports, React) {
    */
   const shouldOutputForLogLevel = logType => {
     let userLogLevel = 1;
-    const thisMessageLevel = LOG_LEVELS.indexOf(logType);
+    const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase());
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
     // Note: Performing a null change against a value that is `undefined` will be true
     // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
@@ -5920,6 +5920,11 @@ var WebViewBundle = (function (exports, React) {
     }
     return false;
   };
+  function getLogDateAndTypeString(type) {
+    const thisMessageLevel = LOG_LEVELS.indexOf(type.toUpperCase());
+    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
+    return `${dt().padEnd(19)} ${thisIndicator}`;
+  }
 
   /**
    * Formats log output to include timestamp pluginId, pluginVersion
@@ -5932,53 +5937,26 @@ var WebViewBundle = (function (exports, React) {
   function log$1(pluginInfo, message = '', type = 'INFO') {
     let msg = '';
     if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
-      const thisMessageLevel = LOG_LEVELS.indexOf(type);
-      const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
       let pluginId = '';
       let pluginVersion = '';
       const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id');
+      const ldts = getLogDateAndTypeString(type);
       if (isPluginJson) {
         pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID';
         pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION';
-        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`;
+        msg = `${ldts} ${pluginId} v${pluginVersion} :: ${_message(message)}`;
       } else {
         if (message.length > 0) {
           // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
-          msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`;
+          msg = `${ldts} ${pluginInfo} :: ${_message(message)}`;
         } else {
           // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
-          msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`;
+          msg = `${ldts} ${_message(pluginInfo)}`;
         }
       }
       console.log(msg);
     }
     return msg;
-  }
-
-  /**
-   * Formats log output as ERROR to include timestamp pluginId, pluginVersion
-   * @author @codedungeon
-   * @param {any} pluginInfo
-   * @param {any} message
-   * @returns {string}
-   */
-  function logError(pluginInfo, error) {
-    if (typeof error === 'object' && error != null) {
-      const msg = `${error.filename ?? '<unknown file>'} ${error.lineNumber ?? '<unkonwn line>'}: ${error.message}`;
-      return log$1(pluginInfo, msg, 'ERROR');
-    }
-    return log$1(pluginInfo, error, 'ERROR');
-  }
-
-  /**
-   * Formats log output as INFO to include timestamp pluginId, pluginVersion
-   * @author @codedungeon
-   * @param {any} pluginInfo
-   * @param {any} message
-   * @returns {string}
-   */
-  function logInfo(pluginInfo, message = '') {
-    return log$1(pluginInfo, message, 'INFO');
   }
 
   /**
@@ -5994,89 +5972,43 @@ var WebViewBundle = (function (exports, React) {
 
   // Functions which can be imported into any React Component
 
-  /****************************************************************************************************************************
-   *                             CONSOLE LOGGING
-   ****************************************************************************************************************************/
-  // color this component's output differently in the console
-  /**
-   * Generates a readable RGB color from a string's hash.
-   * The color is guaranteed to be light enough to be readable on a white background.
-   * @param {string} input The input string to hash.
-   * @returns {string} The RGB color in the format 'rgb(r, g, b)'.
-   */
-  function stringToColor(input) {
-    let hash = 0;
-    for (let i = 0; i < input.length; i++) {
-      hash = input.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = (hash & 0x00ffffff).toString(16).toUpperCase();
-    const hexColor = `#${`000000${color}`.slice(-6)}`;
-    const rgb = hexToRgb(hexColor);
-
-    // Adjust the brightness to ensure the color is not too dark
-    const brightnessAdjusted = adjustBrightness(rgb.r, rgb.g, rgb.b);
-    return `rgb(${brightnessAdjusted.r}, ${brightnessAdjusted.g}, ${brightnessAdjusted.b})`;
-  }
-
-  /**
-   * Converts a hex color to an RGB object.
-   * @param {string} hex The hex color string.
-   * @returns {{r: number, g: number, b: number}} RGB representation.
-   */
-  function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return {
-      r,
-      g,
-      b
-    };
-  }
-
-  /**
-   * Adjusts the brightness of the color to ensure good readability on a white background.
-   * @param {number} r Red component of the color.
-   * @param {number} g Green component of the color.
-   * @param {number} b Blue component of the color.
-   * @returns {{r: number, g: number, b: number}} Brightened RGB color.
-   */
-  function adjustBrightness(_r, _g, _b) {
-    const luminance = 0.2126 * _r + 0.7152 * _g + 0.0722 * _b;
-    const brightnessFactor = luminance < 128 ? 0.5 : 0.25;
-    const r = Math.floor(Math.min(255, _r + brightnessFactor * 255));
-    const g = Math.floor(Math.min(255, _g + brightnessFactor * 255));
-    const b = Math.floor(Math.min(255, _b + brightnessFactor * 255));
-    return {
-      r,
-      g,
-      b
-    };
-  }
-
   /**
    * Logs information to the console.
-   * If this is in a browser, use colors
    * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
    * @param {string} componentName - The name of the component.
    * @param {string} [detail] - Additional detail about the log.
    * @param {...any} args - Additional arguments to log.
    * @returns {void}
    */
-  const log = (logType, componentName, detail, ...args) => {
+  const log = (logType, componentNameAndInfo, ...args) => {
+    if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentNameAndInfo}`;
     if (shouldOutputForLogLevel(logType)) {
-      const isNotePlanConsole = !!window.webkit;
-      let arg1, arg2;
-      if (isNotePlanConsole) {
-        arg1 = `${componentName}${detail ? `: ${detail} ` : ''}`;
-        arg2 = ``;
-        logType === 'DEBUG' ? logDebug$1(arg1, arg2, ...args) : logType === 'ERROR' ? logError(arg1, arg2, ...args) : logInfo(arg1, arg2, ...args);
+      const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase();
+      // $FlowIgnore
+      if (consoleType && typeof consoleType === 'string' && console && console[consoleType]) {
+        const timeAndType = getLogDateAndTypeString(logType);
+        // $FlowIgnore
+        console[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args);
       } else {
-        // We are in the browser, so can use colors
-        arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`;
-        arg2 = `color: #000; background: ${stringToColor(componentName)}`;
-        console[logType.toLowerCase()](arg1, arg2, ...args);
+        console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentNameAndInfo}`);
       }
+    }
+  };
+  const logWithObjectsMaybe = (logType, componentName, detail, ...args) => {
+    let componentNameAndInfo = componentName;
+    let detailToSend = detail || '';
+    let argsToSend = args;
+    if (detail && typeof detail !== 'string') {
+      argsToSend = [detail, ...args];
+      detailToSend = '';
+    }
+    if (detailToSend && typeof detailToSend === 'string') {
+      componentNameAndInfo = `${componentName}, ${detailToSend}`;
+    }
+    if (argsToSend.length > 0) {
+      log(logType, `${componentNameAndInfo}`, '', ...argsToSend);
+    } else {
+      log(logType, componentNameAndInfo);
     }
   };
 
@@ -6084,13 +6016,13 @@ var WebViewBundle = (function (exports, React) {
    * A prettier version of logDebug
    * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text.
    * Uses the same color for each call in a component (based on the first param).
-   * @param {string} componentName - The name of the component.
+   * @param {string} componentName - The name of the component or some identifying text. Must be a string
    * @param {string} detail - Additional detail about the log.
    * @param {...any} args - Additional arguments to log.
    * @returns {void}
    */
   const logDebug = (componentName, detail, ...args) => {
-    log('DEBUG', componentName, detail, ...args);
+    logWithObjectsMaybe('DEBUG', componentName, detail, ...args);
   };
 
   /****************************************************************************************************************************

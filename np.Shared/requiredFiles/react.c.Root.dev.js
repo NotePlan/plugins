@@ -5853,7 +5853,7 @@ var RootBundle = (function (exports, React$1) {
 	  return logMessage;
 	};
 	const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none'];
-	const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none'];
+	const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none'];
 
 	/**
 	 * Test _logLevel against logType to decide whether to output
@@ -5862,7 +5862,7 @@ var RootBundle = (function (exports, React$1) {
 	 */
 	const shouldOutputForLogLevel = logType => {
 	  let userLogLevel = 1;
-	  const thisMessageLevel = LOG_LEVELS.indexOf(logType);
+	  const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase());
 	  const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
 	  // Note: Performing a null change against a value that is `undefined` will be true
 	  // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
@@ -5890,6 +5890,11 @@ var RootBundle = (function (exports, React$1) {
 	  }
 	  return false;
 	};
+	function getLogDateAndTypeString(type) {
+	  const thisMessageLevel = LOG_LEVELS.indexOf(type.toUpperCase());
+	  const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
+	  return `${dt().padEnd(19)} ${thisIndicator}`;
+	}
 
 	/**
 	 * Formats log output to include timestamp pluginId, pluginVersion
@@ -5902,22 +5907,21 @@ var RootBundle = (function (exports, React$1) {
 	function log$3(pluginInfo, message = '', type = 'INFO') {
 	  let msg = '';
 	  if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
-	    const thisMessageLevel = LOG_LEVELS.indexOf(type);
-	    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
 	    let pluginId = '';
 	    let pluginVersion = '';
 	    const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id');
+	    const ldts = getLogDateAndTypeString(type);
 	    if (isPluginJson) {
 	      pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID';
 	      pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION';
-	      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`;
+	      msg = `${ldts} ${pluginId} v${pluginVersion} :: ${_message(message)}`;
 	    } else {
 	      if (message.length > 0) {
 	        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
-	        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`;
+	        msg = `${ldts} ${pluginInfo} :: ${_message(message)}`;
 	      } else {
 	        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
-	        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`;
+	        msg = `${ldts} ${_message(pluginInfo)}`;
 	      }
 	    }
 	    console.log(msg);
@@ -5941,17 +5945,6 @@ var RootBundle = (function (exports, React$1) {
 	}
 
 	/**
-	 * Formats log output as INFO to include timestamp pluginId, pluginVersion
-	 * @author @codedungeon
-	 * @param {any} pluginInfo
-	 * @param {any} message
-	 * @returns {string}
-	 */
-	function logInfo(pluginInfo, message = '') {
-	  return log$3(pluginInfo, message, 'INFO');
-	}
-
-	/**
 	 * Formats log output as DEBUG to include timestamp pluginId, pluginVersion
 	 * @author @dwertheimer
 	 * @param {any} pluginInfo
@@ -5964,89 +5957,43 @@ var RootBundle = (function (exports, React$1) {
 
 	// Functions which can be imported into any React Component
 
-	/****************************************************************************************************************************
-	 *                             CONSOLE LOGGING
-	 ****************************************************************************************************************************/
-	// color this component's output differently in the console
-	/**
-	 * Generates a readable RGB color from a string's hash.
-	 * The color is guaranteed to be light enough to be readable on a white background.
-	 * @param {string} input The input string to hash.
-	 * @returns {string} The RGB color in the format 'rgb(r, g, b)'.
-	 */
-	function stringToColor(input) {
-	  let hash = 0;
-	  for (let i = 0; i < input.length; i++) {
-	    hash = input.charCodeAt(i) + ((hash << 5) - hash);
-	  }
-	  const color = (hash & 0x00ffffff).toString(16).toUpperCase();
-	  const hexColor = `#${`000000${color}`.slice(-6)}`;
-	  const rgb = hexToRgb(hexColor);
-
-	  // Adjust the brightness to ensure the color is not too dark
-	  const brightnessAdjusted = adjustBrightness(rgb.r, rgb.g, rgb.b);
-	  return `rgb(${brightnessAdjusted.r}, ${brightnessAdjusted.g}, ${brightnessAdjusted.b})`;
-	}
-
-	/**
-	 * Converts a hex color to an RGB object.
-	 * @param {string} hex The hex color string.
-	 * @returns {{r: number, g: number, b: number}} RGB representation.
-	 */
-	function hexToRgb(hex) {
-	  const r = parseInt(hex.slice(1, 3), 16);
-	  const g = parseInt(hex.slice(3, 5), 16);
-	  const b = parseInt(hex.slice(5, 7), 16);
-	  return {
-	    r,
-	    g,
-	    b
-	  };
-	}
-
-	/**
-	 * Adjusts the brightness of the color to ensure good readability on a white background.
-	 * @param {number} r Red component of the color.
-	 * @param {number} g Green component of the color.
-	 * @param {number} b Blue component of the color.
-	 * @returns {{r: number, g: number, b: number}} Brightened RGB color.
-	 */
-	function adjustBrightness(_r, _g, _b) {
-	  const luminance = 0.2126 * _r + 0.7152 * _g + 0.0722 * _b;
-	  const brightnessFactor = luminance < 128 ? 0.5 : 0.25;
-	  const r = Math.floor(Math.min(255, _r + brightnessFactor * 255));
-	  const g = Math.floor(Math.min(255, _g + brightnessFactor * 255));
-	  const b = Math.floor(Math.min(255, _b + brightnessFactor * 255));
-	  return {
-	    r,
-	    g,
-	    b
-	  };
-	}
-
 	/**
 	 * Logs information to the console.
-	 * If this is in a browser, use colors
 	 * @param {string} logType - The type of log (e.g., DEBUG, ERROR).
 	 * @param {string} componentName - The name of the component.
 	 * @param {string} [detail] - Additional detail about the log.
 	 * @param {...any} args - Additional arguments to log.
 	 * @returns {void}
 	 */
-	const log$2 = (logType, componentName, detail, ...args) => {
+	const log$2 = (logType, componentNameAndInfo, ...args) => {
+	  if (!componentNameAndInfo || componentNameAndInfo === '') throw `Logs should always have some identifier to help us find them later ==> ${componentNameAndInfo}`;
 	  if (shouldOutputForLogLevel(logType)) {
-	    const isNotePlanConsole = !!window.webkit;
-	    let arg1, arg2;
-	    if (isNotePlanConsole) {
-	      arg1 = `${componentName}${detail ? `: ${detail} ` : ''}`;
-	      arg2 = ``;
-	      logType === 'DEBUG' ? logDebug$1(arg1, arg2, ...args) : logType === 'ERROR' ? logError$1(arg1, arg2, ...args) : logInfo(arg1, arg2, ...args);
+	    const consoleType = logType === 'DEBUG' ? 'log' : logType.toLowerCase();
+	    // $FlowIgnore
+	    if (consoleType && typeof consoleType === 'string' && console && console[consoleType]) {
+	      const timeAndType = getLogDateAndTypeString(logType);
+	      // $FlowIgnore
+	      console[consoleType](`${timeAndType} ${componentNameAndInfo}`, ...args);
 	    } else {
-	      // We are in the browser, so can use colors
-	      arg1 = `%c${componentName}${detail ? `: ${detail} ` : ''}`;
-	      arg2 = `color: #000; background: ${stringToColor(componentName)}`;
-	      console[logType.toLowerCase()](arg1, arg2, ...args);
+	      console.log(`${getLogDateAndTypeString(logType)} Could not find console[${consoleType}]; ${componentNameAndInfo}`);
 	    }
+	  }
+	};
+	const logWithObjectsMaybe = (logType, componentName, detail, ...args) => {
+	  let componentNameAndInfo = componentName;
+	  let detailToSend = detail || '';
+	  let argsToSend = args;
+	  if (detail && typeof detail !== 'string') {
+	    argsToSend = [detail, ...args];
+	    detailToSend = '';
+	  }
+	  if (detailToSend && typeof detailToSend === 'string') {
+	    componentNameAndInfo = `${componentName}, ${detailToSend}`;
+	  }
+	  if (argsToSend.length > 0) {
+	    log$2(logType, `${componentNameAndInfo}`, '', ...argsToSend);
+	  } else {
+	    log$2(logType, componentNameAndInfo);
 	  }
 	};
 
@@ -6054,13 +6001,13 @@ var RootBundle = (function (exports, React$1) {
 	 * A prettier version of logDebug
 	 * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text.
 	 * Uses the same color for each call in a component (based on the first param).
-	 * @param {string} componentName - The name of the component.
+	 * @param {string} componentName - The name of the component or some identifying text. Must be a string
 	 * @param {string} detail - Additional detail about the log.
 	 * @param {...any} args - Additional arguments to log.
 	 * @returns {void}
 	 */
 	const logDebug = (componentName, detail, ...args) => {
-	  log$2('DEBUG', componentName, detail, ...args);
+	  logWithObjectsMaybe('DEBUG', componentName, detail, ...args);
 	};
 
 	/**
@@ -6072,7 +6019,7 @@ var RootBundle = (function (exports, React$1) {
 	 * @returns {void}
 	 */
 	const logError = (componentName, detail, ...args) => {
-	  log$2('ERROR', componentName, detail, ...args);
+	  logWithObjectsMaybe('ERROR', componentName, detail, ...args);
 	};
 
 	/**
@@ -6084,7 +6031,7 @@ var RootBundle = (function (exports, React$1) {
 	 * @returns {void}
 	 */
 	const logWarn = (componentName, detail, ...args) => {
-	  log$2('WARN', componentName, detail, ...args);
+	  logWithObjectsMaybe('WARN', componentName, detail, ...args);
 	};
 
 	/**
@@ -7740,7 +7687,8 @@ var RootBundle = (function (exports, React$1) {
 	  compactDisplay = false,
 	  styles = {},
 	  fullWidthOptions = false,
-	  showIndicatorOptionProp = ''
+	  showIndicatorOptionProp = '',
+	  noWrapOptions = false // TODO: need to implement this when needed (force option to be one line)
 	}) => {
 	  // Normalize options to a consistent format
 
@@ -69318,6 +69266,38 @@ var RootBundle = (function (exports, React$1) {
 	  return errors;
 	}
 
+	const Button = ({
+	  label,
+	  value,
+	  isDefault,
+	  disabled,
+	  onClick
+	}) => {
+	  const buttonClass = isDefault ? 'ui-button default-button' : 'ui-button';
+	  return /*#__PURE__*/React__default["default"].createElement("button", {
+	    className: buttonClass,
+	    disabled: disabled,
+	    onClick: () => onClick(value)
+	  }, label);
+	};
+	const ButtonGroup = ({
+	  options,
+	  disabled,
+	  onClick,
+	  vertical
+	}) => {
+	  return /*#__PURE__*/React__default["default"].createElement("div", {
+	    className: `ui-button-group ${vertical ? 'vertical' : 'horizontal'}`
+	  }, options.map((option, idx) => /*#__PURE__*/React__default["default"].createElement(Button, {
+	    key: `btn-group-${idx}`,
+	    label: option.label,
+	    value: option.value,
+	    isDefault: option.isDefault,
+	    disabled: disabled,
+	    onClick: onClick
+	  })));
+	};
+
 	/* eslint-disable no-unused-vars */ //--------------------------------------------------------------------------
 
 	//--------------------------------------------------------------------------
@@ -69344,7 +69324,8 @@ var RootBundle = (function (exports, React$1) {
 	  // Destructure inputRef
 	  disabled,
 	  indent = false,
-	  className = ''
+	  className = '',
+	  handleButtonClick = (key, value) => {} // Add handleButtonClick prop
 	}) {
 	  const element = () => {
 	    const thisLabel = item.label || '?';
@@ -69389,7 +69370,7 @@ var RootBundle = (function (exports, React$1) {
 	        return /*#__PURE__*/React__default["default"].createElement(InputBox, {
 	          inputType: "text",
 	          readOnly: true,
-	          focus: item.focus || false,
+	          focus: false,
 	          key: `ibxro${index}`,
 	          label: thisLabel,
 	          disabled: disabled,
@@ -69447,19 +69428,31 @@ var RootBundle = (function (exports, React$1) {
 	          disabled: disabled,
 	          key: `cmb${index}`,
 	          label: thisLabel,
-	          options: item.options || [],
-	          value: item.value || '',
-	          onChange: option => {
-	            item.key && handleFieldChange(item.key, option);
-	            item.key && handleComboChange(item.key, {
-	              target: {
+	          options: item.options ? item.options.map(option => {
+	            if (typeof option === 'string') {
+	              return {
+	                label: option,
 	                value: option
-	              }
-	            });
+	              };
+	            } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+	              return option;
+	            }
+	            return {
+	              label: '',
+	              value: ''
+	            }; // Fallback for invalid options
+	          }) : [],
+	          value: item.value || '',
+	          onChange: selectedOption => {
+	            if (selectedOption && typeof selectedOption.value === 'string') {
+	              const value = selectedOption.value;
+	              item.key && handleFieldChange(item.key, value);
+	              item.key && handleComboChange(item.key, value);
+	            }
 	          },
-	          inputRef: inputRef // Pass inputRef
-	          ,
-	          compactDisplay: item.compactDisplay || false
+	          inputRef: inputRef,
+	          compactDisplay: item.compactDisplay || false,
+	          noWrapOptions: item.noWrapOptions || false
 	        });
 	      case 'text':
 	        return /*#__PURE__*/React__default["default"].createElement(TextComponent, {
@@ -69526,6 +69519,35 @@ var RootBundle = (function (exports, React$1) {
 	            showCollectionCount: "when-closed"
 	          }));
 	        }
+	      case 'button':
+	        return /*#__PURE__*/React__default["default"].createElement(Button, {
+	          key: `btn${index}`,
+	          label: item.label || 'Button',
+	          value: item.value || '',
+	          isDefault: item.isDefault,
+	          disabled: disabled,
+	          onClick: value => {
+	            if (item.key) {
+	              handleButtonClick(item.key, value);
+	            } else {
+	              console.error('Button item is missing a key');
+	            }
+	          }
+	        });
+	      case 'button-group':
+	        return /*#__PURE__*/React__default["default"].createElement(ButtonGroup, {
+	          key: `btn-group${index}`,
+	          options: item.options || [],
+	          disabled: disabled,
+	          onClick: value => {
+	            if (item.key) {
+	              handleButtonClick(item.key, value);
+	            } else {
+	              console.error('Button group item is missing a key');
+	            }
+	          },
+	          vertical: item.vertical
+	        });
 	      default:
 	        return null;
 	    }
@@ -69540,7 +69562,7 @@ var RootBundle = (function (exports, React$1) {
 	  }, element());
 	}
 
-	var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);border-bottom:1px solid #ddd;display:flex;justify-content:space-between;padding:.3rem;position:relative}.dynamic-dialog-title{color:var(--tint-color);font-size:large;font-weight:600;left:50%;line-height:40px;position:absolute;text-align:center;transform:translateX(-50%)}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}}.dynamic-dialog .switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.dynamic-dialog .switch-input{margin:0}.dynamic-dialog .switch-label{color:var(--fg-alt-color);font-weight:500}.dynamic-dialog .input-box-container{align-items:left;display:flex;flex-direction:column}.dynamic-dialog .input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .input-box-wrapper{align-items:end;display:flex}.dynamic-dialog .input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.dynamic-dialog .input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.dynamic-dialog .input-box-input:read-only{background-color:inherit;border-color:var(--divider-color);outline:none}.dynamic-dialog .input-box-input:read-only:focus{border-color:var(--divider-color);box-shadow:none;outline:none}.dynamic-dialog .input-box-input-number{width:6rem}.hide-step-buttons::-webkit-inner-spin-button,.hide-step-buttons::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.hide-step-buttons{-moz-appearance:textfield}.dynamic-dialog .input-box-input:invalid{border:1px solid #faa}.dynamic-dialog .input-box-input:not(:read-only):focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.dynamic-dialog .input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.dynamic-dialog .input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dynamic-dialog .dropdown-container{display:flex;flex-direction:column}.dynamic-dialog .dropdown-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dynamic-dialog .dropdown-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dynamic-dialog .dropdown-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dynamic-dialog .dropdown-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dynamic-dialog .dropdown-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dynamic-dialog .dropdown-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.dropdown-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dropdown-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dropdown-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.dynamic-dialog-heading{color:var(--tint-color);font-size:large;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog .dynamic-dialog-header{background:none;color:var(--tint-color);font-size:large;font-weight:600;line-height:40px;margin:0}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}.dynamic-dialog .item-description{color:var(--fg-alt-color);font-size:small;opacity:.8}.dynamic-dialog .ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.dynamic-dialog .ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}.dynamic-dialog .disabled{opacity:.6}.dynamic-dialog .indent{margin-left:1rem}";
+	var css_248z$1 = ".dynamic-dialog{background-color:var(--bg-mid-color);border:none;box-shadow:0 8px 16px rgba(0,0,0,.2);font-family:system-ui;left:50%;max-width:600px;opacity:1;position:fixed;top:50%;transform:translate(-50%,-50%);transition:opacity .2s ease-out;width:80%}.dynamic-dialog-content{background-color:var(--bg-mid-color);border-radius:8px;display:flex;flex-direction:column;gap:1rem;max-height:80vh;padding:.75rem 1.25rem}.dynamic-dialog[open]{opacity:1}.dynamic-dialog-header{align-items:center;background-color:var(--bg-alt-color);background:none;color:var(--tint-color);display:flex;font-size:1.2rem;font-weight:600;justify-content:center;line-height:40px;margin:0}.dynamic-dialog-heading{color:var(--tint-color);font-size:1.2rem;font-weight:500;padding-bottom:.2rem;padding-top:.3rem}.dynamic-dialog-title{flex-grow:1;text-align:center}.dynamic-dialog{.PCButton{align-self:center;border:none;border-radius:4px;cursor:pointer;font-family:system-ui;font-size:.85rem;font-weight:500;line-height:1.2rem;margin:2px 4px 2px 0;max-height:unset;padding:4px 8px;transition:background-color .2s,box-shadow .2s;white-space:nowrap}.PCButton:hover{box-shadow:inset 0 0 0 50px rgba(0,0,0,.15)}.cancel-button{background-color:var(--bg-main-color);border:1px solid #ddd;color:var(--fg-main-color);outline:none}.save-button,.save-button-inactive{background-color:var(--tint-color);color:var(--bg-main-color)}.save-button-inactive{cursor:unset;opacity:.3}.PCButton i{color:var(--tint-color)}.button,.clickTarget,.fake-button{cursor:pointer}input.apple-switch{appearance:none;background-color:#eee;border:1px solid #ddd;border-radius:2rem;height:1.1rem;margin-right:4px;margin-top:0;outline:none;position:relative;vertical-align:top;width:2rem}input.apple-switch:after{background:#fff;border-radius:50%;box-shadow:1px 0 1px rgba(0,0,0,.3);content:\"\";height:1rem;left:1px;margin-right:1rem;position:absolute;top:0;vertical-align:top;width:1rem}input.apple-switch:checked{border-color:var(--tint-color);box-shadow:inset .8rem 0 0 0 var(--tint-color)}input.apple-switch:checked:after{box-shadow:-2px 4px 3px rgba(0,0,0,.1);left:.8rem}.switch-line{align-items:center;display:flex;gap:.5rem;justify-content:flex-start}.switch-input{margin:0}.switch-label{color:var(--fg-alt-color);font-weight:500}.input-box-container{align-items:left;display:flex;flex-direction:column}.input-box-container-compact{align-items:end;display:flex;flex-direction:row;gap:.5rem}.input-box-wrapper{align-items:end;display:flex}.input-box-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.5rem}.input-box-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.85rem;margin:.3rem 0;padding:4px 8px}.input-box-input:read-only{background-color:inherit;border-color:var(--divider-color);outline:none}.input-box-input:read-only:focus{border-color:var(--divider-color);box-shadow:none;outline:none}.input-box-input-number{width:6rem}.input-box-input:invalid{border:1px solid #faa}.input-box-input:not(:read-only):focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.input-box-save{align-self:center;background-color:var(--tint-color);border:none;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);color:var(--bg-main-color);cursor:pointer;height:30px;padding:6px 12px;transition:background-color .3s,box-shadow .3s}.input-box-save:disabled{background-color:#ccc;box-shadow:none;color:#aaa;cursor:not-allowed;display:none}.input-box-save:not(:disabled):hover{background-color:#0056b3;box-shadow:0 4px 10px rgba(0,0,0,.2)}.dropdown-container{display:flex;flex-direction:column}.dropdown-container-compact{align-items:baseline;display:flex;flex-direction:row;gap:.5rem}.dropdown-wrapper{align-items:end;display:flex;gap:10px;position:relative;width:fit-content}.dropdown-label{color:var(--fg-alt-color);font-weight:500;margin-bottom:.3rem;margin-right:.1rem}.dropdown-input{background-color:var(--bg-main-color);border:.5px solid rgb(from var(--fg-main-color) r g b/.3);border-radius:4px;flex:1;font-family:system-ui;font-size:.9rem;padding:4px 8px}.dropdown-input:focus{border-color:var(--hashtag-color);box-shadow:0 0 3px var(--hashtag-color);outline:none}.dropdown-arrow{align-self:center;color:var(--tint-color);font-size:x-large;pointer-events:none;position:absolute;right:.8rem}.item-description{color:var(--fg-alt-color);font-size:small;opacity:.8}.ui-heading{color:var(--tint-color);font-size:130%;font-weight:600;line-height:140%;text-align:start}.ui-separator{border:none;border-top:1px solid var(--divider-color);margin:1em 0}.disabled{opacity:.6}.indent{margin-left:1rem}.dynamic-dialog-header{background:none;color:var(--tint-color);font-size:1.2rem;font-weight:600;line-height:40px;margin:0}.ui-button-group{display:flex;gap:10px;justify-content:space-between;width:100%}.ui-button{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:8px;color:var(--fg-main-color);cursor:pointer;flex:1;padding:8px 12px;transition:background-color .2s,box-shadow .2s}.ui-button:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.default-button,.ui-button:hover{box-shadow:0 2px 5px rgba(0,0,0,.1)}.default-button{background-color:var(--tint-color);border-radius:8px;color:var(--bg-main-color)}}.hide-step-buttons::-webkit-inner-spin-button,.hide-step-buttons::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.hide-step-buttons{-moz-appearance:textfield}.dropdown-dropdown{background-color:var(--bg-main-color);border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 5px rgba(0,0,0,.1);left:0;position:absolute;right:0;top:100%;z-index:5}.dropdown-option{color:var(--fg-main-color);cursor:pointer;padding:8px 12px}.dropdown-option:hover{background-color:var(--bg-alt-color);color:var(--fg-alt-color)}.iOS .dynamic-dialog .dynamic-dialog-header{font-size:1rem;line-height:1rem}";
 	styleInject(css_248z$1);
 
 	var css_248z = ".modal-backdrop{align-items:center;background-color:rgba(0,0,0,.5);bottom:0;display:flex;justify-content:center;left:0;position:fixed;right:0;top:0;z-index:100}.modal-backdrop>div{z-index:101}";
@@ -69602,7 +69624,9 @@ var RootBundle = (function (exports, React$1) {
 	  onCancel,
 	  // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
 	  hideDependentItems,
-	  submitOnEnter = true
+	  submitOnEnter = true,
+	  hideHeaderButtons = false,
+	  handleButtonClick = (key, value) => {} // Destructure handleButtonClick prop
 	}) => {
 	  if (!isOpen) return null;
 	  const items = passedItems || [{
@@ -69759,16 +69783,16 @@ var RootBundle = (function (exports, React$1) {
 	    style: style,
 	    onClick: e => e.stopPropagation()
 	  }, /*#__PURE__*/React__default["default"].createElement("div", {
-	    className: "dynamic-dialog-header"
-	  }, /*#__PURE__*/React__default["default"].createElement("button", {
+	    className: `dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`
+	  }, !hideHeaderButtons && /*#__PURE__*/React__default["default"].createElement("button", {
 	    className: "PCButton cancel-button",
 	    onClick: onCancel
 	  }, "Cancel"), /*#__PURE__*/React__default["default"].createElement("span", {
 	    className: "dynamic-dialog-title"
-	  }, title || ''), changesMade ? /*#__PURE__*/React__default["default"].createElement("button", {
+	  }, title || ''), !hideHeaderButtons && changesMade ? /*#__PURE__*/React__default["default"].createElement("button", {
 	    className: "PCButton save-button",
 	    onClick: handleSave
-	  }, "Submit") : /*#__PURE__*/React__default["default"].createElement("button", {
+	  }, "Submit") : !hideHeaderButtons && /*#__PURE__*/React__default["default"].createElement("button", {
 	    className: "PCButton save-button-inactive"
 	  }, "Submit")), /*#__PURE__*/React__default["default"].createElement("div", {
 	    className: "dynamic-dialog-content"
@@ -69785,10 +69809,11 @@ var RootBundle = (function (exports, React$1) {
 	    disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
 	    indent: Boolean(item.dependsOnKey),
 	    handleFieldChange,
+	    handleButtonClick,
+	    // Pass handleButtonClick
 	    labelPosition,
 	    showSaveButton: false,
 	    // Do not show save button
-	    // $FlowIgnore
 	    inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined,
 	    // Assign ref to the dropdown input
 	    className: '' // for future use

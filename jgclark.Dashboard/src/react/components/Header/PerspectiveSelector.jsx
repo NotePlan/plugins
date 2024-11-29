@@ -66,7 +66,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, perspectiveSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, sendActionToPlugin } = useAppContext()
+  const { dashboardSettings, perspectiveSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, sendActionToPlugin, pluginData } = useAppContext()
 
   //--------------------------------------------------------------------------
   // Reducer Function with Comprehensive Logging
@@ -80,8 +80,8 @@ const PerspectiveSelector = (): React$Node => {
 
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-        const saveModifiedOption = thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
-        const notIsDash = activePerspectiveName && activePerspectiveName !== '-'
+        const notIsDash = thisPersp && thisPersp.name && activePerspectiveName !== '-'
+        const saveModifiedOption = notIsDash && thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective...', value: 'Rename Perspective' }] : []
 
@@ -152,7 +152,7 @@ const PerspectiveSelector = (): React$Node => {
       logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Active perspective changed to: "${newActivePerspectiveName}"`)
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: newActivePerspectiveName })
     }
-  }, [perspectiveSettings])
+  }, [perspectiveSettings, pluginData.perspectiveSettings])
 
   //----------------------------------------------------------------------
   // Effect to Update Active Perspective Name When It Changes Externally
