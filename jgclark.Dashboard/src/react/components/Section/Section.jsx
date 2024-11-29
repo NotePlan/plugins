@@ -146,20 +146,16 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   let numItemsToShow = itemsToShow.length
 
   // on mobile, let through only the "moveAll to..." buttons (yesterday->today & today->tomorrow) and the "scheduleAllOverdue" button
-  const addNewActionButtons = isDesktop
-    ? section.actionButtons?.filter((b) => b.actionName.startsWith('add'))
-    : []
-  let processActionButtons = isDesktop
-    ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add'))
-    : []
+  const addNewActionButtons = isDesktop ? section.actionButtons?.filter((b) => b.actionName.startsWith('add')) : []
+  let processActionButtons = isDesktop ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) : []
 
   // Add formFields to addNewActionButtons
   // TODO: finish this.  Commenting out for now as I can't figure out the handleCommandButtonClick.
-  // if (addNewActionButtons) {
-  //   for (const button of addNewActionButtons) {
-  //     button.formFields = [{ type: 'input', label: 'Item:', key: 'newContent', focus: true }]
-  //   }
-  // }
+  if (addNewActionButtons) {
+    for (const button of addNewActionButtons) {
+      button.formFields = [{ type: 'input', label: 'Item:', key: 'newContent', focus: true }]
+    }
+  }
 
   // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
@@ -206,17 +202,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   }
 
   // If we have no data items to show (other than a congrats message), don't show description
-  const descriptionDiv = numItemsToShow > 0 ? (
-    <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div>
-  ) : (
-    <div></div>
-  )
+  const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : <div></div>
 
-  const titleStyle: Object = sectionFilename
-    ? { cursor: 'pointer' } : {}
-  titleStyle.color = section.sectionTitleColorPart
-    ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})`
-    : 'var(--item-icon-color)'
+  const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
+  titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
 
   /**
    * Layout of sectionInfo = 4 divs:
@@ -226,25 +215,25 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * On normal width screen these are a row-based grid (1x3).
    * On narrow window, these are a column-based grid (3x1).
    * Then <SectionGrid> which contains the actual data items.
-   * 
+   *
    * TODO: add fields to CommandButton to allow use of the react input component, not the command bar
-  */ 
+   */
   return hideSection ? null : (
     <div className="section">
       <div className="sectionInfo">
         <div className="sectionInfoFirstLine">
-        <TooltipOnKeyPress
-          altKey={{ text: 'Open in Split View' }}
-          metaKey={{ text: 'Open in Floating Window' }}
-          label={`${section.name}_Open Note Link`}
-          enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
-        >
+          <TooltipOnKeyPress
+            altKey={{ text: 'Open in Split View' }}
+            metaKey={{ text: 'Open in Floating Window' }}
+            label={`${section.name}_Open Note Link`}
+            enabled={!reactSettings?.dialogData?.isOpen && Boolean(sectionFilename)}
+          >
             <div className={`sectionName`} onClick={handleSectionClick} style={titleStyle}>
-            <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
-            {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
-            {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
+              <i className={`sectionIcon ${section.FAIconClass || ''}`}></i>
+              {section.sectionCode === 'TAG' ? section.name.replace(/^[#@]/, '') : section.name}
+              {sectionIsRefreshing ? <i className="fa fa-spinner fa-spin pad-left"></i> : null}
             </div>
-        </TooltipOnKeyPress>
+          </TooltipOnKeyPress>
           {/* {' '} */}
           <div className={`addNewActionButtons ${section.sectionTitleColorPart ?? ''}`}>
             {addNewActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="addButton" />) ?? []}

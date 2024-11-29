@@ -526,8 +526,9 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
   const updatedListOfPerspectives = getDisplayListOfPerspectiveNames(allDefs)
   logDebug('deleteAllNamedPerspectiveSettings', `- Test: new list of available perspectives: [${String(updatedListOfPerspectives ?? [])}]`)
   // Set current perspective to default ("-")
-  const res = await switchToPerspective('-', allDefs)
-  logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(res)}`)
+  const newPerspectiveSettings = await switchToPerspective('-', allDefs)
+  await setPluginData({ perspectiveSettings: newPerspectiveSettings }, `_Deleted all named perspectives`)
+  logDebug('deleteAllNamedPerspectiveSettings', `Result of switchToPerspective("-"): ${String(newPerspectiveSettings)}`)
 }
 
 /**

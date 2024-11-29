@@ -196,7 +196,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         }
 
         // Get list of open tasks/checklists from this calendar note
-        [sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
+        ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
         // logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
         // write items for first (or combined) section
@@ -1231,6 +1231,7 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
 
   const output = tagSections.reduce((acc: Array<TSection>, sectionDetail: TSectionDetails, index: number) => {
+    // $FlowIgnore[invalid-computed-prop]
     const showSettingForTag = config[sectionDetail.showSettingName]
     // logDebug('getTaggedSections', `sectionDetail.sectionName=${sectionDetail.sectionName} showSettingForTag=${showSettingForTag}`)
     if (typeof showSettingForTag === 'undefined' || showSettingForTag) acc.push(getTaggedSectionData(config, useDemoData, sectionDetail, index))
@@ -1701,7 +1702,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
  * Get the current time block paras from Today's note if it exists. Ignore any time block paras that are done or cancelled.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
- * @returns {Array<TSection>} 
+ * @returns {Array<TSection>}
  */
 export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData: boolean = false): TSection {
   try {
@@ -1722,16 +1723,16 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       for (const item of openTodayItems) {
         if (item.para) fakeTodayNoteParagraphs.push(item.para)
       }
-      // $FlowFixMe[prop-missing] 
+      // $FlowFixMe[prop-missing]
       // $FlowFixMe[incompatible-type]
       const fakeTodayNote: TNote = {
         // $FlowFixMe[incompatible-type]
-        // $FlowFixMe[prop-missing] 
+        // $FlowFixMe[prop-missing]
         // $FlowFixMe[incompatible-exact]
         paragraphs: fakeTodayNoteParagraphs,
         type: 'Calendar',
         title: getTodaysDateHyphenated(),
-        filename: `${filenameDateStr}.md`
+        filename: `${filenameDateStr}.md`,
       }
       clo(fakeTodayNote, `fakeTodayNote`)
       timeblockPara = getCurrentTimeBlockPara(fakeTodayNote, true, mustContainString)
@@ -1763,7 +1764,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       //   const priorityMarker = ['!', '!!', '!!!', '>>'][thisDPara.priority - 1]
       //   thisDPara.content = `${priorityMarker} ${thisDPara.content}`
       // }
-      const itemTypeToUse = (thisDPara.type === 'open' || thisDPara.type === 'checklist') ? thisDPara.type : 'timeblock'
+      const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
       const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
       // $FlowFixMe[incompatible-call]
       items.push(thisSectionItemObject)
@@ -1780,13 +1781,12 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       sectionFilename: thisFilename,
       sectionItems: items,
       generatedDate: new Date(),
-      actionButtons: [
-      ],
+      actionButtons: [],
     }
     // clo(section)
     logTimer('getTimeBlockSectionData', startTime, `- found Current Time Block from ${filenameDateStr}`)
 
-  return section
+    return section
   } catch (error) {
     logError(`getTimeBlockSectionData`, error.message)
     // $FlowFixMe[incompatible-return]
