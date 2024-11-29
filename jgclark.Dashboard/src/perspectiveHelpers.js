@@ -266,7 +266,7 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
     const pluginSettings = DataStore.settings
     pluginSettings.perspectiveSettings = perspectiveSettingsStr
     DataStore.settings = pluginSettings
-    clof(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`, ['dashboardSettings', 'excludeFolders'], true)
+    clo(pluginSettings, `Saving ${allDefs.length} perspective definitions; pluginSettings =`)
     logDebug('savePerspectiveSettings', `Apparently saved OK. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return true
   } catch (error) {
