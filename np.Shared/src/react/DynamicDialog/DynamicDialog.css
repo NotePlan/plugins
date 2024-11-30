@@ -15,8 +15,15 @@
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     /* z-index: 1000; */
     opacity: 1;
+    border-radius: 8px;
     transition: opacity 0.2s ease-out;
     /* overflow: hidden; commented out to allow for dropdowns to show */
+
+}
+
+/* Narrow for simpler confirmation dialogs */
+.dynamic-dialog.confirmation {
+    width: max(20rem, 50%);
 }
 
 /* Ensure the settings dialog content is hidden when closed */
@@ -38,8 +45,9 @@
 
 /* Style for the dialog buttons container */
 .dynamic-dialog-header {
-    background-color: var(--bg-alt-color);
     display: flex;
+    gap: 0.5rem;
+    background-color: var(--bg-alt-color);
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
@@ -48,19 +56,21 @@
     margin: 0;
     background: none;
     line-height: 40px;
+    min-height: 2.5rem;
     /* Match the height of the buttons container */
 }
 
-/* Heading style for settings dialog */
-.dynamic-dialog-heading {
+/* TEST: Removing, as not used. */
+/* .dynamic-dialog-heading {
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--tint-color);
     padding-top: 0.3rem;
     padding-bottom: 0.2rem;
-}
+} */
 
 /* Style for the centered header */
+/* TODO: This is getting overriden from somewhere but I can't find where */
 .dynamic-dialog-title {
     flex-grow: 1;
     text-align: center;
@@ -398,13 +408,13 @@
     /* Add styles for button-group */
     .ui-button-group {
         display: flex;
-        justify-content: space-between;
+        justify-content: end; /* space-between; */
         width: 100%;
         gap: 10px; /* Space between buttons */
     }
 
     .ui-button {
-        flex: 1;
+        /* flex: 1; */
         padding: 8px 12px;
         background-color: var(--bg-main-color);
         color: var(--fg-main-color);
@@ -412,6 +422,9 @@
         border-radius: 8px;
         cursor: pointer;
         transition: background-color 0.2s, box-shadow 0.2s;
+        min-width: 4rem;
+        width: max-content;
+        font-family: system-ui;
     }
 
     .ui-button:hover {
@@ -424,9 +437,13 @@
         background-color: var(--tint-color);
         color: var(--bg-main-color);
         border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for emphasis */
     }
 
+    .default-button:hover {
+        background-color: hsl(from var(--tint-color) h s calc(l*0.8));
+        color: var(--bg-main-color);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for emphasis */
+    }
 }
 
 /* Hide increment and decrement buttons for number input */

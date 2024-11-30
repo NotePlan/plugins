@@ -7,7 +7,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // assumes v0.15+ of Reviews Plugin
-import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails } from './types'
+import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
 import { allSectionCodes } from './constants.js'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
@@ -49,7 +49,7 @@ import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { findNotesMatchingHashtagOrMention } from '@helpers/NPnote'
+import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getCurrentTimeBlockPara, getTimeBlockDetails } from '@helpers/timeblocks'
@@ -250,8 +250,26 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       }
     }
 
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const todayHeadings: Array<string> = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true) : []
+    const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      todayHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
+    const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      tomorrowHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
 
     const section: TSection = {
       ID: sectionNum,
@@ -273,6 +291,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
           tooltip: "Add a new task to today's note",
           postActionRefresh: ['DT'],
+          formFields: todayFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -281,6 +301,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to today's note",
           postActionRefresh: ['DT'],
+          formFields: todayFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addTask',
@@ -289,6 +311,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a new task to tomorrow's note",
           postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -297,6 +321,8 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           display: '<i class= "fa-regular fa-square-arrow-right sidebarDaily" ></i> ',
           tooltip: "Add a checklist item to tomorrow's note",
           postActionRefresh: ['DO'],
+          formFields: tomorrowFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'moveAllTodayToTomorrow',
@@ -655,6 +681,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const dateStr = getNPWeekStr(today)
     const NPSettings = getNotePlanSettings()
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
+    const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
     logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
@@ -669,7 +696,6 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         itemCount++
       })
     } else {
-      const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
       if (currentWeeklyNote) {
         // const thisFilename = currentWeeklyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -691,8 +717,26 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         logDebug('getDataForDashboard', `No weekly note found for filename '${thisFilename}'`)
       }
     }
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')?.filename ?? '(error)'
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const thisWeekHeadings: Array<string> = currentWeeklyNote ? getHeadingsFromNote(currentWeeklyNote, false, true, true, true) : []
+    const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      thisWeekHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
+    const nextWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      nextWeekHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
 
     const section: TSection = {
       ID: sectionNum,
@@ -714,6 +758,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           display: '<i class= "fa-regular fa-circle-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['W'],
+          formFields: thisWeekFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -722,6 +768,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           display: '<i class= "fa-regular fa-square-plus sidebarWeekly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['W'],
+          formFields: thisWeekFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addTask',
@@ -729,6 +777,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           tooltip: "Add a new task to next week's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextWeekFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -736,6 +786,8 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           tooltip: "Add a checklist item to next week's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarWeekly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextWeekFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'moveAllThisWeekNextWeek',
@@ -942,6 +994,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPMonthStr(today)
     const NPSettings = getNotePlanSettings()
+    const currentMonthlyNote = DataStore.calendarNoteByDate(today, 'month')
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
@@ -957,7 +1010,6 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         itemCount++
       })
     } else {
-      const currentMonthlyNote = DataStore.calendarNoteByDate(today, 'month')
       if (currentMonthlyNote) {
         // const thisFilename = currentMonthlyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -979,8 +1031,26 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         logDebug('getDataForDashboard', `No monthly note found for filename '${thisFilename}'`)
       }
     }
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')?.filename ?? '(error)'
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? '(error)'
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const thisMonthHeadings: Array<string> = currentMonthlyNote ? getHeadingsFromNote(currentMonthlyNote, false, true, true, true) : []
+    const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    const thisMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      thisMonthHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
+    const nextMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      nextMonthHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
 
     const section: TSection = {
       ID: sectionNum,
@@ -1002,6 +1072,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           display: '<i class= "fa-regular fa-circle-plus sidebarMonthly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['M'],
+          formFields: thisMonthFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -1010,6 +1082,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           display: '<i class= "fa-regular fa-square-plus sidebarMonthly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['M'],
+          formFields: thisMonthFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addTask',
@@ -1017,6 +1091,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           tooltip: "Add a new task to next month's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarMonthly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextMonthFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -1024,6 +1100,8 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           tooltip: "Add a checklist item to next month's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarMonthly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextMonthFormFields,
+          submitOnEnter: true,
         },
       ],
     }
@@ -1074,6 +1152,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     return []
   }
 }
+
 /**
  * Get open items from this Quarter's note
  * @param {TDashboardSettings} config
@@ -1091,6 +1170,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPQuarterStr(today)
     const NPSettings = getNotePlanSettings()
+    const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
@@ -1100,7 +1180,6 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     if (useDemoData) {
       // No demo data
     } else {
-      const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
       if (currentQuarterlyNote) {
         const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -1122,8 +1201,26 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         logDebug('getDataForDashboard', `No Quarterly note found for filename '${thisFilename}'`)
       }
     }
-    const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')?.filename ?? ''
+    const nextPeriodNote = DataStore.calendarNoteByDate(new moment().add(1, 'quarter').toDate(), 'quarter')
+    const nextPeriodFilename = nextPeriodNote?.filename ?? ''
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
+
+    // Set up formFields for the 'add buttons' (applied in Section.jsx)
+    const formFieldsBase: Array<TSettingItem> = [{ type: 'input', label: 'Task:', key: 'text', focus: true }]
+    const thisQuarterHeadings: Array<string> = currentQuarterlyNote ? getHeadingsFromNote(currentQuarterlyNote, false, true, true, true) : []
+    const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
+    const thisQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      thisQuarterHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
+    const nextQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
+      nextQuarterHeadings.length
+        // $FlowIgnore[incompatible-type]
+        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        : [],
+    )
 
     const section: TSection = {
       ID: sectionNum,
@@ -1145,6 +1242,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           display: '<i class= "fa-regular fa-circle-plus sidebarQuarterly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['Q'],
+          formFields: thisQuarterFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -1153,6 +1252,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           display: '<i class= "fa-regular fa-square-plus sidebarQuarterly" ></i> ',
           actionParam: thisFilename,
           postActionRefresh: ['Q'],
+          formFields: thisQuarterFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addTask',
@@ -1160,6 +1261,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           tooltip: "Add a new task to next quarter's note",
           display: '<i class= "fa-regular fa-circle-arrow-right sidebarQuarterly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextQuarterFormFields,
+          submitOnEnter: true,
         },
         {
           actionName: 'addChecklist',
@@ -1167,6 +1270,8 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           tooltip: "Add a checklist item to next quarter's note",
           display: '<i class= "fa-regular fa-square-arrow-right sidebarQuarterly" ></i> ',
           actionParam: nextPeriodFilename,
+          formFields: nextQuarterFormFields,
+          submitOnEnter: true,
         },
       ],
     }

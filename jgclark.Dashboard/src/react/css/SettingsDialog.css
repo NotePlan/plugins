@@ -337,6 +337,18 @@
     max-height: 85vh;
 }
 
+
+/* Change scrollbar look to match theme */
+/* Note: Non-standard: in time hopefully will support scrollbar-color:  https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-color) */
+.settings-dialog-content::-webkit-scrollbar {
+    width: 10px;
+    background: var(--bg-main-color);
+}
+.settings-dialog-content::-webkit-scrollbar-thumb {
+    background: rgb(from var(--fg-main-color) r g b / 0.3);
+    border-radius: 12px;
+}
+
 /* Show the settings dialog with transition */
 .settings-dialog[open] {
     opacity: 1;
@@ -383,6 +395,7 @@
 .indent {
     margin-left: 1rem;
 }
+
 
 /* iOS-specific settings */
 .iOS .settings-dialog .settings-dialog-header {

@@ -72,6 +72,7 @@ export type TDynamicDialogProps = {
   // optional props
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel?: () => void,
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,
@@ -83,7 +84,6 @@ export type TDynamicDialogProps = {
   submitOnEnter?: boolean,
   children?: React$Node, // children nodes (primarily for banner message)
   hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
-  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
 }
 
 //--------------------------------------------------------------------------
@@ -94,7 +94,7 @@ const DynamicDialog = ({
   children,
   title,
   items: passedItems,
-  className,
+  className = '',
   labelPosition = 'right',
   allowEmptySubmit = false,
   isOpen = true,
@@ -102,10 +102,10 @@ const DynamicDialog = ({
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
-  hideDependentItems,
+  handleButtonClick = (key, value) => { }, // Destructure handleButtonClick prop
+  hideDependentItems = false,
   submitOnEnter = true,
   hideHeaderButtons = false,
-  handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
   const items = passedItems || [
@@ -116,6 +116,7 @@ const DynamicDialog = ({
       textType: 'description',
     },
   ]
+
 
   //----------------------------------------------------------------------
   // HELPER FUNCTIONS

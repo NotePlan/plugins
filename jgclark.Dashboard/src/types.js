@@ -39,7 +39,6 @@ export type TDashboardSettings = {
   pluginID?: string,
   timeblockMustContainString?: string,
   triggerLogging?: boolean,
-  updateTagMentionsOnTrigger?: boolean, // TODO(later): now marked as deprecated
 
   /* PERSPECTIVE-SPECIFIC SETTINGS */
   // autoAddTrigger: boolean, // Note: removed in v2.1
@@ -56,7 +55,7 @@ export type TDashboardSettings = {
   hideDuplicates: boolean,
   hidePriorityMarkers: boolean,
   ignoreChecklistItems: boolean,
-  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use // was 'ignoreTagMentionsWithPhrase'
+  ignoreItemsWithTerms: string, // Note: Run through stringListOrArrayToArray() before use
   includedFolders: string, // Note: Run through stringListOrArrayToArray() before use
   includeFolderName: boolean, // TODO(later): ideally rename to show...
   includeScheduledDates: boolean, // TODO(later): ideally rename to show...

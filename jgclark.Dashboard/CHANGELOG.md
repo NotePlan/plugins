@@ -1,17 +1,35 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [Perspectives.a22 = 2.1.0.a22] @jgc, 2024-11-???
+- TODO(dbw): the heading selector in DD has some CSS classnames that look auto-generated, and can't be changed in the Safari inspector. Where have they come from?  The reason I ask is that this control is appearing too narrow when dialog is opened, and I can't see what to edit.
+- TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
+- TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
+
+## [Perspectives.a23 = 2.1.0.a23] @jgc, 2024-11-29
+- (dbw): fix to add new perspective
+- (dbw): fix to rename perspective
+- (dbw): add confirmation dialog to delete perspective
+- (dbw): More improvements to dev logging for React
+- (dbw): Add setting to hide/show the test pane
+- (dbw): Show when tests are skipped
+- (dbw): Updates to DynamicDialog to allow yes/no dialogs
+- (jgc): Removed the unused 'updateTagMentionsOnTrigger' from settings and README etc.
+- (jgc): Removed earlier 'ignoreTagMentionsWithPhrase' from settings and README etc. (now ignoreItemsWithTerms)
+- (jgc): Changed styling of DynamicDialog to sort the extra flexibility it now has
+- (jgc): finished changing the section addButtons to use DynamicDialog not command bar. Applied to D, W, M, Q.
+- (jgc): fixed Settings dialog scrollbar colours to work in dark mode, not just light mode
+
+## [Perspectives.a22 = 2.1.0.a22] @jgc, 2024-11-26
 - (jgc): Nudge top of settings dialog down slightly, to stop it from sometimes obscuring the current Perspective name.
 - (jgc): Add new 'Moving/Scheduling Items' heading in Settings dialog
 - (dbw): Lots of fixes and improvements to dev logging for React
 - (dbw): Fix switch to clean perspective when modified
 - (dbw): Added 'Rename Perspective...' action to UI
-- (jgc): Added renamePerspective handler action to back end -- FIXME: race conditions, sigh
+- (jgc): Added renamePerspective handler action to back end (but race condition)
 - (dbw): Changed cleanDashboardSettings() so perspectives is only global setting
 - (jgc): added focus of DD input box for renamePerspective
 - (jgc): tweaked and simplified DynamicDialog header layout FIXME: but some CSS is appearing from nowhere that I can find, and so DD title is still too narrow.
-- (jgc): started changing the section addButtons to use DynamicDialog not command bar -- TODO: need advice from DBW about handleCommandButtonClick and how it propagates. Also see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
+- (jgc): started changing the section addButtons to use DynamicDialog not command bar
 - (jgc): fix to {s} appearing in section description
 
 ## [Perspectives.a21 = 2.1.0.a21] @jgc, 2024-11-23
