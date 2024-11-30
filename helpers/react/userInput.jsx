@@ -128,6 +128,7 @@ export function showConfirmationDialog({
 
     showDialog({
       title,
+      className: 'confirmation',
       items: dialogItems,
       isOpen: true,
       hideHeaderButtons: true,

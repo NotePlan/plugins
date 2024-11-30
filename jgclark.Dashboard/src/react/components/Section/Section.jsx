@@ -149,14 +149,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const addNewActionButtons = isDesktop ? section.actionButtons?.filter((b) => b.actionName.startsWith('add')) : []
   let processActionButtons = isDesktop ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) : []
 
-  // Add formFields to addNewActionButtons
-  // TODO: finish this.  Commenting out for now as I can't figure out the handleCommandButtonClick.
-  if (addNewActionButtons) {
-    for (const button of addNewActionButtons) {
-      button.formFields = [{ type: 'input', label: 'Item:', key: 'newContent', focus: true }]
-    }
-  }
-
   // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
     processActionButtons = []
@@ -240,7 +232,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           </div>
         </div>
 
-        {/* <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> */}
         {descriptionDiv}
         <div className="sectionProcessButtons">
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}

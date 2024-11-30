@@ -306,7 +306,7 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
   }
 }
 /**
- * FIXME: (@jgclark): This does not seem to be called anywhere. dbw updated it to use the new perspectiveSettings but I don't think it's used anywhere.
+ * WARNING: This is not used any more. Test before use.
  * Get all folders that are allowed in the current Perspective.
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @returns
@@ -406,13 +406,12 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
     'pluginID',
     'lastChange',
     'timeblockMustContainString',
-    'updateTagMentionsOnTrigger', // FIXME: (@jgclark): is this still needed?
     'defaultFileExtension',
     'doneDatesAvailable',
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
     // vvv these exist in the plugin settings array and let's just make sure we don't save them by mistake
-    /separator\d/, // though JGC has never seen this on 'heading/d' in dashboardSettings?
+    /separator\d/,
     /heading\d/,
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
 
@@ -485,8 +484,7 @@ export async function addNewPerspective(nameArg?: string): Promise<void> {
   // persist the updated Perpsective settings
   const updatedPerspectives = addPerspectiveDef(allDefs, newDef)
 
-  // FIXME: (DBW): this was commented out but after refactoring how perspectives work i am trying it again
-  // Prev said: DBW commenting this out because it was causing a race condition whereby window data was not updated in time for the next call
+  // TODO: TEST: (DBW): this was commented out but after refactoring how perspectives work I am trying it again
   const res = savePerspectiveSettings(updatedPerspectives) // saves the perspective settings to DataStore.settings
   logDebug('addPerspectiveSetting', `- Saved '${name}': now ${String(updatedPerspectives.length)} perspectives (with the new one (${name}) active)`)
 

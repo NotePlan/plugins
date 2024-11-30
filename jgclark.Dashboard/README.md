@@ -199,8 +199,8 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSettin
 ```
 For both callbacks, the names of the possible settings (described above), and their types, are:
 
-| Name | Type | Name | Type |
-| -------- | -------- | -------- | -------- |
+| Name | Type |
+| -------- | -------- |
 | separateSectionForReferencedNotes | true / false |
 | filterPriorityItems | true / false |
 | dashboardTheme | string |
@@ -228,8 +228,6 @@ For both callbacks, the names of the possible settings (described above), and th
 | maxItemsToShowInSection | number |
 | overdueSortOrder | string |
 | tagsToShow | string |
-| ignoreTagMentionsWithPhrase | string (deprecated) |
-| updateTagMentionsOnTrigger | true / false |
 | useTodayDate | true / false |
 | moveSubItems | true / false |
 | enableInteractiveProcessing | true / false |
