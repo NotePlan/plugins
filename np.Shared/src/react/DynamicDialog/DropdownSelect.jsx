@@ -91,7 +91,7 @@ const DropdownSelect = ({
   }
 
   const handleOptionClick = (option: Option) => {
-    logDebug(`option click`, option.toString())
+    logDebug(`option click: ${option.label}`)
     setSelectedValue(option)
     // $FlowFixMe[incompatible-call]
     onChange(option)
@@ -99,7 +99,6 @@ const DropdownSelect = ({
   }
 
   const handleClickOutside = (event: MouseEvent) => {
-    logDebug(`handleClickOutside, need to look if outside`)
     const target = event.target
     if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
       logDebug(`handleClickOutside, am outside, making false`)
@@ -144,12 +143,10 @@ const DropdownSelect = ({
   }, [isOpen])
 
   useEffect(() => {
-    logDebug(`DropdownSelect useEffect 1`)
     setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
   }, [value, normalizedOptions])
 
   useEffect(() => {
-    logDebug(`DropdownSelect useEffect 2 isOpen=${String(isOpen)}`)
     if (isOpen && dropdownRef.current && optionsRef.current) {
       setTimeout(() => {
         if (!dropdownRef.current || !optionsRef.current) return
