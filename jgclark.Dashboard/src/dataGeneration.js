@@ -260,14 +260,14 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 
@@ -727,14 +727,14 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisWeekHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextWeekHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 
@@ -1041,14 +1041,14 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const nextMonthHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const thisMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisMonthHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextMonthHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 
@@ -1211,14 +1211,14 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const nextQuarterHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const thisQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisQuarterHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextQuarterHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 
