@@ -11,7 +11,7 @@
 import React from 'react'
 import Switch from '../components/Switch.jsx'
 import InputBox from '../components/InputBox.jsx'
-import ComboBox from '../components/ComboBox.jsx'
+import DropdownSelect, { type Option } from '../../../../np.Shared/src/react/DynamicDialog/DropdownSelect.jsx'
 import TextComponent from '../components/TextComponent.jsx'
 import PerspectiveSettings from '../components/PerspectiveSettings.jsx'
 import type { TSettingItem, TPerspectiveDef } from '../../types'
@@ -34,7 +34,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean,
-  showDescAsTooltips?: boolean
+  showDescAsTooltips?: boolean,
 }
 
 /**
@@ -48,18 +48,17 @@ export function renderItem({
   item,
   labelPosition,
   handleFieldChange,
-  handleSwitchChange = (key, e) => { },
-  handleInputChange = (key, e) => { },
-  handleComboChange = (key, e) => { },
-  handleSaveInput = (key, newValue) => { },
+  handleSwitchChange = (key, e) => {},
+  handleInputChange = (key, e) => {},
+  handleComboChange = (key, e) => {},
+  handleSaveInput = (key, newValue) => {},
   showSaveButton = true,
   inputRef, // Destructure inputRef
   indent = false,
   className = '',
   disabled = false,
-  showDescAsTooltips = false // if true, then don't show the description as text, but only tooltip
+  showDescAsTooltips = false, // if true, then don't show the description as text, but only tooltip
 }: RenderItemProps): React$Node {
-
   const element = () => {
     const thisLabel = item.label || '?'
     // logDebug('renderItem', `${item.type} / ${String(index)} / '${thisLabel}' / ${showDescAsTooltips ? 'tooltip' : 'text'}`)
@@ -114,7 +113,7 @@ export function renderItem({
             label={thisLabel}
             disabled={disabled}
             value={item.value || ''}
-            onChange={() => { }}
+            onChange={() => {}}
             showSaveButton={false}
             compactDisplay={item.compactDisplay || false}
             className={className}
@@ -142,17 +141,19 @@ export function renderItem({
         )
       case 'combo':
         return (
-          <ComboBox
+          <DropdownSelect
             key={`cmb${index}`}
             label={thisLabel}
-            options={item.options || []}
+            options={(item.options || []).map((option) => (typeof option === 'string' ? { label: option, value: option } : option))}
             value={item.value || ''}
-            onChange={(option: string) => {
-              item.key && handleFieldChange(item.key, option)
-              item.key && handleComboChange(item.key, { target: { value: option } })
+            // $FlowIgnore[incompatible-type]
+            onChange={(option: Option) => {
+              item.key && handleFieldChange(item.key, option.value)
+              item.key && handleComboChange(item.key, { target: { value: option.value } })
             }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
+            fixedWidth={item.fixedWidth}
           />
         )
       case 'text':
@@ -165,46 +166,40 @@ export function renderItem({
           />
         )
       case 'separator':
-        return (
-          <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
-        )
+        return <hr key={`sep${index}`} className={`ui-separator ${item.key || ''}`} />
       case 'heading':
         return (
           <>
-            <div key={`hed${index}`} className="ui-heading">{thisLabel}</div>
+            <div key={`hed${index}`} className="ui-heading">
+              {thisLabel}
+            </div>
             {item.description && (
               <TextComponent
                 textType="description"
                 // label={item.description}
                 label=""
-                key={`heddesc${index}`} />
+                key={`heddesc${index}`}
+              />
             )}
           </>
         )
       // $FlowIgnore[incompatible-type] don't understand this
       case 'perspectiveList':
-        return (
-          <PerspectiveSettings
-            handleFieldChange={handleFieldChange}
-            className={className}
-          />
-        )
+        return <PerspectiveSettings handleFieldChange={handleFieldChange} className={className} />
       default:
         return null
     }
   }
 
   let classNameToUse = className
-  if (indent) classNameToUse += " indent"
-  if (disabled) classNameToUse += " disabled"
+  if (indent) classNameToUse += ' indent'
+  if (disabled) classNameToUse += ' disabled'
 
   return (
     <div className={`ui-item ${classNameToUse}`} key={`item${index}`} title={item.description || ''}>
       {element()}
       {/* $FlowIgnore[incompatible-type] don't understand this */}
-      {!showDescAsTooltips && item.type !== 'hidden' && item.description && (
-        <div className="item-description">{item.description}</div>
-      )}
+      {!showDescAsTooltips && item.type !== 'hidden' && item.description && <div className="item-description">{item.description}</div>}
     </div>
   )
 }

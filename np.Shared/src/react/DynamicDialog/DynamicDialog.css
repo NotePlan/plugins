@@ -455,6 +455,7 @@
 
 .hide-step-buttons {
   -moz-appearance: textfield; /* Firefox */
+  
 }
 
 /* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */

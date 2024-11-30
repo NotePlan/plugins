@@ -3,7 +3,7 @@
 // Dashboard React component to show an HTML DropdownSelect control, with various possible settings.
 // Based on basic HTML controls, not a fancy React Component.
 //--------------------------------------------------------------------------
-import React, { useState, useEffect, useRef, type ElementRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, type ElementRef } from 'react'
 import './DropdownSelect.css'
 import { clo, logDebug } from '@helpers/react/reactDev'
 
@@ -25,6 +25,7 @@ type Styles = {
   dropdown?: { [string]: mixed },
   option?: { [string]: mixed },
   indicator?: { [string]: mixed }, // Style for the indicator
+  separator?: { [string]: mixed }, // Style for the separator
 }
 
 type DropdownSelectProps = {
@@ -39,7 +40,8 @@ type DropdownSelectProps = {
   fullWidthOptions?: boolean,
   showIndicatorOptionProp?: string,
   allowNonMatchingLabel?: boolean,
-  noWrapOptions: boolean,
+  noWrapOptions?: boolean,
+  fixedWidth?: number,
 }
 
 /**
@@ -64,16 +66,17 @@ const DropdownSelect = ({
   styles = {},
   fullWidthOptions = false,
   showIndicatorOptionProp = '',
-  noWrapOptions = false, // TODO: need to implement this when needed (force option to be one line)
+  noWrapOptions = true,
+  fixedWidth = 200, // Default fixed width
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
   const normalizeOption: (option: string | Option) => Option = (option) => {
     return typeof option === 'string' ? { label: option, value: option } : option
   }
-  const normalizedOptions: Array<Option> = options.map(normalizeOption)
 
   const [isOpen, setIsOpen] = useState(false)
+  const normalizedOptions: Array<Option> = useMemo(() => options.map(normalizeOption), [options])
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
@@ -82,9 +85,13 @@ const DropdownSelect = ({
   // Handlers
   //----------------------------------------------------------------------
 
-  const toggleDropdown = () => setIsOpen(!isOpen)
+  const toggleDropdown = () => {
+    logDebug(`toggle click`)
+    setIsOpen(!isOpen)
+  }
 
   const handleOptionClick = (option: Option) => {
+    logDebug(`option click`, option.toString())
     setSelectedValue(option)
     // $FlowFixMe[incompatible-call]
     onChange(option)
@@ -92,26 +99,13 @@ const DropdownSelect = ({
   }
 
   const handleClickOutside = (event: MouseEvent) => {
+    logDebug(`handleClickOutside, need to look if outside`)
     const target = event.target
     if (dropdownRef.current && target instanceof Node && !dropdownRef.current.contains(target)) {
+      logDebug(`handleClickOutside, am outside, making false`)
       setIsOpen(false)
     }
   }
-
-  //----------------------------------------------------------------------
-  // Effects
-  //----------------------------------------------------------------------
-
-  useEffect(() => {
-    setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
-  }, [value, normalizedOptions])
-
-  useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
 
   const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
     let currentEl: ?Element = el
@@ -122,6 +116,7 @@ const DropdownSelect = ({
         const overflowY = style.overflowY
         const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && currentEl.scrollHeight > currentEl.clientHeight
         if (isScrollable) {
+          logDebug(`Found scrollable ancestor: `)
           return currentEl
         }
       }
@@ -129,7 +124,32 @@ const DropdownSelect = ({
     return null
   }
 
+  //----------------------------------------------------------------------
+  // Effects
+  //----------------------------------------------------------------------
+
   useEffect(() => {
+    if (isOpen) {
+      logDebug(`DropdownSelect useEffect: Adding mousedown listener`)
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      logDebug(`DropdownSelect useEffect: Removing mousedown listener`)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+
+    // Cleanup function to ensure the listener is removed when the component unmounts or isOpen changes
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    logDebug(`DropdownSelect useEffect 1`)
+    setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
+  }, [value, normalizedOptions])
+
+  useEffect(() => {
+    logDebug(`DropdownSelect useEffect 2 isOpen=${String(isOpen)}`)
     if (isOpen && dropdownRef.current && optionsRef.current) {
       setTimeout(() => {
         if (!dropdownRef.current || !optionsRef.current) return
@@ -196,23 +216,25 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
+  logDebug(`DropdownSelect Rendering: isOpen=${String(isOpen)} options.length=${normalizedOptions.length}`)
   return (
     <div
-      className={`${compactDisplay ? 'combobox-container-compact' : 'combobox-container'} ${disabled ? 'disabled' : ''}`}
+      className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''}`}
       ref={dropdownRef}
       style={mergeStyles({}, styles.container)}
     >
-      <label className="combobox-label" style={mergeStyles({}, styles.label)}>
+      <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="combobox-wrapper" style={mergeStyles({}, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${fixedWidth}px` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
         <div
-          className="combobox-input-container"
+          className="dropdown-select-input-container"
           style={mergeStyles(
             {
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
+              width: `${fixedWidth}px`,
             },
             styles.inputContainer || {},
           )}
@@ -220,36 +242,42 @@ const DropdownSelect = ({
           {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
           <input
             type="text"
-            className="combobox-input"
+            className="dropdown-select-input"
             value={selectedValue?.label || ''}
             readOnly
             ref={inputRef}
             disabled={disabled}
-            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)}
+            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px', paddingRight: '24px' }, styles.input)}
           />
+          <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
+            &#9662;
+          </span>
         </div>
-        <span className="combobox-arrow" style={mergeStyles({}, styles.arrow)}>
-          &#9662;
-        </span>
         {isOpen && (
-          <div className="combobox-dropdown" ref={optionsRef} style={mergeStyles({ width: fullWidthOptions ? '100%' : 'auto' }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${fixedWidth}px` }, styles.dropdown)}>
             {normalizedOptions.map((option: Option) => {
+              if (option.type === 'separator') {
+                return <div key={option.value} style={styles.separator}></div>
+              }
               const showIndicator = showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
               return (
                 <div
                   key={option.value}
-                  className="combobox-option"
+                  className={`dropdown-select-option`}
                   onClick={() => handleOptionClick(option)}
                   style={mergeStyles(
                     {
                       display: 'flex',
                       alignItems: 'center',
+                      width: '100%',
                     },
                     styles.option,
                   )}
                 >
                   {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
-                  <span>{option.label}</span>
+                  <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+                    {option.label}
+                  </span>
                 </div>
               )
             })}

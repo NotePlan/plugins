@@ -168,6 +168,7 @@ export function renderItem({
             disabled={disabled}
             key={`cmb${index}`}
             label={thisLabel}
+            fixedWidth={item.fixedWidth}
             options={
               item.options
                 ? item.options.map((option) => {
@@ -190,7 +191,7 @@ export function renderItem({
             }}
             inputRef={inputRef}
             compactDisplay={item.compactDisplay || false}
-            noWrapOptions={item.noWrapOptions || false}
+            noWrapOptions={item.noWrapOptions || true}
           />
         )
       case 'text':

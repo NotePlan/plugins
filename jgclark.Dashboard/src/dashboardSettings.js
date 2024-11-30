@@ -67,7 +67,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Perspectives',
-    description: "A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
+    description:
+      "A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
     key: 'perspectivesEnabled',
@@ -97,8 +98,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'includedFolders',
     label: 'Folders to include when finding items',
-    description:
-      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. It works in conjunction with 'Folders to ignore' below.",
+    description: "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. It works in conjunction with 'Folders to ignore' below.",
     type: 'input',
     default: '/',
     compactDisplay: true,
@@ -232,6 +232,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     options: ['priority', 'earliest', 'most recent'],
     default: 'priority',
     compactDisplay: true,
+    fixedWidth: 150,
   },
   {
     key: 'lookBackDaysForOverdue',

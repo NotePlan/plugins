@@ -94,6 +94,7 @@
 /* Data container styles */
   /* Container for multiple attached data items */
   .data-container {
+    padding-left: 67px;
     display: flex;
     flex-wrap: wrap; /* Allow items to wrap to the next line */
     gap: 10px; /* Spacing between items */

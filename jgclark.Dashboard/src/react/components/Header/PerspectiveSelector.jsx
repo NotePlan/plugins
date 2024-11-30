@@ -43,7 +43,7 @@ type Action =
   | { type: 'SAVE_PERSPECTIVE', payload: null }
   | { type: 'LOG_STATE', payload: string }
 
-const separatorOption = [{ label: '-------------------------------', value: '_separator_' }]
+const separatorOption = [{ label: 'Separator', value: '_separator_', type: 'separator' }]
 
 const saveAsOption = [{ label: 'Save Perspective As...', value: 'Add New Perspective' }]
 
@@ -74,17 +74,16 @@ const PerspectiveSelector = (): React$Node => {
   const reducer = (state: State, action: Action): State => {
     switch (action.type) {
       case 'SET_PERSPECTIVE_OPTIONS': {
-        logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS`)
+        logDebug('PerspectiveSelector Reducer', `Action: SET_PERSPECTIVE_OPTIONS`, { payload: action.payload })
         // Access activePerspectiveName from the current state
         const { activePerspectiveName } = state
 
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
-        const notIsDash = thisPersp && thisPersp.name && activePerspectiveName !== '-'
+        const notIsDash = thisPersp && thisPersp.name && thisPersp.name !== '-'
         const saveModifiedOption = notIsDash && thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective...', value: 'Rename Perspective' }] : []
-
         return {
           ...state,
           perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...deletePersp],
@@ -122,7 +121,7 @@ const PerspectiveSelector = (): React$Node => {
   // Effect to Update Perspective Options When perspectiveSettings Change
   //----------------------------------------------------------------------
   useEffect(() => {
-    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Detected change in perspectiveSettings.`)
+    logDebug('PerspectiveSelector/useEffect(perspectiveSettings)', `Detected change in perspectiveSettings.`, { perspectiveSettings })
     if (!perspectiveSettings) {
       logWarn('PerspectiveSelector/useEffect(perspectiveSettings)', 'perspectiveSettings is falsy. Exiting effect.')
       dispatchPerspectiveSelector({ type: 'LOG_STATE', payload: 'perspectiveSettings is falsy' })
@@ -134,6 +133,7 @@ const PerspectiveSelector = (): React$Node => {
     logDebug(
       'PerspectiveSelector/useEffect(perspectiveSettings)',
       `Retrieved perspective options ${getActivePerspectiveDef(perspectiveSettings)?.dashboardSettings?.excludedFolders || ''}`,
+      { perspectiveSettings },
     )
 
     if (!options || options.length === 0) {
@@ -296,27 +296,27 @@ const PerspectiveSelector = (): React$Node => {
     container: {
       minWidth: '60px',
     },
+    separator: {
+      borderTop: '1px solid gray',
+      margin: '5px 0',
+    },
   }
 
   const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
-  if (!thisPersp) {
-    logError('PerspectiveSelector', `Cannot find perspective definition for: "${activePerspectiveName}". Was it just created externally?".`)
-    return
-  }
   const nameToDisplay = thisPersp ? formatNameWithStarIfModified(thisPersp) : '-'
-  const selectedValue = { label: nameToDisplay, value: activePerspectiveName || '-' }
+  const selectedValue = { label: nameToDisplay, value: thisPersp ? activePerspectiveName : '-' }
   // logDebug('PerspectiveSelector', `selectedValue: ${JSON.stringify(selectedValue)} value(activePerspectiveName)=${activePerspectiveName}`)
+
   return (
     <DropdownSelect
       styles={customStyles}
-      // $FlowIgnore
-      options={perspectiveNameOptions}
+      options={perspectiveNameOptions.map((option) => (option.value === 'separator' ? { ...option, label: '', component: <div style={customStyles.separator}></div> } : option))}
       value={selectedValue || { label: '-', value: '-' }}
-      // $FlowIgnore
       onChange={handlePerspectiveChange}
       compactDisplay={true}
       label={'Persp'}
       noWrapOptions={false}
+      fixedWidth={150}
     />
   )
 }

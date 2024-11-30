@@ -64,6 +64,7 @@ export type TSettingItem = {
   displayDoneCounts?: boolean, // if true, then show the done counts in the dashboard
   vertical?: boolean, // Add vertical property for button-group
   isDefault?: boolean, // Add isDefault property for button items
+  fixedWidth?: number, // for dropdowns, set a fixed width
 }
 
 export type TDynamicDialogProps = {
@@ -102,7 +103,7 @@ const DynamicDialog = ({
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
-  handleButtonClick = (key, value) => { }, // Destructure handleButtonClick prop
+  handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
   hideDependentItems = false,
   submitOnEnter = true,
   hideHeaderButtons = false,
@@ -116,7 +117,6 @@ const DynamicDialog = ({
       textType: 'description',
     },
   ]
-
 
   //----------------------------------------------------------------------
   // HELPER FUNCTIONS

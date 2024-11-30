@@ -143,13 +143,13 @@ const SettingsDialog = ({
     toggleDialog()
   }
 
-  const handleDropdownOpen = () => {
-    setTimeout(() => {
-      if (dropdownRef.current instanceof HTMLInputElement) {
-        dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
-      }
-    }, 100) // Delay to account for rendering/animation
-  }
+  // const handleDropdownOpen = () => {
+  //   setTimeout(() => {
+  //     if (dropdownRef.current instanceof HTMLInputElement) {
+  //       dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  //     }
+  //   }, 100) // Delay to account for rendering/animation
+  // }
 
   //----------------------------------------------------------------------
   // Effects
@@ -168,17 +168,17 @@ const SettingsDialog = ({
     }
   }, [isOpen])
 
-  useEffect(() => {
-    const dropdown = dropdownRef.current
-    if (dropdown instanceof HTMLInputElement) {
-      dropdown.addEventListener('click', handleDropdownOpen)
-    }
-    return () => {
-      if (dropdown instanceof HTMLInputElement) {
-        dropdown.removeEventListener('click', handleDropdownOpen)
-      }
-    }
-  }, [])
+  // useEffect(() => {
+  //   const dropdown = dropdownRef.current
+  //   if (dropdown instanceof HTMLInputElement) {
+  //     dropdown.addEventListener('click', handleDropdownOpen)
+  //   }
+  //   return () => {
+  //     if (dropdown instanceof HTMLInputElement) {
+  //       dropdown.removeEventListener('click', handleDropdownOpen)
+  //     }
+  //   }
+  // }, [])
 
   //----------------------------------------------------------------------
   // Render

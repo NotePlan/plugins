@@ -151,6 +151,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {any} dataToSend
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalDetails: string = '') => {
+    logDebug(`Webview: sendActionToPlugin: ${command} ${additionalDetails}`, dataToSend)
     const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
     dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
     sendToPlugin([command, dataToSend, additionalDetails]) // send action to plugin

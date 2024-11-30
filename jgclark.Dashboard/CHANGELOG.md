@@ -5,6 +5,13 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
 - TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
 
+dbw:
+* Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
+* Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown
+* Fixed CI test failing for me but not for jgclark #dbwDR
+* Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective
+* Dashboard CSS edits don’t fire rollup rollup 
+
 ## [Perspectives.a23 = 2.1.0.a23] @jgc, 2024-11-29
 - (dbw): fix to add new perspective
 - (dbw): fix to rename perspective

@@ -20,9 +20,6 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin } = useAppContext()
   const { button, onClick, className } = inputObj
 
-  // logDebug(`CommandButton`,`setting up button: ${button.display}, button=${JSP(button,2)}`)
-  clo(button.formFields, `CommandButton: formFields for button ${button.display}`)
-
   // Note: For adding icons to button display, tried this approach but decided it's not flexible enough:
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''
   // const possIconAfter = (button.iconAfter !== '') ? <i className={`padLeft ${button.iconAfter}`}></i> : ''
@@ -39,10 +36,11 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   }
 
   const handleButtonClick = async () => {
-    let userInputObj:TAnyObject|null
-    if (button.formFields) { // show dialog to get user input if formFields are defined
-       userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter })
-       userInputObj ? sendButtonAction(button, userInputObj) : null
+    let userInputObj: TAnyObject | null
+    if (button.formFields) {
+      // show dialog to get user input if formFields are defined
+      userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter })
+      userInputObj ? sendButtonAction(button, userInputObj) : null
     } else {
       sendButtonAction(button, null)
     }
@@ -51,13 +49,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   return (
     <>
       {/* {' '} */}
-      <button
-        className={`${className} tooltip`}
-        data-tooltip={button.tooltip}
-        onClick={handleButtonClick}
-        dangerouslySetInnerHTML={{ __html: button.display }}
-      >
-      </button>
+      <button className={`${className} tooltip`} data-tooltip={button.tooltip} onClick={handleButtonClick} dangerouslySetInnerHTML={{ __html: button.display }}></button>
     </>
   )
 }

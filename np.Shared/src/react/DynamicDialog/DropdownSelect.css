@@ -1,82 +1,89 @@
+/* Style for dropdown-select-container */
+.dropdown-select-container {
+	display: flex;
+	flex-direction: column;
+	padding-top: 1px;
+}
 
-	/* Style for combobox-container */
-	.combobox-container {
-		display: flex;
-		flex-direction: column;
-		padding-top: 1px;
-	}
+/* Style for dropdown-select-container (compact version) */
+.dropdown-select-container-compact {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 0.4rem;
+	padding-top: 1px;
+}
 
-	/* Style for combobox-container (compact version) */
-	.combobox-container-compact {
-		display: flex;
-		flex-direction: row;
-		align-items: baseline;
-		gap: 0.4rem;
-		padding-top: 1px;
-	}
+.dropdown-select-wrapper {
+	display: flex;
+	align-items: end;
+	gap: 10px;
+	position: relative;
+	width: fit-content;
+}
 
-	.combobox-wrapper {
-		display: flex;
-		align-items: end;
-		gap: 10px;
-		position: relative;
-		width: fit-content;
-	}
+.dropdown-select-label {
+	font-weight: 500;
+	color: var(--fg-alt-color);
+}
 
-	.combobox-label {
-		font-weight: 500;
-		color: var(--fg-alt-color);
-	}
+.dropdown-select-input {
+	flex: 1;
+	padding: 3px 6px 1px;
+	border-radius: 4px;
+	font-size: 0.9rem;
+	/* width: 100%; */
+}
 
-	.combobox-input {
-		flex: 1;
-		padding: 3px 6px 1px;
-		border-radius: 4px;
-		font-size: 0.9rem;
-		/* width: 100%; */
-	}
+.dropdown-select-input:focus {
+	border-color: var(--hashtag-color);
+	outline: none;
+	box-shadow: 0 0 3px var(--hashtag-color);
+}
 
-	.combobox-input:focus {
-		border-color: var(--hashtag-color);
-		outline: none;
-		box-shadow: 0 0 3px var(--hashtag-color);
-	}
+.dropdown-select-arrow {
+	position: absolute;
+	right: 0.4rem;
+	pointer-events: none;
+	font-size: larger;
+	color: var(--tint-color);
+	align-self: center;
+	top: 50%;
+	transform: translateY(-50%);
+}
 
-	.combobox-arrow {
-		position: absolute;
-		right: 0.4rem;
-		pointer-events: none;
-		font-size: larger;
-		color: var(--tint-color);
-		align-self: center;
-	}
+.dropdown-select-dropdiv {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	border: 1px solid var(--divider-color);
+	border-radius: 4px;
+	background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+	box-shadow: 0 2px 5px var(--divider-color);
+	z-index: 5;
+	width: 100%;
+}
 
-	.combobox-dropdown {
-		position: absolute;
-		top: 100%;
-		left: 0;
-		right: 0;
-		border: 1px solid var(--divider-color);
-		border-radius: 4px;
+.dropdown-select-option {
+	cursor: pointer;
+	color: var(--fg-main-color);
+	padding: 0.2rem 0rem 0.2rem 0.4rem;
+	min-height: 0.9rem;
+	width: 100%;
+}
 
-		/* background-color: var(--bg-main-color); */
-		/* set button/input backgrounds a little lighter */
-		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+.dropdown-select-option:hover {
+	background-color: var(--bg-alt-color);
+	color: var(--fg-alt-color);
+}
 
-		box-shadow: 0 2px 5px var(--divider-color);
-		z-index: 5;
-	}
+.dropdown-select-option .option-label {
+	white-space: nowrap;
+}
 
-	.combobox-option {
-		cursor: pointer;
-		color: var(--fg-main-color);
-		padding: 0.2rem 0rem 0.2rem 0.4rem;
-		min-height: 0.9rem;
-		/* transition: background-color 0.2s; */
-	}
-
-	.combobox-option:hover {
-			background-color: var(--bg-alt-color);
-			color: var(--fg-alt-color);
-	}
+.dropdown-select-input-container {
+	position: relative;
+	width: 100%;
+}
 
