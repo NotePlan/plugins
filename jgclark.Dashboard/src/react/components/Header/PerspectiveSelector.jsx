@@ -84,9 +84,10 @@ const PerspectiveSelector = (): React$Node => {
         const saveModifiedOption = notIsDash && thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective...', value: 'Delete Perspective' }] : []
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective...', value: 'Rename Perspective' }] : []
+        const copySettings = notIsDash ? [{ label: 'Copy Settings...', value: '__copySettings__' }] : []
         return {
           ...state,
-          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...deletePersp],
+          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...copySettings, ...deletePersp],
         }
       }
       case 'SET_ACTIVE_PERSPECTIVE':
@@ -251,6 +252,34 @@ const PerspectiveSelector = (): React$Node => {
             'renamePerspective',
             { actionType: 'renamePerspective', userInputObj, logMessage: `Rename Perspective (${selectedOption.value}) selected from dropdown` },
             `Rename Perspective (${selectedOption.value}) selected from dropdown`,
+          )
+        }
+        return
+      }
+
+      if (selectedOption.value === '__copySettings__') {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `copySettings "${selectedOption.value}".`)
+        const formFields = [
+          {
+            type: 'dropdown',
+            label: 'Copy to:',
+            key: 'newName',
+            focus: true,
+            compactDisplay: true,
+            options: getDisplayListOfPerspectiveNames(perspectiveSettings, true).filter((option) => option.value !== state.activePerspectiveName),
+          },
+          {
+            type: 'text',
+            label: `This will replace the settings for the selected perspective with the settings from "${state.activePerspectiveName}"`,
+          },
+        ]
+        const userInputObj = await showDialog({ items: formFields, title: `Copy Settings from   "${state.activePerspectiveName}"`, submitOnEnter: true })
+        if (userInputObj) {
+          userInputObj.oldName = state.activePerspectiveName
+          sendActionToPlugin(
+            'copyPerspectiveSettings',
+            { actionType: 'copyPerspectiveSettings', userInputObj, logMessage: `Copy Settings from (${state.activePerspectiveName}) selected from dropdown` },
+            `Copy Settings from (${state.activePerspectiveName}) selected from dropdown`,
           )
         }
         return

@@ -86,12 +86,11 @@ const DropdownSelect = ({
   //----------------------------------------------------------------------
 
   const toggleDropdown = () => {
-    logDebug(`toggle click`)
     setIsOpen(!isOpen)
   }
 
   const handleOptionClick = (option: Option) => {
-    logDebug(`option click: ${option.label}`)
+    logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
     // $FlowFixMe[incompatible-call]
     onChange(option)
@@ -129,10 +128,8 @@ const DropdownSelect = ({
 
   useEffect(() => {
     if (isOpen) {
-      logDebug(`DropdownSelect useEffect: Adding mousedown listener`)
       document.addEventListener('mousedown', handleClickOutside)
     } else {
-      logDebug(`DropdownSelect useEffect: Removing mousedown listener`)
       document.removeEventListener('mousedown', handleClickOutside)
     }
 
@@ -213,7 +210,6 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
-  logDebug(`DropdownSelect Rendering: isOpen=${String(isOpen)} options.length=${normalizedOptions.length}`)
   return (
     <div
       className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''}`}

@@ -444,6 +444,10 @@
         color: var(--bg-main-color);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for emphasis */
     }
+
+    div.text-component.description {
+        font-size: small;
+    }
 }
 
 /* Hide increment and decrement buttons for number input */
@@ -455,7 +459,7 @@
 
 .hide-step-buttons {
   -moz-appearance: textfield; /* Firefox */
-  
+
 }
 
 /* Style for dropdown-dropdown -- these need to be global, not nested because they apply to the portal */
