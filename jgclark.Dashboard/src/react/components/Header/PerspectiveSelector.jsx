@@ -297,7 +297,7 @@ const PerspectiveSelector = (): React$Node => {
       minWidth: '60px',
     },
     separator: {
-      borderTop: '1px solid gray',
+      borderTop: '0.5px solid lightgray',
       margin: '5px 0',
     },
   }
