@@ -161,7 +161,7 @@ export function WebView({ data, dispatch, reactSettings, setReactSettings }: Pro
    * @param {boolean} updateGlobalData - if false, don't save any passthrough data (eg scroll position, to try to limit redraws)
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalInfo: string = '', updateGlobalData: boolean = true) => {
-    logDebug(`Webview`, `sendActionToPlugin: command:${command}: "${additionalInfo}" dataToSend:`, { messageObject: dataToSend })
+    logDebug(`Webview`, `sendActionToPlugin: sending sendToPlugin with command:${command}: "${additionalInfo}" dataToSend:`, { messageObject: dataToSend })
     if (updateGlobalData) {
       const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
       dispatch('UPDATE_DATA', newData, additionalInfo) // save the data at the Root React Component level, which will give the plugin access to this data also

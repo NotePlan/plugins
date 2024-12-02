@@ -64,13 +64,14 @@ const fixedMetaTags = `
  */
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
-  // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
+  // logDebug(`getCallbackCodeString: (generated using getCallbackCodeString), use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
+    console.log(\`${jsFunctionName}: (generated using getCallbackCodeString) "\$\{commandName\}" to send data to NP, and use a func named "\$\{returnPathFuncName\}" to receive data back from NP\`)
     // This is a callback bridge from HTML to the plugin
     const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
-      // const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs));
+      // const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", ()=>JSON.stringify(commandArgs));
           const code = \`${haveNotePlanExecute}\`
             .replace("%%commandName%%", commandName)
             .replace("%%pluginID%%", pluginID)
