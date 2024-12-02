@@ -301,14 +301,16 @@ dialog::backdrop {
 	}
 	/* set input backgrounds a little lighter on hover */
 	input &:hover {
-		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+		/* filter: brightness(140%); Not a pleasant effect. */
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
+		background-color: color(var(--bg-sidebar-color) lightness(40%));
 	}
 }
 
 /* For add buttons in section info areas */
 .addButton {
 	font-size: 0.95rem;
-	line-height: 1.2rem;
+	/* line-height: 1.2rem; */
 	font-weight: 500;
 	border-style: none;
 	box-shadow: none;
@@ -322,8 +324,8 @@ dialog::backdrop {
 }
 .addButton:hover {
 	/* FIXME: this 'currentcolor' is not working as advertised. The equivalent in dropbdownButtons is working ... */
-	color: hsl(from currentcolor h s calc(l*0.8));
-	/* mix-blend-mode: darken; doesn't work either */
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert in time */
+	filter: saturate(140%);
 }
 
 /* For processing buttons in section info areas */
@@ -349,7 +351,9 @@ dialog::backdrop {
 
 	/* set backgrounds a little lighter on hover */
 	&:hover {
-		background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+		filter: brightness(107%);
 	}
 }
 

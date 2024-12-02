@@ -52,6 +52,7 @@
 	transform: translateY(-50%);
 }
 
+/* The dropdown menu, that contains the -options. */
 .dropdown-select-dropdiv {
 	position: absolute;
 	top: 100%;
@@ -59,23 +60,30 @@
 	right: 0;
 	border: 1px solid var(--divider-color);
 	border-radius: 4px;
-	background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+	/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
+	background-color: var(--bg-main-color);
+	filter: brightness(110%);
 	box-shadow: 0 2px 5px var(--divider-color);
 	z-index: 5;
 	width: 100%;
 }
 
+/* The displayed options. */
 .dropdown-select-option {
 	cursor: pointer;
 	color: var(--fg-main-color);
-	padding: 0.2rem 0rem 0.2rem 0.4rem;
+	margin: 0.2rem;
+	padding: 0rem 0.3rem;
 	min-height: 0.9rem;
 	width: 100%;
 }
 
+/* The currently hovered-over option. */
 .dropdown-select-option:hover {
-	background-color: var(--bg-alt-color);
-	color: var(--fg-alt-color);
+	background-color: var(--tint-color);
+	color: var(--bg-alt-color);
+	border-radius: 4px;
+	/* filter:brightness(95%); */
 }
 
 .dropdown-select-option .option-label {

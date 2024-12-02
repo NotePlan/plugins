@@ -416,7 +416,7 @@
     .ui-button {
         /* flex: 1; */
         padding: 8px 12px;
-        background-color: var(--bg-main-color);
+        background-color: var(--bg-sidebar-color);
         color: var(--fg-main-color);
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -440,8 +440,9 @@
     }
 
     .default-button:hover {
-        background-color: hsl(from var(--tint-color) h s calc(l*0.8));
         color: var(--bg-main-color);
+        filter: brightness(80%);
+        /* background-color: hsl(from var(--tint-color) h s calc(l*0.8)); */
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for emphasis */
     }
 

@@ -266,7 +266,8 @@ dialog:modal {
 	right: 0;
 	border: 1px solid var(--divider-color);
 	border-radius: 4px;
-	background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4));
+	background-color: color(var(--tint-color) lightness(-20%));
+  /* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO: restore this in the future */
 	box-shadow: 0 2px 5px var(--divider-color);
 	z-index: 5;
 	width: 100%;

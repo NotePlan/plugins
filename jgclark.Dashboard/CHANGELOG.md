@@ -41,13 +41,13 @@ First beta for 2.1
 ## Perspectives TODO:
 - TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
 - TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
-- TODO(jgc): Finish backend for copyPerspective
+- TODO(jgc): See why move all -> this week not seeming to do anything
 
 ## [Perspectives.a24 = 2.1.0.a24] @jgc, 2024-12-01
 - (dbw): Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
 - (dbw): Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown
 - (dbw): Fixed CI test failing for me but not for jgclark #dbwDR
-- (dbw): Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective
+- (dbw): Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective. Also the back-end function for copyPerspective.
 - (dbw): Dashboard CSS edits don’t fire rollup rollup 
 - (dbw): changed the dropdown menu in the new task popup to use my custom dropdown (changed dataGen to use "dropdown" instead of "combo")
 - (dbw): styled the separator in the perspectives dropdown

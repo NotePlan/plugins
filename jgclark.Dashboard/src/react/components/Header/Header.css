@@ -92,8 +92,8 @@
 		cursor: pointer;
 		/* Make button a little darker on hover */
 		&:hover {
-			/* color: hsl(from var(--tint-color) h s calc(l*0.8)); */
-			color: hsl(from currentcolor h s calc(l*0.8));
+			/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+			filter: brightness(80%);
 		}
 	}
 }
@@ -125,6 +125,11 @@
 	i {
 		color: var(--tint-color);
 	}
+}
+
+.HAButton:hover {
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+	filter: brightness(110%);
 }
 
 /* Give a little space to left of hardRefreshButton */
