@@ -10,6 +10,7 @@ module.exports = {
     '^TemplatingEngine/(.*)$': '<rootDir>/np.Templating/lib/TemplatingEngine',
     '^NPGlobals/(.*)$': '<rootDir>/np.Globals/lib/NPGlobals',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^json-edit-react$': '<rootDir>/node_modules/json-edit-react/build/index.cjs.js',
   },
   testPathIgnorePatterns: ['<rootDir>/src/templates/np.plugin.starter', '<rootDir>/.history/'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
@@ -19,6 +20,6 @@ module.exports = {
     '^.+\\.mjs$': 'babel-jest', // Use babel-jest for .mjs files as well
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!(node-notifier|uuid|lodash-es)/)', // Ensure these modules are transformed
+    '/node_modules/(?!(node-notifier|uuid|lodash-es|json-edit-react)/)', // Ensure these modules are transformed
   ],
 }

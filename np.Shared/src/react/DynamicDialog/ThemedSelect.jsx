@@ -4,8 +4,13 @@ import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import chroma from 'chroma-js'
 import { logDebug, clo } from '@helpers/react/reactDev'
+import { mockNP_THEME } from '@mocks/NP_THEME.mock.js'
 
 declare var NP_THEME: any
+if (typeof NP_THEME === 'undefined') {
+  global.NP_THEME = mockNP_THEME
+  logDebug('NP_THEME not found, setting to mockNP_THEME; This should only happen in testing.')
+}
 
 /** @typedef {Object} OptionType
  *  @property {string} label

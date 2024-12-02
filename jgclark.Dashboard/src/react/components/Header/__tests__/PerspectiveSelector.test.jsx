@@ -3,8 +3,9 @@
 /* global describe, test, jest, expect, beforeEach, afterEach */
 
 import React from 'react'
+import { mockNP_THEME } from '@mocks/NP_THEME.mock.js'
 import { render, screen, fireEvent } from '@testing-library/react'
-import '@testing-library/jest-dom' // Correct import for jest-dom 
+import '@testing-library/jest-dom' // Correct import for jest-dom
 import PerspectiveSelector from '../PerspectiveSelector' // Ensure this path is correct
 import { useAppContext } from '../../AppContext.jsx'
 
@@ -17,6 +18,14 @@ describe.skip('PerspectiveSelector Component', () => {
   const mockDispatchDashboardSettings = jest.fn()
   const mockDispatchPerspectiveSettings = jest.fn()
   const mockSendActionToPlugin = jest.fn()
+
+  beforeAll(() => {
+    global.NP_THEME = mockNP_THEME
+  })
+
+  afterAll(() => {
+    global.NP_THEME = undefined
+  })
 
   beforeEach(() => {
     useAppContext.mockReturnValue({
@@ -78,7 +87,7 @@ describe.skip('PerspectiveSelector Component', () => {
     expect(mockDispatchDashboardSettings).toHaveBeenCalledWith(
       expect.objectContaining({
         type: expect.any(String),
-        payload: expect.objectContaining({ something:"here" }), //FIXME: unfinished
+        payload: expect.objectContaining({ something: 'here' }), //FIXME: unfinished
       }),
     )
   })
