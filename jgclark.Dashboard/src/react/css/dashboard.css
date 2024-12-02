@@ -257,7 +257,7 @@ dialog::backdrop {
 
 /* Override the theme definition of a completed task a little */
 .checked {
-	padding-top: 1px !important;
+	/* padding-top: 1px !important; */
 	margin-bottom: 0px !important;
 }
 

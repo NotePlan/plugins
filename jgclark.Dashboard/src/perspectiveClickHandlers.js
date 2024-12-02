@@ -68,6 +68,23 @@ export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBr
   return handlerResult(true, [])
 }
 
+/* FIXME: Not quite right yet */
+export async function doCopyPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doCopyPerspective starting ... with mbo`)
+  const fromName = data.userInputObj?.fromName ?? ''
+  const newName = data.userInputObj?.newName ?? ''
+  const perspectiveSettings = await getPerspectiveSettings()
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
+  const dashboardSettings = await getDashboardSettings()
+  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  const newDef = { ...activeDef, name: newName, isModified: false }
+  const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
+  if (!revisedDefs) return handlerResult(false, [], { errorMsg: `doCopyPerspective failed` })
+  await setPluginData({ perspectiveSettings: revisedDefs }, `_Saved perspective ${activeDef.name}`)
+  return handlerResult(true, [])
+}
+
 export async function doDeletePerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   await deletePerspective(data.perspectiveName)
   let perspectiveSettings = await getPerspectiveSettings()

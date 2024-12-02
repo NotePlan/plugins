@@ -1,16 +1,56 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-- TODO(dbw): the heading selector in DD has some CSS classnames that look auto-generated, and can't be changed in the Safari inspector. Where have they come from?  The reason I ask is that this control is appearing too narrow when dialog is opened, and I can't see what to edit.
+## [2.1.0.b1] 2024-12-???
+First beta for 2.1
+### New
+- new Perspectives dropdown that allow you to switch very quickly between different complete sets of settings.
+- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands (and callbacks)
+- new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
+- new 'Last Week' section and related 'All → This Week' button
+- added support for 'child' items of tasks:
+  - child items are now indented like in the NP Editor
+  - an item with children is now shown with a new indicator at the end of the item
+  - when moving/scheduling items, any child items are moved/scheduled as well.
+  - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- child tasks are now ordered following their parents, when sorted by priority
+- now there is a 'Show completed task count?' setting which can be turned off.
+
+### Changed
+- speeded up data generation significantly in some places (particularly refreshes), and everything else should feel snappier
+- child items are now indented like in the NP Editor
+- in the item dialog, there's now a note if an item has children
+- the "Ignore items in calendar sections with these term(s)" are now checked case-insensitively
+- the completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- turned off underlining on the 'take a break' message lines, and added colouring of it from your theme's completed task colour
+- Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+- improved details in title of project dialogs
+- changed order of skip buttons in Interactive Processing dialog
+- new type of dialog to replace the command bar for adding new tasks/checklists, and some other operations
+- the layout has been polished up
+- remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+
+### Fixed
+- add time to @done(...) when "completing then"
+- fixed some items not being found when referenced to weekly notes
+- fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
+- changed Interactive Processing icon to not imply 'refresh'
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+
+## Perspectives TODO:
 - TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
 - TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
+- TODO(jgc): Finish backend for copyPerspective
 
-dbw:
-* Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
-* Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown
-* Fixed CI test failing for me but not for jgclark #dbwDR
-* Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective
-* Dashboard CSS edits don’t fire rollup rollup 
+## [Perspectives.a24 = 2.1.0.a24] @jgc, 2024-12-01
+- (dbw): Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
+- (dbw): Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown
+- (dbw): Fixed CI test failing for me but not for jgclark #dbwDR
+- (dbw): Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective
+- (dbw): Dashboard CSS edits don’t fire rollup rollup 
+- (dbw): changed the dropdown menu in the new task popup to use my custom dropdown (changed dataGen to use "dropdown" instead of "combo")
+- (dbw): styled the separator in the perspectives dropdown
 
 ## [Perspectives.a23 = 2.1.0.a23] @jgc, 2024-11-29
 - (dbw): fix to add new perspective

@@ -179,8 +179,8 @@ export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveD
 }
 
 /**
- * Replace the perspective definition with the given name with the new definition and return the revised full array
- * If it doesn't exist, then add it to the end of the array
+ * Replace the perspective definition with the given name with the new definition and return the revised full array.
+ * If it doesn't exist, then add it to the end of the array.
  * @param {Array<TPerspectiveDef>} perspectiveSettings
  * @param {TPerspectiveDef} newDef
  * @returns {Array<TPerspectiveDef>}

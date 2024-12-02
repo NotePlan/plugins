@@ -20,6 +20,7 @@ import type {
   TParagraphForDashboard,
   TSection,
   TSectionCode,
+  TSectionItem,
 } from './types'
 import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -974,4 +975,17 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
     }
   })
   return existingSections
+}
+
+/**
+ * Helper function to create a sectionItem object.
+ *
+ * @param {string} id - The ID of the sectionItem.
+ * @param {TParagraph} p - The paragraph data for the sectionItem.
+ * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
+ * @returns {SectionItem} A sectionItem object.
+ */
+export function getSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
+  // $FlowIgnore - we are not using all the types in TParagraph
+  return { ID: id, itemType: theType ?? p.type, para: p }
 }

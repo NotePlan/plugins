@@ -33,6 +33,7 @@ import {
 } from './clickHandlers'
 import {
   doAddNewPerspective,
+  doCopyPerspective,
   doDeletePerspective,
   doRenamePerspective,
   doSavePerspective,
@@ -268,6 +269,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addNewPerspective': {
         result = await doAddNewPerspective(data)
+        break
+      }
+      case 'copyPerspective': {
+        result = await doCopyPerspective(data)
         break
       }
       case 'deletePerspective': {
