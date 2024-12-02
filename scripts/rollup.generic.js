@@ -13,6 +13,11 @@ const rollup = require('rollup')
 const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
+const autoprefixer = require('autoprefixer')
+const postcssPresetEnv = require('postcss-preset-env')
+const postcssCalc = require('postcss-calc')
+const postcssCustomProperties = require('postcss-custom-properties')
+const postcssColorFunction = require('postcss-color-function')
 
 const NOTIFY = true
 
@@ -40,7 +45,9 @@ const rollupDefaults = {
 async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
   if (config) {
     try {
-      const bundle = await rollup.rollup(config)
+      const bundle = await rollup.rollup({
+        ...config,
+      })
       const outputOptions = Array.isArray(config.output) ? config.output : [config.output]
       outputOptions.forEach(async (output) => {
         const result = await bundle.write(output)
@@ -154,7 +161,17 @@ function getRollupConfig(options) {
     }),
     json(),
     postcss({
+      plugins: [
+        autoprefixer(),
+        postcssPresetEnv({
+          stage: 0,
+        }),
+        postcssCalc(),
+        postcssCustomProperties(),
+        postcssColorFunction(),
+      ],
       minimize: true,
+      sourceMap: false,
     }),
   ]
 
@@ -183,6 +200,14 @@ function getRollupConfig(options) {
       }),
     )
   }
+
+  const watchOptions = {
+    exclude: [
+      'node_modules/**',
+      '**/requiredFiles/**', // Exclude the output directory
+    ],
+  }
+
   return {
     external: externalModules,
     input: entryPointPath,
@@ -196,6 +221,7 @@ function getRollupConfig(options) {
       footer: opts.format === 'iife' ? `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName})` : null,
     },
     plugins,
+    watch: watchOptions,
   }
 }
 

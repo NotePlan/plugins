@@ -27,6 +27,7 @@ const { program } = require('commander')
 const ProgressBar = require('progress')
 const pkgInfo = require('../package.json')
 const pluginConfig = require('../plugins.config')
+const replace = require('rollup-plugin-replace')
 
 let progress
 // const requiredFilesWatchMsg = ''
@@ -501,6 +502,11 @@ const reportMemoryUsage = (msg = '') => {
         },
       }
     }
+
+    const watchOptions = {
+      exclude: ['node_modules/**', '**/script.js'],
+    }
+
     return {
       external: ['fs'],
       input: path.join(pluginPath, 'src/index.js'),
@@ -512,6 +518,7 @@ const reportMemoryUsage = (msg = '') => {
       },
       plugins: [requiredFilesWatchPlugin] /* add non-changing plugins later */,
       context: 'this',
+      watch: watchOptions,
     }
   }
 
