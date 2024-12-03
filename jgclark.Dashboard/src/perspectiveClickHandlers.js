@@ -39,7 +39,7 @@ import {
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt } from '@helpers/dev'
+import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { showMessage, processChosenHeading } from '@helpers/userInput'
@@ -135,6 +135,8 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   return handlerResult(true, [])
 }
 
+// TODO: Jsdoc
+// TODO: Is this 
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {

@@ -132,7 +132,7 @@ These settings change some of how it displays:
 - When (re)scheduling an item, also show it as a scheduled item in main Editor?: If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI.
 - Ignore items in calendar sections with these term(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting (below).
 - Folders to ignore when finding items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. Default: "@Archive, Saved Searches"
-- Folders to include when finding items: ???
+- Folders to include when finding items: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. It works in conjunction with 'Folders to ignore' below.
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
 - Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added using the settings from the QuickCapture plugin (if installed).\nIf this is left empty, then new tasks will appear at the top of the note.
@@ -150,8 +150,8 @@ These settings change some of how it displays:
 
 The Filter menu includes the following toggles:
 - Include context for tasks? Whether to show the note link for an open task or checklist
-- Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block.
-- Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
+- Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
+- Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
 - Include folder name? Whether to include the folder name when showing a note link
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 
@@ -168,14 +168,14 @@ triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard
 Note: If you use the 'Overdue Tasks' section, this can add some delay before the dashboard window is updated if you have hundreds of overdue tasks 🥺. So this section is deliberately not updated when a trigger has fired. In practice this shouldn't matter, as editing your daily note won't change any overdue tasks.
 
 ## Controlling from Shortcuts, Streamdeck etc.
-In v1.x there was a way to toggle individual sections on and off. In v2.0 this has been replaced with a number of 'callback's. 
+There are number of 'callback's you can use to control the dashboard from shortcuts, command line, Streamdeck etc.  As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the appropriately encoded callback URL. This is copied to the clipboard ready to paste elsewhere.
 
-The simplest **opens (or refreshes) the Dashboard**:
+The simplest **opens (or refreshes) the Dashboard**, using the `Show Dashboard` command:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
 ```
 
-Or add `arg0` to **set a list of sections you want to see**. For example, to show the today, tomorrow + @home mentions, run this x-callback:
+You can also **set a list of sections you want to see**,  by adding them as `arg0`. For example, to show the today, tomorrow + @home mentions, run this x-callback:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard&arg0=DT,DO,@home
 ```
@@ -188,16 +188,24 @@ Use `arg0=` followed by a comma-separated list of one or more of the following s
 | Month | `M` | Quarter | `Q` |
 | Projects | `PROJ` | Overdue | `OVERDUE` |
 | Items with Priority | `PRIORITY` | tags / mentions from your settings | `#tag` / `@mention` |
+| Current Time Block | `TB` |
 
-You can also **set a particular setting**:
+You can also **change to a specific Perspective** using `setPerspective` command:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setPerspective&arg0=<perspectiveName>
+```
+
+You can also **set a particular setting** using `setSetting` command:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName>&arg1=<value>
 ```
+
 Or you can **set multiple settings in one call**:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setSetting&arg0=<settingName=value pairs separated by semicolons>
 ```
-For both callbacks, the names of the possible settings (described above), and their types, are:
+
+For the `setSetting` callbacks, the names of the possible settings (described above), and their types, are:
 
 | Name | Type |
 | -------- | -------- |
@@ -233,8 +241,6 @@ For both callbacks, the names of the possible settings (described above), and th
 | enableInteractiveProcessing | true / false |
 | interactiveProcessingHighlightTask | true / false |
 | enableInteractiveProcessingTransitions | true / false |
-
-As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the callback URL based on your current settings. This is copied to the clipboard.
 
 ## Team
 I'm just a hobby coder, and not part of the NotePlan team, but I have spent at least 2 working months on this particular plugin. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:

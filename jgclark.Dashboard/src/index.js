@@ -36,6 +36,7 @@ export {
   showDashboardReact,
   onMessageFromHTMLView,
   showDemoDashboard,
+  setPerspective,
   setSetting,
   setSettings,
   makeSettingsAsCallback,

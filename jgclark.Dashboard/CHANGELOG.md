@@ -43,6 +43,11 @@ First beta for 2.1
 - TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
 - TODO(jgc): See why move all -> this week not seeming to do anything
 
+## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-03
+- (jgc): New callback `setPerspective&arg0=<name>`; added details to README
+- (jgc): Layout tweaks to suit other themes
+- (dbw): Pulled 'postcss' out of the rollup again.
+
 ## [Perspectives.a24 = 2.1.0.a24] @jgc, 2024-12-01
 - (dbw): Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
 - (dbw): Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown

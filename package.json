@@ -107,6 +107,13 @@
     "simple-input": "^1.0.1",
     "testing-library": "^0.0.2"
   },
+  "devDependencies_to_remove": {
+    "autoprefixer": "^10.4.20",
+    "postcss-calc": "^10.0.2",
+    "postcss-color-function": "^4.1.0",
+    "postcss-custom-properties": "^14.0.4",
+    "postcss-preset-env": "^10.1.1"
+  },
   "scripts": {
     "init": "node ./tasks/init.js",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build",

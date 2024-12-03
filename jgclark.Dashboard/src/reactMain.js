@@ -16,10 +16,15 @@ import {
 import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { getPerspectiveSettings } from './perspectiveHelpers'
+import {
+  getPerspectiveSettings,
+  // setActivePerspective,
+  // switchToPerspective
+} from './perspectiveHelpers'
+import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
-import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '@helpers/HTMLView'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -78,7 +83,7 @@ export async function showDemoDashboard(): Promise<void> {
  */
 export async function setSetting(key: string, value: string): Promise<void> {
   try {
-    logDebug('setSetting', `Request to set: '${key}'' -> '${value}'`)
+    logDebug('setSetting', `Request to set: '${key}' -> '${value}'`)
     const dashboardSettings = (await getDashboardSettings()) || {}
     // clo(dashboardSettings, 'dashboardSettings:')
 
@@ -179,7 +184,22 @@ export async function makeSettingsAsCallback(): Promise<void> {
 }
 
 /**
- * TODO(dbw): fix flow errors and add JSDoc
+ * x-callback entry point to switch to a named Perspective.
+ * @param {string} name
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setPerspective&arg0=Work
+ */
+export async function setPerspective(name: string): Promise<void> {
+  try {
+    logDebug('setPerspective', `Request to switch to Perspective '${name}'. Simulating selection in the PerspectiveSelector ...`)
+    // const perspectiveSettings = await getPerspectiveSettings()
+    await bridgeClickDashboardItem({ perspectiveName: name, actionType: 'switchToPerspective' })
+  } catch (error) {
+    logError('setPerspective', error.message)
+  }
+}
+
+/**
+ * TODO(dbw): add JSDoc, and look at flow error on '= false' below
  * @param {string} limitToSections e.g. "TD,TY,#work"
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
@@ -243,8 +263,6 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
-    // TODO: appear unused ...
-    // const runPluginCommandFunction = getCallbackCodeString('runPluginCommand') // generic function to run any plugin command
     const sendMessageToPluginFunction = `
       const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
     `

@@ -74,7 +74,7 @@ dialog::backdrop {
 /* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] /* minmax(9rem, 11rem)*/ 12rem [items] auto;
+	grid-template-columns: [info] /* 12rem */ 13.5rem [items] auto;
 	grid-template-rows: min-content;
 	/* grid-auto-flow: column; */
 	/* a little extra gap between first 2 cols */
@@ -94,6 +94,19 @@ dialog::backdrop {
 	color: var(--fg-sidebar-color);
 	background-color: var(--bg-sidebar-color);
 	border-right: 1px solid var(--divider-color);
+}
+
+/* Inner grid for details of a section -- allow up to 3 columns if wide enough */
+.sectionItemsGrid {
+	font-size: 1.0rem;
+	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+	column-count: 3;
+	column-width: 25rem;
+	column-rule: 1px solid var(--divider-color);
+	column-fill: auto;
+	padding-inline-start: 0.5rem;
+	padding-block-start: 0.3rem;
+	padding-block-end: 0.1rem;
 }
 
 /* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .addNewActionButtons */
@@ -125,7 +138,7 @@ dialog::backdrop {
 	display: inline-flex;
 	gap: 0.3rem;
 	justify-self: end;
-	align-self: center;
+	align-self: flex-start;
 	border: 0px none;
 	box-shadow: none;
 	padding-top: 1px;
@@ -135,23 +148,7 @@ dialog::backdrop {
 .sectionDescription {
 	/* a bit smaller */
 	font-size: 0.9rem;
-	/* give breathing room on right only */
-	/* margin: 0 0.5rem 0 0; */
-	padding-top: 0.2rem;
-	/* align-self: self-end; */
-}
-
-/* Inner grid for details of a section -- allow up to 3 columns if wide enough */
-.sectionItemsGrid {
-	font-size: 1.0rem;
-	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
-	column-count: 3;
-	column-width: 25rem;
-	column-rule: 1px solid var(--divider-color);
-	column-fill: auto;
-	padding-inline-start: 0.5rem;
-	padding-block-start: 0.3rem;
-	padding-block-end: 0.3rem;
+	padding-top: 0.1rem;
 }
 
 .sectionItemRow {
@@ -160,17 +157,21 @@ dialog::backdrop {
 	/* display: grid; */
 	/* grid-template-columns: [icon] 1.1rem [item-details] auto; */
 	display: flex;
+	
+	/* trying margin not padding now */
 	/* no bottom padding */
-	padding: 0px 4px 3px 0px;
+	/* padding: 0px 4px 3px 0px; */
+	margin: 0px 4px 3px 0px; 
+	
 	border: 0px none;
 	column-gap: 3px;
 	/* vertical in containing block */
-	align-self: start;
+	/* align-self: start; */
 	/* horizontal in containing block */
 	justify-self: right;
 	/* border-collapse: collapse; */
 	/* vertical for all items this contains */
-	align-items: start;
+	align-items: baseline; /* start; */
 	/* horizontal for all items this contains */
 	justify-items: start;
 	/*
@@ -246,19 +247,21 @@ dialog::backdrop {
 	align-self: center;
 	justify-self: center;
 	/* and give a little nudge down to make things line up in practice */
-	padding-block-start: 1px;
+	/* padding-block-start: 1px; */
 	cursor: pointer;
 }
 
 /* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
 .fa-square, .fa-square-plus, .fa-square-arrow-right {
-	font-size: 110%;
+	font-size: 103%; /*110%;*/
+	padding-left: 1px;
 }
 
 /* Override the theme definition of a completed task a little */
 .checked {
 	/* padding-top: 1px !important; */
-	margin-bottom: 0px !important;
+	/* margin-bottom: 0px !important; */
+	font-size: 98%
 }
 
 .projectIcon {
