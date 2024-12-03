@@ -13,11 +13,6 @@ const rollup = require('rollup')
 const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
-const autoprefixer = require('autoprefixer')
-const postcssPresetEnv = require('postcss-preset-env')
-const postcssCalc = require('postcss-calc')
-const postcssCustomProperties = require('postcss-custom-properties')
-const postcssColorFunction = require('postcss-color-function')
 
 const NOTIFY = true
 
@@ -161,17 +156,7 @@ function getRollupConfig(options) {
     }),
     json(),
     postcss({
-      plugins: [
-        autoprefixer(),
-        postcssPresetEnv({
-          stage: 0,
-        }),
-        postcssCalc(),
-        postcssCustomProperties(),
-        postcssColorFunction(),
-      ],
       minimize: true,
-      sourceMap: false,
     }),
   ]
 
