@@ -8,18 +8,8 @@
 //-----------------------------------------------------------------------------
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import {
-  getTotalDoneCountsFromSections,
-  updateDoneCountsFromChangedNotes,
-} from './countDoneTasks'
-import {
-  getDashboardSettings,
-  getNotePlanSettings,
-  handlerResult,
-  mergeSections,
-  moveItemToRegularNote,
-  setPluginData,
-} from './dashboardHelpers'
+import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import { getDashboardSettings, getNotePlanSettings, handlerResult, mergeSections, moveItemToRegularNote, setPluginData } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import {
@@ -46,7 +36,7 @@ import {
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt, compareObjects } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { showMessage, processChosenHeading } from '@helpers/userInput'
@@ -577,7 +567,15 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
       // All changes to dashboardSettings should be saved in the "-" perspective (changes to perspectives are not saved until Save... is selected)
       const activePerspDef = getActivePerspectiveDef(perspectiveSettings)
       logDebug(`doSettingsChanged`, `activePerspDef.name=${String(activePerspDef?.name || '')}`)
-      if (activePerspDef && activePerspDef.name !== '-') {
+      if (activePerspDef && activePerspDef.name !== '-' && !Array.isArray(newSettings)) {
+        const cleanedSettings = cleanDashboardSettings(newSettings)
+        const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
+        // if !diff or  all the diff keys start with FFlag, then return
+        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
+          return handlerResult(true)
+        } else {
+          clo(diff, `doSettingsChanged: Setting perspective.isModified because of changes to settings:`)
+        }
         // ignore dashboard changes in the perspective definition until it is saved explicitly
         // but we need to set the isModified flag on the perspective
         logDebug(`doSettingsChanged`, `Setting isModified to true for perspective ${activePerspDef.name}`)
