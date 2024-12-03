@@ -3,7 +3,7 @@
 // Dashboard React component to show an HTML DropdownSelect control, with various possible settings.
 // Based on basic HTML controls, not a fancy React Component.
 //--------------------------------------------------------------------------
-import React, { useState, useEffect, useRef, useMemo, type ElementRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
 import { clo, logDebug } from '@helpers/react/reactDev'
 
@@ -80,11 +80,12 @@ const DropdownSelect = ({
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => options.map(normalizeOption), [options])
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
+  const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
 
   // Calculate the width based on the longest option if fixedWidth is not provided
-  const calculatedWidth = useMemo(() => {
+  const calculateWidth = () => {
     if (fixedWidth) return fixedWidth
     const longestOption = normalizedOptions.reduce((max, option) => {
       return option.label.length > max.length ? option.label : max
@@ -98,6 +99,11 @@ const DropdownSelect = ({
       return textWidth + 40 // Add extra space for padding and dropdown arrow
     }
     return 200 // Fallback width
+  }
+
+  useLayoutEffect(() => {
+    const width = calculateWidth()
+    setCalculatedWidth(width)
   }, [fixedWidth, normalizedOptions])
 
   //----------------------------------------------------------------------
