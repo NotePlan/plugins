@@ -14,6 +14,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/d
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
+import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -395,12 +396,23 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * @returns {TDashboardSettings}
  */
 export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<TDashboardSettings> {
-  // Define keys or patterns to remove from the settings
+  // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
+  const tagSectionDetails = getTagSectionDetails(settingsIn)
+  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
+    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
+  )
+
+  // Remove the keys only if they exist and are defined
+  showTagSectionKeysToRemove.forEach((key) => {
+    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
+      // $FlowIgnore[incompatible-type]
+      delete settingsIn[key]
+    }
+  })
+
   const patternsToRemove = [
-    'perspectivesEnabled', // this is the only user-settable global setting
-    // vvv global settings for DEVs only:
+    'perspectivesEnabled',
     /FFlag_/,
-    // vvv these are set by the plugin and should not be saved by perspective
     /_log/,
     'pluginID',
     'lastChange',
@@ -409,17 +421,14 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
     'doneDatesAvailable',
     'migratedSettingsFromOriginalDashboard',
     'triggerLogging',
-    // vvv these exist in the plugin settings array and let's just make sure we don't save them by mistake
     /separator\d/,
     /heading\d/,
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
 
-  // Function to check if a key matches any of the patterns
   function shouldRemoveKey(key: string): boolean {
     return patternsToRemove.some((pattern) => pattern.test(key))
   }
 
-  // Reduce the settings object by excluding keys that match any pattern in patternsToRemove
   return Object.keys(settingsIn).reduce((acc: Partial<TDashboardSettings>, key) => {
     if (!shouldRemoveKey(key)) {
       // $FlowIgnore[incompatible-type]

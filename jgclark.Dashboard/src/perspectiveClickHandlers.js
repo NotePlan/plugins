@@ -109,7 +109,7 @@ export async function doSavePerspective(data: MessageDataObject): Promise<TBridg
   if (activeDef.name === '-') return handlerResult(false, [], { errorMsg: `Perspective "-" is not allowed to be saved.` })
   const dashboardSettings = await getDashboardSettings()
   if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
-  const newDef = { ...activeDef, dashboardSettings: { ...activeDef.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }, isModified: false }
+  const newDef = { ...activeDef, dashboardSettings: cleanDashboardSettings(dashboardSettings), isModified: false }
   const revisedDefs = replacePerspectiveDef(perspectiveSettings, newDef)
   const result = await savePerspectiveSettings(revisedDefs)
   if (!result) return handlerResult(false, [], { errorMsg: `savePerspectiveSettings failed` })
