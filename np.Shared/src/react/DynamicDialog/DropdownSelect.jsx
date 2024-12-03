@@ -1,7 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
-// Dashboard React component to show an HTML DropdownSelect control, with various possible settings.
+// React component to show an HTML DropdownSelect control, with various possible settings.
 // Based on basic HTML controls, not a fancy React Component.
+// TODO: Have not fully tested the isEditable feature
 //--------------------------------------------------------------------------
 import React, { useState, useEffect, useRef, useMemo, type ElementRef, useLayoutEffect } from 'react'
 import './DropdownSelect.css'
@@ -43,6 +44,7 @@ type DropdownSelectProps = {
   noWrapOptions?: boolean,
   fixedWidth?: number,
   className?: string,
+  isEditable?: boolean,
 }
 
 /**
@@ -70,6 +72,7 @@ const DropdownSelect = ({
   noWrapOptions = true,
   fixedWidth,
   className = '',
+  isEditable = false,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -80,6 +83,7 @@ const DropdownSelect = ({
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => options.map(normalizeOption), [options])
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
+  const [inputValue, setInputValue] = useState(selectedValue.label)
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
@@ -106,20 +110,35 @@ const DropdownSelect = ({
     setCalculatedWidth(width)
   }, [fixedWidth, normalizedOptions])
 
+  // Filter options based on input value only if editable
+  const filteredOptions = useMemo(() => {
+    if (!isEditable) return normalizedOptions
+    return normalizedOptions.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
+  }, [inputValue, normalizedOptions, isEditable])
+
+  // Handle input change
+  const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
+    if (isEditable) {
+      setInputValue(event.target.value)
+      setIsOpen(true) // Open dropdown when typing
+    }
+  }
+
+  // Handle option click
+  const handleOptionClick = (option: Option) => {
+    logDebug(`DropdownSelect`, `option click: ${option.label}`)
+    setSelectedValue(option)
+    setInputValue(option.label) // Update inputValue with the selected option's label
+    onChange(option)
+    setIsOpen(false)
+  }
+
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen)
-  }
-
-  const handleOptionClick = (option: Option) => {
-    logDebug(`DropdownSelect`, `option click: ${option.label}`)
-    setSelectedValue(option)
-    // $FlowFixMe[incompatible-call]
-    onChange(option)
-    setIsOpen(false)
   }
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -261,10 +280,11 @@ const DropdownSelect = ({
           <input
             type="text"
             className="dropdown-select-input"
-            value={selectedValue?.label || ''}
-            readOnly
+            value={inputValue}
+            onChange={handleInputChange} // Handle input change
             ref={inputRef}
             disabled={disabled}
+            readOnly={!isEditable} // Set readOnly based on isEditable prop
             style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px', paddingRight: '24px' }, styles.input)}
           />
           <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
@@ -273,7 +293,7 @@ const DropdownSelect = ({
         </div>
         {isOpen && (
           <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px` }, styles.dropdown)}>
-            {normalizedOptions.map((option: Option) => {
+            {filteredOptions.map((option: Option) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
               }

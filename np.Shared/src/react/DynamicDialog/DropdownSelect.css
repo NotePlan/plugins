@@ -32,7 +32,7 @@
 	padding: 3px 6px 1px;
 	border-radius: 4px;
 	font-size: 0.9rem;
-	/* width: 100%; */
+	width: 100%;
 }
 
 .dropdown-select-input:focus {
@@ -60,7 +60,6 @@
 	right: 0;
 	border: 1px solid var(--divider-color);
 	border-radius: 4px;
-	/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
 	background-color: var(--bg-main-color);
 	filter: brightness(110%);
 	box-shadow: 0 2px 5px var(--divider-color);
@@ -82,8 +81,7 @@
 .dropdown-select-option:hover {
 	background-color: var(--tint-color);
 	color: var(--bg-alt-color);
-	/* border-radius: 4px; */
-	filter:brightness(95%);
+	filter: brightness(95%);
 }
 
 .dropdown-select-option .option-label {
