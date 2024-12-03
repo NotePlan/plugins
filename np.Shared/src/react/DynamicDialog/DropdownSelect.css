@@ -73,7 +73,7 @@
 	cursor: pointer;
 	color: var(--fg-main-color);
 	margin: 0.2rem;
-	padding: 0rem 0.3rem;
+	padding: 0.3rem 0.3rem;
 	min-height: 0.9rem;
 	width: 100%;
 }
@@ -82,8 +82,8 @@
 .dropdown-select-option:hover {
 	background-color: var(--tint-color);
 	color: var(--bg-alt-color);
-	border-radius: 4px;
-	/* filter:brightness(95%); */
+	/* border-radius: 4px; */
+	filter:brightness(95%);
 }
 
 .dropdown-select-option .option-label {

@@ -345,7 +345,7 @@ const PerspectiveSelector = (): React$Node => {
       compactDisplay={true}
       label={'Persp'}
       noWrapOptions={false}
-      fixedWidth={150}
+      className={'perspective-selector'}
     />
   )
 }

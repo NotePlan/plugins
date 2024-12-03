@@ -42,6 +42,7 @@ type DropdownSelectProps = {
   allowNonMatchingLabel?: boolean,
   noWrapOptions?: boolean,
   fixedWidth?: number,
+  className?: string,
 }
 
 /**
@@ -67,7 +68,8 @@ const DropdownSelect = ({
   fullWidthOptions = false,
   showIndicatorOptionProp = '',
   noWrapOptions = true,
-  fixedWidth = 200, // Default fixed width
+  fixedWidth,
+  className = '',
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -80,6 +82,23 @@ const DropdownSelect = ({
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
   const optionsRef = useRef<?ElementRef<'div'>>(null)
+
+  // Calculate the width based on the longest option if fixedWidth is not provided
+  const calculatedWidth = useMemo(() => {
+    if (fixedWidth) return fixedWidth
+    const longestOption = normalizedOptions.reduce((max, option) => {
+      return option.label.length > max.length ? option.label : max
+    }, '')
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (context && dropdownRef.current) {
+      const computedStyle = window.getComputedStyle(dropdownRef.current)
+      context.font = computedStyle.font || '16px Arial' // Use computed font from CSS
+      const textWidth = context.measureText(longestOption).width
+      return textWidth + 40 // Add extra space for padding and dropdown arrow
+    }
+    return 200 // Fallback width
+  }, [fixedWidth, normalizedOptions])
 
   //----------------------------------------------------------------------
   // Handlers
@@ -212,14 +231,14 @@ const DropdownSelect = ({
 
   return (
     <div
-      className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''}`}
+      className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
       ref={dropdownRef}
       style={mergeStyles({}, styles.container)}
     >
       <label className="dropdown-select-label" style={mergeStyles({}, styles.label)}>
         {label}
       </label>
-      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${fixedWidth}px` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
+      <div className="dropdown-select-wrapper" style={mergeStyles({ width: `${calculatedWidth}px` }, styles.wrapper)} onClick={disabled ? undefined : toggleDropdown}>
         <div
           className="dropdown-select-input-container"
           style={mergeStyles(
@@ -227,7 +246,7 @@ const DropdownSelect = ({
               display: 'flex',
               alignItems: 'center',
               position: 'relative',
-              width: `${fixedWidth}px`,
+              width: `${calculatedWidth}px`,
             },
             styles.inputContainer || {},
           )}
@@ -247,7 +266,7 @@ const DropdownSelect = ({
           </span>
         </div>
         {isOpen && (
-          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${fixedWidth}px` }, styles.dropdown)}>
+          <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px` }, styles.dropdown)}>
             {normalizedOptions.map((option: Option) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
