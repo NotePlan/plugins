@@ -143,7 +143,7 @@ function getRollupConfig(options) {
     nodeResolve({
       browser: true,
       jsnext: true,
-      extensions: ['.js', '.jsx'], // Add .jsx to the extensions array
+      extensions: ['.js', '.jsx', '.css'], // Trigger rebuild when any of these extensions are changed
     }),
     commonjs({ include: /node_modules/ }),
     babel({
@@ -157,6 +157,7 @@ function getRollupConfig(options) {
     json(),
     postcss({
       minimize: true,
+      sourceMap: true, // Enable source maps
     }),
   ]
 
