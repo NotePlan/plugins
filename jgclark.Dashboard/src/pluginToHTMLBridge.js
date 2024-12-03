@@ -31,18 +31,8 @@ import {
   doUnscheduleItem,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
-import {
-  doAddNewPerspective,
-  doCopyPerspective,
-  doDeletePerspective,
-  doRenamePerspective,
-  doSavePerspective,
-  doSwitchToPerspective,
-} from './perspectiveClickHandlers'
-import {
-  incrementallyRefreshSections,
-  refreshSomeSections,
-} from './refreshClickHandlers'
+import { doAddNewPerspective, doCopyPerspective, doDeletePerspective, doRenamePerspective, doSavePerspective, doSwitchToPerspective } from './perspectiveClickHandlers'
+import { incrementallyRefreshSections, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -54,15 +44,8 @@ import {
   doStartReviews,
 } from './projectClickHandlers'
 import { doMoveFromCalToCal } from './moveClickHandlers'
-import {
-  scheduleAllOverdueOpenToToday,
-  scheduleAllTodayTomorrow,
-  scheduleAllYesterdayOpenToToday
-} from './moveDayClickHandlers'
-import {
-  scheduleAllLastWeekThisWeek,
-  scheduleAllThisWeekNextWeek,
-} from './moveWeekClickHandlers'
+import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
+import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
@@ -125,7 +108,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // update the data object with the new content so it can be found in the cache now that it's changed - this is for jgclark's new handlers that use data instead
         data.item?.para?.content ? (data.item.para.content = content) : null
         logDebug('bCDI / updateItemContent', `-> successful call to doContentUpdate()`)
-        // await updateReactWindowFromLineChange(result, data, ['para.content'])
+        // The following line is important because it updates the React window with the changed content before the next action is taken
+        // This will help Dashboard find the item to update in the JSON with the revised content
+        await updateReactWindowFromLineChange(result, data, ['para.content'])
       }
     }
 
@@ -428,20 +413,17 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
         logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSections (for ${String(enabledSections)}) ...`)
         await incrementallyRefreshSections({ ...data, sectionCodes: enabledSections })
-      }
-      else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
+      } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections ...`)
         // await refreshAllSections() // this works fine
         await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
-      }
-      else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
+      } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSections (for ${String(allCalendarSectionCodes)}) ..`)
         for (const sectionCode of allCalendarSectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
           await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
         }
-      }
-      else {
+      } else {
         // At least update TB section (if enabled) to make sure its as up to date as possible
         if (enabledSections.includes('TB')) {
           logInfo('processActionOnReturn', `Adding REFRESH_SECTION_IN_JSON for TB ...`)
@@ -534,7 +516,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
           clo(reactWindowData.pluginData.sections[sectionIndex].sectionItems[itemIndex], 'updateReactWindowFLC: NEW reactWindow JSON sectionItem before sending to window')
         }
       } else {
-        throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} : ${errorMsg || ''}`)
+        throw new Error(`updateReactWindowFLC: unable to find item to update: ID ${ID} was looking for: content="${oldContent}" filename="${oldFilename}" : ${errorMsg || ''}`)
       }
     } else if (isProject) {
       //
