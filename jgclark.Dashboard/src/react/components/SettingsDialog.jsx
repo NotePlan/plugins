@@ -79,28 +79,17 @@ const SettingsDialog = ({
     return initialSettings
   })
 
+  // Add a new state to track the controlling settings' states
+  const [controllingSettingsState, setControllingSettingsState] = useState({})
+
   if (!updatedSettings) return null // Prevent rendering before items are loaded
   logDebug('SettingsDialog/main', `Starting`)
 
   // Return whether the controlling setting item is checked or not
   function stateOfControllingSetting(item: TSettingItem): boolean {
-    const dependsOn = item.dependsOnKey ?? ''
-    if (dependsOn) {
-      const thatKey = items.find((f) => f.key === dependsOn)
-      if (!thatKey) {
-        logWarn('', `Cannot find key '${dependsOn}' that key ${item.key ?? ''} is controlled by`)
-        return false
-      }
-      // FIXME: this gets called, but seems to to use the saved, not live state.
-      const isThatKeyChecked = thatKey?.checked ?? false
-      logDebug('SettingsDialog/stateOfControllingSetting', `dependsOn='${dependsOn} / isThatKeyChecked=${String(isThatKeyChecked)}'`)
-      return isThatKeyChecked
-    } else {
-      // shouldn't get here
-      logWarn('SettingsDialog/stateOfControllingSetting', `Key ${item.key ?? ''} does not have .dependsOnKey setting`)
-      return false
-    }
+    return controllingSettingsState[item.dependsOnKey ?? ''] ?? false
   }
+
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
@@ -179,6 +168,20 @@ const SettingsDialog = ({
   //     }
   //   }
   // }, [])
+
+  // Add a useEffect to update the controlling settings' states
+  useEffect(() => {
+    const newControllingSettingsState = {}
+    items.forEach((item) => {
+      if (item.dependsOnKey) {
+        const thatKey = items.find((f) => f.key === item.dependsOnKey)
+        if (thatKey) {
+          newControllingSettingsState[item.dependsOnKey] = updatedSettings[thatKey.key] ?? false
+        }
+      }
+    })
+    setControllingSettingsState(newControllingSettingsState)
+  }, [items, updatedSettings])
 
   //----------------------------------------------------------------------
   // Render
