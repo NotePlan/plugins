@@ -119,6 +119,20 @@ const reportMemoryUsage = (msg = '') => {
   console.log(`${msg}: Memory used: ${used} MB`)
 }
 
+const message = (type, msg, leftwords, useIcon = false) => {
+  if (!messenger[type]) {
+    messenger.error(`Invalid message type in your code: "${type}" (should be one of: success, warn, critical, note, log)`, 'Coding Error', true)
+    type = 'log'
+  }
+  messenger[type](msg, leftwords.padEnd(7), useIcon)
+}
+
+const dt = () => {
+  const d = new Date()
+  const pad = (value) => (value < 10 ? `0${value}` : value.toString())
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`
+}
+
 ;(async function () {
   reportMemoryUsage('top of script')
 
@@ -324,6 +338,11 @@ const reportMemoryUsage = (msg = '') => {
     const rollupConfigs = bundledPlugins.map(getConfig).map((config) => ({ ...config, plugins: [...config.plugins, ...defaultPlugins] }))
 
     watcher = rollup.watch(rollupConfigs)
+
+    watcher.on('change', (id /* , { event } */) => {
+      const filename = path.basename(id)
+      message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
+    })
 
     watcher.on('event', async (event) => {
       if (event.result) {

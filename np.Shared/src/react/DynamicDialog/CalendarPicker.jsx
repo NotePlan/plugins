@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react'
 import { DayPicker } from 'react-day-picker'
 // Import styles directly into component
 import 'react-day-picker/dist/style.css' /* https://react-day-picker.js.org/basics/styling */
-import '../css/CalendarPicker.css'
+import './CalendarPicker.css'
 import { logDebug } from '@helpers/react/reactDev'
 
 type Props = {
@@ -17,11 +17,13 @@ type Props = {
   startingSelectedDate?: Date, // Date to start with selected
   positionFunction?: () => {}, // Function to call to reposition the dialog because it will be taller when calendar is open
   reset?: boolean, // Whether the calendar is open/shown or not
+  visible?: boolean, // Whether the calendar is shown or not
+  className?: string, // Additional CSS class name for the calendar container
 }
 
-const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, reset }: Props): React$Node => {
+const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate, positionFunction, reset, visible, className }: Props): React$Node => {
   const [selectedDate, setSelectedDate] = useState(startingSelectedDate)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(visible ?? true)
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date)
@@ -75,7 +77,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
             required
             fixedHeight
             // styles={calendarStyles}
-            className="calendarPickerCustom"
+            className={`calendarPickerCustom ${className || ''}`}
           />
         </div>
       )}

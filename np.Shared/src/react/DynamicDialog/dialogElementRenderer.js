@@ -15,6 +15,7 @@ import InputBox from './InputBox.jsx'
 import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
+import CalendarPicker from './CalendarPicker.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
@@ -291,6 +292,22 @@ export function renderItem({
             vertical={item.vertical}
           />
         )
+      case 'calendarpicker': {
+        const selectedDate = item.selectedDate || null
+        const numberOfMonths = item.numberOfMonths || 1
+
+        const handleDateChange = (date) => {
+          if (item.key) {
+            handleFieldChange(item.key, date)
+          }
+        }
+
+        return (
+          <div key={`calendarpicker${index}`} className="calendarpicker-container">
+            <CalendarPicker startingSelectedDate={selectedDate} onSelectDate={handleDateChange} numberOfMonths={numberOfMonths} className="calendarPickerCustom" />
+          </div>
+        )
+      }
       default:
         return null
     }

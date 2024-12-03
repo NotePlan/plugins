@@ -18,21 +18,8 @@ import {
   getStartTimeFromPara,
   makeDashboardParas,
 } from './dashboardHelpers'
-import {
-  openTodayItems,
-  refTodayItems,
-  openTomorrowParas,
-  refTomorrowParas,
-  openYesterdayParas,
-  refYesterdayParas,
-} from './demoData'
-import {
-  getDateStringFromCalendarFilename,
-  getTodaysDateHyphenated,
-  getTodaysDateUnhyphenated,
-  filenameIsInFuture,
-  includesScheduledFutureDate,
-} from '@helpers/dateTime'
+import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -110,12 +97,12 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
               socp.indentLevel === 1
                 ? lastIndent0ParentID
                 : socp.indentLevel === 2
-                  ? lastIndent1ParentID
-                  : socp.indentLevel === 3
-                    ? lastIndent2ParentID
-                    : socp.indentLevel === 4
-                      ? lastIndent3ParentID
-                      : '' // getting silly by this point, so stop
+                ? lastIndent1ParentID
+                : socp.indentLevel === 3
+                ? lastIndent2ParentID
+                : socp.indentLevel === 4
+                ? lastIndent3ParentID
+                : '' // getting silly by this point, so stop
             thisSectionItemObject.parentID = parentParaID
             logInfo(``, `- found parentID ${parentParaID} for ID ${thisID}`)
           }
@@ -158,16 +145,17 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const tomorrowHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
+    const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date' }])
 
     const section: TSection = {
       ID: sectionNum,
@@ -182,6 +170,16 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
       generatedDate: new Date(), // Note: this often gets stringified to a string, but isn't underneath
       doneCounts: doneCountData,
       actionButtons: [
+        {
+          actionName: 'addTask',
+          actionParam: thisFilename,
+          actionPluginID: `${pluginJson['plugin.id']}`,
+          display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ',
+          tooltip: 'Add a new task to future note',
+          postActionRefresh: ['DT'],
+          formFields: anyDayFormFields,
+          submitOnEnter: true,
+        },
         {
           actionName: 'addTask',
           actionParam: thisFilename,
@@ -565,7 +563,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
  * Get the current time block paras from Today's note if it exists. Ignore any time block paras that are done or cancelled.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
- * @returns {Array<TSection>} 
+ * @returns {Array<TSection>}
  */
 export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData: boolean = false): TSection {
   try {
@@ -586,16 +584,16 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       for (const item of openTodayItems) {
         if (item.para) fakeTodayNoteParagraphs.push(item.para)
       }
-      // $FlowFixMe[prop-missing] 
+      // $FlowFixMe[prop-missing]
       // $FlowFixMe[incompatible-type]
       const fakeTodayNote: TNote = {
         // $FlowFixMe[incompatible-type]
-        // $FlowFixMe[prop-missing] 
+        // $FlowFixMe[prop-missing]
         // $FlowFixMe[incompatible-exact]
         paragraphs: fakeTodayNoteParagraphs,
         type: 'Calendar',
         title: getTodaysDateHyphenated(),
-        filename: `${filenameDateStr}.md`
+        filename: `${filenameDateStr}.md`,
       }
       clo(fakeTodayNote, `fakeTodayNote`)
       timeblockPara = getCurrentTimeBlockPara(fakeTodayNote, true, mustContainString)

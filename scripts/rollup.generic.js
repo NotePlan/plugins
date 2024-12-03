@@ -13,6 +13,7 @@ const rollup = require('rollup')
 const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
+const debounce = require('lodash.debounce')
 
 const NOTIFY = true
 
@@ -68,7 +69,7 @@ function watch(watchOptions, buildMode = '') {
   message('note', `${dt()} Rollup: Watcher Starting - watching for changes starting with: "${filename}" buildMode="${buildMode}"...`, 'WATCH  ', true)
   const watcher = rollup.watch(watchOptions)
 
-  watcher.on('event', (event) => {
+  const debouncedRebuild = debounce((event) => {
     if (event.code === 'BUNDLE_END') {
       const outputFiles = event.output.map((o) => path.basename(o)).join(', .../')
       const msg = `${dt()} Rollup: wrote bundle${event.output.length > 1 ? 's' : ''}: ".../${outputFiles}"`
@@ -88,24 +89,25 @@ function watch(watchOptions, buildMode = '') {
         })
       }
     }
-  })
+  }, 300)
 
-  watcher.on('event', ({ result }) => {
-    if (result) {
-      result.close()
-    }
+  watcher.on('event', (event) => {
+    debouncedRebuild(event)
   })
 
   watcher.on('change', (id /* , { event } */) => {
     const filename = path.basename(id)
     message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
   })
+
   watcher.on('restart', () => {
     // console.log(`rollup: restarting`)
   })
+
   watcher.on('close', () => {
     console.log(`rollup: closing`)
   })
+
   process.on('SIGINT', async function () {
     console.log('\n\n')
     console.log(colors.yellow('Quitting...\n'))

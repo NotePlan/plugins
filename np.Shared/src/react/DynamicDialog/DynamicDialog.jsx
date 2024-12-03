@@ -43,6 +43,7 @@ export type TSettingItemType =
   | 'json'
   | 'button'
   | 'button-group'
+  | 'calendarpicker'
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -65,6 +66,8 @@ export type TSettingItem = {
   vertical?: boolean, // Add vertical property for button-group
   isDefault?: boolean, // Add isDefault property for button items
   fixedWidth?: number, // for dropdowns, set a fixed width
+  selectedDate?: Date, // for calendarpicker, the selected date
+  numberOfMonths?: number, // for calendarpicker, the number of months to show
 }
 
 export type TDynamicDialogProps = {
