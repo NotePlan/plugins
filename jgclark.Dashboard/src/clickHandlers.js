@@ -92,8 +92,7 @@ export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridg
   const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
   data.toFilename = filename
   data.actionType = 'addTask'
-  await doAddItem(data)
-  return handlerResult(false)
+  return await doAddItem(data)
 }
 
 /**
@@ -142,7 +141,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
   } catch (err) {
     logError('doAddItem', err.message)
-    return { success: false }
+    return handlerResult(false, [], { errorMsg: err.message })
   }
 }
 
