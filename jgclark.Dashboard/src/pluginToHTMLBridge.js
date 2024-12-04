@@ -8,6 +8,7 @@ import pluginJson from '../plugin.json'
 import { allCalendarSectionCodes, allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import {
   doAddItem,
+  doAddItemToFuture,
   doCancelChecklist,
   doCancelTask,
   doContentUpdate,
@@ -300,6 +301,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'addTask': {
         result = await doAddItem(data)
+        break
+      }
+      case 'addTaskToFuture': {
+        result = await doAddItemToFuture(data)
         break
       }
       case 'moveAllTodayToTomorrow': {

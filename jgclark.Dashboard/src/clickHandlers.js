@@ -6,6 +6,7 @@
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
 // Last updated for v2.1.0.a
 //-----------------------------------------------------------------------------
+import moment from 'moment'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
@@ -78,6 +79,21 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
     logError('doEvaluateString', error.message)
     return handlerResult(false, [], { errorMsg: error.message })
   }
+}
+
+export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doAddItemToFuture starting with data`)
+  const { userInputObj } = data //     "date": "2024-12-04T08:00:00.000Z",
+  if (!userInputObj) return handlerResult(false)
+  const { date, text } = userInputObj
+  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture: "${date}"` })
+  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture: "${text}"` })
+  const extension = DataStore.defaultFileExtension
+  const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
+  data.toFilename = filename
+  data.actionType = 'addTask'
+  await doAddItem(data)
+  return handlerResult(false)
 }
 
 /**

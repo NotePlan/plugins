@@ -190,6 +190,7 @@ export type TActionType =
   | 'addChecklist'
   | 'addProgress'
   | 'addTask'
+  | 'addTaskToFuture'
   | 'cancelProject'
   | 'cancelTask'
   | 'completeProject'
