@@ -28,7 +28,7 @@ import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reac
 import '../css/Dashboard.css'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { getTestGroups } from './testing/tests'
-import { dashboardSettingDefs } from '../../dashboardSettings.js'
+import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import PerspectivesTable from './PerspectivesTable.jsx'
 
 //--------------------------------------------------------------------------
@@ -305,7 +305,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {dashboardSettings?.FFlag_PerspectivesTable && (
-        <PerspectivesTable perspectives={perspectiveSettings} settingDefs={dashboardSettingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
+        <PerspectivesTable
+          perspectives={perspectiveSettings}
+          settingDefs={[...dashboardFilterDefs, ...dashboardSettingDefs]}
+          onSave={hidePerspectivesTable}
+          onCancel={hidePerspectivesTable}
+        />
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
