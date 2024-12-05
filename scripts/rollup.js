@@ -21,7 +21,7 @@ const json = require('@rollup/plugin-json')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
 const { babel } = require('@rollup/plugin-babel')
-const { terser } = require('rollup-plugin-terser')
+// const { terser } = require('rollup-plugin-terser')
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const ProgressBar = require('progress')
@@ -84,15 +84,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      terser({
-        compress: true,
-        mangle: true,
-        output: {
-          comments: false,
-          beautify: false,
-          indent_level: 2,
-        },
-      }),
+      // terser({
+      //   compress: true,
+      //   mangle: true,
+      //   output: {
+      //     comments: false,
+      //     beautify: false,
+      //     indent_level: 2,
+      //   },
+      // }),
     ]
   : [
       alias({
@@ -102,15 +102,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      terser({
-        compress: false,
-        mangle: false,
-        output: {
-          comments: false,
-          beautify: true,
-          indent_level: 2,
-        },
-      }),
+      // terser({
+      //   compress: false,
+      //   mangle: false,
+      //   output: {
+      //     comments: false,
+      //     beautify: true,
+      //     indent_level: 2,
+      //   },
+      // }),
     ]
 
 const reportMemoryUsage = (msg = '') => {
