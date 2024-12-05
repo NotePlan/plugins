@@ -9,7 +9,7 @@ module.exports = {
       replacement: path.resolve(__dirname),
     },
     {
-      find: '@helpers',
+      find: '@np/helpers',
       replacement: path.resolve('./helpers'),
     },
     {

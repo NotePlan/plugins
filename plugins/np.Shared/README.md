@@ -121,7 +121,7 @@ export type TDynamicDialogProps = {
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel: () => void,
   hideDependentItems?: boolean, // if true, dependent items are hidden, if false, they are shown but greyed out
-  children: React$Node, // children nodes (primarily for banner message)
+  children: React.ReactNode, // children nodes (primarily for banner message)
 }
 ```
 

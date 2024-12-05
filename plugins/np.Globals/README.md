@@ -11,7 +11,7 @@ Step 1: Update `np.Globals/plugin.json`
 Step 2: Update `np.Globals/lib/NPGlobals` `GlobalsConfig` type object
 
 ```
-type GlobalsConfig = $ReadOnly<{
+type GlobalsConfig = Readonly<{
   ...
   newSetting?: string,
 }>

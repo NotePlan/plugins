@@ -357,7 +357,7 @@ From your plugin, you can send a banner message to be shown at the top of the HT
 
 TODO:Insert picture here
 
-    import { sendBannerMessage } from '@helpers/HTMLView'
+    import { sendBannerMessage } from '@np/helpers/HTMLView'
 
     await sendBannerMessage(
       `this will display at the top of the screen`,

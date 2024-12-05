@@ -23,5 +23,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": true
-  }
+  },
+  "exclude": ["__mocks__", "node_modules"]
 }

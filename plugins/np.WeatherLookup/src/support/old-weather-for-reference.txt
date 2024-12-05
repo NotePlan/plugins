@@ -55,7 +55,7 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   const weatherConfig = await getOrMakeConfigurationSection('weather', DEFAULT_WEATHER_CONFIG, MINIMUM_WEATHER_CONFIG)
 
   // Get config settings from Template folder _configuration note
-  // $FlowIgnore[incompatible-type]
+  // @ts-ignore
   logDebug(`\tWeather settings are ${JSON.stringify(weatherConfig)}`)
   if (weatherConfig == null) {
     logDebug("Cannot find 'weather' settings in Templates/_configuration note.")
@@ -65,7 +65,7 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   const isWeatherKeyValid = (key) => key !== null && !key?.match(/[a-f0-9]{32}/)
 
   const { openWeatherAPIKey, latPosition, longPosition, openWeatherUnits } = weatherConfig
-  // $FlowIgnore[incompatible-use]
+  // @ts-ignore
   if (openWeatherAPIKey !== null && !openWeatherAPIKey?.match(/[a-f0-9]{32}/)) {
     logDebug("Cannot find a valid API Key 'weather' settings in Templates/_configuration note.")
     return "Error: Cannot find a valid API Key 'weather' settings in Templates/_configuration note."
@@ -111,7 +111,7 @@ export async function getWeatherSummary(weatherParams: string): Promise<string> 
   }
   if (jsonIn != null) {
     try {
-      // $FlowIgnore[incompatible-call]
+      // @ts-ignore
       allWeatherData = JSON.parse(jsonIn)
     } catch (err) {
       logDebug(`Error ${err.message} parsing Weather data lookup. Please check your _configuration note.`)
