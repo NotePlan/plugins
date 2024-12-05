@@ -21,7 +21,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 
     // set application settings with any adjustments after template specific updates
     DataStore.settings = { ...templateSettings }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }

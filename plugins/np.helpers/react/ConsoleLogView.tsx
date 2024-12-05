@@ -54,7 +54,7 @@ const getLogClassName = (type: string, message: string, isSelected: boolean, ind
  * LogData component renders the data items for a log entry.
  *
  * @param {Object} props - The props for the component.
- * @returns {React.Node} The rendered LogData component.
+ * @returns {React.ReactNode} The rendered LogData component.
  */
 type LogDataProps = {
   data: any,
@@ -122,9 +122,9 @@ const LogLine = ({ message, data, uniqueKey }: { message: string, data: any, uni
  * ConsoleLogView component displays console logs with filtering, searching, and auto-scrolling capabilities.
  *
  * @param {Props} props - The props for the component.
- * @returns {React.Node} The rendered ConsoleLogView component.
+ * @returns {React.ReactNode} The rendered ConsoleLogView component.
  */
-const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch = '', onClearLogs, onShowAllLogs, showLogTimestamps = false }: Props): React.Node => {
+const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch = '', onClearLogs, onShowAllLogs, showLogTimestamps = false }: Props): React.ReactNode => {
   const [filterText, setFilterText] = useState(initialFilter)
   const [searchText, setSearchText] = useState(initialSearch)
   const [useRegexFilter, setUseRegexFilter] = useState(false)
@@ -139,14 +139,14 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
   const [searchMatches, setSearchMatches] = useState<Array<number>>([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1)
 
-  const highlightSearchTerm = (text: string, searchTerm: string): React.Node => {
+  const highlightSearchTerm = (text: string, searchTerm: string): React.ReactNode => {
     if (!searchTerm) return text
 
     const regex = useRegexSearch ? new RegExp(searchTerm, 'gi') : new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
     const parts = text.split(regex)
     const matches = text.match(regex)
 
-    return parts.reduce((acc: Array<React.Node>, part: string, index: number) => {
+    return parts.reduce((acc: Array<React.ReactNode>, part: string, index: number) => {
       if (index < parts.length - 1) {
         acc.push(
           part,
@@ -171,7 +171,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
       try {
         const regex = useRegexFilter ? new RegExp(filterText, 'i') : null
         newFilteredLogs = newFilteredLogs.filter((log) => (regex ? regex.test(log.message) : log.message.toLowerCase().includes(filterText.toLowerCase())))
-      } catch (e) {
+      } catch (e: any) {
         console.error('Invalid regex:', e)
       }
     }
@@ -284,7 +284,7 @@ const ConsoleLogView = ({ logs = [], filter, initialFilter = '', initialSearch =
     onShowAllLogs()
   }
 
-  const getTimeDiv = (time: Date, text: string = ''): React.Node => {
+  const getTimeDiv = (time: Date, text: string = ''): React.ReactNode => {
     const dtlTime = dtl(time)
     // dtlTime looks like 2024-11-20 17:29:35.148
     const secs = dtlTime.split(':')[2]

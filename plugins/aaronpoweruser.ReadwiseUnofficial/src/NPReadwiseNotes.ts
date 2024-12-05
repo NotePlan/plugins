@@ -16,7 +16,7 @@ import { getOrMakeNote } from '@np/helpers/note'
 async function getOrCreateReadwiseNote(title: string, category: string): Promise<?TNote> {
   const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
   let baseFolder = rootFolder
-  let outputNote: ?TNote
+  let outputNote: null | void | TNote
   if (DataStore.settings.groupByType === true) {
     // Note: supplementals are not guaranteed to have user generated highlights
     if (DataStore.settings.ignoreSupplementals === true && category === 'supplementals') {
@@ -27,7 +27,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   }
   try {
     outputNote = await getOrMakeNote(title, baseFolder, '')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
   return outputNote
@@ -40,7 +40,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
 export async function parseHighlightsAndWriteToNote(highlightSource: any): Promise<any> {
   try {
     const noteTitle: string = buildReadwiseNoteTitle(highlightSource)
-    const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTitle, highlightSource.category)
+    const outputNote: null | void | TNote = await getOrCreateReadwiseNote(noteTitle, highlightSource.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
     if (outputNote) {
       if (!useFrontMatter) {
@@ -59,7 +59,7 @@ export async function parseHighlightsAndWriteToNote(highlightSource: any): Promi
       await writeReadwiseSyncLogLine(noteTitle, highlightSource.highlights.length)
       await highlightSource.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, highlightSource.source, highlightSource.asin))
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }

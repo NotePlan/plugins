@@ -34,7 +34,7 @@ export function onMessageFromHTMLView(type: string, data: any): any {
         break
     }
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

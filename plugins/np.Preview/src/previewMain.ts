@@ -253,7 +253,7 @@ export async function openPreviewNoteInBrowser(): Promise<void> {
     logDebug(pluginJson, `openPreviewNoteInBrowser: preview created; now will try to open in browser`)
     // FIXME: the following doesn't work -- something to do with imports and builtins
     // await open(savedFilename)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `openPreviewNoteInBrowser: ${error.message}`)
   }
 }

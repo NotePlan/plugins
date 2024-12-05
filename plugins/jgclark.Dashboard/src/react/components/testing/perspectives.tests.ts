@@ -75,7 +75,7 @@ import { backupCurrentSettings, restoreSettings, getDashboardSettingsWithShowVar
       const modifiedPerspective = getContext().perspectiveSettings.find((p) => p.name === perspectiveName)
       expect(modifiedPerspective).not.toBeUndefined(`Perspective ${perspectiveName} was not found`)
       expect(modifiedPerspective.isModified).toBeTruthy(`Perspective ${perspectiveName} should be modified`)
-    } catch (error) {
+    } catch (error: any) {
       throw error
     } finally {
       console.log(`=== Restoring settings ===`)
@@ -205,7 +205,7 @@ export default {
           if (!modifiedPerspective) throw (`perspectiveSettings:`, getContext().perspectiveSettings)
           expect(modifiedPerspective).not.toBeUndefined(`Perspective ${perspectiveName} was not found`)
           expect(modifiedPerspective.isModified).toBeTruthy(`Perspective ${perspectiveName} should be modified`)
-        } catch (error) {
+        } catch (error: any) {
           await pause(error.message)
           throw error
         } finally {
@@ -288,7 +288,7 @@ export default {
           // Verify that 'Work' perspective is now active (should be if we are here after the waitFor)
           const updatedPerspective = getContext().perspectiveSettings.find((p) => p.name === 'Work' && p.isActive === true && p.isModified === false)
           expect(updatedPerspective).not.toBeUndefined('Active work perspective')
-        } catch (error) {
+        } catch (error: any) {
           await pause(error.message)
           throw error
         } finally {
@@ -403,7 +403,7 @@ export default {
             ps && expect(ps.isModified).toBeFalsy(`Perspective ${perspectives[i].name} was modified, but should not be when switching to it`)
             console.log(`================================ TEST ${i}: Passed: Perspective ${perspectives[i].name} was set and not modified ================================`)
           }
-        } catch (error) {
+        } catch (error: any) {
           await pause(error.message)
           throw error
         } finally {

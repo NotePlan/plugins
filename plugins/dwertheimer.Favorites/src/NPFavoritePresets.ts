@@ -121,7 +121,7 @@ export async function changePreset(incoming: string) {
       logDebug(pluginJson, `changePreset: ${chosen} -- calling presetChosen with favoritePresetChosen callback`)
       await presetChosen(pluginJson, chosen, favoritePresetChosen, [true])
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

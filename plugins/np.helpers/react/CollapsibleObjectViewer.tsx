@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import isEqual from 'lodash/isEqual'
 import './CollapsibleObjectViewer.css'
-import type { Node } from 'react'
 
 // Define a type for inline styles
 type Style = {
@@ -28,11 +27,11 @@ type Props = {
 }
 
 type CollapsedPaths = {
-  [string]: boolean,
+  [k: string]: boolean,
 }
 
 type HighlightedPaths = {
-  [string]: 'match' | 'parent',
+  [k: string]: 'match' | 'parent',
 }
 
 type TooltipState = {
@@ -58,11 +57,11 @@ function renderObject(
   changedPaths: HighlightedPaths,
   filter: boolean,
   openedPathsRef: { current: CollapsedPaths },
-  toggleCollapse: (path: string, event: SyntheticMouseEvent<HTMLDivElement>) => void,
+  toggleCollapse: (path: string, event: React.SyntheticEvent) => void,
   parentMatches: boolean = false,
   highlightRegex: string = '',
-  sortKeys?: boolean = true,
-): React.Node {
+  sortKeys: boolean = true,
+): React.ReactNode {
   if (!isObject(obj)) {
     const highlightType = highlightedPaths[path]
     const isChanged = changedPaths[path]
@@ -161,7 +160,7 @@ const CollapsibleObjectViewer = ({
   scroll = false,
   style = {},
   onToggle,
-}: Props): React.Node => {
+}: Props): React.ReactNode => {
   const openedPathsRef = useRef<CollapsedPaths>({})
   const [highlightedPaths, setHighlightedPaths] = useState<HighlightedPaths>({})
   const [changedPaths, setChangedPaths] = useState<HighlightedPaths>({})
@@ -261,7 +260,7 @@ const CollapsibleObjectViewer = ({
       checkMatches(memoizedData, name)
       setHighlightedPaths(newHighlightedPaths)
       setRenderTrigger((prev) => prev + 1) // Trigger re-render
-    } catch (error) {
+    } catch (error: any) {
       console.error('Invalid regex:', error)
       setHighlightedPaths({})
     }
@@ -301,8 +300,10 @@ const CollapsibleObjectViewer = ({
       .reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : null), obj)
   }
 
-  const toggleCollapse = (path: string, event: SyntheticMouseEvent<HTMLDivElement>): void => {
+  const toggleCollapse = (path: string, event: React.SyntheticEvent<HTMLDivElement, MouseEvent>): void => {
+    // @ts-expect-error
     const isOptionClick = event.altKey
+    // @ts-expect-error
     const isMetaClick = event.metaKey
 
     // Toggle the current path
@@ -421,11 +422,12 @@ const CollapsibleObjectViewer = ({
       </div>
       {!rootIsCollapsed && (
         <div style={{ marginLeft: 15 }}>
-          {renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse, false, highlightRegex, sortKeys)}
+
+          {renderObject(memoizedData, name, highlightedPaths, changedPaths, filter, openedPathsRef, toggleCollapse as any, false, highlightRegex, sortKeys)}
         </div>
       )}
     </div>
   )
 }
 
-export default (CollapsibleObjectViewer: React.AbstractComponent<Props>)
+export default CollapsibleObjectViewer

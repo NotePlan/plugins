@@ -68,7 +68,7 @@ export async function runPluginCommand(data: TPluginCommandSimplified) {
     // clo(data, 'runPluginCommand received data object')
     logDebug('pluginToHTMLBridge/runPluginCommand', `running ${data.commandName} in ${data.pluginID}`)
     await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -346,7 +346,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     } else {
       logWarn('bCDI', `false result from call`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
 }
@@ -466,7 +466,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         `Action processing failed for "${data.actionType}" ${handlerResult.errorMsg || ''}.\nCheck the Plugin Console for more details (after turning on DEBUG logging).`,
       )
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('processActionOnReturn', `error: ${JSP(error)}: \n${JSP(formatReactError(error))}`)
     clo(data.item, `- data.item at error:`)
   }
@@ -545,7 +545,7 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
       throw new Error(`no updatedParagraph param was given, and its not a Project update. So cannot update react window content for: ID=${ID}| errorMsg=${errorMsg || '-'}`)
     }
     await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Single item updated on ID ${ID}`)
-  } catch (error) {
+  } catch (error: any) {
     logError('updateReactWindowFLC', error.message)
     clo(data.item, `- data.item at error:`)
   }

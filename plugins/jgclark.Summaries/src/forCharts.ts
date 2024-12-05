@@ -94,7 +94,7 @@ export function getFirstDateForWeeklyStats(numWeeksToGoBack: number, includeCurr
 
     logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
     return [fromDateStr, numWeeks]
-  } catch (e) {
+  } catch (e: any) {
     logError('getFirstDateForWeeklyStats', `Error: ${e.message}`)
     return ['', 0]
   }

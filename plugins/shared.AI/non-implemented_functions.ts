@@ -30,7 +30,7 @@ export async function noteToPrompt(promptIn: string | null = '', userIn: string 
       Editor.appendParagraph(response.trim(), 'text')
       // Editor.appendParagraph("```", "text")
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -71,7 +71,7 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
         await Editor.openNoteByFilename(filename)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -131,7 +131,7 @@ export async function createResearchListRequest(promptIn: string | null, nIn: nu
         clo(selection, `jsonParse() selection result`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `The error is ${error}`)
   }
 }
@@ -174,7 +174,7 @@ export async function createQuickSearch(promptIn: string | null = null, userIn: 
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -209,7 +209,7 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -246,7 +246,7 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

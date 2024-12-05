@@ -122,7 +122,7 @@ export function logPreference(key: string): void {
     } else if (typeof value === 'object') {
       clo(value, `logPreference "${key}" [object]:`)
     } else if (typeof value === 'string') {
-      logDebug('logPreference', `"${key}" [string]: "${value}"`)
+      logDebug('logPreference', `"${key}" [k: string]: "${value}"`)
     } else if (typeof value === 'number') {
       logDebug('logPreference', `"${key}" [number]: "${String(value)}"`)
     } else if (typeof value === 'boolean') {
@@ -130,7 +130,7 @@ export function logPreference(key: string): void {
     } else {
       logDebug('logPreference', `"${key}": "${String(value)}"`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('logPreference', error.message)
   }
 }
@@ -145,7 +145,7 @@ export async function logPreferenceAskUser(): Promise<void> {
     if (typeof res !== 'boolean') {
       logPreference(res)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('logPreferenceAskUser', error.message)
   }
 }
@@ -158,7 +158,7 @@ export function unsetPreference(prefName: string): void {
   try {
     DataStore.setPreference(prefName, null)
     logDebug('unsetPreference', `Unset local pref ${prefName}`)
-  } catch (error) {
+  } catch (error: any) {
     logError('unsetPreference', error.message)
   }
 }
@@ -173,7 +173,7 @@ export async function unsetPreferenceAskUser(): Promise<void> {
     if (typeof res !== 'boolean') {
       unsetPreference(res)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('unsetPreferenceAskUser', error.message)
   }
 }

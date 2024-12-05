@@ -7,7 +7,7 @@ import './TestingPane.css'
 
 type Props = {
   testGroups: Array<TestGroup>,
-  onLogsFiltered: (filter: ?{ filterName: string, filterFunction: (log: LogEntry) => boolean }) => void,
+  onLogsFiltered: (filter: null | void | { filterName: string, filterFunction: (log: LogEntry) => boolean }) => void,
   getContext: () => any, // Function to get the context
 }
 
@@ -15,7 +15,7 @@ type CollapsedGroups = {
   [groupName: string]: boolean,
 }
 
-const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.Node => {
+const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.ReactNode => {
   const [results, setResults] = useState<Results>({})
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
   const [runningGroups, setRunningGroups] = useState<Set<string>>(new Set())
@@ -118,7 +118,7 @@ const TestingPane = ({ testGroups, onLogsFiltered, getContext }: Props): React.N
         ...prev,
         [testName]: { status: 'Passed', durationStr, startTime, endTime },
       }))
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       const durationStr = timer(startTime)
       const endTime = new Date()

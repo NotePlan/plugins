@@ -75,7 +75,7 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
   try {
     const result = await eval(stringToEvaluate)
     return handlerResult(true, [], { result })
-  } catch (error) {
+  } catch (error: any) {
     logError('doEvaluateString', error.message)
     return handlerResult(false, [], { errorMsg: error.message })
   }
@@ -311,7 +311,7 @@ export function doToggleType(data: MessageDataObject): TBridgeClickHandlerResult
     // Refresh the whole section, as we might want to filter out the new item type from the display
     // return handlerResult(true, ['UPDATE_LINE_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { updatedParagraph: updatedParagraph })
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
-  } catch (error) {
+  } catch (error: any) {
     logError('doToggleType', error.message)
     return handlerResult(false)
   }

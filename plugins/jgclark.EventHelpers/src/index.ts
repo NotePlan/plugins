@@ -37,7 +37,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']} updated to v${pluginJson['plugin.version']}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
   logDebug(pluginJson, `${pluginID}: onUpdateOrInstall finished`)
@@ -52,7 +52,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

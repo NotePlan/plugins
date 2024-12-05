@@ -17,7 +17,7 @@ export default class NoteModule {
     this.config = config
   }
 
-  getCurrentNote(): ?Note {
+  getCurrentNote(): null | void | Note {
     const filename = Editor.type === 'Calendar' ? Editor.filename?.replace('.md', '') : Editor.filename
     if (filename == null) {
       return null
@@ -32,19 +32,19 @@ export default class NoteModule {
     return '$NP_CURSOR'
   }
 
-  filename(): ?string {
+  filename(): null | void | string {
     return this.getCurrentNote()?.filename
   }
 
-  title(): ?string {
+  title(): null | void | string {
     return this.getCurrentNote()?.title
   }
 
-  type(): ?NoteType {
+  type(): null | void | NoteType {
     return this.getCurrentNote()?.type
   }
 
-  content(stripFrontmatter: boolean = false): ?string {
+  content(stripFrontmatter: boolean = false): null | void | string {
     let content = this.getCurrentNote()?.content
     if (content == null) {
       return null
@@ -57,15 +57,15 @@ export default class NoteModule {
     return content
   }
 
-  hashtags(): ?string {
+  hashtags(): null | void | string {
     return this.getCurrentNote()?.hashtags.join(', ')
   }
 
-  mentions(): ?string {
+  mentions(): null | void | string {
     return this.getCurrentNote()?.mentions.join(', ')
   }
 
-  date(format: string = ''): ?Date | string {
+  date(format: string = ''): null | void | Date | string {
     let dt = this.getCurrentNote()?.date
     if (format.length > 0) {
       dt = moment(dt).format('YYYY-MM-DD')
@@ -73,7 +73,7 @@ export default class NoteModule {
     return dt
   }
 
-  createdDate(format: string = ''): ?Date | string {
+  createdDate(format: string = ''): null | void | Date | string {
     let dt = this.getCurrentNote()?.createdDate
     if (format.length > 0) {
       dt = moment(dt).format('YYYY-MM-DD')
@@ -81,7 +81,7 @@ export default class NoteModule {
     return dt
   }
 
-  changedDate(format: string = ''): ?Date | string {
+  changedDate(format: string = ''): null | void | Date | string {
     let dt = this.getCurrentNote()?.changedDate
     if (format.length > 0) {
       dt = moment(dt).format('YYYY-MM-DD')

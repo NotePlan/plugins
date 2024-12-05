@@ -18,7 +18,7 @@ import chroma from 'chroma-js'
 
 declare var NP_THEME: any
 
-type StyleObject = { [key: string]: mixed }
+type StyleObject = { [key: string]: unknown }
 
 export type OptionType = { label: string, value: string, id?: number }
 

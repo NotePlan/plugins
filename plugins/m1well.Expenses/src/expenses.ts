@@ -2,14 +2,14 @@
 
 import { getMonth, getYear } from 'date-fns'
 import pluginJson from '../plugin.json'
-import { clo, log, logError } from '../../helpers/dev'
-import { getInputTrimmed, inputNumber } from '../../helpers/userInput'
+import { clo, logError } from '@np/helpers/dev'
+import { getInputTrimmed, inputNumber } from '@np/helpers/userInput'
 import {
   aggregateByCategoriesAndMonth,
-  castFixedExpensesArrayFromMixed,
-  castShortcutExpensesArrayFromMixed,
-  castStringArrayFromMixed,
-  castStringFromMixed,
+  // castFixedExpensesArrayFromMixed,
+  // castShortcutExpensesArrayFromMixed,
+  // castStringArrayFromMixed,
+  // castStringFromMixed,
   createAggregationExpenseRowWithDelimiter,
   createTrackingExpenseRowWithConfig,
   extractExpenseRowFromCsvRow,
@@ -239,7 +239,7 @@ const individualTracking = async (): Promise<boolean> => {
   const expenseRow: ExpenseTrackingRow = {
     date: currentDate,
     category: category.value,
-    text: text ? ((text: any): string) : '', // this is stupid, but now we have to do this cast ...
+    text: typeof text === 'string' ? text : '', // this is stupid, but now we have to do this cast ...
     amount: config.amountFormat === 'full' ? amount : Math.round(amount),
   }
   if (note) {
@@ -337,14 +337,14 @@ const fixedTracking = async (): Promise<boolean> => {
 
   const note = DataStore.projectNoteByTitle(title)?.[0]
   config.fixedExpenses
-    .filter(exp => exp.active && (exp.month === 0 || exp.month === month))
-    .map(exp => {
+    .filter((exp: any) => exp.active && (exp.month === 0 || exp.month === month))
+    .map((exp: any) => {
       if (!categoryOk(exp.category, config.categories)) {
         exp.category = `>>WRONG CATEGORY (${exp.category})<<`
       }
       return exp
     })
-    .forEach(exp => {
+    .forEach((exp: any) => {
       const expenseRow = {
         date: currentDate,
         category: exp.category,
@@ -369,7 +369,7 @@ const fixedTracking = async (): Promise<boolean> => {
  */
 const provideConfig = async (): Promise<any> => {
   try {
-    const fromSettings: Config = DataStore.settings
+    const fromSettings: Config = DataStore.settings as any
 
     if (fromSettings) {
       // @ts-ignoreMe[incompatible-call]
@@ -378,8 +378,7 @@ const provideConfig = async (): Promise<any> => {
       throw new Error(`Cannot find settings for Expenses plugin`)
     }
     return fromSettings
-  }
-  catch (err) {
+  } catch (err: any) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     return null // for completeness
   }
@@ -391,10 +390,12 @@ const provideConfig = async (): Promise<any> => {
  *
  * @private
  */
-const provideAndCheckNote = async (title: string,
-                                   folderPath: string,
-                                   createNote: boolean,
-                                   year?: number): Promise<boolean> => {
+const provideAndCheckNote = async (
+  title: string,
+  folderPath: string,
+  createNote: boolean,
+  year?: number
+) => {  
   const notes = DataStore.projectNoteByTitle(title)
 
   // create note if it de

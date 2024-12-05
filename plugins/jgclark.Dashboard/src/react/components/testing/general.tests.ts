@@ -90,7 +90,7 @@ export default {
                 return s.para?.content === taskContent
               })
           await waitFor(anonFunc, 'find overdue section with task we created', 20000)
-        } catch (error) {
+        } catch (error: any) {
           await pause(error.message)
           throw error
         } finally {

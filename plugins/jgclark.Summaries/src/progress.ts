@@ -242,7 +242,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
       }
     }
     return
-  } catch (error) {
+  } catch (error: any) {
     logError('makeProgressUpdate', error.message)
   }
 }

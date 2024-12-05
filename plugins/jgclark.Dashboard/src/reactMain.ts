@@ -101,7 +101,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
     } else {
       throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('setSetting', error.message)
   }
 }
@@ -135,7 +135,7 @@ export async function setSettings(paramsIn: string): Promise<void> {
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
     await showDashboardReact('full', false)
-  } catch (error) {
+  } catch (error: any) {
     logError('setSettings', error.message)
   }
 }
@@ -178,7 +178,7 @@ export async function makeSettingsAsCallback(): Promise<void> {
     // But this simpler version does:
     Clipboard.string = output
     await showMessage('Settings as URL or Link copied to Clipboard', 'OK', 'Dashboard', false)
-  } catch (error) {
+  } catch (error: any) {
     logError('makeSettingsAsCallback', error.message)
   }
 }
@@ -193,7 +193,7 @@ export async function setPerspective(name: string): Promise<void> {
     logDebug('setPerspective', `Request to switch to Perspective '${name}'. Simulating selection in the PerspectiveSelector ...`)
     // const perspectiveSettings = await getPerspectiveSettings()
     await bridgeClickDashboardItem({ perspectiveName: name, actionType: 'switchToPerspective' })
-  } catch (error) {
+  } catch (error: any) {
     logError('setPerspective', error.message)
   }
 }
@@ -303,7 +303,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
+  } catch (error: any) {
     logError('showDashboardReact', JSP(error))
   }
 }
@@ -335,7 +335,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       windowID: WEBVIEW_WINDOW_ID,
     }
     return dataToPass
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
     // $FlowFixMe[prop-missing]
     return {}
@@ -349,7 +349,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime.
  * @param {TDashboardSettings} dashboardSettings
  * @param {boolean?} useDemoData?
- * @returns {[string]: mixed} - the data that your React Window will start with
+ * @returns {[k: string]: unknown} - the data that your React Window will start with
  */
 export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
   // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
@@ -452,7 +452,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     }
 
     return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -477,7 +477,7 @@ export async function refreshDashboardData(prevData?: any): any {
  * You will likely use this function to pull together your starting window data.
  * Must return an object, with any number of properties, however you cannot use the following reserved properties:
  *   pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
+ * @returns {[k: string]: unknown} - the data that your React Window will start with
  */
 
 export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {

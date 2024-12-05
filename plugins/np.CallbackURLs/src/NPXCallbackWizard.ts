@@ -286,7 +286,7 @@ export async function headingLink() {
  * @param {string} _commandType - text coming in from a runPlugin link
  * @param {boolean} passBackResults - whether to pass back the results to the caller (e.g. runPlugin)
  */
-export async function xCallbackWizard(_commandType: ?string = '', passBackResults?: boolean = false): Promise<string | void> {
+export async function xCallbackWizard(_commandType: null | void | string = '', passBackResults?: boolean = false): Promise<string | void> {
   try {
     let url = '',
       canceled = false
@@ -391,7 +391,7 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
       Clipboard.string = url
       await showMessage(`Link copied to clipboard`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

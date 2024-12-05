@@ -30,7 +30,7 @@ type Props = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import React, { useEffect, type Node } from 'react'
+import React, { useEffect } from 'react'
 import { type PassedData } from '../../../NPFormPluginEntrypoint.js'
 import { AppProvider } from './AppContext.jsx'
 import { clo, logDebug } from '@np/helpers/react/reactDev.js'
@@ -44,7 +44,7 @@ import { clo, logDebug } from '@np/helpers/react/reactDev.js'
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
  * NOTE: Even though we have named this FormView.jsx, it is exported as WebView because that is what Root expects to load dynamically
  */
-export function FormView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
+export function FormView({ data, dispatch, reactSettings, setReactSettings }: Props): React.ReactNode {
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -73,7 +73,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   // Dynamic Dialog Example
   //
   const closeDialog = () => {
-    setReactSettings((prev) => ({ ...prev, dynamicDialog: { isOpen: false } }))
+    setReactSettings((prev: any) => ({ ...prev, dynamicDialog: { isOpen: false } }))
   }
 
   const handleCancel = () => {
@@ -91,7 +91,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   const isTrueString = (value: string): boolean => value ? /true/i.test(value) : false
 
   const openDialog = () => {
-    setReactSettings((prev) => ({
+    setReactSettings((prev: any) => ({
       ...prev,
       dynamicDialog: {
         isOpen: true,
@@ -174,7 +174,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
   // @ts-ignore
-  const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
@@ -208,12 +208,12 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   return (
     <AppProvider
       sendActionToPlugin={sendActionToPlugin}
-      sendToPlugin={sendToPlugin}
-      dispatch={dispatch}
+      sendToPlugin={sendToPlugin as any}
+      dispatch={dispatch as any}
       pluginData={pluginData}
       updatePluginData={updatePluginData}
       reactSettings={reactSettings}
-      setReactSettings={setReactSettings}
+      setReactSettings={setReactSettings as any}
     >
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}

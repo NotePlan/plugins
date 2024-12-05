@@ -83,7 +83,7 @@ async function addItemToInbox(
     logDebug(pluginJson, `addItemToInbox(): starting for ${itemType} (= paraType ${paraType}) with ${config.inboxLocation}`)
 
     // TEST: Extra possible arg
-    // let inboxNote: ?TNote
+    // let inboxNote: null | void | TNote
     let inboxTitleToUse = ''
     if (!inboxTitleArg || inboxTitleArg === '') {
       switch (config.inboxLocation) {

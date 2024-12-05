@@ -27,7 +27,7 @@ export type TestResult = {
 }
 
 export type Results = {
-  [string]: TestResult,
+  [k: string]: TestResult,
 }
 
 export type Test = {
@@ -50,10 +50,10 @@ type Props = {
 
 const methodsToOverride = ['log', 'error', 'info', 'warn']
 
-const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.Node => {
+const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isVisible }: Props): React.ReactNode => {
   const [consoleLogs, setConsoleLogs] = useState<Array<LogEntry>>([])
   const [logFilter, setLogFilter] = useState<?{ filterName: string, filterFunction: (log: LogEntry) => boolean }>(null)
-  const originalConsoleMethodsRef = useRef<{ [string]: Function }>({})
+  const originalConsoleMethodsRef = useRef<{ [k: string]: Function }>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [highlightRegex, setHighlightRegex] = useState<string>('')
   const [useRegex, setUseRegex] = useState<boolean>(true)

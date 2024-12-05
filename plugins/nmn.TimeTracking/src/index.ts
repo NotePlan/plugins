@@ -1,19 +1,19 @@
 // @flow
 
 import keys from 'lodash/keys'
-import { getCodeBlocks } from '../../helpers/codeBlocks'
+import { getCodeBlocks } from '@np/helpers/codeBlocks'
 
 type TData = Readonly<{
-  [string]: ReadonlyArray<
+  [key: string]: ReadonlyArray<
     Readonly<{
       type: 'START' | 'STOP',
       time: Date,
-    }>,
-  >,
+    }>
+  >
 }>
 
-export function objectKey<Obj: { ... }>(object: Obj): Array<$Keys<Obj>> {
-  return keys(object)
+export function objectKey<Obj extends {}>(object: Obj): Array<keyof Obj> {
+  return keys(object) as any
 }
 
 function getOrMadeDataFile() {
@@ -26,7 +26,7 @@ function getOrMadeDataFile() {
 }
 
 // eslint-disable-next-line no-unused-vars
-function getConfig(): ?TData {
+function getConfig(): null | TData {
   const configFile = getOrMadeDataFile()
   if (configFile == null) {
     return null

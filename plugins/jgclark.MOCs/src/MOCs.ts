@@ -72,7 +72,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     let termsToMatch: Array<string> = []
     let termsToMatchStr = ''
     let noteFilename = ''
-    let note: ?TNote
+    let note: null | void | TNote
     let requestedTitle: string
 
     // If we have 2 passed arguments, then use those instead of asking the user.

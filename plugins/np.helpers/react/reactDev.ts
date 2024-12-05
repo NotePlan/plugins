@@ -194,8 +194,8 @@ export const logWarn = (componentName: string, detail?: string, ...args: any[]):
  * Create a deep copy of the input object so it can be safely modified without affecting the original
  * Works on basic JS objects, but not on objects with functions or other non-JSON-serializable properties
  * So will work in React but not on NotePlan objects
- * @param {{[string]:any}} input
- * @returns {{[string]:any}} copy
+ * @param {{[k: string]:any}} input
+ * @returns {{[k: string]:any}} copy
  */
 export const deepCopy = (input: TAnyObject): TAnyObject => JSON.parse(JSON.stringify(input)) // Deep copy so we don't mutate the original pluginData
 

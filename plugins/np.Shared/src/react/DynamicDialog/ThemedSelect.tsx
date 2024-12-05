@@ -46,7 +46,7 @@ export type Props = {
  * ThemedSelect Component
  *
  * @param {Props} props - The properties for the component.
- * @returns {React.Node} The ThemedSelect component.
+ * @returns {React.ReactNode} The ThemedSelect component.
  */
 export function ThemedSelect(props: Props): any {
   const { options, onSelect, onChange, value, compactDisplay, disabled, inputRef, label, noWrapOptions, focus, style = {} } = props

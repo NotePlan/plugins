@@ -93,7 +93,7 @@ async function searchInRaindrop(cb: (raindrop: Raindrop) => Promise<void>): Prom
             await cb(raindrops[selected.index])
             break
         }
-    } catch (error) {
+    } catch (error: any) {
         logError(pluginJson, JSP(error))
     }
 }
@@ -155,7 +155,7 @@ function formatTag(tag: string): string {
     return `#${prefix}${tag.replaceAll(' ', '_').toLowerCase()}`
 }
 
-async function fetchCollection(id: number): ?Collection {
+async function fetchCollection(id: number): null | void | Collection {
     const raw = await requestToRaindrop('GET', `https://api.raindrop.io/rest/v1/collection/${id}`)
     const response = JSON.parse(raw)
     if (!response.result) {

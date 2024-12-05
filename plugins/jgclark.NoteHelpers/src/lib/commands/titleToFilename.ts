@@ -14,7 +14,7 @@ export async function titleToFilename(): Promise<void> {
     if (note) {
       await renameNoteToTitle(note)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(error)
   }
 }

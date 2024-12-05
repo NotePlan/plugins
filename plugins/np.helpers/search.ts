@@ -23,7 +23,7 @@ export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array
       return h !== '' && h.toLowerCase() === searchTerm.toLowerCase()
     })
     return matches.length > 0
-  } catch (error) {
+  } catch (error: any) {
     logError('search/caseInsensitiveIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
     return false
   }
@@ -44,7 +44,7 @@ export function caseInsensitiveSubstringIncludes(stringToCheck: string, arrayOfT
       return term !== '' && stringToCheck.toLowerCase().includes(term.toLowerCase())
     })
     return matches.length > 0
-  } catch (error) {
+  } catch (error: any) {
     logError('search/caseInsensitiveIncludes', `Error matching '${stringToCheck}' to array '${String(arrayOfTerms)}': ${error.message}`)
     return false
   }
@@ -62,7 +62,7 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
   try {
     const re = new RegExp(`^${searchTerm}$`, 'i') // = case insensitive match
     return re.test(textToSearch)
-  } catch (error) {
+  } catch (error: any) {
     logError('search/caseInsensitiveMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
@@ -80,7 +80,7 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
   try {
     const re = new RegExp(`${searchTerm}`, 'i') // = case insensitive match
     return re.test(textToSearch)
-  } catch (error) {
+  } catch (error: any) {
     logError('search/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
@@ -102,7 +102,7 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
       ? new RegExp(`^${searchTerm}.+`, 'i') // = case insensitive 'starts with' regex
       : new RegExp(`^${searchTerm}`, 'i') // = case insensitive 'starts with' regex
     return re.test(textToSearch)
-  } catch (error) {
+  } catch (error: any) {
     logError('search/caseInsensitiveStartsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
@@ -225,7 +225,7 @@ export function getLineMainContentPos(input: string): number {
       // logDebug('getLineMainContentPos', `input is null or empty`)
       return 0
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('getLineMainContentPos', error.message)
     return 0 // for completeness
   }
@@ -247,7 +247,7 @@ export function simplifyRawContent(input: string): string {
     // Trim whitespace at start/end
     output = output.trim()
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('simplifyRawContent', error.message)
     return '<error>' // for completeness
   }
@@ -362,7 +362,7 @@ export function trimAndHighlightTermInLine(
       }
     }
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('trimAndHighlight...', error.message)
     return 'error' // for completeness
   }

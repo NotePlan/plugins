@@ -16,8 +16,8 @@ const fullAmountConfig = {
  * @param key name of the property you want to cast
  * @returns {string} casted value
  */
-export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): string => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): string) : ''
+export const castStringFromMixed = (val: { [key: string]: unknown }, key: string): string => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as string) : ''
 }
 
 /**
@@ -27,8 +27,8 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
  * @param key name of the property you want to cast
  * @returns {Array<string>} casted array
  */
-export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): Array<string> => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): Array < string >) : []
+export const castStringArrayFromMixed = (val: { [key: string]: unknown }, key: string): Array<string> => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as Array<string>) : []
 }
 
 /**
@@ -38,8 +38,8 @@ export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string)
  * @param key name of the property you want to cast
  * @returns {ShortcutExpense[]} casted array
  */
-export const castShortcutExpensesArrayFromMixed = (val: { [string]: ?mixed }, key: string): ShortcutExpense[] => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): ShortcutExpense[]) : []
+export const castShortcutExpensesArrayFromMixed = (val: { [key: string]: unknown }, key: string): ShortcutExpense[] => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as ShortcutExpense[]) : []
 }
 
 /**
@@ -49,8 +49,8 @@ export const castShortcutExpensesArrayFromMixed = (val: { [string]: ?mixed }, ke
  * @param key name of the property you want to cast
  * @returns {FixedExpense[]} casted array
  */
-export const castFixedExpensesArrayFromMixed = (val: { [string]: ?mixed }, key: string): FixedExpense[] => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): FixedExpense[]) : []
+export const castFixedExpensesArrayFromMixed = (val: { [key: string]: unknown }, key: string): FixedExpense[] => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as FixedExpense[]) : []
 }
 
 /**
@@ -71,7 +71,7 @@ export const extractExpenseRowFromCsvRow = (row: string, config: Config): Expens
   // if date could not be parsed we say it is year 1900 and then the aggregate quality checks will fail
   let date = new Date(1900, 0, 1)
   const parsed = parse(splitted[indexDate], config.dateFormat, new Date())
-  if (!isNaN(parsed)) {
+  if (!isNaN(parsed as any)) {
     date = parsed
   }
 
@@ -98,9 +98,11 @@ export const extractExpenseRowFromCsvRow = (row: string, config: Config): Expens
  * @param delimiter configured delimiter
  * @returns {ExpenseAggregateRow[]} aggregated rows for the aggregated note
  */
-export const aggregateByCategoriesAndMonth = (values: ExpenseTrackingRow[],
-                                              delimiter: string): ExpenseAggregateRow[] => {
-  const getGroupIdentifier = (row) => `${getMonth(row.date)}${delimiter}${row.category}`
+export const aggregateByCategoriesAndMonth = (
+  values: ExpenseTrackingRow[],
+  delimiter: string
+) => {
+  const getGroupIdentifier = (row: any) => `${getMonth(row.date)}${delimiter}${row.category}`
 
   return [ ...values.reduce((sum, row) => {
     const identifier = getGroupIdentifier(row)
@@ -131,7 +133,7 @@ export const createTrackingExpenseRowWithConfig = (row: ExpenseTrackingRow, conf
         .filter(entry => entry[0] === col)
         .map(entry => {
           if (entry[1] instanceof Date) {
-            return format(((entry[1]: any): Date), config.dateFormat)
+            return format(((entry[1] as any) as Date), config.dateFormat)
           }
           if (typeof entry[1] === 'number' && config.amountFormat === 'full') {
             return entry[1].toLocaleString(undefined, fullAmountConfig)

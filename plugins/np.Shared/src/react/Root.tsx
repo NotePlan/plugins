@@ -170,7 +170,7 @@ export function Root(/* props: Props */): Node {
         // @ts-ignore
         oldSheet.replaceSync(newStyles)
         wasSaved = true
-      } catch (error) {
+      } catch (error: any) {
         logError(`Root`, `Swapping "${oldName}" CSS Failed. replaceStylesheetContent: Error ${JSP(formatReactError(error))}`)
       }
     }
@@ -207,7 +207,7 @@ export function Root(/* props: Props */): Node {
           if (cssText.length >= 55) break
         }
         logDebug(`CHANGE_THEME StyleSheet ${i}: "${styleSheet.title ?? ''}": ${cssText.substring(0, 55).replace(/\n/g, '')}`)
-      } catch (e) {
+      } catch (e: any) {
         console.warn(`Unable to access stylesheet: ${styleSheet.href}`, e)
       }
     }
@@ -282,7 +282,7 @@ export function Root(/* props: Props */): Node {
         } else {
           logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
         }
-      } catch (error) {
+      } catch (error: any) {
         logDebug(`Root`, ` onMessageReceived: error=${JSP(formatReactError(error))}`)
       }
     } else {

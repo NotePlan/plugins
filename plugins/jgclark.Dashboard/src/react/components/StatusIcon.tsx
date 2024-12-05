@@ -63,7 +63,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
     if (!respondToClicks) return
 
     const { metaKey, ctrlKey } = extractModifierKeys(event)
-    const actionType: ?TActionType = determineActionType(metaKey, ctrlKey)
+    const actionType: null | void | TActionType = determineActionType(metaKey, ctrlKey)
     if (actionType) {
       logDebug('StatusIcon/handleIconClick', `-> actionType:${actionType} for i.p.content = ${item.para?.content ?? '-'}`)
       const messageObject: MessageDataObject = {
@@ -87,7 +87,7 @@ const StatusIcon = ({ item, respondToClicks, onIconClick, location, timeblockStr
    * Determine the action type based on the metaKey and item type.
    * Also updates the icon shape based on what action was taken
    */
-  function determineActionType(metaKey: boolean, ctrlKey: boolean): ?TActionType {
+  function determineActionType(metaKey: boolean, ctrlKey: boolean): null | void | TActionType {
     switch (item.itemType) {
       case 'open': {
         setIconClassName(getClassNameFromType(metaKey ? 'cancelled' : ctrlKey ? 'deleted' : 'done'))

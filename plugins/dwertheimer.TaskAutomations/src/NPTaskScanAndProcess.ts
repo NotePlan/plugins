@@ -26,9 +26,9 @@ export type OverdueSearchOptions = {
   showNote: boolean,
   replaceDate: boolean,
   noteTaskList: null | Array<Array<TParagraph>>,
-  noteFolder: ?string | false,
+  noteFolder: null | void | string | false,
   overdueAsOf?: string /* YYYY-MM-DD - for looking into the future */,
-  overdueOnly: ?boolean /* used for reviewing today's references etc */,
+  overdueOnly: null | void | boolean /* used for reviewing today's references etc */,
 }
 
 type RescheduleUserAction =

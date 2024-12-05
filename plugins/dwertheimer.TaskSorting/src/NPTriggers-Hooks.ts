@@ -38,7 +38,7 @@ export async function onOpen(note: TNote): Promise<void> {
         logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onOpen: ${JSP(error)}`)
   }
 }
@@ -54,7 +54,7 @@ export async function onEditorWillSave() {
     // Note: as stated in the documentation, if you want to change any content in the Editor
     // before the file is written, you should NOT use the *note* variable here to change content
     // Instead, use Editor.* commands (e.g. Editor.insertTextAtCursor()) or Editor.updateParagraphs()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onEditorWillSave: ${JSP(error)}`)
   }
 }
@@ -76,7 +76,7 @@ export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
     await updateSettingData(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
 }
@@ -90,7 +90,7 @@ export function init(): void {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
     //   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `init: ${JSP(error)}`)
   }
 }
@@ -102,7 +102,7 @@ export function init(): void {
 export async function onSettingsUpdated(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
   }
 }
@@ -113,7 +113,7 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function versionCheck(): Promise<void> {
   try {
     await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -123,7 +123,7 @@ export async function versionCheck(): Promise<void> {
 export async function triggerCopyNoteTags(): Promise<void> {
   try {
     await addNoteTagsToAllTask()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

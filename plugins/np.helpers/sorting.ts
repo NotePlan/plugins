@@ -12,15 +12,15 @@ export interface SortableParagraphSubset {
   mentions: Array<string>;
   exclamations: Array<string>;
   parensPriority: Array<string>;
-  due: ?Date;
-  heading: ?string;
+  due: null | void | Date;
+  heading: null | void | string;
   priority?: number;
   type?: string;
   filename: string;
   indents: number;
   children: Array<SortableParagraphSubset>;
-  paragraph: ?TParagraph;
-  calculatedType: ?string;
+  paragraph: null | void | TParagraph;
+  calculatedType: null | void | string;
   blockId?: string;
   note?: TNote;
 }
@@ -44,14 +44,14 @@ export type GroupedTasks = {
 }
 
 export type ParagraphsGroupedByType = {
-  open?: ?Array<TParagraph>,
-  scheduled?: ?Array<TParagraph>,
-  cancelled?: ?Array<TParagraph>,
-  done?: ?Array<TParagraph>,
-  checklist?: ?Array<TParagraph>,
-  checklistDone?: ?Array<TParagraph>,
-  checklistCancelled?: ?Array<TParagraph>,
-  checklistScheduled?: ?Array<TParagraph>,
+  open?: null | void | Array<TParagraph>,
+  scheduled?: null | void | Array<TParagraph>,
+  cancelled?: null | void | Array<TParagraph>,
+  done?: null | void | Array<TParagraph>,
+  checklist?: null | void | Array<TParagraph>,
+  checklistDone?: null | void | Array<TParagraph>,
+  checklistCancelled?: null | void | Array<TParagraph>,
+  checklistScheduled?: null | void | Array<TParagraph>,
 }
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
@@ -280,7 +280,7 @@ export function getTasksByType(paragraphs: ReadonlyArray<TParagraph>, ignoreInde
             lastParent = tasks[ct][len - 1]
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         logError('getTasksByType', `${error.message}: ${para.content}, ${index}`)
       }
     } else {

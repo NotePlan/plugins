@@ -162,7 +162,7 @@ export async function generateAllProjectsList(configIn: any, runInForeground: bo
 
     await writeAllProjectsList(projectInstances)
     return projectInstances
-  } catch (error) {
+  } catch (error: any) {
     logError('generateAllProjectsList', JSP(error))
     return []
   }
@@ -186,7 +186,7 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
     } else {
       logWarn(`writeAllProjectsList`, `Seems to be a problem saving JSON to '${allProjectsListFilename}'`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('writeAllProjectsList', JSP(error))
   }
 }
@@ -209,7 +209,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
     // write to allProjects JSON file
     logDebug('updateProjectInAllProjectsList', `Writing ${allProjects.length} projects to ${allProjectsListFilename}`)
     await writeAllProjectsList(allProjects)
-  } catch (error) {
+  } catch (error: any) {
     logError('updateProjectInAllProjectsList', JSP(error))
   }
 }
@@ -271,7 +271,7 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
     logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
 
     // find the Project with matching filename
-    const projectInstance: ?Project = allProjects.find((project) => project.filename === filename)
+    const projectInstance: null | void | Project = allProjects.find((project) => project.filename === filename)
     logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
     // $FlowFixMe[incompatible-return]
     return projectInstance
@@ -458,7 +458,7 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     // If we get here then there are no projects needed for review
     logInfo('getNextNoteToReview', `No notes ready or overdue for review 🎉`)
     return null
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `getNextNoteToReview: ${error.message}`)
     return null
   }

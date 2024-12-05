@@ -46,7 +46,7 @@ export default class NPGlobals {
     try {
       const data = await this.getSettings()
       this.constructor.globalConfig = { ...data }
-    } catch (error) {
+    } catch (error: any) {
       await CommandBar.prompt('Global Plugin Error', error)
     }
   }

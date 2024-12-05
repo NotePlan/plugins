@@ -46,6 +46,7 @@ import { checkNumber, checkWithDefault } from '@np/helpers/checkType'
 import { getSyncedCopiesAsList } from '@np/helpers/NPSyncedCopies'
 import { removeContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex } from '@np/helpers/NPParagraph'
 import { saveEditorIfNecessary } from '@np/helpers/editor'
+import z from 'zod';
 
 export const editorIsOpenToToday = (): boolean => {
   const fileName = Editor.filename
@@ -102,8 +103,7 @@ async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number
   eventsScheduledForToday = eventsScheduledForToday.filter((e) => !e.notes.startsWith('NPTB:'))
   clof(eventsScheduledForToday, `getPopulatedTimeMapForToday eventsScheduledForToday`, ['date', 'title'], true)
   if (Editor) {
-    const duration = checkWithDefault(checkNumber, 60)
-    const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, duration)
+    const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, 60)
     eventsScheduledForToday = [...userEnteredTimeblocks, ...eventsScheduledForToday]
   }
   const blankDayMap = getBlankDayMap(parseInt(intervalMins))
@@ -320,7 +320,7 @@ export async function insertSyncedCopiesOfTodayTodos(passBackResults?: string): 
     if (start) {
       Editor.select(0, 0)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `insertSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
   }
 }
@@ -333,7 +333,7 @@ export async function removeTimeBlocks(note: TNote | null = null): Promise<void>
   try {
     logDebug(pluginJson, `removeTimeBlocks running`)
     await removeContentUnderHeading(note || Editor, String(DataStore.settings.timeBlockHeading), false, false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `removeTimeBlocks error: ${JSP(error)}`)
   }
 }
@@ -348,7 +348,7 @@ export async function removePreviousTimeBlocks(runSilently: string = 'no'): Prom
     logDebug(pluginJson, `removePreviousTimeBlocks running`)
     const { timeBlockHeading } = DataStore.settings
     await removeContentUnderHeadingInAllNotes(['calendar'], timeBlockHeading, false, runSilently)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
   }
 }
@@ -370,7 +370,7 @@ export async function insertTodosAsTimeblocks(/* note: TNote */): Promise<void> 
     } else {
       logDebug(pluginJson, `insertTodosAsTimeblocks: stopping after config create`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `insertTodosAsTimeblocks error: ${JSP(error)}`)
   }
 }
@@ -389,7 +389,7 @@ export async function insertTodosAsTimeblocksWithPresets(/* note: TNote */): Pro
       config = setConfigForPreset(config, overrides)
       try {
         await validateAutoTimeBlockingConfig(config) //  check to make sure the overrides were valid
-      } catch (error) {
+      } catch (error: any) {
         await showMessage(error)
         // logDebug(pluginJson,`insertTodosAsTimeblocksWithPresets: invalid config: ${error}`)
       }
@@ -436,7 +436,7 @@ export async function markDoneAndRecreateTimeblocks(incoming: string | null = nu
         logDebug(pluginJson, `markDoneAndRecreateTimeblocks: no selection`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -504,7 +504,7 @@ function categorizeAndSortTasks(todosWithLinks: ReadonlyArray<TParagraph>, confi
  * @param {Object} pluginJson - Plugin metadata for logging and debugging.
  * @returns {Promise<?Array<string>>} - The results to be passed back, if any.
  */
-function handleNoTodosOrResults(passBackResults: boolean, timeBlockTextList: ?Array<string>): Array<string> {
+function handleNoTodosOrResults(passBackResults: boolean, timeBlockTextList: null | void | Array<string>): Array<string> {
   // Check if there are no todos or results to pass back
   if (!passBackResults) {
     const message =

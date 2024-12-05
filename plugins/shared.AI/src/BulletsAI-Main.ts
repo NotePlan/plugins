@@ -48,7 +48,7 @@ export async function createResearchDigSite(promptIn?: string | null = null) {
     } else {
       // logDebug(pluginJson, `createResearchDigSite Wanted Editor.title to be "${subject} Research" but Editor.title is "${Editor.title || ''}"`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `Error completing the createResearchDigSite request.\nError: ${error}`)
   }
 }
@@ -128,7 +128,7 @@ export async function bulletsAI(
     Editor.appendParagraph(summary, 'text')
     formatTableOfContents()
     scrollToEntry(promptIn, false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -256,7 +256,7 @@ export async function researchFromSelection() {
       logWarn(pluginJson, 'researchFromSelection: No text was selected. Please try again.')
       await showMessage('Research Selected Text: No text was selected. Please try again with a selection or run a different command.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -300,7 +300,7 @@ export async function moveNoteToResearchCollection() {
     } else {
       logError(pluginJson, 'currentNote was false, cannot finish the move.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

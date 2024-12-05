@@ -41,7 +41,7 @@ export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
     return this
   }
 
-  get(key: string): TVal | void {
+  get(key: string) {
     return typeof key === 'string' ? super.get(key.toLowerCase()) : super.get(key)
   }
 
@@ -50,7 +50,7 @@ export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   }
 
   delete(key: string): boolean {
-    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase(): string) : key
+    const keyLowerCase = typeof key === 'string' ? (key.toLowerCase() as string) : key
     this.#keysMap.delete(keyLowerCase)
 
     return super.delete(keyLowerCase)
@@ -61,21 +61,22 @@ export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
     super.clear()
   }
 
-  keys(): Iterator<string> {
+  keys() {
     return this.#keysMap.values()
   }
 
-  *entries(): Iterator<[string, TVal]> {
+  // @ts-expect-error
+  *entries() {
     for (const [keyLowerCase, value] of super.entries()) {
       const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
       yield [key, value]
     }
   }
 
-  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => mixed): void {
+  forEach(callbackfn: (value: TVal, key: string, map: Map<string, TVal>) => unknown): void {
     for (const [keyLowerCase, value] of super.entries()) {
       const key = this.#keysMap.get(keyLowerCase) ?? keyLowerCase
-      callbackfn(value, key, this)
+      callbackfn(value, key, this as any)
     }
   }
 }
@@ -89,13 +90,13 @@ export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
  * Note: There is a local copy of this fn in helpers/userInput.js to avoid a circular dependency
  * @author @nmn
  * @param {string} contents
- * @returns { {Array<string>: ?mixed} }
+ * @returns { {Array<string>: null | void | unknown} }
  */
-export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
+export async function parseJSON5(contents: string): Promise<{ [k: string]: null | void | unknown }> {
   try {
     const value = json5.parse(contents)
-    return (value: any)
-  } catch (err) {
+    return (value as any)
+  } catch (err: any) {
     logError('general/parseJSON5()', err.message)
     return {}
   }
@@ -150,7 +151,7 @@ export function rangeToString(r: TRange): string {
  * @param {?CoreNoteFields} n - note to get title for
  * @return {string}
  */
-export function displayTitle(n: ?CoreNoteFields): string {
+export function displayTitle(n: null | void | CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
@@ -287,8 +288,8 @@ export function createRunPluginCallbackUrl(pluginID: string, commandName: string
  * @returns {string} the x-callback-url URL string (not the pretty part)
  * @tests available
  */
-export function createCallbackUrl(commandName: string, paramObjOrString: { [string]: string } | string): string {
-  const params = []
+export function createCallbackUrl(commandName: string, paramObjOrString: { [k: string]: string } | string): string {
+  const params: string[] = []
   let paramStr = ''
   if (!paramObjOrString || paramObjOrString === undefined) {
     // no useful input: no params in output
@@ -354,7 +355,7 @@ export function getStringFromList(list: ReadonlyArray<string>, search: string): 
  * @param {string} - string that contains a bracketed mention e.g. @review(2w)
  * @return {?string} - string from between the brackets, if found (e.g. '2w')
  */
-export function getContentFromBrackets(mention: string): ?string {
+export function getContentFromBrackets(mention: string): null | void | string {
   const RE_BRACKETS_STRING_CAPTURE = '\\((.*?)\\)' // capture string inside parantheses
 
   if (mention === '') {
@@ -407,7 +408,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
       return defaultValue
     }
     // @ts-ignore(incompatible-type) as can produce 'any'
-    const paramObj: {} = await json5.parse(paramString)
+    const paramObj: Record<string, any> = await json5.parse(paramString)
     // console.log(typeof paramObj)
     if (typeof paramObj !== 'object') {
       throw new Error('JSON5 parsing did not return an object')
@@ -416,7 +417,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
     const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
     // logDebug('general/getTagParamsFromString', `--> ${output} type ${typeof output}`)
     return output
-  } catch (e) {
+  } catch (e: any) {
     logError('general/getTagParamsFromString', `${e}. paramString="${paramString}". wantedParam="${wantedParam}" defaultValue="${defaultValue}". Returning an error string.`)
     return '❗️error'
   }
@@ -498,11 +499,11 @@ export function inFolderList(filenameStr: string, folderListArr: Array<string>, 
  * Generally for user formatting of output in their preferences.
  * @author @dwertheimer
  * @param {string} templateString - the template string with mustache fields for replacement (e.g. {{field1}})
- * @param {{[string]:string}} fieldValues - a map of field names to values to replace in the template string
+ * @param {{[k: string]:string}} fieldValues - a map of field names to values to replace in the template string
  * Note: if you do not want a string to show, set the field to null in the fieldValues map
  * @returns {string} the resulting string
  */
-export function formatWithFields(templateString: string, fieldValues: { [string]: any }): string {
+export function formatWithFields(templateString: string, fieldValues: { [k: string]: any }): string {
   const newString = Object.keys(fieldValues).reduce(
     (textbody, key) =>
       typeof textbody === 'string' && typeof fieldValues[key] === 'string'

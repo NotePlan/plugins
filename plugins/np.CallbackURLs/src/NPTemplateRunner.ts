@@ -172,7 +172,7 @@ export async function getXcallbackForTemplate(): Promise<string | false> {
       await showMessage(`Template could not be located`)
       return false
     }
-  } catch (e) {
+  } catch (e: any) {
     log(pluginJson, `Error in getXcallbackForTemplate: ${e}`)
   }
   return false

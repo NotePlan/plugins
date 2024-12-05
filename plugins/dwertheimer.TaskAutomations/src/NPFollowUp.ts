@@ -118,7 +118,7 @@ export async function createFollowUps(saveHere: boolean, selectedParagraph: TPar
     }
     clo(revisedPara, `createFollowUps: sending back revisedPara`)
     return revisedPara
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return null
   }
@@ -129,11 +129,11 @@ export async function createFollowUps(saveHere: boolean, selectedParagraph: TPar
  * Plugin entrypoint for command: "/Mark done and create follow-up underneath"
  * @param {*} incoming
  */
-export async function followUpSaveHere(selectedParagraph?: ?TParagraph = null): Promise<TParagraph | null> {
+export async function followUpSaveHere(selectedParagraph?: null | void | TParagraph = null): Promise<TParagraph | null> {
   try {
     logDebug(pluginJson, `followUpSaveHere running with selectedParagraph:"${String(selectedParagraph?.content)}"`)
     return await createFollowUps(true, selectedParagraph)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return null
   }
@@ -144,11 +144,11 @@ export async function followUpSaveHere(selectedParagraph?: ?TParagraph = null): 
  * Plugin entrypoint for command: "/Mark done and create follow-up in future note"
  * @param {*} incoming
  */
-export async function followUpInFuture(selectedParagraph?: ?TParagraph = null): Promise<TParagraph | null> {
+export async function followUpInFuture(selectedParagraph?: null | void | TParagraph = null): Promise<TParagraph | null> {
   try {
     logDebug(pluginJson, `followUpInFuture running with incoming:"${String(selectedParagraph?.content)}"`)
     return await createFollowUps(false, selectedParagraph)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return null
   }

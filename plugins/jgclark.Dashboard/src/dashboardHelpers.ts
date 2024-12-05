@@ -196,7 +196,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
       }
     })
     return dashboardParas
-  } catch (error) {
+  } catch (error: any) {
     logError('makeDashboardParas', error.message)
     return []
   }
@@ -521,7 +521,7 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after deduping with yesterday -> ${filteredOverdueParas.length}`)
     // $FlowFixMe[class-object-subtyping]
     return filteredOverdueParas
-  } catch (error) {
+  } catch (error: any) {
     logError('getRelevantOverdueTasks', error.message)
     return []
   }
@@ -582,7 +582,7 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
 
     // $FlowFixMe[class-object-subtyping]
     return filteredPriorityParas
-  } catch (error) {
+  } catch (error: any) {
     logError('getRelevantPriorityTasks', error.message)
     return []
   }
@@ -650,7 +650,7 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
     return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(
       dateFilename,
     )}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
-  } catch (error) {
+  } catch (error: any) {
     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
     return '(error)'
   }
@@ -694,7 +694,7 @@ export function extendParasToAddStartTimes(paras: Array<TParagraph | TParagraphF
     }
 
     return extendedParas
-  } catch (error) {
+  } catch (error: any) {
     logError('extendParaToAddTimeBlock', `${JSP(error)}`)
     return []
   }
@@ -730,7 +730,7 @@ export function getStartTimeFromPara(para: TParagraph | TParagraphForDashboard):
       // logDebug('getStartTimeFromPara', `timeStr = ${startTimeStr} from timeblock ${thisTimeStr}`)
     }
     return startTimeStr
-  } catch (error) {
+  } catch (error: any) {
     logError('getStartTimeFromPara', `${JSP(error)}`)
     return ''
   }
@@ -921,7 +921,7 @@ export async function moveItemToRegularNote(filename: string, content: string, i
     return updatedDestNote
 
     // Ask for cache refresh for this note
-  } catch (error) {
+  } catch (error: any) {
     logError('', error.message)
     return null
   }

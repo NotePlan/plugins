@@ -50,7 +50,7 @@ export function getFrontmatterVariables(noteContent: string): any {
     const noteContentNoTabs = noteContent.replace('\t', ' ') //tabs in frontmatter break hierarchy
     const fmVars = getAttributes(noteContentNoTabs)
     return fmVars && fmVars.mathPresets ? fmVars.mathPresets : {}
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return {}
   }
@@ -342,7 +342,7 @@ export async function calculateBlocks(buttonClickedIndex: number | null = null, 
       logDebug(pluginJson, msg)
       await showMessage(msg)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `calculateBlocks error: ${error}`)
   }
 }
@@ -355,7 +355,7 @@ export async function calculateBlocks(buttonClickedIndex: number | null = null, 
 export async function calculateEditorMathBlocks(incoming: string | null = null) {
   try {
     await calculateBlocks(null, '', getFrontmatterVariables(Editor.content || ''))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -373,7 +373,7 @@ export async function calculatePreceedingMathBlock(id: string) {
       logDebug(pluginJson, `calculatePreceedingMathBlock calling calculateBlocks with buttonClickedIndex=${buttonClickedIndex} content:"${paragraph.content}"`)
       await calculateBlocks(buttonClickedIndex, '', getFrontmatterVariables(Editor.content || ''))
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -391,7 +391,7 @@ export async function calculatePreceedingMathBlockTotal(id: string) {
       logDebug(pluginJson, `calculatePreceedingMathBlock calling calculateBlocks with buttonClickedIndex=${buttonClickedIndex} content:"${paragraph.content}"`)
       await calculateBlocks(buttonClickedIndex, 'totalsOnly', getFrontmatterVariables(Editor.content || ''))
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -408,7 +408,7 @@ export function clearPreceedingMathBlock(id: string) {
         removeAllAnnotations(paragraph.lineIndex)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -421,7 +421,7 @@ export function clearPreceedingMathBlock(id: string) {
 export async function calculateEditorMathBlocksTotalsOnly(incoming: string | null = null) {
   try {
     await calculateBlocks(null, 'totalsOnly', getFrontmatterVariables(Editor.content || ''))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -433,7 +433,7 @@ export async function calculateEditorMathBlocksTotalsOnly(incoming: string | nul
 export async function calculateNoRounding(incoming: string) {
   try {
     await calculateBlocks(null, 'noRounding', getFrontmatterVariables(Editor.content || ''))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -469,7 +469,7 @@ export async function insertMathBlock() {
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -481,7 +481,7 @@ export async function insertMathBlock() {
 export async function debugMath() {
   try {
     await calculateBlocks(null, 'debug', getFrontmatterVariables(Editor.content || ''))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

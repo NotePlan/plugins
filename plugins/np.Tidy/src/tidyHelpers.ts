@@ -109,7 +109,7 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
       logDebug('returnRegexMatchedParas', 'Found ${matchCount} matched paragraphs')
     }
     return matchedParas
-  } catch (error) {
+  } catch (error: any) {
     logError(`${pluginJson}/returnRegexMatchedParas`, error.message)
   }
 }

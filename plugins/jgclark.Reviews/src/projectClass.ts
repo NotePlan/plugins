@@ -68,18 +68,18 @@ export class Project {
   metadataParaLineIndex: number
   projectTag: string // #project, #area, etc.
   title: string
-  startDate: ?Date
-  dueDate: ?Date
+  startDate: null | void | Date
+  dueDate: null | void | Date
   dueDays: number = NaN
-  reviewedDate: ?Date
+  reviewedDate: null | void | Date
   reviewInterval: string // later will default to '1w' if needed
-  nextReviewDate: ?Date
-  nextReviewDateStr: ?string // can be set by user (temporarily) but not otherwise populated
+  nextReviewDate: null | void | Date
+  nextReviewDateStr: null | void | string // can be set by user (temporarily) but not otherwise populated
   nextReviewDays: number = NaN
-  completedDate: ?Date
-  completedDuration: ?string // string description of time to completion, or how long ago completed
-  cancelledDate: ?Date
-  cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
+  completedDate: null | void | Date
+  completedDuration: null | void | string // string description of time to completion, or how long ago completed
+  cancelledDate: null | void | Date
+  cancelledDuration: null | void | string // string description of time to cancellation, or how long ago cancelled
   openTasks: number
   completedTasks: number
   waitingTasks: number
@@ -149,7 +149,7 @@ export class Project {
             : (hashtags[1])
               ? hashtags[1]
               : ''
-      } catch (e) {
+      } catch (e: any) {
         this.projectTag = ''
         logWarn('Project', `- found no projectTag for '${this.title}' in folder ${this.folder}`)
       }
@@ -324,12 +324,12 @@ export class Project {
           // logDebug('calcDurations', `No completed or cancelled dates.`)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logError('calcDurations', error.message)
     }
   }
 
-  calcNextReviewDate(): ?Date {
+  calcNextReviewDate(): null | void | Date {
     try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
       const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -368,7 +368,7 @@ export class Project {
       }
       // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
       return this.nextReviewDate
-    } catch (error) {
+    } catch (error: any) {
       logError('calcNextReviewDate', error.message)
       return null
     }
@@ -431,7 +431,7 @@ export class Project {
         // Also updateCache
         await DataStore.updateCache(this.note, true)
       }
-    } catch (error) {
+    } catch (error: any) {
       logError(`Project::addProgressLine`, JSP(error))
     }
   }
@@ -709,7 +709,7 @@ export function calcDurationsForProject(thisProjectIn: Project): $Shape<Project>
       }
       return thisProject
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('calcDurations', error.message)
     // $FlowFixMe[incompatible-return] reason for suppression
     return null
@@ -756,7 +756,7 @@ export function calcReviewFieldsForProject(thisProjectIn: Project): $Shape<Proje
     }
     // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisProject.reviewedDate)} / nextReviewDate = ${String(thisProject.nextReviewDate)} / nextReviewDays = ${String(thisProject.nextReviewDays)}`)
     return thisProject
-  } catch (error) {
+  } catch (error: any) {
     logError('calcNextReviewDate', error.message)
     return null
   }

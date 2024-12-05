@@ -41,7 +41,7 @@ import { getNoteByFilename } from '../../helpers/note'
 export async function init(): Promise<void> {
   try {
     // executes before any np.Templating command
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -50,7 +50,7 @@ export async function onSettingsUpdated() {
   try {
     const templateGroupTemplatesByFolder = DataStore.settings?.templateGroupTemplatesByFolder || false
     DataStore.setPreference('templateGroupTemplatesByFolder', templateGroupTemplatesByFolder)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -76,7 +76,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 
     const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
     console.log(version)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -100,7 +100,7 @@ export async function templateInit(): Promise<void> {
     } else {
       onUpdateOrInstall({ silent: true })
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -119,7 +119,7 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
     } else {
       await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to insert template.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -146,7 +146,7 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
     } else {
       await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -182,7 +182,7 @@ export async function templateForm(templateTitle?: string): Promise<void> {
                 return
               }
               clo(formFields, `🎅🏼 DBWDELETE NPTemplating.templateForm formFields=`)
-            } catch (error) {
+            } catch (error: any) {
               logError(pluginJson, `templateForm: error parsing form fields: ${error.message} String:\n${formFieldsString}`)
               return
             }
@@ -209,7 +209,7 @@ export async function templateForm(templateTitle?: string): Promise<void> {
 
     //TODO: IAMHERE - open the form fields in the editor, passing the data
     DataStore.invokePluginCommandByName('openFormWindow', 'np.Shared', [frontmatterAttributes])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -261,7 +261,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
     } else {
       await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -335,7 +335,7 @@ export async function templateNew(templateTitle: string = '', _folder?: string, 
     } else {
       await CommandBar.prompt('New Template', `An error occured creating ${noteTitle} note`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -424,7 +424,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
         await CommandBar.prompt('New Note Could Note Be Created', helpInfo('Template Anatomty: Frontmatter'))
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -516,7 +516,7 @@ export async function templateMeetingNote(templateName: string = '', templateDat
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -532,7 +532,7 @@ export async function templateWeather(): Promise<string> {
     const weather = weatherFormat.length === 0 ? await getWeather() : await getWeatherSummary(weatherFormat)
 
     Editor.insertTextAtCursor(weather)
-  } catch (error) {
+  } catch (error: any) {
     Editor.insertTextAtCursor('**An error occurred accessing weather service**')
   }
 }
@@ -544,7 +544,7 @@ export async function templateAdvice(): Promise<string> {
     const advice: string = await getAdvice()
 
     Editor.insertTextAtCursor(advice)
-  } catch (error) {
+  } catch (error: any) {
     Editor.insertTextAtCursor('**An error occurred accessing advice service**')
   }
 }
@@ -556,7 +556,7 @@ export async function templateAffirmation(): Promise<string> {
     const affirmation: string = await getAffirmation()
 
     Editor.insertTextAtCursor(affirmation)
-  } catch (error) {
+  } catch (error: any) {
     Editor.insertTextAtCursor('**An error occurred accessing affirmation service**')
   }
 }
@@ -568,7 +568,7 @@ export async function templateVerse(): Promise<string> {
     const verse: string = await getVersePlain()
 
     Editor.insertTextAtCursor(verse)
-  } catch (error) {
+  } catch (error: any) {
     Editor.insertTextAtCursor('**An error occurred accessing bible service**')
   }
 }
@@ -580,7 +580,7 @@ export async function templateQuote(): Promise<string> {
     const verse: string = await getDailyQuote()
 
     Editor.insertTextAtCursor(verse)
-  } catch (error) {
+  } catch (error: any) {
     Editor.insertTextAtCursor('**An error occurred accessing quote service**')
   }
 }
@@ -599,7 +599,7 @@ export async function templateRunner(...args: Array<string>) {
     } else {
       await CommandBar.prompt(`No arguments (with template name) were given to the templateRunner."`, helpInfo('Presets'))
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -612,7 +612,7 @@ export async function templateAbout(params: any = []): Promise<string> {
     await CommandBar.prompt('About np.Templating', aboutInfo)
     log(pluginJson, `${version}`)
     return version
-  } catch (error) {
+  } catch (error: any) {
     return logError(pluginJson, error)
   }
 }
@@ -631,7 +631,7 @@ export async function templateTest(): Promise<void> {
     plugins.forEach((plugin) => {
       clo(plugin)
     })
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -655,7 +655,7 @@ export async function templateWOTD(): Promise<void> {
     Editor.insertTextAtCursor(data.word)
 
     // Editor.insertTextAtCursor(response)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -714,7 +714,7 @@ export async function templateExecute(templateName?: string, userData?: any): Pr
       selectedTemplateFilename ?? (await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false }))
     clo(userData, `templateExecute selectedTemplateFilename="${selectedTemplateFilename}" userData=`)
     await NPTemplating.renderTemplate(selectedTemplateFilename, userData)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }

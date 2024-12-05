@@ -313,7 +313,7 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
     await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
     // sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
     return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -454,7 +454,7 @@ export async function getTodayReferencedTasks(weeklyNote: boolean = false): Prom
     const arrayOfOpenNotesAndTasks = Editor.note ? getReferencesForReview(Editor.note, weeklyNote) : [[]]
     logDebug(pluginJson, `getTodayReferencedTasks: arrayOfOpenNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
     return [...arrayOfOpenNotesAndTasks, [...todosInNote]]
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return [[]]
   }
@@ -597,7 +597,7 @@ export async function startReactReview(filterSetting?: string | null, folderToSe
     // await askToReviewTodaysTasks(true)
     // await askToReviewForgottenTasks(true)
     // await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -611,7 +611,7 @@ export async function startReactReview(filterSetting?: string | null, folderToSe
 export async function processOverdueReact(filterSetting?: string | null) {
   try {
     await startReactReview(filterSetting || 'Overdue')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -627,7 +627,7 @@ export async function processFolderReact(folderToSearch?: string | false, filter
     logDebug(pluginJson, `processFolderReact running with filterSetting:${String(filterSetting)} folderToSearch:${String(folderToSearch)}`)
     const folder = folderToSearch || (await chooseFolder('Choose a folder to search for tasks'))
     await startReactReview(filterSetting || 'Overdue', folder)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -688,7 +688,7 @@ export async function testOverdueReact() {
     logDebug(pluginJson, `processOverdueReact invoking window. processOverdueReact stopping here.`)
     // clo(data, `testOverdueReact data`)
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', payload)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

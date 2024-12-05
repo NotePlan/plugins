@@ -38,11 +38,11 @@ export type LineInfo = {
  */
 export type CurrentData = {
   info: Array<LineInfo>,
-  variables: { [string]: any },
+  variables: { [k: string]: any },
   relations: Array<Array<string> | null>,
   expressions: Array<string>,
   rows: number,
-  precision: ?number,
+  precision: null | void | number,
 }
 
 import math from './math.min'
@@ -118,7 +118,7 @@ export function checkIfUnit(obj: any): boolean {
 //             const results = math.evaluate(data.expressions, data.variables)
 //             results.map((e, i) => (data.variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)) // put the row results in the variables
 //             // updateResultInRow(results[index] ? formatResults(results[index]) : '', index)  // the current row is updated
-//           } catch (error) {
+//           } catch (error: any) {
 //             // updateResultInRow('', index)
 //             console.log('Completing expression', error)
 //           }
@@ -211,7 +211,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     // const results = math.evaluate([strToBeParsed], variables)
     // clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
     // preProcessedValue = results[0]
-  } catch (error) {
+  } catch (error: any) {
     // errors are to be expected since we are pre-processing
     // error messages: "Undefined symbol total", "Unexpected part "4" (char 7)"
     logDebug(pluginJson, `math.js pre-process FAILED on "${strToBeParsed}" with message: "${error.message}"`)
@@ -372,7 +372,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     //    logDebug(`solver::parse`,`Returning (Pretty):\n${JSON.stringify(data,null,2)}`)
     return currentData // all variables inside have been updated because the desctructuring just creates references
     // createOrUpdateResult(results[selectedRow] ? formatResults(results[selectedRow]) : '') // the current row is updated
-  } catch (error) {
+  } catch (error: any) {
     // createOrUpdateResult('')
     logDebug(pluginJson, `Error completing expression in: ${String(expressions)} ${error}`)
     clo(expressions && expressions.length ? expressions : {}, `parse--expressions`)
@@ -406,7 +406,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
 //         listenBtn.classList.add('show')
 //         listenBtn.classList.remove('hide')
 //         statusListening = 'stop'
-//     } catch (e) {
+//     } catch (e: any) {
 //         console.error(e)
 //     }
 // }

@@ -30,7 +30,7 @@ export async function getVersePlain(): Promise<string> {
     const result = `*${data.bookname} ${data.chapter}:${data.verse}* - ${data.text}`
 
     return result
-  } catch (error) {
+  } catch (error: any) {
     return '**An error occurred accessing verse service**'
   }
 }

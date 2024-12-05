@@ -150,7 +150,7 @@ export async function syncEverything() {
     try {
       DataStore.createFolder(setup.folder)
       logDebug(pluginJson, `New folder has been created (${setup.folder})`)
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, `Unable to create new folder (${setup.folder}) in Noteplan (${JSON.stringify(error)})`)
       process.exit(1)
     }
@@ -163,10 +163,10 @@ export async function syncEverything() {
   if (projects.length > 0) {
     for (let i = 0; i < projects.length; i++) {
       // see if there is an existing note or create it if not
-      const note_info: ?Object = getExistingNote(projects[i].project_name)
+      const note_info: null | void | Object = getExistingNote(projects[i].project_name)
       if (note_info) {
         //console.log(note_info.title)
-        const note: ?TNote = DataStore.projectNoteByFilename(note_info.filename)
+        const note: null | void | TNote = DataStore.projectNoteByFilename(note_info.filename)
         //console.log(note?.filename)
         if (note) {
           // get the completed tasks in Noteplan and close them in Todoist
@@ -196,17 +196,17 @@ export async function syncEverything() {
 // eslint-disable-next-line require-await
 export async function syncProject() {
   setSettings()
-  const note: ?TNote = Editor.note
+  const note: null | void | TNote = Editor.note
   if (note) {
     // check to see if this has any frontmatter
-    const frontmatter: ?Object = getFrontMatterAttributes(note)
+    const frontmatter: null | void | Object = getFrontMatterAttributes(note)
     clo(frontmatter)
     let check: boolean = true
     if (frontmatter) {
       if ('todoist_id' in frontmatter) {
         logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
 
-        const paragraphs: ?ReadonlyArray<TParagraph> = note.paragraphs
+        const paragraphs: null | void | ReadonlyArray<TParagraph> = note.paragraphs
         if (paragraphs) {
           paragraphs.forEach((paragraph) => {
             checkParagraph(paragraph)
@@ -266,14 +266,14 @@ export async function syncAllProjectsAndToday() {
  */
 async function syncThemAll() {
   const search_string = 'todoist_id:'
-  const paragraphs: ?ReadonlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
+  const paragraphs: null | void | ReadonlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
 
   if (paragraphs) {
     for (let i = 0; i < paragraphs.length; i++) {
       const filename = paragraphs[i].filename
       if (filename) {
         logInfo(pluginJson, `Working on note: ${filename}`)
-        const note: ?TNote = DataStore.projectNoteByFilename(filename)
+        const note: null | void | TNote = DataStore.projectNoteByFilename(filename)
 
         if (note) {
           const paragraphs_to_check: ReadonlyArray<TParagraph> = note?.paragraphs
@@ -332,14 +332,14 @@ async function syncTodayTasks() {
   logInfo(pluginJson, `Todays date is: ${date_string}`)
 
   if (date) {
-    const note: ?TNote = DataStore?.calendarNoteByDateString(date)
+    const note: null | void | TNote = DataStore?.calendarNoteByDateString(date)
     if (note === null) {
       logError(pluginJson, 'unable to find todays note in Noteplan')
       HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
       process.exit(1)
     }
     // check to see if that heading already exists and tab what tasks already exist
-    const paragraphs: ?ReadonlyArray<TParagraph> = note?.paragraphs
+    const paragraphs: null | void | ReadonlyArray<TParagraph> = note?.paragraphs
     if (paragraphs) {
       paragraphs.forEach((paragraph) => {
         checkParagraph(paragraph)
@@ -441,7 +441,7 @@ function checkParagraph(paragraph: TParagraph) {
     logDebug(pluginJson, `Done or Cancelled Task content: ${content}`)
 
     // close these ones in Todoist if they are closed in Noteplan and are todoist tasks
-    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
+    const found: null | void | Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       closed.push(found[1])
@@ -451,7 +451,7 @@ function checkParagraph(paragraph: TParagraph) {
   } else if (paragraph.type === 'open') {
     const content: string = paragraph.content
     logDebug(pluginJson, `Open Task content: ${content}`)
-    const found: ?Array<string> = content.match(/app\/task\/(.*?)\)/)
+    const found: null | void | Array<string> = content.match(/app\/task\/(.*?)\)/)
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       // check to see if it is already closed in Todoist.
@@ -665,7 +665,7 @@ function getExistingNote(project_name: string): Object {
     logDebug(pluginJson, `Creating note: ${project_name} in: ${setup.folder}`)
     try {
       filename = DataStore.newNote(project_name, setup.folder)
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, `Unable to create new note (${JSON.stringify(error)}`)
     }
   }
@@ -696,7 +696,7 @@ function reviewExistingNoteplanTasks(note: TNote) {
 async function getTodoistProjects() {
   const project_list = []
   const results = await fetch(`${todo_api}/projects`, getRequestObject())
-  const projects: ?Array<Object> = JSON.parse(results)
+  const projects: null | void | Array<Object> = JSON.parse(results)
   if (projects) {
     projects.forEach((project) => {
       logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
@@ -716,7 +716,7 @@ async function closeTodoistTask(task_id: string) {
   try {
     await fetch(`${todo_api}/tasks/${task_id}/close`, postRequestObject())
     logInfo(pluginJson, `Closed task (${task_id}) in Todoist`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `Unable to close task (${task_id}) ${JSON.stringify(error)}`)
   }
 }

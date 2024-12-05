@@ -25,14 +25,14 @@ export function rectToString(rect: Rect): string {
 export function logWindowsList(): void {
   const outputLines = []
   const numWindows = NotePlan.htmlWindows.length + NotePlan.editors.length
-  if (NotePlan.environment.buildVersion >= 1100) {
+  if (NotePlan.environment?.buildVersion ?? 0 >= 1100) {
     // v3.9.8a
-    outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment.machineName}:`)
+    outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment?.machineName ?? ''}:`)
   } else {
     outputLines.push(`${String(numWindows)} Windows:`)
   }
 
-  if (NotePlan.environment.buildVersion >= 1020) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 1020) {
     let c = 0
     for (const win of NotePlan.editors) {
       outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
@@ -44,7 +44,7 @@ export function logWindowsList(): void {
       c++
     }
     logInfo('logWindowsList', outputLines.join('\n'))
-  } else if (NotePlan.environment.buildVersion >= 973) {
+  } else if (((NotePlan.environment.buildVersion ?? 0)) >= 973) {
     let c = 0
     for (const win of NotePlan.editors) {
       outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
@@ -64,7 +64,7 @@ export function logWindowsList(): void {
 
 export async function setEditorSplitWidth(editorWinIn: number, widthIn: number): Promise<void> {
   try {
-    if (NotePlan.environment.buildVersion <= 1119) {
+    if ((NotePlan.environment.buildVersion ?? Infinity) <= 1119) {
       logWarn('setEditorSplitWidth', 'Cannot set editor split window width.')
       return
     }
@@ -75,19 +75,19 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
     logDebug('setEditorSplitWidth', '- Rect: '.concat(rectToString(editorWin.windowRect)))
     const width = widthIn
       ? widthIn
-      : await inputIntegerBounded('Set Width', 'Width? (300-'.concat(String(NotePlan.environment.screenWidth), ')'), NotePlan.environment.screenWidth, 300)
-    const thisWindowRect = getLiveWindowRectFromWin(editorWin)
+      : await inputIntegerBounded('Set Width', 'Width? (300-'.concat(String(NotePlan.environment.screenWidth), ')'), NotePlan.environment.screenWidth ?? 0, 300)
+    const thisWindowRect = getLiveWindowRectFromWin(editorWin as any)
     if (!thisWindowRect) {
       logError('setEditorSplitWidth', "Can't get window rect for editor ".concat(String(editorWinIn)))
       return
     }
-    const existingWidth = thisWindowRect.width
-    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(existingWidth, ' to ').concat(String(width)))
+    const existingWidth = thisWindowRect.width ?? 0
+    logDebug('setEditorSplitWidth', 'Attempting to set width for editor #'.concat(String(editorWinIndex), ' from ').concat(String(existingWidth), ' to ').concat(String(width)))
     thisWindowRect.width = width
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
     logDebug('setEditorSplitWidth', '- now width = '.concat(String(newWidth)))
-  } catch (error) {
+  } catch (error: any) {
     logError('setEditorSplitWidth', error.message)
     return
   }
@@ -100,7 +100,7 @@ export async function setEditorSplitWidth(editorWinIn: number, widthIn: number):
  */
 export function getNonMainWindowIds(): Array<string> {
   const outputIDs = []
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     let c = 0
     for (const win of NotePlan.editors) {
       if (c > 0) outputIDs.push(win.id)
@@ -125,9 +125,9 @@ export function getNonMainWindowIds(): Array<string> {
  * @param {string} customId
  */
 export async function setHTMLWindowId(customId: string): Promise<void> {
-  if (NotePlan.environment.buildVersion >= 1087) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 1087) {
     logDebug('setHTMLWindowId', `Won't set customId '${customId}' for HTML window as not necessary from 3.9.6.`)
-  } else if (NotePlan.environment.buildVersion >= 973) {
+  } else if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     logDebug('setHTMLWindowId', `Starting with ${String(allHTMLWindows.length)} HTML windows`)
     const thisWindow = allHTMLWindows[0]
@@ -190,7 +190,7 @@ export function isHTMLWindowOpen(customId: string): boolean {
  * @param {string} customId
  */
 export function setEditorWindowId(openNoteFilename: string, customId: string): void {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     const allEditorWindows = NotePlan.editors
     for (const thisEditorWindow of allEditorWindows) {
       if (thisEditorWindow.filename === openNoteFilename) {
@@ -214,7 +214,7 @@ export function setEditorWindowId(openNoteFilename: string, customId: string): v
  * @returns {Editor} the Editor window
  */
 export function findEditorWindowByFilename(filenameToFind: string): TEditor | false {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     logWindowsList()
 
     const allEditorWindows = NotePlan.editors
@@ -238,7 +238,7 @@ export function findEditorWindowByFilename(filenameToFind: string): TEditor | fa
  * @returns {boolean}
  */
 export function noteOpenInEditor(openNoteFilename: string): boolean {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     const allEditorWindows = NotePlan.editors
     for (const thisEditorWindow of allEditorWindows) {
       if (thisEditorWindow.filename === openNoteFilename) {
@@ -259,7 +259,7 @@ export function noteOpenInEditor(openNoteFilename: string): boolean {
  * @returns {TEditor} the matching open Editor window
  */
 export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | false {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     const allEditorWindows = NotePlan.editors
     for (const thisEditorWindow of allEditorWindows) {
       if (thisEditorWindow.filename === openNoteFilename) {
@@ -278,7 +278,7 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
  * @returns {boolean} true if we have given focus to an existing window
  */
 export function focusHTMLWindowIfAvailable(customId: string): boolean {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if ((NotePlan.environment.buildVersion ?? 0) >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     for (const thisWindow of allHTMLWindows) {
       if (thisWindow.customId === customId) {
@@ -368,7 +368,7 @@ export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLVie
  */
 export function closeWindowFromCustomId(windowCustomId: string): void {
   // First loop over all Editor windows
-  let thisWin: TEditor | HTMLView
+  let thisWin: null | TEditor | HTMLView = null
   const allEditorWindows = NotePlan.editors
   for (const thisWindow of allEditorWindows) {
     if (thisWindow.customId === windowCustomId) {
@@ -396,7 +396,7 @@ export function closeWindowFromCustomId(windowCustomId: string): void {
  */
 export function closeWindowFromId(windowId: string): void {
   // First loop over all Editor windows
-  let thisWin: TEditor | HTMLView
+  let thisWin: null | TEditor | HTMLView = null
   const allEditorWindows = NotePlan.editors
   for (const thisWindow of allEditorWindows) {
     if (thisWindow.id === windowId) {
@@ -423,7 +423,7 @@ export function closeWindowFromId(windowId: string): void {
  * @param {string} customId
  */
 export function storeWindowRect(customId: string): void {
-  if (NotePlan.environment.buildVersion < 1020) {
+  if ((NotePlan.environment.buildVersion ?? Infinity) < 1020) {
     logDebug('storeWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
     return
   }
@@ -447,12 +447,12 @@ export function storeWindowRect(customId: string): void {
  */
 export function getStoredWindowRect(customId: string): Rect | false {
   try {
-    if (NotePlan.environment.buildVersion < 1020) {
+    if ((NotePlan.environment.buildVersion ?? Infinity) < 1020) {
       logWarn('getWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
       return false
     }
     const prefName = `WinRect_${customId}`
-    // $FlowFixMe[incompatible-type]
+    // @ts-expect-error
     const windowRect: Rect = DataStore.preference(prefName)
     if (!windowRect) {
       logWarn('getWindowRect', `Couldn't retrieve Rect from saved pref ${prefName}`)
@@ -460,7 +460,7 @@ export function getStoredWindowRect(customId: string): Rect | false {
     }
     logDebug('getWindowRect', `Retrieved Rect ${rectToString(windowRect)} from saved ${prefName}`)
     return windowRect
-  } catch (error) {
+  } catch (error: any) {
     logError('getStoredWindowRect', error.message)
     return false
   }
@@ -472,7 +472,7 @@ export function getStoredWindowRect(customId: string): Rect | false {
  * @returns {Rect} the Rect (x/y/w/h)
  */
 export function getLiveWindowRect(windowId: string): Rect | false {
-  if (NotePlan.environment.buildVersion < 1020) {
+  if ((NotePlan.environment.buildVersion ?? Infinity) < 1020) {
     logWarn('getLiveWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
     return false
   }
@@ -494,11 +494,12 @@ export function getLiveWindowRect(windowId: string): Rect | false {
  * @returns {Rect} the Rect (x/y/w/h)
  */
 export function getLiveWindowRectFromWin(win: Window): Rect | false {
-  if (NotePlan.environment.buildVersion < 1020) {
+  if ((NotePlan.environment.buildVersion ?? Infinity) < 1020) {
     logWarn('getLiveWindowRectFromWin', `Cannot get window rect as not running v3.9.1 or later.`)
     return false
   }
   if (win) {
+    // @ts-expect-error
     const windowRect: Rect = win.windowRect
     clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
     return windowRect
@@ -532,7 +533,7 @@ export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
  */
 export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: number): Promise<void> {
   try {
-    if (NotePlan.environment.buildVersion <= 1119) {
+    if ((NotePlan.environment.buildVersion ?? Infinity) <= 1119) {
       logWarn('setEditorWindowWidth', `Cannot set editor split window width.`)
       return
     }
@@ -542,8 +543,9 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
     const editorWin = NotePlan.editors[editorWinIndex]
     logDebug('setEditorWindowWidth', `- Rect: ${rectToString(editorWin.windowRect)}`)
 
-    const width = widthIn ? widthIn : await inputIntegerBounded('Set Width', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth, 300)
+    const width = widthIn ? widthIn : await inputIntegerBounded('Set Width', `Width? (300-${String(NotePlan.environment.screenWidth)})`, NotePlan.environment.screenWidth ?? 0, 300)
 
+    // @ts-expect-error
     const thisWindowRect = getLiveWindowRectFromWin(editorWin)
     if (!thisWindowRect) {
       logError('setEditorWindowWidth', `Can't get window rect for editor ${String(editorWinIn)}`)
@@ -556,7 +558,7 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
     editorWin.windowRect = thisWindowRect
     const newWidth = thisWindowRect.width
     logDebug('setEditorWindowWidth', `- now width = ${newWidth}`)
-  } catch (error) {
+  } catch (error: any) {
     logError('getStoredWindowRect', error.message)
     return
   }
@@ -571,10 +573,10 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
  */
 // $FlowFixMe[incompatible-return]
 // export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
-export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }>(winDetails: T): T {
+export function constrainWindowSizeAndPosition<T extends { x: number, y: number, width: number, height: number }>(winDetails: T): T {
   try {
-    const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
-    const screenWidth = NotePlan.environment.screenWidth
+    const screenHeight = NotePlan.environment?.screenHeight ?? 0 // remember bottom edge is y=0
+    const screenWidth = NotePlan.environment?.screenWidth ?? 0
     const left = winDetails.x
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
@@ -619,7 +621,7 @@ export function constrainWindowSizeAndPosition<T: { x: number, y: number, width:
       }
     }
     return winDetails
-  } catch (error) {
+  } catch (error: any) {
     logError('constrainWindowSizeAndPosition', `constrainWindowSizeAndPosition(): ${error.name}: ${error.message}. Returning original window details.`)
     return winDetails
   }
@@ -642,7 +644,7 @@ export async function constrainMainWindow(): Promise<void> {
 
     NotePlan.editors[0].windowRect = updatedRect
     return
-  } catch (err) {
+  } catch (err: any) {
     logError('constrainMainWindow', err.message)
     return
   }

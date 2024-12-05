@@ -97,7 +97,7 @@ export async function openCurrentNoteNewSplit(): Promise<void> {
     const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
     // open note, moving cursor to start of main content
     await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
-  } catch (e) {
+  } catch (e: any) {
     logError('openCurrentNoteNewSplit()', e.message)
   }
 }
@@ -119,7 +119,7 @@ export async function openCurrentNoteNewWindow(): Promise<void> {
     const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
     // open note, moving cursor to start of main content
     await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
-  } catch (e) {
+  } catch (e: any) {
     logError('openCurrentNoteNewSplit()', e.message)
   }
 }

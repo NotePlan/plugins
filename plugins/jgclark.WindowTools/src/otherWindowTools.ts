@@ -41,7 +41,7 @@ export function constrainMainWindow(): void {
     logDebug(pluginJson, `- updatedRect: ${rectToString(updatedRect)}`)
 
     NotePlan.editors[0].windowRect = updatedRect
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }

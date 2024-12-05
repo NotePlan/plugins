@@ -19,7 +19,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
     const updateSettings = updateSettingData(pluginJson)
     console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
   }
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)

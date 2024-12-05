@@ -155,7 +155,7 @@ export function testRedToGreenInterpolation(): void {
 export function testButtonTriggerOpenNote(): void {
   try {
     HTMLView.showWindow(openNoteHTML, "testButtonTriggerOpenNote", 200, 200)
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
   }
 }
@@ -200,7 +200,7 @@ const openNoteHTML = `
 export function testButtonTriggerCommand(): void {
   try {
     HTMLView.showWindow(triggerCommandHTML, "testButtonTriggerCommand", 200, 200)
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
   }
 }

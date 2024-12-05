@@ -12,19 +12,19 @@ import { extractModifierKeys } from '@np/helpers/react/reactMouseKeyboard'
 type TooltipProps = {
   metaKey?: {
     text: React.ReactNode,
-    style?: { [string]: string | number },
+    style?: { [k: string]: string | number },
   },
   shiftKey?: {
     text: React.ReactNode,
-    style?: { [string]: string | number },
+    style?: { [k: string]: string | number },
   },
   ctrlKey?: {
     text: React.ReactNode,
-    style?: { [string]: string | number },
+    style?: { [k: string]: string | number },
   },
   altKey?: {
     text: React.ReactNode,
-    style?: { [string]: string | number },
+    style?: { [k: string]: string | number },
   },
   disappearAfter?: number, // ms
   children: React.ReactNode,

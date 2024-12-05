@@ -129,7 +129,7 @@ export function removeEntry(heading: string) {
  * @param {*} deleteItem - whether to delete the entry with the given heading first
  * @param {'true'|'false'|'toggle'} foldHeading - whether to fold the heading after scrolling to it
  */
-export function scrollToEntry(_heading: string, _deleteItem?: ?string = null, foldHeading?: ?string = null): void {
+export function scrollToEntry(_heading: string, _deleteItem?: null | void | string = null, foldHeading?: null | void | string = null): void {
   try {
     const heading =
       _heading === 'Table of Contents' ? createPrettyRunPluginLink('Table of Contents', 'shared.AI', 'Scroll to Entry', ['Table of Contents', 'false', 'toggle']) : _heading
@@ -158,7 +158,7 @@ export function scrollToEntry(_heading: string, _deleteItem?: ?string = null, fo
       }
       Editor.highlightByIndex(firstCharacter, 0) // scroll to where it was
     }
-  } catch (error) {
+  } catch (error: any) {
     logDebug(pluginJson, `scrollToEntry error: ${JSP(error)}`)
   }
 }

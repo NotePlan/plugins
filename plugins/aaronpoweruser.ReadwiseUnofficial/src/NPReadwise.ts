@@ -101,7 +101,7 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     const result = parsedJson.results.concat(data)
     // DataStore.saveData(JSON.stringify(result), 'readwise_data.json', true)
     return result
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }
@@ -133,7 +133,7 @@ async function getReadwiseDailyReview(): Promise<string> {
       highlightString = highlightString.substring(0, highlightString.length - 1)
     }
     logDebug(pluginJson, `Daily review highlights are\n\n ${highlightString}`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
   return highlightString

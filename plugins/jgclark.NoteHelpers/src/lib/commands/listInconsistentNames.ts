@@ -38,7 +38,7 @@ export function listInconsistentNames(): void {
         shouldFocus: true
       })
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `listInconsistentNames() error: ${error.message}`)
   }
 }

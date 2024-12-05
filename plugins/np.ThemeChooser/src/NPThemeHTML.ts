@@ -55,7 +55,7 @@ export function askForColor(key: string, defaultValue: string): void {
   try {
     HTMLView.showWindow(html, 'Select a color', 500, 300)
     // HTMLView.showSheet(html, 300, 150)
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
   }
 }

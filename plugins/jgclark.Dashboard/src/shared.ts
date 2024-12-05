@@ -12,7 +12,7 @@ export type ValidatedData = {
     filename: string,
     content: any,
     item?: TSectionItem,
-    [string]: any,
+    [k: string]: any,
 }
 
 /**
@@ -26,7 +26,7 @@ export function parseSettings(settingsStr: string): any {
             throw new Error('Undefined settingsStr passed')
         }
         return JSON.parse(settingsStr)
-    } catch (error) {
+    } catch (error: any) {
         logError(`shared / parseSettings()`, `Error parsing settingsStr: ${error.message}: Settings string: ${(JSP(settingsStr))}`)
     }
 }

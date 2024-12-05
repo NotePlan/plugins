@@ -88,7 +88,7 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
     logWarn('moveFromCalToCal', `-> moveFromCalToCal to ${newDateStr} not successful`)
     return handlerResult(false)
   }
-  } catch (error) {
+  } catch (error: any) {
     logError('moveFromCalToCal', JSP(error))
     return { success: false }
   }

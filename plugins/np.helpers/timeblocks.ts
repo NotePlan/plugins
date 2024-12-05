@@ -173,7 +173,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
       try {
         const preferenceValue = DataStore?.preference('timeblockTextMustContainString')
         mustContainString = preferenceValue && typeof preferenceValue === 'string' ? preferenceValue : ''
-      } catch (error) {
+      } catch (error: any) {
         // ignore error
         mustContainString = ''
       }
@@ -265,7 +265,7 @@ export function getStartTimeStrFromParaContent(content: string): string {
     const thisTimeStr = getTimeBlockString(content)
     startTimeStr = thisTimeStr.split('-')[0]
     return startTimeStr
-  } catch (error) {
+  } catch (error: any) {
     logError('getStartTimeStrFromParaContent', `${JSP(error)}`)
     return 'error'
   }
@@ -282,7 +282,7 @@ export function getEndTimeStrFromParaContent(content: string): string {
     const thisTimeStr = getTimeBlockString(content)
     endTimeStr = thisTimeStr.split('-')[1]
     return endTimeStr
-  } catch (error) {
+  } catch (error: any) {
     logError('getEndTimeStrFromParaContent', `${JSP(error)}`)
     return 'error'
   }
@@ -294,7 +294,7 @@ export function getEndTimeStrFromParaContent(content: string): string {
  * @param {string} content to process
  * @returns {?{number, number}} {hours, minutes} in 24 hour clock, or null
  */
-export function getStartTimeObjFromParaContent(content: string): ?{ hours: number, mins: number } {
+export function getStartTimeObjFromParaContent(content: string): null | void | { hours: number, mins: number } {
   try {
     let startTimeStr = 'none'
     let hours = NaN
@@ -321,7 +321,7 @@ export function getStartTimeObjFromParaContent(content: string): ?{ hours: numbe
     }
     const startTime = { hours: hours, mins: mins }
     return startTime
-  } catch (error) {
+  } catch (error: any) {
     logError('getStartTimeObjFromParaContent', `${JSP(error)}`)
     return //{ hours: NaN, mins: NaN }
   }
@@ -358,7 +358,7 @@ export function getEndTimeObjFromParaContent(content: string): { hours: number, 
     }
     const startTime = { hours: hours, mins: mins }
     return startTime
-  } catch (error) {
+  } catch (error: any) {
     logError('getEndTimeObjFromParaContent', `${JSP(error)}`)
     return { hours: NaN, mins: NaN }
   }
@@ -372,7 +372,7 @@ export function getEndTimeObjFromParaContent(content: string): { hours: number, 
  * @param {boolean?} excludeClosedParas? (default: false)
  * @returns {?TParagraph}
  */
-export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean = false, mustContainString: string = ''): ?TParagraph {
+export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean = false, mustContainString: string = ''): null | void | TParagraph {
   try {
     const currentTimeMom = moment()
     // logDebug('getCurrentTimeBlock', `currentTimeMom: ${currentTimeMom.format('HH:mm:ss')}`)

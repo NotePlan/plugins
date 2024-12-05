@@ -1092,7 +1092,7 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
 
     logDebug('dateTime / relativeDateFromDateString', `--> ${codeStr} (${periodStr})`)
     return [codeStr, periodStr]
-  } catch (e) {
+  } catch (e: any) {
     logError('dateTime / relativeDateFromDateString', e.message)
     return ['(error)', '(error)']
   }
@@ -1136,7 +1136,7 @@ export function getTimeRangeFromTimeBlockString(timeBlockStr: string): [string, 
     const endStr = toLocaleTime(firstRange.end)
     // logDebug('getTimeRangeFromTimeBlockString', `Found times: ${startStr} / ${endStr} in time block '${timeBlockStr}'`)
     return [startStr, endStr]
-  } catch (error) {
+  } catch (error: any) {
     logError('getTimeRangeFromTimeBlockString', `${error.message} from time block '${timeBlockStr}'`)
     return ['23:59', '23:59'] // report as being at end of day
   }

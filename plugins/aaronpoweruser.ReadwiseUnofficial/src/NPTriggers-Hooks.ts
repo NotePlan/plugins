@@ -36,7 +36,7 @@ export async function onOpen(note: TNote): Promise<void> {
         logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onOpen: ${JSP(error)}`)
   }
 }
@@ -52,7 +52,7 @@ export async function onEditorWillSave() {
     // Note: as stated in the documentation, if you want to change any content in the Editor
     // before the file is written, you should NOT use the *note* variable here to change content
     // Instead, use Editor.* commands (e.g. Editor.insertTextAtCursor()) or Editor.updateParagraphs()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onEditorWillSave: ${JSP(error)}`)
   }
 }

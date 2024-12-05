@@ -344,7 +344,7 @@ export async function onUserModifiedParagraphs(actionType: string, data: any) {
     // and of course you can send data back using the returnValue property
     sendToHTMLWindow('RETURN_VALUE', { type: actionType, payload: { dataSent: data, returnValue:returnValue } })
     return {} /* always return something on an invoke, but the return is not received by the html window */
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

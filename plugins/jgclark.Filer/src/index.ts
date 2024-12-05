@@ -40,7 +40,7 @@ export function init(): void {
     // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
     //   pluginUpdated(pluginJson, r),
     // )
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -55,7 +55,7 @@ export async function onUpdateOrInstall(_testUpdate: boolean = false): Promise<v
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
   }
 }
@@ -69,7 +69,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

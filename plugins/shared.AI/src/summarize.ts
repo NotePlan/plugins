@@ -158,7 +158,7 @@ export async function summarizeNote(incoming: string | null = null) {
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

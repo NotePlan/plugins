@@ -38,7 +38,7 @@ type Props = {
  * @component
  * @param {Props} props - The props object.
  * @param {Date} props.lastFullRefresh - The timestamp of the last full refresh.
- * @returns {React.Node} The rendered Header component.
+ * @returns {React.ReactNode} The rendered Header component.
  */
 const Header = ({ lastFullRefresh }: Props): React.ReactNode => {
   // ----------------------------------------------------------------------

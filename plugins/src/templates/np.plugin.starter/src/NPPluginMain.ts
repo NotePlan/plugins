@@ -36,7 +36,7 @@ import { createRunPluginCallbackUrl } from '@np/helpers/general'
 // NOTE: Plugin entrypoints (jsFunctions called by NotePlan) must be exported as async functions or you will get a TypeError in the NotePlan plugin console
 // if you do not have an "await" statement inside your function, you can put an eslint-disable line like below so you don't get an error
 // eslint-disable-next-line require-await
-export async function sayHello(incoming: ?string = ''): Promise<void> {
+export async function sayHello(incoming: null | void | string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     if (incoming?.length) {
@@ -69,7 +69,7 @@ export async function sayHello(incoming: ?string = ''): Promise<void> {
         `This link could be used anywhere inside or outside of NotePlan to call this plugin:\n${url}\nGo ahead and click it! ^^^\nYou will see the results below:\n\n*****\n`,
       )
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

@@ -124,7 +124,7 @@ const PerspectiveSettings = ({ handleFieldChange, className = '' }: PerspectiveS
         />
       </div>
     )
-  } catch (error) {
+  } catch (error: any) {
     logError('PerspectiveSettings', error.message)
   }
 }

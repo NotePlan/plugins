@@ -111,7 +111,7 @@ export async function copyThemeStyle(stylePath: string | null = null) {
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -141,7 +141,7 @@ export async function removeStyle(stylePath: string | null = null) {
     } else {
       logError(pluginJson, `removeStyle: could not remove stylePath:${String(stylePath)}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -440,7 +440,7 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
     }
     logDebug(pluginJson, `createThemeSamples after open file got to the end of the function`)
     // CommandBar.showLoading(false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -518,7 +518,7 @@ export async function editStyleAttribute(stylePath: string | null = null, plugin
     //   logDebug(pluginJson, `chooseTheme, After Editor.setTheme. Executing command: ${pluginCommandToCall} in plugin: ${pluginIDToCall}`)
     //   await DataStore.invokePluginCommandByName(pluginCommandToCall, pluginIDToCall, [stylePath])
     // }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

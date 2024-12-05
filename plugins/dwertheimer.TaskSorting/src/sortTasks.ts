@@ -126,7 +126,7 @@ export async function tasksToTop() {
   try {
     logDebug(`tasksToTop(): Bringing tasks to top`)
     await sortTasks(false, [])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -135,7 +135,7 @@ export async function sortTasksByPerson() {
   try {
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['mentions', '-priority', 'content'], includeHeading, includeSubHeading)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -144,7 +144,7 @@ export async function sortTasksByDue() {
   try {
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['due', '-priority', 'content'], includeHeading, includeSubHeading)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -153,7 +153,7 @@ export async function sortTasksByTag() {
   try {
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['hashtags', '-priority', 'content'], includeHeading, includeSubHeading)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -166,7 +166,7 @@ export async function sortTasksDefault() {
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
     )
     await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -175,7 +175,7 @@ export async function sortTasksTagMention() {
   try {
     const { includeHeading, includeSubHeading } = DataStore.settings
     await sortTasks(false, ['hashtags', 'mentions'], includeHeading, includeSubHeading)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -467,7 +467,7 @@ export async function writeOutTasks(
               title,
             )
           : null
-      } catch (e) {
+      } catch (e: any) {
         logError(pluginJson, JSON.stringify(e))
       }
     }
@@ -581,7 +581,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: ReadonlyArray<T
       { [ROOT]: [] },
     ) // start with root heading
     return tasksObj
-  } catch (e) {
+  } catch (e: any) {
     logError(pluginJson, JSP(e))
     return { [ROOT]: [] }
   }
@@ -695,7 +695,7 @@ export async function sortTasksUnderHeading() {
       logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
       await showMessage('No note is open')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSON.stringify(error))
   }
 }

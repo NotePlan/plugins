@@ -34,7 +34,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
   }
   console.log(`${pluginID}: onUpdateOrInstall finished`)
@@ -49,7 +49,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

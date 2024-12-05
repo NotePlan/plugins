@@ -615,7 +615,7 @@ Template.prototype = {
         + '  , __filename = ' + sanitizedFilename + ';' + '\n'
         + 'try {' + '\n'
         + this.source
-        + '} catch (e) {' + '\n'
+        + '} catch (e: any) {' + '\n'
         + '  rethrow(e, __lines, __filename, __line, escapeFn);' + '\n'
         + '}' + '\n';
     }
@@ -702,7 +702,7 @@ Template.prototype = {
           enumerable: false,
           configurable: true
         });
-      } catch (e) {/* ignore */}
+      } catch (e: any) {/* ignore */}
     }
     return returnedFn;
   },
@@ -1453,7 +1453,7 @@ function defaultClearTimeout () {
         } else {
             cachedSetTimeout = defaultSetTimout;
         }
-    } catch (e) {
+    } catch (e: any) {
         cachedSetTimeout = defaultSetTimout;
     }
     try {
@@ -1462,7 +1462,7 @@ function defaultClearTimeout () {
         } else {
             cachedClearTimeout = defaultClearTimeout;
         }
-    } catch (e) {
+    } catch (e: any) {
         cachedClearTimeout = defaultClearTimeout;
     }
 } ())

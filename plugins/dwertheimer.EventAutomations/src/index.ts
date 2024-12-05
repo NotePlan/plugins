@@ -26,7 +26,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     const updateSettings = updateSettingData(pluginJson)
     console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
-  } catch (error) {
+  } catch (error: any) {
     await console.log(error)
   }
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)

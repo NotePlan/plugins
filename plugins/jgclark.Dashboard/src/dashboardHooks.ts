@@ -166,7 +166,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     } else {
       throw new Error('Cannot get Editor details. Is there a note open in the Editor?')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `decideWhetherToUpdateDashboard: ${error.name}: ${error.message}`)
   }
 }

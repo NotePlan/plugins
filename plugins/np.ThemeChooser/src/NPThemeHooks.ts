@@ -56,7 +56,7 @@ export async function onOpenTheme(note: TNote): Promise<void> {
       const themeName = frontmatterAttributes.themeName
       await chooseTheme(themeName)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -82,7 +82,7 @@ export async function onOpenRefreshPage(note: TNote): Promise<void> {
         logDebug(pluginJson, `onOpenRefreshPage ${(now - lastEdit) / 1000}s since last edit, not refreshing`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -95,7 +95,7 @@ export async function onOpenRefreshPage(note: TNote): Promise<void> {
 export async function onEdit(note: TNote) {
   try {
     logDebug(pluginJson, `onEdit running with note:${String(note.filename)}`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -108,7 +108,7 @@ export async function onEdit(note: TNote) {
 export async function onSave(note: TNote) {
   try {
     logDebug(pluginJson, `onSave running with incoming:${String(note.filename)}`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

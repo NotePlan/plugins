@@ -41,7 +41,7 @@ export type EventsConfig = {
   calendarSet: Array<string>,
   calendarNameMappings: Array<string>,
   matchingEventsHeading: string,
-  addMatchingEvents: ?{ [string]: mixed },
+  addMatchingEvents: null | void | { [k: string]: unknown },
   locale: string,
   timeOptions: any,
   includeCompletedTasks: boolean,
@@ -114,7 +114,7 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
     if (!retVal) logDebug(`NPCalendar::checkOrGetCalendar`, `Calendar "${calendarName}" is writable. Good to go.`)
     if (retVal) logWarn(`NPCalendar::checkOrGetCalendar`, `"${calendarName}" did not work. Writeable calendar chosen: "${chosenCalendar}"`)
     return retVal
-  } catch (error) {
+  } catch (error: any) {
     logError('NPCalendar::checkOrGetCalendar', error.message)
     return null // for completeness
   }
@@ -293,7 +293,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       logInfo('NPCalendar / writeTimeBlocksToCalendar()', `  -> No time blocks found.`)
       await showMessage(`Sorry, no time blocks found.`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('NPCalendar / writeTimeBlocksToCalendar', error.message)
     return // for completeness
   }
@@ -335,7 +335,7 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
       await showMessage(`Sorry, I failed to create event in ${calendarDisplayName} calendar`, 'OK', `Create Event Error`)
       return ''
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('NPCalendar / createEventFromDateRange', error.message)
     return 'error' // for completeness
   }
@@ -382,7 +382,7 @@ export async function getEventsForDay(
       logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} Events returned for ${dateStr}`)
     }
     return eArr
-  } catch (error) {
+  } catch (error: any) {
     logError('NPCalendar / getEventsForDay', error.message)
     return null // for completeness
   }

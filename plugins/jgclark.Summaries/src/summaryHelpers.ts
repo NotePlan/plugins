@@ -75,7 +75,7 @@ export type SummariesConfig = {
   mentionCountsHeading: string,
   showAsHashtagOrMention: boolean,
   weeklyStatsItems: Array<string>,
-  weeklyStatsDuration: ?number,
+  weeklyStatsDuration: null | void | number,
   weeklyStatsIncludeCurrentWeek: boolean,
   progressPeriod: string,
   progressDestination: string,
@@ -828,8 +828,8 @@ export function calcHashtagStatsPeriod(
   toDateStr: string,
   includedTerms: ReadonlyArray<string>,
   excludedTerms: ReadonlyArray<string>,
-): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
-  // ): ?[Map<string, number>, Map<string, number>] {
+): null | void | [CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
+  // ): null | void | [Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
   const calendarNotesInPeriod = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
@@ -935,8 +935,8 @@ export function calcMentionStatsPeriod(
   toDateStr: string,
   includedTerms: ReadonlyArray<string>,
   excludedTerms: ReadonlyArray<string>,
-  // ): ?[Map<string, number>, Map<string, number>] {
-): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
+  // ): null | void | [Map<string, number>, Map<string, number>] {
+): null | void | [CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
   // Get all daily notes that are within this time period
   const calendarNotesInPeriod = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))

@@ -409,7 +409,7 @@ export function showHTML(
         logError('showHTML', `Couldn't save resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion}.`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('HTMLView / showHTML', error.message)
   }
 }
@@ -577,7 +577,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logDebug('showHTMLV2', `- Window has customId:'${win?.customId || ''}' / id:"${win?.id || ''}"`)
       return win
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('HTMLView / showHTMLV2', error.message)
     return false
   }
@@ -697,7 +697,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     // logDebug(`Bridge::sendToHTMLWindow`, `${actionType} took ${timer(start)}`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -718,7 +718,7 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

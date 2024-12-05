@@ -78,7 +78,7 @@ export function noteHasFrontMatter(note: CoreNoteFields): boolean {
  * @param {TNote} note
  * @returns object of attributes or false if the note has no front matter
  */
-export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
+export const getFrontMatterAttributes = (note: CoreNoteFields): { [k: string]: string } | false => (hasFrontMatter(note?.content || '') ? getAttributes(note.content) : false)
 
 /**
  * Get the paragraphs that include the front matter (optionally with the separators)
@@ -225,7 +225,7 @@ function _objectToYaml(obj: any, indent: string = ' ') {
  * @returns {boolean} was frontmatter written OK?
  * @author @dwertheimer
  */
-export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
+export function writeFrontMatter(note: CoreNoteFields, attributes: { [k: string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
   if (!noteHasFrontMatter(note)) {
     logError(pluginJson, `writeFrontMatter: no frontmatter already found in note, so stopping.`)
     return false
@@ -266,11 +266,11 @@ export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes(
  * All existing fields you do not explicitly mention in varObj will keep their previous values (including note title).
  * If the value of a key is set to null, the key will be removed from the front matter.
  * @param {CoreNoteFields} note
- * @param {{[string]:string}} varObj - an object with the key:value pairs to set in the front matter (all strings). If the value of a key is set to null, the key will be removed from the front matter.
+ * @param {{[k: string]:string}} varObj - an object with the key:value pairs to set in the front matter (all strings). If the value of a key is set to null, the key will be removed from the front matter.
  * @returns {boolean} - whether the front matter was set or not
  * @author @dwertheimer
  */
-export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
+export function setFrontMatterVars(note: CoreNoteFields, varObj: { [k: string]: string }): boolean {
   try {
     const title = varObj.title || null
     clo(varObj, `Starting for note ${note.filename} with varObj:`)
@@ -299,7 +299,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
       logError('setFrontMatterVars', `- could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
     }
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('NPFrontMatter/setFrontMatterVars()', JSP(error))
     return false
   }
@@ -308,11 +308,11 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 // /**
 //  * TODO: Decide whether to keep this or the earlier rFMF one
 //  * @param {CoreNoteFields} note
-//  * @param {{[string]:string}} varObj - an object with the key:value pairs to unset (i.e. remove) in the front matter (all strings).
+//  * @param {{[k: string]:string}} varObj - an object with the key:value pairs to unset (i.e. remove) in the front matter (all strings).
 //  * @returns {boolean} - whether the front matter was unset or not
 //  */
 // export function unsetFrontMatterFields(note: CoreNoteFields, fields: Array<string>): boolean {
-//   const attributes: { [string]: string | null } = {}
+//   const attributes: { [k: string]: string | null } = {}
 //   // make object with a key for each field to unset
 //   for (let field of fields) {
 //     attributes[field] = null
@@ -390,7 +390,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     }
     // logDebug('ensureFrontmatter', `Returning ${String(retVal)}`)
     return retVal
-  } catch (error) {
+  } catch (error: any) {
     logError('NPFrontMatter/ensureFrontmattter()', JSP(error))
     return false
   }
@@ -447,7 +447,7 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
     })
     logDebug('formatTriggerString', `-> ${trigArray.join(', ')}`)
     return trigArray.join(', ')
-  } catch (error) {
+  } catch (error: any) {
     logError('NPFrontMatter/formatTriggerString()', JSP(error))
     return ''
   }
@@ -489,7 +489,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     const triggerFrontMatter = { triggers: formatTriggerString(triggersObj) }
     clo(triggerFrontMatter, `addTrigger() triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
     return setFrontMatterVars(note, triggerFrontMatter)
-  } catch (error) {
+  } catch (error: any) {
     logError('NPFrontMatter/addTrigger()', JSP(error))
     return false
   }
@@ -587,7 +587,7 @@ export function _sanitizeFrontmatterText(originalText: string, removeTemplateTag
   return originalText.replace(unfilteredFmText, fixedText)
 }
 
-export type FrontMatterDocumentObject = { attributes: { [string]: string }, body: string, frontmatter: string }
+export type FrontMatterDocumentObject = { attributes: { [k: string]: string }, body: string, frontmatter: string }
 
 /**
  * Get an object representing the document with or without frontmatter
@@ -603,7 +603,7 @@ export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: b
   const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
   try {
     fmData = fm(sanitizedText, { allowUnsafe: true })
-  } catch (error) {
+  } catch (error: any) {
     // Expected to fail in certain circumstances due to limitations in fm library
     logWarn(
       `Frontmatter getAttributes error. fm module COULD NOT SANITIZE CONTENT: "${error.message}".\nSuggestion: Check for items in frontmatter that need to be quoted. If fm values are surrounded by double quotes, makes sure they do not contain template tags that also contain double quotes. Template tags in frontmatter will always be quoted. And so make sure your template tags in frontmatter use single quotes, not double quotes in this note:\n"${noteText}\n\nSanitizedText:\n${sanitizedText}"`,
@@ -681,7 +681,7 @@ export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): 
       return true
     }
     return false
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, 'isTriggerLoop error: ${error.message}')
     return false
   }

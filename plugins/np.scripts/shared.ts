@@ -21,16 +21,12 @@ async function fileExists(fullPath) {
   try {
     await fs.stat(fullPath)
     return true
-  } catch (e) {
+  } catch (e: any) {
     return false
   }
 }
 
-async function getFolderFromCommandLine(
-  rootFolderPath,
-  args,
-  minimalOutput = false,
-) {
+async function getFolderFromCommandLine(rootFolderPath, args, minimalOutput = false) {
   // const args = process.argv.slice(2)
   const limitToFolders = []
   if (args.length) {
@@ -79,7 +75,7 @@ async function getPluginFileContents(pluginPath) {
     pluginFile = await fs.readFile(pluginPath, 'utf8')
     pluginObj = await JSON5.parse(pluginFile)
     // pluginObj = await JSON.parse(pluginFile)
-  } catch (e) {
+  } catch (e: any) {
     console.log(`getPluginFileContents: Problem reading JSON file:\n  ${pluginPath}`)
     console.log(`Often this is simply a non-standard trailing comma that the parser doesn't like.`)
     console.log(e)
@@ -98,7 +94,7 @@ async function writeMinifiedPluginFileContents(pathToRead, pathToWrite) {
     const contents = await fs.readFile(pathToRead, 'utf8')
     const j5 = JSON5.parse(contents)
     await fs.writeFile(pathToWrite, JSON.stringify(j5, null, 2))
-  } catch (e) {
+  } catch (e: any) {
     console.log(`writePluginFileContents: Problem writing JSON file: ${pathToWrite}`)
     console.log(e)
   }
@@ -116,8 +112,7 @@ async function getCopyTargetPath(dirents) {
     {
       type: 'list',
       name: 'shouldCopy',
-      message:
-        'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
+      message: 'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
       choices: [
         { name: 'Yes', value: true },
         { name: 'No', value: false },
@@ -169,7 +164,7 @@ async function getPluginConfig(key = null, defaultValue = null) {
       }
       return defaultValue
     }
-  } catch (error) {
+  } catch (error: any) {
     //
   }
 }

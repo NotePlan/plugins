@@ -140,7 +140,7 @@ export function createMockClass(object: any, name: string): void {
   console.log(getMockClassText(name, classProps, classMethods))
 }
 
-export async function generateMock(incoming: ?string = ''): Promise<void> {
+export async function generateMock(incoming: null | void | string = ''): Promise<void> {
   // every command/plugin entry point should always be wrapped in a try/catch block
   try {
     // MUST BE A CLASS YOU ARE SENDING, NOT AN ARRAY!!!
@@ -153,7 +153,7 @@ export async function generateMock(incoming: ?string = ''): Promise<void> {
     // console.log(this[name])
     if (name && this[name]) createMockOutput(this[name], name)
     else console.log(`No object for ${name || ''}`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -212,7 +212,7 @@ export function outputEditorJson() {
     console.log(`--- /Editor ---`)
     console.log(`--- For debugging paras ---`)
     nObj.paragraphs.forEach((p) => console.log(`[${p.lineIndex}]: type=${p.type} content="${p.content}" heading:"${p.heading}"`))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSON.stringify(error))
   }
 }

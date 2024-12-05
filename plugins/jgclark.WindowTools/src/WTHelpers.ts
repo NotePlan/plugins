@@ -146,7 +146,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     const noteTitle = (noteTitleArg !== '') ? noteTitleArg : config.noteTitleForDefinitions
     const windowSets = (windowSetsArg.length > 0) ? windowSetsArg : await readWindowSetDefinitions()
     logDebug(pluginJson, `writeWSsToNote() starting for folder '${noteFolder}' title '${noteTitle}' with ${windowSets.length} windowSets`)
-    const WSNote: ?TNote = await getOrMakeNote(noteTitle, noteFolder)
+    const WSNote: null | void | TNote = await getOrMakeNote(noteTitle, noteFolder)
     if (!WSNote) {
       throw new Error(`writeWSsToNote() no note found for '${noteTitle}' in folder '${noteFolder}'`)
     }
@@ -186,7 +186,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // }
 
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `writeWSPrefsToNote: ${error.message}`)
     return false
   }
@@ -254,7 +254,7 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     if (!calledFromSaveTrigger) {
       const res = await showMessage(`Written ${String(WSsForThisMachine.length)} Window Sets [${String(WSNames)}] for this machine '${thisMachineName}' from the definition note to the preferences`, 'OK, thanks', 'Write Window Set note to pref', false)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `writeWSNoteToPrefs: ${error.name}: ${error.message}`)
   }
 }
@@ -287,7 +287,7 @@ export async function onEditorWillSave(): Promise<void> {
     logDebug('onEditorWillSave', `Will write note to local pref`)
     await writeWSNoteToPrefs(true)
 
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onEditorWillSave: ${error.name}: ${error.message}`)
   }
 }
@@ -423,7 +423,7 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
     }
     logWarn(pluginJson, `getDetailedWindowSetByName('${name}'): no such detailed windowSet object found`)
     return null
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `${error.name}: ${error.message}`)
     return null
   }
@@ -464,7 +464,7 @@ export function checkWindowSetBounds(setToCheck: WindowSet): WindowSet {
     }
 
     return checkedSet
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `checkWindowSetBounds(): ${error.name}: ${error.message}`)
     return setToCheck
   }

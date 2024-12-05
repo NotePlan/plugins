@@ -167,7 +167,7 @@ export async function generatePluginCommandList(pluginID: string = '', listExten
     } else {
       await showMessage(`No plugins found`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

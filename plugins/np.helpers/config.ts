@@ -24,11 +24,11 @@ import { logDebug } from './dev'
  * }
  * try {
  *  validateConfigProperties(config, validations)
- * } catch (e) {
+ * } catch (e: any) {
  *  console.log(e.message)
  * }
  */
-export function validateConfigProperties(config: { [string]: mixed }, validations: { [string]: mixed }): { [string]: mixed } {
+export function validateConfigProperties(config: { [k: string]: unknown }, validations: { [k: string]: unknown }): { [k: string]: unknown } {
   let failed = ''
   const propsToValidate = Object.keys(validations)
   if (propsToValidate.length) {

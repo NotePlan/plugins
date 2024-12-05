@@ -39,7 +39,7 @@ export async function jumpToHeading(heading?: string): Promise<void> {
     const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
     logDebug('noteHelpers / jumpToHeading', `for '${headingStr}' at position ${startPos} max ${String(note.content?.length)}`)
     Editor.select(startPos, 0)
-  } catch (e) {
+  } catch (e: any) {
     logError('jumpToHeading()', e.message)
   }
 }
@@ -70,7 +70,7 @@ export async function jumpToNoteHeading(): Promise<void> {
 
     // Now jump to the heading
     await jumpToHeading()
-  } catch (e) {
+  } catch (e: any) {
     logError('jumpToNoteHeading()', e.message)
   }
 }
@@ -102,7 +102,7 @@ export function jumpToDone(): void {
     } else {
       logWarn('jumpToDone()', "Couldn't find a '## Done' section. Stopping.")
     }
-  } catch (e) {
+  } catch (e: any) {
     logError('jumpToDone()', e.message)
   }
 }
@@ -145,7 +145,7 @@ export async function openURLFromANote(): Promise<void> {
     const chosenURL = linkObjects[res.index].url
     logDebug('openURLFromANote()', `Opening URL '${chosenURL}'`)
     await NotePlan.openURL(chosenURL)
-  } catch (e) {
+  } catch (e: any) {
     logError('openURLFromANote()', e.message)
   }
 }

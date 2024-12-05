@@ -73,7 +73,7 @@ export async function monthStart(): Promise<void> {
         break
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('monthStart', error.message)
     await showMessage(`/monthStart command: ${error.message}`)
     return
@@ -137,7 +137,7 @@ export async function weekStart(): Promise<void> {
         break
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('weekStart', error.message)
     await showMessage(`/weekStart command: ${error.message}`)
     return
@@ -150,7 +150,7 @@ export async function weekStart(): Promise<void> {
 export async function todayStart(): Promise<void> {
   try {
     await dayStart(true)
-  } catch (error) {
+  } catch (error: any) {
     await showMessage(error)
   }
 }
@@ -205,7 +205,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
         break
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `(to)dayStart(): ${error.message}`)
     await showMessage(`/(to)dayStart command: ${error.message}`)
   }
@@ -243,7 +243,7 @@ export async function dailyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('day')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -280,7 +280,7 @@ export async function weeklyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('week')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -316,7 +316,7 @@ export async function monthlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('month')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -356,7 +356,7 @@ export async function quarterlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('quarter')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -394,7 +394,7 @@ export async function yearlyJournalQuestions(): Promise<void> {
       }
     }
     await processJournalQuestions('year')
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }

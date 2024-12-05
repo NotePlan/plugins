@@ -141,7 +141,7 @@ export function contentRangeToString(content: string, r: TRange): string {
  * @param {?TNote} n - note to get title for
  * @return {string}
  */
-export function displayTitle(n: ?CoreNoteFields): string {
+export function displayTitle(n: null | void | CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
@@ -641,7 +641,7 @@ export function simplifyRawContent(input: string): string {
     // Trim whitespace at start/end
     output = output.trim()
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('simplifyRawContent', error.message)
     return '<error>' // for completeness
   }

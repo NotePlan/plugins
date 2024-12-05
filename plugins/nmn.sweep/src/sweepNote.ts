@@ -37,7 +37,7 @@ export default async function sweepNote(
   const nonMovableTypes = ['cancelled', 'done']
   const resetTypes = ['title', 'empty']
 
-  let lastRootItem: ?TParagraph = null
+  let lastRootItem: null | void | TParagraph = null
 
   const overdueOnlyStr = overdueOnly ? 'true' : 'false'
 

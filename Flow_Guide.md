@@ -190,7 +190,7 @@ if let str = str {
 translates to:
 
 ```typescript
-let str: ?string;
+let str: null | void | string;
 
 let err: string = str; // type error
 

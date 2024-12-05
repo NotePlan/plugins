@@ -50,9 +50,9 @@ export function getInitialDataForReactWindowObjectForReactView(): PassedData {
  * You will likely use this function to pull together your starting window data
  * Must return an object, with any number of properties, however you cannot use the following reserved
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
+ * @returns {[k: string]: unknown} - the data that your React Window will start with
  */
-export function getInitialDataForReactWindow(): { [string]: mixed } {
+export function getInitialDataForReactWindow(): { [k: string]: unknown } {
   // for demonstration purposes will just fake some data for now,
   // you would want to gather some data from your plugin
   const data = Array.from(Array(10).keys()).map((i) => ({ textValue: `Item ${i}`, id: i, buttonText: `Submit ${i}` }))
@@ -104,7 +104,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any = null
       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
     return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -189,7 +189,7 @@ export async function testReactWindow(): Promise<void> {
     clo(data, `testReactWindow data object passed`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

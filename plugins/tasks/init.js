@@ -36,9 +36,7 @@ function init(cwd = null) {
   console.log('')
   print.info(colors.bold('👉  Whats next?'))
   print.info('    • You can use `noteplan-cli plugin:create` to create your first NotePlan Plugin')
-  print.info(
-    '    • You can read code from other NotePlan Plugins to gain more insight how you can interact with NotePlan',
-  )
+  print.info('    • You can read code from other NotePlan Plugins to gain more insight how you can interact with NotePlan')
   print.info('    • You can interace with other NotePlan Plugin Developers on Discord')
 }
 

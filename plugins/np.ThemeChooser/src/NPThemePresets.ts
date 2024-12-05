@@ -74,7 +74,7 @@ export async function changePreset(incoming: string) {
       logDebug(pluginJson, `changePreset: ${chosen} -- calling presetChosen with themePresetChosen callback`)
       await presetChosen(pluginJson, chosen, themePresetChosen, [true])
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -86,7 +86,7 @@ export async function changePreset(incoming: string) {
 export async function runPreset01() {
   try {
     await presetChosen(pluginJson, `runPreset01`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -94,28 +94,28 @@ export async function runPreset01() {
 export async function runPreset02() {
   try {
     await presetChosen(pluginJson, `runPreset02`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
 export async function runPreset03() {
   try {
     await presetChosen(pluginJson, `runPreset03`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
 export async function runPreset04() {
   try {
     await presetChosen(pluginJson, `runPreset04`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
 export async function runPreset05() {
   try {
     await presetChosen(pluginJson, `runPreset05`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

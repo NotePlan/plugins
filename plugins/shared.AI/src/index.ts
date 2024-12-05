@@ -65,7 +65,7 @@ export async function init(): Promise<void> {
     clo(DataStore.settings, `${pluginJson['plugin.id']} init running. Plugin Settings`)
     // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -82,7 +82,7 @@ export async function onSettingsUpdated(): Promise<void> {}
 export async function versionCheck(): Promise<void> {
   try {
     await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

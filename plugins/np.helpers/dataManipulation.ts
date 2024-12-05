@@ -40,7 +40,7 @@ export function trimString(inStr: string, maxLen: number): string {
  * @returns {Array<string>}
  */
 export function stringListOrArrayToArray(input: string | Array<string>, separator: string): Array<string> {
-  let fullArray = []
+  let fullArray: string[] = []
   if (!input) {
     return []
   }
@@ -67,8 +67,8 @@ export function stringListOrArrayToArray(input: string | Array<string>, separato
  * @param key name of the property you want to cast
  * @returns {boolean} cast value
  */
-export const castBooleanFromMixed = (val: { [string]: ?mixed }, key: string): boolean => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): boolean) : false
+export const castBooleanFromMixed = (val: { [key: string]: unknown }, key: string): boolean => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as boolean) : false
 }
 
 /**
@@ -78,8 +78,8 @@ export const castBooleanFromMixed = (val: { [string]: ?mixed }, key: string): bo
  * @param key name of the property you want to cast
  * @returns {number} cast value
  */
-export const castNumberFromMixed = (val: { [string]: ?mixed }, key: string): number => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): number) : NaN
+export const castNumberFromMixed = (val: { [key: string]: unknown }, key: string): number => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as number) : NaN
 }
 
 /**
@@ -90,8 +90,8 @@ export const castNumberFromMixed = (val: { [string]: ?mixed }, key: string): num
  * @param key name of the property you want to cast
  * @returns {string} casted value
  */
-export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): string => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): string) : ''
+export const castStringFromMixed = (val: { [key: string]: unknown }, key: string): string => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as string) : ''
 }
 
 /**
@@ -102,8 +102,8 @@ export const castStringFromMixed = (val: { [string]: ?mixed }, key: string): str
  * @param key name of the property you want to cast
  * @returns {Array<string>} casted array
  */
-export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string): Array<string> => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): Array < string >) : []
+export const castStringArrayFromMixed = (val: { [key: string]: unknown }, key: string): Array<string> => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as Array < string >) : []
 }
 
 /**
@@ -114,7 +114,7 @@ export const castStringArrayFromMixed = (val: { [string]: ?mixed }, key: string)
  * @returns {number} cast value
  */
 
-export const castHeadingLevelFromMixed = (val: { [string]: ?mixed }, key: string): headingLevelType => {
-  return val.hasOwnProperty(key) ? ((val[key]: any): headingLevelType) : 2
+export const castHeadingLevelFromMixed = (val: { [key: string]: unknown }, key: string): headingLevelType => {
+  return val.hasOwnProperty(key) ? ((val[key] as any) as headingLevelType) : 2
 }
 

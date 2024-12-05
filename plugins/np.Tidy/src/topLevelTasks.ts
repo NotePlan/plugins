@@ -35,7 +35,7 @@ export async function moveTopLevelTasksInEditor(headingName: string | null = nul
     const result = await moveTopLevelTasksInNote(Editor, headingName, runSilently, returnContentAsText)
     returnContentAsText ? logDebug(pluginJson, `moveTopLevelTasksInEditor: returning to Templating:${String(returnContentAsText)}, result:"${result}"`) : null
     return result ?? ''
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
   return ''
@@ -66,7 +66,7 @@ export async function moveTopLevelTasksInNote(
     } else {
       await handleNoTopLevelParagraphs(runSilently, returnContentAsText)
     }
-  } catch (error) {
+  } catch (error: any) {
     handleCatchError(error, returnContentAsText)
     return ''
   }

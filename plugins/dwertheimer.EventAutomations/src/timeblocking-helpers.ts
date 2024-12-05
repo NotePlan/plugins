@@ -200,7 +200,7 @@ export function removeDateTagsFromArray(paragraphsArray: ReadonlyArray<TParagrap
       return copy
     })
     return newPA
-  } catch (error) {
+  } catch (error: any) {
     logError(`timeblocking-helppers::removeDateTagsFromArray failed. Error:`, JSP(error))
   }
   return paragraphsArray
@@ -243,7 +243,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
   try {
     startTime = getDateObjFromDateTimeString(`2021-01-01 ${block.start || '00:00'}`)
     endTime = getDateObjFromDateTimeString(`2021-01-01 ${block.end || '23:59'}`)
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
     return null
   }
@@ -322,7 +322,7 @@ export function addMinutesToTimeText(startTimeText: string, minutesToAdd: number
   try {
     const startTime = getDateObjFromDateTimeString(`2021-01-01 ${startTimeText}`)
     return startTime ? getTimeStringFromDate(addMinutes(startTime, minutesToAdd)) : ''
-  } catch (error) {
+  } catch (error: any) {
     console.log(error)
     return ``
   }
@@ -607,7 +607,7 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
     } else {
       todosWithLinks = todos
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('timeblocking-helpers::appendLinkIfNecessary ${error}', JSP(error))
   }
   return todosWithLinks

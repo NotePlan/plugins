@@ -514,7 +514,7 @@ export function parseObjectString(str: string): Array<Object> | Object {
     }
 
     return result
-  } catch (error) {
+  } catch (error: any) {
     logError('Failed to evaluate the string:', error.message)
     throw error
   }
@@ -535,7 +535,7 @@ export function validateObjectString(str: string): Array<string> {
     try {
       // Attempt to parse each line individually
       new Function(`return ${line.trim()}`)()
-    } catch (error) {
+    } catch (error: any) {
       errors.push(`Error on line ${index + 1}: ${error.message}`)
     }
   })
@@ -566,7 +566,7 @@ export function validateObjectString(str: string): Array<string> {
     } else {
       throw new Error('Parsed data is neither an array nor an object.')
     }
-  } catch (error) {
+  } catch (error: any) {
     errors.push(`Overall structure error: ${error.message}`)
   }
 

@@ -1,6 +1,6 @@
 // @flow
 
-const WeatherPlugin: mixed = {
+const WeatherPlugin: unknown = {
   // TODO:_AddPluginCode
 }
 

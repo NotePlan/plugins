@@ -51,7 +51,7 @@ async function findUnlinkedNotes(notes: Array<TNote>): Promise<number> {
     foundLinks = notes.reduce((count, note) => count + findUnlinkedNotesInNote(note, noteTitlesSortedByLength), 0)
 
     await CommandBar.onMainThread()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
   return foundLinks

@@ -280,7 +280,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     logTimer('getTodaySectionData', timer, `- found ${itemCount} daily items from ${filenameDateStr}`)
 
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError(`getTodaySectionData`, error.message)
     return []
   }
@@ -423,7 +423,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
 
     logTimer('getDataForDashboard', startTime, `- found ${itemCount} yesterday items from ${filenameDateStr}`)
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError(`getYesterdaySectionData`, error.message)
     return []
   }
@@ -553,7 +553,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
 
     logDebug('getDataForDashboard', `- found ${itemCount} Tomorrow items from ${filenameDateStr} in ${timer(startTime)}`)
     return [section]
-  } catch (error) {
+  } catch (error: any) {
     logError('getDataForDashboard/tomorrow', `ERROR: ${error.message}`)
     return []
   }
@@ -577,7 +577,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
     const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
     logInfo('getTimeBlockSectionData', `--------- Gathering${useDemoData ? ' DEMO' : ''} time blocks from ${filenameDateStr} with mCS ${mustContainString} ----------`)
     const startTime = new Date() // for timing only
-    let timeblockPara: ?TParagraph
+    let timeblockPara: null | void | TParagraph
 
     if (useDemoData) {
       const fakeTodayNoteParagraphs: Array<TParagraphForDashboard> = []
@@ -648,7 +648,7 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
     logTimer('getTimeBlockSectionData', startTime, `- found Current Time Block from ${filenameDateStr}`)
 
     return section
-  } catch (error) {
+  } catch (error: any) {
     logError(`getTimeBlockSectionData`, error.message)
     // $FlowFixMe[incompatible-return]
     return null

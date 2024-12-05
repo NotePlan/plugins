@@ -29,7 +29,7 @@ export async function askToReviewWeeklyTasks(byTask: boolean = false, forDateStr
         await reviewEditorReferencedTasks(byTask, true, forDateString)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -51,7 +51,7 @@ export async function askToReviewTodaysTasks(byTask?: boolean = false, forDateSt
         await reviewEditorReferencedTasks(byTask, false, forDateString)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -81,7 +81,7 @@ export async function askToReviewForgottenTasks(byTask: boolean = false, endingD
         await searchForOpenTasks(byTask, ignoreScheduledInForgottenReview, endingDateString)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -111,7 +111,7 @@ export async function updateDatePlusTags(incoming: string): Promise<void> {
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewOverdueTasksByNote(notesToReview, options)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -146,7 +146,7 @@ export async function updateDatePlusTags(incoming: string): Promise<void> {
 //     await askToReviewTodaysTasks(false, asOfDateString)
 //     await askToReviewForgottenTasks(false, asOfDateString)
 //     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
-//   } catch (error) {
+//   } catch (error: any) {
 //     logError(pluginJson, JSP(error))
 //   }
 // }
@@ -191,7 +191,7 @@ export async function reviewOverdueTasksByTask(asOfDateString: string): Promise<
     const aods = new RegExp(RE_DATE).test(asOfDateString) ? asOfDateString : getTodaysDateHyphenated()
     logDebug(pluginJson, `reviewOverdueTasksByTask asOfDateString=${asOfDateString}; will use: ${aods}`)
     await runInteractiveReviewForDate(aods)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -220,7 +220,7 @@ export async function reviewOverdueTasksAsOfDate(_dateString?: string): Promise<
       clo(dateOpts, `reviewOverdueTasksAsOfDate dateOpts`)
     }
     await runInteractiveReviewForDate(dateStr)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -274,7 +274,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     } else {
       logDebug(pluginJson, `reviewOverdueTasksInNote Editor.note is null`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -322,7 +322,7 @@ export async function reviewEditorReferencedTasks(byTask: boolean = true, weekly
       overdueOnly: false,
     }
     await reviewOverdueTasksByNote(arrayOfOpenNotesAndTasks, options)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -355,7 +355,7 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
     await askToReviewWeeklyTasks(true)
     await askToReviewTodaysTasks(true)
     await askToReviewForgottenTasks(true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -400,7 +400,7 @@ export async function getNotesToReviewForOpenTasks(
     const totalTasks = notesWithOpenTasks.reduce((acc, n) => acc + n.length, 0)
     logDebug(pluginJson, `Calendar + Project Notes to review: ${notesWithOpenTasks.length}; total tasks: ${totalTasks}`)
     return notesWithOpenTasks
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     return false
   }
@@ -437,7 +437,7 @@ export async function searchForOpenTasks(byTask: boolean = false, ignoreSchedule
       overdueOnly: false,
     }
     await reviewOverdueTasksByNote(notes, options)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

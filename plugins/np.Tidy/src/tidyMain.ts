@@ -108,7 +108,7 @@ export async function tidyUpAll(): Promise<void> {
     // stop spinner
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-  } catch (error) {
+  } catch (error: any) {
     logError('tidyUpAll', JSP(error))
   }
 }
@@ -212,7 +212,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       logInfo('removeDoneMarkers', `No @done(...) markers were found to remove`)
     }
     return
-  } catch (error) {
+  } catch (error: any) {
     logError('removeDoneMarkers', JSP(error))
     return // for completeness
   }
@@ -813,7 +813,7 @@ export async function removeTodayTagsFromCompletedTodos(runSilently: boolean = f
         await showMessage(`Removed >today tags from ${itemsToRemove.length} completed items`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

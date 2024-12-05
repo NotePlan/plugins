@@ -7,7 +7,7 @@ export const getWeatherURLLatLong = (lat: string, lon: string, appid: string, un
   `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${appid}&units=${units}`
 // NOTE: There is a version 3.0, but it sends back a 401 error
 
-export const getCurrentConditions = (currentWeather: { [string]: any }): any => {
+export const getCurrentConditions = (currentWeather: { [k: string]: any }): any => {
   // eslint-disable-next-line no-unused-vars
   const { sunrise, sunset, temp, feels_like, pressure, humidity, dew_point, uvi, clouds, visibility, wind_speed, wind_deg, weather } = currentWeather
   const tempRounded = Math.round(temp)
@@ -29,7 +29,7 @@ export const getCurrentConditions = (currentWeather: { [string]: any }): any => 
   }
 }
 
-export const extractDailyForecastData = (weather: { [string]: any }): Array<any> => {
+export const extractDailyForecastData = (weather: { [k: string]: any }): Array<any> => {
   let dailyForecast = []
   if (weather && weather.daily?.length > 0) {
     dailyForecast = weather.daily.map((dy) => {
@@ -84,7 +84,7 @@ export const getWeatherIcon = (description: string): string => {
   return weatherIcon
 }
 
-export const getWeatherDescLine = (weather: { [string]: any }, settings: any): string => {
+export const getWeatherDescLine = (weather: { [k: string]: any }, settings: any): string => {
   const units = settings.units === 'metric' ? 'C' : 'F'
   // eslint-disable-next-line no-unused-vars
   const { sunrise, sunset, temp, uvi, humidity, feels_like, description, main, icon, min, max, day, night, date } = weather

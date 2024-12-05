@@ -1971,6 +1971,9 @@ declare class NotePlan {
     version?: string;
     versionNumber?: number;
     buildVersion?: number;
+    screenHeight?: number;
+    screenWidth?: number;
+    machineName?: string;
   };
   /**
    * The selected sidebar folder (useful when a note is not showing in Editor, which is then null)

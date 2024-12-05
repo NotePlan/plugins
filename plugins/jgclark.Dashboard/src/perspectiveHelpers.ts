@@ -150,7 +150,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       savePerspectiveSettings(perspectiveSettings)
     }
     return ensureDefaultPerspectiveExists(perspectiveSettings)
-  } catch (error) {
+  } catch (error: any) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []
   }
@@ -247,7 +247,7 @@ export function deletePerspectiveDef(perspectiveSettings: Array<TPerspectiveDef>
  * @param {TDashboardSettings} perspectiveSettings
  * @returns {TPerspectiveDef | false}
  */
-export function getPerspectiveNamed(name: string, perspectiveSettings: ?Array<TPerspectiveDef>): TPerspectiveDef | null {
+export function getPerspectiveNamed(name: string, perspectiveSettings: null | void | Array<TPerspectiveDef>): TPerspectiveDef | null {
   if (!perspectiveSettings) {
     return null
   }
@@ -269,7 +269,7 @@ export function savePerspectiveSettings(allDefs: Array<TPerspectiveDef>): boolea
     DataStore.settings = pluginSettings
     logDebug('savePerspectiveSettings', `Apparently saved OK. BUT BEWARE OF RACE CONDITIONS. DO NOT UPDATE THE REACT WINDOW DATA QUICKLY AFTER THIS.`)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('savePerspectiveSettings', `Error: ${error.message}`)
     return false
   }
@@ -383,7 +383,7 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
     logDebug('updateCurrentPerspectiveDef', `Will update def '${activeDef.name}'`)
     const res = savePerspectiveSettings(newDefs)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('updateCurrentPerspectiveDef', `Error: ${error.message}`)
     return false
   }
@@ -589,7 +589,7 @@ export async function deletePerspective(nameIn: string = ''): Promise<void> {
     }
 
     clof(DataStore.settings, `deletePerspective at end DataStore.settings =`, ['name', 'isActive'], true) // ✅
-  } catch (error) {
+  } catch (error: any) {
     logError('deletePerspective', error.message)
   }
 }

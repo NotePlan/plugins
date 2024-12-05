@@ -116,7 +116,7 @@ module.exports = {
         console.log('')
         print.success('No Linting Errors', 'SUCCESS')
         process.exit()
-      } catch (error) {
+      } catch (error: any) {
         print.error('Linting Errors Found', 'FAIL')
       }
       process.exit()

@@ -15,9 +15,9 @@ import { chooseOption, getInput, showMessage } from '@np/helpers/userInput'
 
 type WeatherParams = {
   appid: string,
-  lat: ?string,
-  lon: ?string,
-  units: ?string,
+  lat: null | void | string,
+  lon: null | void | string,
+  units: null | void | string,
 }
 
 type LocationOption = {
@@ -98,7 +98,7 @@ export async function getLatLongListForName(name: string, params: WeatherParams)
         clo(response, `getLatLongListForName: response=`)
         return JSON.parse(response)
       }
-    } catch (error) {
+    } catch (error: any) {
       logError(`weather-utils::getLatLongForName`, `error: ${JSP(error)}`)
     }
   } else {
@@ -132,7 +132,7 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [k: string]: any } | null> {
   const params = weatherParams ? weatherParams : DataStore.settings
   const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
@@ -143,7 +143,7 @@ async function getWeatherForLocation(location: LocationOption, weatherParams: We
       clo(res, `getWeatherForLocation result:`)
       return JSON.parse(res)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `getWeatherForLocation: error: ${JSP(error)}`)
   }
   return null
@@ -187,7 +187,7 @@ export async function insertWeatherCallbackURL(xcallbackWeatherLocation: string 
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `insertWeatherCallbackURL: error: ${JSP(error)}`)
   }
   return ''
@@ -201,7 +201,7 @@ export async function insertWeatherCallbackURL(xcallbackWeatherLocation: string 
  * @returns
  */
 // eslint-disable-next-line no-unused-vars
-export async function insertWeatherByLocation(incoming: ?string = '', returnLocation: boolean = true): Promise<void> {
+export async function insertWeatherByLocation(incoming: null | void | string = '', returnLocation: boolean = true): Promise<void> {
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
       Editor.insertTextAtCursor(getConfigErrorText())
@@ -230,7 +230,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
         }
       } while (location !== false)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
   return
@@ -291,7 +291,7 @@ export async function weatherByLatLong(incoming: string = '', showPopup: string 
         logError(pluginJson, `weatherByLatLong: No location to look for; param was: "${incoming}"`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
   return ''
@@ -319,7 +319,7 @@ export async function setDefaultLocation(incoming: string = ''): Promise<void> {
         await showMessage(`Default location set to:\n${location.label}`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

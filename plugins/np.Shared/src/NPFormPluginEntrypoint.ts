@@ -51,9 +51,9 @@ export function getInitialReactWindowData(argObj: Object): PassedData {
  * You will likely use this function to pull together your starting window data
  * Must return an object, with any number of properties, however you cannot use the following reserved
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
- * @returns {[string]: mixed} - the data that your React Window will start with
+ * @returns {[k: string]: unknown} - the data that your React Window will start with
  */
-export function getPluginData(argObj: Object): { [string]: mixed } {
+export function getPluginData(argObj: Object): { [k: string]: unknown } {
   // you would want to gather some data from your plugin
   const pluginData = { platform: NotePlan.environment.platform, ...argObj }
   return pluginData // this could be any object full of data you want to pass to the window
@@ -100,7 +100,7 @@ export async function onFormMessageFromHTMLView(actionType: string, data: any = 
       sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
     return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -197,7 +197,7 @@ export async function openFormWindow(argObj: Object): Promise<void> {
     clo(data, `testReactWindow data object passed`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

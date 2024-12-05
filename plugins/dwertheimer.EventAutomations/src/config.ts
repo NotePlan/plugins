@@ -83,7 +83,7 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     }
     // @ts-ignore
     return validatedConfig
-  } catch (error) {
+  } catch (error: any) {
     // console.log(`NPTimeblocking::validateAutoTimeBlockingConfig: ${String(error)}\nInvalid config:\n${JSON.stringify(config)}`)
     throw new Error(`${String(error)}`)
   }

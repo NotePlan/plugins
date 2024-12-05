@@ -112,7 +112,7 @@ describe('{{pluginId}}' /* pluginID */, () => {
         delete Editor.insertTextAtCursor
         try {
           const result = await mainFile.sayHello()
-        } catch (e) {
+        } catch (e: any) {
           expect(e.message).stringMatching(/ERROR/)
         }
         expect(spy).toHaveBeenCalledWith(expect.stringMatching(/ERROR/))

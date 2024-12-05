@@ -537,7 +537,7 @@ export async function removeContentUnderHeadingInAllNotes(
       if (!(runSilently === 'yes')) await showMessage(`Found no previous notes with "${heading}"`)
     }
     logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes found ${prevCopies.length} previous ${String(noteTypes)} notes with heading: "${heading}"`)
-  } catch (error) {
+  } catch (error: any) {
     logError(`NPParagraph`, `removeContentUnderHeadingInAllNotes error: ${JSP(error)}`)
   }
 }
@@ -1337,7 +1337,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
       logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
       return false
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('highlightParagraphInEditor', `highlightParagraphInEditor: ${error.message}`)
     return false
   }
@@ -1390,7 +1390,7 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
       logWarn('NPP/findParaFromStringAndFilename', `Can't find note '${filename}'`)
       return false
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `NPP/findParaFromStringAndFilename: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1513,7 +1513,7 @@ export function completeItem(filenameIn: string, content: string): boolean | TPa
       return false
     }
     return markComplete(possiblePara, false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1537,7 +1537,7 @@ export function completeItemEarlier(filenameIn: string, content: string): boolea
       return false
     }
     return markComplete(possiblePara, true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `NPP/completeItemEarlier: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1560,7 +1560,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
       return false
     }
     return markCancelled(possiblePara)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1589,7 +1589,7 @@ export async function deleteItem(filenameIn: string, content: string): Promise<b
       return true
     }
     return false
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `NPP/deleteItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1701,7 +1701,7 @@ export function makeBasicParasFromContent(content: string): Array<any> {
       c++
     }
     return basicParas
-  } catch (error) {
+  } catch (error: any) {
     logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
     return []
   }
@@ -1754,7 +1754,7 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
       DataStore.updateCache(thisNote, false)
       return 'checklist'
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('toggleTaskChecklistParaType', error.message)
     return '(error)'
   }
@@ -1791,7 +1791,7 @@ export function unscheduleItem(filename: string, content: string): boolean {
     // Update to DataStore
     thisNote.updateParagraph(thisPara)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('unscheduleItem', error.message)
     return false
   }
@@ -1823,7 +1823,7 @@ export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeP
     // Update to DataStore
     thisNote.updateParagraph(thisPara)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleItem', error.message)
     return false
   }
@@ -2006,7 +2006,7 @@ export function removeAllDueDates(filename: string): boolean {
     note.updateParagraphs(paras)
     logDebug('removeAllDueDates', `- this appears to have worked.`)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError('removeAllDueDates', error.message)
     return false
   }

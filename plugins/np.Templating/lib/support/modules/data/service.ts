@@ -34,7 +34,7 @@ const formatData = (obj: any) => {
 const isJson = (str) => {
   try {
     JSON.parse(str)
-  } catch (e) {
+  } catch (e: any) {
     return false
   }
   return true
@@ -44,7 +44,7 @@ const isURL = (str) => {
   return str.indexOf('http') >= 0
 }
 
-export async function getService(templateConfig: any, section: string = '', key: mixed = ''): Promise<string> {
+export async function getService(templateConfig: any, section: string = '', key: unknown = ''): Promise<string> {
   const serviceConfig = templateConfig?.services
 
   if (serviceConfig) {
@@ -92,7 +92,7 @@ export async function getService(templateConfig: any, section: string = '', key:
         // $FlowFixMe
         return Object.arrayReference(data, `${dataKey}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       return error
     }
   }

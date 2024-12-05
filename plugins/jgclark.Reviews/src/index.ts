@@ -70,7 +70,7 @@ export function init(): void {
 
     // Check that np.Shared plugin is installed, and if not, then install it and show a message. Do this in the background (asynchronously).
     DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -109,7 +109,7 @@ export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
 
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
@@ -125,7 +125,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

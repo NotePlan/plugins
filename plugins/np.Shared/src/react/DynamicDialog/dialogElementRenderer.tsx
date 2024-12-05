@@ -10,17 +10,17 @@
 //--------------------------------------------------------------------------
 import React from 'react'
 import { JsonEditor } from 'json-edit-react'
-import Switch from './Switch.jsx'
-import InputBox from './InputBox.jsx'
-import DropdownSelect from './DropdownSelect.jsx'
-import TextComponent from './TextComponent.jsx'
-import ThemedSelect from './ThemedSelect.jsx'
-import CalendarPicker from './CalendarPicker.jsx'
-import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
+import Switch from './Switch.js'
+import InputBox from './InputBox.js'
+import DropdownSelect from './DropdownSelect.js'
+import TextComponent from './TextComponent.js'
+import ThemedSelect, { type OptionType } from './ThemedSelect.js'
+import CalendarPicker from './CalendarPicker.js'
+import type { TSettingItem, TSettingItemType } from './DynamicDialog.js'
 import { logDebug, logError } from '@np/helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@np/helpers/stringTransforms.js'
-import type { Option } from './DropdownSelect.jsx'
-import { Button, ButtonGroup } from './ButtonComponents.jsx'
+import type { Option } from './DropdownSelect.js'
+import { Button, ButtonGroup } from './ButtonComponents.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -63,7 +63,8 @@ export function renderItem({
   indent = false,
   className = '',
   handleButtonClick = (key, value) => {}, // Add handleButtonClick prop
-}: RenderItemProps): React.ReactNode {
+}: RenderItemProps) {
+
   const element = () => {
     const thisLabel = item.label || '?'
     switch (item.type) {
@@ -95,7 +96,7 @@ export function renderItem({
             value={item.value || ''}
             focus={item.focus || false}
             onChange={(e) => {
-              item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
+              item.key && handleFieldChange(item.key, (e.currentTarget as HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
             }}
             onSave={(newValue) => {
@@ -132,7 +133,7 @@ export function renderItem({
             label={thisLabel}
             value={item.value || ''}
             onChange={(e) => {
-              item.key && handleFieldChange(item.key, (e.currentTarget: HTMLInputElement).value)
+              item.key && handleFieldChange(item.key, (e.currentTarget as HTMLInputElement).value)
               item.key && handleInputChange(item.key, e)
             }}
             onSave={(newValue) => {
@@ -151,7 +152,7 @@ export function renderItem({
             key={`cmb${index}`}
             options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
             value={item.value || item.default || undefined} // Ensure value is not undefined
-            onChange={(selectedOption) => {
+            onChange={(selectedOption: any) => {
               const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
               item.key && handleFieldChange(item.key, value)
               item.key && handleComboChange(item.key, value) // Pass the selected option
@@ -183,7 +184,7 @@ export function renderItem({
                 : []
             }
             value={item.value || ''}
-            onChange={(selectedOption: Option | null) => {
+            onChange={(selectedOption: any) => {
               if (selectedOption && typeof selectedOption.value === 'string') {
                 const value = selectedOption.value
                 item.key && handleFieldChange(item.key, value)
@@ -231,7 +232,7 @@ export function renderItem({
           if (typeof dataToUse !== 'object') {
             throw new Error('Parsed data is not an object or array.')
           }
-        } catch (error) {
+        } catch (error: any) {
           logError('Error parsing JSON for field', item.label || 'root', error)
           return (
             <div key={`json${index}`} className="ui-json-error">
@@ -280,7 +281,7 @@ export function renderItem({
         return (
           <ButtonGroup
             key={`btn-group${index}`}
-            options={item.options || []}
+            options={(item.options as any) ?? []}
             disabled={disabled}
             onClick={(value) => {
               if (item.key) {
@@ -296,7 +297,7 @@ export function renderItem({
         const selectedDate = item.selectedDate || null
         const numberOfMonths = item.numberOfMonths || 1
 
-        const handleDateChange = (date) => {
+        const handleDateChange = (date: Date) => {
           if (item.key) {
             handleFieldChange(item.key, date)
           }
@@ -304,7 +305,7 @@ export function renderItem({
 
         return (
           <div key={`calendarpicker${index}`} className="calendarpicker-container">
-            <CalendarPicker startingSelectedDate={selectedDate} onSelectDate={handleDateChange} numberOfMonths={numberOfMonths} className="calendarPickerCustom" />
+            <CalendarPicker startingSelectedDate={selectedDate as any} onSelectDate={handleDateChange} numberOfMonths={numberOfMonths} className="calendarPickerCustom" />
           </div>
         )
       }

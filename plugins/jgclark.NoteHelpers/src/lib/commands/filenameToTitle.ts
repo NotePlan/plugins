@@ -14,7 +14,7 @@ export async function filenameToTitle(): Promise<void> {
     if (note) {
       await makeNoteTitleMatchFilename(note)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(error)
   }
 }

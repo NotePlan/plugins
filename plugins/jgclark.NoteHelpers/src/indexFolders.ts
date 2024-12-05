@@ -165,7 +165,7 @@ function makeFolderIndex(folder: string, config: any, includeSubfolders: boolean
  */
 export async function indexFolders(folder: string = "", args: string = ''): Promise<void> {
   try {
-    let folderToUse: ?string = ''
+    let folderToUse: null | void | string = ''
     // let fullFilename = ''
 
     // Use parameters if passed, otherwise fallback to the settings

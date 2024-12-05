@@ -160,7 +160,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
     // Update display of these 2 sections
     logDebug('scheduleAllThisWeekNextWeek', `returning {true, REFRESH_SECTION_IN_JSON, [W]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['W'] }
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleAllThisWeekNextWeek', error.message)
     return { success: false }
   }
@@ -294,7 +294,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     // Update display of these 2 sections
     logDebug('scheduleAllLastWeekThisWeek', `returning {true, REFRESH_SECTION_IN_JSON, [W]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['W'] }
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleAllLastWeekThisWeek', error.message)
     return { success: false }
   }

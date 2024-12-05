@@ -167,7 +167,7 @@ export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''
     } else {
       logWarn('note/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -518,7 +518,7 @@ export function findNotesMatchingHashtagOrMention(
  */
 export function findNotesMatchingHashtag(
   tag: string,
-  folder: ?string,
+  folder: null | void | string,
   includeSubfolders: boolean = false,
   tagsToExclude: Array<string> = [],
   caseInsensitiveMatch: boolean = true,
@@ -616,7 +616,7 @@ export function findNotesMatchingHashtag(
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<Array<TNote>>} array of list of notes
  */
-export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
+export function findNotesMatchingHashtags(tags: Array<string>, folder: null | void | string, includeSubfolders: null | void | boolean = false): Array<Array<TNote>> {
   if (tags.length === 0) {
     logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
     return []

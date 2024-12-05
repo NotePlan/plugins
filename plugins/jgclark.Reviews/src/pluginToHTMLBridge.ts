@@ -74,7 +74,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         break
     }
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -88,7 +88,7 @@ export async function runPluginCommand(data: any) {
     logDebug(pluginJson, `runPluginCommand: received command '${data.commandName}' with args [${data.commandArgs}]`)
     // clo(data, 'runPluginCommand received data object')
     await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs ?? [])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -114,7 +114,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
         break
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('bridgeChangeCheckbox', error.message)
   }
 }
@@ -262,7 +262,7 @@ export async function bridgeClickProjectListItem(data: MessageDataObject) {
         logWarn('bridgeClickProjectListItem', `bridgeClickProjectListItem: can't yet handle type ${type}`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `pluginToHTMLBridge / bridgeClickProjectListItem: ${JSP(error)}`)
   }
 }

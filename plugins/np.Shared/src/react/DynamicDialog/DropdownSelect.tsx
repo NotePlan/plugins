@@ -13,27 +13,27 @@ declare var NP_THEME: any
 export type Option = {
   label: string,
   value: string,
-  [string]: any, // Allow additional properties (e.g. isModified)
+  [k: string]: any, // Allow additional properties (e.g. isModified)
 }
 
 type Styles = {
-  container?: { [string]: mixed },
-  label?: { [string]: mixed },
-  wrapper?: { [string]: mixed },
-  inputContainer?: { [string]: mixed },
-  input?: { [string]: mixed },
-  arrow?: { [string]: mixed },
-  dropdown?: { [string]: mixed },
-  option?: { [string]: mixed },
-  indicator?: { [string]: mixed }, // Style for the indicator
-  separator?: { [string]: mixed }, // Style for the separator
+  container?: { [k: string]: unknown },
+  label?: { [k: string]: unknown },
+  wrapper?: { [k: string]: unknown },
+  inputContainer?: { [k: string]: unknown },
+  input?: { [k: string]: unknown },
+  arrow?: { [k: string]: unknown },
+  dropdown?: { [k: string]: unknown },
+  option?: { [k: string]: unknown },
+  indicator?: { [k: string]: unknown }, // Style for the indicator
+  separator?: { [k: string]: unknown }, // Style for the separator
 }
 
 type DropdownSelectProps = {
   label: string,
   options: Array<string | Option>,
   value: string | Option,
-  onChange: ({ [string]: mixed }) => void,
+  onChange: (arg: { [k: string]: unknown }) => void,
   inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
   disabled?: boolean,
@@ -54,7 +54,7 @@ type DropdownSelectProps = {
  * @param {Object} overrideStyles - The styles to override with.
  * @returns {Object} The merged style object.
  */
-const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]: mixed } = {}) => {
+const mergeStyles = (baseStyles: { [k: string]: unknown }, overrideStyles: { [k: string]: unknown } = {}) => {
   return { ...baseStyles, ...overrideStyles }
 }
 
@@ -85,8 +85,8 @@ const DropdownSelect = ({
   const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
   const [inputValue, setInputValue] = useState(selectedValue.label)
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
-  const dropdownRef = useRef<?ElementRef<'div'>>(null)
-  const optionsRef = useRef<?ElementRef<'div'>>(null)
+  const dropdownRef = useRef<null | ElementRef<'div'>>(null)
+  const optionsRef = useRef<null | ElementRef<'div'>>(null)
 
   // Calculate the width based on the longest option if fixedWidth is not provided
   const calculateWidth = () => {
@@ -117,8 +117,9 @@ const DropdownSelect = ({
   }, [inputValue, normalizedOptions, isEditable])
 
   // Handle input change
-  const handleInputChange = (event: SyntheticInputEvent<HTMLInputElement>) => {
+  const handleInputChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
     if (isEditable) {
+      // @ts-expect-error
       setInputValue(event.target.value)
       setIsOpen(true) // Open dropdown when typing
     }
@@ -149,8 +150,8 @@ const DropdownSelect = ({
     }
   }
 
-  const findScrollableAncestor = (el: HTMLElement): ?HTMLElement => {
-    let currentEl: ?Element = el
+  const findScrollableAncestor = (el: HTMLElement): null | void | HTMLElement => {
+    let currentEl: null | void | Element = el
     while (currentEl && currentEl.parentElement) {
       currentEl = currentEl.parentElement
       if (currentEl instanceof HTMLElement) {
@@ -241,18 +242,17 @@ const DropdownSelect = ({
    * @param {Object} customStyles - Custom styles for the indicator.
    * @returns {Object} Style object for the dot.
    */
-  const dot = (isVisible: boolean, customStyles: { [string]: mixed } = {}) =>
-    // $FlowFixMe[cannot-spread-indexer]
-    ({
-      backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
-      borderRadius: '50%',
-      height: 10,
-      width: 10,
-      marginRight: 8,
-      display: 'inline-block',
-      flexShrink: 0,
-      ...customStyles,
-    })
+  const dot = (isVisible: boolean, customStyles: { [k: string]: unknown } = {}) => ({
+    // @ts-expect-error
+    backgroundColor: isVisible ? customStyles.color || 'black' : 'transparent',
+    borderRadius: '50%',
+    height: 10,
+    width: 10,
+    marginRight: 8,
+    display: 'inline-block',
+    flexShrink: 0,
+    ...customStyles,
+  })
 
   return (
     <div
@@ -276,7 +276,7 @@ const DropdownSelect = ({
             styles.inputContainer || {},
           )}
         >
-          {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {})} />}
+          {showIndicatorOptionProp && <span style={dot(shouldShowIndicator, styles.indicator || {}) as any} />}
           <input
             type="text"
             className="dropdown-select-input"
@@ -294,6 +294,7 @@ const DropdownSelect = ({
         {isOpen && (
           <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px` }, styles.dropdown)}>
             {filteredOptions.map((option: Option) => {
+              // @ts-expect-error
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
               }
@@ -312,7 +313,7 @@ const DropdownSelect = ({
                     styles.option,
                   )}
                 >
-                  {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {})} />}
+                  {showIndicator && <span style={dot(option[showIndicatorOptionProp] === true, styles.indicator || {}) as any} />}
                   <span className="option-label" style={noWrapOptions ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
                     {option.label}
                   </span>

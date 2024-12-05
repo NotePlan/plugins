@@ -209,7 +209,7 @@ export default class TemplatingEngine {
       result = (result && result?.replace(/undefined/g, '')) || ''
 
       return this._replaceDoubleDashes(result)
-    } catch (error) {
+    } catch (error: any) {
       logDebug(`199 np.Templating error: ${error}`)
 
       const message = error.message.replace('\n', '')
@@ -246,7 +246,7 @@ export default class TemplatingEngine {
       logDebug(pluginJson, `230 np.Templating format: ${format}`)
 
       return format
-    } catch (error) {
+    } catch (error: any) {
       logError(`231 np.Templating Error: ${error}`)
       return this.templateErrorMessage('TemplatingEngine.getDefaultFormat', error)
     }

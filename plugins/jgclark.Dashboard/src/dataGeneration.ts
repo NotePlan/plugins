@@ -75,7 +75,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
     const sections: Array<TSection> = await getSomeSectionsData(sectionsToShow, useDemoData, useEditorWherePossible)
 
     return sections.filter((s) => s) //get rid of any nulls b/c some of the sections above could return null
-  } catch (error) {
+  } catch (error: any) {
     logError('getAllSectionDetails', error.message)
     return []
   }
@@ -120,7 +120,7 @@ export async function getSomeSectionsData(
 
     sections.filter((s) => s) //get rid of any nulls b/c just in case any the sections above could return null
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError('getSomeSectionDetails', error.message)
     return []
   }
@@ -296,7 +296,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
 
     logDebug('getDataForDashboard', `- found ${itemCount} monthly items from ${thisFilename} in ${timer(startTime)}`)
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError('getDataForDashboard/month', `ERROR: ${error.message}`)
     return []
   }
@@ -461,7 +461,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
 
     logDebug('getDataForDashboard', `- found ${itemCount} quarterly items from ${dateStr} in ${timer(startTime)}`)
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError('getDataForDashboard/quarter', `ERROR: ${error.message}`)
     return []
   }
@@ -747,7 +747,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     // console.log(JSON.stringify(section))
     logTimer('getOverdueSectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1000)
     return section
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     // $FlowFixMe[incompatible-return]
     return null
@@ -855,7 +855,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
     }
     logTimer('getPrioritySectionData', thisStartTime, `found ${itemCount} items for ${thisSectionCode}`, 1500)
     return section
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
     // $FlowFixMe[incompatible-return]
     return null

@@ -154,7 +154,7 @@ export async function listDaysEvents(paramStringIn: string = ''): Promise<string
  * @author @jgclark
  * @param {?string} paramString - passed through to next function
  */
-export async function insertDaysEvents(paramString: ?string): Promise<void> {
+export async function insertDaysEvents(paramString: null | void | string): Promise<void> {
   try {
     logDebug(pluginJson, 'insertDaysEvents: Starting')
     if (Editor.note == null || Editor.type !== 'Calendar') {
@@ -166,7 +166,7 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
     let output: string = await listDaysEvents(paramString || '')
     output += output.length === 0 ? '\nnone\n' : '\n'
     Editor.insertTextAtCursor(output)
-  } catch (error) {
+  } catch (error: any) {
     logError('insertDaysEvents', error.message)
   }
 }
@@ -307,7 +307,7 @@ export async function listMatchingDaysEvents(
     const output = outputArray.join('\n') // If this array is empty -> empty string
     logDebug('listMatchingDaysEvents', output)
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('insertMatchingDaysEvents', error.message)
     return ''
   }
@@ -321,7 +321,7 @@ export async function listMatchingDaysEvents(
  *
  * @param {?string} paramString Paramaters to use (to pass on to next function)
  */
-export async function insertMatchingDaysEvents(paramString: ?string): Promise<void> {
+export async function insertMatchingDaysEvents(paramString: null | void | string): Promise<void> {
   logDebug(pluginJson, 'insertMatchingDaysEvents: starting')
   try {
     if (Editor.note == null || Editor.type !== 'Calendar') {
@@ -330,7 +330,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
     }
     const output = await listMatchingDaysEvents(paramString || '')
     Editor.insertTextAtCursor(output)
-  } catch (error) {
+  } catch (error: any) {
     logError('insertMatchingDaysEvents', error.message)
   }
 }
@@ -376,7 +376,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
 
     // outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
     return outputObject
-  } catch (error) {
+  } catch (error: any) {
     logError('getReplacements', error.message)
     return new Map() // for completeness
   }
@@ -423,7 +423,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
       }
     }
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('smartStringReplace', error.message)
     return ''
   }

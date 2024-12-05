@@ -48,7 +48,7 @@ export function JSP(obj: any, space: string | number = 2): string {
     return String(obj)
   } else {
     if (Array.isArray(obj)) {
-      const arrInfo = []
+      const arrInfo: string[] = []
       let isValues = false
       obj.forEach((item, i) => {
         if (typeof item === 'object') {
@@ -61,7 +61,7 @@ export function JSP(obj: any, space: string | number = 2): string {
       return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`
     }
     const propNames = getFilteredProps(obj)
-    const fullObj = propNames.reduce((acc: Object, propName: string) => {
+    const fullObj = propNames.reduce((acc: { [key: string]: any }, propName: string) => {
       if (!/^__/.test(propName)) {
         if (Array.isArray(obj[propName])) {
           try {
@@ -76,7 +76,7 @@ export function JSP(obj: any, space: string | number = 2): string {
             } else {
               acc[propName] = obj[propName] //do not traverse any further
             }
-          } catch (error) {
+          } catch (error: any) {
             logDebug(
               'helpers/dev',
               `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${
@@ -194,7 +194,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
       return newObj // Changed from non-object to object
     }
 
-    const differences = {}
+    const differences: { [key: string]: any } = {}
     const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
 
     for (const key of keys) {
@@ -239,7 +239,7 @@ export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<s
  * @returns {Object|null} - An object representing the differences or null if no differences.
  */
 function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
-  const diff = {}
+  const diff: Record<string, any> = {}
 
   const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)])
 
@@ -316,7 +316,7 @@ function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
  * @returns {*} - The differences or null if no differences.
  * @usage const differences = getDiff(obj1, obj2);
  */
-export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { before: any, after: any }) {
+export function getDiff(data1: any, data2: any): null | (DiffObject | DiffArray | { before: any, after: any }) {
   if (isArray(data1) && isArray(data2)) {
     return getArrayDiff(data1, data2)
   } else if (isObject(data1) && isObject(data2)) {
@@ -345,7 +345,7 @@ export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { be
  * @example clof(note.paragraphs, 'paragraphs',['content'],true)
  * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
  */
-export function clof(obj: any, preamble: string = '', fields: ?Array<string> | string = null, compactMode: ?boolean = false): void {
+export function clof(obj: any, preamble: string = '', fields: null | void | Array<string> | string = null, compactMode: boolean = false): void {
   const topLevelIsArray = Array.isArray(obj)
   const copy = deepCopy(obj, fields?.length ? fields : null, true)
   const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
@@ -360,16 +360,17 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> | s
     })
     logDebug(`${preamble}: ^^^`)
   } else {
-    if (topLevel === {}) {
-      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
-      logDebug(`${preamble}: {} (no data${keycheck})`)
-    } else {
-      logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
-    }
+    // This condition is always false.
+    // if (topLevel === {}) {
+    //   const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+    //   logDebug(`${preamble}: {} (no data${keycheck})`)
+    // } else {
+    logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
+    // }
   }
 }
 
-export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
+export function dump(pluginInfo: any, obj: { [k: string]: unknown }, preamble: string = '', space: string | number = 2): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
   log(pluginInfo, '-------------------------------------------')
@@ -385,9 +386,9 @@ export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string
  * @returns {Array<string>}
  * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
  */
-export function getAllPropertyNames(inObj: interface { [string]: mixed }): Array<string> {
+export function getAllPropertyNames(inObj: {}): Array<string> {
   let obj = inObj
-  const props = []
+  const props: string[] = []
   do {
     Object.getOwnPropertyNames(obj).forEach(function (prop) {
       if (props.indexOf(prop) === -1) {
@@ -421,12 +422,12 @@ export const getFilteredProps = (object: any): Array<string> => {
  * @author @dwertheimer
  * @param {any} obj
  */
-export function copyObject(obj: any): any {
+export function copyObject(obj: Record<string, any>) {
   const props = getFilteredProps(obj)
-  return props.reduce((acc, p: any) => {
+  return props.reduce((acc, p: string) => {
     acc[p] = obj[p]
     return acc
-  }, {})
+  }, {} as Record<string, any>)
 }
 
 /**
@@ -443,8 +444,10 @@ export function copyObject(obj: any): any {
  * @param {boolean} [showIndices=false] Optional parameter to include indices in array representation during stringification.
  * @return {T|{ [key: string]: any }} The deep copy of the value.
  */
-export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string = null, showIndices: boolean = false): T | { [key: string]: any } {
-  const propsToInclude = _propsToInclude === [] ? null : typeof _propsToInclude === 'string' ? [_propsToInclude] : _propsToInclude
+export function deepCopy<T extends {}>(value: T, _propsToInclude: null | void | Array<string> | string = null, showIndices: boolean = false): T | { [key: string]: any } {
+  // NOTE: This is always false:
+  // _propsToInclude === [] ? null :
+  const propsToInclude = typeof _propsToInclude === 'string' ? [_propsToInclude] : _propsToInclude
 
   // Handle null, undefined, and primitive types
   if (value === null || typeof value !== 'object') {
@@ -461,7 +464,7 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
     const arrayCopy = value.map((item: any) => deepCopy(item, propsToInclude, showIndices))
     if (showIndices) {
       // Convert array to object with index keys for stringification
-      const objectWithIndices = {}
+      const objectWithIndices: Record<string, any> = {}
       arrayCopy.forEach((item: any, index: number) => {
         objectWithIndices[`[${index}]`] = item
       })
@@ -472,14 +475,16 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
   }
 
   // Handle Object (including objects with prototype properties)
-  const copy = {}
+  const copy: Record<string, any> = {}
   const propNames = propsToInclude || Object.keys(value)
   for (const key of propNames) {
     if (propsToInclude ? propsToInclude.includes(key) : true) {
       const isBlacklisted = PARAM_BLACKLIST.indexOf(key) !== -1
       const isPrivateVar = /^__/.test(key)
+      // @ts-expect-error
       const isFunction = typeof value[key] === 'function'
       if (!isBlacklisted && !isPrivateVar && !isFunction) {
+        // @ts-expect-error
         copy[key] = deepCopy(value[key], propsToInclude, showIndices)
       }
     }
@@ -496,12 +501,13 @@ export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string =
  */
 // This works and is good if you want to know which properties are on the object vs the prototype
 // because it will display in two lines
-export function logAllPropertyNames(obj?: mixed): void {
+export function logAllPropertyNames(obj?: unknown): void {
   if (typeof obj !== 'object' || obj == null) return // recursive approach
   logDebug(
     'helpers/dev',
     Object.getOwnPropertyNames(obj).filter((x) => /^__/.test(x) === false),
   )
+  // @ts-expect-error
   logAllPropertyNames(obj.__proto__)
 }
 
@@ -542,7 +548,7 @@ export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '�
  * @returns {boolean}
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
-  let userLogLevel = 1
+  let userLogLevel = '';
   const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   // Note: Performing a null change against a value that is `undefined` will be true
@@ -550,6 +556,7 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 
   // se _logLevel to decide whether to output
   if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+    // @ts-expect-error
     userLogLevel = pluginSettings['_logLevel']
   }
   const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel)
@@ -565,6 +572,7 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
+    // @ts-expect-error
     const functionRE = new RegExp(pluginSettings['_logFunctionRE'], 'i')
     const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
     return functionRE.test(infoStr)
@@ -706,6 +714,7 @@ export function logTimer(functionName: string, startTime: Date, explanation: str
   } else {
     const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
     // const timerSetting = pluginSettings['_logTimer'] ?? false
+    // @ts-expect-error
     if (pluginSettings && pluginSettings.hasOwnProperty('_logTimer') && pluginSettings['_logTimer'] === true) {
       const msg = `${dt().padEnd(19)} | ⏱️ ${functionName} | ${output}`
       console.log(msg)
@@ -730,13 +739,16 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
     // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
       const argObj = {}
+      // @ts-expect-error
       argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
       // use the built-in way to add (or override) from argObj into config
       const configOut = Object.assign(config)
 
       // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
       for (const key in argObj) {
+        // @ts-expect-error
         let value = argObj[key]
+        // @ts-expect-error
         logDebug(`dev.js`, `overrideSettingsWithStringArgs key:${key} value:${argObj[key]} typeof:${typeof argObj[key]} !isNaN(${value}):${String(!isNaN(argObj[key]))}`)
         if (!isNaN(value) && value !== '') {
           // Change to number type
@@ -752,6 +764,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
           value = value.split(',')
         }
         configOut[key] = value
+        // @ts-expect-error
         if (configOut[key] !== argObj[key]) {
           logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
         }
@@ -760,7 +773,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
     } else {
       return config
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('overrideSettingsWithStringArgs', JSP(error))
     console.log(JSP(error))
   }
@@ -788,7 +801,7 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
     } else {
       return config
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('overrideSettingsWithTypedArgs', JSP(error))
   }
 }
@@ -804,7 +817,7 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
 export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJSON: string): any {
   try {
     return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
-  } catch (error) {
+  } catch (error: any) {
     logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
   }
 }

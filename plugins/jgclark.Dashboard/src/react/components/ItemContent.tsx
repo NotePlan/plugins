@@ -276,7 +276,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // logDebug('makeParaContet...', `\n-> ${output}`)
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError(`makeParaContentToLookLikeNPDisplayInReact`, error.message)
     return '(makeParaContent... error)'
   }
@@ -297,7 +297,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string, folderNa
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', actionType:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(
       noteTitle,
     )}'})"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${noteTitle}</a>`
-  } catch (error) {
+  } catch (error: any) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
     return '(makeNoteTitle... error)'
   }

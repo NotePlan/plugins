@@ -35,7 +35,7 @@ export async function createAIImages(promptIn: string | null = '', nIn: number =
             Editor.insertTextAtCursor(msg)
             request.forEach((r, i) => Editor.insertTextAtCursor(`[Result${i}](${r.url})`))
         }
-     } catch (error) {
+     } catch (error: any) {
         logError(pluginJson, JSP(error))
     }
 }

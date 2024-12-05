@@ -51,7 +51,7 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
       `np.Shared successfully received and executed command onMessageFromHTMLView(). This message is coming from NotePlan and confirms bilateral communications are functional. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
     )
     return {} // return blank to keep NotePlan from throwing an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -175,7 +175,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
     logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `openReactWindow: Error ${JSP(error)}`)
     return false
   }

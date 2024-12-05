@@ -146,7 +146,7 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
       }
       await newMeetingNote(selectedEvent, template, forceNewNote)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `error in newMeetingNoteFromID: ${JSP(error)}`)
   }
 }
@@ -339,7 +339,7 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
     } else {
       logDebug(pluginJson, `note link not written to event because it contains attendees (${selectedEvent.attendees.length}) or calendar doesnt allow content changes.`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `error in writeNoteLinkIntoEvent: ${error}`)
   }
 }
@@ -485,7 +485,7 @@ async function appendPrependNewNote(noteName: string, location: string, folder: 
     const originalContentLength = note.content?.length ?? 0
     await updateNoteContent(note, location, content, originalContentLength)
     return note?.title || ''
-  } catch (error) {
+  } catch (error: any) {
     logDebug(pluginJson, `error in appendPrependNewNote: ${error}`)
   }
 }
@@ -534,7 +534,7 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
       return note.title
     }
     return null
-  } catch (error) {
+  } catch (error: any) {
     logDebug(pluginJson, `error in newNoteWithFolder: ${error}`)
     return null
   }
@@ -611,7 +611,7 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
               templates.push(template)
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           await errorReporter(error, template)
           continue
         }
@@ -637,7 +637,7 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
       logDebug(pluginJson, `will use Template file '${templateFilename}' ...`)
     }
     return templateFilename
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `error in chooseTemplateIfNeeded: ${JSP(error)}`)
   }
 }
@@ -678,7 +678,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem | null): Promis
     }
 
     return selectedEvent
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `error in chooseEventIfNeeded: ${error}`)
     return null
   }

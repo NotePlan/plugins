@@ -319,7 +319,7 @@ export async function taskSync(...args: Array<string>): Promise<void> {
       logDebug(`Not executing workaround, Editor.content: "${String(Editor.content)}"`)
     }
     // FIXME: end work-around
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

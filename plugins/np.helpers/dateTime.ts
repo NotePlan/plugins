@@ -249,7 +249,7 @@ export function unhyphenateString(dateString: string): string {
   return dateString.replace(/-/g, '')
 }
 
-// Note: ? This does not work to get reliable date string from note.date for daily notes
+// Note: null | void |  This does not work to get reliable date string from note.date for daily notes
 export function toISODateString(dateObj: Date): string {
   // logDebug('dateTime / toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
@@ -661,7 +661,7 @@ export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = 
  * @return {?Date} - JS Date version, if valid date found
  * @test - available in jest file
  */
-export function getDateObjFromDateString(mention: string): ?Date {
+export function getDateObjFromDateString(mention: string): null | void | Date {
   const RE_DATE_CAPTURE = `(${RE_DATE})` // capture date of form YYYY-MM-DD
 
   // logDebug('dateTime / getDateObjFromDateString', `for ${mention}`)
@@ -725,7 +725,7 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
  * @param {string} - YYYYMMDD string
  * @return {?Date} - JS Date version of
  */
-export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
+export function getDateFromUnhyphenatedDateString(inputString: string): null | void | Date {
   // logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
   const res = inputString.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
@@ -1041,7 +1041,7 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 
     // logDebug('dateTime / cOD', `for '${baseDateStrIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate
-  } catch (e) {
+  } catch (e: any) {
     logError('dateTime / cOD', `${e.message} for '${baseDateStrIn}' interval '${interval}'`)
     return null
   }
@@ -1209,7 +1209,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     }
     // logDebug('dateTime / cODS', `for '${baseDateIn}' date, offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
     return newDateStr
-  } catch (e) {
+  } catch (e: any) {
     logError('dateTime / cODS', `${e.message} for '${baseDateIn}' date, offsetInterval '${offsetInterval}'`)
     return '(error)'
   }
@@ -1257,7 +1257,7 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
     const newDateStr = moment(offsetDate).format(momentDateFormat)
     // logDebug('dateTime / cODSUCT', `for '${offsetInterval}'  (unit=${unit}) from ${baseDateISO}' -> ${newDateStr} using type ${momentDateFormat}`)
     return newDateStr
-  } catch (e) {
+  } catch (e: any) {
     logError('dateTime / cODSUCT', `${e.message} for '${baseDateISOIn}' offsetInterval '${offsetInterval}'`)
     return '(error)'
   }

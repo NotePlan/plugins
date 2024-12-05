@@ -44,7 +44,7 @@ export function isOpenAndScheduled(t: TParagraph): boolean {
  * @returns {boolean} true if open, false if any other status/type
  */
 export function isOpenTaskNotScheduled(t: TParagraph): boolean {
-  return (t.type === 'open') && !hasScheduledDate(t.content) && t.content.trim() !== ''
+  return t.type === 'open' && !hasScheduledDate(t.content) && t.content.trim() !== ''
 }
 
 /**
@@ -53,7 +53,8 @@ export function isOpenTaskNotScheduled(t: TParagraph): boolean {
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isClosed = (t: TParagraph): boolean => (t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled') && t.content.trim() !== ''
+export const isClosed = (t: TParagraph): boolean =>
+  (t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled') && t.content.trim() !== ''
 
 /**
  * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
@@ -84,11 +85,11 @@ export const isScheduled = (t: TParagraph): boolean => t.type === 'scheduled' ||
  * The order of the array is preserved *
  * tags: dedupe, unique
  *
- * @param {Array<{[string]: any}>} arr - The array of objects (e.g. Paragraphs) from which to remove duplicates.
+ * @param {Array<{[k: string]: any}>} arr - The array of objects (e.g. Paragraphs) from which to remove duplicates.
  * @param {Array<string>} keys - The keys/property names to check for duplicates.
- * @return {Array<{[string]: any}>} An array of objects without duplicates based on the specified keys.
+ * @return {Array<{[k: string]: any}>} An array of objects without duplicates based on the specified keys.
  */
-export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<string>): Array<{ [string]: any }> {
+export function removeDuplicates(arr: Array<{ [k: string]: any }>, keys: Array<string>): Array<{ [k: string]: any }> {
   const seen = new Map()
 
   return arr.filter((item) => {
@@ -111,5 +112,4 @@ export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<stri
  * @param {Array<string>} arr
  * @returns {string}
  */
-export const findLongestStringInArray = (arr: Array<string>): string =>
-  arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''
+export const findLongestStringInArray = (arr: Array<string>): string => (arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : '')

@@ -43,7 +43,7 @@ export function init(): void {
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
     )
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
     logError(pluginID, JSP(error))
   }
@@ -62,7 +62,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused' })
 
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
@@ -77,7 +77,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

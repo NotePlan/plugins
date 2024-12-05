@@ -243,7 +243,7 @@ export async function getChat(question: string, showQ?: string | boolean = 'fals
       await chatError(`Error: ${chatResponse?.error?.message || ''}`, question)
     }
     logError(pluginJson, `getChat: No answer returned for question: ${question}`)
-  } catch (error) {
+  } catch (error: any) {
     // await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
@@ -263,7 +263,7 @@ export async function insertChat(question?: string): Promise<string | void> {
     if (question && ret) {
       return `### ${question}\n${ret.answer}`
     }
-  } catch (error) {
+  } catch (error: any) {
     await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
@@ -282,7 +282,7 @@ export async function continueChat(question?: string | null = null, filename?: s
     if (question) {
       await askNewQuestion(question, filename)
     }
-  } catch (error) {
+  } catch (error: any) {
     await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
@@ -298,7 +298,7 @@ export async function createChat(question?: string | null = null) {
   try {
     logDebug(pluginJson, `createChat running with incoming question:${String(question)}`)
     await askNewQuestion(question, null, 'new_document')
-  } catch (error) {
+  } catch (error: any) {
     await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }

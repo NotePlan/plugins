@@ -26,7 +26,7 @@ export async function templateInit(): Promise<void> {
     } else {
       onUpdateOrInstall({ silent: true })
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
   }
 }

@@ -429,7 +429,7 @@ export async function prependTaskToCalendarNote(
   logDebug(pluginJson, `starting /qpc`)
   try {
     const config = await getQuickCaptureSettings()
-    let note: ?TNote
+    let note: null | void | TNote
     let dateStr = ''
 
     // Start a longish sort job in the background
@@ -490,7 +490,7 @@ export async function appendTaskToCalendarNote(
   logDebug(pluginJson, `starting /qac`)
   try {
     const config = await getQuickCaptureSettings()
-    let note: ?TNote
+    let note: null | void | TNote
     let dateStr = ''
 
     // Start a longish sort job in the background
@@ -551,7 +551,7 @@ export async function appendTaskToWeeklyNote(
   logDebug(pluginJson, `starting /qaw`)
   try {
     const config = await getQuickCaptureSettings()
-    let note: ?TNote
+    let note: null | void | TNote
     let weekStr = ''
 
     // Get text to use from arg0 or user

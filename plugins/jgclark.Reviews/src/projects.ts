@@ -52,7 +52,7 @@ export async function addProgressUpdate(noteArg?: TNote): Promise<void> {
     await thisProject.addProgressLine()
     // Finally call Finish Review
     await finishReview()
-  } catch (error) {
+  } catch (error: any) {
     logError('addProgressUpdate', `addProgressUpdate: ${error.message}`)
   }
 }

@@ -125,7 +125,7 @@ export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNo
     // delete from existing location
     logDebug('blocks/moveGivenParaAndBlock', `- Removing ${parasInBlock.length} paras from original note`)
     fromNote.removeParagraphs(parasInBlock)
-  } catch (error) {
+  } catch (error: any) {
     logError('blocks/moveGivenParaAndBlock', `moveParas(): ${error.message}`)
   }
 }
@@ -155,7 +155,7 @@ export function isAChildPara(thisPara: TParagraph): boolean {
     }
     // logInfo('blocks/isAChildPara', `❌: ${thisPara.rawContent}`)
     return false
-  } catch (error) {
+  } catch (error: any) {
     logError('blocks/isAChildPara', `isAChildPara(): ${error.message}`)
     return false
   }

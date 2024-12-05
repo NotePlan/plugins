@@ -9,7 +9,7 @@ export type LinkObject = {
   url: string,
   type: 'markdown' | 'bareURL',
   lineIndex: number,
-  name: ?string /* will only be set if the URL is a markdown link */,
+  name: null | void | string /* will only be set if the URL is a markdown link */,
   domain: string /* will be empty if no domain is found (e.g. MD vdeeplink/callback-url or MD link without http/https) */,
   page: string /* will be empty if no page is found */,
 }
@@ -24,7 +24,7 @@ export type LinkObject = {
  * @param {boolean} removeSubdomain - Whether to remove the subdomain (like www) from the URL or not.
  * @returns {LinkObject} The processed LinkObject.
  */
-export function processURL(urlStr: string, name: ?string, lineIndex: number, removeSubdomain: boolean): LinkObject {
+export function processURL(urlStr: string, name: null | void | string, lineIndex: number, removeSubdomain: boolean): LinkObject {
   const parts = urlStr.split(/\/+/g)
   const domain = parts.length > 1 ? parts[1] : urlStr
   const page = parts.slice(2).join('/').split('?')[0]

@@ -32,7 +32,7 @@ export function getThemeObjByName(name: string): any | null {
 }
 
 export async function chooseTheme(
-  incomingThemeName: ?string = '',
+  incomingThemeName: null | void | string = '',
   pluginIDToCall: string | null = null,
   pluginCommandToCall: string | null = null,
   args: Array<string> = [],
@@ -78,7 +78,7 @@ export async function chooseTheme(
       logDebug(pluginJson, `chooseTheme, After Editor.setTheme. Executing command: ${pluginCommandToCall} in plugin: ${pluginIDToCall}`)
       await DataStore.invokePluginCommandByName(pluginCommandToCall, pluginIDToCall, args)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -161,7 +161,7 @@ export async function setDefaultLightDarkTheme(
       }
       logDebug(pluginJson, `setDefaultLightDarkTheme set${which} to ${themeFilename} ("${themeChoice}")`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -203,7 +203,7 @@ export async function copyCurrentTheme(
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -263,7 +263,7 @@ export async function toggleTheme() {
       await setDefaultLightDarkTheme()
       await toggleTheme()
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -295,7 +295,7 @@ export async function changeThemeFromFrontmatter() {
       logDebug(pluginJson, `changeThemeFromFrontmatter: 'There must be frontmatter and a "theme" field in frontmatter.'`)
       await showMessage('There must be a theme field in frontmatter.')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -318,7 +318,7 @@ export async function addThemeFrontmatter(themeName?: string | null = null) {
       logDebug(pluginJson, `addThemeFrontmatter: 'No theme chosen. No changes made.'`)
       await showMessage(`No theme chosen. No changes made.`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

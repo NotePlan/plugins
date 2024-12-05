@@ -232,7 +232,7 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
  * Take in a array of TParagraphs (block of lines), loop through and create events for the ones that should be events
  * Make changes to the paragraph lines and return all changed paragraphs as an array so they can be updated in one go
  * @param {Array<TParagraph>} block
- * @param {{[string]:any}} config
+ * @param {{[k: string]:any}} config
  * @param {string} calendar - the calendar to use for the events or blank to ask
  * @returns {{paragraph:{TParagraph}, time:{Range++ object with start, end | null}}}
  */
@@ -292,7 +292,7 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
     logDebug(pluginJson, `processTimeLines RETURNING ${timeLines.length} processed lines`)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
   return timeLines
@@ -348,7 +348,7 @@ export async function createEventPrompt(_heading?: string) {
         Clipboard.string = eventText
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
 }
@@ -386,7 +386,7 @@ export async function createEvents(heading: string = '', confirm?: string = 'yes
         clo(titles, `createEvents: titles in document were`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

@@ -91,7 +91,7 @@ export async function onEditorWillSave(): Promise<void> {
     } else {
       throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -287,7 +287,7 @@ export async function generateRepeats(
       }
     }
     return repeatCount
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `generateRepeats(): ${error.message}`)
     return 0
   }

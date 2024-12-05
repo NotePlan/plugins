@@ -59,7 +59,7 @@ export function init(): void {
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
     )
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -97,7 +97,7 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     //   await wsh.offerToAddExampleWSs()
     }
     return // Placeholder only to try to stop error in logs
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, `onUpdateOrInstall: ${error.message}`)
   }
 }

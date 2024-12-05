@@ -28,7 +28,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     // Tell user the plugin has been updated
     await updateSettingData(pluginJson)
     await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
 }
@@ -41,7 +41,7 @@ export function init(): void {
   try {
     // logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `init: ${JSP(error)}`)
   }
 }
@@ -71,7 +71,7 @@ export async function onSettingsUpdated(): Promise<void> {
 //   try {
 //     logDebug(pluginJson, `updateSettings running`)
 //     await editSettings(pluginJson)
-//   } catch (error) {
+//   } catch (error: any) {
 //     logError(pluginJson, JSP(error))
 //   }
 // }
@@ -82,7 +82,7 @@ export async function onSettingsUpdated(): Promise<void> {
 export async function versionCheck(): Promise<void> {
   try {
     await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

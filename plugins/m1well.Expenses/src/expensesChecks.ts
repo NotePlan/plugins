@@ -96,7 +96,7 @@ export const validateConfig = (config: Config, currentDate: Date): Config => {
   try {
     // check if given format has valid identifiers
     format(currentDate, config.dateFormat)
-  } catch (e) {
+  } catch (e: any) {
     logError(e)
     return emptyConfig
   }

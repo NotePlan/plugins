@@ -85,7 +85,7 @@ export function getNumCompletedTasksTodayFromNote(filename: string, useEditorWhe
       lastUpdated: new Date(),
     }
     return outputObject
-  } catch (error) {
+  } catch (error: any) {
     logError('getNumCompletedTasksTodayFromNote', error.message)
     return {
       completedTasks: 0,

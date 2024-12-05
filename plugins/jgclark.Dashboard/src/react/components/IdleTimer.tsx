@@ -29,7 +29,7 @@ const LEGAL_DRIFT_THRESHHOLD = 10000 // 10 seconds
 /**
  * IdleTimer component to keep track of user idle time and perform an action when the user is idle.
  * @param {IdleTimerProps} props - Component props.
- * @returns {React.Node} The IdleTimer component.
+ * @returns {React.ReactNode} The IdleTimer component.
  */
 function IdleTimer({ idleTime, onIdleTimeout }: IdleTimerProps): React.ReactNode {
   const [lastActivity, setLastActivity] = useState(Date.now())

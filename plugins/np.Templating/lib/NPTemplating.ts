@@ -135,7 +135,7 @@ type TemplateConfig = Readonly<{
   timeFormat?: string,
   nowFormat?: boolean,
   weatherFormat?: string,
-  services?: mixed,
+  services?: unknown,
 }>
 
 const dt = () => {
@@ -300,7 +300,7 @@ export default class NPTemplating {
       })
 
       this.constructor.templateGlobals = globalData
-    } catch (error) {
+    } catch (error: any) {
       await CommandBar.prompt('Template Error', error)
     }
   }
@@ -380,7 +380,7 @@ export default class NPTemplating {
 
       // @ts-ignore
       return await chooseOption<TNote, void>(promptMessage, options)
-    } catch (error) {}
+    } catch (error: any) {}
   }
 
   static async getFilenameFromTemplate(note: string = ''): Promise<string> {
@@ -502,7 +502,7 @@ export default class NPTemplating {
       }
 
       return templateList
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, error)
     }
   }
@@ -603,7 +603,7 @@ export default class NPTemplating {
       }
 
       return templateList
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, error)
     }
   }
@@ -695,7 +695,7 @@ export default class NPTemplating {
       }
 
       return templateContent
-    } catch (error) {
+    } catch (error: any) {
       return this.templateErrorMessage('NPTemplating.getTemplate', error)
     }
   }
@@ -704,7 +704,7 @@ export default class NPTemplating {
     return await new FrontmatterModule().attributes(templateData)
   }
 
-  static async getTemplateConfig(): mixed {
+  static async getTemplateConfig(): unknown {
     await this.setup()
     return this.constructor.templateConfig
   }
@@ -924,7 +924,7 @@ export default class NPTemplating {
       const renderedData = await this.render(templateData, data, userOptions)
 
       return this._filterTemplateResult(renderedData)
-    } catch (error) {
+    } catch (error: any) {
       clo(error, `NPTemplating.renderTemplate found error dbw1`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
@@ -1029,7 +1029,7 @@ export default class NPTemplating {
       }
 
       return final
-    } catch (error) {
+    } catch (error: any) {
       clo(error, `NPTemplating.renderTemplate found error dbw2`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
@@ -1116,7 +1116,7 @@ export default class NPTemplating {
     return items || []
   }
 
-  static async getPromptParameters(promptTag: string = ''): mixed {
+  static async getPromptParameters(promptTag: string = ''): unknown {
     let tagValue = ''
     tagValue = promptTag.replace(/\bask\b|promptDateInterval|promptDate|prompt|[()]|<%-|<%=|<%|-%>|%>/gi, '').trim()
     // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
@@ -1345,7 +1345,7 @@ export default class NPTemplating {
         return false
       }
       // note.insertParagraph(contentLines.join('\n'), 1, 'text')
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, `createTemplate :: ${error}`)
     }
   }
@@ -1366,7 +1366,7 @@ export default class NPTemplating {
       }
 
       return typeof note !== 'undefined'
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, `templateExists :: ${error}`)
     }
   }
@@ -1467,7 +1467,7 @@ export default class NPTemplating {
       } else {
         return false
       }
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, error)
       return false
     }
@@ -1535,7 +1535,7 @@ export default class NPTemplating {
               processedTemplateData = processedTemplateData.replace(codeBlock, typeof result === 'string' ? result : '')
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           logError(pluginJson, error)
         }
       }

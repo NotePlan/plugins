@@ -251,7 +251,7 @@ export function processMostRecentProgressParagraph(progressParas: Array<TParagra
     }
     // clo(outputProgress, 'processMostRecentProgressParagraph ->')
     return outputProgress
-  } catch (e) {
+  } catch (e: any) {
     logError('Project::processMostRecentProgressParagraph', e.message)
     return {
       lineIndex: 1,
@@ -319,7 +319,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
     }
     // logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
     return lineNumber
-  } catch (error) {
+  } catch (error: any) {
     logError('getOrMakeMetadataLine', error.message)
     return 0
   }
@@ -345,7 +345,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
  * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
-export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNote {
+export function updateMetadataInEditor(updatedMetadataArr: Array<string>): null | void | TNote {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -385,7 +385,7 @@ export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNot
 
     // update this note in the review list
     return thisNote
-  } catch (error) {
+  } catch (error: any) {
     logError('updateMetadataInEditor', `${error.message}`)
     return null
   }
@@ -436,7 +436,7 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
     logDebug('updateMetadataInNote', `- After update ${metadataPara.content}`)
 
     return
-  } catch (error) {
+  } catch (error: any) {
     logError('updateMetadataInNote', `${error.message}`)
     return
   }
@@ -451,7 +451,7 @@ export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<stri
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  * @returns { ?TNote } current note
  */
-export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): ?TNote {
+export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): null | void | TNote {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -488,7 +488,7 @@ export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>
 
     // update this note in the review list
     return thisNote
-  } catch (error) {
+  } catch (error: any) {
     logError('deleteMetadataMentionInEditor', `${error.message}`)
     return null
   }
@@ -532,7 +532,7 @@ export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteAr
     noteToUse.updateParagraph(metadataPara)
     logDebug('deleteMetadataMentionInNote', `- After update ${metadataPara.content}`)
     return
-  } catch (error) {
+  } catch (error: any) {
     logError('deleteMetadataMentionInNote', `${error.message}`)
     return
   }

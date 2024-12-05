@@ -39,7 +39,7 @@ export async function onOpen(note: TNote): Promise<void> {
         logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onOpen: ${error.message}`)
   }
 }
@@ -56,7 +56,7 @@ export async function onEditorWillSave() {
     // Note: as stated in the documentation, if you want to change any content in the Editor
     // before the file is written, you should NOT use the *note* variable here to change content
     // Instead, use Editor.* commands (e.g. Editor.insertTextAtCursor()) or Editor.updateParagraphs()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onEditorWillSave: ${error.message}`)
   }
 }
@@ -69,7 +69,7 @@ export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error.message)
   }
 }
@@ -91,7 +91,7 @@ export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<
     }
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)

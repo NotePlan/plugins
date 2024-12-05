@@ -428,7 +428,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')
-  } catch (error) {
+  } catch (error: any) {
     logError('generateCSSFromTheme', error.message)
     return '<error>'
   }
@@ -628,7 +628,7 @@ export function RGBColourConvert(RGBIn: string): string {
       output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
     }
     return output
-  } catch (error) {
+  } catch (error: any) {
     logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
     return '#888888' // for completeness
   }

@@ -13,7 +13,7 @@ import { getHeadingsFromNote } from './NPnote'
 function parseJSON5(contents: string): null | undefined | { [key: string]: unknown } {
   try {
     return json5.parse(contents) as any
-  } catch (error) {
+  } catch (error: any) {
     logError('userInput / parseJSON5', typeof error === 'object' && error && 'message' in error ? error.message : String(error))
     return {}
   }
@@ -57,7 +57,7 @@ export async function chooseOptionWithModifiers<T, TDefault = T>(
   options: ReadonlyArray<Option<T>>,
 ): Promise<TDefault & { index: number, keyModifiers: Array<string> }> {
   logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
-  // $FlowFixMe[prop-missing]
+  // @ts-expect-error
   const { index, keyModifiers } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
@@ -181,7 +181,7 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
  * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {
+export async function chooseFolder(msg: string, includeArchive: boolean = false, includeNewFolderOption: boolean = false, startFolder?: string): Promise<string> {
   const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
   const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
   let folder: string
@@ -216,6 +216,7 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
+    // @ts-expect-error
     ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
     if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
       folder = NEW_FOLDER
@@ -274,7 +275,7 @@ export async function chooseHeading(
     let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '')
     headingToReturn = await processChosenHeading(note, headingLevel, headingToReturn)
     return headingToReturn
-  } catch (error) {
+  } catch (error: any) {
     logError('userInput / chooseHeading', error.message)
     return '<error>'
   }
@@ -293,9 +294,9 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   const paramConfig = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
   // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
-  const allSettings: { [string]: mixed } = { ...paramConfig }
+  const allSettings: { [k: string]: unknown } = { ...paramConfig }
   // grab just question parameter, or provide a default
-  let { question } = (allSettings: any)
+  let { question } = (allSettings as any)
   question = question ? question : 'Please enter a date interval'
 
   const reply = (await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`)) ?? ''
@@ -333,11 +334,12 @@ export async function askForISODate(question: string): Promise<string> {
  * @author @jgclark, based on @nmn code
  *
  * @param {string} dateParams - given parameters -- currently only looks for {question:'question test'} parameter
- * @param {[string]: ?mixed} config - previously used as settings from _configuration note; now ignored
+ * @param {[k: string]: null | void | unknown} config - previously used as settings from _configuration note; now ignored
  * @return {string} - the returned ISO date as a string, or empty if an invalid string given
  */
-export async function datePicker(dateParams: string, config?: { [string]: ?mixed } = {}): Promise<string> {
+export async function datePicker(dateParams: string, config: { [k: string]: null | void | unknown } = {}): Promise<string> {
   try {
+    // @ts-ignore
     const dateConfig = config.date ?? {}
     // @ts-ignore
     clo(dateConfig, 'userInput / datePicker dateConfig object:')
@@ -347,13 +349,13 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     // @ts-ignore
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
-    const allSettings: { [string]: mixed } = {
+    const allSettings: { [k: string]: unknown } = {
       ...dateConfig,
       ...paramConfig,
     }
     // logDebug('userInput / datePicker', allSettings.toString())
     // grab just question parameter, or provide a default
-    let { question, defaultValue } = (allSettings: any)
+    let { question, defaultValue } = (allSettings as any)
     // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
     question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
@@ -372,7 +374,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
       logWarn('userInput / datePicker', 'User cancelled date input')
       return ''
     }
-  } catch (e) {
+  } catch (e: any) {
     logError('userInput / datePicker', e.message)
     return ''
   }
@@ -428,6 +430,7 @@ export async function inputIntegerBounded(title: string, question: string, upper
  */
 export function isInt(value: string): boolean {
   const x = parseFloat(value)
+  // @ts-expect-error
   return !isNaN(value) && value !== '' && (x | 0) === x
 }
 
@@ -502,7 +505,7 @@ const relativeDates = getRelativeDates()
  * @param {string} [_folder] - The folder to create the new note in.
  * @returns {Promise<Note | false>} - The newly created note, or false if the operation was cancelled.
  */
-export async function createNewNote(_title?: string = '', _content?: string = '', _folder?: string = ''): Promise<Note | null> {
+export async function createNewNote(_title: string = '', _content: string = '', _folder: string = ''): Promise<Note | null> {
   const title = _title || (await getInput('Title of new note', 'OK', 'New Note', ''))
   const content = _content
   if (title) {
@@ -528,8 +531,10 @@ export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDate
     let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDates) {
+        // @ts-expect-error
         if (calNoteTitle === rd.dateStr) {
           // console.log(`Found match with ${rd.relName}`)
+          // @ts-expect-error
           calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
         }
       }
@@ -553,13 +558,13 @@ export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDate
  */
 export async function chooseNote(
   includeProjectNotes: boolean = true,
-  includeCalendarNotes?: boolean = false,
-  foldersToIgnore?: Array<string> = [],
-  promptText?: string = 'Choose a note',
-  currentNoteFirst?: boolean = false,
-  allowNewNoteCreation?: boolean = false,
+  includeCalendarNotes: boolean = false,
+  foldersToIgnore: Array<string> = [],
+  promptText: string = 'Choose a note',
+  currentNoteFirst: boolean = false,
+  allowNewNoteCreation: boolean = false,
 ): Promise<TNote | null> {
-  let noteList = []
+  let noteList: TNote[] = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
   if (includeProjectNotes) {
@@ -579,6 +584,7 @@ export async function chooseNote(
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
+  // @ts-expect-error
   const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   const opts = sortedNoteListFiltered.map((note) => {
     return displayTitleWithRelDate(note)
@@ -586,6 +592,7 @@ export async function chooseNote(
   const { note } = Editor
   if (allowNewNoteCreation) {
     opts.unshift('[New note]')
+    // @ts-expect-error
     sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
@@ -594,7 +601,9 @@ export async function chooseNote(
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
   let noteToReturn = sortedNoteListFiltered[index]
+  // @ts-expect-error
   if (noteToReturn === '[New note]') {
+    // @ts-expect-error
     noteToReturn = await createNewNote()
   }
   return noteToReturn ?? null

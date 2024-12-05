@@ -222,7 +222,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     logDebug('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError('xxx', `ERROR: ${error.message}`)
     return []
   }
@@ -352,7 +352,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     logDebug('getLastWeekSectionData', `- found ${itemCount} weekly items from ${thisFilename} in ${timer(startTime)}`)
     return sections
-  } catch (error) {
+  } catch (error: any) {
     logError('getLastWeekSectionData', `ERROR: ${error.message}`)
     return []
   }

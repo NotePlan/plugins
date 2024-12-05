@@ -56,7 +56,7 @@ async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
       }
 
       await bundle.close()
-    } catch (error) {
+    } catch (error: any) {
       message('critical', `Rollup: Error building bundle: ${error}`, 'ERROR', true)
       console.error(error)
     }

@@ -262,7 +262,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         await CommandBar.prompt(`Unable to locate template "${selectedTemplate}"`, helpInfo('Presets'))
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

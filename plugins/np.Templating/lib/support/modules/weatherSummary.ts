@@ -80,7 +80,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
       try {
         // @ts-ignore
         allWeatherData = JSON.parse(jsonIn)
-      } catch (error) {
+      } catch (error: any) {
         logError(`'${error.message}' parsing Weather data lookup`)
         return `**Error '${error.message}' parsing Weather data lookup.**`
       }
@@ -132,7 +132,7 @@ export async function getWeatherSummary(format: string): Promise<string> {
       logError(pluginJson, 'Null JSON returned from Weather data lookup.')
       return `_Error: got no data back from Weather data lookup._`
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `'${error.message}' in weather data lookup from ${getWeatherURL}`)
     return `**Error '${error.message}' occurred in weather data lookup from ${getWeatherURL}.**`
   }

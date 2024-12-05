@@ -49,7 +49,7 @@ export async function init(): Promise<void> {
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
     )
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

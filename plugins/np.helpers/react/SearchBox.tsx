@@ -19,9 +19,9 @@ type Props = {
  * SearchBox component provides a search input with regex, expand-to-show, filter, and reset options.
  *
  * @param {Props} props - The props for the component.
- * @returns {React.Node} The rendered SearchBox component.
+ * @returns {React.ReactNode} The rendered SearchBox component.
  */
-const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilter, onReset, useRegex, expandToShow, filter, currentValue }: Props): React.Node => {
+const SearchBox = ({ onSearchChange, onToggleRegex, onToggleExpand, onToggleFilter, onReset, useRegex, expandToShow, filter, currentValue }: Props): React.ReactNode => {
   const [searchText, setSearchText] = useState(currentValue || '')
 
   const handleSearchChange = useCallback(

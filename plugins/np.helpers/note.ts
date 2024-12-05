@@ -99,7 +99,7 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
  * @param {?TNote} noteIn
  * @param {boolean?} alsoShowParagraphs? (default: false)
  */
-export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
+export function printNote(noteIn: null | void | TNote, alsoShowParagraphs: boolean = false): void {
   let note
   if (noteIn == null) {
     logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
@@ -150,14 +150,14 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
  * @param {boolean} useProjNoteByFilename (default: true)
  * @returns {any} - the note that was opened
  */
-export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true): Promise<?TNote> {
+export async function noteOpener(fullPath: string, desc: string, useProjNoteByFilename: boolean = true) {
   logDebug('note/noteOpener', `  About to open filename: "${fullPath}" (${desc}) using ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'}`)
   const newNote = useProjNoteByFilename ? await DataStore.projectNoteByFilename(fullPath) : await DataStore.noteByFilename(fullPath, 'Notes')
   if (newNote != null) {
     logDebug('note/noteOpener', `    Opened ${fullPath} (${desc} version) `)
     return newNote
   } else {
-    logDebug('note/noteOpener', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote: any)}`)
+    logDebug('note/noteOpener', `    Didn't work! ${useProjNoteByFilename ? 'projectNoteByFilename' : 'noteByFilename'} returned ${(newNote as any)}`)
   }
 }
 
@@ -167,7 +167,7 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
  */
-export function getNoteByFilename(filename: string): ?TNote {
+export function getNoteByFilename(filename: string): null | void | TNote {
   // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
   const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
   if (newNote != null) {
@@ -185,7 +185,7 @@ export function getNoteByFilename(filename: string): ?TNote {
  * @param {string} filename of either Calendar or Notes type
  * @returns {NoteType} Calendar | Notes
  */
-export function getNoteTypeByFilename(filename: string): ?NoteType {
+export function getNoteTypeByFilename(filename: string): null | void | NoteType {
   // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
   const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
   if (newNote != null) {
@@ -208,7 +208,7 @@ export function getNoteTypeByFilename(filename: string): ?NoteType {
  * @param {boolean?} partialTitleToMatch - optional partial note title to use with a starts-with not exact match
  * @return {Promise<TNote>} - note object
  */
-export async function getOrMakeNote(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<?TNote> {
+export async function getOrMakeNote(noteTitle: string, noteFolder: string, partialTitleToMatch: string = ''): Promise<null | TNote> {
   logDebug('note / getOrMakeNote', `starting with noteTitle '${noteTitle}' / folder '${noteFolder}' / partialTitleToMatch ${partialTitleToMatch}`)
   let existingNotes: ReadonlyArray<TNote> = []
 
@@ -241,11 +241,11 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
         return note
       } else {
         logError('note / getOrMakeNote', `can't read new ${noteTitle} note`)
-        return
+        return null
       }
     } else {
       logError('note / getOrMakeNote', `empty filename of new ${noteTitle} note`)
-      return
+      return null
     }
   }
 }
@@ -307,7 +307,7 @@ export function notesInFolderSortedByTitle(folder: string, alsoSubFolders: boole
     // Sort alphabetically on note's title
     const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
     return notesSortedByTitle
-  } catch (err) {
+  } catch (err: any) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return []
   }
@@ -327,11 +327,11 @@ export function getUniqueNoteTitle(title: string): string {
     let newTitle = title
     while (++i === 1 || res.length > 0) {
       newTitle = i === 1 ? title : `${title} ${i}`
-      // $FlowFixMe(incompatible-type)
+      // @ts-expect-error
       res = DataStore.projectNoteByTitle(newTitle, true, false)
     }
     return newTitle
-  } catch (err) {
+  } catch (err: any) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return ''
   }
@@ -433,7 +433,7 @@ export function pastCalendarNotes(): Array<TNote> {
     return DataStore.calendarNotes.slice().filter((note) => {
       return note.date < startOfTodayDate
     })
-  } catch (err) {
+  } catch (err: any) {
     logError('note/pastCalendarNotes', err.message)
     return []
   }
@@ -482,7 +482,7 @@ export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], 
       return 0 // names must be equal
     })
     return notesSorted
-  } catch (err) {
+  } catch (err: any) {
     logError('note/projectNotesSortedByTitle', err.message)
     return []
   }
@@ -521,7 +521,7 @@ export function filterOutProjectNotesFromExcludedFolders(
     }
     // logDebug('note/filterOutProjectNotesFromExcludedFolders', `-> ${String(outputList)}`)
     return outputList
-  } catch (err) {
+  } catch (err: any) {
     logError('note/filterOutProjectNotesFromExcludedFolders', err.message)
     return []
   }
@@ -576,7 +576,7 @@ export function replaceSection(
     logDebug('note / replaceSection', `- after insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
     logDebug('note / replaceSection', `- after insertParagraph() call there are ${note.paragraphs.length} paras`)
-  } catch (error) {
+  } catch (error: any) {
     logError('note / replaceSection', error.message)
   }
 }
@@ -610,7 +610,7 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
     }
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
-    let matchedHeadingIndex: number // undefined
+    let matchedHeadingIndex: number | void = undefined
     let sectionHeadingLevel = 2
     // Find the title/headingOfSectionToRemove whose start matches 'heading', and is in the active part of the note
     // But start after title or frontmatter.
@@ -650,7 +650,7 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
       logDebug('note / removeSection', `-> heading not found; will go after end of active part of file instead (line ${endOfActive + 1}).`)
       return endOfActive + 1
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('note / removeSection', error.message)
     return NaN // for completeness
   }
@@ -670,7 +670,7 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
 export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, plusOnlyTypes: boolean, replaceDate: boolean }): Array<TParagraph> {
   const { openOnly, plusOnlyTypes, replaceDate } = options
   const todayHyphenated = hyphenatedDateString(new Date())
-  const updatedParas = []
+  const updatedParas: TParagraph[] = []
   const datedOpenTodos = openOnly ? note?.datedTodos?.filter(isOpen) || [] : note?.datedTodos || []
   datedOpenTodos.forEach((todo) => {
     if (!/>today/i.test(todo.content)) {
@@ -767,7 +767,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
       // logDebug('note/filterOutParasInExcludeFolders', `found no corresponding notes`)
       return []
     }
-  } catch (err) {
+  } catch (err: any) {
     logError('note/filterOutParasInExcludeFolders', err)
     return []
   }

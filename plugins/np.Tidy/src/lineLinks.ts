@@ -4,7 +4,7 @@
 
 type MatchResult = {
   fullMatch: string, // The full matched string.
-  linkText: ?string, // The optional markdown link text (is null if match was not a markdown link)
+  linkText: null | void | string, // The optional markdown link text (is null if match was not a markdown link)
   noteTitle: string, // The noteTitle part of the string.
   blockID: string, // The blockID part of the string.
 }

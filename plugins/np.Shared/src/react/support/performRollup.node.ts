@@ -107,7 +107,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
 
   try {
     await Promise.all(rollupProms)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during rollup:', error)
   }
 })()

@@ -194,7 +194,7 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
       logError('makeTodayProgress', `Cannot find daily note to write to`)
     }
     return ''
-  } catch (error) {
+  } catch (error: any) {
     logError('makeTodayProgress', error.message)
     return '<error>' // for completeness
   }

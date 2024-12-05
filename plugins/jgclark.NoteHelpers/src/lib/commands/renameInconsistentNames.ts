@@ -60,7 +60,7 @@ export async function renameInconsistentNames(): Promise<void> {
         return
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `renameInconsistentNames() error: ${error.message}`)
   }
 }

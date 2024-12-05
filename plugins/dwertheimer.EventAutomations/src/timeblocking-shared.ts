@@ -97,7 +97,7 @@ export function getConfig(): AutoTimeBlockingConfig {
       if (!config.timeblockTextMustContainString) config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
       validateAutoTimeBlockingConfig(config)
       return config
-    } catch (error) {
+    } catch (error: any) {
       showMessage(`Plugin Settings ${error.message}\nRunning with default settings. You should probably open the plugin configuration dialog and fix the problem(s) listed above.`)
       logDebug(pluginJson, `Plugin Settings ${error.message} Running with default settings`)
     }

@@ -20,23 +20,24 @@ import { getWOTD } from './support/modules/wotd'
 import { getWeather } from './support/modules/weather'
 import { getWeatherSummary } from './support/modules/weatherSummary'
 import { parseJSON5 } from '@np/helpers/general'
-import { getSetting } from '../../helpers/NPConfiguration'
+import { getSetting } from '@np/helpers/NPConfiguration'
 import { log, logError, clo } from '@np/helpers/dev'
 
-export async function processDate(dateParams: string, config: { [string]: ?mixed }): Promise<string> {
+export async function processDate(dateParams: string, config: { [k: string]: null | void | unknown }): Promise<string> {
+  // @ts-expect-error
   const defaultConfig = config?.date ?? {}
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
     dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
   // console.log(`param config: ${dateParams} as ${JSON.stringify(paramConfig)}`);
   // ... = "gather the remaining parameters into an array"
-  const finalArguments: { [string]: mixed } = {
+  const finalArguments: { [k: string]: unknown } = {
     ...defaultConfig,
     ...paramConfig,
   }
 
   // Grab just locale parameter
-  const { locale, ...otherParams } = (finalArguments: any)
+  const { locale, ...otherParams } = (finalArguments as any)
 
   const localeParam = locale != null ? String(locale) : []
   const secondParam = {
@@ -64,13 +65,13 @@ async function isCommandAvailable(pluginId: string, pluginCommand: string): Prom
     } else {
       return false
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, error)
     return false
   }
 }
 
-async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: ReadonlyArray<mixed> = []) {
+async function invokePluginCommandByName(pluginId: string = '', pluginCommand: string = '', args: ReadonlyArray<unknown> = []) {
   if (await isCommandAvailable(pluginId, pluginCommand)) {
     return (await DataStore.invokePluginCommandByName(pluginCommand, pluginId, args)) || ''
   } else {
@@ -129,12 +130,12 @@ const globals = {
   },
 
   // NOTE: This specific method would create a collision against DateModule I believe (needs testing)
-  currentDate: async (params: any): string => {
+  currentDate: async (params: any): Promise<string> => {
     // @ts-ignore
     return await processDate(JSON.stringify(params))
   },
 
-  pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
+  pickDate: async (dateParams: any = '', config: { [k: string]: null | void | unknown }): Promise<string> => {
     return `**The 'pickDate' helper has been deprecated, you should modify template to use 'promptDate(...) method.**'`
   },
 
@@ -146,15 +147,15 @@ const globals = {
     return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
   },
 
-  listTodaysEvents: async (params?: any = ''): Promise<string> => {
+  listTodaysEvents: async (params: unknown = ''): Promise<string> => {
     return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(params)])
   },
 
-  matchingEvents: async (params: ?any = ''): Promise<string> => {
+  matchingEvents: async (params: null | void | any = ''): Promise<string> => {
     return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
-  listMatchingEvents: async (params: ?any = ''): Promise<string> => {
+  listMatchingEvents: async (params: null | void | any = ''): Promise<string> => {
     return invokePluginCommandByName('jgclark.EventHelpers', 'listMatchingDaysEvents', [JSON.stringify(params)])
   },
 
@@ -184,9 +185,9 @@ const globals = {
     return time()
   },
 
-  currentDate: async (): Promise<string> => {
-    return now()
-  },
+  // currentDate: async (): Promise<string> => {
+  //   return now()
+  // },
 
   selection: async (): Promise<string> => {
     return Editor.selectedParagraphs.map((para) => para.rawContent).join('\n')

@@ -89,7 +89,7 @@ export async function testJGCHeatmaps(): Promise<void> {
       logDebug(pluginJson, `Calling showTagHeatmap(${thisHM.tagName}):`)
       await showTagHeatmap(thisHM)
     }
-  } catch (e) {
+  } catch (e: any) {
     logError(pluginJson, `testJGCHeatmaps: ${e.message}`)
   }
 }
@@ -215,7 +215,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       `${heatmapDef.tagName}-heatmap.html`,
       `${pluginID}.${heatmapDef.tagName}-heatmap`
     )
-  } catch (e) {
+  } catch (e: any) {
     logError(pluginJson, `showTagHeatmap: ${e.name}: ${e.message}`)
   }
 }

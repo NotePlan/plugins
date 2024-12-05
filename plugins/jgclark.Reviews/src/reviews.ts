@@ -300,7 +300,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
 
     // Call the relevant rendering function with the updated config
     await renderProjectLists(config, true, scrollPos)
-  } catch (error) {
+  } catch (error: any) {
     logError('makeProjectLists', JSP(error))
   }
 }
@@ -319,7 +319,7 @@ async function makeProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<v
 
     // Call the relevant rendering function, but only continue if relevant window is open
     await renderProjectLists(config, false, scrollPos)
-  } catch (error) {
+  } catch (error: any) {
     logError('makeProjectLists', JSP(error))
   }
 }
@@ -332,7 +332,7 @@ async function makeProjectListsAndRenderIfOpen(scrollPos: number = 0): Promise<v
  * @param {number?} scrollPos scroll position to set (pixels) for HTML display (default: 0)
  */
 export async function renderProjectLists(
-  configIn: ?ReviewConfig = null,
+  configIn: null | void | ReviewConfig = null,
   shouldOpen: boolean = true,
   scrollPos: number = 0
 ): Promise<void> {
@@ -351,7 +351,7 @@ export async function renderProjectLists(
     if (config.outputStyle.match(/rich/i)) {
       await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
-  } catch (error) {
+  } catch (error: any) {
     clo(configIn, '❗️ERROR❗️  configIn at start of renderProjectLists:')
   }
 }
@@ -656,7 +656,7 @@ export async function renderProjectListsHTML(
     } else {
       logError('renderProjectListsHTML', `- didn't get back a valid HTML Window`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('renderProjectListsHTML', error.message)
   }
 }
@@ -703,7 +703,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         const noteTitleWithoutHash = `${tagWithoutHash} Review List`
 
         // Do the main work
-        const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
+        const note: null | void | TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`{"projectTypeTags":["${tag}"]}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`projectTypeTags=${tag}`)
 
@@ -749,7 +749,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     } else {
       // We will just use all notes with a @review() string, in one go
       const noteTitle = `Review List`
-      const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
+      const note: null | void | TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
         const [outputArray, noteCount, due] = await generateReviewOutputLines('', 'Markdown', config)
@@ -787,7 +787,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
       }
     }
     logTimer('renderProjectListsMarkdown', funcTimer, `end`)
-  } catch (error) {
+  } catch (error: any) {
     logError('renderProjectListsMarkdown', error.message)
   }
 }
@@ -830,7 +830,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
     } else {
       logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('redisplayProjectListHTML', error.message)
   }
 }
@@ -909,7 +909,7 @@ export async function generateReviewOutputLines(projectTag: string, style: strin
     }
     logTimer('generateReviewOutputLines', startTime, `Generated for ${String(noteCount)} notes for tag(s) '${projectTag}' in ${style} style`)
     return [outputArray, noteCount, due]
-  } catch (error) {
+  } catch (error: any) {
     logError('generateReviewOutputLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
   }
@@ -949,7 +949,7 @@ export async function startReviews(): Promise<void> {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('startReviews', error.message)
   }
 }
@@ -989,7 +989,7 @@ async function finishReviewCoreLogic(note: CoreNoteFields): Promise<void> {
     if (Editor.filename === note.filename) {
       logDebug('finishReviewCoreLogic', `- updating Editor ...`)
       // First update @review(date) on current open note
-      let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      let res: null | void | TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
 
@@ -1044,7 +1044,7 @@ export async function finishReview(): Promise<void> {
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('finishReview', error.message)
   }
 }
@@ -1082,7 +1082,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
     await finishReview()
 
     // Read review list to work out what's the next one to review
-    const noteToReview: ?TNote = await getNextNoteToReview()
+    const noteToReview: null | void | TNote = await getNextNoteToReview()
     if (noteToReview != null) {
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
@@ -1097,7 +1097,7 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
       logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('finishReviewAndStartNextReview', error.message)
   }
 }
@@ -1213,7 +1213,7 @@ export async function skipReview(): Promise<void> {
 
     // Then move to nextReview
     // Read review list to work out what's the next one to review
-    const noteToReview: ?TNote = await getNextNoteToReview()
+    const noteToReview: null | void | TNote = await getNextNoteToReview()
     if (noteToReview != null) {
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
@@ -1228,7 +1228,7 @@ export async function skipReview(): Promise<void> {
       logInfo('skipReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('skipReview', error.message)
   }
 }
@@ -1318,7 +1318,7 @@ export async function setNewReviewInterval(noteArg?: TNote): Promise<void> {
       // Update display for user (but don't focus)
       await renderProjectLists(config, false)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('setNewReviewInterval', error.message)
   }
 }

@@ -471,7 +471,7 @@ const dt = () => {
             cachedBundle = bundle
           }
           await bundle.close()
-        } catch (error) {
+        } catch (error: any) {
           console.log(colors.red(`Build of plugin: "${plugin}" failed`), error)
           if (CI) process.exit(1)
         }
@@ -489,7 +489,7 @@ const dt = () => {
       } else {
         messenger.success('Build Process Complete', 'SUCCESS')
       }
-    } catch (error) {
+    } catch (error: any) {
       progress?.interrupt('An error occurred; stopping...')
       console.log(`\nError Building plugin`)
       console.log(`${error.message}`)

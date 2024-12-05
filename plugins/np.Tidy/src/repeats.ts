@@ -83,7 +83,7 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
       await showMessage(`Generated ${String(numGenerated)} new @repeats from ${String(recentNotes.length)} recent notes`, 'OK', 'Tidy: Generate Repeats')
     }
     return
-  } catch (error) {
+  } catch (error: any) {
     logError('generateRepeatsFromRecentNotes', JSP(error))
     return // for completeness
   }

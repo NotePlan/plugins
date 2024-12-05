@@ -7,7 +7,7 @@
 
 import { clo } from '@np/helpers/dev'
 
-export async function getWOTD(params: any): Promise<string> {
+export async function getWOTD(params?: any): Promise<string> {
   try {
     const url = 'https://wordsapiv1.p.rapidapi.com/words/?random=true'
 
@@ -30,7 +30,7 @@ export async function getWOTD(params: any): Promise<string> {
     }
 
     return word
-  } catch (error) {
+  } catch (error: any) {
     return `**An error occurred accessing wotd service**`
   }
 }

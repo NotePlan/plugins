@@ -24,7 +24,7 @@ export async function logProvidedSharedResources(): Promise<void> {
     const liveSharedPluginJson = await getPluginJson(sharedPluginID)
     const requiredFiles = liveSharedPluginJson['plugin.requiredFiles']
     logInfo(sharedPluginID, `Resources Provided by np.Shared according to its plugin.json file:\n- ${requiredFiles.join('\n- ')}`)
-  } catch (error) {
+  } catch (error: any) {
     logError(sharedPluginID, JSP(error))
   }
 }
@@ -40,7 +40,7 @@ export async function logAvailableSharedResources(pluginID: string): Promise<voi
       const relativePathToRF = `../../${sharedPluginID}/${rf}`
       logInfo(sharedPluginID, `- ${relativePathToRF} ${DataStore.fileExists(relativePathToRF) ? 'is' : "isn't"} available from np.Shared`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(sharedPluginID, JSP(error))
   }
 }
@@ -97,7 +97,7 @@ export async function checkForWantedResources(pluginID: string, filesToCheck?: A
       }
     }
     return numFound
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginID, error.message)
     return false
   }
@@ -123,7 +123,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(sharedPluginID, error)
   }
   logDebug(sharedPluginID, `onUpdateOrInstall: Finished`)

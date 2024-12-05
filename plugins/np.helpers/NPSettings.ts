@@ -94,7 +94,7 @@ export async function updateSettingType_string(setting: any, currentValue: any):
 export async function updateSettingType__string_(setting: any, currentValue: any): Promise<Array<string>> {
   const newVal: string | boolean = await getInput(`Enter a value for '${setting.title}' as an array of strings separated by commas`, 'OK', `${setting.title}`, currentValue)
   if (typeof newVal === 'string') {
-    logDebug(pluginJson, `updateSettingType_[string]: newValue: ${newVal}`)
+    logDebug(pluginJson, `updateSettingType_[k: string]: newValue: ${newVal}`)
     return newVal.split(',').map((item) => item.trim())
   } else {
     return currentValue
@@ -195,7 +195,7 @@ export async function updateSetting(key: string, pluginJson: any): any {
         DataStore.settings = settings
         return true
       }
-    } catch (error) {
+    } catch (error: any) {
       logError(pluginJson, `updateSetting: ${key} ${JSP(error)}`)
     }
   } else {
@@ -287,7 +287,7 @@ export async function appendStringToSettingArray(pluginId: string, key: string, 
       } else {
         logDebug('appendStringToSettingArray', `-> nothing to update`)
       }
-    } catch (error) {
+    } catch (error: any) {
       logError('appendStringToSettingArray', `appendStringToSettingArray: ${key} ${JSP(error)}`)
     }
   } else {

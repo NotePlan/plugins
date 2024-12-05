@@ -109,9 +109,9 @@ export function WebView({ data, dispatch }: Props): Node {
    * We don't know for sure what changes were made during the async wait before this function was called
    * So instead of sending a full object, let's just apply the changes to the existing data
    * So send an array of objects with the changes to overwrite
-   * @param { Array<{[string]:mixed}>|{[string]:mixed}} changesToApply - array of objects with just the ID (required) and the fields that you want to change, e.g. [{id: 1, highlight: true}, {id: 2, highlight: false}]
+   * @param { Array<{[k: string]:mixed}>|{[k: string]:mixed}} changesToApply - array of objects with just the ID (required) and the fields that you want to change, e.g. [{id: 1, highlight: true}, {id: 2, highlight: false}]
    */
-  const updateTableData = (changesToApply: Array<{ [string]: mixed }> | { [string]: mixed }): void => {
+  const updateTableData = (changesToApply: Array<{ [k: string]: unknown }> | { [k: string]: unknown }): void => {
     logDebug(`Webview: updateTableData dataToSave:${JSON.stringify(changesToApply || '')}`, changesToApply)
     if (!changesToApply) throw new Error('updateTableData[AfterDebounce]: changesToApply must be called with an array of changes. not:${typeof changesToApply}')
     const changes = Array.isArray(changesToApply) ? changesToApply : [changesToApply]
@@ -332,7 +332,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} valuesToChange - an object of rows and fields to change
    */
   const getUpdatedRowData = React.useCallback(
-    (rowID, valuesToChange: { [string]: mixed }) => {
+    (rowID, valuesToChange: { [k: string]: unknown }) => {
       if (isNaN(rowID)) return data.overdueParas
       logDebug(`Webview: getUpdatedRowData ${data.overdueParas[0].omit} ${data.overdueParas[1].omit} ${data.overdueParas[2].omit} ${data.overdueParas[3].omit}`)
       return data.overdueParas.map((item) => {

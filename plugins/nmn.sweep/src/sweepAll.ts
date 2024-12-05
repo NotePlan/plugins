@@ -64,7 +64,7 @@ export async function sweepTemplate(paramStr: string = ''): Promise<string> {
     // let paramObj
     // try {
     //   paramObj = JSON.parse(paramStr)
-    // } catch (e) {
+    // } catch (e: any) {
     //   console.log(`Error: ${e}`)
     //   return `Could not parse template parameter: ${paramStr}. Check the documentation. Error: ${e}`
     // }

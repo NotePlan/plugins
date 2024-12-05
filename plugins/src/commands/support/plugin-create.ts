@@ -78,7 +78,7 @@ module.exports = {
       }
 
       return result
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
     }
   },
@@ -107,7 +107,7 @@ module.exports = {
       result = await this.merge(path.join(dest, 'requiredFiles', 'html-plugin-comms.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
-    } catch (error) {
+    } catch (error: any) {
       print.error('An error occcured creating plugin', 'ERROR')
       const message = error.message.replace('ENOENT: ', '').replace(', stat ', '')
       print.error(`        • ${message}`)
@@ -128,7 +128,7 @@ module.exports = {
 
       filesystem.write(filename, fileData)
       return true
-    } catch (error) {
+    } catch (error: any) {
       print.error(`An error occured processing ${filename}`, 'ERROR')
       print.error(error, 'ERROR')
       return false

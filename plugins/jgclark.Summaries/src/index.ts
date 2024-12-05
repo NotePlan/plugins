@@ -54,7 +54,7 @@ export function init(): void {
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
     )
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -127,7 +127,7 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
     logInfo(pluginID, `- finished`)
 
-  } catch (error) {
+  } catch (error: any) {
     logError('jgclark.Summaries::onUpdateOrInstall', error.message)
   }
 }
@@ -141,7 +141,7 @@ export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
     await editSettings(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

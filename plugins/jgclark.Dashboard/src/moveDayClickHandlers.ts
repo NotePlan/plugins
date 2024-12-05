@@ -172,7 +172,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
 
     // Update display of these 2 sections
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DY', 'DT'] }
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleAllYesterdayOpenToToday', JSP(error))
     return { success: false }
   }
@@ -304,7 +304,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
     // Update display of these 2 sections
     logDebug('scheduleAllTodayTomorrow', `returning {true, REFRESH_SECTION_IN_JSON, [DT,DO]}`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'DO'] }
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleAllTodayTomorrow', error.message)
     return { success: false }
   }
@@ -451,7 +451,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
     // Update display of this section (and Today)
     logDebug('scheduleAllOverdueOpenToToday', `✅ completed`)
     return { success: true, actionsOnSuccess: ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], sectionCodes: ['DT', 'OVERDUE'] }
-  } catch (error) {
+  } catch (error: any) {
     logError('scheduleAllOverdueOpenToToday', error.message)
     return { success: false }
   }

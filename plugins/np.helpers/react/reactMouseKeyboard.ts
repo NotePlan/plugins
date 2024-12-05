@@ -16,7 +16,7 @@ export type ModifierType = {
   ctrlKey: boolean,
   altKey: boolean,
   hasModifier: boolean,
-  modifierName: ?'meta' | 'shift' | 'ctrl' | 'alt',
+  modifierName: null | void | 'meta' | 'shift' | 'ctrl' | 'alt',
 }
 
 /**

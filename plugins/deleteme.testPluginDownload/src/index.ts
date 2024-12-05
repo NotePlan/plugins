@@ -12,7 +12,7 @@ export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
     await updateSettingData(pluginJson)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
 }
@@ -23,7 +23,7 @@ export async function runOnInstallOrUpdate(): Promise<void> {
     // test as after the plugin is installed or updated. the following command updates the plugin's settings data
     const r = { code: 1 /* updated */, message: 'plugin updated message' }
     await pluginUpdated(pluginJson, r)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, `runOnInstallOrUpdate: ${JSP(error)}`)
   }
 }

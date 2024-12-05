@@ -84,7 +84,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     }
     // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
-  } catch (error) {
+  } catch (error: any) {
     logError('getFoldersMatching', error.message)
     return ['(error)']
   }
@@ -109,7 +109,7 @@ export function getSubFolders(parentFolderPathArg: string): Array<string> {
 
     logDebug('folders / getSubFolders', `-> ${subfolderList.length} items: [${subfolderList.toString()}]`)
     return subfolderList
-  } catch (error) {
+  } catch (error: any) {
     logError('folders / getSubFolders', error.message)
     return ['(error)']
   }
@@ -177,7 +177,7 @@ export function getFolderListMinusExclusions(exclusions: Array<string>, excludeS
     }
     // logDebug('folders/getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
     return outputList
-  } catch (error) {
+  } catch (error: any) {
     logError('folders/getFolderListMinusExclusions', error.message)
     return ['(error)']
   }
@@ -200,7 +200,7 @@ export function getFolderFromFilename(fullFilename: string): string {
     const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
     const filenameParts = filename.split('/')
     return filenameParts.slice(0, filenameParts.length - 1).join('/')
-  } catch (error) {
+  } catch (error: any) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }
@@ -224,7 +224,7 @@ export function getJustFilenameFromFullFilename(fullFilename: string, removeExte
     } else {
       return filenamePart
     }
-  } catch (error) {
+  } catch (error: any) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }
@@ -243,7 +243,7 @@ export function getLowestLevelFolderFromFilename(fullFilename: string): string {
     const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
     const filenameParts = filename.split('/')
     return filenameParts.length <= 1 ? '' : filenameParts.slice(filenameParts.length - 2, filenameParts.length - 1).join('')
-  } catch (error) {
+  } catch (error: any) {
     logError('folders/getLowestLevelFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }

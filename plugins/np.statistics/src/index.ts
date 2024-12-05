@@ -38,7 +38,7 @@ export async function onUpdateOrInstall(): Promise<void> {
       )
     }
     log(pluginJson, `${pluginID}: onUpdateOrInstall finished`)
-  } catch (error) {
+  } catch (error: any) {
     log(pluginJson, error)
   }
 }

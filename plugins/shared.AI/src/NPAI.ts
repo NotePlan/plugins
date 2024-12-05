@@ -92,7 +92,7 @@ export async function testConnection(model: string | null = null) {
     } else {
       logWarn(pluginJson, 'No model chosen')
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

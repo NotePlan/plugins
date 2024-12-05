@@ -169,7 +169,7 @@ export const expect = (actual: any): Object => {
     notMatchers[key] = (expected: any, varNameOrMsg?: string): void => {
       try {
         matcher(expected, varNameOrMsg)
-      } catch (error) {
+      } catch (error: any) {
         return
       }
       const message = `Expected ${varNameOrMsg || 'value'} not to ${key.replace('to', '').toLowerCase()} ${String(expected)}`

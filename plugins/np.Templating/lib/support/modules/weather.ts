@@ -10,7 +10,7 @@ export async function getWeather(): Promise<string> {
     // $FlowFixMe
     const response: any = await await fetch(`https://wttr.in?format=3`, { timeout: 3000 })
     return response ? response : '**An error occurred accessing weather service**'
-  } catch (error) {
+  } catch (error: any) {
     return '**An error occurred accessing weather service**'
   }
 }

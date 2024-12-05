@@ -9,7 +9,7 @@
 import json5 from 'json5'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@np/helpers/dataManipulation'
-import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@np/helpers/dev'
+import { logDebug, logError, logInfo, JSP, clo, copyObject, timer } from '@np/helpers/dev'
 import { sortListBy } from '@np/helpers/sorting'
 
 /**
@@ -34,7 +34,7 @@ export const dt = (): string => {
  * @return {any} settings data
  */
 export async function initConfiguration(pluginJsonData: any): Promise<any> {
-  const migrateData = {}
+  const migrateData: Record<string, any> = {}
   if (typeof pluginJsonData !== 'object') {
     await CommandBar.prompt('NotePlan Error', 'Invalid Plugin Settings')
     return migrateData
@@ -42,10 +42,10 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 
   try {
     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
-    pluginSettings.forEach((setting) => {
+    pluginSettings.forEach((setting: any) => {
       migrateData[setting.key] = setting.default
     })
-  } catch (error) {
+  } catch (error: any) {
     CommandBar.prompt('NotePlan Error', `An error occurred ${error}`)
   }
 
@@ -61,11 +61,11 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
 
-  const newSettings = {}
-  const currentSettingData = DataStore.settings
+  const newSettings: Record<string, any> = {}
+  const currentSettingData: Record<string, any> = DataStore.settings
 
   const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
-  pluginSettings.forEach((setting) => {
+  pluginSettings.forEach((setting: any) => {
     const key: any = setting?.key || null
     if (key) {
       if (!currentSettingData.hasOwnProperty(key)) {
@@ -92,7 +92,7 @@ export function updateSettingData(pluginJsonData: any): number {
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
     DataStore.settings = newSettings
-  } catch (error) {
+  } catch (error: any) {
     console.log(
       'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',
     )
@@ -110,21 +110,26 @@ export function updateSettingData(pluginJsonData: any): number {
  * @param {Array<string>} settingsList - an array of the names of the settings to copy
  */
 export async function copySpecificSettings(oldPluginID: string, newPluginID: string, settingsList: Array<string>) {
-  const oldPluginSettings = await getSettings(oldPluginID)
-  const newPluginSettings = await getSettings(newPluginID)
+  const oldPluginSettings: Record<string, any> = await getSettings(oldPluginID)
+  const newPluginSettings: Record<string, any> = await getSettings(newPluginID)
   if (!oldPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${oldPluginID}`
   if (!newPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${newPluginID}`
-  settingsList.forEach((settingName) => (oldPluginSettings.hasOwnProperty(settingName) ? (newPluginSettings[settingName] = oldPluginSettings[settingName]) : null)) // if the setting was set previously, copy it
+  settingsList.forEach((settingName: string) =>
+    oldPluginSettings.hasOwnProperty(settingName) 
+    ? (newPluginSettings[settingName] = oldPluginSettings[settingName]) 
+    : null
+  ) // if the setting was set previously, copy it
   clo(newPluginSettings, `About to save revised settings after command migration to: ${newPluginID}`)
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
-export function getSetting(pluginId: string = '', key: string = '', defaultValue?: any = ''): any | null {
+export function getSetting(pluginId: string = '', key: string = '', defaultValue: string = '') {
   const settings = DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
+  // @ts-expect-error
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export async function getSettings(pluginId: string = '', defaultValue?: any = {}): any | null {
+export async function getSettings(pluginId: string = '', defaultValue: object = {}) {
   const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
@@ -138,8 +143,9 @@ export async function getSettings(pluginId: string = '', defaultValue?: any = {}
  * @param {boolean?} triggerUpdateMechanism
  * @returns {any} ?
  */
-export async function saveSettings(pluginId: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
+export async function saveSettings(pluginId: string = '', value: any = {}, triggerUpdateMechanism: boolean = true): Promise<any> {
   // logDebug('NPConfiguration/saveSettings', `starting to ${pluginId}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+  // @ts-expect-error
   if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
     return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`)
@@ -160,6 +166,7 @@ export async function saveSettings(pluginId: string = '', value?: any = {}, trig
  */
 export async function savePluginJson(pluginId: string = '', value: any = {}, triggerUpdateMechanism: boolean = true): Promise<boolean> {
   // logDebug('NPConfiguration/savePluginJson', `starting for ${pluginId}/plugin.json triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+  // @ts-expect-error
   if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
     return await DataStore.saveJSON(value, `../../${pluginId}/plugin.json`)
@@ -170,7 +177,7 @@ export async function savePluginJson(pluginId: string = '', value: any = {}, tri
   }
 }
 
-export async function getPluginJson(pluginId: string = ''): any {
+export async function getPluginJson(pluginId: string = ''): Promise<any> {
   return await DataStore.loadJSON(`../../${pluginId}/plugin.json`)
 }
 
@@ -180,7 +187,7 @@ export async function getPluginJson(pluginId: string = ''): any {
  * @param {string} block - contents of first codeblock as string (excludes ``` delimiters)
  * @return {mixed} structured version of this data, in the format specified by the first line of the codeblock
  */
-export async function parseConfiguration(block: string): Promise<?{ [string]: ?mixed }> {
+export async function parseConfiguration(block: string): Promise<null | void | { [k: string]: null | void | unknown }> {
   try {
     if (block == null) {
       await CommandBar.prompt('NotePlan Error', 'No configuration block found in configuration file.')
@@ -188,13 +195,15 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
     }
 
     // eslint-disable-next-line
+    // @ts-expect-error
     let [format, ...contents] = block.split('\n')
-    // $FlowFixMe[incompatible-type]
+    // @ts-expect-error
     contents = contents.join('\n')
 
+    // @ts-expect-error
     const value: any = json5.parse(contents)
     return value
-  } catch (error) {
+  } catch (error: any) {
     await CommandBar.prompt(
       'NotePlan Error',
       `Failed to parse your _configuration note, it seems to be malformed (e.g. a missing comma).\n\nPlease correct it, delete the plugin (click on the plugin name in the preferences to see the 'delete' button), and redownload it.\n\nError: ${error}`,
@@ -284,16 +293,15 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
  * @param {Object} tempConfig
  * @returns {string}
  */
-export function getLocale(configIn: Object): string {
+export function getLocale(configIn: object): string {
   const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
   const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
-  let tempLocale = castStringFromMixed(configIn, 'locale') ?? null
+  let tempLocale = castStringFromMixed(configIn as any, 'locale') ?? null
   tempLocale = tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale
 }
 
-export type PluginObjectWithUpdateField = {
-  ...PluginObject,
+export type PluginObjectWithUpdateField = PluginObject & {
   updateIsAvailable: boolean,
   isInstalled: boolean,
   installedVersion: string,
@@ -310,7 +318,7 @@ export type PluginObjectWithUpdateField = {
  * @param {*} minVersion - min version to find (optional)
  * @returns the plugin object if the id is found and the minVersion matches (>= the minVersion)
  */
-export const findPluginInList = (list: Array<any>, id: string, minVersion?: string = '0.0.0'): any => {
+export const findPluginInList = (list: Array<any>, id: string, minVersion: string = '0.0.0'): any => {
   return list.find((p) => {
     if (p.id === id) {
       logDebug(
@@ -381,7 +389,7 @@ async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
  * @param {string|null} messageToShowUser
  * @param {any} migrateCommandsFrom - the pluginjson of the original plugin which is asking for other plugins to be installed
  */
-export async function installPlugins(pluginsToInstall: Array<any>, migrateCommandsFrom: Object = null): Promise<void> {
+export async function installPlugins(pluginsToInstall: Array<any>, migrateCommandsFrom: any = null): Promise<void> {
   for (let i = 0; i < pluginsToInstall.length; i++) {
     const pluginToInstall = typeof pluginsToInstall[i] === 'string' ? { id: pluginsToInstall[i] } : pluginsToInstall[i]
     const pluginInstalledInfo = await installPlugin(pluginToInstall)
@@ -480,7 +488,7 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
           latest = pluginsWithThisID[1] //assumes at most we have 2 versions (local and online) - could do a filter here if necessary
         }
       }
-      if (!acc.find((f) => f.id === latest.id)) {
+      if (!acc.find((f: any) => f.id === latest.id)) {
         acc.push(latest)
       }
       return acc
@@ -494,7 +502,8 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
     // )
     // clo(installedPlugins[0], 'generatePluginCommandList installedPlugins')
     // clo(allPlugins[0], 'generatePluginCommandList allPlugins')
-    const pluginListWithUpdateField = plugins.map((plugin) => {
+    const pluginListWithUpdateField = plugins.map((plugin: any) => {
+      // @ts-expect-error
       const pluginWithUpdateField: PluginObjectWithUpdateField = {
         ...copyObject(plugin),
         updateIsAvailable: plugin.isOnline,
@@ -504,7 +513,7 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
       return pluginWithUpdateField
     })
     return pluginListWithUpdateField
-  } catch (error) {
+  } catch (error: any) {
     logError(`getPluginList: caught error: ${JSP(error)}`)
     return []
   }
@@ -525,7 +534,7 @@ export async function getSettingFromAnotherPlugin(pluginID: string, settingName:
     const thisSetting = otherConfig.settingName ?? defaultValue
     logDebug('getSettingFromAnotherPlugin', `${pluginID}.${settingName} -> type:${typeof thisSetting}: ${thisSetting}`)
     return thisSetting
-  } catch (error) {
+  } catch (error: any) {
     logError('getSettingFromAnotherPlugin', `getSettingFromAnotherPlugin: caught error: ${JSP(error)}`)
   }
 }

@@ -9,7 +9,7 @@ export type PresetCommand = {
   name: string,
   jsFunction: string,
   description: string,
-  isPreset: ?boolean,
+  isPreset: null | void | boolean,
   hidden?: boolean,
   index?: number,
   data?: string,
@@ -48,7 +48,7 @@ Main file:
 export async function runPreset01() {
   try {
     await presetChosen(`runPreset01`, themePresetChosen)
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -108,7 +108,7 @@ export async function choosePreset(pluginJson: any, msg: string = 'Choose a pres
  * @param {boolean} commandHidden - should the command be hidden (not shown in the command bar) default is false
  * @return {object} pluginJson object
  */
-export function updateJSONForFunctionNamed(pluginJson: any, fields: PresetCommand, commandHidden: ?boolean = false): any {
+export function updateJSONForFunctionNamed(pluginJson: any, fields: PresetCommand, commandHidden: null | void | boolean = false): any {
   const { jsFunction, ...rest } = fields
   const foundIndex = getCommandIndex(pluginJson, jsFunction)
   if (foundIndex != null && foundIndex > -1) {
@@ -167,7 +167,7 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
  * @param {Array<any>} callbackArgs - arguments to pass to the callback function (after the command object) - empty args for error
  * NOTE: See function themePresetChosen in np.ThemeChooser for example callback
  */
-export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
+export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: null | void | Array<any> = []): Promise<void> {
   // need try/catch here so we can use this immediately after pluginFunction
   try {
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
@@ -182,7 +182,7 @@ export async function presetChosen(pluginJson: any, jsFunction: string, callback
       await showMessage(`Could not find preset: ${jsFunction}`)
       await callback()
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }

@@ -29,7 +29,7 @@ export type AppContextType = {
   sendToPlugin: ([string, any, string]) => void,
   dispatch: (command: string, dataToSend: any, message?: string) => void,
   pluginData: TPluginData,
-  reactSettings: ?TReactSettings,
+  reactSettings: null | void | TReactSettings,
   setReactSettings: (any) => void,
   updatePluginData: (newData: TPluginData, messageForLog?: string) => void,
   dashboardSettings: TDashboardSettings,

@@ -4,37 +4,37 @@
 // This will be particularly useful when reading JSON.
 // @flow
 
-type Checker<T> = (mixed) => T
+type Checker<T> = (val: unknown) => T
 
-export const checkString = (value: mixed): string => {
+export const checkString = (value: unknown): string => {
   if (typeof value === 'string') {
     return value
   }
   throw new Error(`Expected string, got ${typeof value}`)
 }
 
-export const checkNumber = (value: mixed): number => {
+export const checkNumber = (value: unknown): number => {
   if (typeof value === 'number') {
     return value
   }
   throw new Error(`Expected number, got ${typeof value}`)
 }
 
-export const checkBoolean = (value: mixed): boolean => {
+export const checkBoolean = (value: unknown): boolean => {
   if (typeof value === 'boolean') {
     return value
   }
   throw new Error(`Expected boolean, got ${typeof value}`)
 }
 
-export const checkNull = (value: mixed): null => {
+export const checkNull = (value: unknown): null => {
   if (value === null) {
     return value
   }
   throw new Error(`Expected null, got ${typeof value}`)
 }
 
-export const checkUndefined = (value: mixed): void => {
+export const checkUndefined = (value: unknown): void => {
   if (value === undefined) {
     return value
   }
@@ -43,13 +43,13 @@ export const checkUndefined = (value: mixed): void => {
 
 export const checkOr =
   <A, B>(checkA: Checker<A>, checkB: Checker<B>): Checker<A | B> =>
-  (value: mixed): A | B => {
+  (value: unknown): A | B => {
     try {
       return checkA(value)
-    } catch (eA) {
+    } catch (eA: any) {
       try {
         return checkB(value)
-      } catch (eB) {
+      } catch (eB: any) {
         throw new Error(`${eA.toString()}\n${eB.toString()}`)
       }
     }
@@ -57,28 +57,30 @@ export const checkOr =
 
 export const checkArray =
   <T>(checker: Checker<T>): Checker<ReadonlyArray<T>> =>
-  (value: mixed): Array<T> => {
+  (value: unknown): Array<T> => {
     if (Array.isArray(value)) {
       for (const el of value) {
         checker(el)
       }
       // This is a limitation of Flow
-      return (value: $FlowFixMe)
+      return (value as any)
     }
     throw new Error(`Expected array, got ${typeof value}`)
   }
 
-type CheckerToValue = <T>(Checker<T>) => T
+type CheckerToValue = <T>(checker: Checker<T>) => T
 
 export const checkObj =
-  <Obj: { +[string]: Checker<mixed> }>(checkerObj: Obj): Checker<$ObjMap<Obj, CheckerToValue>> =>
-  (value: mixed) => {
+  <Obj extends { [key: string]: Checker<unknown> }>(checkerObj: Obj): Checker<{
+    [key in keyof Obj]: Obj[key] extends Checker<infer T> ? T : never
+  }> => (value: unknown) => {
     if (typeof value === 'object' && value !== null) {
       for (const key in checkerObj) {
+        // @ts-ignore
         checkerObj[key](value[key])
       }
       // This is a limitation of Flow
-      return (value: $FlowFixMe)
+      return (value as any)
     }
     throw new Error(`Expected object, got ${typeof value}`)
   }

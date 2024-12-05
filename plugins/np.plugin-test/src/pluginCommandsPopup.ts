@@ -98,7 +98,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       sendToHTMLWindow('SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
     return {} // this return value is ignored but needs to exist or we get an error
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -129,7 +129,7 @@ export async function openReactPluginCommandsWindow() {
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
     // clo(data, `testReactWindow data object passed`)
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
@@ -142,7 +142,7 @@ export async function openReactPluginCommandsWindow() {
 export async function generatePluginCommandListHTML() {
   try {
     await openReactPluginCommandsWindow()
-  } catch (error) {
+  } catch (error: any) {
     logError(pluginJson, JSP(error))
   }
 }
