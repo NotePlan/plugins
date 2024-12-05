@@ -155,7 +155,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
-    const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date' }])
+    const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])
 
     const section: TSection = {
       ID: sectionNum,

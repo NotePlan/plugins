@@ -71,9 +71,8 @@ export type TSettingItem = {
 }
 
 export type TDynamicDialogProps = {
-  // required props
-  items: Array<TSettingItem>,
   // optional props
+  items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel?: () => void,
   handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
@@ -88,6 +87,8 @@ export type TDynamicDialogProps = {
   submitOnEnter?: boolean,
   children?: React$Node, // children nodes (primarily for banner message)
   hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
+  externalChangesMade?: boolean, // New prop to accept external changesMade state
+  setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
 }
 
 //--------------------------------------------------------------------------
@@ -110,16 +111,11 @@ const DynamicDialog = ({
   hideDependentItems = false,
   submitOnEnter = true,
   hideHeaderButtons = false,
+  externalChangesMade,
+  setChangesMade: externalSetChangesMade,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
-  const items = passedItems || [
-    {
-      key: 'errorMessage',
-      label: 'No items were sent to the dialog to be rendered',
-      type: 'text',
-      textType: 'description',
-    },
-  ]
+  const items = passedItems || []
 
   //----------------------------------------------------------------------
   // HELPER FUNCTIONS
@@ -167,7 +163,7 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
   const dropdownRef = useRef<?HTMLInputElement>(null)
-  const [changesMade, setChangesMade] = useState(allowEmptySubmit)
+  const [changesMade, setChangesMadeInternal] = useState(false)
   const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
   const updatedSettingsRef = useRef(updatedSettings)
 
@@ -176,6 +172,10 @@ const DynamicDialog = ({
   }, [updatedSettings])
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
+
+  // Use internal changesMade state only if externalChangesMade is not provided
+  const changesMadeToUse = allowEmptySubmit || (typeof externalChangesMade === 'boolean' ? externalChangesMade : changesMade)
+  const setChangesMade = externalSetChangesMade || setChangesMadeInternal
 
   //----------------------------------------------------------------------
   // Handlers
@@ -207,7 +207,7 @@ const DynamicDialog = ({
     if (onSave) {
       onSave(updatedSettingsRef.current) // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
     }
-    logDebug('Dashboard', `DynamicDialog saved updates`, updatedSettingsRef.current)
+    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current })
   }
 
   const handleDropdownOpen = () => {
@@ -265,8 +265,13 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   // clo(items, `DynamicDialog items=`)
   if (!updatedSettings) return null
+  const dialogStyle = {
+    width: '40%', // defaults which can be overridden by the style prop
+    height: 'unset',
+    ...style,
+  }
   const dialogContents = (
-    <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
+    <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
       <div className={`dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`}>
         {!hideHeaderButtons && (
           <button className="PCButton cancel-button" onClick={onCancel}>
@@ -274,7 +279,7 @@ const DynamicDialog = ({
           </button>
         )}
         <span className="dynamic-dialog-title">{title || ''}</span>
-        {!hideHeaderButtons && changesMade ? (
+        {!hideHeaderButtons && changesMadeToUse ? (
           <button className="PCButton save-button" onClick={handleSave}>
             Submit
           </button>

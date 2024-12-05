@@ -171,7 +171,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'useTodayDate',
-    label: "Use 'today' to schedule tasks for today?",
+    label: "Use '>today' to schedule tasks for today?",
     description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
     type: 'switch',
     default: true,

@@ -15,7 +15,7 @@ import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
 import { dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority, allSectionDetails } from '../../constants.js'
 import { getListOfEnabledSections } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import type { TSectionCode } from '../../types.js'
+import type { TSectionCode, TPerspectiveSettings } from '../../types.js'
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
@@ -28,6 +28,8 @@ import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reac
 import '../css/Dashboard.css'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { getTestGroups } from './testing/tests'
+import { dashboardSettingDefs } from '../../dashboardSettings.js'
+import PerspectivesTable from './PerspectivesTable.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -277,6 +279,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     sendActionToPlugin(actionType, { actionType }, 'Auto-Refresh time!', true)
   }
 
+  const hidePerspectivesTable = () => {
+    const newSettings = {
+      ...dashboardSettings,
+      FFlag_PerspectivesTable: false,
+    }
+    dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newSettings, reason: `Turnung off perspTable` })
+  }
+
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
@@ -294,6 +304,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
+      {dashboardSettings?.FFlag_PerspectivesTable && (
+        <PerspectivesTable perspectives={perspectiveSettings} settingDefs={dashboardSettingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
+      )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
         {sections.map((section, index) => (

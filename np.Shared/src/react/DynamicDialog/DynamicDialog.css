@@ -9,8 +9,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80%;
-    max-width: 600px;
+    /* width: 80%; */
+    /* max-width: 600px; */
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     /* z-index: 1000; */
@@ -105,12 +105,14 @@
         color: var(--fg-main-color);
         border: 1px solid #ddd;
         outline: none;
+        margin-left: 8px;
     }
 
     .save-button, 
     .save-button-inactive {
         background-color: var(--tint-color);
         color: var(--bg-main-color);
+        margin-right: 8px;
     }
 
     .save-button-inactive {

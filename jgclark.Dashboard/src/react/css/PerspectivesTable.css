@@ -1,0 +1,110 @@
+/* Container for the table with scrolling */
+.perspectives-table-container {
+  overflow: auto;
+}
+
+/* Style for the table */
+.perspectives-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Table cells and headers */
+.perspectives-table th,
+.perspectives-table td {
+  border: 1px solid var(--divider-color);
+  padding: 8px;
+  vertical-align: top;
+}
+
+/* Sticky column for settings labels */
+.perspectives-table .sticky-column {
+  position: sticky;
+  left: 0;
+  background-color: var(--bg-main-color);
+  z-index: 2;
+}
+
+/* Sticky header for perspective names */
+.perspectives-table .sticky-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-main-color);
+  z-index: 1;
+}
+
+/* Style for settings headings */
+.perspectives-table .settings-heading {
+  font-weight: bold;
+  background-color: var(--bg-alt-color);
+  color: var(--tint-color);
+  padding: 8px;
+  position: sticky;
+  left: 0;
+}
+
+/* Style for setting labels */
+.perspectives-table .setting-label {
+  width: 200px;
+  min-width: 200px;
+}
+
+/* Ensure the table doesn't shrink below its content */
+.perspectives-table th,
+.perspectives-table td {
+  min-width: 150px;
+}
+
+/* Adjustments for inputs within table cells */
+.perspectives-table input,
+.perspectives-table select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.perspectives-table {
+
+  /* Optional styling for setting labels */
+  .setting-label-text {
+    font-weight: 500;
+    color: var(--fg-main-color);
+  }
+
+  /* Style for setting cells */
+  .setting-cell {
+    min-width: 150px;
+  }
+
+  /* Style for item description */
+  .item-description {
+    font-size: small;
+    color: var(--fg-alt-color);
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  /* Adjustments for the input label position */
+  .switch-line,
+  .input-box-container,
+  .dropdown-container {
+    flex-direction: column;
+  }
+
+  .switch-line label,
+  .input-box-label,
+  .dropdown-label {
+    margin-bottom: 4px;
+  }
+
+  /* Adjustments for compact displays */
+  .input-box-container-compact,
+  .dropdown-container-compact {
+    flex-direction: column;
+  }
+
+  .input-box-container-compact .input-box-save,
+  .dropdown-container-compact .input-box-save {
+    align-self: flex-end;
+    margin-top: 4px;
+  }
+}
