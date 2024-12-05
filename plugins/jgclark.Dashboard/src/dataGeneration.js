@@ -7,10 +7,10 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
 import { getNextProjectsToReview } from '../../jgclark.Reviews/src/allProjectsListHelpers.js' // assumes v0.15+ of Reviews Plugin
-import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
+import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types.js'
 import { allSectionCodes } from './constants.js'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksTodayFromNote } from './countDoneTasks.js'
 import {
   getDashboardSettings,
   getListOfEnabledSections,
@@ -21,15 +21,15 @@ import {
   getSectionItemObject,
   getStartTimeFromPara,
   makeDashboardParas,
-} from './dashboardHelpers'
-import { getTimeBlockSectionData, getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
-import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
+} from './dashboardHelpers.js'
+import { getTimeBlockSectionData, getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays.js'
+import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks.js'
 import {
   openMonthParas,
   refMonthParas,
   tagParasFromNote,
   nextProjectNoteItems,
-} from './demoData'
+} from './demoData.js'
 import {
   getDateStringFromCalendarFilename,
   getNPMonthStr,

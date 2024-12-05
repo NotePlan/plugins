@@ -5,9 +5,9 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
+import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types.js'
 import { allSectionCodes } from './constants.js'
-import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
+import { getNumCompletedTasksTodayFromNote } from './countDoneTasks.js'
 import {
   getDashboardSettings,
   getListOfEnabledSections,
@@ -17,13 +17,13 @@ import {
   getSectionItemObject,
   getStartTimeFromPara,
   makeDashboardParas,
-} from './dashboardHelpers'
+} from './dashboardHelpers.js'
 import {
   openWeekParas,
   refWeekParas,
   tagParasFromNote,
   nextProjectNoteItems,
-} from './demoData'
+} from './demoData.js'
 import {
   getDateStringFromCalendarFilename,
   getNPWeekStr,

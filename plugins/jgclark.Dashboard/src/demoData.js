@@ -6,7 +6,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { Project } from '../../jgclark.Reviews/src/projectClass.js'
-import type { TSectionItem } from './types'
+import type { TSectionItem } from './types.js'
 import {
   getNPMonthStr,
   getNPWeekStr,
