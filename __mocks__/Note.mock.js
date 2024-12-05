@@ -6,7 +6,7 @@ import { logDebug } from '../helpers/dev'
  * Usage: const myNote = new Note({ param changes here })
  *
  */
-import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { textWithoutSyncedCopyTag } from '@np/helpers/syncedCopies'
 export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */

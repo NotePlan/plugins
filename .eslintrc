@@ -104,8 +104,8 @@
     "globalThis": true,
     "fetch": true,
 
-    "$ReadOnlyArray": true,
-    "$ReadOnly": true
+    "ReadonlyArray": true,
+    "Readonly": true
   },
   "ignorePatterns": [
     ".history",

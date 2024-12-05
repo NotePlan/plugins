@@ -93,7 +93,7 @@ Editor.note now has some basic properties, but to look like a real NotePlan `Not
 /* global describe, test, jest, expect */
 
 import * as mainFile from '../src/NPPluginMain'
-import { copyObject } from '@helpers/dev'
+import { copyObject } from '@np/helpers/dev'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, Backlink, Range, CalendarItem, PluginObject, PluginCommandObject } from '@mocks/index'
 

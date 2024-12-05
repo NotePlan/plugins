@@ -1,0 +1,240 @@
+// @noflow
+// TODO: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
+
+import strftime from 'strftime' 
+import { format as dateFormat, startOfWeek, endOfWeek } from 'date-fns'
+import { hyphenatedDateString, getFormattedTime } from '@np/helpers/dateTime'
+import { getTagParamsFromString } from '@np/helpers/general'
+import { showMessage } from '@np/helpers/userInput'
+
+type DateConfig = Readonly<{
+  timezone: string,
+  locale: string,
+  dateStyle?: string,
+  timeStyle?: string,
+  hour12?: boolean,
+  format?: string,
+}>
+// This is a function that verifies that an object is of the type
+// DateConfig. If it is, it returns an object with the correct type
+// If it's not, it returns undefined.
+function asDateConfig(obj: {[key: string]: unknown}): void | DateConfig {
+  if (typeof obj === 'object' && obj != null && typeof obj['timezone'] === 'string' && typeof obj['locale'] === 'string') {
+    const { format, timezone, locale, dateStyle, timeStyle, hour12, ...other } = obj
+    return {
+      ...other,
+      timezone,
+      locale,
+      format: typeof format === 'string' ? format : undefined,
+      dateStyle: typeof dateStyle === 'string' ? dateStyle : undefined,
+      timeStyle: typeof timeStyle === 'string' ? timeStyle : undefined,
+      hour12: typeof hour12 === 'boolean' ? hour12 : undefined,
+    }
+  }
+}
+
+function getDateConfig(): DateConfig {
+  const config: any = DataStore.settings
+  const dateConfig = asDateConfig(config)
+  if (dateConfig) {
+    return dateConfig
+  } else {
+    return {
+      // Default timezone for date and time.
+      timezone: 'automatic',
+      // Default locale to format date and time.
+      // e.g. en-US will result in mm/dd/yyyy, while en_GB will be dd/mm/yyyy
+      locale: 'en-US',
+      // can be "short", "medium", "long" or "full"
+      dateStyle: 'full',
+      // optional key, can be "short", "medium", "long" or "full"
+      timeStyle: 'short',
+      // can force 24 hour time format, even in america!
+      hour12: true,
+      // custom format using strftime
+      format: '%Y-%m-%d %I:%M:%S %P',
+    }
+  }
+}
+
+/**
+ * Create a list of options for combinations of date & time formats
+ * @returns [{allDateOptions}] props: dateStyle, timeStyle, label, text (to be inserted if chosen)
+ */
+function getFormattedDateTime() {
+  // pull options and create options for various dateStyles and timeStyles
+  const dateConfig = getDateConfig()
+  const dateStyles = ['short', 'medium', 'long'] // pulling out 'full' for now
+  const timeStyles = ['', 'short', 'medium', 'long'] // pulling out 'full' for now
+  const hour12 = [false, true]
+
+  const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
+
+  // Pluck all values except `dateStyle` and `timeStyle`
+  // eslint-disable-next-line no-unused-vars
+  const { dateStyle: _1, timeStyle: _2, ...config } = { ...dateConfig } as any
+
+  // Get user default locale
+  const locales = []
+  locales.push((dateConfig && dateConfig.locale) || 'en-US')
+  // if (dateConfig.locale !== 'sv-SE') locales.push('sv-SE')
+  const str8601 = get8601String()
+
+  const formatted = strftime(format)
+
+  const options = [
+    {
+      dateStyle: 'formatted',
+      timeStyle: '',
+      label: `${formatted} (formatted date/time)`,
+      text: formatted,
+    },
+    {
+      dateStyle: 'sv-SE',
+      timeStyle: 'medium',
+      label: `${str8601} (sv-SE,short,medium,[not set])`,
+      text: `${str8601}`,
+    },
+  ]
+  locales.forEach((loc) => {
+    dateStyles.forEach((ds) =>
+      timeStyles.forEach((ts) => {
+        hour12.forEach((h12) => {
+          // conditionall add those keys to config
+          if (ds !== '') {
+            // Ignore type error for now
+            // $FlowFixMe
+            config.dateStyle = ds
+          }
+          if (ts !== '') {
+            // $FlowFixMe
+            config.timeStyle = ts
+          }
+          config.hour12 = h12
+
+          const text = new Intl.DateTimeFormat(
+            loc,
+            // $FlowFixMe
+            config,
+          ).format()
+
+          options.push({
+            dateStyle: ds !== '' ? ds : null,
+            timeStyle: ts !== '' ? ds : null,
+            label: `${text} (${loc}/${ds ? ds : '[not set]'}/${ts ? ts : '[not-set]'}/${String(h12)})`,
+            text: `${text}`,
+          } as any)
+        })
+      }),
+    )
+  })
+
+  return options
+}
+
+// /iso
+export function insertISODate() {
+  const nowISO = new Date().toISOString()
+  Editor.insertTextAtCursor(nowISO)
+}
+
+// /date
+export function insertDate() {
+  // eslint-disable-next-line no-unused-vars
+  const { timeStyle: _, ...dateConfig } = getDateConfig() as any
+  const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format()
+  Editor.insertTextAtCursor(dateText)
+}
+
+// /now
+export function insertDateTime() {
+  const _dateConfig = getDateConfig()
+  const dateConfig: any = {
+    ..._dateConfig,
+    dateStyle: _dateConfig.dateStyle ?? 'full',
+    timeStyle: _dateConfig.timeStyle ?? 'short',
+  }
+  const dateText = new Intl.DateTimeFormat(dateConfig.locale, dateConfig).format()
+  Editor.insertTextAtCursor(`${dateText}`)
+}
+
+export function get8601String(): string {
+  return strftime(`%Y-%m-%d`)
+}
+
+// /now
+export function insertDateTime8601() {
+  Editor.insertTextAtCursor(`${strftime(`%Y-%m-%d %H:%M`)}`)
+}
+
+// /time
+export function insertTime() {
+  // eslint-disable-next-line no-unused-vars
+  const { dateStyle: _, ...dateConfig } = getDateConfig() as any
+  const editableConfig = { ...dateConfig }
+  if (!editableConfig.timeStyle) editableConfig.timeStyle = 'medium'
+
+  const timeText = new Intl.DateTimeFormat(dateConfig.locale, editableConfig).format()
+  Editor.insertTextAtCursor(timeText)
+}
+
+// /ldn
+export function insertCalendarNoteLink() {
+  Editor.insertTextAtCursor(`[[${hyphenatedDateString(new Date())}]]`)
+}
+
+// /dp
+export async function dateFormatPicker() {
+  const dateChoices = getFormattedDateTime()
+
+  const re = await CommandBar.showOptions(
+    dateChoices.map((d) => d.label),
+    'Choose format (locale/dateStyle/timeStyle/hour12)',
+  )
+  Editor.insertTextAtCursor(dateChoices[re.index].text)
+}
+
+// /formatted
+export function insertStrftime() {
+  const dateConfig: any = DataStore.settings
+  const format = dateConfig?.format ? dateConfig.format : '%Y-%m-%d %I:%M:%S %P'
+  const strftimeFormatted = strftime(format)
+  Editor.insertTextAtCursor(strftimeFormatted)
+}
+
+export async function formattedDateTimeTemplate(paramStr: string = ''): Promise<string> {
+  let retVal = ''
+  if (paramStr === '') {
+    retVal = getFormattedTime() // default
+  } else {
+    const format = await getTagParamsFromString(paramStr, 'format', '')
+    retVal = getFormattedTime(format ? String(format) : undefined)
+  }
+  return retVal
+}
+
+//TODO FIXME: figure out formats and locales - WIP because the startMondy doesn't work
+// {weekStartsOn:1, format:`'EEE yyyy-MM-dd'} // see [date-fns format](https://date-fns.org/v2.23.0/docs/format)
+export async function getWeekDates(paramStr: string = ''): Promise<string> {
+  const _weekStartsOn: number = Number(await getTagParamsFromString(paramStr, 'weekStartsOn', 1))
+  const weekStartsOn = (_weekStartsOn >= 0 && _weekStartsOn <= 6 ? _weekStartsOn : 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+  const format = String(await getTagParamsFromString(paramStr, 'format', 'EEE yyyy-MM-dd'))
+  // $FlowFixme complains about number literals even though I am checking them as numbers in arange
+  if (weekStartsOn >= 0 && weekStartsOn <= 6) {
+    // @ts-ignore
+    console.log(dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), 'yyyy-MM-dd'))
+    // @ts-ignore
+    const start = dateFormat(new Date(startOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    // @ts-ignore
+    const end = dateFormat(new Date(endOfWeek(new Date(), { weekStartsOn: weekStartsOn })), format)
+    return `${start} - ${end}`
+  } else {
+    showMessage('Error in your format string')
+    return ''
+  }
+}
+
+export async function insertWeekDates() {
+  await Editor.insertTextAtCursor(await getWeekDates())
+}
