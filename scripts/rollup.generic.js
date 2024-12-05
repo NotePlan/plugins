@@ -6,7 +6,6 @@ const replace = require('rollup-plugin-replace')
 const visualizer = require('rollup-plugin-visualizer').visualizer
 const { babel } = require('@rollup/plugin-babel')
 const commonjs = require('@rollup/plugin-commonjs')
-const { terser } = require('rollup-plugin-terser')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 const json = require('@rollup/plugin-json')
 const rollup = require('rollup')
@@ -162,20 +161,6 @@ function getRollupConfig(options) {
       sourceMap: true, // Enable source maps
     }),
   ]
-
-  if (buildMode === 'production') {
-    outputPlugins.push(
-      terser({
-        compress: false,
-        mangle: false,
-        output: {
-          comments: false,
-          beautify: false,
-          indent_level: 0,
-        },
-      }),
-    )
-  }
 
   if (createBundleGraph) {
     const directoryPath = path.dirname(entryPointPath)
