@@ -64,12 +64,24 @@ async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
   }
 }
 
+/**
+ * Watches for changes and triggers rebuilds with debouncing to prevent multiple builds in rapid succession.
+ *
+ * @param {Object} watchOptions - The Rollup watch options.
+ * @param {string} [buildMode=''] - The build mode, e.g., 'development' or 'production'.
+ */
 function watch(watchOptions, buildMode = '') {
   const filename = path.basename(watchOptions.input)
   message('note', `${dt()} Rollup: Watcher Starting - watching for changes starting with: "${filename}" buildMode="${buildMode}"...`, 'WATCH  ', true)
+
   const watcher = rollup.watch(watchOptions)
 
-  const debouncedRebuild = debounce((event) => {
+  // Debounce the rebuild process to prevent multiple builds in quick succession
+  const debouncedRebuild = debounce(() => {
+    message('info', `${dt()} Rollup: Rebuilding due to changes...`, 'REBUILD', true)
+  }, 300)
+
+  watcher.on('event', (event) => {
     if (event.code === 'BUNDLE_END') {
       const outputFiles = event.output.map((o) => path.basename(o)).join(', .../')
       const msg = `${dt()} Rollup: wrote bundle${event.output.length > 1 ? 's' : ''}: ".../${outputFiles}"`
@@ -89,15 +101,12 @@ function watch(watchOptions, buildMode = '') {
         })
       }
     }
-  }, 300)
-
-  watcher.on('event', (event) => {
-    debouncedRebuild(event)
   })
 
-  watcher.on('change', (id /* , { event } */) => {
+  watcher.on('change', (id) => {
     const filename = path.basename(id)
     message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
+    debouncedRebuild()
   })
 
   watcher.on('restart', () => {
