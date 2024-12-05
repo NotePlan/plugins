@@ -97,7 +97,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
           </thead>
           <tbody>
             {settingDefs
-              .filter((settingDef) => settingDef.key !== 'perspectivesEnabled')
+              .filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
               .map((settingDef, settingIndex) => {
                 if (settingDef.type === 'separator') {
                   return (
