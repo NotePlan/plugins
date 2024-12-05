@@ -560,7 +560,9 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
 }
 
 /**
- * Get the current time block paras from Today's note if it exists. Ignore any time block paras that are done or cancelled.
+ * Get the current time block paras from Today's note if it exists. 
+ * Ignore any time block paras that are done or cancelled.
+ * TODO: Make this cover time blocks for today scheduled from regular notes. Note: these are calculated normally about the same time as this section. So perhaps roll the two together and generate two sections?
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  * @returns {Array<TSection>}

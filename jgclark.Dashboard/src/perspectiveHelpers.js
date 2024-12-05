@@ -64,17 +64,17 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     name: '-',
     isModified: false,
     // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: { excludedFolders: 'THIS_IS_DASH' },
+    dashboardSettings: { excludedFolders: 'TEST' },
     isActive: true,
   },
   {
     name: 'Home',
     isModified: false,
-    // $FlowFixMe[prop-missing]
+    // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {
-      includedFolders: 'Home, NotePlan',
-      excludedFolders: 'THIS_IS_HOME,Readwise 📚, Saved Searches, Work',
-      ignoreItemsWithTerms: '#test, @church',
+      includedFolders: 'Home, Family',
+      excludedFolders: 'Work, Summaries, Saved Searches',
+      ignoreItemsWithTerms: '@work',
     },
     isActive: false,
   },
@@ -83,9 +83,9 @@ export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
     isModified: false,
     // $FlowFixMe[prop-missing] rest specified later
     dashboardSettings: {
-      includedFolders: 'Work, CCC, Ministry',
-      excludedFolders: 'THIS_IS_WORK,Readwise 📚, Saved Searches, Home',
-      ignoreItemsWithTerms: '#test, @home',
+      includedFolders: 'Work, Company',
+      excludedFolders: 'Home, Summaries, Saved Searches',
+      ignoreItemsWithTerms: '@home',
     },
     isActive: false,
   },

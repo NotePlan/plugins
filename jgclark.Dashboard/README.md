@@ -22,7 +22,7 @@ To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It aut
 From v2, the top right has icons for two menus: 
 - a **Filter menu** that allows quick access to what sections are shown, and other display toggles:
     
-    <img width="300px" src="filter-menu-2.0.0.png" border="1pt solid" margin="8px" alt=""/>
+    <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt=""/>
 
 - a **Settings menu** -- see [Settings](#settings) for more details about these more complex settings.
 
@@ -123,7 +123,7 @@ The 'Start Reviews' button does the same as the button of the same name in the P
 Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches.
 
 ## Configuration Settings
-Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This will soon replace the method of going to the NotePlan Preference Pane, and finding the right Plugin.)
+Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)
 
 <img width="550px" src="settings-menu-2.0.0.png" border="1pt solid" margin="8px" alt=""/>
 

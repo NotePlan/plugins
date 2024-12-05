@@ -142,7 +142,7 @@ export async function scheduleAllThisWeekNextWeek(_data: MessageDataObject): Pro
             logDebug('scheduleAllThisWeekNextWeek', `- scheduling referenced para "${p.content}" from note ${thisNote.filename}`)
             thisNote.updateParagraph(p)
           } else {
-            logWarn('scheduleAllYesterdayOpenToThis week', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllThisWeekNextWeek', `Couldn't find para matching "${dashboardPara.content}"`)
           }
 
           numberScheduled++
@@ -192,10 +192,8 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     if (!lastWeekNote) {
       logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find a weekly note for today (${lastWeekDateStr})`)
       return { success: false }
-    } else {
-      logDebug('scheduleAllLastWeekThisWeek', `Starting with last week's note${lastWeekDateStr}`)
     }
-    logDebug('scheduleAllLastWeekThisWeek', `Starting with last week's note ${lastWeekDateStr} -> ${thisWeekDateStr}`)
+    logDebug('scheduleAllLastWeekThisWeek', `Starting for last week's note ${lastWeekDateStr} -> ${thisWeekDateStr}`)
 
     // Get list of open tasks/checklists from this calendar note
     const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForTimePeriod('week', lastWeekNote, config)
@@ -276,7 +274,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
             logDebug('scheduleAllLastWeekThisWeek', `- scheduling referenced para "${p.content}" from note ${thisNote.filename}`)
             thisNote.updateParagraph(p)
           } else {
-            logWarn('scheduleAllYesterdayOpenToThis week', `Couldn't find para matching "${dashboardPara.content}"`)
+            logWarn('scheduleAllLastWeekThisWeek', `Couldn't find para matching "${dashboardPara.content}"`)
           }
 
           numberScheduled++

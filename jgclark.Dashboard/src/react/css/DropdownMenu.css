@@ -84,6 +84,8 @@
   opacity: 1;
   padding: 0.5rem 1.0rem;
   animation: unfurl 0.2s ease-out forwards, showScrollbar 0s 0.2s forwards;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 /* Flex container to align dropdowns */

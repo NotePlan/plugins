@@ -1169,7 +1169,7 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 }
 
 /**
- * Check a paragraph object against a plain object of fields to see if they match
+ * Check a paragraph object against a plain object of fields to see if they match.
  * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
  * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * @param {TParagraph} paragraph object to check
@@ -1197,7 +1197,7 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
         match = false
       }
     } else {
-      // $FlowIgnore
+      // $FlowIgnore[prop-missing]
       if (typeof paragraph[field] === 'undefined') {
         throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
@@ -1228,7 +1228,6 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
  * @param {boolean} ifMultipleReturnFirst? - (optional) if there are multiple matches, return the first one (default: false)
  * @returns {TParagraph | null } - the matching paragraph, or null if not found
- * @author @dwertheimer updated by @jgclark
  * @tests exist
  */
 export function findParagraph(
@@ -1281,6 +1280,7 @@ export function findParagraph(
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
  * @author @dwertheimer
+ * TODO(@dwertheimer): is the fieldsToMatch default and passing down to findParagraph correct?
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   const { filename } = staticObject

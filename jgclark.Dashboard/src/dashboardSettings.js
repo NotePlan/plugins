@@ -177,14 +177,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: true,
   },
   {
-    key: 'displayDoneCounts',
-    label: 'Show completed task count?',
-    description:
-      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
-    type: 'switch',
-    default: true,
-  },
-  {
     type: 'separator',
   },
   {
@@ -204,6 +196,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'parentChildMarkersEnabled',
     label: 'Show parent/child markers on items?',
     description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
+    type: 'switch',
+    default: true,
+  },
+  {
+    key: 'displayDoneCounts',
+    label: 'Show completed task count?',
+    description:
+      'Show the number of tasks completed today at the top of the Dashboard. For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.',
     type: 'switch',
     default: true,
   },

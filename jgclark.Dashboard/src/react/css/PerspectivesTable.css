@@ -7,14 +7,16 @@
 .perspectives-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 90%;
 }
 
 /* Table cells and headers */
 .perspectives-table th,
 .perspectives-table td {
   border: 1px solid var(--divider-color);
-  padding: 8px;
-  vertical-align: top;
+  padding: 0.2rem; /* 8px; */
+  /* vertical-align: top; */
+  align-content: center;
 }
 
 /* Sticky column for settings labels */
@@ -27,7 +29,7 @@
 
 /* Sticky header for perspective names */
 .perspectives-table .sticky-header {
-  position: sticky;
+  position: sticky; /* FIXME: */
   top: 0;
   background-color: var(--bg-main-color);
   z-index: 1;
@@ -38,21 +40,25 @@
   font-weight: bold;
   background-color: var(--bg-alt-color);
   color: var(--tint-color);
-  padding: 8px;
-  position: sticky;
+  padding: 0.3rem;
+  position: sticky; /* FIXME: */
   left: 0;
 }
 
 /* Style for setting labels */
 .perspectives-table .setting-label {
-  width: 200px;
-  min-width: 200px;
+  /* width: 200px; */
+  min-width: 12rem; /*200px;*/
+  padding: 0.2rem 0.4rem;
 }
 
-/* Ensure the table doesn't shrink below its content */
 .perspectives-table th,
 .perspectives-table td {
-  min-width: 150px;
+  min-width: 7rem; /*150px*/
+}
+
+.perspectives-table th {
+  padding: 0.4rem 0.4rem;
 }
 
 /* Adjustments for inputs within table cells */
@@ -66,7 +72,7 @@
 
   /* Optional styling for setting labels */
   .setting-label-text {
-    font-weight: 500;
+    font-weight: 400;
     color: var(--fg-main-color);
   }
 
@@ -90,10 +96,15 @@
     flex-direction: column;
   }
 
+  /* Make separators have no height */
+  .ui-separator {
+    padding: 0;
+  }
+
   .switch-line label,
   .input-box-label,
   .dropdown-label {
-    margin-bottom: 4px;
+    /* margin-bottom: 4px; */
   }
 
   /* Adjustments for compact displays */

@@ -18,6 +18,7 @@
     opacity: 1;
     transition: opacity 0.2s ease-out;
     overflow: hidden;
+    border-radius: 8px;
 
     /* Style for Section headings */
     .ui-heading {
@@ -41,7 +42,6 @@
         font-size: smaller;
         color: var(--fg-alt-color);
         margin-bottom: 0.2rem;
-        /* opacity: 0.8; */
     }
 
     /* override default for hr */
@@ -368,9 +368,6 @@
 }
 
 .settings-dialog-title {
-    /* position: absolute; */
-    /* left: 50%; */
-    /* transform: translateX(-50%); */
     font-size: large;
     font-weight: 600;
     color: var(--tint-color);

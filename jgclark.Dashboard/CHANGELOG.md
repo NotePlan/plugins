@@ -5,7 +5,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 First beta for 2.1
 ### New
 - new Perspectives dropdown that allow you to switch very quickly between different complete sets of settings.
-- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands (and callbacks)
+- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
+- new `setPerspective` x-callback to use from outside NP
 - new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
 - new 'Last Week' section and related 'All → This Week' button
 - added support for 'child' items of tasks:
@@ -41,12 +42,20 @@ First beta for 2.1
 ## Perspectives TODO:
 - TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
 - TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
-- TODO(jgc): See why move all -> this week not seeming to do anything
+- TODO(jgc): Sort the perspectives list alphabetically not order of creation (as they are now)
+- TODO(jgc): Look in all referenced-to-today items for time blocks as well
+- TODO(jgc): Further fixes to PerspectivesTable layout
+- TODO(jgc): Promote PerspectivesTable out of being a FF, after more testing
 
 ## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-03
 - (jgc): New callback `setPerspective&arg0=<name>`; added details to README
 - (jgc): Layout tweaks to suit other themes
-- (dbw): Pulled 'postcss' out of the rollup again.
+- (dbw): Pulled 'postcss' out of the rollup again
+- (dbw): Added clever computation of DropdownSelect width
+- (jgc): Made default Perspective settings generic ready for beta test
+- (dbw): New Perspectives Table view
+- (jgc): Tweaks to layout of Perspectives Table
+- (jgc): Moved 'displayCount' setting into the next section of settings
 
 ## [Perspectives.a24 = 2.1.0.a24] @jgc, 2024-12-01
 - (dbw): Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
