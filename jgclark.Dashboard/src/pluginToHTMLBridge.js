@@ -32,7 +32,15 @@ import {
   doUnscheduleItem,
   // turnOffPriorityItemsFilter
 } from './clickHandlers'
-import { doAddNewPerspective, doCopyPerspective, doDeletePerspective, doRenamePerspective, doSavePerspective, doSwitchToPerspective } from './perspectiveClickHandlers'
+import {
+  doAddNewPerspective,
+  doCopyPerspective,
+  doDeletePerspective,
+  doRenamePerspective,
+  doSavePerspective,
+  doSwitchToPerspective,
+  doPerspectiveSettingsChanged,
+} from './perspectiveClickHandlers'
 import { incrementallyRefreshSections, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
@@ -250,7 +258,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'perspectiveSettingsChanged': {
-        result = await doSettingsChanged(data, 'perspectiveSettings')
+        result = await doPerspectiveSettingsChanged(data)
         break
       }
       case 'addNewPerspective': {

@@ -136,7 +136,7 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
 }
 
 // TODO: Jsdoc
-// TODO: Is this 
+// TODO: Is this
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
@@ -166,7 +166,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     }`,
   )
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
-  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
 }
 
 /**
@@ -179,4 +179,33 @@ export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSetti
   logDebug(`doSettingsChanged`, `Saving new Dashboard settings to "-" perspective, setting isModified and isActive to false for all other perspectives`)
   const dashDef = { name: '-', isActive: true, dashboardSettings: cleanDashboardSettings(newDashboardSettings), isModified: false }
   return replacePerspectiveDef(perspectiveSettings, dashDef).map((p) => (p.name === '-' ? p : { ...p, isModified: false, isActive: false }))
+}
+
+/**
+ * Update perspectiveSettings in DataStore.settings
+ * @param {MessageDataObject} data - a MDO that should have a key "settings" with the items to be set to the settingName key
+ * @returns {TBridgeClickHandlerResult}
+ */
+export async function doPerspectiveSettingsChanged(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `dodoPerspectiveSettingsChangedSettingsChanged() starting with data = `)
+  const newSettings = data.settings
+  if (!DataStore.settings || !newSettings || !Array.isArray(newSettings)) {
+    return handlerResult(false, [], { errorMsg: `doPerspectiveSettingsChanged: newSettings is null or undefined.` })
+  }
+
+  let dashboardSettings = await getDashboardSettings()
+  if (!dashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  const updatedPluginData = { perspectiveSettings: newSettings, dashboardSettings, serverPush: { perspectiveSettings: true, dashboardSettings: true } }
+  if (dashboardSettings.perspectivesEnabled) {
+    const currentPerspDef = getActivePerspectiveDef(newSettings)
+    if (currentPerspDef && currentPerspDef.name !== '-') {
+      dashboardSettings = { ...dashboardSettings, ...currentPerspDef.dashboardSettings }
+      updatedPluginData.dashboardSettings = dashboardSettings
+    }
+  }
+  const combinedUpdatedSettings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newSettings), dashboardSettings: JSON.stringify(dashboardSettings) }
+
+  DataStore.settings = combinedUpdatedSettings
+  await setPluginData(updatedPluginData, `_Updated perspectiveSettings in global pluginData`)
+  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
 }

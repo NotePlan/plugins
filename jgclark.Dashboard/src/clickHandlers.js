@@ -567,14 +567,16 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
  * @param {string} settingName - the single key to set to the value of data.settings
  * @returns {TBridgeClickHandlerResult}
  */
+//TODO: simplify this function to handle only dashboardSettings (maybe with perspectiveSettings) but not perspectiveSettings alone
+// it was too confusing to handle both, so I split it out into doPerspectiveSettingsChanged()
 export async function doSettingsChanged(data: MessageDataObject, settingName: string): Promise<TBridgeClickHandlerResult> {
   clo(data, `doSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings) {
-    throw new Error(`doSettingsChanged newSettings: ${JSP(newSettings)} or settings is null or undefined.`)
+    return handlerResult(false, [], { errorMsg: `doSettingsChanged: newSettings is null or undefined.` })
   }
   // If we are saving the dashboardSettings, and the perspectiveSettings are not being sent, then we need to save the active perspective settings
-  let perspectivesToSave = data.perspectiveSettings
+  let perspectivesToSave = settingName === 'dashboardSettings' ? data.perspectiveSettings : Array.isArray(newSettings) ? newSettings : []
   if (settingName === 'dashboardSettings' && !data.perspectiveSettings) {
     let needToSetDash = false
     const perspectiveSettings = await getPerspectiveSettings()
@@ -586,7 +588,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
         const cleanedSettings = cleanDashboardSettings(newSettings)
         const diff = compareObjects(activePerspDef.dashboardSettings, cleanedSettings, ['lastModified', 'lastChange'])
         // if !diff or  all the diff keys start with FFlag, then return
-        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag'))) {
+        if (!diff || Object.keys(diff).every((d) => d.startsWith('FFlag') || d.startsWith('perspectivesEnabled'))) {
           return handlerResult(true)
         } else {
           clo(diff, `doSettingsChanged: Setting perspective.isModified because of changes to settings:`)
@@ -638,7 +640,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
   const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
-  return handlerResult(true, ['REFRESH_ALL_SECTIONS'])
+  return handlerResult(true, refreshes)
 }
 
 export async function doCommsBridgeTest(_data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
