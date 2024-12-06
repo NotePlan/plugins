@@ -321,7 +321,12 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {dashboardSettings?.FFlag_PerspectivesTable && (
-        <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
+        <PerspectivesTable
+          perspectives={perspectiveSettings.filter((p) => p.name !== '-')}
+          settingDefs={settingDefs}
+          onSave={hidePerspectivesTable}
+          onCancel={hidePerspectivesTable}
+        />
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />

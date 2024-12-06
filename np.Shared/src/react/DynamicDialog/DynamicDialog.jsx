@@ -287,7 +287,7 @@ const DynamicDialog = ({
           !hideHeaderButtons && <button className="PCButton save-button-inactive">Submit</button>
         )}
       </div>
-      <div className="dynamic-dialog-content">
+      <div className="dynamic-dialog-content" style={dialogStyle?.content}>
         {children}
         {items.map((item, index) => (
           <div key={`ddc-${index}`}>
