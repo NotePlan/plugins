@@ -33,7 +33,7 @@ import PerspectivesTable from './PerspectivesTable.jsx'
 import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 
 export const standardSections: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
-  if (s.sectionCode !== 'TAG') {
+  if (s.sectionCode !== 'TAG' && s.sectionCode !== 'DT') {
     acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch' })
   }
   return acc
