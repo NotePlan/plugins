@@ -91,9 +91,9 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
         <table className="perspectives-table">
           <thead>
             <tr>
-              <th className="sticky-column setting-column">Setting</th>
+              <th className="sticky-column setting-column sticky-header">Setting</th>
               {updatedPerspectives.map((perspective, index) => (
-                <th key={`header-${index}`} className="perspective-header sticky-column">
+                <th key={`header-${index}`} className="perspective-header sticky-header">
                   {perspective.name}
                 </th>
               ))}

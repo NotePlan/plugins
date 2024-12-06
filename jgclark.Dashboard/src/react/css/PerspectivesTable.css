@@ -1,4 +1,4 @@
-/* Container for the table with scrolling */
+/* Container for the table with scrolling  */
 .perspectives-table-container {
   overflow: auto;
 }
@@ -27,12 +27,16 @@
   z-index: 2;
 }
 
+.perspectives-table thead th {
+  border-bottom: 1px solid var(--divider-color);
+}
+
 /* Sticky header for perspective names */
 .perspectives-table .sticky-header {
   position: sticky; /* FIXME: */
   top: 0;
   background-color: var(--bg-main-color);
-  z-index: 1;
+  z-index: 3;
 }
 
 /* Style for settings headings */
