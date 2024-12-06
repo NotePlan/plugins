@@ -105,8 +105,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                 if (settingDef.type === 'separator') {
                   return (
                     <tr key={`separator-${settingIndex}`}>
-                      <td colSpan={updatedPerspectives.length + 1}
-                        className="ui-separator"></td>
+                      <td colSpan={updatedPerspectives.length + 1} className="ui-separator"></td>
                     </tr>
                   )
                 }

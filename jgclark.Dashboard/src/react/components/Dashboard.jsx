@@ -30,6 +30,14 @@ import DebugPanel from '@helpers/react/DebugPanel'
 import { getTestGroups } from './testing/tests'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import PerspectivesTable from './PerspectivesTable.jsx'
+import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
+
+export const standardSections: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
+  if (s.sectionCode !== 'TAG') {
+    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch' })
+  }
+  return acc
+}, [])
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -298,6 +306,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
   const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
+  const settingDefs = [
+    { label: 'Sections', key: 'sections', type: 'heading' },
+    ...standardSections,
+    { label: 'Filters', key: 'filters', type: 'heading' },
+    ...dashboardFilterDefs,
+    ...dashboardSettingDefs,
+  ]
+
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
@@ -305,12 +321,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
       {dashboardSettings?.FFlag_PerspectivesTable && (
-        <PerspectivesTable
-          perspectives={perspectiveSettings}
-          settingDefs={[...dashboardFilterDefs, ...dashboardSettingDefs]}
-          onSave={hidePerspectivesTable}
-          onCancel={hidePerspectivesTable}
-        />
+        <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
