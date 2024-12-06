@@ -132,7 +132,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'newTaskSectionHeading',
     label: 'Section heading to add/move new tasks under',
     description:
-      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note.",
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use <<top of note>> (with the << and >>).",
     type: 'input',
     default: 'Tasks',
     compactDisplay: true,
@@ -172,7 +172,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     key: 'useTodayDate',
     label: "Use '>today' to schedule tasks for today?",
-    description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
+    description: "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date (>YYYY-MM-DD).",
     type: 'switch',
     default: true,
   },

@@ -18,12 +18,7 @@ import {
   getStartTimeFromPara,
   makeDashboardParas,
 } from './dashboardHelpers'
-import {
-  openWeekParas,
-  refWeekParas,
-  tagParasFromNote,
-  nextProjectNoteItems,
-} from './demoData'
+import { openWeekParas, refWeekParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
 import {
   getDateStringFromCalendarFilename,
   getNPWeekStr,
@@ -108,14 +103,14 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const nextWeekHeadings: Array<string> = nextPeriodNote ? getHeadingsFromNote(nextPeriodNote, false, true, true, true) : []
     const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisWeekHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextWeekHeadings.length
-        // $FlowIgnore[incompatible-type]
-        ? [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+        ? // $FlowIgnore[incompatible-type]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 

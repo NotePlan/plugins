@@ -24,12 +24,7 @@ import {
 } from './dashboardHelpers'
 import { getTimeBlockSectionData, getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
 import { getLastWeekSectionData, getThisWeekSectionData } from './dataGenerationWeeks'
-import {
-  openMonthParas,
-  refMonthParas,
-  tagParasFromNote,
-  nextProjectNoteItems,
-} from './demoData'
+import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
 import {
   getDateStringFromCalendarFilename,
   getNPMonthStr,
@@ -191,13 +186,13 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
     const thisMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisMonthHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: thisMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextMonthFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextMonthHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: nextMonthHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 
@@ -361,13 +356,13 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
     const thisQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisQuarterHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: thisQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: thisQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const nextQuarterFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextQuarterHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', options: nextQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: nextQuarterHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
 

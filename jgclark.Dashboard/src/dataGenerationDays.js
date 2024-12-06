@@ -146,13 +146,13 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'combo', label: 'Under Heading:', key: 'heading', fixedWidth: 560, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])
@@ -560,7 +560,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
 }
 
 /**
- * Get the current time block paras from Today's note if it exists. 
+ * Get the current time block paras from Today's note if it exists.
  * Ignore any time block paras that are done or cancelled.
  * TODO: Make this cover time blocks for today scheduled from regular notes. Note: these are calculated normally about the same time as this section. So perhaps roll the two together and generate two sections?
  * @param {TDashboardSettings} config

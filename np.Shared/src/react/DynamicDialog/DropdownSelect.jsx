@@ -113,7 +113,17 @@ const DropdownSelect = ({
   }
 
   const [isOpen, setIsOpen] = useState(false)
-  const normalizedOptions: Array<Option> = useMemo(() => options.map(normalizeOption), [options])
+  const normalizedOptions: Array<Option> = useMemo(() => {
+    const normalized = options.map(normalizeOption)
+    if (value) {
+      const normalizedValue = normalizeOption(value)
+      const exists = normalized.some((option) => option.value === normalizedValue.value)
+      if (!exists) {
+        normalized.unshift(normalizedValue)
+      }
+    }
+    return normalized
+  }, [options, value])
   const [selectedValue, setSelectedValue] = useState(value ? normalizeOption(value) : options[0] ? normalizeOption(options[0]) : { label: '', value: '' })
   const [inputValue, setInputValue] = useState(selectedValue.label)
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
@@ -304,6 +314,7 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
+  logDebug(`DropdownSelect`, { filteredOptions }, { value }, { controlledValue })
   return (
     <div
       className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
@@ -343,14 +354,14 @@ const DropdownSelect = ({
         </div>
         {isOpen && (
           <div className="dropdown-select-dropdiv" ref={optionsRef} style={mergeStyles({ width: `${calculatedWidth}px` }, styles.dropdown)}>
-            {filteredOptions.map((option: Option) => {
+            {filteredOptions.map((option: Option, i) => {
               if (option.type === 'separator') {
                 return <div key={option.value} style={styles.separator}></div>
               }
               const showIndicator = showIndicatorOptionProp && option.hasOwnProperty(showIndicatorOptionProp)
               return (
                 <div
-                  key={option.value}
+                  key={`${option.value}-${i}`}
                   className={`dropdown-select-option`}
                   onClick={() => handleOptionClick(option)}
                   style={mergeStyles(

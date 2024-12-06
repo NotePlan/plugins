@@ -329,6 +329,9 @@ const PerspectiveSelector = (): React$Node => {
       borderTop: '0.5px solid lightgray',
       margin: '5px 0',
     },
+    input: {
+      fontFamily: 'unset',
+    },
   }
 
   const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)

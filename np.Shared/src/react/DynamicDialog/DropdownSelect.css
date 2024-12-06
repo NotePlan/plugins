@@ -23,16 +23,18 @@
 }
 
 .dropdown-select-label {
-	font-weight: 500;
+	font-weight: 700;
 	color: var(--fg-alt-color);
+	margin-bottom: 0.5rem;
 }
 
 .dropdown-select-input {
 	flex: 1;
 	padding: 3px 6px 1px;
 	border-radius: 4px;
-	font-size: 0.9rem;
+	font-size: 1rem;
 	width: 100%;
+	font-family: system-ui;
 }
 
 .dropdown-select-input:focus {

@@ -216,7 +216,7 @@ getTodaySectionData()
     const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
 
     if (headings.length) {
-      formFields.push({ type: 'combo', label: 'Under Heading:', key: 'heading', options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
+      formFields.push({ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
     }
   ...
         actionButtons: [
