@@ -332,6 +332,9 @@ const PerspectiveSelector = (): React$Node => {
     input: {
       fontFamily: 'unset',
     },
+    label: {
+      fontWeight: 500,
+    },
   }
 
   const thisPersp = getPerspectiveNamed(activePerspectiveName, perspectiveSettings)
