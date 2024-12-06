@@ -314,7 +314,6 @@ const DropdownSelect = ({
       ...customStyles,
     })
 
-  logDebug(`DropdownSelect`, { filteredOptions }, { value }, { controlledValue })
   return (
     <div
       className={`${compactDisplay ? 'dropdown-select-container-compact' : 'dropdown-select-container'} ${disabled ? 'disabled' : ''} ${className}`}
