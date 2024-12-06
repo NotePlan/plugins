@@ -340,7 +340,7 @@ const PerspectiveSelector = (): React$Node => {
     <DropdownSelect
       styles={customStyles}
       options={perspectiveNameOptions.map((option) => (option.value === 'separator' ? { ...option, label: '', component: <div style={customStyles.separator}></div> } : option))}
-      value={selectedValue || { label: '-', value: '-' }}
+      controlledValue={selectedValue}
       onChange={handlePerspectiveChange}
       compactDisplay={true}
       label={'Persp'}

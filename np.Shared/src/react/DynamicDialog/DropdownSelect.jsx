@@ -32,8 +32,17 @@ type Styles = {
 type DropdownSelectProps = {
   label: string,
   options: Array<string | Option>,
-  value: string | Option,
-  onChange: ({ [string]: mixed }) => void,
+  /**
+   * The initial or current value of the dropdown when not controlled externally.
+   * Use this prop when the component should manage its own state.
+   */
+  value?: string | Option,
+  /**
+   * The value controlled by the parent component.
+   * Use this prop to override the internal state and control the dropdown's value externally.
+   */
+  controlledValue?: string | Option,
+  onChange?: ({ [string]: mixed }) => void,
   inputRef?: { current: null | HTMLInputElement },
   compactDisplay?: boolean,
   disabled?: boolean,
@@ -58,12 +67,34 @@ const mergeStyles = (baseStyles: { [string]: mixed }, overrideStyles: { [string]
   return { ...baseStyles, ...overrideStyles }
 }
 
+/**
+ * DropdownSelect component for rendering a customizable dropdown menu.
+ *
+ * @param {Object} props - The component props.
+ * @param {string} props.label - The label for the dropdown.
+ * @param {Array<string | Option>} props.options - The list of options for the dropdown.
+ * @param {string | Option} [props.value] - The initial or current value of the dropdown when not controlled externally.
+ * @param {string | Option} [props.controlledValue] - The value controlled by the parent component.
+ * @param {Function} [props.onChange] - Callback function to handle changes in selection.
+ * @param {Object} [props.inputRef] - Ref object for the input element.
+ * @param {boolean} [props.compactDisplay] - Whether to display the dropdown in a compact style.
+ * @param {boolean} [props.disabled] - Whether the dropdown is disabled.
+ * @param {Styles} [props.styles] - Custom styles for the dropdown components.
+ * @param {boolean} [props.fullWidthOptions] - Whether options should take full width.
+ * @param {string} [props.showIndicatorOptionProp] - Property name to determine if an indicator should be shown.
+ * @param {boolean} [props.allowNonMatchingLabel] - Whether to allow labels that don't match any option.
+ * @param {boolean} [props.noWrapOptions] - Whether to prevent options from wrapping.
+ * @param {number} [props.fixedWidth] - Fixed width for the dropdown.
+ * @param {string} [props.className] - Additional class names for the dropdown.
+ * @param {boolean} [props.isEditable] - Whether the dropdown input is editable.
+ * @returns {React$Node} The rendered dropdown component.
+ */
 const DropdownSelect = ({
   label,
   options,
-  disabled,
   value,
-  onChange,
+  controlledValue,
+  onChange = () => {},
   inputRef,
   compactDisplay = false,
   styles = {},
@@ -73,6 +104,7 @@ const DropdownSelect = ({
   fixedWidth,
   className = '',
   isEditable = false,
+  disabled = false,
 }: DropdownSelectProps): React$Node => {
   // Normalize options to a consistent format
 
@@ -82,7 +114,7 @@ const DropdownSelect = ({
 
   const [isOpen, setIsOpen] = useState(false)
   const normalizedOptions: Array<Option> = useMemo(() => options.map(normalizeOption), [options])
-  const [selectedValue, setSelectedValue] = useState(normalizeOption(value))
+  const [selectedValue, setSelectedValue] = useState(value ? normalizeOption(value) : options[0] ? normalizeOption(options[0]) : { label: '', value: '' })
   const [inputValue, setInputValue] = useState(selectedValue.label)
   const [calculatedWidth, setCalculatedWidth] = useState(fixedWidth || 200) // Initial width
   const dropdownRef = useRef<?ElementRef<'div'>>(null)
@@ -124,12 +156,28 @@ const DropdownSelect = ({
     }
   }
 
+  // Helper function to safely normalize an option
+  const safeNormalizeOption = (option: ?(string | Option)): Option => {
+    if (!option) {
+      return { label: '', value: '' } // Default empty option
+    }
+    return normalizeOption(option)
+  }
+
+  // Use controlledValue if provided, otherwise fall back to internal state
+  const effectiveValue = controlledValue !== undefined ? safeNormalizeOption(controlledValue) : safeNormalizeOption(value)
+
+  // Update inputValue based on effectiveValue
+  useEffect(() => {
+    setInputValue(effectiveValue.label)
+  }, [effectiveValue])
+
   // Handle option click
   const handleOptionClick = (option: Option) => {
     logDebug(`DropdownSelect`, `option click: ${option.label}`)
     setSelectedValue(option)
     setInputValue(option.label) // Update inputValue with the selected option's label
-    onChange(option)
+    onChange({ label: option.label, value: option.value }) // Ensure onChange is called with a valid object
     setIsOpen(false)
   }
 
@@ -184,7 +232,9 @@ const DropdownSelect = ({
   }, [isOpen])
 
   useEffect(() => {
-    setSelectedValue(normalizeOption(value)) // We need to allow for the value to be something that is not in the options (like Work*)
+    if (value !== undefined) {
+      setSelectedValue(safeNormalizeOption(value))
+    }
   }, [value, normalizedOptions])
 
   useEffect(() => {
@@ -228,7 +278,7 @@ const DropdownSelect = ({
   }, [isOpen])
 
   // Determine if the selected option should show the indicator
-  const selectedOption = normalizedOptions.find((option) => option.value === selectedValue.value)
+  const selectedOption = normalizedOptions.find((option) => option.value === effectiveValue.value)
   const shouldShowIndicator = showIndicatorOptionProp && selectedOption ? selectedOption[showIndicatorOptionProp] === true : false
 
   //----------------------------------------------------------------------
