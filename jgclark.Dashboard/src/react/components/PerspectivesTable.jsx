@@ -24,7 +24,7 @@ type PerspectivesTableProps = {
 }
 
 const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelPosition = 'right' }: PerspectivesTableProps): React$Node => {
-  const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectives)
+  const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectives.sort((a, b) => a.name.localeCompare(b.name)))
   const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
 
   const { sendActionToPlugin, perspectiveSettings } = useAppContext()
@@ -94,7 +94,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
               <th className="sticky-column setting-column sticky-header">Setting</th>
               {updatedPerspectives.map((perspective, index) => (
                 <th key={`header-${index}`} className="perspective-header sticky-header">
-                  {perspective.name}
+                  {perspective.name === '-' ? '[Default]' : perspective.name}
                 </th>
               ))}
             </tr>
