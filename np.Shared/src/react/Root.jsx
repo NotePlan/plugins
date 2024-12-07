@@ -386,7 +386,7 @@ export function Root(/* props: Props */): Node {
    * Fires after components draw
    */
   useEffect(() => {
-    if (npData?.passThroughVars?.lastWindowScrollTop !== undefined && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
+    if (typeof npData?.passThroughVars?.lastWindowScrollTop !== 'undefined' && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
       // debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`)
       window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop)
     } else {
