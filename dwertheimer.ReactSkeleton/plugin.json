@@ -1,8 +1,9 @@
 {
-  "noteplan.minAppVersion": "3.7",
-  "macOS.minVersion": "10.13.0",
   "plugin.id": "dwertheimer.ReactSkeleton",
   "plugin.name": "dwertheimer.ReactSkeleton (TODO: GIVE THIS PLUGIN A NAME)",
+  "plugin.hidden": true,
+  "noteplan.minAppVersion": "3.7",
+  "macOS.minVersion": "10.13.0",
   "plugin.description": "Basic skeleton of a React app that can be used in a NotePlan plugin",
   "plugin.author": "@dwertheimer",
   "plugin.version": "1.0.0",

@@ -1,7 +1,8 @@
 {
-  "noteplan.minAppVersion": "1.0.0",
   "plugin.id": "nmn.DataQuery",
   "plugin.name": "Data Query",
+  "plugin.hidden": true,
+  "noteplan.minAppVersion": "1.0.0",
   "plugin.description": "Query data across Noteplan, filter and present it as HTML in a browser",
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel",
