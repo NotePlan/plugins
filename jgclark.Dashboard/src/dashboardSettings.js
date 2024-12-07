@@ -43,7 +43,7 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     description: 'Whether to display scheduled >dates for tasks in dashboard view',
   },
   {
-    label: 'Exclude tasks that include time blocks',
+    label: 'Exclude tasks that include time blocks?',
     key: 'excludeTasksWithTimeblocks',
     type: 'switch',
     default: false,
@@ -208,6 +208,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     default: true,
   },
   {
+    key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
+    label: 'Automatic Update frequency',
+    description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
+    type: 'number',
+    default: '0',
+    compactDisplay: true,
+  },
+  {
     key: 'dashboardTheme',
     label: 'Theme to use for Dashboard',
     description:
@@ -265,21 +273,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   //   type: 'input',
   //   default: "",
   // },
-  {
-    type: 'separator',
-  },
-  {
-    type: 'heading',
-    label: 'Automatic Refresh',
-  },
-  {
-    key: 'autoUpdateAfterIdleTime', // aka "autoRefresh"
-    label: 'Automatic Update frequency',
-    description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
-    type: 'number',
-    default: '0',
-    compactDisplay: true,
-  },
   {
     type: 'separator',
   },

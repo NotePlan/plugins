@@ -33,7 +33,7 @@
 
 /* Sticky header for perspective names */
 .perspectives-table .sticky-header {
-  position: sticky; /* FIXME: */
+  position: sticky;
   top: 0;
   background-color: var(--bg-main-color);
   z-index: 3;
@@ -45,7 +45,7 @@
   background-color: var(--bg-alt-color);
   color: var(--tint-color);
   padding: 0.3rem;
-  position: sticky; /* FIXME: */
+  position: sticky;
   left: 0;
 }
 
@@ -82,7 +82,8 @@
 
   /* Style for setting cells */
   .setting-cell {
-    min-width: 150px;
+    min-width: 9rem;
+    padding: 2px 6px;
   }
 
   /* Style for item description */
@@ -94,21 +95,20 @@
   }
 
   /* Adjustments for the input label position */
-  .switch-line,
+  .switch-line {
+    gap: 0px !important;
+    justify-content: center !important;
+  }
   .input-box-container,
   .dropdown-container {
     flex-direction: column;
+    justify-content: flex-start;
+    row-gap: 0px; /* remove spacing under switch */
   }
 
   /* Make separators have no height */
   .ui-separator {
     padding: 0;
-  }
-
-  .switch-line label,
-  .input-box-label,
-  .dropdown-label {
-    /* margin-bottom: 4px; */
   }
 
   /* Adjustments for compact displays */

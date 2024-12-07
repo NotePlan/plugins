@@ -63,7 +63,7 @@ const CalendarPicker = ({ onSelectDate, numberOfMonths = 2, startingSelectedDate
   return (
     <>
       <button className="PCButton" title="Open calendar to pick a specific day" onClick={toggleDatePicker}>
-        <i className="fa-solid fa-calendar-alt pad-left pad-right"></i>
+        <i className="fa-regular fa-calendar-plus pad-left pad-right"></i>
       </button>
       {isOpen && (
         <div className="dayPicker-container">

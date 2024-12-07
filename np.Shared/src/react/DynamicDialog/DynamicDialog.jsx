@@ -266,7 +266,7 @@ const DynamicDialog = ({
   // clo(items, `DynamicDialog items=`)
   if (!updatedSettings) return null
   const dialogStyle = {
-    width: '40%', // defaults which can be overridden by the style prop
+    minWidth: '50%', // defaults which can be overridden by the style prop
     height: 'unset',
     ...style,
   }

@@ -12,6 +12,7 @@
 import type { TPerspectiveDef } from '../../../types.js'
 import React, { useReducer, useEffect, useCallback } from 'react'
 import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+import { setPluginData } from '../../../dashboardHelpers'
 import { setActivePerspective } from '../../../perspectiveHelpers'
 import DropdownSelect, { type Option } from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
 // import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
@@ -81,12 +82,13 @@ const PerspectiveSelector = (): React$Node => {
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         const notIsDash = thisPersp && thisPersp.name && thisPersp.name !== '-'
         const saveModifiedOption = notIsDash && thisPersp?.isModified ? [{ label: 'Save Perspective', value: 'Save Perspective' }] : []
-        const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective…', value: 'Rename Perspective' }] : []
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
+        const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
+        const editAllPerspectives = notIsDash ? [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }] : []
         return {
           ...state,
-          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...copySettings, ...deletePersp],
+          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...copySettings, ...deletePersp, ...editAllPerspectives],
         }
       }
       case 'SET_ACTIVE_PERSPECTIVE':
@@ -272,6 +274,18 @@ const PerspectiveSelector = (): React$Node => {
             `Copy Settings from (${state.activePerspectiveName}) selected from dropdown`,
           )
         }
+        return
+      }
+
+      // FIXME: JGC hoped this would be the simple way to trigger showing the PerspectivesTable ... but clearly not, as 
+      if (selectedOption.value === 'Edit All Perspectives') {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `editAllPerspectives "${selectedOption.value}".`)
+        const updatedDashboardSettings = { ...dashboardSettings, FFlag_PerspectivesTable: true }
+        clo(updatedDashboardSettings, 'PerspectiveSelector/handlePerspectiveChange updatedDashboardSettings')
+        let updatedPluginData = pluginData
+        updatedPluginData.dashboardSettings = updatedDashboardSettings
+        await setPluginData(updatedPluginData, `_Set FFlag_PerspectivesTable to true, and hope it will show`)
+
         return
       }
 

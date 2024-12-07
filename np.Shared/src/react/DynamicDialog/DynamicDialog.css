@@ -18,7 +18,6 @@
     border-radius: 8px;
     transition: opacity 0.2s ease-out;
     /* overflow: hidden; commented out to allow for dropdowns to show */
-
 }
 
 /* Narrow for simpler confirmation dialogs */
@@ -46,36 +45,28 @@
 /* Style for the dialog buttons container */
 .dynamic-dialog-header {
     display: flex;
-    gap: 0.5rem;
-    background-color: var(--bg-alt-color);
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
     font-weight: 600;
+    gap: 0.5rem;
+    background-color: var(--bg-alt-color);
     color: var(--tint-color);
     margin: 0;
     background: none;
-    line-height: 40px;
+    line-height: 1.2rem;
     min-height: 2.5rem;
     border-bottom: gray solid .5px;
     padding-bottom: 2px;
     /* Match the height of the buttons container */
 }
 
-/* TEST: Removing, as not used. */
-/* .dynamic-dialog-heading {
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--tint-color);
-    padding-top: 0.3rem;
-    padding-bottom: 0.2rem;
-} */
-
 /* Style for the centered header */
-/* TODO: This is getting overriden from somewhere but I can't find where */
+/* TODO: This is getting added to from somewhere but I can't find where */
 .dynamic-dialog-title {
     flex-grow: 1;
     text-align: center;
+    line-height: 1.2rem;
 }
 
 .dynamic-dialog {
@@ -178,8 +169,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        justify-content: flex-start;
-        /* Left justify */
     }
 
     /* Style for switch-input */
@@ -189,7 +178,7 @@
 
     /* Style for switch-label */
     .switch-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         /* flex-shrink: 0; */
     }
@@ -207,8 +196,9 @@
         display: flex;
         flex-direction: row;
         align-items: end;
-        gap: 0.5rem;
-        /* width: 98%; */
+        gap: 0px !important;
+        column-gap: 0px;
+        justify-content: center;
     }
 
     /* Style for input-box-wrapper - TODO: remove later */
@@ -220,7 +210,7 @@
 
     /* Style for input-box-label */
     .input-box-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         /* margin-bottom: 0.3rem; */
         margin-bottom: 0.5rem;
@@ -327,7 +317,7 @@
 
     /* Style for dropdown-label */
     .dropdown-label {
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-alt-color);
         margin-right: 0.1rem;
         margin-bottom: 0.3rem;
@@ -398,16 +388,15 @@
     }
 
     /* Header style for settings dialog */
-    /* TODO: is this used? */
-    .dynamic-dialog-header {
+    /* TEST: removing this */
+    /* .dynamic-dialog-header {
         font-size: 1.2rem;
         font-weight: 600;
         color: var(--tint-color);
         margin: 0;
         background: none;
         line-height: 40px;
-        /* Match the height of the buttons container */
-    }
+    } */
 
     /* Add styles for button-group */
     .ui-button-group {
@@ -481,18 +470,19 @@
 }
 
 /* Style for dropdown-option */
-.dropdown-option {
+/* TEST: removing, as not used? */
+/* .dropdown-option {
     padding: 8px 12px;
     cursor: pointer;
     color: var(--fg-main-color);
-    /* transition: background-color 0.2s; */
-}
+} */
 
 /* Hover style for dropdown option */
-.dropdown-option:hover {
+/* TEST: removing, as not used? */
+/* .dropdown-option:hover {
     background-color: var(--bg-alt-color);
     color: var(--fg-alt-color);
-}
+} */
 
 .iOS .dynamic-dialog .dynamic-dialog-header {
     font-size: 1rem;

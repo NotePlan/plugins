@@ -23,16 +23,15 @@
 }
 
 .dropdown-select-label {
-	font-weight: 700;
+	font-weight: 600;
 	color: var(--fg-alt-color);
 	margin-bottom: 0.5rem;
 }
 
 .dropdown-select-input {
 	flex: 1;
-	padding: 3px 6px 1px;
+	padding: 3px 6px 3px 0px;
 	border-radius: 4px;
-	font-size: 1rem;
 	width: 100%;
 	font-family: system-ui;
 }
@@ -67,6 +66,8 @@
 	box-shadow: 0 2px 5px var(--divider-color);
 	z-index: 5;
 	width: 100%;
+	/* ensure that a right margin can be seen still - not sure why this is needed */
+	padding-right: 6px; 
 }
 
 /* The displayed options. */
@@ -84,6 +85,7 @@
 	background-color: var(--tint-color);
 	color: var(--bg-alt-color);
 	filter: brightness(95%);
+	border-radius:4px;
 }
 
 .dropdown-select-option .option-label {

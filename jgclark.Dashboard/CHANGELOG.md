@@ -40,14 +40,19 @@ First beta for 2.1
 - fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
 
 ## Perspectives TODO:
-- TODO(dbw): see Dashboard.jsx's long-standing TODO comments about refreshTimer()s.
-- TODO(jgc): continue to try to find where the DD CSS `.dynamic-dialog-header` is coming from that forces long titles to display over 2 lines.
-- TODO(jgc): Sort the perspectives list alphabetically not order of creation (as they are now)
 - TODO(jgc): Look in all referenced-to-today items for time blocks as well
-- TODO(jgc): Further fixes to PerspectivesTable layout
-- TODO(jgc): Promote PerspectivesTable out of being a FF, after more testing
 
-## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-03
+## [Perspectives.a26 = 2.1.0.a26] @jgc, 2024-12-06
+- (dbw): Improvements to layout and contents of Perspectives Table
+- (dbw + jgc): Improvements to styling of DynamicDialog heading selector
+- (jgc): fixed the DynamicDialog header displaying long titles over 2 lines
+- (jgc): Moved 'Automatic Update frequency' setting to 'Display settings'
+- (jgc): Changed 'calendar add' icon in taskDialog to match what is now on the main window
+- (jgc): Sort the perspectives list alphabetically not order of creation
+- (jgc): Further fixes to PerspectivesTable layout, particularly for the many switches
+- (jgc): Promote PerspectivesTable out of being a FF. TODO: this doesn't quite work yet -- DBW please see what else I should have done to get React to make it appear from new 'Edit All Perspectives...' menu item.
+
+## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-05
 - (jgc): New callback `setPerspective&arg0=<name>`; added details to README
 - (jgc): Layout tweaks to suit other themes
 - (dbw): Pulled 'postcss' out of the rollup again

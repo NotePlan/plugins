@@ -287,19 +287,20 @@ export function getDisplayListOfPerspectiveNames(allDefs: Array<TPerspectiveDef>
       throw new Error(`No existing Perspective settings found.`)
     }
 
-    let options = allDefs.map((def) => ({
+    const options = allDefs.map((def) => ({
       label: def.name,
       value: def.name,
       isModified: Boolean(def.isModified || false), // Ensure isModified is always a boolean
     }))
+    let sortedOptions = options.sort((a, b) => a.label.localeCompare(b.label))
 
     if (!includeDefaultOption) {
-      options = options.filter((obj) => obj.label !== '-')
+      sortedOptions = sortedOptions.filter((obj) => obj.label !== '-')
     } else {
-      options = [...options.filter((obj) => obj.label === '-'), ...options.filter((obj) => obj.label !== '-')]
+      sortedOptions = [...sortedOptions.filter((obj) => obj.label === '-'), ...sortedOptions.filter((obj) => obj.label !== '-')]
     }
     // $FlowIgnore
-    return options
+    return sortedOptions
   } catch (err) {
     logError('getDisplayListOfPerspectiveNames', err.message)
     return [{ label: '-', value: '-', isModified: false }]
