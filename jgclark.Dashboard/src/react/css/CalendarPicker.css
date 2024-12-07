@@ -4,7 +4,7 @@
 /* NOTE: GENERALLY YOU HAVE TO SET !IMPORTANT TO GET THESE CALENDAR STYLES TO OVERRIDE THE SETTINGS */
 
 /* -------------- */
-
+.dashboard, .dynamic-dialog  {
 .container { border: '1px solid #ccc';
   margin-top: '0px';
   padding-top: '0px'; }
@@ -85,4 +85,5 @@
 
 #react-day-picker-1 {
   padding-top: 10px !important;
+}
 }

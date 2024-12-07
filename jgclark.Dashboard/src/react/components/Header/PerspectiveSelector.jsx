@@ -67,7 +67,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, perspectiveSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, sendActionToPlugin, pluginData } = useAppContext()
+  const { dashboardSettings, perspectiveSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, sendActionToPlugin, pluginData, setReactSettings } = useAppContext()
 
   //--------------------------------------------------------------------------
   // Reducer Function with Comprehensive Logging
@@ -85,10 +85,19 @@ const PerspectiveSelector = (): React$Node => {
         const renamePerspective = notIsDash ? [{ label: 'Rename Perspective…', value: 'Rename Perspective' }] : []
         const copySettings = notIsDash ? [{ label: 'Copy Settings to…', value: 'Copy Perspective' }] : []
         const deletePersp = notIsDash ? [{ label: 'Delete Perspective…', value: 'Delete Perspective' }] : []
-        const editAllPerspectives = notIsDash ? [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }] : []
+        const editAllPerspectives = [{ label: 'Edit All Perspectives…', value: 'Edit All Perspectives' }]
         return {
           ...state,
-          perspectiveNameOptions: [...action.payload, ...separatorOption, ...saveModifiedOption, ...saveAsOption, ...renamePerspective, ...copySettings, ...deletePersp, ...editAllPerspectives],
+          perspectiveNameOptions: [
+            ...action.payload,
+            ...separatorOption,
+            ...saveModifiedOption,
+            ...saveAsOption,
+            ...renamePerspective,
+            ...copySettings,
+            ...deletePersp,
+            ...editAllPerspectives,
+          ],
         }
       }
       case 'SET_ACTIVE_PERSPECTIVE':
@@ -277,15 +286,9 @@ const PerspectiveSelector = (): React$Node => {
         return
       }
 
-      // FIXME: JGC hoped this would be the simple way to trigger showing the PerspectivesTable ... but clearly not, as 
       if (selectedOption.value === 'Edit All Perspectives') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `editAllPerspectives "${selectedOption.value}".`)
-        const updatedDashboardSettings = { ...dashboardSettings, FFlag_PerspectivesTable: true }
-        clo(updatedDashboardSettings, 'PerspectiveSelector/handlePerspectiveChange updatedDashboardSettings')
-        let updatedPluginData = pluginData
-        updatedPluginData.dashboardSettings = updatedDashboardSettings
-        await setPluginData(updatedPluginData, `_Set FFlag_PerspectivesTable to true, and hope it will show`)
-
+        setReactSettings((prevReactSettings) => ({ ...prevReactSettings, perspectivesTableVisible: true }))
         return
       }
 

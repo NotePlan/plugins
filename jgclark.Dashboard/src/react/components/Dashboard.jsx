@@ -107,21 +107,26 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   let totalSectionItems = countTotalSectionItems(origSections, dontDedupeSectionCodes)
   logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
 
-  if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
-    // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
-    // But TB and PROJ sections need to be ignored here, as they have different item types
-    const deduplicatedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
-    totalSectionItems = countTotalVisibleSectionItems(deduplicatedSections, dashboardSettings)
+  // Memoize deduplicated sections
+  const deduplicatedSections = useMemo(() => {
+    if (sections.length >= 1 && dashboardSettings.hideDuplicates) {
+      // FIXME: this seems to be called for every section, even on refresh when only 1 section is requested
+      // But TB and PROJ sections need to be ignored here, as they have different item types
+      const dedupedSections = getSectionsWithoutDuplicateLines(origSections.slice(), ['filename', 'content'], sectionPriority, dontDedupeSectionCodes, dashboardSettings)
+      totalSectionItems = countTotalVisibleSectionItems(dedupedSections, dashboardSettings)
 
-    // logDebug('Dashboard', `deduplicatedSections: ${deduplicatedSections.length} sections with ${String(totalSectionItems)} items`)
-    // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
+      // logDebug('Dashboard', `deduplicatedSections: ${dedupedSections.length} sections with ${String(totalSectionItems)} items`)
+      // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
-    sections = deduplicatedSections
-    // logDebug('Dashboard', `- after hide duplicates: ${sections.length} sections with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
-    // clof(sections, `Dashboard sections (length=${sections.length})`, ['sectionCode', 'name'], true)
-  }
+      return dedupedSections
+    }
+    return sections
+  }, [sections, dashboardSettings, origSections])
 
-  sections = sortSections(sections, sectionDisplayOrder)
+  // Use the memoized sections
+  sections = deduplicatedSections
+
+  sections = useMemo(() => sortSections(sections, sectionDisplayOrder), [sections, sectionDisplayOrder])
   // logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
   // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
 
@@ -131,6 +136,18 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     maxWidth: '100vw', // '98vw',
     width: '100vw', // '98vw',
   }
+
+  // For PerspectivesTable
+  const settingDefs = useMemo(
+    () => [
+      { label: 'Sections', key: 'sections', type: 'heading' },
+      ...standardSections,
+      { label: 'Filters', key: 'filters', type: 'heading' },
+      ...dashboardFilterDefs,
+      ...dashboardSettingDefs,
+    ],
+    [],
+  )
 
   //----------------------------------------------------------------------
   // Effects
@@ -286,11 +303,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   }
 
   const hidePerspectivesTable = () => {
-    const newSettings = {
-      ...dashboardSettings,
-      FFlag_PerspectivesTable: false,
-    }
-    dispatchDashboardSettings({ type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS, payload: newSettings, reason: `Turnung off perspTable` })
+    setReactSettings((prevReactSettings) => ({ ...prevReactSettings, perspectivesTableVisible: false }))
   }
 
   //----------------------------------------------------------------------
@@ -304,21 +317,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false
   const testGroups = useMemo(() => getTestGroups(getContext), [getContext])
 
-  const settingDefs = [
-    { label: 'Sections', key: 'sections', type: 'heading' },
-    ...standardSections,
-    { label: 'Filters', key: 'filters', type: 'heading' },
-    ...dashboardFilterDefs,
-    ...dashboardSettingDefs,
-  ]
-
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
       {autoUpdateEnabled && (
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
       )}
       {/* Note: this is where I might want to put further periodic data generation functions: completed task counter etc. */}
-      {dashboardSettings?.FFlag_PerspectivesTable && (
+      {reactSettings?.perspectivesTableVisible && (
         <PerspectivesTable perspectives={perspectiveSettings} settingDefs={settingDefs} onSave={hidePerspectivesTable} onCancel={hidePerspectivesTable} />
       )}
       <div className="dashboard">

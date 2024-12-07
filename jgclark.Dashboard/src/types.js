@@ -30,7 +30,6 @@ export type TDashboardSettings = {
   FFlag_ShowTestingPanel?: boolean,
   FFlag_ForceInitialLoadForBrowserDebugging?: boolean, // to force full load in browser
   FFlag_HardRefreshButton?: boolean,
-  FFlag_PerspectivesTable?: boolean,
 
   /* SETTINGS THAT ARE CALCULATED AND PASSED BY THE PLUGIN */
   defaultFileExtension?: string,
@@ -327,6 +326,7 @@ export type TReactSettings = {
   lastChange?: string /* settings will be sent to plugin for saving unless lastChange starts with underscore */,
   dialogData?: TDialogData,
   interactiveProcessing?: TInteractiveProcessing,
+  perspectivesTableVisible?: boolean,
 }
 
 export type TPluginData = {
