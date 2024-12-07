@@ -34,14 +34,13 @@ import { chooseOption, showMessage } from '@helpers/userInput'
 
 export type PassedData = {
   pluginData: TPluginData /* Your plugin's data to pass on first launch (or edited later) */,
-  returnPluginCommand: { id: string, command: string }, /* plugin jsFunction that will receive comms back from the React window */
-  componentPath: string, /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */
-  startTime?: Date, /* used for timing/debugging */
-  title?: string, /* React Window Title */
+  returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
+  componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
+  startTime?: Date /* used for timing/debugging */,
+  title?: string /* React Window Title */,
   debug: boolean /* set based on ENV_MODE above */,
   ENV_MODE?: 'development' | 'production',
-  dataMode: 'live' | 'demo' | 'test', /* TODO(dbw): describe this */
-  passThroughVars?: any, /* any data you want to pass through to the React Window */
+  passThroughVars?: any /* any data you want to pass through to the React Window */,
   windowID?: string,
 }
 
@@ -199,7 +198,10 @@ export async function setPerspective(name: string): Promise<void> {
 }
 
 /**
- * TODO(dbw): add JSDoc, and look at flow error on '= false' below
+ * Set the dashboard settings to show only the sections in the CSV string.
+ * (if user calls this from xcallback, it will override the current settings, showing only the sections in the CSV string)
+ * This is less necessary now that we have the ability to load a specific perspective.
+ * But it's still useful for xcallback calls to focus on a specific section or sections.
  * @param {string} limitToSections e.g. "TD,TY,#work"
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
@@ -209,6 +211,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
+    // $FlowIgnore
     if (key) dashboardSettings[key] = false
   })
 
@@ -218,9 +221,11 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   sectionsToShow.forEach((sectionCode) => {
     const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
     if (showSectionKey) {
+      // $FlowIgnore
       dashboardSettings[showSectionKey] = true
     } else {
       if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
+        // $FlowIgnore
         dashboardSettings[`showTagSection_${sectionCode}`] = true
       } else {
         logError(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails`)
@@ -241,6 +246,7 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
   try {
     const startTime = new Date()
     // If callMode is a CSV of specific wanted sections, then override section flags for them
+    // (e.g. from xcallback)
     if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
 
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
@@ -330,7 +336,6 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       debug: false, // ENV_MODE === 'development' ? true : false, // certain logging on/off, including the pluginData display at the bottom of the screen
       title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
       ENV_MODE,
-      dataMode: 'live', // or 'demo' or ?'test'?
       startTime,
       windowID: WEBVIEW_WINDOW_ID,
     }

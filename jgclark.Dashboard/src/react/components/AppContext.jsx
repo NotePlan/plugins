@@ -131,7 +131,7 @@ export const AppProvider = ({
   }
 
   useEffect(() => {
-    logDebug('AppContext', `Just FYI, React settings updated somewhere.`, reactSettings)
+    logDebug('AppContext', `Just FYI, React settings updated somewhere.`, { reactSettings })
   }, [reactSettings])
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
