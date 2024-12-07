@@ -269,16 +269,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Handlers
   //----------------------------------------------------------------------
-  const handleDialogClose = (xWasClicked: boolean = false) => {
-    logDebug('Dashboard', `Dashboard::handleDialogClose was called, xWasClicked=${String(xWasClicked)} interactiveProcessing=${JSP(reactSettings?.interactiveProcessing || {})}`)
-    // xWasClicked ? null : refreshTimer() // TODO: for now refresh after every dialog close, but could be more selective later NOTE: dbw commented this out on 2024-10-08 after changing how interactiveProcessing works
-  }
+  const handleDialogClose = (xWasClicked: boolean = false) => {}
 
   // Deal with the delayed refresh when a button was clicked
   // Because sections and buttons could be destroyed after a click, we need to refresh from here
   const handleCommandButtonClick = (/*  button: TActionButton */) => {
     // logDebug('Dashboard', `handleCommandButtonClick was called for button: ${button.display}; setting up delayed timer.`)
-    // refreshTimer() // TODO: for now refresh after every button click, but should be more selective // TODO(dbw): review this
+    // refreshTimer() // for now refresh after every button click, but could be more selective
+    // TODO: keep an eye out for times that it could be helpful
   }
 
   const autoRefresh = () => {
