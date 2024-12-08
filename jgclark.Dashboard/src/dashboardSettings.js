@@ -236,7 +236,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Sort order for Overdue tasks',
     description:
       "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
-    type: 'combo',
+    type: 'dropdown',
     options: ['priority', 'earliest', 'most recent'],
     default: 'priority',
     compactDisplay: true,
@@ -377,9 +377,9 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           compactDisplay: setting.compactDisplay ?? false,
           dependsOnKey: setting.dependsOnKey,
         }
-      case 'combo':
+      case 'dropdown':
         return {
-          type: 'combo',
+          type: 'dropdown',
           label: setting.label || '',
           key: thisKey,
           value: allSettings[thisKey] ?? setting.default,
