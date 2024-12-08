@@ -1,17 +1,19 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.0.b1] 2024-12-???
-First beta for 2.1
+## [2.1.0.b1] 2024-12-08
+First beta for 2.1.0.  A major effort by @jgclark and @dwertheimer over the last 4 months.
 ### New
-- new Perspectives dropdown that allow you to switch very quickly between different complete sets of settings.
+- new Perspectives dropdown menu that allow you to switch very quickly between different complete sets of settings.
+- this menu also has commands to 'Save As...', 'Delete...', 'Rename...', 'Copy to...' and 'Edit all...' Perspectives
 - new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
 - new `setPerspective` x-callback to use from outside NP
 - new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
 - new 'Last Week' section and related 'All → This Week' button
+- new 'Add a new task to future note' button on Today Section, which allows you to pick any date for the future task
 - added support for 'child' items of tasks:
   - child items are now indented like in the NP Editor
-  - an item with children is now shown with a new indicator at the end of the item
+  - an item with children is now shown with a new 'ellipsis' indicator at the end of the item
   - when moving/scheduling items, any child items are moved/scheduled as well.
   - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
 - child tasks are now ordered following their parents, when sorted by priority
@@ -28,20 +30,23 @@ First beta for 2.1
 - improved details in title of project dialogs
 - changed order of skip buttons in Interactive Processing dialog
 - new type of dialog to replace the command bar for adding new tasks/checklists, and some other operations
-- the layout has been polished up
-- remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+- the layout has been polished up in lots of places
+- removed setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
 
 ### Fixed
-- add time to @done(...) when "completing then"
+- worked around an API limitation so that you can add tasks/checklists to future calendar notes that don't exist yet.
 - fixed some items not being found when referenced to weekly notes
+- add time to @done(...) when "completing then"
 - fixed spinner icon not spinning
 - projects that are paused are now not shown in the projects section
 - changed Interactive Processing icon to not imply 'refresh'
 - fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+- improved ordering and descriptions of some of the settings
 
 ## Perspectives TODO:
 - TODO(jgc): Look in all referenced-to-today items for time blocks as well
 
+<!-- 
 ## [Perspectives.a26 = 2.1.0.a26] @jgc, 2024-12-06
 - (dbw): Improvements to layout and contents of Perspectives Table
 - (dbw + jgc): Improvements to styling of DynamicDialog heading selector
@@ -50,7 +55,9 @@ First beta for 2.1
 - (jgc): Changed 'calendar add' icon in taskDialog to match what is now on the main window
 - (jgc): Sort the perspectives list alphabetically not order of creation
 - (jgc): Further fixes to PerspectivesTable layout, particularly for the many switches
-- (jgc): Promote PerspectivesTable out of being a FF. TODO: this doesn't quite work yet -- DBW please see what else I should have done to get React to make it appear from new 'Edit All Perspectives...' menu item.
+- (jgc+dbw): Promote PerspectivesTable out of being an FF, to a  new 'Edit All Perspectives...' menu item.
+- (jgc): Further tweaks to titles and descriptions in settings text.
+- (jgc): Fix to allow adding tasks to future calendar notes that don't exist yet.
 
 ## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-05
 - (jgc): New callback `setPerspective&arg0=<name>`; added details to README
@@ -298,6 +305,7 @@ First beta for 2.1
 ## [Perspectives.a1] 
 - remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
 - started to add settings to define Perspectives
+-->
 
 <!-- ---------------------------------------------------------------------- -->
 
