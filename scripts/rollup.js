@@ -139,6 +139,11 @@ const dt = () => {
   const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
   const rootFolderPath = path.join(__dirname, '..')
 
+  /**
+   * Copy the built files to the target directory and display a success message.
+   * @param {string} outputFile - Path to the built output file.
+   * @param {boolean} isBuildTask - Flag indicating if this is part of the build process.
+   */
   const copyBuild = async (outputFile = '', isBuildTask = false) => {
     if (CI) {
       return
@@ -205,17 +210,16 @@ const dt = () => {
         }
       }
 
-      let msg = COMPACT
-        ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-        : `${colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`)}\n   Built ${
-            dependenciesCopied > 0 ? `script.js & copied plugin.json + ${dependenciesCopied} requiredFiles` : `and`
-          } copied to the "Plugins" folder.`
+      // Prepare a single-line success message
+      let msg = `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']}) Built ${
+        dependenciesCopied > 0 ? `script.js, plugin.json + ${dependenciesCopied} requiredFiles` : `script.js & copied plugin.json`
+      } copied to the "Plugins" folder.`
 
       if (DEBUGGING) {
-        msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
+        msg += ' Built in DEBUG mode. Not ready to deploy.'
       } else {
         if (!COMPACT) {
-          msg += ` To release this plugin, update changelog.md and run:\n   ${`npm run release "${pluginFolder}"\n`}`
+          msg += ` Release: npm run release "${pluginFolder}"`
         }
       }
 
@@ -227,7 +231,8 @@ const dt = () => {
       }
 
       if (!isBuildTask) {
-        console.log(msg)
+        // Use the `message` function to display a green "SUCCESS" line
+        message('success', msg, 'SUCCESS', true)
       }
     } else {
       // $FlowIgnore
@@ -538,6 +543,15 @@ const dt = () => {
       plugins: [requiredFilesWatchPlugin] /* add non-changing plugins later */,
       context: 'this',
       watch: watchOptions,
+      /**
+       * Suppress specific Rollup warnings.
+       * @param {object} warning - Rollup warning object.
+       * @param {function} warn - Rollup warn function.
+       */
+      onwarn: (warning, warn) => {
+        if (warning.code === 'EVAL') return
+        warn(warning)
+      },
     }
   }
 
