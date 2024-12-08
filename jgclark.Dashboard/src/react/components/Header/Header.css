@@ -16,7 +16,7 @@
 	/* Space between grid items */
 	gap: 0.75rem;
 	/* Padding around the header content */
-	padding: 0.4rem 1.0rem 0.4rem 0.5rem;
+	padding: 0.4rem 1rem 0.1rem 0.5rem;
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */

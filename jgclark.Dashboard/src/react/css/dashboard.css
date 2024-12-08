@@ -15,7 +15,7 @@
 }
 
 html {
-	--itemIndentWidth: 1.4rem;
+	--itemIndentWidth: 1.5rem;
 	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* TEST: for subtle colouring */
 	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* TEST: for subtle colouring */
 }
@@ -276,14 +276,21 @@ dialog::backdrop {
 
 .dialogTriggerIcon {
 	color: var(--fg-main-color);
-	opacity: 0.5;
+	opacity: 0.4;
 	cursor: pointer;
 }
 
-.childMarker, .parentMarker {
-	font-size: small;
+/* The marker for parent/child projects */
+/* Note: no longer using childMarker */
+.parentMarker {
+	font-size: x-small;
 	color: var(--fg-main-color);
-	opacity: 0.5;
+	background-color: var(--divider-color);
+	margin-left: 0.25rem;
+	border-radius: 35%;
+	/* opacity: 0.4; */
+	padding: 0px 4px;
+	vertical-align: middle;
 }
 
 /* I'm not sure how to send a variable through into this calculation, so this is moved into the code */
@@ -398,7 +405,7 @@ button,
 		border-style: solid;
 		border-color: var(--tint-color) transparent transparent transparent;
 		margin-left: -8px;
-		top: -12px;
+		top: -10px;
 	}
 
 	/* Set main tooltip display area */
@@ -406,7 +413,7 @@ button,
 		content: attr(data-tooltip);
 		margin-left: -10px;
 		padding: 0.15rem 0.25rem;
-		top: -12px;
+		top: -9px;
 		font-size: 0.85rem;
 		color: var(--fg-main-color);
 		background: var(--bg-main-color);
@@ -418,7 +425,6 @@ button,
 
 	.tooltip:hover::before,
 	.tooltip:hover::after {
-		/* opacity: 1; */
 		display: block;
 		z-index: 20;
 	}

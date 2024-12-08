@@ -86,8 +86,11 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   // console.log(`-> ${mainContent}`)
 
   // if hasChild, then set suitable icon
-  // another version had 'fa-arrow-down-from-line' icon for parent
-  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
+  // v1: use'fa-arrow-down-from-line' icon
+  // v2: 
+  // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
+  // v3: switch to ellipsis to match what main Editor will get soon
+  const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
   // if isAChild, then set suitable icon
   // Note: now handled by flex layout and indent on ItemRow
   // const possChildIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''

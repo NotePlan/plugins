@@ -77,17 +77,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'switch',
     default: true,
     compactDisplay: true,
-    controlsOtherKeys: [], //['perspectiveList'],
+    controlsOtherKeys: [],
   },
-  // {
-  //   //$FlowIgnore[incompatible-type] don't understand the error
-  //   type: 'perspectiveList',
-  //   key: 'perspectiveList',
-  //   label: 'Perspectives details',
-  //   description: 'Shows Perspective settings Component.',
-  //   default: '',
-  //   dependsOnKey: 'perspectivesEnabled',
-  // },
   {
     type: 'separator',
   },
@@ -163,7 +154,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'useRescheduleMarker',
-    label: 'When (re)scheduling an item, also show it as a scheduled item in main Editor?',
+    label: "When (re)scheduling an item, display it as a 'scheduled' item in main Editor?",
     description: "If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor",
     type: 'switch',
     default: true,

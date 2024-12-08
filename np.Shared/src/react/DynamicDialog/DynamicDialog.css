@@ -35,6 +35,7 @@
     border-radius: 8px;
     /* overflow-y: auto; commented out to allow for dropdowns to show*/
     max-height: 95%;
+    font-size: 95%;
 }
 
 /* Show the settings dialog with transition */
