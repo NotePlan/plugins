@@ -70,7 +70,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const style = {
     // TEST: Trying without this to figure out where the size constraints actually come from
     width: '95%',
-    // height: '95%',
+    height: '95%',
     maxWidth: '95%',
     maxHeight: '95%',
   }

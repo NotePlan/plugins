@@ -175,7 +175,7 @@ const PerspectiveSelector = (): React$Node => {
   useEffect(() => {
     const thisPersp = getActivePerspectiveDef(perspectiveSettings)
     if (thisPersp) {
-      logWarn('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${formatNameWithStarIfModified(thisPersp)}"`)
+      // logWarn('PerspectiveSelector/useEffect(perspectiveSettings)', `FYI: State updated: activePerspectiveName="${formatNameWithStarIfModified(thisPersp)}"`)
     }
   }, [perspectiveNameOptions, activePerspectiveName])
 

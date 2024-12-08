@@ -248,42 +248,45 @@ const DropdownSelect = ({
   }, [value, normalizedOptions])
 
   useEffect(() => {
-    if (isOpen && dropdownRef.current && optionsRef.current) {
-      setTimeout(() => {
-        if (!dropdownRef.current || !optionsRef.current) return
-        const dropdown: HTMLElement = dropdownRef.current
-        const options: HTMLElement = optionsRef.current
+    if (false) {
+      // dbw: commenting this out for now, as I'm not sure it's working as expected
+      if (isOpen && dropdownRef.current && optionsRef.current) {
+        setTimeout(() => {
+          if (!dropdownRef.current || !optionsRef.current) return
+          const dropdown: HTMLElement = dropdownRef.current
+          const options: HTMLElement = optionsRef.current
 
-        const dropdownRect = dropdown.getBoundingClientRect()
-        const optionsRect = options.getBoundingClientRect()
+          const dropdownRect = dropdown.getBoundingClientRect()
+          const optionsRect = options.getBoundingClientRect()
 
-        const totalTop = Math.min(dropdownRect.top, optionsRect.top)
-        const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
+          const totalTop = Math.min(dropdownRect.top, optionsRect.top)
+          const totalBottom = Math.max(dropdownRect.bottom, optionsRect.bottom)
 
-        const totalRect = {
-          top: totalTop,
-          bottom: totalBottom,
-        }
-
-        const scrollableContainer = findScrollableAncestor(dropdown)
-
-        if (scrollableContainer) {
-          const containerRect = scrollableContainer.getBoundingClientRect()
-
-          const isOutOfView = totalRect.bottom > containerRect.bottom || totalRect.top < containerRect.top
-
-          if (isOutOfView) {
-            let offset = scrollableContainer.scrollTop + (totalRect.bottom - containerRect.bottom)
-            if (totalRect.top < containerRect.top) {
-              offset = scrollableContainer.scrollTop - (containerRect.top - totalRect.top)
-            }
-            scrollableContainer.scrollTo({
-              top: offset,
-              behavior: 'smooth',
-            })
+          const totalRect = {
+            top: totalTop,
+            bottom: totalBottom,
           }
-        }
-      }, 100)
+
+          const scrollableContainer = findScrollableAncestor(dropdown)
+
+          if (scrollableContainer) {
+            const containerRect = scrollableContainer.getBoundingClientRect()
+
+            const isOutOfView = totalRect.bottom > containerRect.bottom || totalRect.top < containerRect.top
+
+            if (isOutOfView) {
+              let offset = scrollableContainer.scrollTop + (totalRect.bottom - containerRect.bottom)
+              if (totalRect.top < containerRect.top) {
+                offset = scrollableContainer.scrollTop - (containerRect.top - totalRect.top)
+              }
+              scrollableContainer.scrollTo({
+                top: offset,
+                behavior: 'smooth',
+              })
+            }
+          }
+        }, 100)
+      }
     }
   }, [isOpen])
 
