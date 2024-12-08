@@ -168,7 +168,7 @@ dialog::backdrop {
 	/* vertical in containing block */
 	/* align-self: start; */
 	/* horizontal in containing block */
-	justify-self: right;
+	/* justify-self: right; */
 	/* border-collapse: collapse; */
 	/* vertical for all items this contains */
 	align-items: baseline; /* start; */
