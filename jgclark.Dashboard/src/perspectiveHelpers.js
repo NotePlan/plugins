@@ -145,9 +145,23 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
       perspectiveSettings = perspectiveSettingDefaults
-
-      // persist and return
-      savePerspectiveSettings(perspectiveSettings)
+      let defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
+      if (!defaultPersp) {
+        logError('getPerspectiveSettings', `getDefaultPerspectiveDef failed`)
+        return []
+      }
+      const dashboardSettings = await getDashboardSettings()
+      defaultPersp.dashboardSettings = cleanDashboardSettings(dashboardSettings)
+      perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
+      const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
+      if (newPerspSettings) {
+        perspectiveSettings = newPerspSettings
+      } else {
+        logError('getPerspectiveSettings', `switchToPerspective('-', perspectiveSettings) failed`)
+      }
+      logPerspectives(perspectiveSettings)
+      // // persist and return -- not needed because switchToPerspective() already did it
+      // savePerspectiveSettings(perspectiveSettings)
     }
     return ensureDefaultPerspectiveExists(perspectiveSettings)
   } catch (error) {
