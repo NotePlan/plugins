@@ -133,7 +133,7 @@ dialog::backdrop {
 	justify-self: start;
 }
 
-/* TODO: Ideally rationalise this with the 'dropdown' icon-buttons in the Header bar */
+/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
 .addNewActionButtons {
 	display: inline-flex;
 	gap: 0.3rem;
@@ -221,7 +221,7 @@ dialog::backdrop {
 		padding-right: 0.5rem;
 	}
 
-	/* TODO: Ideally rationalise this with the 'dropdown' icon-buttons in the Header bar */
+	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
 	.addNewActionButtons {
 		justify-self: start;
 		padding-top: 2px;

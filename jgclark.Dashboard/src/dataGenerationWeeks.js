@@ -104,13 +104,33 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const thisWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       thisWeekHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: thisWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [
+            {
+              type: 'dropdown-select',
+              label: 'Under Heading:',
+              key: 'heading',
+              fixedWidth: 300,
+              options: thisWeekHeadings,
+              noWrapOptions: true,
+              value: config.newTaskSectionHeading,
+            },
+          ]
         : [],
     )
     const nextWeekFormFields: Array<TSettingItem> = formFieldsBase.concat(
       nextWeekHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: nextWeekHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [
+            {
+              type: 'dropdown-select',
+              label: 'Under Heading:',
+              key: 'heading',
+              fixedWidth: 300,
+              options: nextWeekHeadings,
+              noWrapOptions: true,
+              value: config.newTaskSectionHeading,
+            },
+          ]
         : [],
     )
 

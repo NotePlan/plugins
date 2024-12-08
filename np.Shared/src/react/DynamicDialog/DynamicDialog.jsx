@@ -34,7 +34,7 @@ export type TSettingItemType =
   | 'switch'
   | 'input'
   | 'combo' // the react-select version (ThemedSelect)
-  | 'dropdown' // the simple dropdown aka DropdownSelect
+  | 'dropdown-select' // the simple dropdown aka DropdownSelect
   | 'number'
   | 'text'
   | 'separator'
@@ -306,7 +306,7 @@ const DynamicDialog = ({
                 handleButtonClick, // Pass handleButtonClick
                 labelPosition,
                 showSaveButton: false, // Do not show save button
-                inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                inputRef: item.type === 'combo' || item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
                 className: '', // for future use
               })}
             {item.description && <div className="item-description">{item.description}</div>}

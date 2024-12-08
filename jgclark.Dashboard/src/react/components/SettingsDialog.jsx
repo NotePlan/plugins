@@ -226,7 +226,7 @@ const SettingsDialog = ({
                 showSaveButton: false, // Do not show save button
                 // $FlowFixMe[incompatible-exact] reason for suppression
                 // $FlowFixMe[incompatible-call] reason for suppression
-                inputRef: item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                inputRef: item.type === 'dropdown-select' ? dropdownRef : undefined, // Assign ref to the dropdown input
                 indent: !!item.dependsOnKey,
                 className: '', // for future use
                 showDescAsTooltips: false,

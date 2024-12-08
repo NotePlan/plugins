@@ -262,7 +262,7 @@ const PerspectiveSelector = (): React$Node => {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `copySettings "${selectedOption.value}".`)
         const formFields = [
           {
-            type: 'dropdown',
+            type: 'dropdown-select',
             label: 'Copy to:',
             key: 'newName',
             focus: true,

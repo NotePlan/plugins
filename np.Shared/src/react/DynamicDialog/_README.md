@@ -84,7 +84,7 @@ To add a new UI element to the `DynamicDialog` component, follow these steps:
 1. **Define the Element Type**: Add a new type to the `TSettingItemType` union in `DynamicDialog.jsx`.
 
    ```javascript
-   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading' | 'json';
+   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown-select' | 'number' | 'text' | 'separator' | 'heading' | 'json';
    ```
 
 2. **Create the Component**: Implement a new React component for the UI element, ensuring it accepts necessary props such as `label`, `value`, `onChange`, and any specific options.
@@ -179,7 +179,7 @@ The following test data can be used to render the `DynamicDialog` and verify its
     "key": "dropdownExample",
     "label": "dropdown: example of dropdown box",
     "description": "my desc under dropdown",
-    "type": "dropdown",
+    "type": 'dropdown-select',
     "options": ["priority", "earliest", "most recent"],
     "default": "priority"
   },
@@ -216,7 +216,7 @@ getTodaySectionData()
     const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
 
     if (headings.length) {
-      formFields.push({ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
+      formFields.push({ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
     }
   ...
         actionButtons: [

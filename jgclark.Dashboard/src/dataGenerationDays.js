@@ -146,13 +146,23 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const todayFormFields: Array<TSettingItem> = formFieldsBase.concat(
       todayHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [{ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: todayHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
         : [],
     )
     const tomorrowFormFields: Array<TSettingItem> = formFieldsBase.concat(
       tomorrowHeadings.length
         ? // $FlowIgnore[incompatible-type]
-          [{ type: 'dropdown', label: 'Under Heading:', key: 'heading', fixedWidth: 300, options: tomorrowHeadings, noWrapOptions: true, value: config.newTaskSectionHeading }]
+          [
+            {
+              type: 'dropdown-select',
+              label: 'Under Heading:',
+              key: 'heading',
+              fixedWidth: 300,
+              options: tomorrowHeadings,
+              noWrapOptions: true,
+              value: config.newTaskSectionHeading,
+            },
+          ]
         : [],
     )
     const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])

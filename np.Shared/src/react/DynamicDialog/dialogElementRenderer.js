@@ -163,7 +163,7 @@ export function renderItem({
           />
         )
       }
-      case 'dropdown':
+      case 'dropdown-select':
         return (
           <DropdownSelect
             disabled={disabled}

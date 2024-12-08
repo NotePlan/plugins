@@ -139,7 +139,7 @@ export function renderItem({
             compactDisplay={item.compactDisplay || false}
           />
         )
-      case 'dropdown':
+      case 'dropdown-select':
         return (
           <DropdownSelect
             key={`cmb${index}`}
