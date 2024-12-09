@@ -170,14 +170,20 @@ Note: If you use the 'Overdue Tasks' section, this can add some delay before the
 ## Controlling from Shortcuts, Streamdeck etc.
 There are number of 'callback's you can use to control the dashboard from shortcuts, command line, Streamdeck etc.  As these can be fiddly to set up, I recommend using the **/Make Callback from Current Settings** command to generate the appropriately encoded callback URL. This is copied to the clipboard ready to paste elsewhere.
 
-The simplest **opens (or refreshes) the Dashboard**, using the `Show Dashboard` command:
+The simplest **opens (or refreshes) the Dashboard**, using the `showDashboard` call:
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showDashboard
 ```
 
-You can also **set a list of sections you want to see**,  by adding them as `arg0`. For example, to show the today, tomorrow + @home mentions, run this x-callback:
+To open using a **specific named Perspective** use the `showPerspective` call. For example to start it in the 'Work' Perspective:
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Show%20Dashboard&arg0=DT,DO,@home
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work
+```
+This can also be used when it is already open to _switch_ Perspective.
+
+You can also **give a list of sections you want to see** use the `showSections` call. For example, to show the today, tomorrow + @home mentions:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home
 ```
 Use `arg0=` followed by a comma-separated list of one or more of the following section codes:
 
@@ -189,11 +195,6 @@ Use `arg0=` followed by a comma-separated list of one or more of the following s
 | Projects | `PROJ` | Overdue | `OVERDUE` |
 | Items with Priority | `PRIORITY` | tags / mentions from your settings | `#tag` / `@mention` |
 | Current Time Block | `TB` |
-
-You can also **change to a specific Perspective** using `setPerspective` command:
-```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setPerspective&arg0=<perspectiveName>
-```
 
 You can also **set a particular setting** using `setSetting` command:
 ```

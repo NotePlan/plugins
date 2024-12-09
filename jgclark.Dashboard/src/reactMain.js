@@ -7,21 +7,16 @@
 
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
-import {
-  // buildListOfDoneTasksToday,
-  // getTotalDoneCountsFromSections,
-  // rollUpDoneCounts,
-  updateDoneCountsFromChangedNotes,
-} from './countDoneTasks'
+import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import {
   getPerspectiveSettings,
-  // setActivePerspective,
+  setActivePerspective,
   // switchToPerspective
 } from './perspectiveHelpers'
-import { doSwitchToPerspective } from './perspectiveClickHandlers'
+// import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
@@ -67,8 +62,11 @@ const commsBridge = `
   <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 `
 
+/**
+ * Show dashboard using Demo dashboard, and last used perspective.
+ */
 export async function showDemoDashboard(): Promise<void> {
-  await showDashboardReact('full', true)
+  await showDashboardReact('full', '', true)
 }
 
 /**
@@ -96,7 +94,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
       dashboardSettings[key] = setTo
       // logDebug('setSetting', `Set ${key} to ${String(setTo)} in dashboardSettings (type: ${typeof setTo} / ${thisSettingType})`)
       DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-      await showDashboardReact('full', false)
+      await showDashboardReact('full', '', false)
     } else {
       throw new Error(`Key '${key}' not found in dashboardSettings. Available keys: [${allKeys.join(', ')}]`)
     }
@@ -133,7 +131,7 @@ export async function setSettings(paramsIn: string): Promise<void> {
     }
     logDebug('setSettings', `Calling DataStore.settings, then showDashboardReact()`)
     DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(dashboardSettings) }
-    await showDashboardReact('full', false)
+    await showDashboardReact('full', '', false)
   } catch (error) {
     logError('setSettings', error.message)
   }
@@ -183,17 +181,30 @@ export async function makeSettingsAsCallback(): Promise<void> {
 }
 
 /**
- * x-callback entry point to switch to a named Perspective.
- * @param {string} name
- * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=setPerspective&arg0=Work
+ * x-callback entry point to show (or switch to) Dashboard with a named Perspective.
+ * @param {string} name (optional; if not given then will use last-used Perspective)
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work
  */
-export async function setPerspective(name: string): Promise<void> {
+export async function showPerspective(name: string = ''): Promise<void> {
   try {
-    logDebug('setPerspective', `Request to switch to Perspective '${name}'. Simulating selection in the PerspectiveSelector ...`)
-    // const perspectiveSettings = await getPerspectiveSettings()
-    await bridgeClickDashboardItem({ perspectiveName: name, actionType: 'switchToPerspective' })
+    logDebug('showPerspective', `Request to show Dashboard with Perspective '${name}'`)
+    await showDashboardReact('full', name, false)
   } catch (error) {
-    logError('setPerspective', error.message)
+    logError('showPerspective', error.message)
+  }
+}
+
+/**
+ * x-callback entry point to show (or switch to) Dashboard with a CSV list of specific Sections to show.
+ * @param {string} sectionCodeList comma-separated list of sectionCodes (e.g. 'DT' for Today)
+ * @example noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home
+ */
+export async function showSections(sectionCodeList: string = ''): Promise<void> {
+  try {
+    logDebug('showSections', `Request to show Dashboard with Sections '${sectionCodeList}'`)
+    await showDashboardReact(sectionCodeList, '', false)
+  } catch (error) {
+    logError('showSections', error.message)
   }
 }
 
@@ -206,29 +217,34 @@ export async function setPerspective(name: string): Promise<void> {
  */
 async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<void> {
   if (!limitToSections) return
+  logDebug('updateSectionFlagsToShowOnly', `Request to show only sections '${limitToSections}'`)
   const dashboardSettings: TDashboardSettings = (await getDashboardSettings()) || {}
   // set everything off to begin with
   const keys = Object.keys(dashboardSettings).filter((key) => key.startsWith('show'))
   allSectionDetails.forEach((section) => {
     const key = section.showSettingName
-    // $FlowIgnore
+    // $FlowIgnore[prop-missing]
     if (key) dashboardSettings[key] = false
   })
 
   // also turn off the specific tag sections (e.g. "showTagSection_@home")
+  // $FlowIgnore[incompatible-type]
   keys.forEach((key) => (dashboardSettings[key] = false))
   const sectionsToShow = limitToSections.split(',')
   sectionsToShow.forEach((sectionCode) => {
-    const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
-    if (showSectionKey) {
-      // $FlowIgnore
-      dashboardSettings[showSectionKey] = true
-    } else {
-      if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
+    // For all sections other than 'DT' (which has to be shown)
+    if (sectionCode !== 'DT') {
+      const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+      if (showSectionKey) {
         // $FlowIgnore
-        dashboardSettings[`showTagSection_${sectionCode}`] = true
+        dashboardSettings[showSectionKey] = true
       } else {
-        logError(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails`)
+        if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
+          // $FlowIgnore
+          dashboardSettings[`showTagSection_${sectionCode}`] = true
+        } else {
+          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
+        }
       }
     }
   })
@@ -238,11 +254,12 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
 /**
  * Plugin Entry Point for "Show Dashboard"
  * @author @dwertheimer
- * @param {string} callMode: 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) | CSV of specific sections to load (e.g. from xcallback)
- * @param {boolean} useDemoData (default: false)
+ * @param {string?} callMode (default: 'full') 'full' (i.e. by user call) | 'trigger' (by trigger: don't steal focus) | CSV of specific sections to load (e.g. from xcallback)
+ * @param {string?} perspectiveName (default: ''): perspective to start it with. If none given (empty string) then open in the last used one.
+ * @param {boolean?} useDemoData? (default: false)
  */
-export async function showDashboardReact(callMode: string = 'full', useDemoData: boolean = false): Promise<void> {
-  logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}') ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
+  logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
   try {
     const startTime = new Date()
     // If callMode is a CSV of specific wanted sections, then override section flags for them
@@ -265,13 +282,14 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
     const logSettings = await getLogSettings()
 
     // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView(useDemoData)
+    const data = await getInitialDataForReactWindowObjectForReactView(perspectiveName, useDemoData)
     logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
-    const sendMessageToPluginFunction = `
-      const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
-    `
+    // TEST: removed
+    // const sendMessageToPluginFunction = `
+    //   const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
+    // `
 
     const resourceLinksInHeader = `
       <!-- <link rel="stylesheet" href="../${pluginJson['plugin.id']}/Dashboard.css"> -->
@@ -316,13 +334,21 @@ export async function showDashboardReact(callMode: string = 'full', useDemoData:
 
 /**
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
+ * @param {string?} perspectiveName - the name of the Perspective to use, or blank to mean use the current one
+ * @param {boolean?} useDemoData - whether to use demo data
  * @returns {PassedData} the React Data Window object
  */
-export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
+export async function getInitialDataForReactWindowObjectForReactView(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
     const dashboardSettings: TDashboardSettings = await getDashboardSettings()
-    const perspectiveSettings = await getPerspectiveSettings()
+    let perspectiveSettings = await getPerspectiveSettings()
+
+    // If a perspective is specified, then update the setting to point to it before opening the React Window
+    if (perspectiveName !== '') {
+      logInfo('getInitialDataForReactWindowObjectForReactView', `switching to perspective '${perspectiveName}'`)
+      perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
+    }
 
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)

@@ -1,6 +1,21 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.0.b2] 2024-12-09
+### Changes
+- changed callbacks to be showDashboard, showSections and showPerspective. E.g.:
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showDashboard`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home`
+### Fixed
+- Fix Quarter section being shown erroneously (thx, @lbernardski)
+
+### Dev changes
+- remove use of combo component and use dropdown instead throughout
+- fix errant css which was causing differences in dev rendering in Chrome
+- add single line colored output on build success - dwertheimer
+- change name of "dropdown" to "dropdown-select" ... - dwertheimer
+
 ## [2.1.0.b1] 2024-12-08
 First beta for 2.1.0.  A major effort by @jgclark and @dwertheimer over the last 4 months.
 ### New
