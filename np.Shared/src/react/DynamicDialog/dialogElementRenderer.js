@@ -149,12 +149,23 @@ export function renderItem({
           <ThemedSelect
             disabled={disabled}
             key={`cmb${index}`}
-            options={item.options ? item.options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option)) : []} // Normalize options to ensure they are in { label, value } format
+            options={
+              item.options
+                ? item.options.map((option) => {
+                    if (typeof option === 'string') {
+                      return { label: option, value: option, isDefault: false }
+                    }
+                    return option
+                  })
+                : []
+            }
             value={item.value || item.default || undefined} // Ensure value is not undefined
             onChange={(selectedOption) => {
-              const value = selectedOption ? selectedOption.value : null // Get the value from the selected option
-              item.key && handleFieldChange(item.key, value)
-              item.key && handleComboChange(item.key, value) // Pass the selected option
+              if (selectedOption && typeof selectedOption.value === 'string') {
+                const value = selectedOption.value
+                item.key && handleFieldChange(item.key, value)
+                item.key && handleComboChange(item.key, value)
+              }
             }}
             inputRef={inputRef} // Pass inputRef
             compactDisplay={item.compactDisplay || false}
@@ -296,7 +307,7 @@ export function renderItem({
         const selectedDate = item.selectedDate || null
         const numberOfMonths = item.numberOfMonths || 1
 
-        const handleDateChange = (date) => {
+        const handleDateChange = (date: Date) => {
           if (item.key) {
             handleFieldChange(item.key, date)
           }
