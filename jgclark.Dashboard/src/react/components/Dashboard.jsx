@@ -20,7 +20,7 @@ import type { TSectionCode, TPerspectiveSettings } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
-import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections } from './Section/sectionHelpers.js'
+import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVisibleSectionItems, sortSections, showSectionSettingItems } from './Section/sectionHelpers.js'
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
 import Section from './Section/Section.jsx'
@@ -32,12 +32,7 @@ import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettin
 import PerspectivesTable from './PerspectivesTable.jsx'
 import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 
-export const standardSections: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
-  if (s.sectionCode !== 'TAG' && s.sectionCode !== 'DT') {
-    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch' })
-  }
-  return acc
-}, [])
+export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
 //--------------------------------------------------------------------------
 // Type Definitions

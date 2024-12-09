@@ -59,37 +59,62 @@ Named perspectives
 
 const pluginID = pluginJson['plugin.id']
 
-export const perspectiveSettingDefaults: Array<TPerspectiveDef> = [
-  {
-    name: '-',
-    isModified: false,
-    // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: { excludedFolders: 'TEST' },
-    isActive: true,
-  },
-  {
-    name: 'Home',
-    isModified: false,
-    // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: {
-      includedFolders: 'Home, Family',
-      excludedFolders: 'Work, Summaries, Saved Searches',
-      ignoreItemsWithTerms: '@work',
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
+import { showSectionSettingItems } from './react/components/Section/sectionHelpers.js'
+
+const standardSettings = cleanDashboardSettings(
+  // $FlowIgnore
+  [...dashboardSettingDefs, ...dashboardFilterDefs, ...showSectionSettingItems].reduce((acc, s) => {
+    if (s.key) {
+      // $FlowIgnore[prop-missing]
+      acc[s.key] = s.default ?? false
+    }
+    return acc
+  }, {}),
+)
+
+/**
+ * Get the default perspective settings for the first time perspectives are created
+ * The "-" perspective is set to active and has the user's current dashboardSettings
+ * The Home and Work perspectives are created but not active, and have the default settings
+ * @returns {Array<TPerspectiveDef>}
+ */
+export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiveDef>> {
+  const dashboardSettings = await getDashboardSettings()
+  return [
+    {
+      name: '-',
+      isModified: false,
+      // $FlowFixMe[prop-missing] rest specified later
+      dashboardSettings: cleanDashboardSettings({ ...standardSettings, ...dashboardSettings }),
+      isActive: true,
     },
-    isActive: false,
-  },
-  {
-    name: 'Work',
-    isModified: false,
-    // $FlowFixMe[prop-missing] rest specified later
-    dashboardSettings: {
-      includedFolders: 'Work, Company',
-      excludedFolders: 'Home, Summaries, Saved Searches',
-      ignoreItemsWithTerms: '@home',
+    {
+      name: 'Home',
+      isModified: false,
+      // $FlowFixMe
+      dashboardSettings: cleanDashboardSettings({
+        ...standardSettings,
+        includedFolders: 'Home, Family',
+        excludedFolders: 'Work, Summaries, Saved Searches',
+        ignoreItemsWithTerms: '@work',
+      }),
+      isActive: false,
     },
-    isActive: false,
-  },
-]
+    {
+      name: 'Work',
+      isModified: false,
+      // $FlowFixMe
+      dashboardSettings: cleanDashboardSettings({
+        ...standardSettings,
+        includedFolders: 'Work, Company',
+        excludedFolders: 'Home, Summaries, Saved Searches',
+        ignoreItemsWithTerms: '@home',
+      }),
+      isActive: false,
+    },
+  ]
+}
 
 /**
  * Log out short list of key Perspective details
@@ -144,7 +169,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
     } else {
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
-      perspectiveSettings = perspectiveSettingDefaults
+      perspectiveSettings = await getPerspectiveSettingDefaults()
       let defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
         logError('getPerspectiveSettings', `getDefaultPerspectiveDef failed`)
