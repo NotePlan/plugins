@@ -2,7 +2,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Renders UI elements based on their type for the dropdown menu or settings dialog.
-// Last updated 2024-05-29 for v2.0.5 by @jgclark
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -15,9 +15,12 @@ import InputBox from './InputBox.jsx'
 import DropdownSelect from './DropdownSelect.jsx'
 import TextComponent from './TextComponent.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
+import CalendarPicker from './CalendarPicker.jsx'
 import type { TSettingItem, TSettingItemType } from './DynamicDialog.jsx'
 import { logDebug, logError } from '@helpers/react/reactDev.js'
 import { parseObjectString, validateObjectString } from '@helpers/stringTransforms.js'
+import type { Option } from './DropdownSelect.jsx'
+import { Button, ButtonGroup } from './ButtonComponents.jsx'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -36,6 +39,7 @@ type RenderItemProps = {
   indent?: boolean,
   className?: string,
   disabled?: boolean, // Add disabled prop
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
 }
 
 /**
@@ -58,6 +62,7 @@ export function renderItem({
   disabled,
   indent = false,
   className = '',
+  handleButtonClick = (key, value) => {}, // Add handleButtonClick prop
 }: RenderItemProps): React$Node {
   const element = () => {
     const thisLabel = item.label || '?'
@@ -107,7 +112,7 @@ export function renderItem({
           <InputBox
             inputType="text"
             readOnly={true}
-            focus={item.focus || false}
+            focus={false}
             key={`ibxro${index}`}
             label={thisLabel}
             disabled={disabled}
@@ -158,20 +163,36 @@ export function renderItem({
           />
         )
       }
-      case 'dropdown':
+      case 'dropdown-select':
         return (
           <DropdownSelect
             disabled={disabled}
             key={`cmb${index}`}
             label={thisLabel}
-            options={item.options || []}
+            fixedWidth={item.fixedWidth}
+            options={
+              item.options
+                ? item.options.map((option) => {
+                    if (typeof option === 'string') {
+                      return { label: option, value: option }
+                    } else if (option && typeof option === 'object' && 'label' in option && 'value' in option) {
+                      return option
+                    }
+                    return { label: '', value: '' } // Fallback for invalid options
+                  })
+                : []
+            }
             value={item.value || ''}
-            onChange={(option: string) => {
-              item.key && handleFieldChange(item.key, option)
-              item.key && handleComboChange(item.key, { target: { value: option } })
+            onChange={(selectedOption: Option | null) => {
+              if (selectedOption && typeof selectedOption.value === 'string') {
+                const value = selectedOption.value
+                item.key && handleFieldChange(item.key, value)
+                item.key && handleComboChange(item.key, value)
+              }
             }}
-            inputRef={inputRef} // Pass inputRef
+            inputRef={inputRef}
             compactDisplay={item.compactDisplay || false}
+            noWrapOptions={item.noWrapOptions || true}
           />
         )
       case 'text':
@@ -235,6 +256,55 @@ export function renderItem({
               showStringQuotes={true}
               showCollectionCount="when-closed"
             />
+          </div>
+        )
+      }
+      case 'button':
+        return (
+          <Button
+            key={`btn${index}`}
+            label={item.label || 'Button'}
+            value={item.value || ''}
+            isDefault={item.isDefault}
+            disabled={disabled}
+            onClick={(value) => {
+              if (item.key) {
+                handleButtonClick(item.key, value)
+              } else {
+                console.error('Button item is missing a key')
+              }
+            }}
+          />
+        )
+      case 'button-group':
+        return (
+          <ButtonGroup
+            key={`btn-group${index}`}
+            options={item.options || []}
+            disabled={disabled}
+            onClick={(value) => {
+              if (item.key) {
+                handleButtonClick(item.key, value)
+              } else {
+                console.error('Button group item is missing a key')
+              }
+            }}
+            vertical={item.vertical}
+          />
+        )
+      case 'calendarpicker': {
+        const selectedDate = item.selectedDate || null
+        const numberOfMonths = item.numberOfMonths || 1
+
+        const handleDateChange = (date) => {
+          if (item.key) {
+            handleFieldChange(item.key, date)
+          }
+        }
+
+        return (
+          <div key={`calendarpicker${index}`} className="calendarpicker-container">
+            <CalendarPicker startingSelectedDate={selectedDate} onSelectDate={handleDateChange} numberOfMonths={numberOfMonths} className="calendarPickerCustom" />
           </div>
         )
       }

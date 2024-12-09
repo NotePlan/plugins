@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Generate @repeat()s for recent notes
 // Jonathan Clark
-// Last updated 2024-11-17 for v0.14.3, @jgclark
+// Last updated 29.6.2024 for v0.14.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -18,9 +18,7 @@ import { showMessage } from '@helpers/userInput'
 
 /**
  * Run /generate repeats on all recently-updated notes.
- * Called by Tidy Up plugin or x-callback call.
- * Can be passed parameters to override default time interval through an x-callback call.
- * Note: defaults to 
+ * Can be passed parameters to override default time interval through an x-callback call
  * @author @jgclark
  * @param {string?} params optional JSON string
  */
@@ -71,10 +69,10 @@ export async function generateRepeatsFromRecentNotes(params: string = ''): Promi
 
     logDebug('generateRepeatsFromRecentNotes', `- found  ${String(recentNotes.length)} 'recent' notes to process`)
 
-    // Now run generateRepeats() on each and count how many were changed. Make each individual call run silently.
+    // Now run generateRepeats() on each and count how many were changed
     let numGenerated = 0
     for (const thisNote of recentNotes) {
-      const num = await generateRepeats(true, thisNote)
+      const num = await generateRepeats(runSilently, thisNote)
       numGenerated += num
     }
     await CommandBar.onMainThread()

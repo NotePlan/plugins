@@ -1,9 +1,0 @@
-{
-  "presets": [
-    "@babel/flow", 
-    [
-      "@babel/preset-env",
-      { "targets": { "safari": "11" } }
-    ]
-  ]
-}

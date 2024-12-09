@@ -32,7 +32,7 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
   const { reactSettings, pluginData } = useAppContext()
 
   function onDialogClose(xWasClicked: boolean) {
-    onClose(xWasClicked) // send to parent
+    onClose(xWasClicked) // do nothing special here; pass it on to Dashboard::handleDialogClose
   }
 
   // the child dialogs (Task & Project) will call this function to position the dialog after they render
@@ -54,7 +54,6 @@ const Dialog = ({ isOpen, onClose, isTask, details }: Props): React$Node => {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      logDebug('Dialog', `Event.key: ${event.key}`)
       if (event.key === 'Escape') {
         onDialogClose(true)
       }

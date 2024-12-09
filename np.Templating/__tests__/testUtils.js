@@ -14,3 +14,9 @@ export async function factory(factoryName = '') {
   }
   return 'FACTORY_NOT_FOUND'
 }
+
+describe('Placeholder', () => {
+  test('Placeholder', async () => {
+    expect(true).toBe(true)
+  })
+})

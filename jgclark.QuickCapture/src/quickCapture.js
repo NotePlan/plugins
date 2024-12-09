@@ -185,7 +185,7 @@ export async function addChecklistToNoteHeading(
       logDebug('addChecklistToNoteHeading', `Adding line '${checklistText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(checklistText, findStartOfActivePartOfNote(note), 'checklist')
     }
-    else if (heading === '') {
+    else if (heading === '' || heading === '<<bottom of note>>') {
       // Handle bottom of note
       logDebug('addChecklistToNoteHeading', `Adding checklist '${checklistText}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(checklistText, findEndOfActivePartOfNote(note) + 1, 'checklist')
@@ -278,7 +278,7 @@ export async function addTaskToNoteHeading(
       logDebug('addTaskToNoteHeading', `Adding line '${taskText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
       note.insertTodo(taskText, findStartOfActivePartOfNote(note))
     }
-    else if (heading === '') {
+    else if (heading === '' || heading === '<<bottom of note>>') {
       // Handle bottom of note
       logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertTodo(taskText, findEndOfActivePartOfNote(note))
@@ -337,7 +337,7 @@ export async function addTextToNoteHeading(
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'} arg3 ${headingLevelArg}`)
-    const config = await getQuickCaptureSettings()
+    const config = (await getQuickCaptureSettings())||{}
 
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
@@ -378,7 +378,7 @@ export async function addTextToNoteHeading(
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(textToAdd, findStartOfActivePartOfNote(note), 'text')
     }
-    else if (heading === '') {
+    else if (heading === '' || heading === '<<bottom of note>>') {
       // Handle bottom of note
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')

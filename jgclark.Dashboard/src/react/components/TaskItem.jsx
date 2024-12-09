@@ -3,17 +3,15 @@
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end.
 // 
-// Last updated 2.6.2024 for v2.0.0 by @dbw
+// Last updated for v2.1.0.a
 //--------------------------------------------------------------------------
 // @flow
-import React, { useState } from 'react'
-import { type Node } from 'react'
-import { type TSectionItem, type TSection, type MessageDataObject } from '../../types'
-import { useAppContext } from './AppContext.jsx'
+import React, { type Node, useState } from 'react'
+import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import ItemContent from './ItemContent.jsx'
-import ItemNoteLink from './ItemNoteLink.jsx'
 import StatusIcon from './StatusIcon.jsx'
 import { clo, JSP, logDebug } from '@helpers/react/reactDev.js'
+// import { getTimeBlockDetails } from '@helpers/timeblocks'
 
 type Props = {
   item: TSectionItem,
@@ -21,7 +19,7 @@ type Props = {
 };
 
 function TaskItem({ item, thisSection }: Props): Node {
-  const { setReactSettings, dashboardSettings } = useAppContext()
+  // const { setReactSettings, dashboardSettings } = useAppContext()
 
   const [visible, setVisible] = useState(true)
 
@@ -30,6 +28,9 @@ function TaskItem({ item, thisSection }: Props): Node {
     actionType: '(not yet set)',
     sectionCodes: [thisSection.sectionCode], // for the DialogForTaskItems
   }
+
+  // const [possTimeBlockStr, restOfTimeBlockLineStr] = getTimeBlockDetails(item.para?.content ?? '', '')
+  // const timeblockStr = (thisSection.sectionCode === 'TB') ? possTimeBlockStr : ''
 
   // Handle icon click, following action in the lower-level StatusIcon component (e.g. cancel/complete)
   function handleIconClick() {
@@ -58,32 +59,20 @@ function TaskItem({ item, thisSection }: Props): Node {
     // clo(messageObject, `TaskItem: icon clicked: ${item.ID}`)
   }
 
-  const handleClickToOpenDialog = (e: MouseEvent): void => {
-    // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
-    const clickPosition = { clientY: e.clientY, clientX: e.clientX }
-    setReactSettings((prev) => ({
-      ...prev,
-      lastChange: `_Dashboard-TaskDialogOpen`,
-      dialogData: { isOpen: true, isTask: true, details: messageObject, clickPosition }
-    }))
-  }
+  const indentLevel = item.para?.indentLevel ?? 0
 
   return (
     visible ? (
-      <div className="sectionItemRow" id={item.ID}>
-        {/* before StatusIcon */}
+      <div className="sectionItemRow" id={item.ID} style={{
+        paddingLeft: `calc(${indentLevel} * var(--itemIndentWidth))`
+      }} >
         <StatusIcon
           item={item}
           respondToClicks={true}
           onIconClick={handleIconClick}
+          // timeblockStr={timeblockStr}
         />
-        {/* after StatusIcon */}
-        <ItemContent item={item} >
-          {dashboardSettings?.includeTaskContext && <ItemNoteLink item={item} thisSection={thisSection} />}
-        <a className="dialogTrigger">
-          <i className="fa-light fa-edit pad-left" onClick={handleClickToOpenDialog}></i>
-        </a>
-        </ItemContent>
+        <ItemContent item={item} thisSection={thisSection} />
       </div>
     ) : null
   )

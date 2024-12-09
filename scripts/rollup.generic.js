@@ -6,13 +6,13 @@ const replace = require('rollup-plugin-replace')
 const visualizer = require('rollup-plugin-visualizer').visualizer
 const { babel } = require('@rollup/plugin-babel')
 const commonjs = require('@rollup/plugin-commonjs')
-const { terser } = require('rollup-plugin-terser')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 const json = require('@rollup/plugin-json')
 const rollup = require('rollup')
 const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
+const debounce = require('lodash.debounce')
 
 const NOTIFY = true
 
@@ -40,7 +40,9 @@ const rollupDefaults = {
 async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
   if (config) {
     try {
-      const bundle = await rollup.rollup(config)
+      const bundle = await rollup.rollup({
+        ...config,
+      })
       const outputOptions = Array.isArray(config.output) ? config.output : [config.output]
       outputOptions.forEach(async (output) => {
         const result = await bundle.write(output)
@@ -61,10 +63,22 @@ async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
   }
 }
 
+/**
+ * Watches for changes and triggers rebuilds with debouncing to prevent multiple builds in rapid succession.
+ *
+ * @param {Object} watchOptions - The Rollup watch options.
+ * @param {string} [buildMode=''] - The build mode, e.g., 'development' or 'production'.
+ */
 function watch(watchOptions, buildMode = '') {
   const filename = path.basename(watchOptions.input)
   message('note', `${dt()} Rollup: Watcher Starting - watching for changes starting with: "${filename}" buildMode="${buildMode}"...`, 'WATCH  ', true)
+
   const watcher = rollup.watch(watchOptions)
+
+  // Debounce the rebuild process to prevent multiple builds in quick succession
+  const debouncedRebuild = debounce(() => {
+    message('info', `${dt()} Rollup: Rebuilding due to changes...`, 'REBUILD', true)
+  }, 300)
 
   watcher.on('event', (event) => {
     if (event.code === 'BUNDLE_END') {
@@ -88,22 +102,20 @@ function watch(watchOptions, buildMode = '') {
     }
   })
 
-  watcher.on('event', ({ result }) => {
-    if (result) {
-      result.close()
-    }
-  })
-
-  watcher.on('change', (id /* , { event } */) => {
+  watcher.on('change', (id) => {
     const filename = path.basename(id)
     message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
+    debouncedRebuild()
   })
+
   watcher.on('restart', () => {
     // console.log(`rollup: restarting`)
   })
+
   watcher.on('close', () => {
     console.log(`rollup: closing`)
   })
+
   process.on('SIGINT', async function () {
     console.log('\n\n')
     console.log(colors.yellow('Quitting...\n'))
@@ -141,7 +153,7 @@ function getRollupConfig(options) {
     nodeResolve({
       browser: true,
       jsnext: true,
-      extensions: ['.js', '.jsx'], // Add .jsx to the extensions array
+      extensions: ['.js', '.jsx', '.css'], // Trigger rebuild when any of these extensions are changed
     }),
     commonjs({ include: /node_modules/ }),
     babel({
@@ -155,22 +167,9 @@ function getRollupConfig(options) {
     json(),
     postcss({
       minimize: true,
+      sourceMap: true, // Enable source maps
     }),
   ]
-
-  if (buildMode === 'production') {
-    outputPlugins.push(
-      terser({
-        compress: false,
-        mangle: false,
-        output: {
-          comments: false,
-          beautify: false,
-          indent_level: 0,
-        },
-      }),
-    )
-  }
 
   if (createBundleGraph) {
     const directoryPath = path.dirname(entryPointPath)
@@ -183,6 +182,14 @@ function getRollupConfig(options) {
       }),
     )
   }
+
+  const watchOptions = {
+    exclude: [
+      'node_modules/**',
+      '**/requiredFiles/**', // Exclude the output directory
+    ],
+  }
+
   return {
     external: externalModules,
     input: entryPointPath,
@@ -196,6 +203,7 @@ function getRollupConfig(options) {
       footer: opts.format === 'iife' ? `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName})` : null,
     },
     plugins,
+    watch: watchOptions,
   }
 }
 

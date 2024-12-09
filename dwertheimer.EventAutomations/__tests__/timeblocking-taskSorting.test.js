@@ -52,33 +52,33 @@ describe('taskSorting', () => {
     sorted = sortListBy(taskList['open'], 'content')
     expect(sorted[0].content).toEqual(paragraphs[1].content)
   })
-  test('dwertheimer.TaskAutomations - sortListBy -priority (!!!,!!,!)', () => {
+  test('dwertheimer.TaskAutomations - sortListBy priority (!,!!,!!!) if at the front of the line', () => {
     const paragraphs = [
       {
         type: 'open',
         indents: 0,
-        content: 'test content !',
-        rawContent: '* test content !',
+        content: '! test content',
+        rawContent: '* ! test content',
       },
     ]
     paragraphs.push({
       type: 'open',
       indents: 0,
-      content: 'a test content !!!',
-      rawContent: '* a test content !!!',
+      content: '!!! a test content !!!',
+      rawContent: '* !!! a test content',
     })
     paragraphs.push({
       type: 'open',
       indents: 0,
-      content: 'a test content !!',
-      rawContent: '* a test content !!',
+      content: '!! a test content',
+      rawContent: '* !! a test content',
     })
     const taskList = getTasksByType(paragraphs)
-    const sorted = sortListBy(taskList['open'], '-priority')
-    expect(sorted[0].content).toEqual(paragraphs[1].content)
+    const sorted = sortListBy(taskList['open'], 'priority')
+    expect(sorted[0].content).toEqual(paragraphs[0].content)
     expect(sorted[1].content).toEqual(paragraphs[2].content)
   })
-  test('dwertheimer.TaskAutomations - sortListBy priority (!,!!,!!!)', () => {
+  test('dwertheimer.TaskAutomations - sortListBy ignores priority if not at the front of the line', () => {
     const paragraphs = [
       {
         type: 'open',
@@ -102,6 +102,7 @@ describe('taskSorting', () => {
     const taskList = getTasksByType(paragraphs)
     const sorted = sortListBy(taskList['open'], 'priority')
     expect(sorted[0].content).toEqual(paragraphs[0].content)
-    expect(sorted[1].content).toEqual(paragraphs[2].content)
+    expect(sorted[1].content).toEqual(paragraphs[1].content)
+    expect(sorted[2].content).toEqual(paragraphs[2].content)
   })
 })
