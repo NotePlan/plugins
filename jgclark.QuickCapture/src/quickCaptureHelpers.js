@@ -6,19 +6,12 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  getFilenameDateStrFromDisplayDateStr,
-  isValidCalendarNoteFilenameWithoutExtension,
-  isValidCalendarNoteTitleStr
-} from '@helpers/dateTime'
+import { getFilenameDateStrFromDisplayDateStr, isValidCalendarNoteFilenameWithoutExtension, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
 import { clo, logInfo, logDebug, logError, logTimer, logWarn } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
 import { openNoteByFilename } from '@helpers/NPnote'
-import {
-  displayTitleWithRelDate,
-  showMessage,
-} from '@helpers/userInput'
+import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // helpers
@@ -69,7 +62,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       }
     } else {
       // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
-      config.shouldAppend = (config.addInboxPosition === 'append')
+      config.shouldAppend = config.addInboxPosition === 'append'
       // clo(config, `QuickCapture Settings:`)
       return config
     }
@@ -92,17 +85,12 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
  * @param {Array<TNote>?} allNotesIn
  * @returns {TNote} note
  */
-export async function getNoteFromParamOrUser(
-  purpose: string,
-  noteTitleArg?: string = '',
-  justCalendarNotes: boolean = false,
-  allNotesIn?: Array<TNote>
-): Promise<TNote | null> {
+export async function getNoteFromParamOrUser(purpose: string, noteTitleArg?: string = '', justCalendarNotes: boolean = false, allNotesIn?: Array<TNote>): Promise<TNote | null> {
   // Note: deliberately no try/catch so that failure can stop processing
   const startTime = new Date()
   let note: TNote | null
   let noteTitleArgIsCalendarNote: boolean = false
-    // First try getting note from arg
+  // First try getting note from arg
   if (noteTitleArg != null && noteTitleArg !== '') {
     // Is this a note title from arg?
     // First check if its a special 'relative date'
@@ -124,7 +112,7 @@ export async function getNoteFromParamOrUser(
     if (isValidCalendarNoteTitleStr(noteTitleArg)) {
       noteTitleArgIsCalendarNote = true
       logDebug('getNoteFromParamOrUser', `- Note is of the form of a Calendar note string. Will attempt to create it.`)
-      const wantedFilename = `${getFilenameDateStrFromDisplayDateStr(noteTitleArg)}.md`
+      const wantedFilename = `${getFilenameDateStrFromDisplayDateStr(noteTitleArg)}.${DataStore.defaultFileExtension}`
       // $FlowIgnore[incompatible-type] straight away test for null return
       note = await openNoteByFilename(wantedFilename, {})
 
@@ -132,7 +120,9 @@ export async function getNoteFromParamOrUser(
         logDebug('getNoteFromParamOrUser', `- Made new note with filename ${note.filename}`)
       } else {
         logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
-        throw Error(`I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`)
+        throw Error(
+          `I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`,
+        )
       }
     } else {
       // If not, form list of notes to check against / offer
@@ -140,8 +130,7 @@ export async function getNoteFromParamOrUser(
       if (allNotesIn) {
         allNotesToUse = allNotesIn
         logTimer('getNoteFromParamOrUser', startTime, `- Used 4th param which has ${allNotesIn.length} entries`)
-      }
-      else {
+      } else {
         allNotesToUse = justCalendarNotes ? calendarNotesSortedByChanged() : allNotesSortedByChanged()
         logTimer('getNoteFromParamOrUser', startTime, `- Got large note array of all ${justCalendarNotes ? 'calendar' : ''} notes`)
       }
@@ -153,7 +142,8 @@ export async function getNoteFromParamOrUser(
         logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
         // Change YYYY-MM-DD to YYYYMMDD format if needed.
         const wantedNotes = allNotesToUse.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
-        if (wantedNotes.length > 1) logInfo('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+        if (wantedNotes.length > 1)
+          logInfo('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
         note = wantedNotes != null ? wantedNotes[0] : null
 
         if (note != null) {
@@ -169,7 +159,6 @@ export async function getNoteFromParamOrUser(
         }
       }
     }
-
   }
   // Double-check this is a valid note
   if (note == null) {
