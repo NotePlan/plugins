@@ -133,6 +133,11 @@ describe('paragraph.js', () => {
       const result = p.isTermInMarkdownPath('CABBAGE', 'Something in [this link](http://example.com/cabbage/patch).')
       expect(result).toEqual(true)
     })
+    test('should find time within term within an event link', () => {
+      const result = p.isTermInMarkdownPath('07:15',
+        '![📅](2022-05-06 07:15:::6qr6nbulhd7k3aakvf61atfsrd@google.com:::NA:::Work-out @ Home:::#1BADF8)')
+      expect(result).toEqual(true)
+    })
   })
 
   describe('findStartOfActivePartOfNote()', () => {

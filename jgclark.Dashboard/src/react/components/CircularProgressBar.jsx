@@ -2,12 +2,12 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a Progress Circle
 // Called by ProjectIcon component
-// Last updated 2024-08-25 for v2.0.6 by @jgclark
+// Last updated 2024-09-21 for v2.0.6+ by @jgclark
 //
 // Note: based on https://dev.to/jackherizsmith/making-a-progress-circle-in-react-3o65
 //--------------------------------------------------------------------------
 
-import { type Node } from 'react'
+import React, { type Node } from 'react'
 
 type ProgressBarProps = {
   size: number,

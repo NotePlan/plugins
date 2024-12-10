@@ -1,8 +1,9 @@
 // @flow
-// Last updated 2024-07-10 for v2.0.1 by @jgclark
+// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
 
 import { allSectionDetails } from "../../../constants.js"
-import type { TDashboardSettings, TSettingItem } from "../../../types.js"
+import type { TDashboardSettings } from "../../../types.js"
+import type { TSettingItem } from "../../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx"
 import { dashboardFilterDefs } from "../../../dashboardSettings.js"
 import { getTagSectionDetails } from "../Section/sectionHelpers.js"
 import { clo } from '@helpers/react/reactDev.js'

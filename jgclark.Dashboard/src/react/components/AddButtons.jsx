@@ -5,9 +5,9 @@ import React from 'react'
 import { useAppContext } from './AppContext.jsx'
 
 const AddButtons = (): React$Node => {
-  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
+  const { sendActionToPlugin } = useAppContext()
 
-  // this is just cut and paste for now, needs to be refactored to use Button/React
+  // TODO: this is just cut and paste for now, needs to be refactored to use Button/React
   return (
     <>
       <button
