@@ -56,7 +56,7 @@ export type ParagraphsGroupedByType = {
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
-const RE_LEADING_EXCLAMATIONS: RegExp = /^(!+)/g // must be at start of content
+const RE_LEADING_EXCLAMATIONS: RegExp = /^\s*(!+)/g // at start of content, though allowing for leading whitespace (as NP does)
 const RE_LEADING_PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
 export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']
 export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
