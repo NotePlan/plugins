@@ -79,6 +79,7 @@ export type TDynamicDialogProps = {
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,
+  submitButtonText?: string, // Add submitButtonText property
   isOpen?: boolean,
   title?: string,
   style?: Object, // Add style prop
@@ -102,6 +103,7 @@ const DynamicDialog = ({
   className = '',
   labelPosition = 'right',
   allowEmptySubmit = false,
+  submitButtonText = 'Submit',
   isOpen = true,
   style, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
@@ -281,10 +283,10 @@ const DynamicDialog = ({
         <span className="dynamic-dialog-title">{title || ''}</span>
         {!hideHeaderButtons && changesMadeToUse ? (
           <button className="PCButton save-button" onClick={handleSave}>
-            Submit
+            {submitButtonText}
           </button>
         ) : (
-          !hideHeaderButtons && <button className="PCButton save-button-inactive">Submit</button>
+            !hideHeaderButtons && <button className="PCButton save-button-inactive">{submitButtonText}</button>
         )}
       </div>
       <div className="dynamic-dialog-content" style={dialogStyle?.content}>

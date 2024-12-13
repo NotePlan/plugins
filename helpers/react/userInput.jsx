@@ -1,8 +1,8 @@
 // @flow
 import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { logDebug } from './reactDev'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
+import { logDebug } from './reactDev'
 
 /**
  * Shows a React modal dialog and returns the user input or null if canceled.
@@ -52,6 +52,7 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
         className={dialogProps.className}
         labelPosition={dialogProps.labelPosition}
         allowEmptySubmit={dialogProps.allowEmptySubmit}
+        submitButtonText={dialogProps.submitButtonText}
         isOpen={dialogProps.isOpen}
         style={dialogProps.style}
         isModal={dialogProps.isModal}
