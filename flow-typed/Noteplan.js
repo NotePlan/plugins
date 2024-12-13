@@ -1992,6 +1992,17 @@ declare class NotePlan {
    * @returns {Array<HTMLView>}
    */
   static +htmlWindows: Array<HTMLView>;
+  /**
+  * Note: Available from v3.15.1 (macOS build 1300)
+  * This is an async function, use it with "await". Sends a prompt to OpenAI and returns the result. 
+  * Optionally send the content of notes as well to process by specifying them in the list 'filenames', which is an array. For example ["note1.md", "folder/note2.md"]. This needs to be the exact path to the note. Your note extension might differ, the default is .txt, if you haven't changed it.
+  * For calendar notes, you can use YYYYMMDD.md, like 20241101.md, or 2024-W10.md for weeks, etc. Natural language input is also supported like "this week", "today", "tomorrow", "this month", "next year", etc.
+  * @param { string } prompt
+  * @param { Array<string> } filenames
+  * @param { boolean } useStrictFilenames?
+  * @returns {Promise<string>}
+  */
+  static ai(prompt: string, filenames: Array < string >, useStrictFilenames: boolean): Promise < string >;
 }
 
 declare class HTMLView {
