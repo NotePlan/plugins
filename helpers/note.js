@@ -26,7 +26,10 @@ import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
-import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
+import {
+  isOpen,
+  // isClosed, isDone, isScheduled
+} from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
 
@@ -90,60 +93,6 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
       : '?'
   } else {
     return ` ([[${note.title ?? ''}]])`
-  }
-}
-
-/**
- * Print summary of note details to log
- * @author @eduardmet
- * @param {?TNote} noteIn
- * @param {boolean?} alsoShowParagraphs? (default: false)
- */
-export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
-  let note
-  if (noteIn == null) {
-    logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
-    note = Editor?.note
-  } else {
-    note = noteIn
-  }
-  if (!note) {
-    logWarn('note/printNote()', `No valid note found. Stopping.`)
-    return
-  }
-
-  if (note.type === 'Notes') {
-    const endOfActive = findEndOfActivePartOfNote(note)
-    logInfo(
-      'note/printNote',
-      `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
-        note.paragraphs.length
-      } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
-    )
-  } else {
-    logInfo(
-      'note/printNote',
-      `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
-        note.paragraphs.length
-      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
-    )
-  }
-  if (note.paragraphs.length > 0) {
-    const open = note.paragraphs.filter((p) => isOpen(p)).length
-    const done = note.paragraphs.filter((p) => isDone(p)).length
-    const closed = note.paragraphs.filter((p) => isClosed(p)).length
-    const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
-    console.log(
-      `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
-    )
-    if (alsoShowParagraphs) {
-      note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
-    }
-  }
-  // Now show .backlinks
-  if (note.backlinks.length > 0) {
-    console.log(`- ${String(note.backlinks.length)} Backlinks:`)
-    clof(note.backlinks, `- ${String(note.backlinks.length)} Backlinks:`, ['subItems', 'lineIndex', 'type', 'índents', 'content'])
   }
 }
 
