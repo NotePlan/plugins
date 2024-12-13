@@ -19,7 +19,7 @@ import {
   RE_QUARTERLY_NOTE_FILENAME,
   RE_YEARLY_NOTE_FILENAME,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -139,6 +139,11 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
     if (alsoShowParagraphs) {
       note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
     }
+  }
+  // Now show .backlinks
+  if (note.backlinks.length > 0) {
+    console.log(`- ${String(note.backlinks.length)} Backlinks:`)
+    clof(note.backlinks, `- ${String(note.backlinks.length)} Backlinks:`, ['subItems', 'lineIndex', 'type', 'índents', 'content'])
   }
 }
 
