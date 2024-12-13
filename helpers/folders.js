@@ -7,29 +7,31 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { caseInsensitiveStartsWith, caseInsensitiveSubstringMatch } from './search'
 
 /**
- * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given). Note: Root folder can be included by '/'; this doesn't include sub-folders.
- * Also excludes those items that are on the exclusions list.
+ * Return a list of folders (and any sub-folders) that contain one of the strings on the inclusions list (if given).
+ * Then excludes those items that are on the exclusions list.
+ * The Root folder can be excluded by adding '/' to the exclusions list; this doesn't affect any sub-folders.
+ * To just return the Root folder, then send just '/' as an inclusion.
  * Where there is a conflict exclusions will take precedence over inclusions.
- * Note: these are partial matches ("contains" not "equals").
  * Optionally exclude all special @... folders as well [this overrides inclusions]
+ * Note: these are partial matches ("contains" not "equals").
  * Note: now clarified that this is a case-insensitive match.
  * @author @jgclark
  * @tests in jest file
  * @param {Array<string>} inclusions - if not empty, use these (sub)strings to match folder items
- * @param {boolean} excludeSpecialFolders?
+ * @param {boolean} excludeSpecialFolders? (default: true)
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder. Optional: if none given then will treat as an empty list.
  * @returns {Array<string>} array of folder names
  */
-export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean, exclusions: Array<string> = []): Array<string> {
+export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFolders: boolean = true, exclusions: Array<string> = []): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash).
     const fullFolderList = DataStore.folders
 
     // Need some inclusions or exclusions!
-    if (inclusions.length === 0 && exclusions.length === 0) {
-      logError('getFoldersMatching', 'Neither inclusions or exclusions given. Returning no items.')
-      return []
-    }
+    // if (inclusions.length === 0 && exclusions.length === 0) {
+    //   logError('getFoldersMatching', 'Neither inclusions or exclusions given. Returning no items.')
+    //   return []
+    // }
 
     logDebug(
       'getFoldersMatching',
@@ -38,17 +40,17 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
       )}`,
     )
 
-    // Remove root as a special case
+    // Start by remove root to make rest of processing easier
     const rootIncluded = inclusions.some((f) => f === '/')
     const rootExcluded = exclusions.some((f) => f === '/')
     // logDebug('getFoldersMatching', `- rootIncluded=${String(rootIncluded)}, rootExcluded=${String(rootExcluded)}`)
-    const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
+    let inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
     const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
     // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)} and exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // Deal with special case of inclusions just '/'
     if (inclusions.length === 1 && inclusions[0] === '/') {
-      logDebug('getFoldersMatching', 'Special Case: Inclusions just /')
+      // logDebug('getFoldersMatching', 'Special Case: Inclusions just /')
       return rootExcluded ? [] : ['/']
     }
 
@@ -82,7 +84,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     if (rootIncluded && !rootExcluded) {
       outputList.unshift('/')
     }
-    // logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
+    logDebug('getFoldersMatching', `-> outputList: ${outputList.length} items: [${outputList.toString()}]`)
     return outputList
   } catch (error) {
     logError('getFoldersMatching', error.message)
