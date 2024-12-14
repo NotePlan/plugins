@@ -101,7 +101,7 @@ dialog::backdrop {
 	font-size: 1.0rem;
 	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 	column-count: 3;
-	column-width: 25rem;
+	column-width: 24rem; /* 25rem; */
 	column-rule: 1px solid var(--divider-color);
 	column-fill: auto;
 	padding-inline-start: 0.5rem;
@@ -280,17 +280,18 @@ dialog::backdrop {
 	cursor: pointer;
 }
 
-/* The marker for parent/child projects */
+/* The marker for parent/child projects, designed to mimic what EM introduced in 3.15.1 */
 /* Note: no longer using childMarker */
 .parentMarker {
-	font-size: x-small;
+	font-size: 70%;
 	color: var(--fg-main-color);
 	background-color: var(--divider-color);
-	margin-left: 0.25rem;
-	border-radius: 35%;
-	/* opacity: 0.4; */
+	margin-left: 0.35rem;
+	border-radius: 30%;
+	opacity: 0.7;
 	padding: 0px 4px;
 	vertical-align: middle;
+	transform: scale(1.15,1);
 }
 
 /* I'm not sure how to send a variable through into this calculation, so this is moved into the code */

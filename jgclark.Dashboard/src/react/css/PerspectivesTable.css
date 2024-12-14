@@ -3,6 +3,18 @@
   overflow: auto;
 }
 
+
+/* Change scrollbar look to match theme */
+/* Note: Non-standard: in time hopefully will support scrollbar-color:  https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-color) */
+.perspectives-table-container::-webkit-scrollbar {
+    width: 10px;
+    background: var(--bg-main-color);
+}
+.perspectives-table-container::-webkit-scrollbar-thumb {
+    background: rgb(from var(--fg-main-color) r g b / 0.3);
+    border-radius: 12px;
+}
+
 /* Style for the table */
 .perspectives-table {
   width: 100%;
