@@ -6,16 +6,18 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
+import * as dt from '@helpers/dateTime'
 import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
-  isScheduled,
+  // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
   isValidCalendarNoteFilenameWithoutExtension,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   unhyphenateString,
-} from '@helpers/dateTime'
+}
+  from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -23,11 +25,72 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
-import { isOpen } from '@helpers/utils'
+import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
 
 const pluginJson = 'NPnote.js'
 
 //-------------------------------------------------------------------------------
+
+/**
+ * Print summary of note details to log.
+ * @author @eduardmet
+ * @param {?TNote} noteIn
+ * @param {boolean?} alsoShowParagraphs? (default: false)
+ */
+export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
+  try {
+    let note
+    if (noteIn == null) {
+      logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
+      note = Editor?.note
+    } else {
+      note = noteIn
+    }
+    if (!note) {
+      logWarn('note/printNote()', `No valid note found. Stopping.`)
+      return
+    }
+
+    if (note.type === 'Notes') {
+      const endOfActive = findEndOfActivePartOfNote(note)
+      logInfo(
+        'note/printNote',
+        `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
+        } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      )
+    } else {
+      logInfo(
+        'note/printNote',
+        `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${note.paragraphs.length
+        }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
+      )
+    }
+    if (note.paragraphs.length > 0) {
+      const open = note.paragraphs.filter((p) => isOpen(p)).length
+      const done = note.paragraphs.filter((p) => isDone(p)).length
+      const closed = note.paragraphs.filter((p) => isClosed(p)).length
+      const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
+      console.log(
+        `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
+      )
+      if (alsoShowParagraphs) {
+        note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+      }
+    }
+    // Now show .backlinks
+    if (note.backlinks.length > 0) {
+      console.log(`- ${String(note.backlinks.length)} backlinked notes`)
+      const flatBacklinkParas = getFlatListOfBacklinks(note) // Note: this requires DataStore
+      console.log(`- ${String(flatBacklinkParas.length)} backlink paras:`)
+      for (let i = 0; i < flatBacklinkParas.length; i++) {
+        const p = flatBacklinkParas[i]
+        console.log(`  - ${p.lineIndex} [${p.type}, ${p.indents}]: ${p.content}`)
+      }
+    }
+  } catch (e) {
+    logError('note/printNote', `Error printing note: ${e.message}`)
+  }
+}
 
 /**
  * Get a note from (in order):
@@ -205,10 +268,69 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !isScheduled(p.content))))
+    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !dt.isScheduled(p.content))))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []
+}
+
+/**
+ * note.backlinks is an array of Paragraphs, but its subItems can be nested. The nesting can be multiple levels deep.
+ * This function returns an array of TParagraphs, one for each backlink, undoing the nesting.
+ */
+// $FlowFixMe[incompatible-return]
+export function getFlatListOfBacklinks(note: TNote): Array<TParagraph> {
+  // Iterate over all backlinks, recursing where necessary to visit all subItems, returning a flat list of lineIndex
+  function flattenSubItems(subItems: Array<TBacklinkFields>): Array<TBacklinkFields> {
+    const items: Array<TBacklinkFields> = []
+    subItems.forEach((item) => {
+      if (item.subItems) {
+        items.push(item)
+        // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}: ${item.content} [has ${items.length} saved indexes`)
+        // Recursively process any subItems of the current item
+        items.push(...flattenSubItems(item.subItems))
+      }
+    })
+    return items
+  }
+
+  try {
+    const noteBacklinks = note.backlinks
+    if (noteBacklinks.length === 0) {
+      return []
+    }
+    // logDebug('note/getFlatListOfBacklinks', `Starting for note ${displayTitle(note)}`)
+    const flatBacklinkParas: Array<TParagraph> = []
+    for (const noteBacklink of noteBacklinks) {
+      // Get the note that this backlink points to
+      const thisBacklinkNote = DataStore.noteByFilename(noteBacklink.filename, noteBacklink.noteType)
+      const thisBacklinkNoteParas = thisBacklinkNote?.paragraphs
+      if (!thisBacklinkNoteParas) {
+        logError('note/getFlatListOfBacklinks', `Error getting paragraphs for ${noteBacklink.filename}`)
+      }
+      // logDebug('note/getFlatListOfBacklinks', `in ${thisBacklinkNote?.filename ?? '(error)'}`)
+      let thisNoteItems: Array<TBacklinkFields> = []
+      // thisNoteLineIndexes.push(noteBacklink.lineIndex) // noteBacklink.lineIndex
+
+      if (noteBacklink.subItems && noteBacklink.subItems.length > 0) {
+        // logDebug('note/getFlatListOfBacklinks', `- has ${noteBacklink.subItems.length} top-levelsubItems`)
+        thisNoteItems = flattenSubItems(noteBacklink.subItems)
+      }
+      // logDebug('note/getFlatListOfBacklinks', `  => ${thisNoteItems.length} items`)
+
+      // Now find paragraphs from those lineIndexes
+      for (const item of thisNoteItems) {
+        // logDebug('note/getFlatListOfBacklinks', `+ ${item.lineIndex}`)
+        // $FlowIgnore[incompatible-use]
+        flatBacklinkParas.push(thisBacklinkNoteParas[item.lineIndex])
+      }
+      // logDebug('note/getFlatListOfBacklinks', `  fBLP now has ${String(flatBacklinkParas.length)} paragraphs`)
+    }
+
+    return flatBacklinkParas
+  } catch (e) {
+    logError('note/printNote', `Error printing note: ${e.message}`)
+  }
 }
 
 /**
@@ -218,31 +340,29 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
  * @returns {Array<TParagraph>} - paragraphs which reference today in some way
  */
-export function getReferencedParagraphs(note: Note, includeHeadings: boolean = true): Array<TParagraph> {
-  const thisDateStr = note.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
+export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean = true): Array<TParagraph> {
+  const thisDateStr = calNote.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
   const wantedParas = []
 
   // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
   // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
-  const backlinks: $ReadOnlyArray<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  // clo(backlinks, `getReferencedParagraphs backlinks (${backlinks.length}) =`)
+  const backlinkParas: Array<TParagraph> = getFlatListOfBacklinks(calNote) // an array of notes which link to this note
+  // logDebug(`getReferencedParagraphs`, `found ${String(backlinkParas.length)} backlinked paras for ${displayTitle(calNote)}:`)
 
-  backlinks.forEach((link) => {
-    // $FlowIgnore[prop-missing] -- subItems is not in Flow defs but is real
-    const subItems = link.subItems
-    subItems.forEach((subItem) => {
-      // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
-
-      // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
-      if (includeHeadings || subItem.content.includes(`>${thisDateStr}`) || subItem.content.includes(`>today`)) {
-        // logDebug(`getReferencedParagraphs`, `- adding "${subItem.content}" as it includes >${thisDateStr} or >today`)
-        wantedParas.push(subItem)
-      } else {
-        // logDebug(`getReferencedParagraphs`, `- skipping "${subItem.content}" as it doesn't include >${thisDateStr}`)
-      }
-    })
+  backlinkParas.forEach((para) => {
+  // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
+    if (includeHeadings) {
+      logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+    }
+    else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
+      logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
+      wantedParas.push(para)
+    } else {
+      logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+    }
   })
-  // logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
+
+  logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
   return wantedParas
 }
 

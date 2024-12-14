@@ -1,7 +1,8 @@
+/* eslint-disable prettier/prettier */
 // @flow
 //--------------------------------------------------------------------------
 // Buttons on the UI, including adding tasks and checklists to today's note
-// Last updated 15.5.2024 for v2.0.0 by @jgclark
+// Last updated for 2.1.0.b
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -39,7 +40,13 @@ function CommandButton(inputObj: ButtonProps): React$Node {
     let userInputObj: TAnyObject | null
     if (button.formFields) {
       // show dialog to get user input if formFields are defined
-      userInputObj = await showDialog({ items: button.formFields, title: button.tooltip, submitOnEnter: button.submitOnEnter })
+      userInputObj = await showDialog(
+        {
+          items: button.formFields,
+          title: button.tooltip,
+          submitOnEnter: button.submitOnEnter,
+          submitButtonText: button.submitButtonText
+        })
       userInputObj ? sendButtonAction(button, userInputObj) : null
     } else {
       sendButtonAction(button, null)
