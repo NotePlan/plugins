@@ -6,16 +6,18 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
+import * as dt from '@helpers/dateTime'
 import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
-  // isScheduled,
+  // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
   isValidCalendarNoteFilenameWithoutExtension,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   unhyphenateString,
-} from '@helpers/dateTime'
+}
+  from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -266,7 +268,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !isScheduled(p.content))))
+    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !dt.isScheduled(p.content))))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []

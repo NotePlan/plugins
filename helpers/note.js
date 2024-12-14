@@ -744,7 +744,7 @@ export function findOverdueDatesInString(line: string): Array<string> {
 
 /**
  * Is the note from the given list of folders (or allowed by allowAllCalendarNotes)?
- * @param {string} filename
+ * @param {TNote} note
  * @param {Array<string>} folderList
  * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
  * @returns {boolean}
@@ -758,25 +758,10 @@ export function isNoteFromAllowedFolder(
   if (allowAllCalendarNotes && note.type === 'Calendar') return true
 
   // Is regular note's filename in folderList?
-  const matchFound = folderList.some((f) => note.filename.includes(f))
-  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
-  return matchFound
-}
-
-/**
- * Is the filename from the given list of folders?
- * Note: not currently used; newer isNoteFromAllowedFolder() used instead.
- * @param {string} filename
- * @param {Array<string>} folderList
- * @returns {boolean}
- */
-export function isFilenameAllowedInFolderList(
-  filename: string,
-  folderList: Array<string>
-): boolean {
-  // Is filename in folderList?
-  const matchFound = folderList.some((f) => filename.includes(f))
-  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
+  const noteFolder = getFolderFromFilename(note.filename)
+  // Test if folderList includes noteFolder
+  const matchFound = folderList.some((f) => noteFolder.includes(f))
+  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
   return matchFound
 }
 

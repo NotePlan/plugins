@@ -52,46 +52,47 @@ describe('helpers/folders', () => {
         const folders = f.getFoldersMatching(inclusions)
         expect(folders.length).toBe(1)
       })
-      test('CCC inclusion no @specials -> 3 left', () => {
+      test('CCC inclusion no @specials', () => {
         const inclusions = ['CCC']
         const folders = f.getFoldersMatching(inclusions)
-        expect(folders.length).toBe(3)
-      })
-      test('CCC inclusion with @specials -> 4 left', () => {
-        const inclusions = ['CCC']
-        const folders = f.getFoldersMatching(inclusions, false)
         expect(folders.length).toBe(4)
       })
-      test('CCC Areas + / inclusion no @specials -> 3 left', () => {
+      test('CCC inclusion with @specials', () => {
+        const inclusions = ['CCC']
+        const folders = f.getFoldersMatching(inclusions, false)
+        expect(folders.length).toBe(5)
+      })
+      test('CCC Areas + / inclusion no @specials', () => {
+      // Note: slightly redundant now
         const inclusions = ['CCC Areas', '/']
         const folders = f.getFoldersMatching(inclusions)
         expect(folders.length).toBe(3)
       })
-      test('CCC + LEVEL 2 inclusion with @specials -> 6 left', () => {
+      test('CCC + LEVEL 2 inclusion with @specials', () => {
         const inclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching(inclusions, false)
-        expect(folders.length).toBe(6)
+        expect(folders.length).toBe(7)
       })
-      test('CCC + LEVEL 2 inclusion with @specials and explicit empty exclusions -> 6 left', () => {
+      test('CCC + LEVEL 2 inclusion with @specials and explicit empty exclusions', () => {
         const inclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching(inclusions, false, [])
-        expect(folders.length).toBe(6)
+        expect(folders.length).toBe(7)
       })
     })
     describe('just exclusions', () => {
-      test('exclude CCC Areas; include @specials -> 7 left', () => {
+      test('exclude CCC Areas; include @specials', () => {
         const exclusions = ['CCC Areas']
         const folders = f.getFoldersMatching([], false, exclusions)
         expect(folders.length).toBe(7)
-        expect(folders).toEqual(['@Templates', '/', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3'])
+        expect(folders).toEqual(['/', '@Templates', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3'])
       })
-      test('exclude CCC, LEVEL 2; include @specials -> 4 left', () => {
+      test('exclude CCC, LEVEL 2; include @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], false, exclusions)
         expect(folders.length).toBe(4)
-        expect(folders).toEqual(['@Templates', '/', 'Home Areas', 'TEST'])
+        expect(folders).toEqual(['/', '@Templates', 'Home Areas', 'TEST'])
       })
-      test('exclude CCC, LEVEL 2; no @specials -> 3 left', () => {
+      test('exclude CCC, LEVEL 2; no @specials', () => {
         const exclusions = ['CCC', 'LEVEL 2']
         const folders = f.getFoldersMatching([], true, exclusions)
         expect(folders.length).toBe(3)
@@ -99,40 +100,41 @@ describe('helpers/folders', () => {
       })
     })
     describe('both inclusions + exclusions', () => {
-      test('TEST + CCC minus LEVEL; include @specials -> 5 left', () => {
+      test('TEST + CCC minus LEVEL; include @specials', () => {
         const inclusions = ['TEST', 'CCC']
         const exclusions = ['LEVEL']
         const folders = f.getFoldersMatching(inclusions, false, exclusions)
-        expect(folders.length).toBe(5)
+        expect(folders.length).toBe(6)
       })
-      test('exclude CCC Areas; exclude @specials -> 4 left', () => {
+      test('exclude CCC Areas; exclude @specials', () => {
         const inclusions = ['TEST', 'CCC']
         const exclusions = ['LEVEL']
         const folders = f.getFoldersMatching(inclusions, true, exclusions)
-        expect(folders.length).toBe(4)
+        expect(folders.length).toBe(5)
       })
-      test('include CCC; exclude Areas -> 1 left', () => {
+      test('include CCC; exclude Areas', () => {
         const inclusions = ['CCC']
         const exclusions = ['Areas']
         const folders = f.getFoldersMatching(inclusions, false, exclusions)
-        expect(folders.length).toBe(1)
+        expect(folders.length).toBe(2)
       })
-      test('include CCC, Home; exclude CCC -> 1 left', () => {
+      test('include CCC, Home; exclude CCC', () => {
         const inclusions = ['CCC', 'Home']
         const exclusions = ['CCC']
         const folders = f.getFoldersMatching(inclusions, false, exclusions)
-        expect(folders.length).toBe(1)
+        expect(folders.length).toBe(2)
       })
     })
     describe('case insensitive check', () => {
-      test('test + cCc minus Level; include @specials -> 5 left', () => {
+      test('test + cCc minus Level; include @specials', () => {
         const inclusions = ['test', 'cCc']
         const exclusions = ['Level']
         const folders = f.getFoldersMatching(inclusions, false, exclusions)
-        expect(folders.length).toBe(5)
+        expect(folders.length).toBe(6)
       })
     })
-    // Note: see additional large test at the end of this file!
+
+    // See also bigger real world test at end
   })
 
   /**
@@ -230,8 +232,8 @@ describe('helpers/folders', () => {
       expect(f.getLowestLevelFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
     })
   })
-})
 
+  // Note: Has to go last as it uses beforeAll
 describe('getFoldersMatching: bigger real world test', () => {
   beforeAll(() => {
     DataStore.folders = [
@@ -297,6 +299,7 @@ describe('getFoldersMatching: bigger real world test', () => {
     const inclusions = ['Home', 'NotePlan']
     const exclusions = ['Readwise 📚']
     const folders = f.getFoldersMatching(inclusions, false, exclusions)
-    expect(folders.length).toBe(6)
+    expect(folders.length).toBe(7)
   })
+})
 })
