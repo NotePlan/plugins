@@ -1,6 +1,24 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+- TODO: child items appear indented correctly if their parent isn't showing
+
+## [2.1.0.b3] 2024-12-???
+### New
+- added Perspective filtering to Projects section as well
+### Changed
+- updated descriptions of the Include and Exclude settings. Changed to default to include root folder, unless specifically excluded.
+- the 'Submit' button in 'add task' dialogs now says 'Add & Close'
+- allow Settings dialog to be wider
+### Fixed
+- items that were both referenced and indented are now being included
+- setting "Ignore items in Calendar sections with these term(s)" corrected to read "Ignore items in notes with these term(s)" (thx, @lbednarski)
+- adding to future calendar notes not working if using ".txt" extension (for @grdn)
+- now allows for whitespace before the ! priority markers in a line (as NP does) (thanks, @lbednarski)
+- improve appearance of scrollbars on dialogs in dark mode
+### Dev only changes
+- Make window width wider before 'Hard Refresh' appears, rather than 'HR'. Turn this button off entirely on iPhone.
+
 ## [2.1.0.b2] 2024-12-09
 ### Changes
 - changed callbacks to be showDashboard, showSections and showPerspective. E.g.:
@@ -8,7 +26,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
   - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work`
   - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home`
 ### Fixed
-- Fix Quarter section being shown erroneously (thx, @lbernardski)
+- Fix Quarter section being shown erroneously (thx, @lbednarski)
 
 ### Dev changes
 - remove use of combo component and use dropdown instead throughout
