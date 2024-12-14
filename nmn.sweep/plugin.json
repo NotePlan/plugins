@@ -1,7 +1,8 @@
 {
-  "noteplan.minAppVersion": "3.0.23",
   "plugin.id": "nmn.sweep",
   "plugin.name": "🧹 Task Sweeper",
+  "plugin.hidden": true,
+  "noteplan.minAppVersion": "3.0.23",
   "plugin.description": "Move Overdue Tasks to selected date. This plugin also adds template functionality to sweep still-open tasks from project notes and previous calendar days into a template file. \n{{sweepTasks({limit:{ unit: day, num: 7 },includeHeadings:false})}}",
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard & dwertheimer",
@@ -10,7 +11,6 @@
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
-  "hidden": true,
   "plugin.commands": [
     {
       "name": "swt",

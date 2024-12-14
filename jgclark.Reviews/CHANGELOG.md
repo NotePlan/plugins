@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.0.1] - 2024-12-13
+### Fixed 
+- fix bug with 'next action' setting (thanks, Alexandre Jacques)
+
 ## [1.0.0] - 2024-10-11
 ### New
 - can now define an optional 'next action' tag, and the first of these for a given project note are shown in the Project List. (This can be turned off if desired.) (Requested by @matt.)

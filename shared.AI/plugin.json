@@ -1,9 +1,10 @@
 {
+  "plugin.id": "shared.AI",
+  "plugin.name": "💡 NotePlan AI",
+  "plugin.hidden": true,
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.id": "shared.AI",
-  "plugin.name": "💡 NotePlan AI",
   "plugin.version": "0.8.0",
   "plugin.lastUpdateInfo": "0.8.0: Adding GPT-4 model choice",
   "plugin.description": "GPT integration for research, summarization, etc.",
