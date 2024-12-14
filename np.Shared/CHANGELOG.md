@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.3] @dwertheimer 2024-12-10
+
+- Improve DashboardDialog CSS
+
 ## [0.7.2] @dwertheimer 2024-10-28
 
 - fix bug in Root where the pluginToHTMLCommsBridge.js was not being loaded and so sendMessageToPlugin was not working
