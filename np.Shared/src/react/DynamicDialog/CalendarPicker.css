@@ -1,0 +1,88 @@
+/* TODO: have not figured out how to set the size of the calendar itself yet */
+/* changing the cell size here helps but i don't know how to set the whole container size */
+
+/* NOTE: GENERALLY YOU HAVE TO SET !IMPORTANT TO GET THESE CALENDAR STYLES TO OVERRIDE THE SETTINGS */
+
+/* -------------- */
+
+.container { border: '1px solid #ccc';
+    margin-top: '0px';
+    padding-top: '0px'; }
+  .caption { color: 'var(--tint-color)'; }
+  .navButtonPrev { color: 'var(--tint-color)'; }
+  .navButtonNext { color: 'var(--tint-color)'; }
+  .weekdays { background-color: 'var(--bg-main-color)'; }
+  .weekday { font-weight: 'bold'; }
+  .weekend { background-color: 'var(--bg-alt-color)'; }
+  .week { color: '#333'; }
+  .day { color: 'var(--fg-main-color)'; }
+  .today { color: 'var(--hashtag-color)';
+    background-color: 'var(--bg-alt-color)'; }
+  .selected { color: 'var(--tint-color)';
+    background-color: 'var(--bg-alt-color)'; }
+  
+  /* -------------- */
+  
+  .rdp {
+    --rdp-cell-size: '30px';
+    box-shadow: none;
+  }
+  
+  .calendarPickerCustom {
+    margin-top: 0px;
+    padding-top: 0px;
+  }
+  
+  .rdp-day {
+    box-shadow: none;
+    display: inline-grid;
+    width: 1.4rem;
+  }
+  
+  .rdp-months,
+  .rdp-month {
+    margin-top: 0px !important;
+    padding-top: 0px !important;
+  }
+  
+  .rdp-nav {
+    scale: 75%;
+    margin-bottom: 5px;
+    padding-bottom: 10px;
+    top: 40%;
+    z-index:10;
+  }
+  
+  .dayPicker-container {
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    height: auto;
+    /* margin-top: 20px; */
+  }
+  
+  /* reduce padding at the top of the calendar */
+  .dayPicker-container .buttonGrid div:nth-child(1) {
+    padding-block-start: 0px;
+  }
+  
+  /* change the color of the today button */
+  .rdp-day_selected {
+    background-color: var(--tint-color);
+    color: var(--fg-main-color);
+  }
+  
+  /* make sure the months top-align (the left one was lower by default) */
+  .rdp-month.rdp-caption_start, .rdp-month.rdp-caption_end {
+    margin-top: 0px !important;
+    padding-top: 0px !important;
+  }
+  
+  /* move the forward/back month arrows down a little to align with the month name */
+  .rdp-nav_button_next, .rdp-nav_button_previous {
+    margin-top: 12px !important; /* TODO: looks different when there is only one month on the page */
+  }
+  
+  #react-day-picker-1 {
+    padding-top: 10px !important;
+  }

@@ -493,7 +493,7 @@ declare class DataStore {
    *   "isSmartMarkdownLink"     // "Smart Markdown Links" checked in markdown preferences
    *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
    *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
-   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
+   *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line. JGC notes that this is case sensitive and must match on a whole word.
    *   "openAIKey" // Optional user's openAIKey (from v3.9.3 build 1063)
    * Others can be set by plugins.
    * Note: these keys and values do not sync across a user's devices; they are only local.
@@ -799,10 +799,10 @@ declare class DataStore {
  * Object to pass window details (from Swift)
  */
 type Rect = {
-  x: Integer,
-  y: Integer,
-  width: Integer,
-  height: Integer,
+  x: number, // in practice are all integers
+  y: number,
+  width: number,
+  height: number,
 }
 
 /**
@@ -1260,7 +1260,8 @@ declare interface Paragraph {
    */
   +rawContent: string;
   /**
-   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task)
+   * Get the Markdown prefix of the paragraph (like '* [ ]' for open task). 
+   * Note: @jgclark thinks this does not include any indentation whitespace.
    */
   +prefix: string;
   /**
@@ -1607,6 +1608,29 @@ type ParagraphType =
   | 'code'
   | 'separator'
 
+type TSubItem = TParagraph & {
+  subItems: Array<TSubItem>
+}
+
+type TBacklinkFields = {
+  type: "note",
+  content: string,
+  rawContent: string,
+  prefix: string,
+  lineIndex: number,
+  date: Date,
+  heading: string,
+  headingLevel: number,
+  isRecurring: boolean,
+  indents: number,
+  filename: string,
+  noteType: NoteType,
+  linkedNoteTitles: Array<string>,
+  subItems: Array<TBacklinkFields>,
+  // referencedBlocks: ,
+  note: {},
+}
+
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
   /**
@@ -1672,7 +1696,7 @@ declare interface CoreNoteFields {
    * TODO(@nmn): Please include `subItems` here
    * Note: Available from v3.2.0
    */
-  +backlinks: $ReadOnlyArray<TParagraph>;
++backlinks: $ReadOnlyArray < TBacklinkNoteFields >;
   /**
    * Get all types assigned to this note in the frontmatter as an array of strings.
    * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
@@ -1690,8 +1714,7 @@ declare interface CoreNoteFields {
    * Note: Available from v3.9.3
    * @return { Object(filename: string, url: string, content: string) }
    */
-  +conflictedVersion: Object;
-
++conflictedVersion: Object;
   /**
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
    * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.

@@ -4,6 +4,7 @@ import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getWindowFromId } from '@helpers/NPWindows'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -18,7 +19,7 @@ export type PassedData = {
   logProfilingMessage: boolean /* whether you want to see profiling messages on React redraws (not super interesting) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
-  passThroughVars?: any /* any data you want to pass through to the React Window */,
+  passThroughVars?: { lastWindowScrollTop: number } /* any data you want to pass through to the React Window */,
 }
 
 /**
@@ -55,7 +56,10 @@ export function getInitialDataForReactWindow(): { [string]: mixed } {
   // for demonstration purposes will just fake some data for now,
   // you would want to gather some data from your plugin
   const data = Array.from(Array(10).keys()).map((i) => ({ textValue: `Item ${i}`, id: i, buttonText: `Submit ${i}` }))
-  return { tableRows: data } // this could be any object full of data you want to pass to the window
+  return {
+    platform: NotePlan.environment.platform, // used in dialog positioning and CSS
+    tableRows: data,
+  } // this could be any object full of data you want to pass to the window
   // we return tableRows just as an example, but there's nothing magic about that property name
   // you could pass any object with any number of fields you want
 }
@@ -166,11 +170,19 @@ export async function testReactWindow(): Promise<void> {
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
 		  <link rel="stylesheet" href="../dwertheimer.ReactSkeleton/css.plugin.css">\n`
     const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/saved.html` /* for saving a debug version of the html file */,
+      savedFilename: `../../${pluginJson['plugin.id']}/saved-output.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
+      reuseUsersWindowRect: true,
       shouldFocus: true /* focus window every time (set to false if you want a bg refresh) */,
+      generalCSSIn: generateCSSFromTheme(), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
+      postBodyScript: `
+        <script type="text/javascript" >
+        // Set DataStore.settings so default logDebug etc. logging works in React
+        let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        </script>
+      `,
     }
     logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)

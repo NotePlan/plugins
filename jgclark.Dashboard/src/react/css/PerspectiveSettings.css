@@ -1,0 +1,28 @@
+/* CSS specific to Perspective Settings from jgclark.Dashboard plugin */
+/* Last updated 2024-07-23 for v2.1.0.a1 by @jgclark */
+
+.ui-perspective-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem 0rem 0.4rem;
+  background: var(--bg-main-color);
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.jer-value-main-row {
+  min-height: 1.3em !important;
+}
+
+.perspectiveSettingsBlock {
+  padding: 0rem 0.5rem 0.3rem 0.5rem;
+  border-radius: 6px;
+}
+
+.activePerspective {
+  /* box-shadow: forestgreen 2px; */
+  background-color: rgba(34, 129, 34, 0.3) !important;
+}

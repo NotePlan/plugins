@@ -19,14 +19,17 @@ import {
   RE_QUARTERLY_NOTE_FILENAME,
   RE_YEARLY_NOTE_FILENAME,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { sortListBy } from '@helpers/sorting'
-import { isOpen, isClosed, isDone, isScheduled } from '@helpers/utils'
+import {
+  isOpen,
+  // isClosed, isDone, isScheduled
+} from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
 
@@ -90,55 +93,6 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
       : '?'
   } else {
     return ` ([[${note.title ?? ''}]])`
-  }
-}
-
-/**
- * Print summary of note details to log
- * @author @eduardmet
- * @param {?TNote} noteIn
- * @param {boolean?} alsoShowParagraphs? (default: false)
- */
-export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): void {
-  let note
-  if (noteIn == null) {
-    logDebug('note/printNote()', 'No Note passed. Will try Editor note.')
-    note = Editor?.note
-  } else {
-    note = noteIn
-  }
-  if (!note) {
-    logWarn('note/printNote()', `No valid note found. Stopping.`)
-    return
-  }
-
-  if (note.type === 'Notes') {
-    const endOfActive = findEndOfActivePartOfNote(note)
-    logInfo(
-      'note/printNote',
-      `title: ${note.title ?? ''}\n- filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
-        note.paragraphs.length
-      } (endOfActive: ${String(endOfActive)})\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
-    )
-  } else {
-    logInfo(
-      'note/printNote',
-      `filename: ${note.filename ?? ''}\n- created: ${String(note.createdDate) ?? ''}\n- changed: ${String(note.changedDate) ?? ''}\n- paragraphs: ${
-        note.paragraphs.length
-      }\n- hashtags: ${note.hashtags?.join(', ') ?? ''}\n- mentions: ${note.mentions?.join(', ') ?? ''}`,
-    )
-  }
-  if (note.paragraphs.length > 0) {
-    const open = note.paragraphs.filter((p) => isOpen(p)).length
-    const done = note.paragraphs.filter((p) => isDone(p)).length
-    const closed = note.paragraphs.filter((p) => isClosed(p)).length
-    const scheduled = note.paragraphs.filter((p) => isScheduled(p)).length
-    console.log(
-      `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
-    )
-    if (alsoShowParagraphs) {
-      note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
-    }
   }
 }
 
@@ -790,7 +744,7 @@ export function findOverdueDatesInString(line: string): Array<string> {
 
 /**
  * Is the note from the given list of folders (or allowed by allowAllCalendarNotes)?
- * @param {string} filename
+ * @param {TNote} note
  * @param {Array<string>} folderList
  * @param {boolean} allowAllCalendarNotes (optional, defaults to true)
  * @returns {boolean}
@@ -804,25 +758,10 @@ export function isNoteFromAllowedFolder(
   if (allowAllCalendarNotes && note.type === 'Calendar') return true
 
   // Is regular note's filename in folderList?
-  const matchFound = folderList.some((f) => note.filename.includes(f))
-  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
-  return matchFound
-}
-
-/**
- * Is the filename from the given list of folders?
- * Note: not currently used; newer isNoteFromAllowedFolder() used instead.
- * @param {string} filename
- * @param {Array<string>} folderList
- * @returns {boolean}
- */
-export function isFilenameAllowedInFolderList(
-  filename: string,
-  folderList: Array<string>
-): boolean {
-  // Is filename in folderList?
-  const matchFound = folderList.some((f) => filename.includes(f))
-  // logDebug('isFilenameIn...FolderList', `- ${matchFound ? 'match' : 'NO match'} to ${filename} from ${String(folderList.length)} folders`)
+  const noteFolder = getFolderFromFilename(note.filename)
+  // Test if folderList includes noteFolder
+  const matchFound = folderList.some((f) => noteFolder.includes(f))
+  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to ${note.filename} from ${String(folderList.length)} folders`)
   return matchFound
 }
 

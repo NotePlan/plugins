@@ -56,7 +56,31 @@ This would display a dialog with a single input field for a task with "Save" and
     }))
 ```
 
-> **NOTE:** See all the fields in TDynamicDialogProps in DynamicDialog.jsx. These can be used to customize the dialog in both methods.
+> **NOTE:** See all the fields in TDynamicDialogProps in DynamicDialog.jsx. These can be used to customize the dialog in both methods. They are currently:
+
+```js
+export type TDynamicDialogProps = {
+  // optional props
+  items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
+  onSave?: (updatedSettings: { [key: string]: any }) => void,
+  onCancel?: () => void,
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
+  className?: string,
+  labelPosition?: 'left' | 'right',
+  allowEmptySubmit?: boolean,
+  submitButtonText?: string, // Add submitButtonText property
+  isOpen?: boolean,
+  title?: string,
+  style?: Object, // Add style prop
+  isModal?: boolean, // default is true, but can be overridden to run full screen
+  hideDependentItems?: boolean,
+  submitOnEnter?: boolean,
+  children?: React$Node, // children nodes (primarily for banner message)
+  hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
+  externalChangesMade?: boolean, // New prop to accept external changesMade state
+  setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
+}
+```
 
 ## Data Flow
 
@@ -84,7 +108,7 @@ To add a new UI element to the `DynamicDialog` component, follow these steps:
 1. **Define the Element Type**: Add a new type to the `TSettingItemType` union in `DynamicDialog.jsx`.
 
    ```javascript
-   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown' | 'number' | 'text' | 'separator' | 'heading' | 'json';
+   export type TSettingItemType = 'switch' | 'input' | 'combo' | 'dropdown-select' | 'number' | 'text' | 'separator' | 'heading' | 'json';
    ```
 
 2. **Create the Component**: Implement a new React component for the UI element, ensuring it accepts necessary props such as `label`, `value`, `onChange`, and any specific options.
@@ -179,7 +203,7 @@ The following test data can be used to render the `DynamicDialog` and verify its
     "key": "dropdownExample",
     "label": "dropdown: example of dropdown box",
     "description": "my desc under dropdown",
-    "type": "dropdown",
+    "type": 'dropdown-select',
     "options": ["priority", "earliest", "most recent"],
     "default": "priority"
   },
@@ -216,7 +240,7 @@ getTodaySectionData()
     const headings = currentDailyNote ? getHeadingsFromNote(currentDailyNote, false, true, true, true): []
 
     if (headings.length) {
-      formFields.push({ type: 'combo', label: 'Under Heading:', key: 'heading', options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
+      formFields.push({ type: 'dropdown-select', label: 'Under Heading:', key: 'heading', fixedWidth: 300,  options: headings, noWrapOptions: true, value: config.newTaskSectionHeading })
     }
   ...
         actionButtons: [
@@ -237,14 +261,14 @@ Then CommandButton.jsx will use the formFields to create the dialog when clicked
 ```js
   const handleButtonClick = () => {
     ...
-     button.formFields && openDialog(button)
+     button.formFields && showDialog(button)
 
 ```
 
 this opens the dialog by setting the reactSettings state.
 
 ```js
-  const openDialog = (button: TActionButton) => {
+  const showDialog = (button: TActionButton) => {
     setReactSettings((prev) => ({
       ...prev,
       dynamicDialog: {

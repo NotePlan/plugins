@@ -23,6 +23,11 @@ async function generateSimpleTypeAlias(node, index, folderPath = pathToDocs) {
       .join('\n')
   }
 
+  // Determine if the node is a function or a type
+  // Note: Not appearing in output, so commenting out
+  // const isFunction = node.id.typeAnnotation.typeAnnotation.type === 'FunctionTypeAnnotation'
+  // const definitionType = isFunction ? ' (function)' : ' (type def)'
+
   const fileName = `${title}.md`
   const filePath = path.resolve(folderPath, fileName)
 

@@ -56,10 +56,45 @@ export type ParagraphsGroupedByType = {
 
 const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
-const RE_EXCLAMATIONS: RegExp = /\B(!+\B)/g
-const RE_PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
+const RE_LEADING_EXCLAMATIONS: RegExp = /^\s*(!+)/g // at start of content, though allowing for leading whitespace (as NP does)
+const RE_LEADING_PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
 export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']
 export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
+
+/**
+ * Multi-level object property sorting callback function (for use in sort())
+ * Note: this will work for arrays of arrays (in addition to arrays of objects), in this case, send
+ * the number of the array index to check as a string, e.g. "2" or "-2" will use the second element to sort on
+ * undefined values are treated as the lowest value (i.e. sorted to the bottom)
+ * @author @dwertheimer
+ * @example const sortedHomes = homes.sort(fieldSorter(['state', '-price'])); //the - in front of name is DESC
+ * @param {Array<string>} field list - property array, e.g. ['date', 'title']
+ * @returns {Function} callback function for sort()
+ */
+export const fieldSorter = (fields: Array<string>): Function =>
+  (a: string, b: string) =>
+    fields
+      .map((_field) => {
+        let field = _field
+        let dir = 1
+        const isDesc = field[0] === '-'
+        if (isDesc) {
+          dir = -1
+          field = field.substring(1)
+        }
+        // field = isNaN(field) ? field : Number(field)
+        const aFirstValue = firstValue(get(a, field))
+        const bFirstValue = firstValue(get(b, field))
+        const aValue = aFirstValue == null ? null : isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
+        const bValue = bFirstValue == null ? null : isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
+        // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
+        if (aValue === bValue) return 0
+        if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
+        if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
+        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
+        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
+      })
+      .reduce((p, n) => (p ? p : n), 0)
 
 /**
  * Modern case insensitive sorting function
@@ -88,42 +123,6 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
   list.sort(fieldSorter(sortBy))
   return list
 }
-
-/**
- * Multi-level object property sorting callback function (for use in sort())
- * Note: this will work for arrays of arrays (in addition to arrays of objects), in this case, send
- * the number of the array index to check as a string, e.g. "2" or "-2" will use the second element to sort on
- * undefined values are treated as the lowest value (i.e. sorted to the bottom)
- * @author @dwertheimer
- * @example const sortedHomes = homes.sort(fieldSorter(['state', '-price'])); //the - in front of name is DESC
- * @param {Array<string>} field list - property array, e.g. ['date', 'title']
- * @returns {function} callback function for sort()
- */
-export const fieldSorter =
-  (fields: Array<string>): function =>
-  (a, b) =>
-    fields
-      .map((_field) => {
-        let field = _field
-        let dir = 1
-        const isDesc = field[0] === '-'
-        if (isDesc) {
-          dir = -1
-          field = field.substring(1)
-        }
-        // field = isNaN(field) ? field : Number(field)
-        const aFirstValue = firstValue(get(a, field))
-        const bFirstValue = firstValue(get(b, field))
-        const aValue = aFirstValue == null ? null : isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
-        const bValue = bFirstValue == null ? null : isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
-        // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
-        if (aValue === bValue) return 0
-        if (aValue == null || aValue === 'NaN') return isDesc ? -dir : dir //null or undefined always come last
-        if (bValue == null || bValue === 'NaN') return isDesc ? dir : -dir
-        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
-        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
-      })
-      .reduce((p, n) => (p ? p : n), 0)
 
 /**
  * Helper function for fieldSorter fields.
@@ -165,8 +164,8 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 
 /*
  * Get numeric priority level based on !!! or (B)
- * TODO: Extend to add 'working-on' support (W)
- * @author @dwertheimer
+ * (or 'working-on' support (W) => 4)
+ * @author @dwertheimer extended by @jgclark
  * @param {SortableParagraphSubset} item
  * @returns {number} priority from 3, 2, 1, 4 for >> or -1 (default)
  */
@@ -176,6 +175,7 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
     prio = item.exclamations[0].length
   } else if (item.parensPriority[0]) {
     prio = item.parensPriority[0].charCodeAt(0) - 'A'.charCodeAt(0) + 1
+    if (prio === 23) prio = 4
   } else if (item.content.startsWith('>>')) {
     prio = 4
   }
@@ -184,7 +184,6 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
 
 /*
  * Get numeric priority level based on !!! or (B)
- * TODO: Extend to add 'working-on' support (W)
  * @author @jgclark wrapping @dwertheimer's work above
  * @param {TParagraph} input
  * @returns {number} priority from 3, 2, 1, -1 (default)
@@ -228,8 +227,8 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
   const content = para.content
   const hashtags = getElementsFromTask(content, RE_HASHTAGS)
   const mentions = getElementsFromTask(content, RE_MENTIONS)
-  const exclamations = getElementsFromTask(content, RE_EXCLAMATIONS)
-  const parensPriority = getElementsFromTask(content, RE_PARENS_PRIORITY)
+  const exclamations = getElementsFromTask(content, RE_LEADING_EXCLAMATIONS)
+  const parensPriority = getElementsFromTask(content, RE_LEADING_PARENS_PRIORITY)
   const task: SortableParagraphSubset = {
     content: para.content,
     index: para.lineIndex,
