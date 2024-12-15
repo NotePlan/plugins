@@ -3,14 +3,14 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-10-22 for v0.20.1 by @jgclark
+// Last updated 2024-12-15 for v0.20.2 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 
 import { JSP, logDebug, logError } from '@helpers/dev'
-import { migrateCommandsIfNecessary } from '@helpers/NPConfiguration'
+// import { migrateCommandsIfNecessary } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
@@ -42,7 +42,7 @@ export {
   showYear,
 } from './noteNavigation'
 export { findUnlinkedNotesInCurrentNote, findUnlinkedNotesInAllNotes, triggerFindUnlinkedNotes } from './unlinkedNoteFinder'
-export { printNote } from '@helpers/note'
+export { printNote } from '@helpers/NPnote'
 
 export function resetCaches() {
   NotePlan.resetCaches()
