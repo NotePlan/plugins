@@ -12,6 +12,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - allow Settings dialog to be wider
 ### Fixed
 - items that were both referenced and indented are now being included
+- order of tag/mention sections is now the same as in the settings (thx, @ChrisMetcalf)
 - setting "Ignore items in Calendar sections with these term(s)" corrected to read "Ignore items in notes with these term(s)" (thx, @lbednarski)
 - adding to future calendar notes not working if using ".txt" extension (for @grdn)
 - now allows for whitespace before the ! priority markers in a line (as NP does) (thanks, @lbednarski)

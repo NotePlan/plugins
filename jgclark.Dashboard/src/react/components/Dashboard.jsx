@@ -2,21 +2,28 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to aggregate data and layout for the dashboard
 // Called by WebView component.
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
 import React, { useEffect, useRef, useMemo } from 'react'
-import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
+// import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../reducers/actionTypes'
-import { dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority, allSectionDetails } from '../../constants.js'
-import { getListOfEnabledSections } from '../../dashboardHelpers'
+import {
+  dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority,
+  // allSectionDetails
+} from '../../constants.js'
+import { getListOfEnabledSections, getDisplayListOfSectionCodes } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import type { TSectionCode, TPerspectiveSettings } from '../../types.js'
+import type {
+  TSectionCode,
+  // TPerspectiveSettings
+} from '../../types.js'
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
+import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
+import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
@@ -24,13 +31,11 @@ import { getSectionsWithoutDuplicateLines, countTotalSectionItems, countTotalVis
 import Header from './Header'
 import IdleTimer from './IdleTimer.jsx'
 import Section from './Section/Section.jsx'
-import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import '../css/Dashboard.css'
-import DebugPanel from '@helpers/react/DebugPanel'
 import { getTestGroups } from './testing/tests'
-import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import PerspectivesTable from './PerspectivesTable.jsx'
-import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
+import DebugPanel from '@helpers/react/DebugPanel'
+import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
@@ -65,7 +70,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } =
     context
 
   const { sections: origSections, lastFullRefresh } = pluginData
@@ -100,7 +105,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   let sections = [...origSections]
   let totalSectionItems = countTotalSectionItems(origSections, dontDedupeSectionCodes)
-  logDebug('Dashboard', `origSections: currently ${origSections.length} sections with ${String(totalSectionItems)} items`)
+  logDebug('Dashboard:origSections', `starting with ${origSections.length} sections (${getDisplayListOfSectionCodes(origSections)}) with ${String(totalSectionItems)} items`)
+  // clof(sections, `Dashboard: origSections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
   // Memoize deduplicated sections
   const deduplicatedSections = useMemo(() => {
@@ -122,8 +128,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   sections = deduplicatedSections
 
   sections = useMemo(() => sortSections(sections, sectionDisplayOrder), [sections, sectionDisplayOrder])
-  // logDebug('Dashboard', `- sections after sort length: ${sections.length} with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
-  // clof(sections, `Dashboard sections (length=${sections.length})`,['sectionCode','name'],true)
+  logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
+  // clof(sections, `Dashboard: sortSections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
   // DBW says the 98 was to avoid scrollbars.
   // TODO: JGC use KP's knowledge to have a more universal solution

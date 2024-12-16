@@ -7,14 +7,14 @@
  * - Context variables are fixed at the test runtime, so if you have a waitFor statement, get the context variable again after it.
  */
 
+import type { AppContextType } from '../AppContext'
 import generalTests from './general.tests'
 import dashboardSettingsTests from './dashboardSettings.tests'
 import perspectivesTests from './perspectives.tests'
+import type { Test, TestGroup } from '@helpers/testing/testingUtils'
 
 const testModules = [generalTests, dashboardSettingsTests, perspectivesTests] // Add new test modules here
 
-import type { AppContextType } from '../AppContext'
-import type { Test, TestGroup } from '@helpers/testing/testingUtils'
 
 /**
  * Helper function to create a test group from a test module.
