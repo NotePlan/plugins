@@ -2,9 +2,10 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 
-## [2.1.0.b3] 2024-12-???
+## [2.1.0.b3] 2024-12-17
 ### New
 - added Perspective filtering to Projects section as well
+- start of adding three-dots marker on a parent item -- will improve later
 ### Changed
 - updated descriptions of the Include and Exclude settings. Changed to default to include root folder, unless specifically excluded.
 - the 'Submit' button in 'add task' and the 'Edit All Perspectives' dialogs are now labelled 'Add & Close'

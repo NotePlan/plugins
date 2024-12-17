@@ -70,7 +70,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } =
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
     context
 
   const { sections: origSections, lastFullRefresh } = pluginData
@@ -105,7 +105,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   let sections = [...origSections]
   let totalSectionItems = countTotalSectionItems(origSections, dontDedupeSectionCodes)
-  logDebug('Dashboard:origSections', `starting with ${origSections.length} sections (${getDisplayListOfSectionCodes(origSections)}) with ${String(totalSectionItems)} items`)
+  // logDebug('Dashboard:origSections', `starting with ${origSections.length} sections (${getDisplayListOfSectionCodes(origSections)}) with ${String(totalSectionItems)} items`)
   // clof(sections, `Dashboard: origSections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
   // Memoize deduplicated sections
@@ -128,7 +128,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   sections = deduplicatedSections
 
   sections = useMemo(() => sortSections(sections, sectionDisplayOrder), [sections, sectionDisplayOrder])
-  logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
+  // logDebug('Dashboard:sortSections', `after sort: ${sections.length} (${getDisplayListOfSectionCodes(sections)}) with ${String(countTotalSectionItems(sections, dontDedupeSectionCodes))} items`)
   // clof(sections, `Dashboard: sortSections (length=${sections.length})`, ['sectionCode', 'name'], true)
 
   // DBW says the 98 was to avoid scrollbars.

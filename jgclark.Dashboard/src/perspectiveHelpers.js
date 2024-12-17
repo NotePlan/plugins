@@ -1,20 +1,22 @@
+/* eslint-disable require-await */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getDashboardSettings, setPluginData } from './dashboardHelpers.js'
+import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
+import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
+import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
-import { PERSPECTIVE_ACTIONS } from './react/reducers/actionTypes'
+// import { PERSPECTIVE_ACTIONS } from './react/reducers/actionTypes'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFoldersMatching } from '@helpers/folders'
 import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
-import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
-import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -58,9 +60,6 @@ Named perspectives
 -----------------------------------------------------------------------------*/
 
 const pluginID = pluginJson['plugin.id']
-
-import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
-import { showSectionSettingItems } from './react/components/Section/sectionHelpers.js'
 
 const standardSettings = cleanDashboardSettings(
   // $FlowIgnore
@@ -170,7 +169,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will use the defaults:`)
       perspectiveSettings = await getPerspectiveSettingDefaults()
-      let defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
+      const defaultPersp = getPerspectiveNamed('-', perspectiveSettings)
       if (!defaultPersp) {
         logError('getPerspectiveSettings', `getDefaultPerspectiveDef failed`)
         return []
@@ -185,8 +184,6 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
         logError('getPerspectiveSettings', `switchToPerspective('-', perspectiveSettings) failed`)
       }
       logPerspectives(perspectiveSettings)
-      // // persist and return -- not needed because switchToPerspective() already did it
-      // savePerspectiveSettings(perspectiveSettings)
     }
     return ensureDefaultPerspectiveExists(perspectiveSettings)
   } catch (error) {
@@ -586,7 +583,7 @@ export async function deleteAllNamedPerspectiveSettings(): Promise<void> {
 export async function deletePerspective(nameIn: string = ''): Promise<void> {
   try {
     let nameToUse = nameIn || ''
-    const dashboardSettings = (await getDashboardSettings()) || {}
+    // const dashboardSettings = (await getDashboardSettings()) || {}
     const existingDefs = (await getPerspectiveSettings()) || []
     if (existingDefs.length === 0) {
       throw new Error(`No perspective settings found. Stopping.`)
