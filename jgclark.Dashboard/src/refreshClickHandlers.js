@@ -16,8 +16,8 @@ import {
   setPluginData,
 } from './dashboardHelpers'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TAnyObject, TBridgeClickHandlerResult, TPluginData, } from './types'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt } from '@helpers/dev'
+import type { MessageDataObject, TBridgeClickHandlerResult, TPluginData, } from './types'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getGlobalSharedData } from '@helpers/HTMLView'
 
 /****************************************************************************************************************************
@@ -73,20 +73,19 @@ export async function refreshAllSections(): Promise<void> {
   }
 }
 
-// FIXME: DBW thinks this generates way more updates than necessary
 
 /**
  * Loop through sectionCodes and tell the React window to update by re-generating a subset of Sections.
  * This is used on first launch to improve the UX and speed of first render.
  * Each section is returned to React as it's generated.
- * Today loads first and then this function is automatically called from a useEffect in
- * Dashboard.jsx to load the rest.
+ * Today loads first and then this function is automatically called from a useEffect in Dashboard.jsx to load the rest.
+// FIXME: DBW thinks this generates way more updates than necessary
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @param {boolean} setFullRefreshDate? (default: false) - whether to set the lastFullRefresh date (default is no)
  * @returns {TBridgeClickHandlerResult}
  */
-export async function incrementallyRefreshSections(
+export async function incrementallyRefreshSomeSections(
   data: MessageDataObject,
   calledByTrigger: boolean = false,
   setFullRefreshDate: boolean = false,
@@ -94,7 +93,7 @@ export async function incrementallyRefreshSections(
   const incrementalStart = new Date()
   const { sectionCodes } = data
   if (!sectionCodes) {
-    logError('incrementallyRefreshSections', 'No sectionCodes provided')
+    logError('incrementallyRefreshSomeSections', 'No sectionCodes provided')
     return handlerResult(false)
   }
   await setPluginData({ refreshing: true }, `Starting incremental refresh for sections ${String(sectionCodes)}`)
@@ -102,22 +101,21 @@ export async function incrementallyRefreshSections(
   for (const sectionCode of sectionCodes) {
     const start = new Date()
     await refreshSomeSections({ ...data, sectionCodes: [sectionCode] }, calledByTrigger)
-    logDebug(`clickHandlers`, `incrementallyRefreshSections getting ${sectionCode}) took ${timer(start)}`)
+    logTimer(`clickHandlers`, start, `incrementallyRefreshSomeSections getting ${sectionCode})`)
   }
-  logDebug('incrementallyRefreshSections', `Starting for ${sectionCodes.length} sections ${String(sectionCodes)}`)
   const updates: any = { refreshing: false }
   if (setFullRefreshDate) updates.lastFullRefresh = new Date()
   await setPluginData(updates, `Ending incremental refresh for sections ${String(sectionCodes)} (after ${timer(incrementalStart)})`)
-  logTimer('incrementallyRefreshSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
+  logTimer('incrementallyRefreshSomeSections', incrementalStart, `for ${sectionCodes.length} sections`, 2000)
 
   // re-calculate done task counts (if the appropriate setting is on)
   const NPSettings = await getNotePlanSettings()
   if (NPSettings.doneDatesAvailable) {
-    const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSections (for [${sectionCodes.join(',')}])`)
+    const totalDoneCount = updateDoneCountsFromChangedNotes(`update done counts at end of incrementallyRefreshSomeSections (for [${sectionCodes.join(',')}])`)
     const changedData = {
       totalDoneCount: totalDoneCount,
     }
-    await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSections')
+    await setPluginData(changedData, 'Updating doneCounts at end of incrementallyRefreshSomeSections')
   }
 
   return handlerResult(true)
@@ -125,7 +123,7 @@ export async function incrementallyRefreshSections(
 
 /**
  * Tell the React window to update by re-generating a subset of Sections.
- * Returns them all in one shot vs incrementallyRefreshSections which updates one at a time.
+ * Returns them all in one shot vs incrementallyRefreshSomeSections which updates one at a time.
  * @param {MessageDataObject} data
  * @param {boolean} calledByTrigger? (default: false)
  * @returns {TBridgeClickHandlerResult}
@@ -141,7 +139,7 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
   const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const pluginData: TPluginData = reactWindowData.pluginData
   // show refreshing message until done
-  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${String(sectionCodes)}`)
+  if (!pluginData.refreshing === true) await setPluginData({ refreshing: sectionCodes }, `Starting refresh for sections ${sectionCodes.toString()}`)
   const existingSections = pluginData.sections
 
   // force the section refresh for the wanted sections
@@ -152,11 +150,11 @@ export async function refreshSomeSections(data: MessageDataObject, calledByTrigg
 
   const updates: TAnyObject = { sections: mergedSections }
   // and update the total done counts
-  // TODO: turning off for now, as was being called too often? Need to figure this out.
+  // FIXME: turning off for now, as was being called too often? Need to figure this out.
   // updates.totalDoneCounts = getTotalDoneCountsFromSections(mergedSections)
 
   if (!pluginData.refreshing === true) updates.refreshing = false
-  await setPluginData(updates, `Finished refresh for sections: ${String(sectionCodes)} (${timer(start)})`)
+  await setPluginData(updates, `Finished refreshSomeSections for [${String(sectionCodes)}] (${timer(start)})`)
   logTimer('refreshSomeSections', start, `for ${sectionCodes.toString()}`, 2000)
   // count sectionItems in all sections
   const totalSectionItems = mergedSections.reduce((acc, section) => acc + section.sectionItems.length, 0)

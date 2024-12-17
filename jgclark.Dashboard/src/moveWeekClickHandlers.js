@@ -200,7 +200,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
     const totalToMove = combinedSortedParas.length + sortedRefParas.length
 
     // If there are lots, then double check whether to proceed
-    // TODO: get this from newer settings instead
+    // TODO: get environment from newer settings instead
     // Note: platform limitation: can't run CommandBar from HTMLView on iOS/iPadOS
     if (NotePlan.environment.platform === 'macOS' && totalToMove > checkThreshold) {
       const res = await showMessageYesNo(
@@ -215,7 +215,6 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
       }
     }
 
-    let c = 0
     if (combinedSortedParas.length > 0) {
       reactWindowData.pluginData.refreshing = ['W']
       await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Refreshing JSON data for section ['W']`)
@@ -223,7 +222,6 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
       if (config.rescheduleNotMove) {
         // For each para append ' >' and this week's ISO date
         for (const dashboardPara of combinedSortedParas) {
-          c++
           logDebug('scheduleAllLastWeekThisWeek', `- scheduling "${dashboardPara.content}" to this week`)
           // Convert each reduced para back to the full one to update
           const p = getParagraphFromStaticObject(dashboardPara)
@@ -239,7 +237,6 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
         // For each para move to this week's note
         for (const para of combinedSortedParas) {
           logDebug('scheduleAllLastWeekThisWeek', `- moving "${para.content}" to this week`)
-          c++
           const res = await moveItemBetweenCalendarNotes(lastWeekDateStr, thisWeekDateStr, para.content, config.newTaskSectionHeading ?? '')
           if (res) {
             logDebug('scheduleAllLastWeekThisWeek', `-> appeared to move item succesfully`)
@@ -261,8 +258,6 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
 
       // For each para append ' >YYYY-Wnn'
       for (const dashboardPara of sortedRefParas) {
-        c++
-        // CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
         const thisNote = DataStore.noteByFilename(dashboardPara.filename, dashboardPara.noteType)
         if (!thisNote) {
           logWarn('scheduleAllLastWeekThisWeek', `Oddly I can't find the note for "${dashboardPara.content}", so can't process this item`)
@@ -275,6 +270,7 @@ export async function scheduleAllLastWeekThisWeek(_data: MessageDataObject): Pro
             thisNote.updateParagraph(p)
           } else {
             logWarn('scheduleAllLastWeekThisWeek', `Couldn't find para matching "${dashboardPara.content}"`)
+            clo(dashboardPara, `scheduleAllLastWeekThisWeek: dashboardPara`)
           }
 
           numberScheduled++

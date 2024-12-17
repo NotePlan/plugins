@@ -7,6 +7,7 @@ import { logDebug } from '@helpers/dev'
 
 /**
  * Get all folders that are allowed in the current settings/Perspective.
+ * Note: this almost a dupe of perspectiveHelpers::getAllowedFoldersInCurrentPerspective()
  * @param {TDashboardSettings} dashboardSettings
  * @returns
  */

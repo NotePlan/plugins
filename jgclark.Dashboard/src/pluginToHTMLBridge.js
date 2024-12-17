@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -41,7 +41,7 @@ import {
   doSwitchToPerspective,
   doPerspectiveSettingsChanged,
 } from './perspectiveClickHandlers'
-import { incrementallyRefreshSections, refreshSomeSections } from './refreshClickHandlers'
+import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import {
   doAddProgressUpdate,
   doCancelProject,
@@ -104,7 +104,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
     logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
-    if (!actionType === 'refresh' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
+    if (!actionType === 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
     // Allow for a combination of button click and a content update
     if (updatedContent && data.actionType !== 'updateItemContent') {
@@ -124,15 +124,27 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
 
     switch (actionType) {
-      case 'refresh': {
+      case 'refreshEnabledSections': {
         const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : allSectionCodes
         logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
-        await incrementallyRefreshSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
         result = { success: true }
         break
       }
+      case 'refreshSomeSections': {
+        result = await refreshSomeSections(data)
+        break
+      }
+      case 'incrementallyRefreshSomeSections': {
+        // TODO: Only used by Dashboard after first section loaded. Can this be removed in place of refreshSomeSections?
+        logInfo('bCDI / incrementallyRefreshSomeSections', `calling incrementallyRefreshSomeSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
+        clo(data, '(startup only) data arriving in bCDI / incrementallyRefreshSomeSections')
+        result = await incrementallyRefreshSomeSections(data)
+        break
+      }
       case 'windowReload': {
+        // Used by 'Hard Refresh' button for devs
         const useDemoData = false
         // await showDashboardReact('full', useDemoData) // Note: cause of circular dependency, so ...
         // TEST: trying Plugin command invocation instead
@@ -293,16 +305,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       //   result = await doSetSpecificDate(data)
       //   break
       // }
-      case 'refreshSomeSections': {
-        result = await refreshSomeSections(data)
-        break
-      }
-      case 'incrementallyRefreshSections': {
-        logInfo('bCDI / incrementallyRefreshSections', `calling incrementallyRefreshSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
-        clo(data, '(startup only) data arriving in bCDI / incrementallyRefreshSections')
-        result = await incrementallyRefreshSections(data)
-        break
-      }
       case 'addChecklist': {
         result = await doAddItem(data)
         break
@@ -424,17 +426,17 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
 
       if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
         // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-        logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSections (for ${String(enabledSections)}) ...`)
-        await incrementallyRefreshSections({ ...data, sectionCodes: enabledSections })
+        logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
       } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
-        logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSections ...`)
+        logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
         // await refreshAllSections() // this works fine
-        await incrementallyRefreshSections({ ...data, sectionCodes: allSectionCodes })
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
       } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
-        logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSections (for ${String(allCalendarSectionCodes)}) ..`)
+        logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
         for (const sectionCode of allCalendarSectionCodes) {
           // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
-          await incrementallyRefreshSections({ ...data, sectionCodes: [sectionCode] })
+          await incrementallyRefreshSomeSections({ ...data, sectionCodes: [sectionCode] })
         }
       } else {
         // At least update TB section (if enabled) to make sure its as up to date as possible
@@ -458,7 +460,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
         logInfo('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
         // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
-        await incrementallyRefreshSections({ ...data, sectionCodes: wantedsectionCodes })
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
       }
 
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {

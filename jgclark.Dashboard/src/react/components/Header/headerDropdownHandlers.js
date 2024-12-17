@@ -1,13 +1,16 @@
 // @flow
 //--------------------------------------------------------------------------
-// Last updated 2024-10-11 for v2.1.0.a13 by @jgclark
+// Last updated for v2.1.0.b
 //--------------------------------------------------------------------------
 
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+import {
+  // PERSPECTIVE_ACTIONS,
+  DASHBOARD_ACTIONS
+} from '../../reducers/actionTypes'
 import { allSectionDetails } from '../../../constants.js'
 import type { TDashboardSettings, TSectionCode, TPerspectiveSettings } from '../../../types.js'
 import { dashboardFilterDefs } from '../../../dashboardSettings'
-import { getActivePerspectiveName } from '../../../perspectiveHelpers.js'
+// import { getActivePerspectiveName } from '../../../perspectiveHelpers.js'
 import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 /**
  * Handles the click event for the refresh button, triggering a plugin refresh action.
@@ -20,7 +23,7 @@ import { logDebug, logError, JSP } from '@helpers/react/reactDev.js'
 export const handleRefreshClick =
   (sendActionToPlugin: Function, isDev: boolean = false, visibleSectionCodes: Array<TSectionCode>): Function =>
   (): void => {
-    const actionType = isDev ? 'windowReload' : 'refresh'
+    const actionType = isDev ? 'windowReload' : 'refreshEnabledSections'
     logDebug('Header', `Refresh button clicked; isDev:${String(isDev)} sending action:${actionType}`)
     sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
   }
@@ -39,9 +42,9 @@ export const handleRefreshClick =
 export const handleSwitchChange = (
   dashboardSettings: TDashboardSettings,
   dispatchDashboardSettings: Function,
-  sendActionToPlugin: Function,
-  perspectiveSettings: TPerspectiveSettings,
-  dispatchPerspectiveSettings: Function,
+  _sendActionToPlugin: Function,
+  _perspectiveSettings: TPerspectiveSettings,
+  _dispatchPerspectiveSettings: Function,
 ): Function => {
   // Return the event handler function
   return (key: string) =>
@@ -76,8 +79,8 @@ export const handleSwitchChange = (
           const sectionCode = allSectionDetails.find((s) => s.showSettingName === key)?.sectionCode ?? null
           logDebug('handleSwitchChange', `${key} turned on, so refreshing section: ${sectionCode || '<not set>'}`)
           if (sectionCode) {
-            const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
             logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing section: ${sectionCode}`)
+            // const payload = { actionType: 'refreshSomeSections', sectionCodes: [sectionCode] }
             // sendActionToPlugin('refreshSomeSections', payload, `Refreshing some sections`, true)
           } else {
             logDebug('handleSwitchChange', `No sectionCode found for ${key} so not refreshing any sections`)
@@ -87,10 +90,10 @@ export const handleSwitchChange = (
           const refreshAllOnChange = dashboardFilterDefs.find((s) => s.key === key)?.refreshAllOnChange
           if (isTagSection || refreshAllOnChange) {
             const logMessage = isTagSection
-              ? `Tag section ${key} turned on, so refreshing all sections`
-              : `Refresh all sections because of setting ${key} refreshAllOnChange set to true`
-            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing all sections`)
-            // sendActionToPlugin('refresh', { actionType: 'refresh', logMessage }, `Refreshing all sections`, true)
+              ? `Tag section ${key} turned on, so refreshing all enabled sections`
+              : `Refresh all enabled sections because of setting ${key} refreshAllOnChange set to true`
+            logDebug('handleSwitchChange', `FIXME: HAVE TURNED OFF: Would be Refreshing all enabled sections`)
+            // sendActionToPlugin('refreshEnabledSections', { actionType: 'refreshEnabledSections', logMessage }, `Refreshing all sections`, true)
           }
         }
       } else {
@@ -184,10 +187,11 @@ export const handleOpenMenuEffect = (openDropdownMenu: string | null, dropdownMe
  * @returns {Function} - A function to handle the event when changes were made.
  */
 export const onDropdownMenuChangesMade =
-  (setDropdownMenuChangesMade: (changesMade: boolean) => void, sendActionToPlugin: Function): Function =>
+  (setDropdownMenuChangesMade: (changesMade: boolean) => void,
+    _sendActionToPlugin: Function): Function =>
   (): void => {
     setDropdownMenuChangesMade(false) // Reset changes made
     logDebug('Header headerDropdownHandlers', `onDropdownMenuChangesMade called -- refreshing sections after dropdown changes`)
-    // const payload = { actionType: 'incrementallyRefreshSections', sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` }
-    // sendActionToPlugin('incrementallyRefreshSections', payload, `Refreshing b/c settings were changed`, true)
+    // const payload = { actionType: 'incrementallyRefreshSomeSections', sectionCodes: allSectionCodes, logMessage: `Refreshing b/c settings were changed` }
+    // sendActionToPlugin('incrementallyRefreshSomeSections', payload, `Refreshing b/c settings were changed`, true)
   }

@@ -1,23 +1,29 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-- TODO: child items appear indented correctly if their parent isn't showing
 
-## [2.1.0.b3] 2024-12-???
+## [2.1.0.b3] 2024-12-17
 ### New
 - added Perspective filtering to Projects section as well
+- start of adding three-dots marker on a parent item -- will improve later
 ### Changed
 - updated descriptions of the Include and Exclude settings. Changed to default to include root folder, unless specifically excluded.
-- the 'Submit' button in 'add task' dialogs now says 'Add & Close'
+- the 'Submit' button in 'add task' and the 'Edit All Perspectives' dialogs are now labelled 'Add & Close'
 - allow Settings dialog to be wider
 ### Fixed
+- child items appear without indentation if their parent isn't showing
+- child items appear with their parents in all calendar sections
 - items that were both referenced and indented are now being included
+- order of tag/mention sections is now the same as in the settings (thx, @ChrisMetcalf)
 - setting "Ignore items in Calendar sections with these term(s)" corrected to read "Ignore items in notes with these term(s)" (thx, @lbednarski)
 - adding to future calendar notes not working if using ".txt" extension (for @grdn)
 - now allows for whitespace before the ! priority markers in a line (as NP does) (thanks, @lbednarski)
 - improve appearance of scrollbars on dialogs in dark mode
 ### Dev only changes
+- rescheduling/moving an item now uses REFRESH_ALL_ENABLED_SECTIONS not REFRESH_ALL_SECTIONS
 - Make window width wider before 'Hard Refresh' appears, rather than 'HR'. Turn this button off entirely on iPhone.
+- 'refresh' -> 'refreshAll'
+- 'incrementallyRefreshSomeSections' -> 'incrementallyRefreshSomeSections' to better align it against 'refreshSomeSections'
 
 ## [2.1.0.b2] 2024-12-09
 ### Changes

@@ -1,12 +1,12 @@
 // @flow
 
-import { expect } from '@helpers/testing/expect'
-import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
-import { clo, logDebug } from '@helpers/react/reactDev'
+// import { expect } from '@helpers/testing/expect'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import type { AppContextType } from '../AppContext'
-import { dashboardSettingsDefaults } from '../../support/settingsHelpers'
 import { sendDashboardSettingsToPlugin, getDashboardSettingsWithShowVarsSetTo } from './testingHelpers'
+import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
+import { clo, logDebug } from '@helpers/react/reactDev'
+// import { dashboardSettingsDefaults } from '../../support/settingsHelpers'
 
 type Test = {
   name: string,

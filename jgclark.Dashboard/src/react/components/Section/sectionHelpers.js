@@ -1,14 +1,13 @@
 // @flow
 //--------------------------------------------------------------------------
 // Helpers for the Section component.
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //--------------------------------------------------------------------------
 
 import type { TSection, TDashboardSettings, TSectionCode, TSectionDetails, TSettingItem } from '../../../types.js'
 import { allSectionDetails } from '../../../constants.js'
+// import { getDisplayListOfSectionCodes } from '../../../dashboardHelpers.js'
 import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/reactDev.js'
-
-const sectionWithTag = allSectionDetails.filter((s) => s.sectionCode === 'TAG')[0]
 
 /**
  * Get a list of TSettingItem (key, label, type) objects for the showSettingName settings for all sections except TAG and DT
@@ -20,16 +19,6 @@ export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.re
   }
   return acc
 }, [])
-
-/**
- * Get a consistent showSettingName for a given tag.
- * @param {string} tag
- * @returns {string} The setting name.
- */
-export function getShowTagSettingName(tag: string): string {
-  const showSetting = sectionWithTag.showSettingName
-  return `${showSetting}_${tag}`
-}
 
 /**
  * Return list of currently visible sections.
@@ -98,17 +87,17 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
 function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings: TDashboardSettings, sections: Array<TSection>): Array<TSectionCode> {
   const useFirstButVisible = dashboardSettings
     ? useFirst.filter((sectionCode) => {
-        const section = sections.find((section) => section.sectionCode === sectionCode)
-        if (section) {
-          const isVisible = sectionIsVisible(section, dashboardSettings)
-          // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
-          return section && isVisible
-        } else {
-          // TAG sections are a special case, so don't log an error if not found
-          // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
-          return false
-        }
-      })
+      const section = sections.find((section) => section.sectionCode === sectionCode)
+      if (section) {
+        const isVisible = sectionIsVisible(section, dashboardSettings)
+        // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+        return section && isVisible
+      } else {
+        // TAG sections are a special case, so don't log an error if not found
+        // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
+        return false
+      }
+    })
     : useFirst
   // logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
@@ -225,8 +214,20 @@ export function getSectionDetailsFromSectionCode(thisSectionCode: string): TSect
   return found
 }
 
+const sectionWithTag = allSectionDetails.filter((s) => s.sectionCode === 'TAG')[0]
+
 /**
- * Get Section Details for all tags in settings
+ * Get a consistent showSettingName for a given tag.
+ * @param {string} tag
+ * @returns {string} The setting name.
+ */
+export function getShowTagSettingName(tag: string): string {
+  const showSetting = sectionWithTag.showSettingName
+  return `${showSetting}_${tag}`
+}
+
+/**
+ * Get Section Details for all wanted tags/mentions in settings
  * @param {TDashboardSettings} dashboardSettings
  * @returns {Array<TSectionDetails>} {sectionCode, sectionName, showSettingName}
  */
@@ -241,11 +242,12 @@ export function getTagSectionDetails(dashboardSettings: TDashboardSettings): Arr
 /**
  * Sorts the sections array by sectionCode based on a predefined order and then by sectionName alphabetically.
  * @param {Array<TSection>} sections - The array of sections to be sorted.
- * @param {Array<string>} order - The predefined order for sectionCode.
+ * @param {Array<TSectionCode>} predefinedOrder - The predefined order for sectionCode.
  * @returns {Array<Section>} The sorted array of sections.
  */
-export function sortSections(sections: Array<TSection>, order: Array<string>): Array<TSection> {
-  const orderMap = order.reduce((acc: { [key: string]: number }, code: string, index: number) => {
+export function sortSections(sections: Array<TSection>, predefinedOrder: Array<TSectionCode>): Array<TSection> {
+  // logDebug('sectionHelpers/sortSections', `Starting with ${sections.length} sections ${getDisplayListOfSectionCodes(sections)}`)
+  const orderMap = predefinedOrder.reduce((acc: { [key: string]: number }, code: string, index: number) => {
     acc[code] = index
     return acc
   }, {})
@@ -260,6 +262,12 @@ export function sortSections(sections: Array<TSection>, order: Array<string>): A
       return orderA - orderB
     }
 
+    // If two 'TAG' sections have the same name, leave in same order
+    if (a.sectionCode === 'TAG' && b.sectionCode === 'TAG') {
+      return 0
+    }
+    // If two other sections with the same code, sort them alphabetically by name
     return -a.name.localeCompare(b.name)
   })
 }
+

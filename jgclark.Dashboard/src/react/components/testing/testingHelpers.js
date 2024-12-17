@@ -1,10 +1,11 @@
-import { waitFor } from '@helpers/testing/testingUtils'
-import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+// @flow
 import type { AppContextType } from '../AppContext'
+import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
+import { waitFor } from '@helpers/testing/testingUtils'
 
 // Helper functions for repeated use in tests
 
-export const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message) => {
+export const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message: string) => {
   const mbo = {
     actionType: `dashboardSettingsChanged`,
     settings: newDashboardSettings,

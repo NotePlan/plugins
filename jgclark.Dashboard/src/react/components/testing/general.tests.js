@@ -1,12 +1,12 @@
 // @flow
 
-import { expect } from '@helpers/testing/expect'
-import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
-import { clo, logDebug } from '@helpers/react/reactDev'
+// import { dashboardSettingsDefaults } from '../../support/settingsHelpers'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import type { AppContextType } from '../AppContext'
 import { backupCurrentSettings, restoreSettings, getDashboardSettingsWithShowVarsSetTo } from './testingHelpers'
-import { dashboardSettingsDefaults } from '../../support/settingsHelpers'
+import { expect } from '@helpers/testing/expect'
+import { type TestResult, waitFor } from '@helpers/testing/testingUtils'
+import { clo, logDebug } from '@helpers/react/reactDev'
 
 type Test = {
   name: string,
@@ -20,7 +20,7 @@ type TestGroup = {
 
 // helper functions for repeated use in tests
 
-const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message) => {
+const sendDashboardSettingsToPlugin = (sendActionToPlugin, newDashboardSettings, message: string) => {
   const mbo = {
     actionType: `dashboardSettingsChanged`,
     settings: newDashboardSettings,

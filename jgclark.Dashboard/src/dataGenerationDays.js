@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data for day-based notes
@@ -5,30 +6,32 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
-import { allSectionCodes } from './constants.js'
-import { getTagSectionDetails } from './react/components/Section/sectionHelpers.js'
+import type {
+  TDashboardSettings,
+  TParagraphForDashboard,
+  TSection,
+  TSectionItem,
+  TSettingItem,
+} from './types'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  getDashboardSettings,
-  getListOfEnabledSections,
+  createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  getSectionItemObject,
+  // createSectionItemObject,
   getStartTimeFromPara,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { openTodayItems, refTodayItems, openTomorrowParas, refTomorrowParas, openYesterdayParas, refYesterdayParas } from './demoData'
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
+import {
+  getTodaysDateHyphenated, getTodaysDateUnhyphenated,
+} from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
-import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import {
+  getHeadingsFromNote,
+} from '@helpers/NPnote'
 import { getCurrentTimeBlockPara, getTimeBlockDetails } from '@helpers/timeblocks'
-import { isOpen, isOpenTask } from '@helpers/utils'
 
 //--------------------------------------------------------------------
 /**
@@ -40,10 +43,10 @@ import { isOpen, isOpenTask } from '@helpers/utils'
  */
 export function getTodaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = '0'
+    let sectionNumStr = '0'
     const thisSectionCode = 'DT'
     const sections: Array<TSection> = []
-    const items: Array<TSectionItem> = []
+    let items: Array<TSectionItem> = []
     let itemCount = 0
     const todayDateLocale = toNPLocaleDateString(new Date(), 'short') // uses moment's locale info from NP
     const NPSettings = getNotePlanSettings()
@@ -54,22 +57,22 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     // const thisFilename = currentDailyNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} --------`)
+    logInfo('getTodaySectionData', `--------- Gathering Today's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} --------`)
     const timer = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section items
+      // Note: parentID already supplied
       const sortedItems = config.separateSectionForReferencedNotes ? openTodayItems : openTodayItems.concat(refTodayItems)
       sortedItems.map((item) => {
         if (item.para) {
           const timeStr = getStartTimeFromPara(item.para)
           // $FlowIgnore[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
-          // item.parentID = ''
         }
-        const thisID = `${sectionNum}-${itemCount}`
+        const thisID = `${sectionNumStr}-${itemCount}`
         items.push({ ID: thisID, ...item })
-        itemCount++
+        // itemCount++
       })
     } else {
       // Get list of open tasks/checklists from current daily note (if it exists)
@@ -83,52 +86,9 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', currentDailyNote, config, useEditorWherePossible)
         // logDebug('getTodaySectionData', `getOpenItemParasForTimePeriod Found ${sortedOrCombinedParas.length} open items and ${sortedRefParas.length} refs to ${filenameDateStr}`)
 
-        // write items for first (or combined) section
-        let lastIndent0ParentID = ''
-        let lastIndent1ParentID = ''
-        let lastIndent2ParentID = ''
-        let lastIndent3ParentID = ''
-        for (const socp of sortedOrCombinedParas) {
-          const thisID = `${sectionNum}-${itemCount}`
-          const thisSectionItemObject = getSectionItemObject(thisID, socp)
-          // Now add parentID where relevant
-          if (socp.isAChild) {
-            const parentParaID =
-              socp.indentLevel === 1
-                ? lastIndent0ParentID
-                : socp.indentLevel === 2
-                ? lastIndent1ParentID
-                : socp.indentLevel === 3
-                ? lastIndent2ParentID
-                : socp.indentLevel === 4
-                ? lastIndent3ParentID
-                : '' // getting silly by this point, so stop
-            thisSectionItemObject.parentID = parentParaID
-            logInfo(``, `- found parentID ${parentParaID} for ID ${thisID}`)
-          }
-          if (socp.hasChild) {
-            switch (socp.indentLevel) {
-              case 0: {
-                lastIndent0ParentID = thisID
-                break
-              }
-              case 1: {
-                lastIndent1ParentID = thisID
-                break
-              }
-              case 2: {
-                lastIndent2ParentID = thisID
-                break
-              }
-              case 3: {
-                lastIndent3ParentID = thisID
-                break
-              }
-            }
-          }
-          items.push(thisSectionItemObject)
-          itemCount++
-        }
+        // Iterate and write items for first (or combined) section
+        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        itemCount += items.length
       } else {
         logDebug('getTodaySectionData', `No daily note found using filename '${thisFilename}'`)
       }
@@ -158,6 +118,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
               label: 'Under Heading:',
               key: 'heading',
               fixedWidth: 300,
+              // $FlowFixMe[incompatible-type]
               options: tomorrowHeadings,
               noWrapOptions: true,
               value: config.newTaskSectionHeading,
@@ -168,7 +129,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
     const anyDayFormFields: Array<TSettingItem> = formFieldsBase.concat([{ type: 'calendarpicker', label: 'Date:', key: 'date', numberOfMonths: 2 }])
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'Today',
       showSettingName: 'showTodaySection',
       sectionCode: thisSectionCode,
@@ -189,6 +150,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           postActionRefresh: ['DT'],
           formFields: todayFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addChecklist',
@@ -199,6 +161,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           postActionRefresh: ['DT'],
           formFields: todayFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addTask',
@@ -209,6 +172,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addChecklist',
@@ -219,6 +183,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           postActionRefresh: ['DO'],
           formFields: tomorrowFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addTaskToFuture',
@@ -229,6 +194,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           postActionRefresh: ['DT'],
           formFields: anyDayFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'moveAllTodayToTomorrow',
@@ -245,34 +211,31 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      const items: Array<TSectionItem> = []
-      sectionNum = '1'
+      let items: Array<TSectionItem> = []
+      sectionNumStr = '1'
       if (useDemoData) {
         const sortedRefParas = refTodayItems
+        // Note: parentID already supplied
         sortedRefParas.map((item) => {
           if (item.para) {
             const timeStr = getStartTimeFromPara(item.para)
             // $FlowFixMe[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNumStr}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
-        // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
-          // make a sectionItem for each item, and then make a section too.
-          sortedRefParas.map((p) => {
-            const thisID = `${sectionNum}-${itemCount}`
-            items.push(getSectionItemObject(thisID, p))
-            itemCount++
-          })
+          // Iterate and write items for first (or combined) section
+          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          itemCount += items.length
         }
       }
 
       const section: TSection = {
-        ID: sectionNum,
+        ID: sectionNumStr,
         name: '>Today',
         showSettingName: 'showTodaySection',
         sectionCode: thisSectionCode,
@@ -305,7 +268,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
  */
 export function getYesterdaySectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = '2'
+    let sectionNumStr = '2'
     let itemCount = 0
     const sections: Array<TSection> = []
     const thisSectionCode = 'DY'
@@ -313,14 +276,14 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const yesterdayDateLocale = toNPLocaleDateString(yesterday, 'short') // uses moment's locale info from NP
     const NPSettings = getNotePlanSettings()
     const thisFilename = `${moment(yesterday).format('YYYYMMDD')}.${NPSettings.defaultFileExtension}`
-    const items: Array<TSectionItem> = []
+    let items: Array<TSectionItem> = []
     // const yesterday = new moment().subtract(1, 'days').toDate()
     const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
     // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
     const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr) // ✅
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${filenameDateStr} ----------`)
+    logInfo('getDataForDashboard', `--------- Gathering Yesterday's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${filenameDateStr} ----------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -332,9 +295,9 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
           // $FlowIgnore[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
         }
-        const thisID = `${sectionNum}-${itemCount}`
+        const thisID = `${sectionNumStr}-${itemCount}`
         items.push({ ID: thisID, ...item })
-        itemCount++
+        // itemCount++
       })
     } else {
       // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
@@ -348,13 +311,19 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', yesterdaysNote, config, useEditorWherePossible)
 
-        // write items for first (or combined) section
-        sortedOrCombinedParas.map((p) => {
-          const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID, p))
-          itemCount++
-        })
+        // // write items for first (or combined) section
+        // sortedOrCombinedParas.map((p) => {
+        //   const thisID = `${sectionNumStr}-${itemCount}`
+        //   items.push(createSectionItemObject(thisID, p))
+        //   itemCount++
+        // })
+
+        // Iterate and write items for first (or combined) section
+        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        itemCount += items.length
+
         // logDebug('getDataForDashboard', `- finished finding yesterday's items from ${filenameDateStr} after ${timer(startTime)}`)
+        itemCount = items.length
       } else {
         logDebug('getDataForDashboard', `No yesterday note found using filename '${thisFilename}'`)
       }
@@ -362,7 +331,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'Yesterday',
       showSettingName: 'showYesterdaySection',
       sectionCode: thisSectionCode,
@@ -384,13 +353,12 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         },
       ],
     }
-    // clo(section)
     sections.push(section)
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      const items: Array<TSectionItem> = []
-      sectionNum = '3'
+      let items: Array<TSectionItem> = []
+      sectionNumStr = '3'
       if (useDemoData) {
         const sortedRefParas = refYesterdayParas
         sortedRefParas.map((item) => {
@@ -399,7 +367,7 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
             // $FlowFixMe[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNumStr}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
@@ -407,15 +375,18 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
           // make a sectionItem for each item, and then make a section too.
-          sortedRefParas.map((p) => {
-            const thisID = `${sectionNum}-${itemCount}`
-            items.push(getSectionItemObject(thisID, p))
-            itemCount++
-          })
+          // sortedRefParas.map((p) => {
+          //   const thisID = `${sectionNumStr}-${itemCount}`
+          //   items.push(createSectionItemObject(thisID, p))
+          //   itemCount++
+          // })
+          // Iterate and write items for first (or combined) section
+          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          itemCount += items.length
         }
       }
       const section: TSection = {
-        ID: sectionNum,
+        ID: sectionNumStr,
         name: '>Yesterday',
         showSettingName: 'showYesterdaySection',
         sectionCode: thisSectionCode,
@@ -427,7 +398,6 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
         generatedDate: new Date(),
         actionButtons: [],
       }
-      // clo(section)
       sections.push(section)
     }
 
@@ -448,10 +418,10 @@ export function getYesterdaySectionData(config: TDashboardSettings, useDemoData:
  */
 export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = '4'
+    let sectionNumStr = '4'
     const thisSectionCode = 'DO'
     const sections: Array<TSection> = []
-    const items: Array<TSectionItem> = []
+    let items: Array<TSectionItem> = []
     let itemCount = 0
     const tomorrow = new moment().add(1, 'days').toDate()
     const tomorrowDateLocale = toNPLocaleDateString(tomorrow, 'short') // uses moment's locale info from NP
@@ -462,7 +432,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     // const thisFilename = tomorrowsNote?.filename ?? '(error)'
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logDebug('getDataForDashboard', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
+    logDebug('getDataForDashboard', `---------- Gathering Tomorrow's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
@@ -474,7 +444,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
           // $FlowFixMe[incompatible-use] already checked item.para exists
           item.para.startTime = timeStr
         }
-        const thisID = `${sectionNum}-${itemCount}`
+        const thisID = `${sectionNumStr}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -489,12 +459,17 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('day', tomorrowsNote, config, useEditorWherePossible)
 
-        // write items for first or combined section
-        sortedOrCombinedParas.map((p) => {
-          const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID, p))
-          itemCount++
-        })
+        // // write items for first or combined section
+        // sortedOrCombinedParas.map((p) => {
+        //   const thisID = `${sectionNumStr}-${itemCount}`
+        //   items.push(createSectionItemObject(thisID, p))
+        //   itemCount++
+        // })
+
+        // Iterate and write items for first (or combined) section
+        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        itemCount += items.length
+
         // logDebug('getDataForDashboard', `- finished finding tomorrow's items from ${filenameDateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getDataForDashboard', `No tomorrow note found for filename '${thisFilename}'`)
@@ -502,7 +477,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
     }
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'Tomorrow',
       showSettingName: 'showTomorrowSection',
       sectionCode: thisSectionCode,
@@ -519,8 +494,8 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      const items: Array<TSectionItem> = []
-      sectionNum = '5'
+      let items: Array<TSectionItem> = []
+      sectionNumStr = '5'
       if (useDemoData) {
         const sortedRefParas = refTomorrowParas
         sortedRefParas.map((item) => {
@@ -529,23 +504,26 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
             // $FlowFixMe[incompatible-use] already checked item.para exists
             item.para.startTime = timeStr
           }
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNumStr}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         // Get list of open tasks/checklists from current daily note (if it exists)
         if (sortedRefParas.length > 0) {
-          // make a sectionItem for each item, and then make a section too.
-          sortedRefParas.map((p) => {
-            const thisID = `${sectionNum}-${itemCount}`
-            items.push(getSectionItemObject(thisID, p))
-            itemCount++
-          })
+          // // make a sectionItem for each item, and then make a section too.
+          // sortedRefParas.map((p) => {
+          //   const thisID = `${sectionNumStr}-${itemCount}`
+          //   items.push(createSectionItemObject(thisID, p))
+          //   itemCount++
+          // })
+          // Iterate and write items for this section
+          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          itemCount += items.length
         }
       }
       const section: TSection = {
-        ID: sectionNum,
+        ID: sectionNumStr,
         name: '>Tomorrow',
         showSettingName: 'showTomorrowSection',
         sectionCode: thisSectionCode,
@@ -579,7 +557,7 @@ export function getTomorrowSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData: boolean = false): TSection {
   try {
-    const sectionNum = '16'
+    const sectionNumStr = '16'
     const thisSectionCode = 'TB'
     const items: Array<TSectionItem> = []
     const NPSettings = getNotePlanSettings()
@@ -626,9 +604,9 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       logDebug('getTimeBlockSectionData', `-> ${timeBlockString} / ${contentWithoutTimeBlock}`)
 
       // write item for section
-      const thisID = `${sectionNum}-0`
+      const thisID = `${sectionNumStr}-0`
       // I was trying to reorder the display of the timeblock para content, but that makes life very difficult for editing or checking off time block items
-      const thisDPara = makeDashboardParas([timeblockPara])[0]
+      const thisDParas = makeDashboardParas([timeblockPara])
       // // change text so that time details are always at the front
       // // If this timeblock is on a task or checklist line, leave the type alone, otherwise make it type 'timeblock'. This affects StatusIcon.
       // thisDPara.content = `${timeBlockString} ${contentWithoutTimeBlock}`
@@ -637,14 +615,23 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       //   const priorityMarker = ['!', '!!', '!!!', '>>'][thisDPara.priority - 1]
       //   thisDPara.content = `${priorityMarker} ${thisDPara.content}`
       // }
-      const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
-      const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
-      // $FlowFixMe[incompatible-call]
-      items.push(thisSectionItemObject)
+      if (thisDParas.length > 0) {
+        const thisDPara = thisDParas[0]
+        const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
+        const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
+        // $FlowFixMe[incompatible-call]
+        items.push(thisSectionItemObject)
+      } else {
+        if (useDemoData) {
+          logDebug('getTimeBlockSectionData', `Can't fully show time block as this is DEMO data.`)
+        } else {
+          logWarn('getTimeBlockSectionData', `Couldn't find thisDPara to match '${timeBlockParaContent}'. Doesn't `)
+        }
+      }
     }
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'Current time block',
       showSettingName: 'showTimeBlockSection',
       sectionCode: thisSectionCode,

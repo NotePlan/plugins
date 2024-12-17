@@ -139,7 +139,7 @@ export type TSectionItem = {
   project?: TProjectForDashboard,
   updated?: boolean, // used to keep deletes from confusing the dialog which is waiting for updates to the same line
   // updated will be set by the copyUpdatedSectionItemData function when content is modified
-  parentID?: string, // if this is a sub-task, this holds the ID of the parent task (required for sorting children with their parents in useSelectionSortAndFilter)
+  parentID?: string, // if this is a sub-task, this holds the ID of the parent task if that is also an open item (required for displaying children properly with their parents in useSelectionSortAndFilter)
 }
 
 // reduced paragraph definition
@@ -161,7 +161,7 @@ export type TParagraphForDashboard = {
   changedDate?: Date, // required for sorting items in display
   hasChild?: boolean, // whether it has child item(s)
   isAChild?: boolean, // whether it is a child item
-  children?: Object, // function
+  // children?: Function, // TEST: removing it as JGC can't see it being used on 2024-12-10
 }
 
 // a project item within a section
@@ -184,6 +184,7 @@ export type TActionButton = {
   tooltip: string,
   formFields?: Array<TSettingItem>,
   submitOnEnter?: boolean,
+  submitButtonText?: string,
 }
 
 export type TActionType =
@@ -202,7 +203,7 @@ export type TActionType =
   | 'cyclePriorityStateDown'
   | 'dashboardSettingsChanged'
   | 'deleteItem'
-  | 'incrementallyRefreshSections'
+  | 'incrementallyRefreshSomeSections'
   | 'moveAllLastWeekThisWeek'
   | 'moveAllThisWeekNextWeek'
   | 'moveAllTodayToTomorrow'
@@ -211,7 +212,7 @@ export type TActionType =
   | 'moveToNote'
   | 'onClickDashboardItem'
   | 'perspectiveSettingsChanged'
-  | 'refresh'
+  | 'refreshEnabledSections'
   | 'refreshSomeSections'
   | 'reviewFinished'
   | 'scheduleAllOverdueToday'
@@ -232,7 +233,7 @@ export type TActionType =
   | 'updateItemContent'
   | 'rescheduleItem'
   | 'windowWasResized'
-  | 'windowReload'
+  | 'windowReload' // Used by 'Hard Refresh' button for devs
   | 'windowResized'
   | 'addNewPerspective'
   | 'commsBridgeTest'

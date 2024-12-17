@@ -4,23 +4,32 @@
 // Handler functions for some dashboard clicks that come over the bridge.
 // There are 4+ other clickHandler files now.
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 import moment from 'moment'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getNotePlanSettings, handlerResult, mergeSections, moveItemToRegularNote, setPluginData } from './dashboardHelpers'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+import {
+  allCalendarSectionCodes,
+  // WEBVIEW_WINDOW_ID
+} from './constants'
+// import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import {
+  getDashboardSettings,
+  // getNotePlanSettings, 
+  handlerResult,
+  // mergeSections,
+  moveItemToRegularNote, setPluginData
+} from './dashboardHelpers'
+// import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import {
-  addNewPerspective,
-  deletePerspective,
+  // addNewPerspective,
+  //  deletePerspective,
   getActivePerspectiveDef,
   getPerspectiveSettings,
-  replacePerspectiveDef,
+  // replacePerspectiveDef,
   cleanDashboardSettings,
-  switchToPerspective,
+  // switchToPerspective,
 } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
@@ -38,7 +47,7 @@ import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt, compareObjects } from '@helpers/dev'
-import { getGlobalSharedData } from '@helpers/HTMLView'
+// import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { showMessage, processChosenHeading } from '@helpers/userInput'
 
@@ -553,8 +562,8 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
     DataStore.updateCache(thisNote, false)
 
     // refresh whole display, as we don't know which if any section the moved task might need to be added to
-    // logDebug('doRescheduleItem', `------------ refresh ------------`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_SECTIONS'], { updatedParagraph: thePara })
+    // logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doRescheduleItem', `- some other failure`)
     return handlerResult(false)
@@ -639,7 +648,7 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
   await setPluginData(updatedPluginData, `_Updated ${settingName} in global pluginData`)
-  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings
+  const refreshes = settingName === 'dashboardSettings' ? ['REFRESH_ALL_ENABLED_SECTIONS'] : [] // don't refresh if we were saving just perspectiveSettings // TEST: changed from REFRESH_ALL_SECTIONS -- the last place this was used.
   return handlerResult(true, refreshes)
 }
 

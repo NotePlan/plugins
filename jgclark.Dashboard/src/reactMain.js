@@ -2,9 +2,10 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
+import { convertStrikethroughToHTML } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
@@ -383,19 +384,13 @@ export async function getInitialDataForReactWindowObjectForReactView(perspective
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export async function getInitialDataForReactWindow(dashboardSettings: TDashboardSettings, useDemoData: boolean = false): Promise<TPluginData> {
-  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
-
-  logDebug(
-    'getInitialDataForReactWindow',
-    `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(
-      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging,
-    )}`,
-  )
+  logDebug('getInitialDataForReactWindow', `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''}`)
 
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dashboard.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+  // - then once the HTML Window is available, Dashboard.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
+  // const logSettings = await getLogSettings()
   const sections =
     dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
       ? await getAllSectionsData(useDemoData, true, true)
@@ -489,19 +484,20 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
 }
 
 /**
- * Update the sections data in the React Window data object
+ * Update the sections data in the React Window data object.
+ * TEST: Try removing this, as it no longer seems to be used.
  * @returns {Promise<any>} - returns the full reactWindowData
  */
-export async function refreshDashboardData(prevData?: any): any {
-  const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
-  const { demoMode } = reactWindowData
-  const sections = await getAllSectionsData(demoMode, false, true)
-  logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
-  reactWindowData.pluginData.sections = sections
-  logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
-  clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
-  return reactWindowData
-}
+// export async function refreshDashboardData(prevData?: any): any {
+//   const reactWindowData = prevData ?? (await getGlobalSharedData(WEBVIEW_WINDOW_ID)) // get the current data from the React Window
+//   const { demoMode } = reactWindowData
+//   const sections = await getAllSectionsData(demoMode, false, true)
+//   logDebug(`refreshDashboardData`, `after get all sections sections[0]=${sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
+//   reactWindowData.pluginData.sections = sections
+//   logDebug(`refreshDashboardData`, `after get all sections reactWindowData[0]=${reactWindowData.pluginData.sections[0].sectionItems[0].para?.content ?? '<empty>'}`)
+//   clo(reactWindowData.pluginData.sections, 'refreshDashboardData: reactWindowData.pluginData.sections=')
+//   return reactWindowData
+// }
 
 /**
  * Gather data you want passed to the React Window (e.g. what you you will use to display).
@@ -512,18 +508,13 @@ export async function refreshDashboardData(prevData?: any): any {
  */
 
 export async function getPluginData(dashboardSettings: TDashboardSettings, perspectiveSettings: Array<TPerspectiveDef>, useDemoData: boolean = false): Promise<TPluginData> {
-  // logDebug('getInitialDataForReactWindow', `lastFullRefresh = ${String(new Date().toLocaleString())}`)
-  logDebug(
-    'getInitialDataForReactWindow',
-    `getInitialDataForReactWindow ${useDemoData ? 'with DEMO DATA!' : ''} dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging=${String(
-      dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging,
-    )}`,
-  )
+  logDebug('getPluginData', `Starting ${useDemoData ? 'with DEMO DATA!' : ''}`)
 
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSections to generate the others
+  // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
+  // const logSettings = await getLogSettings()
   const sections =
     dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
       ? await getAllSectionsData(useDemoData, true, true)

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in a TaskItem in a ItemRow.
-// Last updated v2.1.0.a
+// Last updated v2.1.0.b
 //--------------------------------------------------------------------------
 import React from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types.js'
@@ -87,14 +87,19 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
 
   // if hasChild, then set suitable icon
   // v1: use'fa-arrow-down-from-line' icon
-  // v2: 
+  // v2:
   // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
-  // v3: switch to ellipsis to match what main Editor will get soon
+  // v3: switch to ellipsis to match what main Editor has just got in 3.15.2
   const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
-  // if isAChild, then set suitable icon
+  // TODO: add childID and only display ... if it has a displayed child
+  
+  // if isAChild, then set suitable icon (previously tried arrow-right-from-line)
   // Note: now handled by flex layout and indent on ItemRow
-  // const possChildIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.isAChild ? <i className="fa-regular fa-arrow-right-from-line childMarker pad-left pad-right"></i> : ''
-  const possChildIcon = ''
+  // Note: Following only for debugging
+  // const possChildMarker =
+  //   dashboardSettings.parentChildMarkersEnabled && item.parentID && item.parentID !== '' ? <span className="pad-left pad-right">[P={item.parentID}]</span>
+  //     : ''
+  const possChildMarker = ''
 
   const handleClickToOpenDialog = (e: MouseEvent): void => {
     // logDebug('TaskItem', `handleClickToOpenDialog - setting dialogData to: ${JSP(messageObject)}`)
@@ -106,12 +111,14 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
     }))
   }
 
-  // TODO(later): try not to live dangerously!
+  //----- RENDER ------------------------------------------
+
   return (
     <div className="sectionItemContent">
-      {possChildIcon}
+      {possChildMarker}
       <a className="content" onClick={(e) => handleTaskClick(e)} dangerouslySetInnerHTML={{ __html: mainContent }}></a>
       {possParentIcon}
+      {/* <span className="pad-left">[ID:{item.ID}]</span> */}
       <a className="dialogTriggerIcon">
         <i className="fa-light fa-edit pad-left-larger" onClick={handleClickToOpenDialog}></i>
       </a>

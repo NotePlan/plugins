@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -148,7 +148,8 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 }
 
 /**
- * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many)
+ * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
+ * 
  * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
@@ -156,43 +157,49 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
   try {
     const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p: TParagraph) => {
       const note = p.note
-      if (!note) throw new Error(`No note found for para {${p.content}}`)
-      const anyChildren = p.children()
-      const hasChild = anyChildren.length > 0
-      const isAChild = isAChildPara(p)
+      if (note) {
+        const anyChildren = p.children()
+        const hasChild = anyChildren.length > 0
+        const isAChild = isAChildPara(p)
 
-      // FIXME: debugging why sometimes hasChild is wrong
-      if (hasChild) {
-        const pp = note.paragraphs || []
-        const nextLineIndex = p.lineIndex + 1
-        clo(
-          p,
-          `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
-            pp[nextLineIndex]?.type
-          }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
-        )
-        clo(p.contentRange, `contentRange for paragraph`)
-        clof(anyChildren, `Children of paragraph`, ['lineIndex', 'content'])
-        clo(anyChildren[0].contentRange, `contentRange for child[0]`)
-      }
-      const startTime = getStartTimeObjFromParaContent(p.content)
-      const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
-      return {
-        filename: note.filename,
-        noteType: note.type,
-        title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
-        type: p.type,
-        prefix: p.rawContent.replace(p.content, ''),
-        content: p.content,
-        rawContent: p.rawContent,
-        indentLevel: p.indents,
-        lineIndex: p.lineIndex,
-        priority: getNumericPriorityFromPara(p),
-        // timeStr: startTime,
-        startTime: startTimeStr,
-        changedDate: note?.changedDate,
-        hasChild: hasChild,
-        isAChild: isAChild,
+        // Note: debugging why sometimes hasChild is wrong
+        // TODO(later): remove this debugging
+        if (hasChild) {
+          const pp = note.paragraphs || []
+          const nextLineIndex = p.lineIndex + 1
+          clo(
+            p,
+            `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type
+            }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
+          )
+          // clo(p.contentRange, `contentRange for paragraph`)
+          clof(anyChildren, `Children of paragraph`, ['lineIndex', 'indents', 'content'])
+          // clo(anyChildren[0].contentRange, `contentRange for child[0]`)
+        }
+
+        const startTime = getStartTimeObjFromParaContent(p.content)
+        const startTimeStr = startTime ? getTimeStringFromHM(startTime.hours, startTime.mins) : 'none'
+        return {
+          filename: note.filename,
+          noteType: note.type,
+          title: note.type === 'Notes' ? displayTitle(note) : note.title /* will be ISO-8601 date */,
+          type: p.type,
+          prefix: p.rawContent.replace(p.content, ''),
+          content: p.content,
+          rawContent: p.rawContent,
+          indentLevel: p.indents, // TEST: not returning correct indents at times?
+          lineIndex: p.lineIndex,
+          priority: getNumericPriorityFromPara(p),
+          // timeStr: startTime,
+          startTime: startTimeStr,
+          changedDate: note?.changedDate,
+          hasChild: hasChild,
+          isAChild: isAChild,
+        }
+      } else {
+        logWarn('makeDashboardParas', `No note found for para {${p.content}}`)
+        // $FlowFixMe[incompatible-call]
+        return
       }
     })
     return dashboardParas
@@ -313,16 +320,11 @@ export function getOpenItemParasForTimePeriod(
     }
     // logTimer('getOpenItemPFCTP', startTime, `- after getReferencedParagraphs(): ${refOpenParas.length} para(s)`)
 
-    // Remove items referenced from items in 'excludedFolders'
-    // v1
-    // const excludedFolders = dashboardSettings.excludedFolders ? stringListOrArrayToArray(dashboardSettings.excludedFolders, ',') : []
-    // refOpenParas = excludedFolders.length ? filterOutParasInExcludeFolders(refOpenParas, excludedFolders, true) : refOpenParas
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' filter: ${refOpenParas.length} para(s)`)
-    // v2
     // Get list of allowed folders (using both include and exlcude settings)
     const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
     // $FlowIgnore[incompatible-call]
     refOpenParas = refOpenParas.filter((p) => isNoteFromAllowedFolder(p.note, allowedFoldersInCurrentPerspective, true))
+    // logTimer('getOpenItemPFCTP', startTime, `- after getting refOpenParas: ${refOpenParas.length} para(s)`)
 
     // Remove possible dupes from sync'd lines
     refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
@@ -349,19 +351,17 @@ export function getOpenItemParasForTimePeriod(
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     if (dashboardSettings.separateSectionForReferencedNotes) {
-      const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
-      const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
-      // come back to main thread
-      // await CommandBar.onMainThread()
-      // logTimer('getOpenItemPFCTP', startTime, `- sorted`)
-      return [sortedOpenParas, sortedRefOpenParas]
+      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
+      // const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
+      // const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
+      // return [sortedOpenParas, sortedRefOpenParas]
+      return [openDashboardParas, refOpenDashboardParas]
     } else {
       const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
-      const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      // logTimer('getOpenItemPFCTP', startTime, `- sorted`)
-      // come back to main thread
-      // await CommandBar.onMainThread()
-      return [combinedSortedParas, []]
+      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
+      // const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
+      // return [combinedSortedParas, []]
+      return [combinedParas, []]
     }
   } catch (err) {
     logError('getOpenItemParasForTimePeriod', err.message)
@@ -552,7 +552,7 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(notesToCheck.length)} non-blank MD notes to check`)
 
     // Now find all open items in them which have a priority marker
-    const priorityParas = getAllOpenPriorityItems(notesToCheck)
+    const priorityParas = getAllOpenPriorityParas(notesToCheck)
     logTimer('getRelevantPriorityTasks', thisStartTime, `- Found ${String(priorityParas.length)} priorityParas`)
     await CommandBar.onMainThread()
     // Log for testing
@@ -607,11 +607,11 @@ function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTer
 }
 
 /**
- * ???
+ * Get all paras with open items with Priority > 0.
  * @param {Array<TNote>} notesToCheck
  * @returns {Array<TParagraph>}
  */
-function getAllOpenPriorityItems(notesToCheck: Array<TNote>): Array<TParagraph> {
+function getAllOpenPriorityParas(notesToCheck: Array<TNote>): Array<TParagraph> {
   const priorityParas: Array<TParagraph> = []
   for (const note of notesToCheck) {
     const priorityParasForNote = getOpenPriorityItems(note)
@@ -621,7 +621,7 @@ function getAllOpenPriorityItems(notesToCheck: Array<TNote>): Array<TParagraph> 
 }
 
 /**
- * ???
+ * Get all open items with Priority > 0 from the given note.
  * @param {TNote} note
  * @returns {Array<TParagraph>}
  */
@@ -978,14 +978,83 @@ export function mergeSections(existingSections: Array<TSection>, newSections: Ar
 }
 
 /**
- * Helper function to create a sectionItem object.
+ * Helper function to create a sectionItem object from its constituent parts.
  *
  * @param {string} id - The ID of the sectionItem.
  * @param {TParagraph} p - The paragraph data for the sectionItem.
  * @param {string} theType - The type of the sectionItem (if left blank, will use the para's type)
  * @returns {SectionItem} A sectionItem object.
  */
-export function getSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
+export function createSectionItemObject(id: string, p: TParagraph | TParagraphForDashboard | null = null, theType?: TItemType): TSectionItem {
   // $FlowIgnore - we are not using all the types in TParagraph
   return { ID: id, itemType: theType ?? p.type, para: p }
+}
+
+/**
+ * Make a sectionItem for each paragraph of interest
+ * @param {Array<TParagraphForDashboard>} sortedOrCombinedParas
+ * @param {string} sectionNumStr
+ * @returns {Array<TSectionItem>}
+ */
+export function createSectionItemsFromParas(sortedOrCombinedParas: Array<TParagraphForDashboard>, sectionNumStr: string): Array<TSectionItem> {
+  let itemCounter = 0
+  let lastIndent0ParentID = ''
+  let lastIndent1ParentID = ''
+  let lastIndent2ParentID = ''
+  let lastIndent3ParentID = ''
+  const items: Array<TSectionItem> = []
+  for (const socp of sortedOrCombinedParas) {
+    const thisID = `${sectionNumStr}-${itemCounter}`
+    const thisSectionItemObject = createSectionItemObject(thisID, socp)
+    // Now add parentID where relevant
+    if (socp.isAChild) {
+      const parentParaID =
+        socp.indentLevel === 1
+          ? lastIndent0ParentID
+          : socp.indentLevel === 2
+            ? lastIndent1ParentID
+            : socp.indentLevel === 3
+              ? lastIndent2ParentID
+              : socp.indentLevel === 4
+                ? lastIndent3ParentID
+                : '' // getting silly by this point, so stop
+      thisSectionItemObject.parentID = parentParaID
+      logInfo(``, `- found parentID ${parentParaID} for ID ${thisID}`)
+    }
+    if (socp.hasChild) {
+      switch (socp.indentLevel) {
+        case 0: {
+          lastIndent0ParentID = thisID
+          break
+        }
+        case 1: {
+          lastIndent1ParentID = thisID
+          break
+        }
+        case 2: {
+          lastIndent2ParentID = thisID
+          break
+        }
+        case 3: {
+          lastIndent3ParentID = thisID
+          break
+        }
+      }
+    }
+    items.push(thisSectionItemObject)
+    itemCounter++
+  }
+  return items
+}
+
+export function getDisplayListOfSectionCodes(sections: Array<TSection>): string {
+  const outputList = []
+  sections.forEach((s) => {
+    if (s.sectionCode === 'TAG') {
+      outputList.push(`${s.sectionCode}(${s.name})`)
+    } else {
+      outputList.push(s.sectionCode)
+    }
+  })
+  return outputList.join(',')
 }

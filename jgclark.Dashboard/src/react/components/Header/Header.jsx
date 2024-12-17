@@ -155,7 +155,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const handleRefreshClick =
     (isHardRefresh: boolean = false): Function =>
     (): void => {
-      const actionType = isHardRefresh ? 'windowReload' : 'refresh'
+      const actionType = isHardRefresh ? 'windowReload' : 'refreshEnabledSections'
       logDebug('Header', `Refresh button clicked; isHardRefresh:${String(isHardRefresh)} sending action:${actionType}`)
       sendActionToPlugin(actionType, { actionType: actionType, sectionCodes: visibleSectionCodes }, 'Refresh button clicked', true)
     }
@@ -173,9 +173,9 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   const isDevMode = logSettings._logLevel === 'DEV'
-  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton
+  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && pluginData.platform !== 'iOS'
   const isMobile = pluginData.platform !== 'macOS'
-  const isNarrowWidth = window.innerWidth <= 650
+  const isNarrowWidth = window.innerWidth <= 680
   const updatedText = 'Updated'
 
   // ----------------------------------------------------------------------

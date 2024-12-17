@@ -3,15 +3,14 @@
 // Dashboard React component to create a full content line for a Task item: 
 // icon, content, noteLink and the fa-edit icon at the end.
 // 
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //--------------------------------------------------------------------------
 // @flow
 import React, { type Node, useState } from 'react'
 import type { MessageDataObject, TSection, TSectionItem } from '../../types'
 import ItemContent from './ItemContent.jsx'
 import StatusIcon from './StatusIcon.jsx'
-import { clo, JSP, logDebug } from '@helpers/react/reactDev.js'
-// import { getTimeBlockDetails } from '@helpers/timeblocks'
+import { clo, JSP, logDebug, logInfo } from '@helpers/react/reactDev.js'
 
 type Props = {
   item: TSectionItem,
@@ -19,8 +18,6 @@ type Props = {
 };
 
 function TaskItem({ item, thisSection }: Props): Node {
-  // const { setReactSettings, dashboardSettings } = useAppContext()
-
   const [visible, setVisible] = useState(true)
 
   const messageObject: MessageDataObject = {
@@ -59,12 +56,17 @@ function TaskItem({ item, thisSection }: Props): Node {
     // clo(messageObject, `TaskItem: icon clicked: ${item.ID}`)
   }
 
-  const indentLevel = item.para?.indentLevel ?? 0
+  // Add an indent level to the start of the item iff it is a child and it has a selected parent
+  // TODO: and test that parent is being shown!
+  const indentLevelToDisplay = /* item.para?.isAChild && */ item.parentID && item.parentID !== '' ? item.para?.indentLevel ?? 0 : 0
 
   return (
     visible ? (
-      <div className="sectionItemRow" id={item.ID} style={{
-        paddingLeft: `calc(${indentLevel} * var(--itemIndentWidth))`
+      <div
+        className="sectionItemRow"
+        id={item.ID}
+        style={{
+          paddingLeft: `calc(${indentLevelToDisplay} * var(--itemIndentWidth))`
       }} >
         <StatusIcon
           item={item}

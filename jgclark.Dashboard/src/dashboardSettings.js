@@ -84,33 +84,35 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
-    label: 'General Settings',
+    label: 'What to Include and Exclude',
+    description: "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting.",
   },
   {
     key: 'includedFolders',
-    label: 'Folders to include when finding items',
-    description: "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. It works in conjunction with 'Folders to ignore' below.",
+    label: 'Folders to Include',
+    description: "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.",
     type: 'input',
-    default: '/',
+    default: '',
     compactDisplay: true,
   },
   {
     key: 'excludedFolders',
-    label: 'Folders to ignore when finding items',
+    label: 'Folders to Exclude',
     description:
-      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.) This takes priority over 'Folders to include'.",
+      "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)",
     type: 'input',
     default: '@Archive, @Templates, Saved Searches',
-    compactDisplay: false,
+    compactDisplay: true,
   },
   {
     // Note: replaces earlier "ignoreTagMentionsWithPhrase" which applied only to the Tag/Mention section
     key: 'ignoreItemsWithTerms',
-    label: 'Ignore items in calendar sections with phrase(s)',
+    label: 'Ignore items in notes with phrase(s)',
     description:
-      'If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore in a particular Perpsective. To include more than one word, separate them by commas.',
+      'If set, open tasks/checklists with any of these words or tags/mentions will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control, or you want to ignore it in a particular Perpsective. To include more than one word, separate them by commas.',
     type: 'input',
     default: '#waiting',
+    compactDisplay: false,
   },
   {
     type: 'separator',

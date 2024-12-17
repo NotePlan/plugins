@@ -3,15 +3,22 @@
 // clickHandlers.js
 // Handler functions for dashboard clicks that come over the bridge
 // The routing is in pluginToHTMLBridge.js/bridgeClickDashboardItem()
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
-import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getNotePlanSettings, handlerResult, mergeSections, moveItemToRegularNote, setPluginData } from './dashboardHelpers'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
+
+// import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
+// import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
+// import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
+import {
+  getDashboardSettings,
+  // getNotePlanSettings,
+  handlerResult,
+  // mergeSections, moveItemToRegularNote,
+  setPluginData
+} from './dashboardHelpers'
+// import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
-import { validateAndFlattenMessageObject } from './shared'
+// import { validateAndFlattenMessageObject } from './shared'
 import {
   addNewPerspective,
   cleanDashboardSettings,
@@ -21,28 +28,18 @@ import {
   getPerspectiveSettings,
   logPerspectives,
   replacePerspectiveDef,
-  setActivePerspective,
+  // setActivePerspective,
   switchToPerspective,
   renamePerspective,
   savePerspectiveSettings,
 } from './perspectiveHelpers'
-import {
-  cancelItem,
-  completeItem,
-  completeItemEarlier,
-  deleteItem,
-  findParaFromStringAndFilename,
-  highlightParagraphInEditor,
-  scheduleItem,
-  unscheduleItem,
-} from '@helpers/NPParagraph'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-import { openNoteByFilename } from '@helpers/NPnote'
-import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
+// import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+// import { openNoteByFilename } from '@helpers/NPnote'
+// import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-import { getGlobalSharedData } from '@helpers/HTMLView'
-import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-import { showMessage, processChosenHeading } from '@helpers/userInput'
+// import { getGlobalSharedData } from '@helpers/HTMLView'
+// import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
+// import { showMessage, processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
