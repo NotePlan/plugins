@@ -7,7 +7,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { incrementallyRefreshSections, refreshSomeSections } from './refreshClickHandlers'
+import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
 // import { getSomeSectionsData } from './dataGeneration'
 import type { MessageDataObject, TSectionCode } from './types'
@@ -145,12 +145,11 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         // Instead we test for Editor in the dataGeneration::getOpenItemParasForTimePeriod() function
 
         // Update the dashboard
-        logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
         // Note: v1 following redraws whole window incrementally, which leaves flash or empty screen for a while
         // showDashboardReact('trigger') // indicate this comes from a trigger, so won't take focus
         // Note: v2 avoids flashing, because
         // const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: allSectionCodes }
-        // const res = await incrementallyRefreshSections(data)
+        // const res = await incrementallyRefreshSomeSections(data)
         // v3 only update the section for this note (or if not found then all sections still)
         const FTSCList = makeFilenameToSectionCodeList()
         const filename = Editor.filename
@@ -159,7 +158,8 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
         // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
-        const res = await incrementallyRefreshSections(data, true)
+        logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard section(s) ${theseSectionCodes.toString()}`)
+        const res = await incrementallyRefreshSomeSections(data, true)
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }

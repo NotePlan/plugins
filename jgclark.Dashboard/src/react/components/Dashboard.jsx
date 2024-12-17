@@ -203,9 +203,9 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       const sectionCodesToAdd = enabledSectionCodes.filter((sc) => sc !== origSections[0].sectionCode)
       logInfo('Dashboard/useEffect [] (startup only)', `- initial section is ${origSections[0].sectionCode}. sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
       sendActionToPlugin(
-        'incrementallyRefreshSections',
+        'incrementallyRefreshSomeSections',
         {
-          actionType: 'incrementallyRefreshSections',
+          actionType: 'incrementallyRefreshSomeSections',
           sectionCodes: sectionCodesToAdd,
           logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1`,
         },
@@ -299,7 +299,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   const autoRefresh = () => {
     logDebug('Dashboard', `${new Date().toString()} Auto-Refresh time!`)
-    const actionType = 'refresh'
+    const actionType = 'refreshEnabledSections'
     sendActionToPlugin(actionType, { actionType }, 'Auto-Refresh time!', true)
   }
 
