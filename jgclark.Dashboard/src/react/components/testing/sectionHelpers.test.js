@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line flowtype/no-types-missing-file-annotation
 // import type { TSection, TSectionCode } from '../../../types.js'
-import * as sh from './sectionHelpers.js'
+import * as sh from '../Section/sectionHelpers.js'
 import { clo, logDebug } from '@helpers/dev'
 
 // tests start here
