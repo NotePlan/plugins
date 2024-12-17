@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Settings for the dashboard - loaded/set in React Window
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 import type { TSettingItem } from './types.js'
 import { clo, clof, logDebug } from '@helpers/react/reactDev'
@@ -17,9 +17,27 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     default: false,
     description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.',
   },
-  { label: 'Show referenced items in separate section?', key: 'separateSectionForReferencedNotes', type: 'switch', default: false, refreshAllOnChange: true },
-  { label: 'Hide checklist items?', key: 'ignoreChecklistItems', type: 'switch', default: false, refreshAllOnChange: true },
-  { label: 'Hide duplicates?', key: 'hideDuplicates', type: 'switch', default: false, description: "Only display one instance of each item, even if it's in multiple sections" },
+  {
+    label: 'Show referenced items in separate section?',
+    key: 'separateSectionForReferencedNotes',
+    type: 'switch',
+    default: false,
+    refreshAllOnChange: true
+  },
+  {
+    label: 'Hide checklist items?',
+    key: 'ignoreChecklistItems',
+    type: 'switch',
+    default: false,
+    refreshAllOnChange: true
+  },
+  {
+    label: 'Hide duplicates?',
+    key: 'hideDuplicates',
+    type: 'switch',
+    default: false,
+    description: "Only display one instance of each item, even if it's in multiple sections"
+  },
   {
     label: 'Hide priority markers?',
     key: 'hidePriorityMarkers',
@@ -27,7 +45,13 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     default: false,
     description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)",
   },
-  { label: 'Include note link for tasks?', key: 'includeTaskContext', type: 'switch', default: true, description: 'Whether to show the note link for an open task or checklist' },
+  {
+    label: 'Include note link for tasks?',
+    key: 'includeTaskContext',
+    type: 'switch',
+    default: true,
+    description: 'Whether to show the note link for an open task or checklist'
+  },
   {
     label: 'Include folder name in note link?',
     key: 'includeFolderName',
@@ -182,13 +206,15 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description:
       "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
     type: 'number',
-    default: '30',
+    default: '24',
     compactDisplay: true,
   },
   {
     key: 'parentChildMarkersEnabled',
-    label: 'Show parent/child markers on items?',
-    description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
+    // label: 'Show parent/child markers on items?',
+    // description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
+    label: 'Show parent markers on items?',
+    description: 'If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
     type: 'switch',
     default: true,
   },
@@ -205,7 +231,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Automatic Update frequency',
     description: 'If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.',
     type: 'number',
-    default: '0',
+    default: '10',
     compactDisplay: true,
   },
   {
@@ -240,7 +266,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     label: 'Number of days to look back for Overdue tasks',
     description: 'If set to any number > 0, will restrict Overdue tasks to just this last number of days.',
     type: 'number',
-    default: '',
+    default: '7',
     compactDisplay: true,
   },
   {
@@ -258,14 +284,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: '',
   },
-  // Note: now effectively made Dashboard-wide, aka "ignoreItemsWithTerms"
-  // {
-  //   key: "ignoreTagMentionsWithPhrase",
-  //   label: "Ignore items in this section with this phrase",
-  //   description: "Open tasks/checklists in this section will be ignored if they include this phrase.",
-  //   type: 'input',
-  //   default: "",
-  // },
   {
     type: 'separator',
   },
@@ -381,7 +399,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           compactDisplay: setting.compactDisplay ?? false,
           dependsOnKey: setting.dependsOnKey,
         }
-      //$FlowIgnore[incompatible-type] don't understand the error
+      // $FlowIgnore[incompatible-type] don't understand the error
       case 'hidden':
         return {
           //$FlowIgnore[incompatible-call] don't understand the error
@@ -391,7 +409,7 @@ export const createDashboardSettingsItems = (allSettings: TAnyObject /*, pluginS
           value: allSettings[thisKey] ?? setting.default,
           description: setting.description,
         }
-      //$FlowIgnore[incompatible-type] don't understand the error
+      // $FlowIgnore[incompatible-type] don't understand the error
       case 'perspectiveList':
         return {
           //$FlowIgnore[incompatible-call] don't understand the error

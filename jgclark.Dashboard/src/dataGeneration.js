@@ -789,7 +789,7 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `first {count} of {totalCount} ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNumStr,
