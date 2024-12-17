@@ -3,6 +3,7 @@
 // PerspectivesTable Component
 // Displays a table of settings for multiple perspectives.
 // Users can edit settings for each perspective.
+// Last updated for 2.1.0.b
 //------------------------------------------------------------------------------
 
 import React, { useState } from 'react'
@@ -86,6 +87,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
       externalChangesMade={changesMade} // Pass external changesMade state
       setChangesMade={setChangesMade} // Pass setChangesMade function
       style={style}
+      submitButtonText="Save & Close"
     >
       <div className="perspectives-table-container">
         <table className="perspectives-table">
