@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
-// React component to show a dialog using dynamic field definitions
-// Changes are saved when "Submit" is clicked, but not before
-// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true
+// React component to show a dialog using dynamic field definitions.
+// Changes are saved when the "Submit" button is clicked, but not before.
+// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true.
 //--------------------------------------------------------------------------
 /**
  * TODO:
@@ -10,17 +10,17 @@
  * - add "disabled" to all elements
  * - Dropdown always visible is not working
  * - Make dialog draggable?
- * - focus first input field when dialog opens
  * - Send processing template name to plugin in pluginData
  * - Processing command should be np.Templating,templateRunner
  * - Template-side processing, use: overrideSettingsWithTypedArgs (somehow needs to identify that this is a JSON self-runner, __isJSON__ = true or something)
  * - implement dependsOnKey (disabled greyed out and indented)
  * - CSS: Separator padding top/bottom balance
- *
  */
+
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
+
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
@@ -30,6 +30,7 @@ import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
+
 export type TSettingItemType =
   | 'switch'
   | 'input'
