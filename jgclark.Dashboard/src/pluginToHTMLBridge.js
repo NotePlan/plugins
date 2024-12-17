@@ -126,9 +126,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     switch (actionType) {
       case 'refreshEnabledSections': {
         const sectionCodesToUse = data.sectionCodes ? data.sectionCodes : allSectionCodes
-        logInfo('bCDI / refresh', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
+        logInfo('bCDI / refreshEnabledSections', `sectionCodesToUse: ${String(sectionCodesToUse)}`)
 
-        await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
+        result = await incrementallyRefreshSomeSections({ ...data, sectionCodes: sectionCodesToUse }, false, true)
         result = { success: true }
         break
       }
@@ -137,9 +137,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'incrementallyRefreshSomeSections': {
-        // TODO: Only used by Dashboard after first section loaded. Can this be removed in place of refreshSomeSections?
+        // Note: Only used by Dashboard after first section loaded.
         logInfo('bCDI / incrementallyRefreshSomeSections', `calling incrementallyRefreshSomeSections with data.sectionCodes = ${String(data.sectionCodes)} ...`)
-        clo(data, '(startup only) data arriving in bCDI / incrementallyRefreshSomeSections')
         result = await incrementallyRefreshSomeSections(data)
         break
       }
