@@ -168,7 +168,6 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
     // console.log(typeof mustContainStringArg, typeof DataStore)
     let mustContainString = mustContainStringArg && typeof mustContainStringArg === 'string' ? mustContainStringArg : ''
     if (mustContainString === '') {
-      let preference: string
       // If DataStore.preference gives an error, or is not available, or gives an undefined answer, then treat as an empty string
       try {
         const preferenceValue = DataStore?.preference('timeblockTextMustContainString')
@@ -180,7 +179,7 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
     }
     // Check for the mustContainString (if given)
     const normalizedContent = contentString.normalize('NFC')
-    logDebug('isTimeBlockLine', `- with '${mustContainString}' for {${normalizedContent}}`)
+    // logDebug('isTimeBlockLine', `- with '${mustContainString}' for {${normalizedContent}}`)
 
     if (mustContainString !== '') {
       // Normalize both strings to ensure consistent Unicode representation
