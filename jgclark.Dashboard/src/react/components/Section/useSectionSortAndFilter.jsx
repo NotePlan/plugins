@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
 // Filters and sorts items to be shown in a Section
-// Last updated for v2.1.0.a
+// Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -17,14 +17,14 @@ type UseSectionSortAndFilter = {
 }
 
 const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, dashboardSettings: any): UseSectionSortAndFilter => {
-  const [filteredItems, setFilteredItems] = useState<Array<TSectionItem>>([])
-  const [itemsToShow, setItemsToShow] = useState<Array<TSectionItem>>([])
-  const [numFilteredOut, setFilteredOut] = useState<number>(0)
-  const [limitApplied, setLimitApplied] = useState<boolean>(false)
+  const [filteredItems, setFilteredItems] = useState < Array < TSectionItem >> ([])
+  const [itemsToShow, setItemsToShow] = useState < Array < TSectionItem >> ([])
+  const [numFilteredOut, setFilteredOut] = useState < number > (0)
+  const [limitApplied, setLimitApplied] = useState < boolean > (false)
 
   useEffect(() => {
     const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
-    // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
+    logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
 
     // Find highest priority seen
     let maxPrioritySeen = -1
@@ -33,49 +33,18 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         maxPrioritySeen = i.para.priority
       }
     }
-    // and then filter lower-priority items (if wanted)
+    // and then filter out lower-priority items (if wanted)
     const filteredItems = filterPriorityItems
       ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
       : items.slice()
     const priorityFilteringHappening = items.length > filteredItems.length
+    // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
-    // sort items
-    filteredItems.sort((a, b) => {
-      // Sort by priority (first)
-      const priorityA = a.para?.priority ?? 0
-      const priorityB = b.para?.priority ?? 0
-      if (priorityA !== priorityB) {
-        return priorityB - priorityA
-      }
+    filteredItems.sort(itemSort)
+    logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
 
-      // Sort by startTime
-      if (a.para?.startTime && b.para?.startTime) {
-        const startTimeComparison = a.para.startTime.localeCompare(b.para.startTime)
-        if (startTimeComparison !== 0) return startTimeComparison
-      } else if (a.para?.startTime) {
-        return -1
-      } else if (b.para?.startTime) {
-        return 1
-      }
-
-      // Sort by endTime
-      if (a.para?.endTime && b.para?.endTime) {
-        const endTimeComparison = a.para.endTime.localeCompare(b.para.endTime)
-        if (endTimeComparison !== 0) return endTimeComparison
-      } else if (a.para?.endTime) {
-        return -1
-      } else if (b.para?.endTime) {
-        return 1
-      }
-
-      // Finally sort by content (alphabetic)
-      const contentA = a.para?.content.toLowerCase() ?? ''
-      const contentB = b.para?.content.toLowerCase() ?? ''
-      return contentA.localeCompare(contentB)
-    })
-    // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
     const filteredOrderedItems = reorderChildrenAfterParents(filteredItems)
-    // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
+    logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
 
     // If more than limitToApply, then just keep the first items, otherwise keep all
     const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
@@ -109,13 +78,48 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
 }
 
+export function     // sort items by priority, startTime, endTime, content
+  itemSort(a: TSectionItem, b: TSectionItem): number {
+  // Sort by priority (first)
+  const priorityA = a.para?.priority ?? 0
+  const priorityB = b.para?.priority ?? 0
+  if (priorityA !== priorityB) {
+    return priorityB - priorityA
+  }
+
+  // Sort by startTime
+  if (a.para?.startTime && b.para?.startTime) {
+    const startTimeComparison = a.para.startTime.localeCompare(b.para.startTime)
+    if (startTimeComparison !== 0) return startTimeComparison
+  } else if (a.para?.startTime) {
+    return -1
+  } else if (b.para?.startTime) {
+    return 1
+  }
+
+  // Sort by endTime
+  if (a.para?.endTime && b.para?.endTime) {
+    const endTimeComparison = a.para.endTime.localeCompare(b.para.endTime)
+    if (endTimeComparison !== 0) return endTimeComparison
+  } else if (a.para?.endTime) {
+    return -1
+  } else if (b.para?.endTime) {
+    return 1
+  }
+
+  // Finally sort by content (alphabetic)
+  const contentA = a.para?.content.toLowerCase() ?? ''
+  const contentB = b.para?.content.toLowerCase() ?? ''
+  return contentA.localeCompare(contentB)
+}
+
 /**
  * Reorders an array of objects so that children follow their parents. Relies on having .ID and .parentID? fields in the top level of the object.
  *
  * @param {Array<Object>} data - The array of objects to be reordered. Each object should have a `parentID` property.
  * @returns {Array<Object>} - The reordered array where each child object follows its parent.
  */
-function reorderChildrenAfterParents(data: Array<Object>) {
+export function reorderChildrenAfterParents(data: Array<Object>): Array<Object> {
   const orderedData = []
   // $FlowFixMe[underconstrained-implicit-instantiation] reason for suppression
   const map = new Map()
@@ -126,7 +130,7 @@ function reorderChildrenAfterParents(data: Array<Object>) {
     if (!map.has(parent)) {
       map.set(parent, [])
     }
-    // $FlowFixMee[incompatible-use]
+    // $FlowFixMe[incompatible-use]
     map.get(parent).push(obj)
   })
 
@@ -141,7 +145,6 @@ function reorderChildrenAfterParents(data: Array<Object>) {
 
   // Start by adding top-level parents
   buildSorted('')
-
   return orderedData
 }
 

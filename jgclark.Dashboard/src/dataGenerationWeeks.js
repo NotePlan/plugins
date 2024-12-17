@@ -5,37 +5,21 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { TDashboardSettings, TItemType, TParagraphForDashboard, TSectionCode, TSection, TSectionItem, TSectionDetails, TSettingItem } from './types'
-import { allSectionCodes } from './constants.js'
+import type { TDashboardSettings, TParagraphForDashboard, TSection, TSectionItem, TSettingItem } from './types'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  getDashboardSettings,
-  getListOfEnabledSections,
+  createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  getRelevantOverdueTasks,
-  getSectionItemObject,
-  getStartTimeFromPara,
-  makeDashboardParas,
+  createSectionItemObject,
 } from './dashboardHelpers'
-import { openWeekParas, refWeekParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
+import { openWeekParas, refWeekParas } from './demoData'
 import {
   getDateStringFromCalendarFilename,
   getNPWeekStr,
-  getTodaysDateHyphenated,
-  getTodaysDateUnhyphenated,
-  filenameIsInFuture,
-  includesScheduledFutureDate,
 } from '@helpers/dateTime'
-import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
-import { toNPLocaleDateString } from '@helpers/NPdateTime'
-import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers/NPnote'
-import { sortListBy } from '@helpers/sorting'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { getCurrentTimeBlockPara, getTimeBlockDetails } from '@helpers/timeblocks'
-import { isOpen, isOpenTask } from '@helpers/utils'
+import { getHeadingsFromNote } from '@helpers/NPnote'
 
 //-----------------------------------------------------------------
 
@@ -48,10 +32,10 @@ import { isOpen, isOpenTask } from '@helpers/utils'
  */
 export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = '6'
+    let sectionNumStr = '6'
     const thisSectionCode = 'W'
     const sections: Array<TSection> = []
-    const items: Array<TSectionItem> = []
+    let items: Array<TSectionItem> = []
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const dateStr = getNPWeekStr(today)
@@ -60,14 +44,14 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} ------------`)
+    logInfo('getDataForDashboard', `---------- Gathering Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section
       const sortedParas = config.separateSectionForReferencedNotes ? openWeekParas : openWeekParas.concat(refWeekParas)
       sortedParas.map((item) => {
-        const thisID = `${sectionNum}-${itemCount}`
+        const thisID = `${sectionNumStr}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
@@ -82,12 +66,16 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
         // Get list of open tasks/checklists from this calendar note
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', currentWeeklyNote, config, useEditorWherePossible)
 
-        // write one combined section
-        sortedOrCombinedParas.map((p) => {
-          const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID, p))
-          itemCount++
-        })
+        // // write one combined section
+        // sortedOrCombinedParas.map((p) => {
+        //   const thisID = `${sectionNumStr}-${itemCount}`
+        //   items.push(createSectionItemObject(thisID, p))
+        //   itemCount++
+        // })
+
+        // Iterate and write items for first (or combined) section
+        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        itemCount += items.length
         // logDebug('getDataForDashboard', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getDataForDashboard', `No weekly note found for filename '${thisFilename}'`)
@@ -110,6 +98,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               label: 'Under Heading:',
               key: 'heading',
               fixedWidth: 300,
+              // $FlowFixMe[incompatible-type]
               options: thisWeekHeadings,
               noWrapOptions: true,
               value: config.newTaskSectionHeading,
@@ -126,6 +115,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
               label: 'Under Heading:',
               key: 'heading',
               fixedWidth: 300,
+              // $FlowFixMe[incompatible-type]
               options: nextWeekHeadings,
               noWrapOptions: true,
               value: config.newTaskSectionHeading,
@@ -135,7 +125,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
     )
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'This Week',
       showSettingName: 'showWeekSection',
       sectionCode: thisSectionCode,
@@ -156,6 +146,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           postActionRefresh: ['W'],
           formFields: thisWeekFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addChecklist',
@@ -166,6 +157,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           postActionRefresh: ['W'],
           formFields: thisWeekFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addTask',
@@ -175,6 +167,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionParam: nextPeriodFilename,
           formFields: nextWeekFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'addChecklist',
@@ -184,6 +177,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           actionParam: nextPeriodFilename,
           formFields: nextWeekFormFields,
           submitOnEnter: true,
+          submitButtonText: 'Add & Close',
         },
         {
           actionName: 'moveAllThisWeekNextWeek',
@@ -199,28 +193,31 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      const items: Array<TSectionItem> = []
-      sectionNum = '7'
+      let items: Array<TSectionItem> = []
+      sectionNumStr = '7'
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNumStr}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // make a sectionItem for each item, and then make a section too.
-          sortedRefParas.map((p) => {
-            const thisID = `${sectionNum}-${itemCount}`
-            items.push(getSectionItemObject(thisID, p))
-            itemCount++
-          })
+          // // make a sectionItem for each item, and then make a section too.
+          // sortedRefParas.map((p) => {
+          //   const thisID = `${sectionNumStr}-${itemCount}`
+          //   items.push(createSectionItemObject(thisID, p))
+          //   itemCount++
+          // })
+          // Iterate and write items for first (or combined) section
+          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          itemCount += items.length
         }
       }
       const section: TSection = {
-        ID: sectionNum,
+        ID: sectionNumStr,
         name: '>This Week',
         showSettingName: 'showWeekSection',
         sectionCode: thisSectionCode,
@@ -252,34 +249,31 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNum = '19' // FIXME: remove sectionNums
+    let sectionNumStr = '19' // FIXME: remove sectionNumStrs
     const thisSectionCode = 'LW'
     const sections: Array<TSection> = []
-    const items: Array<TSectionItem> = []
+    let items: Array<TSectionItem> = []
     let itemCount = 0
     const NPSettings = getNotePlanSettings()
-    const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    const dateStr = new moment().subtract(1, 'week').format('YYYY-[W]WW')
+    const dateStr = new moment().subtract(1, 'week').format('YYYY-[W]WW') // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const thisFilename = `${dateStr}.${NPSettings.defaultFileExtension}`
-    // const thisFilename = DataStore.calendarNoteByDate(new moment().subtract(1, 'week').toDate(), 'week')?.filename ?? '(error)'
 
     let sortedOrCombinedParas: Array<TParagraphForDashboard> = []
     let sortedRefParas: Array<TParagraphForDashboard> = []
-    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNum)} from ${thisFilename} ------------`)
+    logInfo('getLastWeekSectionData', `---------- Gathering Last Week's ${useDemoData ? 'DEMO' : ''} items for section #${String(sectionNumStr)} from ${thisFilename} ------------`)
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
       // write first or combined section
       const sortedParas = config.separateSectionForReferencedNotes ? openWeekParas : openWeekParas.concat(refWeekParas)
       sortedParas.map((item) => {
-        const thisID = `${sectionNum}-${itemCount}`
+        const thisID = `${sectionNumStr}-${itemCount}`
         items.push({ ID: thisID, ...item })
         itemCount++
       })
     } else {
       const lastWeeklyNote = DataStore.calendarNoteByDateString(dateStr)
       if (lastWeeklyNote) {
-        // const thisFilename = lastWeeklyNote?.filename ?? '(error)'
         const dateStr = getDateStringFromCalendarFilename(thisFilename)
         if (!thisFilename.includes(dateStr)) {
           logError('getLastWeekSectionData', `- filename '${thisFilename}' but '${dateStr}' ??`)
@@ -289,11 +283,15 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
         ;[sortedOrCombinedParas, sortedRefParas] = getOpenItemParasForTimePeriod('week', lastWeeklyNote, config, useEditorWherePossible)
 
         // write one combined section
-        sortedOrCombinedParas.map((p) => {
-          const thisID = `${sectionNum}-${itemCount}`
-          items.push(getSectionItemObject(thisID, p))
-          itemCount++
-        })
+        // sortedOrCombinedParas.map((p) => {
+        //   const thisID = `${sectionNumStr}-${itemCount}`
+        //   items.push(createSectionItemObject(thisID, p))
+        //   itemCount++
+        // })
+        // Iterate and write items for first (or combined) section
+        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        itemCount += items.length
+
         // logDebug('getLastWeekSectionData', `- finished finding weekly items from ${dateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getLastWeekSectionData', `No weekly note found for filename '${thisFilename}'`)
@@ -303,7 +301,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     const doneCountData = getNumCompletedTasksTodayFromNote(thisFilename, true)
 
     const section: TSection = {
-      ID: sectionNum,
+      ID: sectionNumStr,
       name: 'Last Week',
       showSettingName: 'showLastWeekSection',
       sectionCode: thisSectionCode,
@@ -329,28 +327,31 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
-      const items: Array<TSectionItem> = []
-      sectionNum = '7'
+      let items: Array<TSectionItem> = []
+      sectionNumStr = '7'
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
-          const thisID = `${sectionNum}-${itemCount}`
+          const thisID = `${sectionNumStr}-${itemCount}`
           items.push({ ID: thisID, ...item })
           itemCount++
         })
       } else {
         // Get list of open tasks/checklists from current weekly note (if it exists)
         if (sortedRefParas.length > 0) {
-          // make a sectionItem for each item, and then make a section too.
-          sortedRefParas.map((p) => {
-            const thisID = `${sectionNum}-${itemCount}`
-            items.push(getSectionItemObject(thisID, p))
-            itemCount++
-          })
+          // // make a sectionItem for each item, and then make a section too.
+          // sortedRefParas.map((p) => {
+          //   const thisID = `${sectionNumStr}-${itemCount}`
+          //   items.push(createSectionItemObject(thisID, p))
+          //   itemCount++
+          // })
+          // Iterate and write items for first (or combined) section
+          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          itemCount += items.length
         }
       }
       const section: TSection = {
-        ID: sectionNum,
+        ID: sectionNumStr,
         name: '>Last Week',
         showSettingName: 'showWeekSection',
         sectionCode: thisSectionCode,
