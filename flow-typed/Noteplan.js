@@ -617,16 +617,23 @@ declare class DataStore {
    * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
    * Note: Can also move *folders* by specifying its filename (without trailing slash).
    * Note: You can also use this to delete notes or folders by moveNote(filepath, '@Trash')
-   * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
+   * Note: from v3.9.3 you can also use 'type' set to 'Calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
+   * @param {string} filename of the new note
+   * @param {string} folder to move the note to
+   * @param {NoteType} type? for note
+   * @returns {?string} resulting final filename
    */
-  static moveNote(filename: string, folder: string, type?: string): ?string;
+  static moveNote(filename: string, folder: string, type ?: NoteType): ?string;
   /**
    * Creates a regular note using the given title and folder.
    * Use "/" for the root folder.
    * It will write the given title as "# title" into the new file.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    * Note: @jgclark finds that if 'folder' has different capitalisation than an existing folder, NP gets confused, in a way that reset caches doesn't solve. It needs a restart.
+   * @param {string} noteTitle of the new note
+   * @param {string} folder to create the note in
+   * @returns {?string} resulting final filename
    */
   static newNote(noteTitle: string, folder: string): ?string;
   /**
@@ -639,7 +646,7 @@ declare class DataStore {
    * @param {string} content for note
    * @param {string} folder to create the note in
    * @param {string} filename of the new note (optional) (available from v3.5.2)
-   * @return {string}
+   * @returns {string}
    */
   static newNoteWithContent(content: string, folder: string, filename?: string): string;
 
@@ -666,7 +673,7 @@ declare class DataStore {
    * @param {boolean} shouldUpdateTags?
    * @returns {TNote?} updated note object
    */
-  static updateCache(note, shouldUpdateTags): TNote | null;
+  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote | null;
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.

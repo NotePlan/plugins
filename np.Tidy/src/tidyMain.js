@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 3.7.2023 for v0.6.0+, @jgclark
+// Last updated 2024-12-18 for v0.14.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -752,7 +752,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
         if (NotePlan.environment.buildVersion > 1053) {
           logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}", 'calendar')`)
-          const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'calendar')
+          const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'Calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
             // numRemoved++
