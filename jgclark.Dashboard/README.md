@@ -20,7 +20,7 @@ Here's a [great video from user George Crump](https://youtu.be/_lj8osSOvQc) that
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
 From v2, the top right has icons for two menus: 
-- a **Filter menu** that allows quick access to what sections are shown, and other display toggles:
+- a **Filter menu** that allows quick access to what sections are shown, and some other display toggles:
     
     <img width="300px" src="filter-menu-2.1.0.png" border="1pt solid" margin="8px" alt=""/>
 
@@ -103,7 +103,7 @@ It always shows the time range first, minus any 'Text must contain' string that 
 ### #tag/@mention sections
 The "#tag/@mention Section" will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.
 
-You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spottig this use case.)
+You can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then schedule it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spotting this use case.)
 
 ### Project section
 If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up the projects ready for review. It reads this from the hidden list that's updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  
@@ -123,7 +123,7 @@ The 'Start Reviews' button does the same as the button of the same name in the P
 Note: this is likely to be very slow to generate, as it can't use any of NotePlan's internal caches.
 
 ## Configuration Settings
-Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)
+Dashboard v2 provides a quicker-to-access Settings window, accessed from the cog wheel at the top right of the dashboard window. (This replaces the normal method of going to the NotePlan Preference Pane, and finding the right Plugin.)  It is broken up in to a number of different sections.
 
 <img width="550px" src="settings-dialog-2.1.0.png" alt="Settings dialog"/>
 
@@ -131,23 +131,27 @@ The 3 key settings in "What to Include and Exclude" section control what folders
 
 - Folders to Include: Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.
 - Folders to Exclude: Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. The matches are partial, so 'Work' will exclude 'Work' and 'Work/CompanyA' etc. To ignore notes at the top-level (not in a folder), include '/' in the list. (@Trash is always ignored, but other special folders need to be specified, e.g. @Archive, @Templates.)
-- Ignore items in notes with these term(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting (below).
+- Ignore items in notes with these phrase(s): If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. (This check is not case sensitive.) This is useful for situations where completing the item is outside your control.
 
 These settings change some of how it displays and behaves:
-- 
 - Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
 - When (re)scheduling an item, also show it as a scheduled item in main Editor?: If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI.
-- Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
 - Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added using the settings from the QuickCapture plugin (if installed).\nIf this is left empty, then new tasks will appear at the top of the note.
 - Heading level for new Headings: level 1-5 to use when adding new headings in notes.
 - Move sub-items with the item? If set, then indented sub-items of an item will be moved if the item is moved to a different note.
 - Use '>today' to schedule tasks for today?: You can have tasks scheduled for today to use '>today' or the current date. If you use '>today', the task will automatically move to tomorrow if not completed. If you use the current date, the task will not automatically move and will show as an overdue task. 
 - Show completed task count?: Show the number of tasks completed today at the top of the Dashboard. Note: For this to work, you need to have enabled "Append Completion Date" in the NotePlan Preferences/Todo section.
+- Automatic Update frequency: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.
+- Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
+- Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
+- Hide priority markers? Hide the '>>', '!!', '!', and '!!' priority markers (if your theme uses priorities markers).
+- Show note link for tasks? Whether to show the note link for an open task or checklist.
+- Show folder name in note link? Whether to include the folder name when showing a note link
+- Show scheduled date for tasks? Whether to display scheduled >dates for tasks in dashboard view.
+- Show parent markers on items? If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.
 - #tag/@mention(s) to show: If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.
-- Ignore items in this section with these term(s): Open tasks/checklists in this section will be ignored if they include these term(s).
-- Automatic Update frequency: If set to any number > 0, the Dashboard will automatically refresh your data when the window is idle for a certain number of minutes.
 - Enable interactive processing for each section? If enabled, the Dashboard will display a button that will loop through all the open items in a given section and prompt you to act on them.
 - Open note and highlight task when processing? If enabled, the Dashboard will open the note in the Editor and highlight the task in the note when it is processed. If this is turned, off, you can always open the note by clicking the task title in the dialog window
 - Show interactive processing transitions? By default, interactive processing will show a shrink/grow transition between each item to be processed. You can turn these off if you prefer.
@@ -156,8 +160,6 @@ The Filter menu includes the following toggles:
 - Include context for tasks? Whether to show the note link for an open task or checklist
 - Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block. (This setting does _not_ apply to the 'Current time block' section.)
-- Include folder name? Whether to include the folder name when showing a note link
-- Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 
 Note: if you have more than 1 device running NotePlan, then all the settings are shared across your devices (apart from the logging settings).
 
