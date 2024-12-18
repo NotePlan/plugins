@@ -18,13 +18,6 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     description: 'Whether to hide lower-priority items from appearing in a dashboard section, when there are also higher-priority items in that section.',
   },
   {
-    label: 'Show referenced items in separate section?',
-    key: 'separateSectionForReferencedNotes',
-    type: 'switch',
-    default: false,
-    refreshAllOnChange: true
-  },
-  {
     label: 'Hide checklist items?',
     key: 'ignoreChecklistItems',
     type: 'switch',
@@ -37,34 +30,6 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     type: 'switch',
     default: false,
     description: "Only display one instance of each item, even if it's in multiple sections"
-  },
-  {
-    label: 'Hide priority markers?',
-    key: 'hidePriorityMarkers',
-    type: 'switch',
-    default: false,
-    description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme shows them)",
-  },
-  {
-    label: 'Include note link for tasks?',
-    key: 'includeTaskContext',
-    type: 'switch',
-    default: true,
-    description: 'Whether to show the note link for an open task or checklist'
-  },
-  {
-    label: 'Include folder name in note link?',
-    key: 'includeFolderName',
-    type: 'switch',
-    default: true,
-    description: 'Whether to include the folder name when showing a note link',
-  },
-  {
-    label: 'Include scheduled date for tasks?',
-    key: 'includeScheduledDates',
-    type: 'switch',
-    default: true,
-    description: 'Whether to display scheduled >dates for tasks in dashboard view',
   },
   {
     label: 'Exclude tasks that include time blocks?',
@@ -92,7 +57,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'heading',
     label: 'Perspectives',
     description:
-      "A 'Perspective' is a named set of all your Dashboard settings, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
+      "A 'Perspective' is a named set of all your Dashboard settings below, including which folders to include/ignore, which sections to show. Each 'Perspective' has a name, and can be updated and deleted. The '-' Perspective is a default (which can't be deleted).",
   },
   {
     key: 'perspectivesEnabled',
@@ -199,6 +164,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Display settings',
+    description: 'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
     key: 'maxItemsToShowInSection',
@@ -208,15 +174,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'number',
     default: '24',
     compactDisplay: true,
-  },
-  {
-    key: 'parentChildMarkersEnabled',
-    // label: 'Show parent/child markers on items?',
-    // description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
-    label: 'Show parent markers on items?',
-    description: 'If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
-    type: 'switch',
-    default: true,
   },
   {
     key: 'displayDoneCounts',
@@ -242,6 +199,51 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: '',
     compactDisplay: true,
+  },
+  {
+    label: 'Show referenced items in separate section?',
+    key: 'separateSectionForReferencedNotes',
+    description: 'Whether to show items that are referenced to a Calendar note from other notes in a separate section than those in the Calendar note itself.',
+    type: 'switch',
+    default: false,
+    refreshAllOnChange: true
+  },
+  {
+    label: 'Hide priority markers?',
+    key: 'hidePriorityMarkers',
+    type: 'switch',
+    default: false,
+    description: "Hide the '>>', '!!', '!', and '!!' priority markers (if your theme uses priorities markers)",
+  },
+  {
+    label: 'Show note link for tasks?',
+    key: 'includeTaskContext',
+    type: 'switch',
+    default: true,
+    description: 'Whether to show the note link for an open task or checklist'
+  },
+  {
+    label: 'Show folder name in note link?',
+    key: 'includeFolderName',
+    type: 'switch',
+    default: true,
+    description: 'Whether to include the folder name when showing a note link',
+  },
+  {
+    label: 'Show scheduled date for tasks?',
+    key: 'includeScheduledDates',
+    type: 'switch',
+    default: true,
+    description: 'Whether to display scheduled >dates for tasks in dashboard view',
+  },
+  {
+    key: 'parentChildMarkersEnabled',
+    // label: 'Show parent/child markers on items?',
+    // description: 'Add a small icon on items that either have indented sub-items, or is an indented child a parent item.',
+    label: 'Show parent markers on items?',
+    description: 'If set adds an ellipsis icon on items that have "children" (indented sub-items), whether they are also shown or not.',
+    type: 'switch',
+    default: true,
   },
   {
     type: 'separator',

@@ -3,11 +3,15 @@
   overflow: auto;
 }
 
-
 /* Change scrollbar look to match theme */
 /* Note: Non-standard: in time hopefully will support scrollbar-color:  https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-color) */
 .perspectives-table-container::-webkit-scrollbar {
-    width: 10px;
+    width: 9px;
+    background: var(--bg-main-color);
+}
+/* shouldn't be needed as well as one above. But TEST: to see if it helps. So far it doesn't on Safari. */
+.perspectives-table-container::-webkit-scrollbar:horizontal {
+    width: 9px;
     background: var(--bg-main-color);
 }
 .perspectives-table-container::-webkit-scrollbar-thumb {
