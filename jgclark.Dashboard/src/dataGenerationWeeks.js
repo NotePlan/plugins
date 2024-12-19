@@ -1,6 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
+// Last updated for 2.1.0.b
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,7 +12,7 @@ import {
   createSectionItemsFromParas,
   getNotePlanSettings,
   getOpenItemParasForTimePeriod,
-  createSectionItemObject,
+  // createSectionItemObject,
 } from './dashboardHelpers'
 import { openWeekParas, refWeekParas } from './demoData'
 import {
@@ -216,20 +217,24 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
           itemCount += items.length
         }
       }
-      const section: TSection = {
-        ID: sectionNumStr,
-        name: '>This Week',
-        showSettingName: 'showWeekSection',
-        sectionCode: thisSectionCode,
-        description: `{count} scheduled to ${dateStr}`,
-        FAIconClass: 'fa-light fa-calendar-week',
-        sectionTitleColorPart: 'sidebarWeekly',
-        sectionFilename: thisFilename,
-        sectionItems: items,
-        generatedDate: new Date(),
-        actionButtons: [],
+
+      // Add separate section (if there are any items found)
+      if (items.length > 0) {
+        const section: TSection = {
+          ID: sectionNumStr,
+          name: '>This Week',
+          showSettingName: 'showWeekSection',
+          sectionCode: thisSectionCode,
+          description: `{count} scheduled to ${dateStr}`,
+          FAIconClass: 'fa-light fa-calendar-week',
+          sectionTitleColorPart: 'sidebarWeekly',
+          sectionFilename: thisFilename,
+          sectionItems: items,
+          generatedDate: new Date(),
+          actionButtons: [],
+        }
+        sections.push(section)
       }
-      sections.push(section)
     }
 
     logDebug('getDataForDashboard', `- found ${itemCount} weekly items from ${dateStr} in ${timer(startTime)}`)
@@ -249,7 +254,7 @@ export function getThisWeekSectionData(config: TDashboardSettings, useDemoData: 
  */
 export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: boolean = false, useEditorWherePossible: boolean): Array<TSection> {
   try {
-    let sectionNumStr = '19' // FIXME: remove sectionNumStrs
+    let sectionNumStr = '19' // TODO: remove sectionNumStrs
     const thisSectionCode = 'LW'
     const sections: Array<TSection> = []
     let items: Array<TSectionItem> = []
@@ -350,20 +355,24 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
           itemCount += items.length
         }
       }
-      const section: TSection = {
-        ID: sectionNumStr,
-        name: '>Last Week',
-        showSettingName: 'showWeekSection',
-        sectionCode: thisSectionCode,
-        description: `{count} scheduled to ${dateStr}`,
-        FAIconClass: 'fa-light fa-calendar-week',
-        sectionTitleColorPart: 'sidebarWeekly',
-        sectionFilename: thisFilename,
-        sectionItems: items,
-        generatedDate: new Date(),
-        actionButtons: [],
+
+      // Add separate section (if there are any items found)
+      if (items.length > 0) {
+        const section: TSection = {
+          ID: sectionNumStr,
+          name: '>Last Week',
+          showSettingName: 'showWeekSection',
+          sectionCode: thisSectionCode,
+          description: `{count} scheduled to ${dateStr}`,
+          FAIconClass: 'fa-light fa-calendar-week',
+          sectionTitleColorPart: 'sidebarWeekly',
+          sectionFilename: thisFilename,
+          sectionItems: items,
+          generatedDate: new Date(),
+          actionButtons: [],
+        }
+        sections.push(section)
       }
-      sections.push(section)
     }
 
     logDebug('getLastWeekSectionData', `- found ${itemCount} weekly items from ${thisFilename} in ${timer(startTime)}`)
