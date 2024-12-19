@@ -216,7 +216,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
  * Various config.* items are used:
  * - excludedFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
- * - ignoreItemsWithTerms
+ * - ignoreItemsWithTerms  (from 2.1.0.b4 can be applied to calendar headings too)
  * - ignoreTasksScheduledToFuture
  * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
  * @param {string} timePeriodName
@@ -257,8 +257,7 @@ export function getOpenItemParasForTimePeriod(
     // Note: Commented out in v1.x, as I found it more than doubled the time taken to run this section.
     // await CommandBar.onAsyncThread()
 
-    // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
-    // Now also allow to ignore checklist items.
+    // Need to filter out non-open task/checklist types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     const todayHyphenated = getTodaysDateHyphenated()
     const theNoteDateHyphenated = timePeriodNote.title || ''
     const isToday = theNoteDateHyphenated === todayHyphenated
@@ -271,7 +270,7 @@ export function getOpenItemParasForTimePeriod(
     // logTimer('OpenItemPFCTP', startTime, `- after '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} + not blank' filter: ${openParas.length} paras`)
     const tempSize = openParas.length
 
-    // Keep only non-empty open tasks not scheduled (other than >today)
+    // Keep only non-empty open items not scheduled (other than >today)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
     openParas = openParas.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
     // logTimer('OpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
@@ -290,6 +289,15 @@ export function getOpenItemParasForTimePeriod(
       // openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
       // V2
       openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+
+      // Additionally apply to calendar headings in this note
+      if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
+        openParas = openParas.filter((p) => {
+          const thisHeading = p.heading
+          return !isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)
+        })
+        logDebug('OpenItemPFCTP', `- after applying this to calendar headings as well: ${openParas.length} paras`)
+      }
     } else {
       // logDebug('OpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }

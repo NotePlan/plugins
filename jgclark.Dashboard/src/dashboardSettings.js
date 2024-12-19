@@ -102,6 +102,17 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'input',
     default: '#waiting',
     compactDisplay: false,
+    controlsOtherKeys: ['applyIgnoreTermsToCalendarHeadingSections'],
+  },
+  {
+    key: 'applyIgnoreTermsToCalendarHeadingSections',
+    label: "Use 'phrase(s) to ignore' whole sections in Calendar notes?",
+    description:
+      "If turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.",
+    type: 'switch',
+    default: false,
+    compactDisplay: true,
+    dependsOnKey: 'ignoreItemsWithTerms',
   },
   {
     type: 'separator',

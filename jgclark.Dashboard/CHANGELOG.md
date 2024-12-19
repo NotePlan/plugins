@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.0.b4] 2024-12-???
+- New "Use 'phrase(s) to ignore' whole sections in Calendar notes?" setting. When turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.
+- Turn off 'Referenced' Calendar sections if they have no items to display.
 
 ## [2.1.0.b3] 2024-12-18
 ### New
