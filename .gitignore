@@ -23,3 +23,5 @@ docs/index.html
 Documentation-Helpers
 **/*.bundle.dev.js
 **/*.bundle.min.js
+**/*.Root.dev.js
+**/*.Root.min.js
