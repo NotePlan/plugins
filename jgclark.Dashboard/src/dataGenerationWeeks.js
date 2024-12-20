@@ -333,7 +333,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '7'
+      sectionNumStr = '20'
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
