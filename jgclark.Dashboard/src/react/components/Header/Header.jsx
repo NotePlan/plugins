@@ -202,7 +202,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         )}
       </div>
 
-      <div className="lastFullRefresh">
+      <div className="lastRefreshInfo">
         {updatedText}: <span id="timer">{timeAgoText}</span>
       </div>
 

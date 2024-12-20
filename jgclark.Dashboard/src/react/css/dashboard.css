@@ -175,7 +175,7 @@ dialog::backdrop {
 	/* horizontal for all items this contains */
 	justify-items: start;
 	/*
-	opacity: 1; 
+	opacity: 1;
 	transition: opacity 500ms ease-in-out;
 	*/
 }
@@ -193,7 +193,7 @@ dialog::backdrop {
 
 /* If rather narrow, slide [items] under [info] */
 /* This needs to come after the earlier definitions to take priority */
-@media screen and (width <= 600px) {
+@media screen and (max-width: 600px) {
 	.section {
 		grid-template-columns: 1fr;
 	}
