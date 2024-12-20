@@ -28,9 +28,10 @@
 	margin-bottom: 0.5rem;
 }
 
+/* Note: some of this gets overriden at run-time by DropdownSelect component */
 .dropdown-select-input {
 	flex: 1;
-	padding: 3px 6px 3px 0px;
+	padding: 2px 20px 0px 8px; /* tried to make it look the same as HAButton */
 	border-radius: 4px;
 	width: 100%;
 	font-family: system-ui;
@@ -74,7 +75,7 @@
 .dropdown-select-option {
 	cursor: pointer;
 	color: var(--fg-main-color);
-	margin: 0.2rem;
+	margin: 0rem 0.2rem;
 	padding: 0.3rem 0.3rem;
 	min-height: 0.9rem;
 	width: 100%;

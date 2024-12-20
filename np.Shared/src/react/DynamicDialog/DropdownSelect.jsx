@@ -348,7 +348,7 @@ const DropdownSelect = ({
             ref={inputRef}
             disabled={disabled}
             readOnly={!isEditable} // Set readOnly based on isEditable prop
-            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px', paddingRight: '24px' }, styles.input)}
+            style={mergeStyles({ paddingLeft: showIndicatorOptionProp ? '24px' : '8px' }, styles.input)} // TODO: Ideally find a way to do this in CSS, rather than here. Also do we use Indicator?
           />
           <span className="dropdown-select-arrow" style={mergeStyles({}, styles.arrow)}>
             &#9662;

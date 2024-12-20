@@ -2,8 +2,9 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.1.0.b4] 2024-12-???
-- New "Use 'phrase(s) to ignore' whole sections in Calendar notes?" setting. When turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.
+- New "Apply to sections under headings in Calendar notes?" setting. When turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.
 - Turn off 'Referenced' Calendar sections if they have no items to display.
+- Optimised Header layout to work on iPhones, iPad as well as macOS sizes. (On iPhone the Refresh button and info is turned off completely.)
 
 ## [2.1.0.b3] 2024-12-18
 ### New

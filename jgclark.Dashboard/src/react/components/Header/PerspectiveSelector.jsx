@@ -3,22 +3,22 @@
 // Dashboard React component to select and manage perspectives
 // Refactored to use useReducer to give more visibility into what's happening
 // Prevents infinite render loops by avoiding returning null
-// Last updated 2024-10-17
+// Last updated for 2.1.0.b
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
-import type { TPerspectiveDef } from '../../../types.js'
 import React, { useReducer, useEffect, useCallback } from 'react'
-import { PERSPECTIVE_ACTIONS, DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
-import { setPluginData } from '../../../dashboardHelpers'
+import type { TPerspectiveDef } from '../../../types.js'
+import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
+// import { setPluginData } from '../../../dashboardHelpers'
 import { setActivePerspective } from '../../../perspectiveHelpers'
-import DropdownSelect, { type Option } from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
+import DropdownSelect /*, { type Option } */ from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
 // import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
 
 import {
-  cleanDashboardSettings,
+  // cleanDashboardSettings,
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
   getActivePerspectiveDef,
@@ -67,7 +67,7 @@ const PerspectiveSelector = (): React$Node => {
   //----------------------------------------------------------------------
   // Context
   //----------------------------------------------------------------------
-  const { dashboardSettings, perspectiveSettings, dispatchDashboardSettings, dispatchPerspectiveSettings, sendActionToPlugin, pluginData, setReactSettings } = useAppContext()
+  const { dashboardSettings, perspectiveSettings, /*dispatchDashboardSettings,*/ dispatchPerspectiveSettings, sendActionToPlugin, pluginData, setReactSettings } = useAppContext()
 
   //--------------------------------------------------------------------------
   // Reducer Function with Comprehensive Logging
@@ -76,7 +76,7 @@ const PerspectiveSelector = (): React$Node => {
     switch (action.type) {
       case 'SET_PERSPECTIVE_OPTIONS': {
         // Access activePerspectiveName from the current state
-        const { activePerspectiveName } = state
+        // const { activePerspectiveName } = state
 
         // Determine if "Save Perspective" should be included
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
@@ -221,7 +221,7 @@ const PerspectiveSelector = (): React$Node => {
 
       if (selectedOption.value === 'Save Perspective') {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `savePerspective "${selectedOption.value}".`)
-        const perspName = state.activePerspectiveName
+        // const perspName = state.activePerspectiveName
         const thisPersp = getActivePerspectiveDef(perspectiveSettings)
         if (thisPersp && thisPersp.isModified && thisPersp.name !== '-') {
           sendActionToPlugin(
@@ -330,7 +330,7 @@ const PerspectiveSelector = (): React$Node => {
 
   const customStyles = {
     container: {
-      minWidth: '60px',
+      minWidth: '6rem',
     },
     separator: {
       borderTop: '0.5px solid lightgray',

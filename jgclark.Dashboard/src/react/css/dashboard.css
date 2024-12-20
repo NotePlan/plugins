@@ -42,14 +42,12 @@ dialog::backdrop {
   background: rgba(0,0,0,0.4);
 }
 
-/* unused */
-.settings {
-	/* Assign the area */
+/* unused: TEST removal */
+/* .settings {
 	grid-area: settings;
-	/* Align to the right edge */
 	justify-self: end;
 	margin-right: 20px;
-}
+} */
 
 /* Large rows on page */
 .sections {

@@ -106,9 +106,9 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'applyIgnoreTermsToCalendarHeadingSections',
-    label: "Use 'phrase(s) to ignore' whole sections in Calendar notes?",
+    label: "Apply to sections under headings in Calendar notes?",
     description:
-      "If turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.",
+      "If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored.",
     type: 'switch',
     default: false,
     compactDisplay: true,

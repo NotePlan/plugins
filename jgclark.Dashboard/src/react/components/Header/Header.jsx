@@ -2,6 +2,7 @@
 // --------------------------------------------------------------------------
 // Dashboard React component to show the Header at the top of the Dashboard window.
 // Called by Dashboard component.
+// Last updated for 2.1.0.b4
 // --------------------------------------------------------------------------
 
 // --------------------------------------------------------------------------
@@ -15,14 +16,13 @@ import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
 import { useAppContext } from '../AppContext.jsx'
-import { allSectionCodes } from '../../../constants.js'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
 import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
-import { clo, logDebug } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
 import './Header.css'
 
 // --------------------------------------------------------------------------
@@ -102,7 +102,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
       console.log('Header/handleChangesInSettings', `Received updated settings`, { updatedSettings })
-      let newSettings = {
+      const newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,
@@ -173,16 +173,16 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   const isDevMode = logSettings._logLevel === 'DEV'
-  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && pluginData.platform !== 'iOS'
+  const showRefreshButton = pluginData.platform !== 'iOS'
+  const showHardRefreshButton = isDevMode && dashboardSettings?.FFlag_HardRefreshButton && showRefreshButton
   const isMobile = pluginData.platform !== 'macOS'
   const isNarrowWidth = window.innerWidth <= 680
-  const updatedText = 'Updated'
 
   // ----------------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------------
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
-
+  logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
     <div className="header">
       {/* Perspective selector */}
@@ -192,21 +192,29 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         </div>
       )}
 
-      <div className="refresh">
-        <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(false)} />
-        {showHardRefreshButton && (
-          <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
-            <i className={'fa-regular fa-arrows-retweet'}></i>
-            <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
-          </button>
-        )}
-      </div>
+      {showRefreshButton && (
+        <div className="refreshButtons">
+          <RefreshControl refreshing={pluginData.refreshing === true} handleRefreshClick={handleRefreshClick(false)} />
+          {showHardRefreshButton && (
+            <button onClick={handleRefreshClick(true)} className="HAButton hardRefreshButton">
+              <i className={'fa-regular fa-arrows-retweet'}></i>
+              <span className="pad-left">{isNarrowWidth ? 'HR' : 'Hard Refresh'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="lastRefreshInfo">
-        {updatedText}: <span id="timer">{timeAgoText}</span>
-      </div>
+      {!(isMobile || isNarrowWidth) && (
+        <div className="lastRefreshInfo">
+          {/* <> */}
+          Updated: <span id="timer">{timeAgoText}</span>
+          {/* </> */}
+        </div>
+      )}
 
-      <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
+      {!(isMobile || isNarrowWidth) && (
+        <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
+      )}
 
       <div id="dropdowns" className="dropdownButtons">
         {/* Feature Flags dropdown */}
@@ -222,6 +230,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
             labelPosition="left"
           />
         )}
+
         {/* Render the SettingsDialog only when it is open */}
         {isDialogOpen && (
           <SettingsDialog

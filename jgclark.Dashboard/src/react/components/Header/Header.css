@@ -13,8 +13,8 @@
 	grid-template-columns: max-content max-content max-content 1fr max-content 2fr min-content; */
 	/* Vertical alignment */
 	align-items: baseline;
-	/* Space between grid items */
-	gap: 0.75rem;
+	/* Space between next-level items */
+	gap: 0.6rem;
 	/* Padding around the header content */
 	padding: 0.4rem 1rem 0.1rem 0.5rem;
 	background-color: var(--bg-sidebar-color);
@@ -25,6 +25,7 @@
 	z-index: 10;
 	top: 0px;
 	border-bottom: solid 1px var(--divider-color);
+	justify-content: space-between; /* aligns items to the start and end of the container, and pads out others between them */
 }
 
 /* MESSAGE_BANNER w3.css overrides */
@@ -35,9 +36,7 @@
 }
 
 /* Refresh button(s) area */
-.refresh {
-	/* Assign the area */
-	/* grid-area: refresh; */
+.refreshButtons {
 	/* allow for 2 buttons at times */
 	display: inline-flex;
 	gap: 0.2rem;
@@ -52,12 +51,6 @@
 	/* This ensures that the content of these divs is also centered */
 	flex-grow: 1;
 	align-items: center;
-
-	/* Turn fixed width off on narrow screens */
-	/* TEST: no longer needed I think */
-	/* @media screen and (max-width: 600px) {
-		width: unset;
-	} */
 }
 
 .totalCounts {
@@ -74,7 +67,7 @@
 .perspectiveName {
 	/* Assign the area */
 	/* grid-area: perspective; */
-	align-self: center;
+	/* align-self: center; */
 }
 
 .dropdownButtons {
