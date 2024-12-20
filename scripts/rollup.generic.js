@@ -165,7 +165,7 @@ function getRollupConfig(options) {
         transform(prefix, selector) {
           const trimmedSelector = selector.trim()
           // If the selector already starts with the prefix, return it as-is
-          if (trimmedSelector.startsWith(prefix)) {
+          if (trimmedSelector.startsWith(prefix) || trimmedSelector.startsWith('--')) {
             return trimmedSelector
           }
           // Otherwise, add the prefix
