@@ -24,7 +24,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
       createBundleGraph: graph,
       buildMode: 'development',
       bundleName: 'WebViewBundle',
-      cssNameSpace: 'dashboard' /* will prefix all css selectors with this so that these styles always win even if Root has same styles */,
+      cssNameSpace: '' /* will prefix all css selectors with this so that these styles always win even if Root has same styles */,
     }),
     getRollupConfig({
       entryPointPath: 'jgclark.Dashboard/src/react/support/rollup.WebView.entry.js',
@@ -33,7 +33,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
       createBundleGraph: graph,
       buildMode: 'production',
       bundleName: 'WebViewBundle',
-      cssNameSpace: 'dashboard' /* will prefix all css selectors with this so that these styles always win even if Root has same styles */,
+      cssNameSpace: '' /* will prefix all css selectors with this so that these styles always win even if Root has same styles */,
     }),
   ]
   // create one single base config with two output options

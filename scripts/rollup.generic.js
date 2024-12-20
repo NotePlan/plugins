@@ -152,7 +152,6 @@ function getRollupConfig(options) {
 
   // If we have a css namespace, add the prefix plugin
   if (cssNameSpace) {
-    console.log(`cssNameSpace: ${cssNameSpace}`)
     postcssOptions.plugins.push(
       postcssPrefixSelector({
         prefix: cssNameSpace.startsWith('.') ? cssNameSpace : `.${cssNameSpace}`,
