@@ -24,6 +24,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
       createBundleGraph: graph,
       buildMode: 'development',
       bundleName: 'WebViewBundle',
+      cssNameSpace: '' /* add a class namespace that will be in the top level of your component if you want to avoid conflicts with Root styles */,
     }),
     getRollupConfig({
       entryPointPath: 'dwertheimer.ReactSkeleton/src/react/support/rollup.WebView.entry.js',
@@ -32,6 +33,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
       createBundleGraph: graph,
       buildMode: 'production',
       bundleName: 'WebViewBundle',
+      cssNameSpace: '' /* add a namespace if you want to avoid conflicts with Root styles */,
     }),
   ]
   // create one single base config with two output options

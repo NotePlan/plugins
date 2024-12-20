@@ -13,6 +13,8 @@ const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
 const debounce = require('lodash.debounce')
+const styles = require('rollup-plugin-styles')
+const postcssPrefixSelector = require('postcss-prefix-selector')
 
 const NOTIFY = true
 
@@ -130,7 +132,7 @@ function getRollupConfig(options) {
   const opts = { ...rollupDefaults, ...options }
   const rootFolderPath = path.join(__dirname, '..')
 
-  const { buildMode, externalModules, createBundleGraph } = opts
+  const { buildMode, externalModules, createBundleGraph, cssNameSpace } = opts
 
   if (!opts.entryPointPath?.length || !opts.outputFilePath?.length) {
     throw 'rollupReactFiles: entryPointPath and outputFilePath must be specified'
@@ -141,6 +143,37 @@ function getRollupConfig(options) {
   const exportedFileVarName = options.bundleName || 'reactBundle'
 
   const externalGlobals = (externalModules || []).reduce((acc, cur) => ({ ...acc, [cur]: cur }), {})
+
+  const postcssOptions = {
+    minimize: true,
+    sourceMap: true,
+    plugins: [],
+  }
+
+  // If we have a css namespace, add the prefix plugin
+  if (cssNameSpace) {
+    console.log(`cssNameSpace: ${cssNameSpace}`)
+    postcssOptions.plugins.push(
+      postcssPrefixSelector({
+        prefix: cssNameSpace.startsWith('.') ? cssNameSpace : `.${cssNameSpace}`,
+        /**
+         * Transform function to avoid double prefixing
+         * @param {string} prefix
+         * @param {string} selector
+         * @returns {string}
+         */
+        transform(prefix, selector) {
+          const trimmedSelector = selector.trim()
+          // If the selector already starts with the prefix, return it as-is
+          if (trimmedSelector.startsWith(prefix)) {
+            return trimmedSelector
+          }
+          // Otherwise, add the prefix
+          return `${prefix} ${trimmedSelector}`
+        },
+      }),
+    )
+  }
 
   const outputPlugins = []
   const plugins = [
@@ -165,10 +198,7 @@ function getRollupConfig(options) {
       extensions: ['.jsx', '.js'], // Ensure Babel processes .jsx files as well
     }),
     json(),
-    postcss({
-      minimize: true,
-      sourceMap: true, // Enable source maps
-    }),
+    postcss(postcssOptions),
   ]
 
   if (createBundleGraph) {
