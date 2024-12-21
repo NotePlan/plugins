@@ -9,8 +9,9 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    /* width: 80%; */
-    /* max-width: 600px; */
+    min-width: 25rem;
+    max-width: 80%;
+    width: fit-content;
     border: none;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     /* z-index: 1000; */
