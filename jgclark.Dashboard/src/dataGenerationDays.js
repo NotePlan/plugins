@@ -625,10 +625,14 @@ export function getTimeBlockSectionData(_config: TDashboardSettings, useDemoData
       // }
       if (thisDParas.length > 0) {
         const thisDPara = thisDParas[0]
-        const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
-        const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
-        // $FlowFixMe[incompatible-call]
-        items.push(thisSectionItemObject)
+        if (thisDPara) {
+          const itemTypeToUse = thisDPara.type === 'open' || thisDPara.type === 'checklist' ? thisDPara.type : 'timeblock'
+          const thisSectionItemObject = { ID: thisID, itemType: itemTypeToUse, para: thisDPara }
+          // $FlowFixMe[incompatible-call]
+          items.push(thisSectionItemObject)
+        } else {
+          logDebug('getTimeBlockSectionData', `Can't fully show time block as this is DEMO data.`)
+        }
       } else {
         if (useDemoData) {
           logDebug('getTimeBlockSectionData', `Can't fully show time block as this is DEMO data.`)

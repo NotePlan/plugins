@@ -269,13 +269,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     const startTime = new Date() // for timing only
 
     if (useDemoData) {
-      // write first or combined section
-      const sortedParas = config.separateSectionForReferencedNotes ? openWeekParas : openWeekParas.concat(refWeekParas)
-      sortedParas.map((item) => {
-        const thisID = `${sectionNumStr}-${itemCount}`
-        items.push({ ID: thisID, ...item })
-        itemCount++
-      })
+      // no demo data
     } else {
       const lastWeeklyNote = DataStore.calendarNoteByDateString(dateStr)
       if (lastWeeklyNote) {
@@ -333,7 +327,7 @@ export function getLastWeekSectionData(config: TDashboardSettings, useDemoData: 
     // If we want this separated from the referenced items, then form a second section
     if (config.separateSectionForReferencedNotes) {
       let items: Array<TSectionItem> = []
-      sectionNumStr = '7'
+      sectionNumStr = '20'
       if (useDemoData) {
         const sortedRefParas = refWeekParas
         sortedRefParas.map((item) => {
