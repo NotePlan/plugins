@@ -34,8 +34,8 @@
     background-color: var(--bg-mid-color);
     padding: 0.75rem 0.6rem;
     border-radius: 8px;
-    /* overflow-y: auto; commented out to allow for dropdowns to show*/
-    /* max-height: 95%; */
+    overflow-y: auto; 
+    max-height: 95%;
     font-size: 95%;
 }
 
@@ -491,3 +491,20 @@
     line-height: 1rem;
 }
 
+.thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #c5c5c5 #f6f6f6;
+  }
+  
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: #f6f6f6;
+  }
+  
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #c5c5c5;
+    border-radius: 4px;
+  }

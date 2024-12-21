@@ -287,10 +287,10 @@ const DynamicDialog = ({
             {submitButtonText}
           </button>
         ) : (
-            !hideHeaderButtons && <button className="PCButton save-button-inactive">{submitButtonText}</button>
+          !hideHeaderButtons && <button className="PCButton save-button-inactive">{submitButtonText}</button>
         )}
       </div>
-      <div className="dynamic-dialog-content" style={dialogStyle?.content}>
+      <div className="dynamic-dialog-content thin-scrollbar" style={dialogStyle?.content}>
         {children}
         {items.map((item, index) => (
           <div key={`ddc-${index}`}>
