@@ -510,6 +510,7 @@ const dt = () => {
    * @returns
    */
   function getConfig(pluginPath) {
+    // WATCH REQUIREDFILES IN PLUGIN FOLDER FOR CHANGES
     let requiredFilesWatchPlugin = null
     const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
     if (existsSync(requiredFilesInDevFolder)) {
@@ -527,6 +528,18 @@ const dt = () => {
       }
     }
 
+    // EXTRA FILES TO WATCH (other than those imported starting by index.js)
+    const pluginJsonPath = path.join(pluginPath, 'plugin.json')
+    const watchExtraFilesPlugin = {
+      name: 'watch-extra-files-plugin',
+      async buildStart() {
+        // watch a custom folder or file:
+        // You can add as many files/folders as you want.
+        this.addWatchFile(pluginJsonPath)
+        // this.addWatchFile(path.resolve(__dirname, '..', 'some-other-folder', 'whatever.css'));
+      },
+    }
+
     const watchOptions = {
       exclude: ['node_modules/**', '**/script.js'],
     }
@@ -540,7 +553,7 @@ const dt = () => {
         name: 'exports',
         footer: 'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
       },
-      plugins: [requiredFilesWatchPlugin] /* add non-changing plugins later */,
+      plugins: [requiredFilesWatchPlugin, watchExtraFilesPlugin] /* add non-changing plugins later */,
       context: 'this',
       watch: watchOptions,
       /**
