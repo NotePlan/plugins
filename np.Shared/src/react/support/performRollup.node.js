@@ -28,6 +28,8 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
   const rollupProms = []
 
   // Root component configs
+  // dbw: note to self: at some point, we can delete the production version of the Root component
+  // because it's not used anywhere -- dev seems to work fine
   const rootRollupConfigs = [
     getRollupConfig({
       entryPointPath: 'np.Shared/src/react/support/rollup.root.entry.js',
@@ -47,22 +49,24 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
     }),
   ]
 
-  const rootConfig = {
-    ...rootRollupConfigs[0],
-    output: [rootRollupConfigs[0].output, rootRollupConfigs[1].output],
-  }
+  // dbw commenting out minified version for now. not worth the extra build step
+  // const rootConfig = {
+  //   ...rootRollupConfigs[0],
+  //   output: [rootRollupConfigs[0].output, rootRollupConfigs[1].output],
+  // }
+  const rootConfig = rootRollupConfigs[0] // use only dev version for now
 
-  rollupProms.push(rollupReactFiles(rootConfig, watch, 'np.Shared Root Component development && production'))
+  rollupProms.push(rollupReactFiles(rootConfig, watch, 'np.Shared Root Component development version'))
 
   // FormView bundle configs
-  const webViewRollupConfigs = [
+  const formViewRollupConfigs = [
     getRollupConfig({
       entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
       outputFilePath: 'np.Shared/requiredFiles/react.c.FormView.bundle.REPLACEME.js',
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'development',
-      bundleName: 'WebViewBundle',
+      bundleName: 'FormViewBundle',
     }),
     getRollupConfig({
       entryPointPath: 'np.Shared/src/react/support/rollup.FormView.entry.js',
@@ -70,17 +74,20 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'production',
-      bundleName: 'WebViewBundle',
+      bundleName: 'FormViewBundle',
     }),
   ]
 
-  const webViewConfig = {
-    ...webViewRollupConfigs[0],
-    output: [webViewRollupConfigs[0].output, webViewRollupConfigs[1].output],
-  }
+  // dbw commenting out minified version for now. not worth the extra build step
+  // const formViewConfig = {
+  //   ...formViewRollupConfigs[0],
+  //   output: [formViewRollupConfigs[0].output, formViewRollupConfigs[1].output],
+  // }
+  const formViewConfig = formViewRollupConfigs[0] // use only dev version for now
 
-  rollupProms.push(rollupReactFiles(webViewConfig, watch, 'np.Shared WebView Component development && production'))
+  rollupProms.push(rollupReactFiles(formViewConfig, watch, 'np.Shared FormView Component development version'))
 
+  // dbw note to self: I don't think we need this anymore. It's not ever called with --react I don't think.
   if (hasReact) {
     const reactConfigs = [
       getRollupConfig({

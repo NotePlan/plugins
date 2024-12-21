@@ -40,7 +40,7 @@ export function getInitialReactWindowData(argObj: Object): PassedData {
     ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onFormMessageFromHTMLView' },
     /* change the ID below to your plugin ID */
-    componentPath: `../np.Shared/react.c.FormView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+    componentPath: `../np.Shared/react.c.FormView.bundle.dev.js`,
     startTime,
   }
   return dataToPass

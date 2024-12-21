@@ -13,7 +13,6 @@ const { program } = require('commander')
 const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
 const debounce = require('lodash.debounce')
-const styles = require('rollup-plugin-styles')
 const postcssPrefixSelector = require('postcss-prefix-selector')
 
 const NOTIFY = true

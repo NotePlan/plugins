@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.7.4] @dwertheimer 2024-12-21
+
+- Remove minified versions of Root and FormView components
+
 ## [0.7.3] @dwertheimer 2024-12-10
 
 - Improve DashboardDialog CSS

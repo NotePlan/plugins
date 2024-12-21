@@ -158,7 +158,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       const sendMessageToPlugin = (args) => runPluginCommand('onMessageFromHTMLView', '${pluginJson['plugin.id']}', args);
     `
 
-    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>\n`
+    const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.dev.js"></script>\n`
     const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
     const generatedOptions = {
       includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
