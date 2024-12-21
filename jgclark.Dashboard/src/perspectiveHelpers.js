@@ -180,17 +180,14 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
         return []
       }
       const dashboardSettings = await getDashboardSettings()
-      defaultPersp.dashboardSettings = cleanDashboardSettings(dashboardSettings)
+      defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
-      const newPerspSettings = await switchToPerspective('-', perspectiveSettings)
-      if (newPerspSettings) {
-        perspectiveSettings = newPerspSettings
-      } else {
-        logError('getPerspectiveSettings', `switchToPerspective('-', perspectiveSettings) failed`)
-      }
       logPerspectives(perspectiveSettings)
     }
-    return ensureDefaultPerspectiveExists(perspectiveSettings)
+    clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
+    clo(perspSettings, `getPerspectiveSettings: after ensureDefaultPerspectiveExists perspSettings=`)
+    return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []
@@ -372,7 +369,8 @@ export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array
 //-----------------------------------------------------------------------------
 
 /**
- * Switch to the perspective with the given name (updates isActive flag on that one and saves to DataStore.settings)
+ * Switch to the perspective with the given name (updates isActive flag on that one)
+ * Saves perspectiveSettings to DataStore.settings but does not update dashboardSettings or anything else
  * Does not send the new PerspectiveSettings to the front end. Returns the new PerspectiveSettings or false if not found.
  * @param {string} name
  * @param {Array<TPerspectiveDef>} allDefs

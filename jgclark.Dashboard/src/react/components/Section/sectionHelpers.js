@@ -15,7 +15,7 @@ import { clo, clof, logDebug, logError, logInfo, timer } from '@helpers/react/re
  */
 export const showSectionSettingItems: Array<TSettingItem> = allSectionDetails.reduce((acc, s) => {
   if (s.sectionCode !== 'TAG' && s.sectionCode !== 'DT') {
-    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch' })
+    acc.push({ label: `Show ${s.sectionName}`, key: s.showSettingName, type: 'switch', default: true, checked: true })
   }
   return acc
 }, [])
@@ -87,17 +87,17 @@ const sectionIsVisible = (section: TSection, dashboardSettings: TDashboardSettin
 function getUseFirstButVisible(useFirst: Array<TSectionCode>, dashboardSettings: TDashboardSettings, sections: Array<TSection>): Array<TSectionCode> {
   const useFirstButVisible = dashboardSettings
     ? useFirst.filter((sectionCode) => {
-      const section = sections.find((section) => section.sectionCode === sectionCode)
-      if (section) {
-        const isVisible = sectionIsVisible(section, dashboardSettings)
-        // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
-        return section && isVisible
-      } else {
-        // TAG sections are a special case, so don't log an error if not found
-        // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
-        return false
-      }
-    })
+        const section = sections.find((section) => section.sectionCode === sectionCode)
+        if (section) {
+          const isVisible = sectionIsVisible(section, dashboardSettings)
+          // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible sectionCode=${sectionCode} isVisible=${isVisible} sectionCode=${sectionCode} section=${section}`)
+          return section && isVisible
+        } else {
+          // TAG sections are a special case, so don't log an error if not found
+          // sectionCode !== "TAG" ? logDebug('sectionHelpers/getUseFirstButVisible', `sectionCode=${sectionCode} not found in sections data (if switched off, this is ok)`, sections) : null
+          return false
+        }
+      })
     : useFirst
   // logDebug('sectionHelpers/getUseFirstButVisible', `Visible section codes: ${String(useFirstButVisible)}`)
   // logDebug('sectionHelpers', `getUseFirstButVisible useFirstButVisible`,useFirstButVisible)
@@ -270,4 +270,3 @@ export function sortSections(sections: Array<TSection>, predefinedOrder: Array<T
     return -a.name.localeCompare(b.name)
   })
 }
-

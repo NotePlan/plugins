@@ -5,24 +5,19 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
-import { convertStrikethroughToHTML } from '../../helpers/HTMLView'
+import { convertStrikethroughToHTML, getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import {
-  getPerspectiveSettings,
-  setActivePerspective,
-  // switchToPerspective
-} from './perspectiveHelpers'
+import { getPerspectiveSettings, setActivePerspective, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
-import type { TDashboardSettings, TPerspectiveDef, TPluginData } from './types'
+import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
-import { getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '@helpers/HTMLView'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { getWindowFromId } from '@helpers/NPWindows'
@@ -334,6 +329,25 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 }
 
 /**
+ * Because perspectiveSettings may need to be created on first run, we need to get the dashboardSettings from the perspectiveSettings
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {TDashboardSettings}
+ */
+async function getDashboardSettingsFromPerspective(perspectiveSettings: TPerspectiveSettings): Promise<TDashboardSettings> {
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  if (!activeDef) throw new Error(`getDashboardSettingsFromPerspective: getActivePerspectiveDef failed`)
+  const prevDashboardSettings = await getDashboardSettings()
+  if (!prevDashboardSettings) throw new Error(`getDashboardSettingsFromPerspective: getDashboardSettings failed`)
+  // apply the new perspective's settings to the main dashboard settings
+  const newDashboardSettings = {
+    ...prevDashboardSettings,
+    ...(activeDef.dashboardSettings || {}),
+  }
+  DataStore.settings = { ...DataStore.settings, dashboardSettings: JSON.stringify(newDashboardSettings) }
+  return newDashboardSettings
+}
+
+/**
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin.
  * @param {string?} perspectiveName - the name of the Perspective to use, or blank to mean use the current one
  * @param {boolean?} useDemoData - whether to use demo data
@@ -342,19 +356,19 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 export async function getInitialDataForReactWindowObjectForReactView(perspectiveName: string = '', useDemoData: boolean = false): Promise<PassedData> {
   try {
     const startTime = new Date()
-    const dashboardSettings: TDashboardSettings = await getDashboardSettings()
     let perspectiveSettings = await getPerspectiveSettings()
-
     // If a perspective is specified, then update the setting to point to it before opening the React Window
     if (perspectiveName !== '') {
       logInfo('getInitialDataForReactWindowObjectForReactView', `switching to perspective '${perspectiveName}'`)
-      perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
+      // perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
+      perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
     }
-
+    const dashboardSettings: TDashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
+    clo(dashboardSettings, `getInitialDataForReactWindowObjectForReactView: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
-
+    clo(pluginData.dashboardSettings, `getInitialData pluginData.dashboardData`)
     const ENV_MODE = 'development' /* 'development' helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
