@@ -156,17 +156,34 @@ function getRollupConfig(options) {
       postcssPrefixSelector({
         prefix: cssNameSpace.startsWith('.') ? cssNameSpace : `.${cssNameSpace}`,
         /**
-         * Transform function to avoid double prefixing
+         * Transform function to avoid double prefixing and skip certain global selectors
          * @param {string} prefix
          * @param {string} selector
          * @returns {string}
          */
         transform(prefix, selector) {
           const trimmedSelector = selector.trim()
-          // If the selector already starts with the prefix, return it as-is
+          console.log(`prefix: ${prefix} selector: ${trimmedSelector}`)
+
+          // If the selector already starts with the prefix or a CSS variable, return it as-is
           if (trimmedSelector.startsWith(prefix) || trimmedSelector.startsWith('--')) {
             return trimmedSelector
           }
+
+          // Skip prefixing global selectors that are often used for resets or root-level styling
+          const skipPrefixSelectors = [':root', 'html', 'body', 'dialog', 'dialog::backdrop', '.macOS', '.iPadOS', '.iOS']
+
+          // If the selector matches one of these global selectors, return it as-is
+          if (skipPrefixSelectors.some((s) => trimmedSelector.startsWith(s))) {
+            return trimmedSelector
+          }
+
+          // If the selector starts with '&', it likely represents a nested selector or pseudo-class
+          // from a pre-processor. Avoid prefixing these directly as it can cause breakage.
+          if (trimmedSelector.startsWith('&')) {
+            return trimmedSelector
+          }
+
           // Otherwise, add the prefix
           return `${prefix} ${trimmedSelector}`
         },
