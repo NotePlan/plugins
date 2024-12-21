@@ -179,7 +179,7 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const scheduleClose = (delay: number, forceClose: boolean = false) => {
     logDebug(`DialogForTaskItems`, `🥸 scheduleClose() ${String(delay)}ms delay, forceClose=${String(forceClose)}`)
     setTimeout(() => {
-      console.log('DialogForTaskItems 🥸 scheduleClose() after timout reactSettings; looking for interactiveProcessing', reactSettings)
+      console.log('DialogForTaskItems 🥸 scheduleClose() after timeout reactSettings; looking for interactiveProcessing', reactSettings)
       // $FlowIgnore 
       // logDebug('DialogForTaskItems', `scheduleClose calling handleIPItemProcessed`)
       // reactSettings?.interactiveProcessing ? handleIPItemProcessed(false) : null
