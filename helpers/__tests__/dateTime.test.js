@@ -134,6 +134,28 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+ * isYearlyDateStr()
+ */
+  describe('isYearlyDateStr()' /* function */, () => {
+    test('should find a bare Year', () => {
+      const result = dt.isYearlyDateStr('2022')
+      expect(result).toEqual(true)
+    })
+    test('should fail on a Quarter date', () => {
+      const result = dt.isYearlyDateStr('2024-Q5')
+      expect(result).toEqual(false)
+    })
+    test('should fail on a filename date', () => {
+      const result = dt.isYearlyDateStr('20241222')
+      expect(result).toEqual(false)
+    })
+    test('should fail on an ISO date', () => {
+      const result = dt.isYearlyDateStr('2024-12-22')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /*
    * replaceArrowDatesInString()
    */
   describe('replaceArrowDatesInString()' /* function */, () => {

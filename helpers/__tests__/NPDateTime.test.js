@@ -1,6 +1,7 @@
 /* global describe, test, expect, beforeAll, it */
 import moment from 'moment/min/moment-with-locales'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import * as dt from '../dateTime'
 import * as f from '../NPdateTime'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
@@ -112,6 +113,20 @@ describe(`${FILENAME}`, () => {
       expect(result).not.toBeNull()
       expect(result.quarterString).toEqual('2020-Q1')
     })
+    test('2024-04-01 basic details', () => {
+      const result = f.getQuarterData('2024-04-01')
+      expect(result.quarterIndex).toEqual(2)
+      expect(result.quarterString).toEqual('2024-Q2')
+      expect(dt.hyphenatedDateString(result.startDate)).toEqual('2024-04-01')
+      expect(dt.hyphenatedDateString(result.endDate)).toEqual('2024-06-30')
+    })
+    test('2024-12-22 basic details', () => {
+      const result = f.getQuarterData('2024-12-22')
+      expect(result.quarterIndex).toEqual(4)
+      expect(result.quarterString).toEqual('2024-Q4')
+      expect(dt.hyphenatedDateString(result.startDate)).toEqual('2024-10-01')
+      expect(dt.hyphenatedDateString(result.endDate)).toEqual('2024-12-31')
+    })
     test('should work for string passed just quarter', () => {
       const result = f.getQuarterData('2020-Q1')
       expect(result.quarterString).toEqual('2020-Q1')
@@ -196,21 +211,21 @@ describe(`${FILENAME}`, () => {
   describe('getPeriodStartEndDatesFromPeriodCode', () => {
     describe('years', () => {
       it('oy / 3 / 2021 / false', () => {
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('year', 3, 2021, false)
+        const [_fd, _td, _psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('year', 3, 2021, false)
         expect(ps).toEqual('2021')
         expect(paps).toEqual('2021')
       })
     })
     describe('quarters', () => {
       it('oq / 3 / 2021 / false', () => {
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('quarter', 3, 2021, false)
+        const [_fd, _td, _psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('quarter', 3, 2021, false)
         expect(ps).toEqual('2021 Q3 (Jul-Sep)')
         expect(paps).toEqual('2021 Q3 (Jul-Sep)')
       })
     })
     describe('months', () => {
       it('om / 3 / 2021 / false', () => {
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('month', 3, 2021, false)
+        const [_fd, _td, _psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('month', 3, 2021, false)
         expect(ps).toEqual('Mar 2021')
         expect(paps).toEqual('Mar 2021')
       })
@@ -225,7 +240,7 @@ describe(`${FILENAME}`, () => {
             doy: 4, // Used to determine first week of the year.
           },
         })
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('week', 51, 2023, false)
+        const [fd, td, _psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('week', 51, 2023, false)
         expect(ps).toEqual('2023-W51')
         expect(paps).toEqual('2023-W51')
         expect(fd).toEqual(new Date(2023, 11, 18, 0, 0, 0)) // 18.12.2023
@@ -235,17 +250,39 @@ describe(`${FILENAME}`, () => {
     describe('days', () => {
       // Skip this as it calls helper function setMomentLocaleFromEnvironment that isn't mocked (yet)
       it.skip('today / 3 / 2021 / false', () => {
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('today', 3, 2021, false)
+        const [_fd, _td, _sc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('today', 3, 2021, false)
         expect(ps).toEqual('today')
         expect(paps).toEqual('Today')
       })
       // Is specific to today, so needs updating to test.
       // This was correct on 2023-12-27
       it.skip('2023-12-01 / 3 / 2021 / false', () => {
-        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('2023-12-01', 3, 2021, false)
+        const [_fd, _td, _sc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('2023-12-01', 3, 2021, false)
         expect(ps).toEqual('since 2023-12-01')
         expect(paps).toEqual('26 days since 2023-12-01')
       })
+    })
+  })
+
+  /**
+   * getFirstDateInPeriod()
+   */
+  describe('getFirstDateInPeriod', () => {
+    it('should return the first date of the period', () => {
+      expect(f.getFirstDateInPeriod('2024')).toEqual('2024-01-01')
+      expect(f.getFirstDateInPeriod('2024-Q2')).toEqual('2024-04-01')
+      expect(f.getFirstDateInPeriod('2024-12')).toEqual('2024-12-01')
+      expect(f.getFirstDateInPeriod('2024-12-22')).toEqual('2024-12-22')
+    })
+    // Don't know why this is returning one day out
+    it.skip('should return the first date of the week', () => {
+      expect(f.getFirstDateInPeriod('2024-W52')).toEqual('2024-12-23')
+    })
+    it('should return \'(error)\' from invalid date string', () => {
+      expect(f.getFirstDateInPeriod('20241222')).toEqual('(error)')
+      expect(f.getFirstDateInPeriod('')).toEqual('(error)')
+      expect(f.getFirstDateInPeriod('bob')).toEqual('(error)')
+      expect(f.getFirstDateInPeriod('24')).toEqual('(error)')
     })
   })
 })

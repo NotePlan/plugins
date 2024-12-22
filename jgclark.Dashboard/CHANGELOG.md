@@ -1,8 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.0.b4] 2024-12-???
+### Fixed
+- fixed edge case when doing operation 'complete then' on a task with a week due date
+- ??? scheduling point 
+
 ## [2.1.0.b4] 2024-12-21
-WARNING: For JGC the PT has lost its scrollbars, and can't fix it.
 ### New
 - New "Apply to sections under headings in Calendar notes?" setting. When turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.
 ### Changed
@@ -11,6 +15,7 @@ WARNING: For JGC the PT has lost its scrollbars, and can't fix it.
 - Brought display of dropdown menus into line with other similar input fields.
 - Small dialog boxes should now have a more natural width.
 ### Fixed
+- The default perspective on first run should now show all sections.
 - Fixed edge case where '>This Week' section could be shown twice.
 ### Dev only changes
 - (dbw) Added new rollup ability to prefix most Dashboard CSS imports.
