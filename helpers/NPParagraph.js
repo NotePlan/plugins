@@ -19,7 +19,15 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import { getNPWeekData, getMonthData, getYearData, getQuarterData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
+import {
+  getFirstDateInPeriod,
+  getNPWeekData,
+  getMonthData,
+  getQuarterData,
+  getYearData,
+  nowDoneDateTimeString,
+  toLocaleDateTimeString
+} from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
@@ -342,15 +350,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore(incompatible-call)
+          ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-        : dateStyle === 'date'
-        ? // $FlowIgnore(incompatible-call)
-          ` (${toLocaleDateTimeString(n.date)})`
-        : dateStyle === 'at'
-        ? // $FlowIgnore(incompatible-call)
-          ` @${hyphenatedDate(n.date)} `
-        : ''
+          : dateStyle === 'date'
+            ? // $FlowIgnore(incompatible-call)
+            ` (${toLocaleDateTimeString(n.date)})`
+            : dateStyle === 'at'
+              ? // $FlowIgnore(incompatible-call)
+              ` @${hyphenatedDate(n.date)} `
+              : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -480,8 +488,7 @@ export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showEr
       } else {
         if (showErrorToUser) {
           await showMessage(
-            `Non-synced items found in ${
-              note.title || ''
+            `Non-synced items found in ${note.title || ''
             } under heading "${heading}". This function should only be run when the block under the heading contains only synced copies. Change your preference/settings so that the Synced Copies heading is distinct`,
             'OK',
             'Block under Heading Contains Non Synced Copies',
@@ -940,10 +947,10 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
   } else {
     return Boolean(
       hasOverdueDayTag(para, false, asOfDayString) ||
-        hasOverdueWeekTag(para, false, asOfDayString) ||
-        hasOverdueMonthTag(para, false, asOfDayString) ||
-        hasOverdueQuarterTag(para, false, asOfDayString) ||
-        hasOverdueYearTag(para, false, asOfDayString),
+      hasOverdueWeekTag(para, false, asOfDayString) ||
+      hasOverdueMonthTag(para, false, asOfDayString) ||
+      hasOverdueQuarterTag(para, false, asOfDayString) ||
+      hasOverdueYearTag(para, false, asOfDayString),
     )
   }
 }
@@ -1169,7 +1176,9 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 }
 
 /**
- * Check a paragraph object against a plain object of fields to see if they match
+ * Check a paragraph object against a plain object of fields to see if they match.
+ * Does an explicit match for specified fields but if the content is truncated with "..." it will match if the truncated version is the same
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * @param {TParagraph} paragraph object to check
  * @param {any} fieldsObject object with some fields
  * @param {Array<string>} fields list of field names to check in fieldsObject
@@ -1178,29 +1187,43 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
  */
 export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, fields: Array<string>): boolean {
   let match = true
-  const rawWasEdited = fields.indexOf('rawContent') > -1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+
+  // Check if rawContent is truncated with "..."
+  const rawWasEdited = fields.includes('rawContent') && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+  const isTruncated = fields.includes('rawContent') && typeof fieldsObject.rawContent === 'string' && fieldsObject.rawContent.endsWith('...')
+  const truncatedContent = isTruncated ? fieldsObject.rawContent.slice(0, -3) : fieldsObject.rawContent
+
   fields.forEach((field) => {
     if (field === 'rawContent' && rawWasEdited) {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject['originalRawContent']) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        match = false
+      }
+    } else if (field === 'rawContent' && isTruncated) {
+      // Use startsWith for truncated rawContent
+      if (!paragraph[field].startsWith(truncatedContent)) {
         match = false
       }
     } else {
-      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+      // $FlowIgnore[prop-missing]
       if (typeof paragraph[field] === 'undefined') {
-        throw `paragraphMatches: paragraph.${field} is undefined. you must pass in the correct fields to match. 'fields' is set to ${JSP(fields)} but paragraph=${JSP(
+        throw `paragraphMatches: paragraph.${field} is undefined. You must pass in the correct fields to match. 'fields' is set to ${JSP(fields)}, but paragraph=${JSP(
           paragraph,
         )}, which does not have all the fields`
       }
-      if (paragraph[field] !== fieldsObject[field]) {
-        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
-        // logDebug(pluginJson, `${field} -- paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+      // Check if the field value is truncated and use startsWith accordingly
+      if (typeof fieldsObject[field] === 'string' && fieldsObject[field].endsWith('...')) {
+        const fieldTruncatedContent = fieldsObject[field].slice(0, -3)
+        // $FlowIgnore
+        if (!paragraph[field].startsWith(fieldTruncatedContent)) {
+          match = false
+        }
+        // $FlowIgnore
+      } else if (paragraph[field] !== fieldsObject[field]) {
         match = false
       }
     }
   })
+
   return match
 }
 
@@ -1212,7 +1235,6 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
  * @param {boolean} ifMultipleReturnFirst? - (optional) if there are multiple matches, return the first one (default: false)
  * @returns {TParagraph | null } - the matching paragraph, or null if not found
- * @author @dwertheimer updated by @jgclark
  * @tests exist
  */
 export function findParagraph(
@@ -1265,6 +1287,7 @@ export function findParagraph(
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
  * @author @dwertheimer
+ * TODO(@dwertheimer): is the fieldsToMatch default and passing down to findParagraph correct?
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   const { filename } = staticObject
@@ -1329,6 +1352,8 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
+ * If the content is truncated with "..." it will match if the truncated version is the same as the start of the content in a line in the note
+ * (this works around a bug in DataStore.listOverdueTasks where it was truncating the paragraph content at 300 chars)
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Works on both Project and Calendar notes.
  * @author @jgclark
@@ -1351,10 +1376,13 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
+        const isTruncated = content.endsWith('...')
+        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
+
         let c = 0
         for (const para of thisNote.paragraphs) {
-          if (para.content === content) {
-            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+          if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
+          // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
           c++
@@ -1378,7 +1406,6 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
  * Removes '>date' (including '>today') if present.
- * TODO: Cope with non-daily scheduled dates.
  * TODO: extend to complete sub-items as well if wanted.
  * @author @jgclark
  * @param {TParagraph} para
@@ -1397,7 +1424,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
         clo(captureArr)
         dateString = captureArr[1]
-        logDebug('markComplete', `will use scheduled date ${dateString} as completion date`)
+        // TEST: Cope with non-daily scheduled dates (e.g. 2024-W50)
+        dateString = getFirstDateInPeriod(dateString)
+        logDebug('markComplete', `will use scheduled date '${dateString}' as completion date`)
       } else {
         // Use date of the note if it has one. (What does para.note.date return for non-daily calendar notes?)
         if (para.note?.type === 'Calendar' && para.note.date) {
@@ -1857,6 +1886,7 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
   }
   return parentsOnlyAtTop
 }
+
 /**
  * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
  * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
@@ -1890,6 +1920,29 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): 
   clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
 
   return childParas
+}
+
+/**
+ * Get the parent paragraph for a given paragraph.
+ * Note: not tested!
+ * Note: could be moved to helper/paragraph.js
+ * 
+ * @param {number} thisParaLineIndex - The paragraph index for which to find the parent.
+ * @param {Array<TParagraph>} paragraphs - The array of all paragraphs.
+ * @returns {TParagraph | null} - The parent paragraph or null if no parent is found.
+ */
+export function getParentPara(thisParaLineIndex: number, paragraphs: Array<TParagraph>): TParagraph | null {
+  const thisPara = paragraphs[thisParaLineIndex]
+  const paraIndentLevel = thisPara.indents
+
+  // Iterate backwards from the current paragraph to find the parent
+  for (let i = thisParaLineIndex - 1; i >= 0; i--) {
+    const potentialParent = paragraphs[i]
+    if (potentialParent.indents < paraIndentLevel) {
+      return potentialParent // Found the parent
+    }
+  }
+  return null // No parent found
 }
 
 /**

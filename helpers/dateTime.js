@@ -64,8 +64,8 @@ export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUA
 export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Years
-// export const RE_NP_YEAR_SPEC = '(?<!\\d)\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing digit or - [doesn't work because it has a lookbehind]
-export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without trailing - or digit [fails if I add negative start or negative lookbehinds]
+export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing - or digit [fails if I add negative start or negative lookbehinds]
+export const RE_BARE_YEAR_SPEC = '^\\d{4}$' // find years of form YYYY without anything leading or trailing
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
 export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
@@ -174,7 +174,9 @@ export const isMonthlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_M
 
 export const isQuarterlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_QUARTER_SPEC).test(dateStr)
 
-export const isYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_YEAR_SPEC).test(dateStr)
+// Note: now stricter than before: only matches YYYY without anything else. So a looser function defined as well.
+export const containsYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_YEAR_SPEC).test(dateStr)
+export const isYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_BARE_YEAR_SPEC).test(dateStr)
 
 /**
  * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
@@ -453,6 +455,8 @@ export function getDateStringFromCalendarFilename(filename: string, returnISODat
 
 /**
  * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename. (e.g. '2022-Q4.md' -> '20221001')
+ * FIXME: Relies on DataStore -- shouldn't be in this file
+ * WARNING: Probably not reliable as it relies on the Calendar note existing, I think.
  * @param {string} filename
  * @returns {string} YYYYMMDD for first date in period
  */
@@ -1355,7 +1359,7 @@ export function filenameIsInFuture(filename: string, fromUnhyphenatedDate: strin
   if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
     const yearDateMatch = filename.match(RE_YEARLY_NOTE_FILENAME)
     if (yearDateMatch) {
-      const yearlyDate = yearDateMatch[0].match(/\d{4}/)?.[0]
+      const yearlyDate = yearDateMatch[0].match(/\d{4}/)?.[0] ?? ''
       return yearlyDate > getNPYearStr(today)
     }
   }

@@ -9,6 +9,7 @@ import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import {
   getWeek,
+  hyphenatedDateString,
   isoWeekStartEndDates,
   isDailyDateStr,
   isMonthlyDateStr,
@@ -711,6 +712,7 @@ export function pad(n: number): string {
  *   date: Date,
  * }
  * @author @dwertheimer, extended by @jgclark
+ * @tests in jest file
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
@@ -736,29 +738,28 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
       throw new Error(`Cannot get date from dateIn '${String(dateIn)}'`)
     }
 
+    let weekNumber: number
+    let startDate: Date
+    let endDate: Date
     // This might be run from React side, where Calendar.* is not available.
     // If this happens, then instead offer the ISO week number.
     if (!Calendar || typeof Calendar !== 'object') {
       logInfo('NPdateTime::getNPWeekData', `NP's Calendar API functions are not available, so I will use moment instead. This doesn't know what your chosen first day of week is.`)
-      const weekNumber = newMom.week() // uses moment locale
-      const startDate = newMom.startOf('week').toDate()
-      const endDate = newMom.endOf('week').toDate()
-      const weekStartYear = startDate.getFullYear()
-      const weekEndYear = endDate.getFullYear()
-      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-      const weekString = `${weekYear}-W${pad(weekNumber)}`
-      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+      weekNumber = newMom.week() // uses moment locale
+      startDate = newMom.startOf('week').toDate()
+      endDate = newMom.endOf('week').toDate()
     }
     else {
-      const weekNumber = Calendar.weekNumber(date)
-      const startDate = Calendar.startOfWeek(date)
-      const endDate = Calendar.endOfWeek(date)
-      const weekStartYear = startDate.getFullYear()
-      const weekEndYear = endDate.getFullYear()
-      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-      const weekString = `${weekYear}-W${pad(weekNumber)}`
-      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+      weekNumber = Calendar.weekNumber(date)
+      startDate = Calendar.startOfWeek(date)
+      endDate = Calendar.endOfWeek(date)
     }
+
+    const weekStartYear = startDate.getFullYear()
+    const weekEndYear = endDate.getFullYear()
+    const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+    const weekString = `${weekYear}-W${pad(weekNumber)}`
+    return { weekNumber, startDate, endDate, weekYear, date, weekString }
   } catch (err) {
     logError('NPdateTime::getNPWeekData', err.message)
     return null
@@ -767,7 +768,8 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
 
 /**
  * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
- * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * Note: Returns results in local timezone (which is good), but make sure you expect that!
+ * Note: doesn't use NP API calls, but lives here alongside other very related functions that do
  * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
@@ -777,6 +779,7 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
     startDate: Date; // start of month (date object in your local timezone -- could be another day in GMT)
     endDate: Date; // end of month (date object in your local timezone -- could be another day in GMT)
 }
+  * @tests in jest file
  */
 export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'month'): NotePlanMonthInfo | null {
   let dateStrFormat = 'YYYY-MM-DD',
@@ -800,8 +803,46 @@ export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement
 }
 
 /**
+ * Get all the quarter details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * Note: Returns results in local timezone (which is good), but make sure you expect that!
+ * Note: doesn't use NP API calls, but lives here alongside other very related functions that do
+ * @param {string | Date} dateIn
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'quarter'
+ * @returns {
+  quarterIndex: number  0-indexed ,
+  quarterString: number 2022-Q1 (1-indexed) ,
+  startDate: Date,
+  endDate: Date,
+}
+  * @tests in jest file
+ */
+export function getQuarterData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'quarter'): NotePlanQuarterInfo | null {
+  let dateStrFormat = 'YYYY-[Q]Q',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const quarterIndex = newMom.quarter()
+    const quarterString = newMom.format('YYYY-[Q]Q')
+    const startDate = newMom.startOf('quarter').toDate()
+    const endDate = newMom.endOf('quarter').toDate()
+
+    return { quarterIndex, quarterString, startDate, endDate }
+  }
+  return null
+}
+
+/**
  * Get all the year details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
- * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * Note: Returns results in local timezone (which is good), but make sure you expect that!
+ * Note: doesn't use NP API calls, but lives here alongside other very related functions that do
  * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
@@ -810,6 +851,7 @@ export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement
   startDate: Date,
   endDate: Date,
   }
+  * @tests in jest file
 */
 export function getYearData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'year'): NotePlanYearInfo | null {
   let dateStrFormat = 'YYYY',
@@ -833,39 +875,42 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 }
 
 /**
- * Get all the quarter details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
- * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
- * @param {string | Date} dateIn
- * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
- * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'quarter'
- * @returns {
-  quarterIndex: number  0-indexed ,
-  quarterString: number 2022-Q1 (1-indexed) ,
-  startDate: Date,
-  endDate: Date,
-}
+ * Get the first date in a period, given a NotePlan date string (e.g. '2022-01-01', '2022-W01', '2022-Q1', '2022')
+ * If the date string is already a day date, it will be returned as is.
+ * @param {string} NPDateString - NotePlan date string
+ * @returns {string} - the first date in the period
+ * @tests in jest file
  */
-export function getQuarterData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'quarter'): NotePlanQuarterInfo | null {
-  let dateStrFormat = 'YYYY-[Q]Q',
-    newMom
-  if (typeof dateIn === 'string') {
-    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
-    if (new RegExp(RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
-    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
-  } else {
-    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+export function getFirstDateInPeriod(NPDateString: string): string {
+  try {
+    let firstDateStr = ''
+    if (isDailyDateStr(NPDateString)) {
+      logDebug('getFirstDateInPeriod', `'${NPDateString}' was already a day date`)
+      firstDateStr = NPDateString
+    } else {
+      // It's not a day date, so need to convert to one. Take the first day of the week/month/quarter/year.
+      let NPInfo: NotePlanWeekInfo | NotePlanMonthInfo | NotePlanQuarterInfo | NotePlanYearInfo | null
+      if (isWeeklyDateStr(NPDateString)) {
+        NPInfo = getNPWeekData(NPDateString)
+      } else if (isMonthlyDateStr(NPDateString)) {
+        NPInfo = getMonthData(NPDateString)
+      } else if (isQuarterlyDateStr(NPDateString)) {
+        NPInfo = getQuarterData(NPDateString)
+      } else if (isYearlyDateStr(NPDateString)) {
+        NPInfo = getYearData(NPDateString)
+      } else {
+        throw new Error(`unexpected date format ${NPDateString}, so won't use it`)
+      }
+      firstDateStr = (NPInfo && NPInfo.startDate) ? hyphenatedDateString(NPInfo?.startDate) : ''
+    }
+    logDebug('getFirstDateInPeriod', `-> first date = '${firstDateStr}'`)
+    return firstDateStr
+  } catch (err) {
+    logError('getFirstDateInPeriod', err.message)
+    return '(error)'
   }
-  if (newMom) {
-    const quarterIndex = newMom.quarter()
-    const quarterString = newMom.format('YYYY-[Q]Q')
-    const startDate = newMom.startOf('quarter').toDate()
-    const endDate = newMom.endOf('quarter').toDate()
-
-    return { quarterIndex, quarterString, startDate, endDate }
-  }
-  return null
 }
+
 /**
  * Get upcoming date string options for use in chooseOption
  * Note: the day-specific version of this function is in ./dateTime (getDateOptions)
