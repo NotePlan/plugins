@@ -352,17 +352,17 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
   backlinkParas.forEach((para) => {
   // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
     if (includeHeadings) {
-      logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+      // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
     }
     else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-      logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
+      // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
       wantedParas.push(para)
     } else {
-      logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+      // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
     }
   })
 
-  logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
+  // logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
   return wantedParas
 }
 

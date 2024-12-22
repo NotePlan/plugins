@@ -1027,7 +1027,7 @@ export function createSectionItemsFromParas(sortedOrCombinedParas: Array<TParagr
                 ? lastIndent3ParentID
                 : '' // getting silly by this point, so stop
       thisSectionItemObject.parentID = parentParaID
-      logInfo(``, `- found parentID ${parentParaID} for ID ${thisID}`)
+      // logDebug(``, `- found parentID ${parentParaID} for ID ${thisID}`)
     }
     if (socp.hasChild) {
       switch (socp.indentLevel) {
