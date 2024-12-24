@@ -78,7 +78,9 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
  * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
  * Note: Send param 'allNotesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
+ * Note: There's deliberately no try/catch so that failure can stop processing.
  * TODO(Later): Hopefully @EM will allow future calendar notes to be created, and then some of this handling won't be needed.
+ * TODO: Move this to helpers/NPNote.
  * See https://discord.com/channels/763107030223290449/1243973539296579686
  * @param {string} purpose to show to user
  * @param {string?} noteTitleArg
@@ -155,7 +157,7 @@ export async function getNoteFromParamOrUser(
       }
 
       if (noteTitleArg !== '') {
-        logWarn('getNoteFromParamOrUser', `Couldn't find regular note with title '${noteTitleArg}'. Will prompt user instead.`)
+        logDebug('getNoteFromParamOrUser', `Couldn't find regular note with title '${noteTitleArg}'. Will prompt user instead.`)
       }
 
       const notesList = allNotesToUse.map((n) => displayTitleWithRelDate(n)).filter(Boolean)

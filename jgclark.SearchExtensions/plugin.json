@@ -358,7 +358,7 @@
     {
       "key": "dateStyle",
       "title": "Date style",
-      "description": "Where the match is in a calendar note, choose where that link is shown as\n- a 'date' using your locale\n- an NP date 'link' ([[2022-06-30]])\n- an 'at' date (@2022-06-30), or\n- a 'scheduled' date (>2022-06-30).",
+      "description": "Where the match is in a calendar note, choose where that link is shown as\n- a 'date' using your locale\n- an NP date 'link' (e.g. [[2022-06-30]])\n- an 'at' date (e.g. @2022-06-30), or\n- a 'scheduled' date (e.g. >2022-06-30).",
       "type": "string",
       "choices": [
         "at",
