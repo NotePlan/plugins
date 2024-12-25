@@ -16,6 +16,8 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **jump to note's heading** (alias **jn**): jump to a different note, and then to the selected heading
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
+- **log note details** command that logs the main details about the currently open note to the plugin console
+- **logEditorNoteDetailed** command that does the same as **log note details** but also logs line type and rawContents
 - **move note** (alias **mn**): which moves a note to a different folder the user selects
 - **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)

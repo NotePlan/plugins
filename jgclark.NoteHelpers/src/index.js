@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-12-13 for v0.20.1+ by @jgclark
+// Last updated 2024-12-25 for v0.20.3 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -25,6 +25,7 @@ export {
   convertLocalLinksToPluginLinks,
   addFrontmatterToNote,
   moveNote,
+  logEditorNoteDetailed,
   renameNoteFile,
   trashNote
 } from './noteHelpers'

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-08-16 for v0.19.3 by @jgclark
+// Last updated 2024-12-25 for v0.20.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,13 +11,12 @@ import { displayTitle } from '@helpers/general'
 // import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
 import { addTrigger, noteHasFrontMatter, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
-// import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { printNote } from '@helpers/NPnote'
 import {
   chooseFolder,
   // chooseHeading,
   chooseOption, getInput, showMessage
 } from '@helpers/userInput'
-
 //-----------------------------------------------------------------
 // Settings
 
@@ -57,6 +56,27 @@ export async function getSettings(): Promise<any> {
 }
 
 //-----------------------------------------------------------------
+
+/**
+ * Command from Eduard to move a note to a different folder
+ * @author @eduardme
+ */
+export async function logEditorNoteDetailed(): Promise<void> {
+  try {
+    if (!Editor || !Editor.note) {
+      // No note open, so don't do anything.
+      logError('logEditorNoteDetailed()', 'No note open. Stopping.')
+      return
+    }
+    logDebug('logEditorNoteDetailed()', `Editor: ${Editor.filename})`)
+    printNote(Editor.note, true)
+  }
+  catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
 /**
  * Command from Eduard to move a note to a different folder
  * @author @eduardme

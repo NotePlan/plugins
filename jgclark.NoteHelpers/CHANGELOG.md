@@ -1,6 +1,9 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+## [0.20.3] - 2024-12-25
+- new **logEditorNoteDetailed** command (which can easily triggered from a callback) that also logs line type and rawContents
+
 ## [0.20.2] - 2024-12-15
 - the **log note details** command now includes backlink-ed notes and paragraphs
 

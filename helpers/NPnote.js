@@ -72,7 +72,7 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
         `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
       )
       if (alsoShowParagraphs) {
-        note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
+        note.paragraphs.map((p) => console.log(`  - p${p.lineIndex}:\t${p.type}:\t${p.rawContent}`))
       }
     }
     // Now show .backlinks
