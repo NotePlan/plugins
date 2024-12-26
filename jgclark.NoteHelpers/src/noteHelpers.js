@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-12-25 for v0.20.3 by @jgclark
+// Last updated 2024-12-26 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -83,10 +83,17 @@ export async function logEditorNoteDetailed(): Promise<void> {
  */
 export async function moveNote(): Promise<void> {
   try {
-    const { title, filename } = Editor
+    const { title, filename, type } = Editor
     if (title == null || filename == null) {
       // No note open, so don't do anything.
-      logError('moveNote()', 'No note open. Stopping.')
+      logError('moveNote()', `No note open. Stopping.`)
+      const res = await showMessage(`No note open. Stopping.`)
+      return
+    }
+    if (type === 'Calendar') {
+      // Can't move Calendar notes
+      logError('moveNote()', `Can't move a calendar note. Stopping.`)
+      const res = await showMessage(`NotePlan doesn't allow moving calendar notes.`)
       return
     }
     const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true, true) // include @Archive as an option, and to create a new folder

@@ -1,7 +1,11 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
-## [0.20.3] - 2024-12-25
+## [1.0.0] - 2024-12-26???
+### Important Changes
+- when "/move note" shows the list of folders, the special Templates and Archive folders are moved to the end of the list. (Plus any other special ones that start with '@').
+
+## [0.20.3] - 2024-12-25 (unpublished)
 - new **logEditorNoteDetailed** command (which can easily triggered from a callback) that also logs line type and rawContents
 
 ## [0.20.2] - 2024-12-15

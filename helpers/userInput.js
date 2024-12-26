@@ -193,8 +193,14 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
   if (startFolder?.length && startFolder !== '/') {
     folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
   } else {
-    if (!includeArchive) {
-      folders = folders.filter((f) => !f.startsWith('@Archive'))
+    const archiveFolders = folders.filter((f) => f.startsWith('@Archive'))
+    const otherSpecialFolders = folders.filter((f) => f.startsWith('@') && !f.startsWith('@Archive'))
+    // Remove special folders from list
+    folders = folders.filter((f) => !f.startsWith('@'))
+    // Now add them back on at the end, with @Archive going last
+    folders = [...folders, ...otherSpecialFolders]
+    if (includeArchive) {
+      folders = [...folders, ...archiveFolders]
     }
   }
   let value, keyModifiers
@@ -202,17 +208,23 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
     // make a slightly fancy list with indented labels, different from plain values
     const folderOptionList: Array<any> = []
     for (const f of folders) {
-      if (f !== '/' && f !== NEW_FOLDER) {
+      if (f === NEW_FOLDER) {
+        folderOptionList.push({ label: NEW_FOLDER, value: NEW_FOLDER })
+      } else if (f !== '/') {
         const folderParts = f.split('/')
+        const icon = (folderParts[0]==='@Archive')
+          ? `🗄️` : (folderParts[0]==='@Templates')
+            ? '📝' : '📁'
+        // Replace earlier parts of the path with indentation spaces
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
         }
-        folderParts[folderParts.length - 1] = `📁 ${folderParts[folderParts.length - 1]}`
+        folderParts[folderParts.length - 1] =  `${ icon } ${ folderParts[folderParts.length - 1] }`
         const folderLabel = folderParts.join('')
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
-        folderOptionList.push(f !== NEW_FOLDER ? { label: '📁 /', value: '/' } : { label: NEW_FOLDER, value: NEW_FOLDER })
+        folderOptionList.push({ label: '📁 /', value: '/' })
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
