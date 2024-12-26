@@ -18,7 +18,10 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
 - **log note details** command that logs the main details about the currently open note to the plugin console
 - **logEditorNoteDetailed** command that does the same as **log note details** but also logs line type and rawContents
-- **move note** (alias **mn**): which moves a note to a different folder the user selects
+- - **move note** (alias **mn**): which moves a note to a different folder the user selects
+- **new note** (alias **nn**): creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
+- **new note from clipboard** (alias **/nnc**): takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
+- **new note from selection** (alias **/nns**): takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
 - **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
 - **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)

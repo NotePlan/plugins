@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.1.5",
-  "plugin.lastUpdateInfo": "1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive command. 1.1.0: new '/... note links...' commands.",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: move /new note commands to NoteHelpers plugin. Updated folder chooser.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive command. 1.1.0: new '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -138,24 +138,6 @@
       ],
       "description": "quick move a block of paragraphs to Next Week's note",
       "jsFunction": "moveParasToNextWeekly"
-    },
-    {
-      "name": "new note from clipboard",
-      "alias": [
-        "nnc",
-        "new"
-      ],
-      "description": "New note from clipboard",
-      "jsFunction": "newNoteFromClipboard"
-    },
-    {
-      "name": "new note from selection",
-      "alias": [
-        "nns",
-        "new"
-      ],
-      "description": "New note from selection (and leave link to it in its place)",
-      "jsFunction": "newNoteFromSelection"
     },
     {
       "name": "Filer: update plugin settings",

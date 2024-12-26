@@ -9,9 +9,8 @@ import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { allNotesSortedByChanged } from '@helpers/note'
-import { convertNoteToFrontmatter } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
+import { convertNoteToFrontmatter, printNote } from '@helpers/NPnote' // Note: not the one in 'NPTemplating'
 import { addTrigger, noteHasFrontMatter, setFrontMatterVars, TRIGGER_LIST } from '@helpers/NPFrontMatter'
-import { printNote } from '@helpers/NPnote'
 import {
   chooseFolder,
   // chooseHeading,
@@ -359,7 +358,7 @@ export async function renameNoteFile(): Promise<void> {
 
 /**
  * Convert the note to using frontmatter Syntax
- * If optional default text is given, this is added to the frontmatter.
+ * If the plugin settings contains default frontmatter, this is added to the frontmatter.
  * @author @jgclark
  * @param {TNote} note
  */

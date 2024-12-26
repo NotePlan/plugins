@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 2024-12-25 for v0.20.3 by @jgclark
+// Last updated 2024-12-26 for v1.0.0 by @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,6 +20,7 @@ export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { titleToFilename } from './lib/commands/titleToFilename'
 export { filenameToTitle } from './lib/commands/filenameToTitle'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
+export { newNote, newNoteFromClipboard, newNoteFromSelection } from './newNote'
 export {
   addTriggerToNote,
   convertLocalLinksToPluginLinks,

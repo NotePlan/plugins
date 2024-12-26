@@ -14,7 +14,6 @@ import fm from 'front-matter'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { RE_MARKDOWN_LINKS_CAPTURE_G } from '@helpers/regex'
-
 const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
@@ -195,7 +194,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
  * @param {string} indent - level for recursive indent
  * @returns
  */
-function _objectToYaml(obj: any, indent: string = ' ') {
+function _objectToYaml(obj: any, indent: string = ' '): string {
   let output = ''
   for (const prop in obj) {
     output += `\n${indent}${prop}:`
@@ -337,7 +336,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   try {
     let retVal = false
-    let front = ''
+    let fm = ''
     if (note == null) {
       // no note - return false
       throw new Error(`No note found. Stopping conversion.`)
@@ -357,11 +356,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
       // need to add frontmatter
       let newTitle
       if (note.type === 'Notes' && alsoEnsureTitle) {
-        // if (!note.title) {
-        //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
         logDebug('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, so will now make one:`)
-        //   return false
-        // }
 
         const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
         const titleFromFirstLine = firstLine.type === 'title' && firstLine.headingLevel === 1 ? firstLine.content : ''
@@ -374,25 +369,65 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         }
 
         if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        front = `---\ntitle: ${quoteText(newTitle)}\n---`
+        fm = `---\ntitle: ${quoteText(newTitle)}\n---\n`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        front = `---\n---`
+        fm = `---\n---\n`
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
       // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
-      logDebug('ensureFrontmatter', `front to add: ${front}`)
+      logDebug('ensureFrontmatter', `front to add: ${fm}`)
       // FIXME: this doesn't do anything for @jgclark
-      note.insertParagraph(front, 0, 'text')
+      note.insertParagraph(fm, 0, 'text')
       retVal = true
       logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
     }
-    // logDebug('ensureFrontmatter', `Returning ${String(retVal)}`)
     return retVal
   } catch (error) {
     logError('NPFrontMatter/ensureFrontmattter()', JSP(error))
     return false
+  }
+}
+
+/**
+ * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
+ * @author @jgclark
+ * @param {TNote} note - the note to assess
+ * @returns {number | false} - the line index number of the closing separator, or false if no frontmatter found
+ */
+export function endOfFrontmatterLineIndex(note: CoreNoteFields): number | false {
+  try {
+    const paras = note.paragraphs
+    const lineCount = paras.length
+    logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+    // Can't have frontmatter as less than 2 separators
+    if (paras.filter((p) => p.type === 'separator').length < 2) {
+      return false
+    }
+    // No frontmatter if first line isn't ---
+    if (note.paragraphs[0].type !== 'separator') {
+      return false
+    }
+    // No frontmatter if less than 3 lines
+    if (note.paragraphs.length < 3) {
+      return false
+    }
+    // Look for second --- line
+    let lineIndex = 1
+    while (lineIndex < lineCount) {
+      const p = paras[lineIndex]
+      if (p.type === 'separator') {
+        logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
+        return lineIndex
+      }
+      lineIndex++
+    }
+    // Shouldn't get here ...
+    return false
+  } catch (err) {
+    logError('paragraph/findEndOfActivePartOfNote', err.message)
+    return NaN // for completeness
   }
 }
 

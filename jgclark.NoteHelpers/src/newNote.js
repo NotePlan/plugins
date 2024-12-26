@@ -3,14 +3,56 @@
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
-// Last updated 10.6.2023 for 1.1.1, @jgclark
+// Note: this was originally in Filer plugin
+// Last updated 2024-12-26 for 1.0.0, @jgclark (originallu)
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { addFrontmatterToNote, getSettings } from './noteHelpers'
 import { logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getUniqueNoteTitle, noteOpener } from '@helpers/note'
-import { chooseFolder, getInput, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseFolder, getInput, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+
+/**
+ * Create new (regular) note.
+ * @author @jgclark
+ */
+export async function newNote(): Promise<void> {
+  try {
+    // Get title for this note
+    const title = await getInputTrimmed('Title of new note', 'OK', 'New Note from Clipboard', '')
+    if (typeof title === 'string') {
+      const currentFolder = await chooseFolder('Select folder to add note in:', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
+      const content = `# ${title}\n`
+      if (title) {
+        // Create new note in the specific folder
+        const filename = (await DataStore.newNoteWithContent(content, currentFolder)) ?? ''
+        logDebug('newNote', ` -> filename: ${filename}`)
+
+        // Add frontmatter if required
+        const config = await getSettings()
+        if (config.defaultFrontmatter !== '') {
+          // Add frontmatter to the note
+          const newNote = await DataStore.noteByFilename(filename, 'Notes')
+          if (newNote) {
+            await addFrontmatterToNote(newNote)
+          }
+        }
+
+        if (await showMessageYesNo('New Note created. Open it now?', ['Yes', 'No'], `New Note`) === 'Yes') {
+          await Editor.openNoteByFilename(filename)
+        }
+      } else {
+        logError('newNote', 'Undefined or empty title')
+      }
+    } else {
+      logWarn('newNote', 'The user cancelled the operation.')
+    }
+  } catch (err) {
+    logError(pluginJson, `newNote: ${err}`)
+  }
+}
 
 /**
  * Create new note from the clipboard contents.

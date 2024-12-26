@@ -9,7 +9,6 @@ import { getBlockUnderHeading } from './NPParagraph'
 import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
-  // isScheduled,
   isValidCalendarNoteFilenameWithoutExtension,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
@@ -19,7 +18,7 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { ensureFrontmatter } from '@helpers/NPFrontMatter'
+import { endOfFrontmatterLineIndex, ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { noteType } from '@helpers/note'
 import { caseInsensitiveIncludes, getCorrectedHashtagsFromNote } from '@helpers/search'
@@ -206,7 +205,7 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
 }
 
 /**
- * Convert the note to using frontmatter Syntax
+ * Convert the note to use frontmatter syntax.
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark
  * @param {TNote} note to convert
@@ -216,20 +215,26 @@ export function getNoteFilenameFromTitle(inputStr: string): string | null {
 export function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): void {
   try {
     if (!note) {
-      throw new Error("note/convertNoteToFrontmatter: No note supplied, and can't find Editor either.")
+      throw new Error("NPnote/convertNoteToFrontmatter: No valid note supplied.")
     }
-    const success = ensureFrontmatter(note)
-    if (success) {
-      logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
+
+    const result = ensureFrontmatter(note)
+    if (result) {
+      logDebug('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
+
       if (defaultFMText !== '') {
-        const endOfFMLineIndex = findStartOfActivePartOfNote(note) - 1 // closing separator line
-        note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
+        const endOfFMLineIndex: number | false = endOfFrontmatterLineIndex(note) // closing separator line
+        if (endOfFMLineIndex !== false) {
+          note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
+        } else {
+          logWarn('NPnote/convertNoteToFrontmatter', `endOfFrontmatterLineIndex() failed for note ${note.filename}`)
+        }
       }
     } else {
-      logWarn('note/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
+      logWarn('NPnote/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
     }
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(pluginJson, `convertNoteToFrontmatter: ${error.message}`)
   }
 }
 

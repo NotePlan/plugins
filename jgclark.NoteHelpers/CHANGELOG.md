@@ -1,9 +1,13 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
-## [1.0.0] - 2024-12-26???
+## [1.0.0] - 2024-12-???
+### New
+- the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
+
 ### Important Changes
-- when "/move note" shows the list of folders, the special Templates and Archive folders are moved to the end of the list. (Plus any other special ones that start with '@').
+- when **move note** shows the list of folders, the special Templates and Archive folders are moved to the end of the list. (Plus any other special ones that start with '@').
+- the **new note from clipboard** and **new note from selection** commands have moved from Filer plugin to NoteHelpers.
 
 ## [0.20.3] - 2024-12-25 (unpublished)
 - new **logEditorNoteDetailed** command (which can easily triggered from a callback) that also logs line type and rawContents

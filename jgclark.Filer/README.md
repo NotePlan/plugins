@@ -87,12 +87,6 @@ You can also run from an x-callback call. At simplest this is:
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
 ```
 
-## /new note from clipboard
-This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
-
-## /new note from selection
-This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
-
 ## /filer:update plugin settings
 This command allows settings to be changed on iOS/iPadOS.
 

@@ -6,6 +6,7 @@
 import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
+import { endOfFrontmatterLineIndex } from '@helpers/NPFrontMatter'
 import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
@@ -393,49 +394,6 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
       return endOfActive
     }
-  } catch (err) {
-    logError('paragraph/findEndOfActivePartOfNote', err.message)
-    return NaN // for completeness
-  }
-}
-
-/**
- * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
- * Now
- * TODO: Move to NPFrontMatter.js ?
- * @author @jgclark
- * @param {TNote} note - the note to assess
- * @returns {number} - the line index number of the closing separator, or 0 if no frontmatter found
- */
-export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
-  try {
-    const paras = note.paragraphs
-    const lineCount = paras.length
-    // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
-    // Can't have frontmatter as less than 2 separators
-    if (paras.filter((p) => p.type === 'separator').length < 2) {
-      return 0
-    }
-    // No frontmatter if first line isn't ---
-    if (note.paragraphs[0].type !== 'separator') {
-      return 0
-    }
-    // No frontmatter if less than 3 lines
-    if (note.paragraphs.length <= 3) {
-      return 0
-    }
-    // Look for second --- line
-    let lineIndex = 1
-    while (lineIndex < lineCount) {
-      const p = paras[lineIndex]
-      if (p.type === 'separator') {
-        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
-        return lineIndex
-      }
-      lineIndex++
-    }
-    // Shouldn't get here ...
-    return 0
   } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness
