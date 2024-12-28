@@ -107,10 +107,14 @@ export function     // sort items by priority, startTime, endTime, content
     return 1
   }
 
-  // Finally sort by content (alphabetic)
-  const contentA = a.para?.content.toLowerCase() ?? ''
-  const contentB = b.para?.content.toLowerCase() ?? ''
-  return contentA.localeCompare(contentB)
+  // // Finally sort by content (alphabetic)
+  // Note: removed as I can't see a good reason for it
+  // const contentA = a.para?.content.toLowerCase() ?? ''
+  // const contentB = b.para?.content.toLowerCase() ?? ''
+  // return contentA.localeCompare(contentB)
+
+  // Leave in original order
+  return 0
 }
 
 /**

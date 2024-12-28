@@ -84,7 +84,7 @@ export type TDashboardSettings = {
   showWeekSection: boolean,
   showYesterdaySection: boolean,
   tagsToShow: string, // Note: Run through stringListOrArrayToArray() before use
-  useRescheduleMarker: boolean,
+  useLiteScheduleMethod: boolean,
   useTodayDate: boolean,
 }
 

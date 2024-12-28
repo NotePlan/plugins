@@ -20,8 +20,6 @@ import {
   doCyclePriorityStateUp,
   doDeleteItem,
   doEvaluateString,
-  doMoveToNote,
-  doRescheduleItem,
   doSettingsChanged,
   doShowNoteInEditorFromFilename,
   doShowNoteInEditorFromTitle,
@@ -52,7 +50,11 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import { doMoveFromCalToCal } from './moveClickHandlers'
+import {
+  doMoveFromCalToCal,
+  doMoveToNote,
+  doRescheduleItem,
+} from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
 import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'

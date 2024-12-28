@@ -230,7 +230,7 @@ For the `setSetting` callbacks, the names of the possible settings (described ab
 | includeFolderName | true / false |
 | includeTaskContext | true / false |
 | rescheduleNotMove | true / false |
-| useRescheduleMarker | true / false |
+| useLiteScheduleMethod | true / false |
 | newTaskSectionHeading | string |
 | newTaskSectionHeadingLevel | 1-5 |
 | excludeChecklistsWithTimeblocks | true / false |

@@ -3,7 +3,7 @@ import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
-import { paragraphMatches, getParagraphParentsOnly, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
+// import { paragraphMatches, getParagraphParentsOnly, getChildParas, getIndentedNonTaskLinesUnderPara, removeParentsWhoAreChildren } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
 
@@ -1110,7 +1110,7 @@ describe('NPParagraphs()', () => {
       const paragraph = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
       const fieldsObject = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
       const fields = ['rawContent', 'filename', 'lineIndex']
-      const result = paragraphMatches(paragraph, fieldsObject, fields)
+      const result = p.paragraphMatches(paragraph, fieldsObject, fields)
       expect(result).toBe(true)
     })
 
@@ -1118,55 +1118,55 @@ describe('NPParagraphs()', () => {
       const paragraph = { rawContent: 'Test content', filename: 'test.md', lineIndex: 1 }
       const fieldsObject = { rawContent: 'Different content', filename: 'test.md', lineIndex: 1 }
       const fields = ['rawContent', 'filename', 'lineIndex']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
     })
 
     test('should return true when rawContent is truncated and matches the start', () => {
       const paragraph = { rawContent: 'Test content with more text', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Test content...', filename: 'test.md' }
       const fields = ['rawContent', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
 
     test('should return false when rawContent is truncated but does not match the start', () => {
       const paragraph = { rawContent: 'Different content with more text', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Test content...', filename: 'test.md' }
       const fields = ['rawContent', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
     })
 
     test('should return true when rawContent was edited but originalRawContent matches content in the note', () => {
       const paragraph = { rawContent: 'Original content', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Edited content', originalRawContent: 'Original content', filename: 'test.md' }
       const fields = ['rawContent', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
 
     test('should throw an error if a field in fields is not present in paragraph', () => {
       const paragraph = { rawContent: 'Test content', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Test content', filename: 'test.md' }
       const fields = ['rawContent', 'filename', 'lineIndex']
-      expect(() => paragraphMatches(paragraph, fieldsObject, fields)).toThrow()
+      expect(() => p.paragraphMatches(paragraph, fieldsObject, fields)).toThrow()
     })
 
     test('should return false if an incoming test field is undefined', () => {
       const paragraph = { rawContent: 'Test content', filename: 'test.md' }
       const fieldsObject = { rawContent: 'Test content', filename: undefined }
       const fields = ['rawContent', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(false)
     })
 
     test('should return true when content is truncated and matches the start', () => {
       const paragraph = { content: 'Send Alex the form and some $$$', filename: 'test.md' }
       const fieldsObject = { content: 'Send Alex the form and some $$$', filename: 'test.md' }
       const fields = ['content', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
     test('should find content with $$$', () => {
       const paragraph = { content: 'This is a long content that needs to be checked', filename: 'test.md' }
       const fieldsObject = { content: 'This is a long content...', filename: 'test.md' }
       const fields = ['content', 'filename']
-      expect(paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
+      expect(p.paragraphMatches(paragraph, fieldsObject, fields)).toBe(true)
     })
   })
 })
@@ -1280,252 +1280,5 @@ line 8 ordinary para
 
     const resultParas = p.makeBasicParasFromContent(content)
     expect(resultParas).toEqual(paragraphs)
-  })
-})
-
-/*
- * getParagraphParentsOnly()
- */
-describe('getParagraphParentsOnly', () => {
-  it('should return an array of parent paragraphs with their children - Test case 1', () => {
-    const paragraphs1 = [
-      { lineIndex: 0, indents: 0, children: () => [] },
-      { lineIndex: 1, indents: 1, children: () => [] },
-      { lineIndex: 2, indents: 1, children: () => [] },
-      { lineIndex: 3, indents: 0, children: () => [] },
-    ]
-    paragraphs1[0].children = () => [paragraphs1[1], paragraphs1[2]]
-    const result1 = getParagraphParentsOnly(paragraphs1)
-    expect(result1.length).toEqual(4)
-    expect(result1[0].parent.lineIndex).toEqual(0)
-    expect(result1[0].children.length).toEqual(2)
-    expect(result1[0].children[0].lineIndex).toEqual(1)
-    expect(result1[0].children[1].lineIndex).toEqual(2)
-    expect(result1[3].parent.lineIndex).toEqual(3)
-    expect(result1[1].children.length).toEqual(0)
-  })
-  it('should return the same number of items it received', () => {
-    const result = getParagraphParentsOnly(globalNote.paragraphs)
-    expect(result.length).toEqual(globalNote.paragraphs.length) // one result for each paragraph
-  })
-  it('should deal properly with multiple indents', () => {
-    const result = getParagraphParentsOnly(globalNote.paragraphs)
-    expect(result[0].children.length).toEqual(0)
-    expect(result[1].children.length).toEqual(0)
-    expect(result[2].children.length).toEqual(1)
-    expect(result[3].children.length).toEqual(2)
-    expect(result[4].children.length).toEqual(0)
-    expect(result[5].children.length).toEqual(0)
-  })
-  it('should include text under tasks', () => {
-    const result = getParagraphParentsOnly(globalNote.paragraphs)
-    expect(result[3].children[0].type).toEqual('text') // one result for each paragraph
-  })
-  it('should include text under tasks one parent only', () => {
-    const result = getParagraphParentsOnly([globalNote.paragraphs[3]])
-    expect(result[0].children[0].type).toEqual('text') // one result for each paragraph
-  })
-})
-
-/*
- * removeParentsWhoAreChildren()
- */
-describe('removeParentsWhoAreChildren()' /* function */, () => {
-  test('base case - should remove child from parents and return an array of only parents', () => {
-    const parents = [
-      { parent: { lineIndex: 0, indents: 0, children: () => [] }, children: [] },
-      { parent: { lineIndex: 1, indents: 1, children: () => [] }, children: [] },
-    ]
-    parents[0].children = [parents[1].parent]
-
-    const result = removeParentsWhoAreChildren(parents)
-    expect(result.length).toEqual(1)
-    expect(result[0].parent.lineIndex).toEqual(0)
-  })
-  test('deal with real-world paragraph cases', () => {
-    const parents = getParagraphParentsOnly(globalNote.paragraphs) // this is tested above
-    const result = removeParentsWhoAreChildren(parents)
-    expect(result.length).toEqual(globalNote.paragraphs.length - 3) // remove two parents and one empty
-  })
-})
-
-/*
- * getChildParas()
- */
-describe('getChildParas', () => {
-  it('should return an array of children paragraphs - Test case 1: No children', () => {
-    const para1 = { lineIndex: 1, indents: 0, children: () => [] }
-    const paragraphs1 = [para1]
-    const result1 = getChildParas(para1, paragraphs1)
-    expect(result1).toEqual(expect.objectContaining([]))
-  })
-
-  it('should return an array of children paragraphs - Test case 2: One child with removeChildrenFromTopLevel as false', () => {
-    const para2 = { lineIndex: 1, indents: 0, type: 'open', children: () => [{ lineIndex: 2, indents: 1, type: 'text', children: () => [] }] }
-    const paragraphs2 = [para2, { lineIndex: 2, indents: 1, children: () => [], type: 'text' }]
-    const result2 = getChildParas(para2, paragraphs2)
-    expect(result2.length).toEqual(1)
-    expect(result2[0].lineIndex).toEqual(2)
-  })
-
-  it('should return an array of children paragraphs - Test case 4: Multiple children', () => {
-    const para4 = {
-      lineIndex: 1,
-      indents: 0,
-      children: () => [
-        { lineIndex: 2, indents: 1, children: () => [] },
-        { lineIndex: 3, indents: 1, children: () => [] },
-      ],
-    }
-    const paragraphs4 = [para4, { lineIndex: 2, indents: 1, children: () => [] }, { lineIndex: 3, indents: 1, children: () => [] }]
-    const result4 = getChildParas(para4, paragraphs4)
-    expect(result4.length).toEqual(2)
-    expect(result4[0].lineIndex).toEqual(2)
-    // Add similar it() statements for other test cases
-  })
-
-  it('should work for complex multi-indent case', () => {
-    const para = globalNote.paragraphs[2]
-    const result = getChildParas(para, globalNote.paragraphs)
-    expect(result.length).toEqual(1)
-    expect(result[0].lineIndex).toEqual(3)
-  })
-
-  it('should return an array of children paragraphs - Test case 5: Multiple children with removeChildrenFromTopLevel as true', () => {
-    const paras5 = [
-      {
-        type: 'done',
-        content: '5 done',
-        rawContent: '\t* [x] 5 done',
-        prefix: '* [x] ',
-        contentRange: {},
-        lineIndex: 4,
-        heading: '',
-        headingLevel: -1,
-        isRecurring: false,
-        indents: 1,
-        filename: '20231202.md',
-        noteType: 'Calendar',
-        linkedNoteTitles: [],
-        subItems: [],
-        referencedBlocks: [],
-        note: {},
-        children: () => [],
-      },
-      {
-        type: 'checklist',
-        content: '6further indented checkbox',
-        rawContent: '\t\t+ 6further indented checkbox',
-        prefix: '+ ',
-        contentRange: {},
-        lineIndex: 5,
-        heading: '',
-        headingLevel: -1,
-        isRecurring: false,
-        indents: 2,
-        filename: '20231202.md',
-        noteType: 'Calendar',
-        linkedNoteTitles: [],
-        subItems: [],
-        referencedBlocks: [],
-        note: {},
-        children: () => [],
-      },
-      {
-        type: 'text',
-        content: "7 ok final - this is the problem cuz it's not a task",
-        rawContent: "\t\t7 ok final - this is the problem cuz it's not a task",
-        prefix: '',
-        contentRange: {},
-        lineIndex: 6,
-        heading: '',
-        headingLevel: -1,
-        isRecurring: false,
-        indents: 2,
-        filename: '20231202.md',
-        noteType: 'Calendar',
-        linkedNoteTitles: [],
-        subItems: [],
-        referencedBlocks: [],
-        note: {},
-        children: () => [],
-      },
-      {
-        type: 'text',
-        content: '8 double final',
-        rawContent: '\t\t\t8 double final',
-        prefix: '',
-        contentRange: {},
-        lineIndex: 7,
-        heading: '',
-        headingLevel: -1,
-        isRecurring: false,
-        indents: 3,
-        filename: '20231202.md',
-        noteType: 'Calendar',
-        linkedNoteTitles: [],
-        subItems: [],
-        referencedBlocks: [],
-        note: {},
-        children: () => [],
-      },
-    ]
-    paras5[0].children = () => paras5.slice(1)
-    const result5 = getChildParas(paras5[0], paras5, false)
-    expect(result5.length).toEqual(2)
-    expect(result5[0].lineIndex).toEqual(5)
-    const result6 = getChildParas(paras5[2], paras5, false)
-    expect(result6.length).toEqual(1)
-    expect(result6[0].lineIndex).toEqual(7)
-  })
-  describe('getIndentedNonTaskLinesUnderPara', () => {
-    // Mock data
-    const mockParagraphs = [
-      { lineIndex: 1, indents: 0, type: 'text' },
-      { lineIndex: 2, indents: 1, type: 'text' },
-      { lineIndex: 3, indents: 1, type: 'open' },
-      { lineIndex: 4, indents: 2, type: 'text' },
-      { lineIndex: 5, indents: 2, type: 'text' },
-      { lineIndex: 6, indents: 3, type: 'text' },
-    ]
-    it('should return an array of indented paragraphs underneath the given paragraph', () => {
-      const para = { lineIndex: 3, indents: 1 }
-      const result = getIndentedNonTaskLinesUnderPara(para, mockParagraphs)
-      expect(result).toEqual([
-        { lineIndex: 4, indents: 2, type: 'text' },
-        { lineIndex: 5, indents: 2, type: 'text' },
-        { lineIndex: 6, indents: 3, type: 'text' },
-      ])
-    })
-
-    it('should return an empty array if no indented paragraphs are found', () => {
-      const para = { lineIndex: 6, indents: 3 }
-      const result = getIndentedNonTaskLinesUnderPara(para, mockParagraphs)
-      expect(result).toEqual([])
-    })
-
-    it('should handle the case where the given paragraph is the last one in the array', () => {
-      const para = { lineIndex: 6, indents: 3 }
-      const result = getIndentedNonTaskLinesUnderPara(para, mockParagraphs)
-      expect(result).toEqual([])
-    })
-
-    it('should handle the case where the given paragraph is the last one in the array', () => {
-      const para = { lineIndex: 6, indents: 3 }
-      const result = getIndentedNonTaskLinesUnderPara(para, mockParagraphs)
-      expect(result).toEqual([])
-    })
-
-    it('should handle the case where the given paragraph has no indented paragraphs underneath', () => {
-      const para = { lineIndex: 4, indents: 2 }
-      const result = getIndentedNonTaskLinesUnderPara(para, mockParagraphs)
-      expect(result).toEqual([])
-    })
-
-    it('should handle complex real-world data', () => {
-      const para = globalNote.paragraphs[3]
-      const result = getIndentedNonTaskLinesUnderPara(para, globalNote.paragraphs)
-      expect(result).toEqual([globalNote.paragraphs[4]])
-    })
   })
 })

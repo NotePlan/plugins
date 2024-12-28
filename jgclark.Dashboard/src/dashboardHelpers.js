@@ -6,7 +6,6 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { WEBVIEW_WINDOW_ID } from './constants'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
@@ -22,23 +21,27 @@ import type {
   TSectionCode,
   TSectionItem,
 } from './types'
-import { getParaAndAllChildren, isAChildPara } from '@helpers/blocks'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyphenated, includesScheduledFutureDate } from '@helpers/dateTime'
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders, getNoteByFilename, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
-import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
+// import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { getReferencedParagraphs } from '@helpers/NPnote'
-import { findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote, isTermInURL, parasToText, smartPrependPara } from '@helpers/paragraph'
-import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
+import { isAChildPara } from '@helpers/parentsAndChildren'
+import {
+  // findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote,
+  isTermInURL,
+  // parasToText, smartPrependPara
+} from '@helpers/paragraph'
 import { caseInsensitiveSubstringIncludes } from '@helpers/search'
-import { getNumericPriorityFromPara, sortListBy } from '@helpers/sorting'
-import { removeDateTagsAndToday } from '@helpers/stringTransforms'
+import {
+  getNumericPriorityFromPara,
+  // sortListBy
+} from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getStartTimeObjFromParaContent, getTimeBlockString, isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE } from '@helpers/timeblocks'
-import { chooseHeading, chooseNote, displayTitleWithRelDate } from '@helpers/userInput'
 import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -761,178 +764,6 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
     ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
     : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</a></span>`
   return output
-}
-
-/**
- * Move a task or checklist from one calendar note to another.
- * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
- * It also moves indented child paragraphs of any type.
- * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
- * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
- * Note: is similar but different to moveClickHandlers::moveFromCalToCal().
- * @author @jgclark
- * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
- * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
- * @param {string} paraContent content of the para to move.
- * @param {string?} headingToPlaceUnder which will be created if necessary
- * @returns {TNote | false} if succesful pass the new note, otherwise false
- */
-export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<TNote | false> {
-  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
-  try {
-    const config = await getDashboardSettings()
-    // Get calendar note to use
-    const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
-    const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
-    // Don't proceed unless we have valid from/to notes
-    if (!fromNote || !toNote) {
-      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
-      return false
-    }
-
-    // find para in the fromNote
-    const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
-    if (typeof matchedPara === 'boolean') {
-      throw new Error('moveItemBetweenCalendarNotes: no para found')
-    }
-    // Remove any scheduled date on the parent para
-    const updatedMatchedPara = removeDateTagsAndToday(paraContent, true)
-    matchedPara.content = updatedMatchedPara
-    fromNote.updateParagraph(matchedPara)
-
-    // const itemType = matchedPara?.type
-    const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
-    const targetContent = parasToText(matchedParaAndChildren)
-
-    // add to toNote
-    if (headingToPlaceUnder === '') {
-      logDebug('moveItemBetweenCalendarNotes', `- Calling smartPrependPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(toNote)}'`)
-      smartPrependPara(toNote, targetContent, 'text')
-    } else {
-      logDebug('moveItemBetweenCalendarNotes', `- Adding ${matchedParaAndChildren.length} lines under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
-      // Note: this doesn't allow setting heading level ...
-      // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
-      // so replace with one half of /qath:
-      const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
-      const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
-      logDebug(
-        'moveItemBetweenCalendarNotes',
-        `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
-      )
-
-      // ? TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
-      // ? TODO: Add new setting + logic to not add new section heading (ref #551)
-
-      if (matchedHeading !== '') {
-        // Heading does exist in note already
-        toNote.addParagraphBelowHeadingTitle(
-          targetContent,
-          'text',
-          matchedHeading !== '' ? matchedHeading : headingToPlaceUnder,
-          shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-          true, // create heading if needed (possible if supplied via headingArg)
-        )
-      } else {
-        const headingLevel = config.newTaskSectionHeadingLevel
-        const headingMarkers = '#'.repeat(headingLevel)
-        const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
-        const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
-
-        logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
-        toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('moveItemBetweenCalendarNotes', `- then adding text after it`)
-        toNote.insertParagraph(targetContent, insertionIndex + 1, 'text')
-      }
-    }
-
-    // Assuming that's not thrown an error, now remove from fromNote
-    logDebug('moveItemBetweenCalendarNotes', `- Removing line(s) from '${displayTitle(fromNote)}'`)
-    fromNote.removeParagraphs(matchedParaAndChildren)
-
-    // Ask for cache refresh for these notes
-    DataStore.updateCache(fromNote, false)
-    DataStore.updateCache(toNote, false)
-
-    return toNote
-  } catch (err) {
-    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
-    return false
-  }
-}
-
-/**
- * Note: has to be on the Plugin side, as it makes calls to the NP API.
- * @param {string} filename line is currently in
- * @param {string} content of line
- * @param {TItemType} itemType of line
- * @returns {TNote} returns new note the line was moved to
- */
-export async function moveItemToRegularNote(filename: string, content: string, itemType: TItemType): Promise<TNote | null> {
-  try {
-    // const { filename, content } = validateAndFlattenMessageObject(data)
-    logDebug('moveItemToRegularNote', `Starting with {${content}} in ${filename}`)
-
-    // find para in the given filename
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
-    if (typeof possiblePara === 'boolean') {
-      throw new Error('moveItemToRegularNote: no para found')
-    }
-
-    // const itemType = data.itemType
-    logDebug('moveItemToRegularNote', `- itemType: ${itemType}`)
-
-    // Ask user for destination project note
-    const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
-    const destNote = await chooseNote(true, false, [], `Choose Note to Move ${typeToDisplayToUser} to`, false, true)
-    logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
-    if (!destNote) return null
-
-    // Ask to which heading to add the selectedParas
-    const headingToFind = await chooseHeading(destNote, true, true, false)
-    logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
-
-    // TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
-    // TODO: Add new setting + logic to not add new section heading (ref #551)
-
-    // Add text to the new location in destination note
-    // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
-    const newHeadingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
-
-    logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
-    if (itemType === 'open') {
-      // there is no "task" in itemType
-      // FIXME: @jgclark: We had the exact note (destNote), but now we are going to try to find it again by title?
-      // this is not great because we could have multiple notes with the same title
-      // ok for now, but this helper should be able to accept a specific filename
-      await addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
-    } else {
-      await addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
-    }
-
-    // Trying to get the note again from DataStore in case that helps find the task (it doesn't)
-    // $FlowIgnore
-    const noteAfterChanges: TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
-    // Ask for cache refresh for this note
-    const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)
-
-    // delete from existing location
-    const origNote = getNoteByFilename(filename)
-    const origPara = findParaFromStringAndFilename(filename, content)
-    if (origNote && origPara) {
-      logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${filename}`)
-      origNote.removeParagraph(origPara)
-      DataStore.updateCache(origNote, false)
-    } else {
-      logWarn('moveItemToRegularNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
-    }
-    // Return the destNote
-    return updatedDestNote
-
-    // Ask for cache refresh for this note
-  } catch (error) {
-    logError('', error.message)
-    return null
-  }
 }
 
 /**************************************************************
