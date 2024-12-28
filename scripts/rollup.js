@@ -61,6 +61,7 @@ const REPORT_MEMORY_USAGE = options.pressure || false
  */
 const defaultPlugins = DEBUGGING
   ? [
+      caseSensitiveImports(),
       alias({
         entries: [...pluginConfig.aliasEntries, { find: '@helpers', replacement: path.resolve(__dirname, '..', 'helpers') }],
       }),
@@ -77,6 +78,7 @@ const defaultPlugins = DEBUGGING
     ]
   : MINIFY
   ? [
+      caseSensitiveImports(),
       alias({
         entries: pluginConfig.aliasEntries,
       }),
