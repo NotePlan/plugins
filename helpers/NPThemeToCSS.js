@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 30.6.2024 by @jgclark
+// Last updated 2024-12-27 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -10,14 +10,18 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 // ---------------------------------------------------------
 // Constants and Types
 
-let baseFontSize = 14 // updated later
+let userFSPref: number // updated later
+let themeBodyFS: number // updated later
+let baseFontSize: number // updated later
 
 // ---------------------------------------------------------
 
 /**
- * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
+ * Generate CSS as an equivalent to the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
+ * TODO: ideally consult theme to see if Editor's "shouldOverwriteFont" is false before changing font size and family?
+ * 
  * @author @jgclark
- * @param {string?} themeNameIn
+ * @param {string?} themeNameIn (optional)
  * @returns {string} outputCSS
  */
 export function generateCSSFromTheme(themeNameIn: string = ''): string {
@@ -89,37 +93,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     //   - theme body, or
     //   - user's NP Editor setting
     //   - or default to 14
-    const userFSPref = DataStore.preference('fontSize')
-    const themeFSPref = themeJSON?.styles?.body?.size ?? NaN
-    baseFontSize = themeFSPref && !isNaN(Number(themeFSPref)) ? Number(themeFSPref) : userFSPref && !isNaN(Number(userFSPref)) ? Number(userFSPref) : 14
-    // logDebug('generateCSSFromTheme', `baseFontSize -> ${String(baseFontSize)}`)
+    userFSPref = Number(DataStore.preference('fontSize')) ?? NaN
+    themeBodyFS = Number(themeJSON?.styles?.body?.size) ?? 14
+    baseFontSize = userFSPref ?? themeBodyFS
+    logDebug('generateCSSFromTheme', `baseFontSize -> ${String(baseFontSize)}`)
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
     tempSel.push(`background: var(--bg-main-color)`)
+    tempSel.push(`font-size: ${baseFontSize}px`)
     output.push(makeCSSSelector('html', tempSel))
     rootSel.push(`--bg-main-color: ${bgMainColor}`)
-
-    // Set body:
-    // - main font = styles.body.font
-    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
-    const bodyFont = (tempBodyFont === '.AppleSystemUIFont') ? '-apple-system' : tempBodyFont
-    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
-    // - main foreground colour (styles.body.color)
-    // - main background colour (editor.backgroundColor)
-    tempSel = []
-    tempSel.push(`font-size: ${baseFontSize}px`)
-    styleObj = themeJSON.styles.body
-    if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
-      tempSel.push(`color: var(--fg-main-color)`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('body, .body', tempSel))
-      rootSel.push(`--fg-main-color: ${thisColor}`)
-      if (styleObj?.lineSpacing) {
-        // borrowed from convertStyleObjectBlock()
-        const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
-        rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
-      }
-    }
 
     // Set sidebar from NP fixed colours
     if (currentThemeMode === 'light') {
@@ -130,6 +112,29 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-sidebar-color: #EBEBEB`)
       rootSel.push(`--bg-sidebar-color: #383838`)
       rootSel.push(`--divider-color: #52535B`)
+    }
+
+    // Set body:
+    // - main font = styles.body.font
+    const tempBodyFont = themeJSON.styles.body.font ?? '-apple-system'
+    const bodyFont = (tempBodyFont === '.AppleSystemUIFont') ? '-apple-system' : tempBodyFont
+    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
+    // - main foreground colour (styles.body.color)
+    // - main background colour (editor.backgroundColor)
+    tempSel = []
+    styleObj = themeJSON.styles.body
+    if (styleObj) {
+      const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
+      tempSel.push(`color: var(--fg-main-color)`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel.push(`font-size: ${baseFontSize}px`)
+      output.push(makeCSSSelector('body, .body', tempSel))
+      rootSel.push(`--fg-main-color: ${thisColor}`)
+      if (styleObj?.lineSpacing) {
+        // borrowed from convertStyleObjectBlock()
+        const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
+        rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
+      }
     }
 
     // Set H1 from styles.title1
@@ -436,7 +441,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
 /**
  * Convert NotePlan Theme style information to CSS equivalent(s)
- * Covers attributes within a theme item: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle, underlineColor.
+ * Covers attributes within a theme item: size (of font), paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle, underlineColor.
  * @author @jgclark
  * @param {Object} style object from JSON theme
  * @param {boolean} includeFontDetails? (default: false)
@@ -445,7 +450,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean = true): Array<string> {
   let cssStyleLinesOutput: Array<string> = []
   if (styleObject?.size) {
-    cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, baseFontSize)}`)
+    cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, userFSPref)}`)
   }
   if (includeFontDetails) {
     if (styleObject?.font) {
@@ -453,10 +458,10 @@ function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean =
     }
   }
   if (styleObject?.paragraphSpacingBefore) {
-    cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
+    cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, userFSPref)}`)
   }
   if (styleObject?.paragraphSpacing) {
-    cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
+    cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, userFSPref)}`)
   }
   if (styleObject?.lineSpacing) {
     const lineSpacingRem = (Number(styleObject?.lineSpacing) * 1.5).toPrecision(3) // this fudge factor seems to be required
@@ -600,7 +605,9 @@ export function textDecorationFromNP(selector: string, value: number): string {
 
 /**
  * Convert a font size (in px) to rem (as a string).
- * Uses the NP theme's baseFontSize (in px) to be the basis for 1.0rem.
+ * Note: assumes userFSPref (in px) is the basis for 1.0rem.
+ * Then uses the ratio between the input size and the body size.
+ * e.g. if body = 16, then H1 at 24 => 24/16 = 1.5rem
  * @param {number} thisFontSize
  * @param {number} baseFontSize
  * @returns {string} size including 'rem' units
@@ -610,7 +617,7 @@ export function pxToRem(thisFontSize: number, baseFontSize: number): string {
   // Note: Need to apply fudge to get it closer to actual size seen in NP Editor
   rem *= 0.95
   const output = `${String(rem.toPrecision(2))}rem`
-  // logInfo('pxToRem', `${thisFontSize}px -> ${output}`)
+  logInfo('pxToRem', `${thisFontSize}px / ${baseFontSize} -> ${output}`)
   return output
 }
 

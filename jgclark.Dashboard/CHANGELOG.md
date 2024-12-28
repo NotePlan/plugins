@@ -1,10 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.0.b4] 2024-12-???
+## [2.1.0.b5] 2024-12-???
+### Changed
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
 ### Fixed
 - fixed edge case when doing operation 'complete then' on a task with a week due date
-- ??? scheduling point 
+- TODO: scheduling point 
 
 ## [2.1.0.b4] 2024-12-21
 ### New
