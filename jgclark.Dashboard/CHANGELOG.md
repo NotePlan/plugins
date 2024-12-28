@@ -1,12 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.0.b5] 2024-12-???
+## [2.1.0.b5] 2024-12-28
 ### Changed
 - now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
 ### Fixed
 - fixed edge case when doing operation 'complete then' on a task with a week due date
-- TODO: scheduling point 
+- now handles 'scheduling' an item properly. Removed the option about 'displaying the 🕓 symbol'. But instead, I've replaced it with an option to "Use simplified (re)scheduling method?". By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
 
 ## [2.1.0.b4] 2024-12-21
 ### New

@@ -124,10 +124,8 @@ export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClic
 
 /**
  * Reschedule (i.e. update the >date) an item in place.
- * The new date is indicated by the controlStr ('t' or date interval),
- * or failing that the dateString (an NP date).
- * Note: now defaults to changing the item to being type 'rescheduled' or 'checklistScheduled', as well as ???
- * FIXME: need to do both parts of  a proper 'reschedule'
+ * The new date is indicated by the controlStr ('t' or date interval), or failing that the dateString (an NP date).
+ * TEST: Can now do full (NP-style) 'schedule' or my preferred 'lite' method.
  * @param {MessageDataObject} data for the item
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
@@ -189,8 +187,8 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   // const res = scheduleItem(thePara, newDateStr, config.useRescheduleMarker)
   // v3: choice of 2 schedule methods
   const res = (config.useLiteScheduleMethod)
-    ? scheduleItem(thePara, newDateStr)
-    : scheduleItemLiteMethod(thePara, newDateStr)
+    ? scheduleItemLiteMethod(thePara, newDateStr)
+    : scheduleItem(thePara, newDateStr, config.newTaskSectionHeading)
   const thisNote = thePara.note
   if (thisNote) {
     thisNote.updateParagraph(thePara)

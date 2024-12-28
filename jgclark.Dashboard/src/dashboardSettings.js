@@ -156,8 +156,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'useLiteScheduleMethod',
-    label: "When (re)scheduling an item, use simplified method?",
-    description: "If set then the task simply has the '>date' updated in the note it is in. It does not show with the special 🕓 task icon. The normal NP method does mark it with the 🕓 task icon, and copies the item to the date you're scheduling it to, and adds the '<date' it was scheduled from.",
+    label: "Use simplified (re)scheduling method?",
+    description: "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. This is not the normal method NotePlan uses.",
     type: 'switch',
     default: false,
     dependsOnKey: 'rescheduleNotMove',

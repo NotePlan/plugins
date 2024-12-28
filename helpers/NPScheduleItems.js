@@ -3,7 +3,12 @@
 // Helpers for scheduling open tasks/checklists in paragraphs.
 // -----------------------------------------------------------------
 
-import { getDateStringFromCalendarFilename, replaceArrowDatesInString } from '@helpers/dateTime'
+import {
+  getDateStringFromCalendarFilename,
+  getDisplayDateStrFromFilenameDateStr,
+  getFilenameDateStrFromDisplayDateStr,
+  replaceArrowDatesInString
+} from '@helpers/dateTime'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 
@@ -60,6 +65,8 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
     const thisNote = thisPara.note
     const origContent = thisPara.content
     if (!thisNote) throw new Error(`Could not get note for para '${origContent}'`)
+    const origDateStr = getDateStringFromCalendarFilename(thisNote.filename)
+    logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
     thisPara.content = replaceArrowDatesInString(origContent, `>${dateStrToAdd}`)
@@ -90,15 +97,16 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
  * @author @jgclark
  * @param {TParagraph} origPara of open item
  * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
+ * @param {string?} newTaskSectionHeading, which can be empty, in which case it will be added at the end of the note.
  * @returns {boolean} success?
  */
-export function scheduleItem(origPara: TParagraph, dateStrToAdd: string): boolean {
+export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTaskSectionHeading: string = ''): boolean {
   try {
     const origNote = origPara.note
     if (!origNote) throw new Error(`Could not get note for existing para`)
     if (origNote.type !== 'Calendar') throw new Error(`Doesn't make sense to run this on a para from regular note '${origNote.filename}'`)
 
-    const origDateStr = getDateStringFromCalendarFilename(origNote.filename)
+    const origDateStr = getDisplayDateStrFromFilenameDateStr(origNote.filename)
     const origContent = origPara.content
     const origType = origPara.type
     if (!origNote) throw new Error(`Could not get note for para '${origContent}'`)
@@ -117,11 +125,12 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string): boolea
     logDebug('scheduleItem', `-> orig updated`)
 
     // Then add new line in destination note
-    const newNote = DataStore.calendarNoteByDateString(dateStrToAdd)
-    if (!newNote) throw new Error(`Could not get note for new date ${dateStrToAdd}`)
+    const dateStrToAddForAPICall = getFilenameDateStrFromDisplayDateStr(dateStrToAdd)
+    const newNote = DataStore.calendarNoteByDateString(dateStrToAddForAPICall)
+    if (!newNote) throw new Error(`Could not get note for new date ${dateStrToAddForAPICall}`)
     const newContent = replaceArrowDatesInString(origContent, `<${origDateStr}`)
     const newType = origType
-    const heading = '' // TODO: config
+    const heading = newTaskSectionHeading
     logDebug('scheduleItem', `New  -> '${newContent}' type '${newType}' under heading ${heading}`)
     newNote.addParagraphBelowHeadingTitle(newContent, newType, heading, true, true)
     logDebug('scheduleItem', `-> new added to ${newNote.filename}`)

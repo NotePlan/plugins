@@ -136,7 +136,7 @@ The 3 key settings in "What to Include and Exclude" section control what folders
 
 These settings change some of how it displays and behaves:
 - Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
-- When (re)scheduling an item, also show it as a scheduled item in main Editor?: If set then it uses the '[>]' marker in the underlying Markdown which is shown with 🕓 in the main Editor. By default this is on, to match the standard behaviour of NotePlan's UI.
+  - Use simplified (re)scheduling method?: By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
 - Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added using the settings from the QuickCapture plugin (if installed).\nIf this is left empty, then new tasks will appear at the top of the note.
 - Heading level for new Headings: level 1-5 to use when adding new headings in notes.
