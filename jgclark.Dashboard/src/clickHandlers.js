@@ -9,16 +9,11 @@
 import moment from 'moment'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import {
-  allCalendarSectionCodes,
-  // WEBVIEW_WINDOW_ID
-} from './constants'
-// import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import {
   getDashboardSettings,
   // getNotePlanSettings, 
   handlerResult,
   // mergeSections,
-  moveItemToRegularNote, setPluginData
+  setPluginData
 } from './dashboardHelpers'
 // import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
@@ -32,7 +27,7 @@ import {
   // switchToPerspective,
 } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult, } from './types'
 import {
   cancelItem,
   completeItem,
@@ -40,16 +35,17 @@ import {
   deleteItem,
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
-  scheduleItem,
-  unscheduleItem,
 } from '@helpers/NPParagraph'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import {
+  // scheduleItem,
+  unscheduleItem,
+} from '@helpers/NPScheduleItems'
 import { openNoteByFilename } from '@helpers/NPnote'
-import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, dt, compareObjects } from '@helpers/dev'
+import { getDateStringFromCalendarFilename, } from '@helpers/dateTime'
+import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 // import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-import { showMessage, processChosenHeading } from '@helpers/userInput'
+import { processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -465,110 +461,6 @@ export async function doShowLineInEditorFromFilename(data: MessageDataObject): P
 //     return handlerResult(false)
 //   }
 // }
-
-// Instruction to move task from a note to a project note.
-// Note: Requires user input, so most of the work is done in moveItemToRegularNote() on plugin side.
-export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType, para } = validateAndFlattenMessageObject(data)
-  logDebug('doMoveToNote', `starting -> ${filename} / ${content} / ${itemType}`)
-  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType)
-  if (newNote) {
-    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
-    logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
-    // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
-    const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
-    if (updatedParagraph) {
-      logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
-      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
-    } else {
-      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
-      return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
-    }
-  } else {
-    return handlerResult(false)
-  }
-}
-
-/**
- * Reschedule (i.e. update the >date) an item in place.
- * The new date is indicated by the controlStr ('t' or date interval),
- * or failing that the dateString (an NP date).
- * Note: now defaults to changing the item to being type 'rescheduled' or 'checklistScheduled', as well as
- * @param {MessageDataObject} data for the item
- * @returns {TBridgeClickHandlerResult} how to handle this result
- */
-export async function doRescheduleItem(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, controlStr } = validateAndFlattenMessageObject(data)
-  const config: TDashboardSettings = await getDashboardSettings()
-  // logDebug('doRescheduleItem', `- config.rescheduleNotMove = ${config.rescheduleNotMove}`)
-  logDebug('doRescheduleItem', `Starting with filename: ${filename}, content: "${content}", controlStr: ${controlStr}`)
-  const dateOrInterval = String(controlStr)
-  // const dateInterval = controlStr || ''
-  let startDateStr = ''
-  let newDateStr = ''
-
-  const thePara = findParaFromStringAndFilename(filename, content)
-  if (typeof thePara === 'boolean') {
-    logWarn('doRescheduleItem', `- note ${filename} doesn't seem to contain {${content}}`)
-    clo(data, `doRescheduleItem -> data`)
-    await showMessage(`Note ${filename} doesn't seem to contain "{${content}}"`)
-    return handlerResult(false)
-  }
-
-  if (dateOrInterval === 't') {
-    // Special case to change to '>today' (or the actual date equivalent)
-    newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
-    logDebug('doRescheduleItem', `- move task in ${filename} -> 'today'`)
-  } else if (dateOrInterval.match(RE_DATE_INTERVAL)) {
-    const dateInterval = dateOrInterval
-    const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
-    // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
-    startDateStr = getTodaysDateHyphenated()
-    // Get the new date, but output using the longer of the two types of dates given
-    newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
-
-    // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
-    if (offsetUnit === 'w') {
-      const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-      // $FlowFixMe(incompatible-type)
-      const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
-      // clo(NPWeekData, "NPWeekData:")
-      newDateStr = NPWeekData.weekString
-      logDebug('doRescheduleItem', `- used NPWeekData instead -> ${newDateStr}`)
-    }
-  } else if (dateOrInterval.match(RE_DATE)) {
-    newDateStr = controlStr
-    logDebug('doRescheduleItem', `- newDateStr ${newDateStr} from controlStr`)
-  } else {
-    logError('doRescheduleItem', `bad move date/interval: ${dateOrInterval}`)
-    return handlerResult(false)
-  }
-  logDebug('doRescheduleItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
-
-  // Make the actual change to reschedule the item
-  // v1:
-  // const theLine = thePara.content
-  // const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
-  // logDebug('doRescheduleItem', `Found line "${theLine}" -> changed line: "${changedLine}"`)
-  // thePara.content = changedLine
-  // v2:
-  const res = scheduleItem(thePara, newDateStr, config.useRescheduleMarker)
-  const thisNote = thePara.note
-  if (thisNote) {
-    thisNote.updateParagraph(thePara)
-    logDebug('doRescheduleItem', `- appeared to update line OK -> {${thePara.content}}`)
-
-    // Ask for cache refresh for this note
-    DataStore.updateCache(thisNote, false)
-
-    // refresh whole display, as we don't know which if any section the moved task might need to be added to
-    // logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
-    return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
-  } else {
-    logWarn('doRescheduleItem', `- some other failure`)
-    return handlerResult(false)
-  }
-}
 
 /**
  * Update a single key in DataStore.settings

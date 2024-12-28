@@ -1,9 +1,13 @@
 // @flow
+// -----------------------------------------------------------------
+// Helpers for working with paragraphs in a note, that require
+// access to NotePlan API calls.
+// -----------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { TASK_TYPES } from './sorting'
 import { trimString } from '@helpers/dataManipulation'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
@@ -30,12 +34,11 @@ import {
 } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
-// import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -692,50 +695,6 @@ export function noteHasContent(note: CoreNoteFields, content: string): boolean {
 }
 
 /**
- * Move the tasks to the specified note
- * @param {TParagraph} para - the paragraph to move
- * @param {TNote} destinationNote - the note to move to
- * @returns {boolean} whether it worked or not
- * @author @dwertheimer based on @jgclark code lifted from fileItems.js
- * Note: Originally, if you were using Editor.* commands, this would not delete the original paragraph (need to use Editor.note.* or note.*)
- * Hoping that adding DataStore.updateCache() will fix that
- * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
- */
-export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): boolean {
-  // for now, insert at the top of the note
-  if (!para || !para.note || !destinationNote) return false
-  const oldNote = para.note
-  insertParagraph(destinationNote, para.rawContent)
-  // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
-  if (noteHasContent(destinationNote, para.content)) {
-    para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
-    // $FlowFixMe - not in the type defs yet
-    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in synce after the move
-    return true
-  } else {
-    logDebug(
-      pluginJson,
-      `moveParagraphToNote Could not find ${para.content} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
-    )
-  }
-  return false
-}
-
-// returns a date object if it exists, and null if there is no forward date
-const hasTypedDate = (t: TParagraph) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
-
-// DO NOT USE THIS FUNCTION - leaving it here for historical context, but functions below are more complete
-// Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
-// For now, we are assuming that sweep was already done, and we're just looking at this one note
-export const isOverdue = (t: TParagraph): boolean => {
-  let theDate = null
-  if (t.type === 'scheduled') theDate = t.date
-  if (t.type === 'open') theDate = hasTypedDate(t)
-  return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
-}
-// export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
-
-/**
  * Take in an array of paragraphs and return the subset that are open and overdue (scheduled or on dated notes in the past)
  * @param {Array<TParagraph>} paras - the paragraphs to check
  * @param {string} asOfDayString - the date to check against, in YYYY-MM-DD format
@@ -766,11 +725,6 @@ export function findOverdueWeeksInString(line: string): Array<string> {
   }
   return []
 }
-
-/*
- * @param paragraphs array
- * @return filtered list of overdue tasks
- */
 
 export type OverdueDetails = {
   isOverdue: boolean,
@@ -1097,7 +1051,8 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
 }
 
 /**
- *  Calculate the number of days until due for a given date (negative if overdue)
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: really belongs in @helpers/dateTime.js
  * TODO: tests!
  * @author @dwertheimer
  * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
@@ -1603,37 +1558,6 @@ export async function deleteItem(filenameIn: string, content: string): Promise<b
   }
 }
 
-/**
- * Prepend a todo (task or checklist) to a calendar note
- * @author @jgclark
- * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
- * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
- * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
- */
-export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklist', NPDateStr: string, todoTextArg: string = ''): Promise<void> {
-  // logDebug('NPP/prependTodoToCalendarNote', `Starting with NPDateStr: ${NPDateStr}, todoTypeName: ${todoTypeName}, todoTextArg: ${todoTextArg}`)
-  try {
-    const todoType = todoTypeName === 'task' ? 'open' : 'checklist'
-    // Get calendar note to use
-    const note = DataStore.calendarNoteByDateString(NPDateStr)
-    if (note != null) {
-      // Get input either from passed argument or ask user
-      const todoText =
-        todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
-      logDebug('NPP/prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
-      smartPrependPara(note, todoText, todoType)
-
-      // Ask for cache refresh for this note
-      DataStore.updateCache(note, false)
-    } else {
-      logError('NPP/prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
-    }
-  } catch (err) {
-    logError('NPP/prependTodoToCalendarNote', `${err.name}: ${err.message}`)
-    await showMessage(err.message)
-  }
-}
-
 type TBasicPara = {
   type: ParagraphType,
   content: string,
@@ -1767,228 +1691,6 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
     return '(error)'
   }
 }
-
-/**
- * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename.
- * Now also changes para type to 'open'/'checklist' if it wasn't already.
- * @author @jgclark
- * @param {string} filename of note
- * @param {string} content line to identify and change
- * @returns {boolean} success?
- */
-export function unscheduleItem(filename: string, content: string): boolean {
-  try {
-    // find para
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
-    if (typeof possiblePara === 'boolean') {
-      throw new Error('unscheduleItem: no para found')
-    }
-    // Get the paragraph to change
-    const thisPara = possiblePara
-    const thisNote = thisPara.note
-    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
-
-    // Find and then remove any scheduled dates
-    const thisLine = possiblePara.content
-    logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
-    thisPara.content = replaceArrowDatesInString(thisLine, '')
-    logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
-    // And then change type
-    if (thisPara.type === 'checklistScheduled') thisPara.type = 'checklist'
-    if (thisPara.type === 'scheduled') thisPara.type = 'open'
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('unscheduleItem', error.message)
-    return false
-  }
-}
-
-/**
- * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
- * It adds the '>' to the start of the date, and appends to the end of the para.
- * It removes any existing scheduled >dates, and if wanted,
- * @author @jgclark
- * @param {TParagraph} para of open item
- * @param {string} dateStrToAdd, without leading '>'. Can be special date 'today'.
- * @param {boolean} changeParaType? to 'scheduled'/'checklistScheduled' if wanted
- * @returns {boolean} success?
- */
-export function scheduleItem(thisPara: TParagraph, dateStrToAdd: string, changeParaType: boolean = true): boolean {
-  try {
-    const thisNote = thisPara.note
-    const thisContent = thisPara.content
-    if (!thisNote) throw new Error(`Could not get note for para '${thisContent}'`)
-
-    // Find and then remove any existing scheduled dates, and add new scheduled date
-    thisPara.content = replaceArrowDatesInString(thisContent, `>${dateStrToAdd}`)
-    logDebug('scheduleItem', `-> '${thisPara.content}'`)
-    // And then change type (if wanted)
-    if (changeParaType && thisPara.type === 'checklist') thisPara.type = 'checklistScheduled'
-    if (changeParaType && thisPara.type === 'open') thisPara.type = 'scheduled'
-    logDebug('scheduleItem', `-> type '${thisPara.type}'`)
-    // Update to DataStore
-    thisNote.updateParagraph(thisPara)
-    return true
-  } catch (error) {
-    logError('scheduleItem', error.message)
-    return false
-  }
-}
-
-export type ParentParagraphs = {
-  parent: TParagraph,
-  children: Array<TParagraph>,
-}
-
-/**
- * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it
- * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also
- * This function returns only the children of the paragraph, not any descendants, eliminating duplicates
- * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs
- * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs
- * (if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs)
- * @param {Array<TParagraph>} paragraphs - array of paragraphs
- * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
- */
-export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<ParentParagraphs> /* tag: children */ {
-  const parentsOnly = []
-  for (let i = 0; i < paragraphs.length; i++) {
-    const para = paragraphs[i]
-    logDebug('getParagraphParentsOnly', `para: "${para.content}"`)
-    const childParas = getChildParas(para, paragraphs)
-    parentsOnly.push({ parent: para, children: childParas })
-  }
-  return parentsOnly
-}
-
-/**
- * Remove any children from being listed as parents in the array of ParentParagraphs
- * This function should be called after getParagraphParentsOnly()
- * If a paragraph is listed as a child, it will not be listed as a parent
- * The paragraphs need to be in lineIndex order for this to work
- * @param {Array<ParentParagraphs>} everyParaIsAParent - array of parent paragraphs with their children
- * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
- */
-export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentParagraphs>): Array<ParentParagraphs> {
-  const childrenSeen: Array<TParagraph> = []
-  const parentsOnlyAtTop: Array<ParentParagraphs> = []
-  for (let i = 0; i < everyParaIsAParent.length; i++) {
-    const p = everyParaIsAParent[i]
-    if (childrenSeen.includes(p.parent)) {
-      p.children.length ? childrenSeen.push(...p.children) : null
-      continue // do not list this as a parent, because another para has it as a child
-    }
-    // concat all p.children to the childrenSeen array (we know they are unique, so no need to check)
-    p.children.length ? childrenSeen.push(...p.children) : null
-    parentsOnlyAtTop.push(p)
-  }
-  return parentsOnlyAtTop
-}
-
-/**
- * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
- * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
- * @param {TParagraph} para - the parent paragraph
- * @param {Array<TParagraph>} paragraphs - array of all paragraphs
- * @returns {Array<TParagraph>} - array of children paragraphs (NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true)
- */
-export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
-  const childParas = []
-  const allChildren = para.children()
-  const indentedChildren = getIndentedNonTaskLinesUnderPara(para, paragraphs)
-  // concatenate the two arrays, but remove any duplicates that have the same lineIndex
-  const allChildrenWithDupes = allChildren.concat(indentedChildren)
-  const allChildrenNoDupes = allChildrenWithDupes.filter((p, index) => allChildrenWithDupes.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
-
-  if (!allChildrenNoDupes.length) {
-    return []
-  }
-
-  // someone could accidentally indent twice
-  const minIndentLevel = Math.min(...allChildrenNoDupes.map((p) => p.indents))
-
-  for (const child of allChildrenNoDupes) {
-    const childIndentLevel = child.indents
-
-    if (childIndentLevel === minIndentLevel) {
-      childParas.push(child)
-    }
-  }
-
-  clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
-
-  return childParas
-}
-
-/**
- * Get the parent paragraph for a given paragraph.
- * Note: not tested!
- * Note: could be moved to helper/paragraph.js
- * 
- * @param {number} thisParaLineIndex - The paragraph index for which to find the parent.
- * @param {Array<TParagraph>} paragraphs - The array of all paragraphs.
- * @returns {TParagraph | null} - The parent paragraph or null if no parent is found.
- */
-export function getParentPara(thisParaLineIndex: number, paragraphs: Array<TParagraph>): TParagraph | null {
-  const thisPara = paragraphs[thisParaLineIndex]
-  const paraIndentLevel = thisPara.indents
-
-  // Iterate backwards from the current paragraph to find the parent
-  for (let i = thisParaLineIndex - 1; i >= 0; i--) {
-    const potentialParent = paragraphs[i]
-    if (potentialParent.indents < paraIndentLevel) {
-      return potentialParent // Found the parent
-    }
-  }
-  return null // No parent found
-}
-
-/**
- * Get any indented text paragraphs underneath a given paragraph, excluding tasks
- * Doing this to pick up any text para types that may have been missed by the .children() method, which only gets task paras
- * @param {TParagraph} para - The parent paragraph
- * @param {Array<TParagraph>} paragraphs - Array of all paragraphs
- * @returns {Array<TParagraph>} - Array of indented paragraphs underneath the given paragraph
- */
-export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
-  const indentedParas = []
-
-  const thisIndentLevel = para.indents
-  let lastLineUsed = para.lineIndex
-
-  for (const p of paragraphs) {
-    // only get indented lines that are not tasks
-    if (p.lineIndex > para.lineIndex && p.indents > thisIndentLevel && lastLineUsed === p.lineIndex - 1) {
-      if (TASK_TYPES.includes(p.type)) break // stop looking if we hit a task
-      indentedParas.push(p)
-      lastLineUsed = p.lineIndex
-    }
-  }
-
-  return indentedParas
-}
-
-/**
- * Returns an array of all "open" paragraphs and their children without duplicates.
- * Children will adhere to the NotePlan API definition of children()
- * Only tasks can have children, but any paragraph indented underneath a task
- * can be a child of the task. This includes bullets, tasks, quotes, text.
- * Children are counted until a blank line, HR, title, or another item at the
- * same level as the parent task. So for items to be counted as children, they
- * need to be contiguous vertically.
- * @param {Array<TParagraph>} paragraphs - The initial array of paragraphs.
- * @return {Array<TParagraph>} - The new array containing all unique "open" paragraphs and their children in lineIndex order.
- */
-export const getOpenTasksAndChildren = (paragraphs: Array<TParagraph>): Array<TParagraph> => [
-  ...new Map(
-    paragraphs
-      .filter((p) => p.type === 'open') // Filter paragraphs with type "open"
-      .flatMap((p) => [p, ...p.children()]) // Flatten the array of paragraphs and their children
-      .map((p) => [p.lineIndex, p]), // Map each paragraph to a [lineIndex, paragraph] pair
-  ).values(),
-] // Extract the values (unique paragraphs) from the Map and spread into an array
 
 /**
  * Remove all due dates from a project note given by filename.

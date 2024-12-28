@@ -5,23 +5,23 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { WEBVIEW_WINDOW_ID } from './constants'
-import { getOpenItemParasForTimePeriod, getRelevantOverdueTasks, getDashboardSettings, moveItemBetweenCalendarNotes, handlerResult } from './dashboardHelpers'
-import { validateAndFlattenMessageObject } from './shared'
-import { doMoveFromCalToCal } from './moveClickHandlers'
+import { getOpenItemParasForTimePeriod, getRelevantOverdueTasks, getDashboardSettings, handlerResult } from './dashboardHelpers'
+// import { validateAndFlattenMessageObject } from './shared'
+// import { doMoveFromCalToCal } from './moveClickHandlers'
 import { type MessageDataObject, type TBridgeClickHandlerResult } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, logTimer } from '@helpers/dev'
 import {
-  calcOffsetDateStr,
+  // calcOffsetDateStr,
   getDateStringFromCalendarFilename,
   // getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
-  RE_DATE,
-  RE_DATE_INTERVAL,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
-// import { getNPWeekData } from '@helpers/NPdateTime'
+import {
+  moveItemBetweenCalendarNotes,
+} from '@helpers/NPMoveItems'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -117,7 +117,7 @@ export async function scheduleAllYesterdayOpenToToday(_data: MessageDataObject):
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalToMove)
           logDebug('scheduleAllYesterdayOpenToToday', `Moving item ${c} to today`)
-          const res = await moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
+          const res = await moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
           if (res) {
             logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -252,7 +252,7 @@ export async function scheduleAllTodayTomorrow(_data: MessageDataObject): Promis
           logDebug('scheduleAllTodayTomorrow', `- moving "${para.content}" to tomorrow`)
           c++
           // CommandBar.showLoading(true, `Moving item ${c} to tomorrow`, c / totalToMove)
-          const res = await moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '')
+          const res = await moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
           if (res) {
             logDebug('scheduleAllTodayTomorrow', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -422,7 +422,7 @@ export async function scheduleAllOverdueOpenToToday(_data: MessageDataObject): P
           const thisNoteType = para.noteType
           if (thisNote && thisNoteType === 'Calendar') {
             const thisNoteDateStr = getDateStringFromCalendarFilename(thisNote.filename, true)
-            const res = await moveItemBetweenCalendarNotes(thisNoteDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
+            const res = await moveItemBetweenCalendarNotes(thisNoteDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '', config.newTaskSectionHeadingLevel ?? 2)
             if (res) {
               logDebug('scheduleAllOverdueOpenToToday', `-> success on moveFromCalToCal ${thisNoteDateStr} → ${todayDateStr}`)
               numberChanged++
