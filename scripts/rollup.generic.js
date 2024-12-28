@@ -14,6 +14,7 @@ const alias = require('@rollup/plugin-alias')
 const postcss = require('rollup-plugin-postcss')
 const debounce = require('lodash.debounce')
 const postcssPrefixSelector = require('postcss-prefix-selector')
+const { caseSensitiveImports } = require('./shared')
 
 const NOTIFY = true
 
@@ -192,6 +193,7 @@ function getRollupConfig(options) {
 
   const outputPlugins = []
   const plugins = [
+    caseSensitiveImports(),
     alias({
       entries: [{ find: '@helpers', replacement: path.resolve(__dirname, '..', 'helpers') }],
     }),
