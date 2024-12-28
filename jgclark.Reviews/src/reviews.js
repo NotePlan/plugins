@@ -11,7 +11,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 2024-10-10 for v1.0.0, @jgclark
+// Last updated 2024-10-10 for v1.0.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -522,8 +522,8 @@ export async function renderProjectListsHTML(
 
     // add checkbox toggles in place of previous text
     // outputArray.push(`(${togglesValues})`)
-    outputArray.push(`<input class="apple-switch" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
-    outputArray.push(`<input class="apple-switch" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input/>`)
+    outputArray.push(`<input class="apple-switch pad-left-more" type="checkbox" ${displayOnlyDue ? 'checked' : ''} id="tog1" name="displayOnlyDue">Display only due?</input>`)
+    outputArray.push(`<input class="apple-switch pad-left-more" type="checkbox" ${displayFinished ? 'checked' : ''} id="tog2" name="displayFinished">Display finished?</input/>`)
     outputArray.push(`</p>`)
 
     // Allow multi-col working

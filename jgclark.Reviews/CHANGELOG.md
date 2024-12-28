@@ -1,6 +1,10 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+## [1.0.2] - 2024-12-28 (unreleased)
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the rich view of the Project List -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
+- small layout tweaks
+
 ## [1.0.1] - 2024-12-13
 ### Fixed 
 - fix bug with 'next action' setting (thanks, Alexandre Jacques)

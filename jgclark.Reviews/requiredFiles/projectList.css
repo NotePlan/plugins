@@ -244,6 +244,11 @@ i.fa-solid, i.fa-regular {
 	padding-right: 0.2em;
 }
 
+/* add more space before items */
+.pad-left-more {
+	margin-left: 0.5rem;
+}
+
 /* ---- TOOLTIPs ------------------------------------------- */
 /* Tooltip block */
 .tooltip { position: relative; display: inline-block; }
