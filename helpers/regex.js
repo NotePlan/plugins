@@ -199,7 +199,10 @@ export function formRegExForUsersOpenTasks(multiLine: boolean): RegExp {
   }
   return RE
 }
+
 /**
+ * WARNING: Doesn't cover Week/Month/Quarter/Year calendar notes.
+ * Better to use dateTime::isValidCalendarNoteFilename().
  * Test a string to see if it is a calendar note filename - YYYYMMDD.txt|md
  * @param {string} stringToTest
  * @returns {boolean}

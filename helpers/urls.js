@@ -1,9 +1,9 @@
 /* @flow */
 
+import { isValidCalendarNoteFilename } from '@helpers/dateTime'
 import { logError, clo } from '@helpers/dev'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { isClosed } from '@helpers/utils'
-import { isCalendarNoteFilename } from '@helpers/regex'
 
 export type LinkObject = {
   url: string,
@@ -125,6 +125,6 @@ export function findProjectNoteUrlInText(text: string, allowCalendarNotes: boole
       )
     : null
   // Return the found URL or an empty string
-  const noteMatches = allowCalendarNotes ? match : match ? match.filter((m) => !isCalendarNoteFilename(m)) : null
+  const noteMatches = allowCalendarNotes ? match : match ? match.filter((m) => !isValidCalendarNoteFilename(m)) : null
   return match ? match[0] : ''
 }

@@ -11,6 +11,7 @@ import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
   // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
+  isValidCalendarNoteFilename,
   isValidCalendarNoteFilenameWithoutExtension,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
@@ -403,7 +404,7 @@ export type OpenNoteOptions = Partial<{
  * @author @dwertheimer
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
-  const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+  const isCalendarNote = isValidCalendarNoteFilename(filename)
   let note = await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
