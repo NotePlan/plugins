@@ -24,7 +24,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
 
   useEffect(() => {
     const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
-    logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
+    // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
 
     // Find highest priority seen
     let maxPrioritySeen = -1
@@ -41,10 +41,10 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
     // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
     filteredItems.sort(itemSort)
-    logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
+    // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
 
     const filteredOrderedItems = reorderChildrenAfterParents(filteredItems)
-    logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
+    // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
 
     // If more than limitToApply, then just keep the first items, otherwise keep all
     const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
