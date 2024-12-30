@@ -13,6 +13,7 @@ import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
   createSectionItemsFromParas,
+  createSectionItemObject,
   getDashboardSettings,
   // getDisplayListOfSectionCodes,
   getListOfEnabledSections,
@@ -20,7 +21,7 @@ import {
   getOpenItemParasForTimePeriod,
   getRelevantOverdueTasks,
   getRelevantPriorityTasks,
-  createSectionItemObject,
+  isLineDisallowedByExcludedTerms,
   makeDashboardParas,
 } from './dashboardHelpers'
 import { getTimeBlockSectionData, getTodaySectionData, getYesterdaySectionData, getTomorrowSectionData } from './dataGenerationDays'
@@ -42,12 +43,6 @@ import { findNotesMatchingHashtagOrMention, getHeadingsFromNote } from '@helpers
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isOpen, isOpenTask } from '@helpers/utils'
-
-//-----------------------------------------------------------------
-// Constants
-
-// const reviewPluginID = 'jgclark.Reviews'
-// const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 
 //-----------------------------------------------------------------
 
@@ -573,7 +568,8 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
 
 /**
  * Generate data for a section for items with a Tag/Mention.
- * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
+ * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
+ * TODO: Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -590,6 +586,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
   let isHashtag = false
   let isMention = false
   // const thisStartTime = new Date()
+
+  const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms).filter((t) => t !== sectionDetail.sectionName).join(',')
+  logInfo('getTaggedSectionData', `ignoreTermsMinusTag: ${ignoreTermsMinusTagCSV}  (was: ${config.ignoreItemsWithTerms})`)
 
   if (useDemoData) {
     isHashtag = true
@@ -626,17 +625,20 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
           : tagParasFromNote.filter((p) => isOpen(p) && p.content.trim() !== '')
         // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for open only (${config.ignoreChecklistItems ? 'tasks only' : 'tasks or checklists'}), ${filteredTagParasFromNote.length} paras`)
 
-        // Save this para, unless in matches the 'ignoreItemsWithTerms' setting
+        // Save this para, unless in matches the 'ignoreItemsWithTerms' setting (now modified to exclude this tag/mention)
         for (const p of filteredTagParasFromNote) {
-          if (!config.ignoreItemsWithTerms || config.ignoreItemsWithTerms === '' || !p.content.includes(config.ignoreItemsWithTerms)) {
+          // V1:
+          // if (!ignoreTermsMinusTag || ignoreTermsMinusTag === '' || !p.content.includes(ignoreTermsMinusTag)) {
+          // V2: 
+          if (!isLineDisallowedByExcludedTerms(p.content, ignoreTermsMinusTagCSV)) {
             filteredTagParas.push(p)
           } else {
-            // logDebug('getTaggedSectionData', `- ignoring para {${p.content}} as it contains '${config.ignoreItemsWithTerms}'`)
+            logDebug('getTaggedSectionData', `- ignoring para {${p.content}}`)
           }
         }
         // logTimer('getTaggedSectionData', thisStartTime, `- after filtering for ${config.ignoreItemsWithTerms}, ${filteredTagParas.length} paras`)
       }
-      // logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
+      logTimer('getTaggedSectionData', thisStartTime, `- ${filteredTagParas.length} paras`)
 
       // filter out paras in the future
       const dateToUseUnhyphenated = config.showTomorrowSection ? new moment().add(1, 'days').format('YYYYMMDD') : new moment().format('YYYYMMDD')

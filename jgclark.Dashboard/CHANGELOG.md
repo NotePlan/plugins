@@ -1,6 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.0.b6] 2024-12-30
+### Changed
+- applied the 'ignore terms' to Tag/Mention sections, apart from the tag/mention itself (for @dwertheimer)
+### Fixed
+- edge cases with markComplete and markCompleteThen when scheduled to '>today'
+
 ## [2.1.0.b5] 2024-12-28
 ### Changed
 - now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than using what the Theme defines.

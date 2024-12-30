@@ -603,10 +603,10 @@ export async function getRelevantPriorityTasks(config: TDashboardSettings): Prom
  * Test to see if the current line contents is allowed in the current settings/Perspective, by whether it has a disallowed terms (word/tag/mention).
  * Note: the match is case insensitive.
  * @param {string} lineContent
- * @param {string} ignoreItemsWithTerms
+ * @param {string} ignoreItemsWithTerms CSV list of terms to ignore
  * @returns {boolean} true if disallowed
  */
-function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
+export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItemsWithTerms: string): boolean {
   // Note: can't use simple .split(',') as it does unexpected things with empty strings
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
   // logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)

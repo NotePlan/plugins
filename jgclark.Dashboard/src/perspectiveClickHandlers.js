@@ -6,19 +6,12 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
-// import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-// import { allCalendarSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-// import { getTotalDoneCountsFromSections, updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import {
   getDashboardSettings,
-  // getNotePlanSettings,
   handlerResult,
-  // mergeSections, moveItemToRegularNote,
   setPluginData
 } from './dashboardHelpers'
-// import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPluginData, TPerspectiveSettings } from './types'
-// import { validateAndFlattenMessageObject } from './shared'
+import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
   cleanDashboardSettings,
@@ -28,18 +21,11 @@ import {
   getPerspectiveSettings,
   logPerspectives,
   replacePerspectiveDef,
-  // setActivePerspective,
   switchToPerspective,
   renamePerspective,
   savePerspectiveSettings,
 } from './perspectiveHelpers'
-// import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
-// import { openNoteByFilename } from '@helpers/NPnote'
-// import { calcOffsetDateStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, RE_DATE, RE_DATE_INTERVAL } from '@helpers/dateTime'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
-// import { getGlobalSharedData } from '@helpers/HTMLView'
-// import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
-// import { showMessage, processChosenHeading } from '@helpers/userInput'
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -67,7 +53,7 @@ export async function doAddNewPerspective(_data: MessageDataObject): Promise<TBr
 
 export async function doCopyPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   clo(data, `doCopyPerspective starting ... with mbo`)
-  const fromName = data.userInputObj?.fromName ?? ''
+  // const fromName = data.userInputObj?.fromName ?? ''
   const newName = data.userInputObj?.newName ?? ''
   const perspectiveSettings = await getPerspectiveSettings()
   const activeDef = getActivePerspectiveDef(perspectiveSettings)
