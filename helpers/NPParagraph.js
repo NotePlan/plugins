@@ -7,12 +7,10 @@
 import moment from 'moment/min/moment-with-locales'
 import { trimString } from '@helpers/dataManipulation'
 import {
-  getAPIDateStrFromDisplayDateStr,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   hyphenatedDate,
-  hyphenatedDateString,
   isScheduled,
   replaceArrowDatesInString,
   RE_SCHEDULED_ISO_DATE,
@@ -1379,7 +1377,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
         clo(captureArr)
         dateString = captureArr[1]
-        // TEST: Cope with non-daily scheduled dates (e.g. 2024-W50)
+        // Use this function to cope with non-daily scheduled dates (e.g. 2024-W50). If '>today' is passed, then fall back to today's date.
         dateString = getFirstDateInPeriod(dateString)
         logDebug('markComplete', `will use scheduled date '${dateString}' as completion date`)
       } else {
@@ -1400,13 +1398,13 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
 
-    if (para.type === 'open') {
+    if (para.type === 'open' || para.type === 'scheduled') {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
       return para
-    } else if (para.type === 'checklist') {
+    } else if (para.type === 'checklist' || para.type === 'checklistScheduled') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)

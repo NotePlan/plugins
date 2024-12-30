@@ -7,27 +7,20 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 import moment from 'moment'
-import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import {
   getDashboardSettings,
-  // getNotePlanSettings, 
   handlerResult,
-  // mergeSections,
   setPluginData
 } from './dashboardHelpers'
-// import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
 import {
-  // addNewPerspective,
-  //  deletePerspective,
   getActivePerspectiveDef,
   getPerspectiveSettings,
-  // replacePerspectiveDef,
   cleanDashboardSettings,
-  // switchToPerspective,
 } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
 import type { MessageDataObject, TBridgeClickHandlerResult, } from './types'
+import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import {
   cancelItem,
   completeItem,
@@ -36,14 +29,10 @@ import {
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
 } from '@helpers/NPParagraph'
-import {
-  // scheduleItem,
-  unscheduleItem,
-} from '@helpers/NPScheduleItems'
+import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { getDateStringFromCalendarFilename, } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
-// import { getGlobalSharedData } from '@helpers/HTMLView'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
 
@@ -86,20 +75,6 @@ export async function doEvaluateString(data: MessageDataObject): Promise<TBridge
   }
 }
 
-export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `doAddItemToFuture starting with data`)
-  const { userInputObj } = data //     "date": "2024-12-04T08:00:00.000Z",
-  if (!userInputObj) return handlerResult(false)
-  const { date, text } = userInputObj
-  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture: "${date}"` })
-  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture: "${text}"` })
-  const extension = DataStore.defaultFileExtension
-  const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
-  data.toFilename = filename
-  data.actionType = 'addTask'
-  return await doAddItem(data)
-}
-
 /**
  * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for.
  * Note: It only writes to Calendar notes, as that's only what Dashboard needs.
@@ -126,21 +101,20 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
     }
 
     const content = text ?? (await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`))
-    const note = DataStore.noteByFilename(toFilename, 'Calendar')
-    if (!note) throw new Error(`doAddItem: No note found for ${toFilename}`)
+    const destNote = DataStore.noteByFilename(toFilename, 'Calendar')
+    if (!destNote) throw new Error(`doAddItem: No note found for ${toFilename}`)
+
     // Add text to the new location in destination note
-
     const newHeadingLevel = config.newTaskSectionHeadingLevel
-
-    const headingToUse = heading ? await processChosenHeading(note, newHeadingLevel, heading || '') : config.newTaskSectionHeading
+    const headingToUse = heading ? await processChosenHeading(destNote, newHeadingLevel, heading || '') : config.newTaskSectionHeading
 
     if (actionType === 'addTask') {
-      addTaskToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
+      coreAddTaskToNoteHeading(destNote, headingToUse, content, newHeadingLevel, true)
     } else {
-      addChecklistToNoteHeading(calNoteDateStr, headingToUse, content, newHeadingLevel)
+      coreAddChecklistToNoteHeading(destNote, headingToUse, content, newHeadingLevel, true)
     }
-    // TEST: update cache
-    DataStore.updateCache(note, true)
+    // This is now done in previous function call
+    // DataStore.updateCache(destNote, true)
 
     // update just the section we've added to
     return handlerResult(true, ['REFRESH_SECTION_IN_JSON', 'START_DELAYED_REFRESH_TIMER'], { sectionCodes: sectionCodes })
@@ -151,12 +125,32 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
 }
 
 /**
+ * Add a new item to a future date, using the date and text provided.
+ * Calls the doAddItem logic, once new filename is worked out.
+ * @param {MessageDataObject} {date: .data.data.data, text: .data.data.}
+ * @returns {TBridgeClickHandlerResult} result to be used by click result handler
+ */
+export async function doAddItemToFuture(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
+  clo(data, `doAddItemToFuture starting with data`)
+  const { userInputObj } = data // "date": "2024-12-04T08:00:00.000Z",
+  if (!userInputObj) return handlerResult(false)
+  const { date, text } = userInputObj
+  if (!text) return handlerResult(false, [], { errorMsg: `No text was provided to addItemToFuture: "${date}"` })
+  if (!date) return handlerResult(false, [], { errorMsg: `No date was provided to addItemToFuture: "${text}"` })
+  const extension = DataStore.defaultFileExtension
+  const filename = `${moment(date).format(`YYYYMMDD`)}.${extension}`
+  data.toFilename = filename
+  data.actionType = 'addTask'
+  return await doAddItem(data)
+}
+
+/**
  * Complete the task in the actual Note.
  * @param {MessageDataObject} data - The data object containing information for content update.
  * @returns {TBridgeClickHandlerResult} The result of the content update operation.
  */
 export function doCompleteTask(data: MessageDataObject): TBridgeClickHandlerResult {
-  const { filename, content, item } = validateAndFlattenMessageObject(data)
+  const { filename, content } = validateAndFlattenMessageObject(data)
   const updatedParagraph = completeItem(filename, content)
   // clo(updatedParagraph, `doCompleteTask -> updatedParagraph`)
 
