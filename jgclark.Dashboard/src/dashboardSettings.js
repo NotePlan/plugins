@@ -261,13 +261,28 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     type: 'heading',
+    label: 'Tag/Mention section',
+  },
+  {
+    key: 'tagsToShow',
+    label: '#tag/@mention(s) to show',
+    description:
+      "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
+    type: 'input',
+    default: '',
+  },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'heading',
     label: 'Overdue Tasks section',
   },
   {
     key: 'overdueSortOrder',
-    label: 'Sort order for Overdue tasks',
+    label: 'Sort order for Tag/Mention and Overdue items',
     description:
-      "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
+      "The order to show items: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
     type: 'dropdown-select',
     options: ['priority', 'earliest', 'most recent'],
     default: 'priority',
@@ -281,21 +296,6 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     type: 'number',
     default: '7',
     compactDisplay: true,
-  },
-  {
-    type: 'separator',
-  },
-  {
-    type: 'heading',
-    label: 'Tag/Mention section',
-  },
-  {
-    key: 'tagsToShow',
-    label: '#tag/@mention(s) to show',
-    description:
-      "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above. May also be more than one, separated by a comma. NOTE: These tasks will only show up in their separate section, unless you have the 'Hide Duplicates' option turned OFF.",
-    type: 'input',
-    default: '',
   },
   {
     type: 'separator',
