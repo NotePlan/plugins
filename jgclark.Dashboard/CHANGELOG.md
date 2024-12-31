@@ -1,6 +1,58 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.0] 2024-12-31
+A major effort by @jgclark and @dwertheimer over the last 5 months. There are lots of new things, particularly **Perspectives, that allow you to switch very quickly between different complete sets of settings**.
+### New
+- new settings to control what items/folders/sections are shown and what is ignored in a Perspective.
+- new Perspectives dropdown menu that allow you to switch very quickly between different complete sets of settings
+- this menu also has commands to 'Save As...', 'Delete...', 'Rename...', 'Copy to...' and 'Edit all...' Perspectives
+- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
+- new `setPerspective` x-callback to use from outside NP
+- new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
+- new 'Last Week' section and related 'All → This Week' button
+- new 'Add a new task to future note' button on Today Section, which allows you to pick any date for the future task
+- added support for 'child' items of tasks:
+  - child items are now indented like in the NP Editor
+  - an item with children is now shown with a new 'ellipsis' indicator at the end of the item
+  - when moving/scheduling items, any child items are moved/scheduled as well.
+  - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- child tasks are now ordered following their parents, when sorted by priority
+- now there is a 'Show completed task count?' setting which can be turned off.
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than only using what the Theme defines.
+
+### Changed
+- speeded up data generation significantly in some places (particularly refreshes), and everything else should feel snappier
+- parent items now show a '・・・' indicator, like NP does
+- child items are now indented like in the NP Editor
+- in the item dialog, there's now a note if an item has children
+- Turn off 'Referenced' Calendar sections if they have no items to display.
+- the "Ignore items in calendar sections with these term(s)" are now checked case-insensitively
+- the completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- turned off underlining on the 'take a break' message lines, and added colouring of it from your theme's completed task colour
+- Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+- improved details in title of project dialogs
+- changed order of skip buttons in Interactive Processing dialog
+- new type of dialog to replace the command bar for adding new tasks/checklists, and some other operations
+- the layout has been polished up in lots of places
+- removed setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+- changed callbacks to be showDashboard, showSections and showPerspective. E.g.:
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showDashboard`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home`
+
+### Fixed
+- worked around an API limitation so that you can add tasks/checklists to future calendar notes that don't exist yet.
+- fixed some items not being found when referenced to weekly notes
+- add time to @done(...) when "completing then"
+- fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
+- changed Interactive Processing icon to not imply 'refresh'
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+- improved ordering and descriptions of some of the settings
+- removed warning if Project & Reviews plugin is not installed
+
+<!--
 ## [2.1.0.b7] 2024-12-31
 ### Fixed
 - should no longer complain if the Project & Reviews plugin is not installed.
@@ -15,7 +67,6 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Changed
 - now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
 - now doesn't do any alphabetical ordering of items in a section (prompted by @stacey.)
-
 ### Fixed
 - fixed edge case when doing operation 'complete then' on a task with a week due date
 - now handles 'scheduling' an item properly. Removed the option about 'displaying the 🕓 symbol'. But instead, I've replaced it with an option to "Use simplified (re)scheduling method?". By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
@@ -118,10 +169,6 @@ First beta for 2.1.0.  A major effort by @jgclark and @dwertheimer over the last
 - fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
 - improved ordering and descriptions of some of the settings
 
-## Perspectives TODO:
-- TODO(jgc): Look in all referenced-to-today items for time blocks as well
-
-<!-- 
 ## [Perspectives.a26 = 2.1.0.a26] @jgc, 2024-12-06
 - (dbw): Improvements to layout and contents of Perspectives Table
 - (dbw + jgc): Improvements to styling of DynamicDialog heading selector
