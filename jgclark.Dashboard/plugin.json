@@ -5,9 +5,9 @@
   "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan, that in one place shows\n- a compact list of open tasks and checklists from today's note\n- scheduled open tasks and checklists from other notes.\n- Similarly for yesterday's note, tomorrow's note, and the weekly, monthly and quarterly notes too (if used)\n- all overdue tasks\n- all open tasks and checklists that contain particular @tags or #mentions of your choosing\n- the next notes ready to review (if you use the 'Projects and Reviews' plugin).",
   "plugin.author": "@jgclark",
-  "plugin.version": "2.1.0.b6",
+  "plugin.version": "2.1.0.b7",
   "plugin.hidden": false,
-  "plugin.lastUpdateInfo": "2.1.0: Add Perspectives, a new 'Last Week' section, and many other improvements and fixes.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
+  "plugin.lastUpdateInfo": "2.1.0: Add Perspectives; new 'Current Time Block' section; new 'Last Week' section; and many other improvements and fixes.\n2.0.6: tweak to rescheduling items, and other small bug fixes and tweaks.\n2.0.5: fix bug in 'Move all overdue to Today' command.\n2.0.4: add new 'Priority' section.\n2.0.3: layout improvements\n2.0.2: small improvements.\n2.0.1: removal of older settings system: it now only uses the quick-access menu.\n2.0.0: major new release -- see documentation for all the new features",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "react.c.WebView.bundle.dev.js"
@@ -19,7 +19,9 @@
     "solid.min.flat4NP.css",
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
-    "fa-solid-900.woff2",
+    "fa-solid-900.woff2"
+  ],
+  "plugin.__requiredSharedFiles": [
     "pluginToHTMLCommsBridge.js"
   ],
   "plugin.script": "script.js",
@@ -230,198 +232,6 @@
     {
       "type": "heading",
       "title": "All the rest of the Settings have been migrated to the Dashboard Window, so please make your changes there."
-    }
-  ],
-  "plugin.unused_settings": [
-    {
-      "type": "hidden",
-      "key": "reactSettings",
-      "description": "Saves last state of react UI choices as JSON string.",
-      "required": true,
-      "default": "{}"
-    },
-    {
-      "type": "heading",
-      "title": "Do Not Change These Settings"
-    },
-    {
-      "type": "heading",
-      "title": "Settings have been migrated to the Dashboard Window, so you can make your changes there. They are only here temporarily for migration purposes."
-    },
-    {
-      "key": "separateSectionForReferencedNotes",
-      "title": "Show referenced items in separate section?",
-      "description": "Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes.\nThe same also goes for Weekly/Monthly/Quarterly notes.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "ignoreChecklistItems",
-      "title": "Ignore checklist items",
-      "description": "If set, only tasks are included in any of the sections.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "ignoreTasksWithPhrase",
-      "title": "Ignore items in calendar sections with this phrase",
-      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.\nNote: This doesn't apply to the Tag/Mention section, which has its own setting.",
-      "type": "string",
-      "default": "#waiting",
-      "required": false
-    },
-    {
-      "key": "ignoreFolders",
-      "title": "Folders to ignore when finding items",
-      "description": "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
-      "type": "[string]",
-      "default": [
-        "@Archive",
-        "Saved Searches"
-      ],
-      "required": false
-    },
-    {
-      "key": "includeTaskContext",
-      "title": "Include context for tasks?",
-      "description": "Whether to show the note link for an open task or checklist",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "autoAddTrigger",
-      "title": "Add dashboard auto-update trigger when dashboard opened?",
-      "description": "Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "excludeTasksWithTimeblocks",
-      "title": "Exclude tasks that include time blocks?",
-      "description": "Whether to stop display of open tasks that contain a time block",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "excludeChecklistsWithTimeblocks",
-      "title": "Exclude checklists that include time blocks?",
-      "description": "Whether to stop display of open checklists that contain a time block",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "includeFolderName",
-      "title": "Include folder name?",
-      "description": "Whether to include the folder name when showing a note link",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "maxItemsToShowInSection",
-      "title": "Max number of items to show in a section?",
-      "description": "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
-      "type": "number",
-      "default": 30,
-      "required": true
-    },
-    {
-      "key": "newTaskSectionHeading",
-      "title": "Section heading to add/move new tasks under",
-      "description": "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't incude leading #s.)\nIf the heading isn't present, it will be added at the top of the note.\nIf this is left empty, then new tasks will appear at the top of the note.",
-      "type": "string",
-      "default": "Tasks",
-      "required": false
-    },
-    {
-      "key": "rescheduleNotMove",
-      "title": "Reschedule items in place, rather than move them?",
-      "description": "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "useTodayDate",
-      "title": "Use 'today' to schedule tasks for today?",
-      "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "dashboardTheme",
-      "title": "Theme to use for Dashboard",
-      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
-      "type": "string",
-      "default": "",
-      "required": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Overdue Tasks section"
-    },
-    {
-      "key": "showOverdueSection",
-      "title": "Show section for Overdue tasks?",
-      "description": "If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "overdueSortOrder",
-      "title": "Sort order for Overdue tasks",
-      "description": "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
-      "type": "string",
-      "choices": [
-        "priority",
-        "earliest",
-        "most recent"
-      ],
-      "default": "priority",
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Tag/Mention section"
-    },
-    {
-      "key": "tagsToShow",
-      "title": "#tag/@mention to show",
-      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to a signle hashtag or mention for speed, and it can show tasks duplicated from other sections.",
-      "type": "string",
-      "default": "",
-      "required": false
-    },
-    {
-      "key": "ignoreTagMentionsWithPhrase",
-      "title": "Ignore items in this section with this phrase",
-      "description": "Open tasks/checklists in this section will be ignored if they include this phrase.",
-      "type": "string",
-      "default": "",
-      "required": false
-    },
-    {
-      "key": "updateTagMentionsOnTrigger",
-      "hidden": true,
-      "title": "Update items in this section when triggered?",
-      "description": "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
     }
   ]
 }

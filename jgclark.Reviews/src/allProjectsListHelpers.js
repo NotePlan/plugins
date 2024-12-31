@@ -198,8 +198,9 @@ export async function writeAllProjectsList(projectInstances: Array<Project>): Pr
  */
 export async function updateProjectInAllProjectsList(projectToUpdate: Project): Promise<void> {
   try {
+    logDebug('updateProjectInAllProjectsList', `Starting ...`)
     const allProjects = await getAllProjectsFromList()
-    logDebug('updateProjectInAllProjectsList', `starting with ${allProjects.length} projectInstances`)
+    logDebug('updateProjectInAllProjectsList', `- with ${allProjects.length} projectInstances`)
 
     // find the Project with matching filename
     const projectIndex = allProjects.findIndex((project) => project.filename === projectToUpdate.filename)
@@ -222,6 +223,7 @@ export async function updateProjectInAllProjectsList(projectToUpdate: Project): 
  */
 export async function getAllProjectsFromList(): Promise<Array<Project>> {
   try {
+    logDebug('getAllProjectsFromList', `Starting ...`)
     const startTime = new moment().toDate()
     let projectInstances: Array<Project>
 
@@ -267,8 +269,9 @@ export async function getAllProjectsFromList(): Promise<Array<Project>> {
  */
 export async function getSpecificProjectFromList(filename: string): Promise<Project | null> {
   try {
+    logDebug('getSpecificProjectFromList', `Starting with filename '${filename}' ...`)
     const allProjects = await getAllProjectsFromList() ?? []
-    logDebug(`getSpecificProjectFromList`, `- read ${String(allProjects.length)} Projects from allProjects list`)
+    logDebug('getSpecificProjectFromList', `- for ${allProjects.length} projects`)
 
     // find the Project with matching filename
     const projectInstance: ?Project = allProjects.find((project) => project.filename === filename)
@@ -291,8 +294,9 @@ export async function getSpecificProjectFromList(filename: string): Promise<Proj
 export async function filterAndSortProjectsList(config: ReviewConfig, projectTag: string = ''): Promise<Array<Project>> {
   try {
     // const startTime = new Date()
+    logDebug('filterAndSortProjectsList', `Starting with tag '${projectTag}' ...`)
     let projectInstances = await getAllProjectsFromList()
-    logDebug('filterAndSortProjectsList', `Starting for ${projectInstances.length} projects with tag '${projectTag}' ...`)
+    logDebug('filterAndSortProjectsList', `- for ${projectInstances.length} projects`)
 
     // Filter out projects that are not tagged with the projectTag
     if (projectTag !== '') {
@@ -468,15 +472,20 @@ export async function getNextNoteToReview(): Promise<?TNote> {
  * Get list of the next note(s) to review (if any).
  * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
  * Note: v2, using the allProjects JSON file (not ordered but detailed)
- * Note: This is a variant of the original singular version above, and is used in jgclark.Dashboard/src/dataGeneration.js
+ * Note: This is a variant of the original singular version above, and is only used by jgclark.Dashboard/src/dataGeneration.js
  * @author @jgclark
  * @param { number } numToReturn first n notes to return, or 0 indicating no limit.
  * @return { Array<Project> } next Projects to review, up to numToReturn. Can be an empty array. Note: not a TNote but Project object.
  */
 export async function getNextProjectsToReview(numToReturn: number = 6): Promise<Array<Project>> {
   try {
-    logDebug(pluginJson, `Starting getNextProjectsToReview(${String(numToReturn)})) ...`)
-    const config: ReviewConfig = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings(true)
+    if (!config) {
+      // Shouldn't get here, but this is a safety check.
+      logDebug(pluginJson, 'reviews/getNextProjectsToReview(): No config found, so assume jgclark.Reviews plugin is not installed. Stopping.')
+      return []
+    }
+    logDebug(pluginJson, `Starting reviews/getNextProjectsToReview(${String(numToReturn)})) ...`)
 
     // Get all available Projects -- not filtering by projectTag here
     const allProjectsSorted = await filterAndSortProjectsList(config)

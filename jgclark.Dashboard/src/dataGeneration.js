@@ -29,6 +29,7 @@ import { getLastWeekSectionData, getThisWeekSectionData } from './dataGeneration
 import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
+import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import {
   getDateStringFromCalendarFilename,
   getNPMonthStr,
@@ -945,6 +946,7 @@ export async function getPrioritySectionData(config: TDashboardSettings, useDemo
 
 /**
  * Make a Section for all projects ready for review, using data written by the Projects + Reviews plugin: getNextProjectsToReview().
+ * First check that the Projects & Reviews plugin is installed.
  * Note: this is taking 1815ms for JGC
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
@@ -989,6 +991,11 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   } else {
     // Get the next projects to review from the other plugin.
     // Note: this does not yet use 'Perspectives'.
+    if (!await pluginIsInstalled('jgclark.Reviews')) {
+      logDebug('getProjectSectionData', `jgclark.Reviews plugin is not installed, so not continuing.`)
+      // $FlowIgnore[incompatible-return] we cannot return anything if the plugin is not installed
+      return null
+    }
     nextProjectsToReview = await getNextProjectsToReview(maxProjectsToShow)
 
     // TEST: add basic filtering by folder for the current Perspective
