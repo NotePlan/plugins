@@ -84,9 +84,9 @@ export function addParasAsText(
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
-  } else if (headingToFind === '') {
+  } else if (headingToFind === '<<bottom of note>>' || headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
-    insertionIndex = destinationNoteParas.length + 1
+    insertionIndex = destinationNoteParas.length + 1 || 0
     logDebug(pluginJson, `-> bottom of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 

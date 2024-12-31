@@ -1,0 +1,141 @@
+/* FIXME: Container for the table with scrolling  */
+.perspectives-table-container {
+  overflow: auto;
+}
+
+/* Change scrollbar look to match theme */
+/* Note: Non-standard: in time hopefully will support scrollbar-color:  https://developer.mozilla.org/en-US/docs/Web/CSS/scrollbar-color) */
+.perspectives-table-container::-webkit-scrollbar {
+    width: 9px;
+    background: var(--bg-main-color);
+}
+/* shouldn't be needed as well as one above. But TEST: to see if it helps. So far it doesn't on Safari. */
+.perspectives-table-container::-webkit-scrollbar:horizontal {
+    width: 9px;
+    background: var(--bg-main-color);
+}
+.perspectives-table-container::-webkit-scrollbar-thumb {
+    background: rgb(from var(--fg-main-color) r g b / 0.3);
+    border-radius: 12px;
+}
+
+/* Style for the table */
+.perspectives-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 90%;
+}
+
+/* Table cells and headers */
+.perspectives-table th,
+.perspectives-table td {
+  border: 1px solid var(--divider-color);
+  padding: 0.2rem; /* 8px; */
+  /* vertical-align: top; */
+  align-content: center;
+}
+
+/* Sticky column for settings labels */
+.perspectives-table .sticky-column {
+  position: sticky;
+  left: 0;
+  background-color: var(--bg-main-color);
+  z-index: 2;
+}
+
+.perspectives-table thead th {
+  border-bottom: 1px solid var(--divider-color);
+}
+
+/* Sticky header for perspective names */
+.perspectives-table .sticky-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-main-color);
+  z-index: 3;
+}
+
+/* Style for settings headings */
+.perspectives-table .settings-heading {
+  font-weight: bold;
+  background-color: var(--bg-alt-color);
+  color: var(--tint-color);
+  padding: 0.3rem;
+  position: sticky;
+  left: 0;
+}
+
+/* Style for setting labels */
+.perspectives-table .setting-label {
+  /* width: 200px; */
+  min-width: 12rem; /*200px;*/
+  padding: 0.2rem 0.4rem;
+}
+
+.perspectives-table th,
+.perspectives-table td {
+  min-width: 7rem; /*150px*/
+}
+
+.perspectives-table th {
+  padding: 0.4rem 0.4rem;
+}
+
+/* Adjustments for inputs within table cells */
+.perspectives-table input,
+.perspectives-table select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.perspectives-table {
+
+  /* Optional styling for setting labels */
+  .setting-label-text {
+    font-weight: 400;
+    color: var(--fg-main-color);
+  }
+
+  /* Style for setting cells */
+  .setting-cell {
+    min-width: 9rem;
+    padding: 2px 6px;
+  }
+
+  /* Style for item description */
+  .item-description {
+    font-size: small;
+    color: var(--fg-alt-color);
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  /* Adjustments for the input label position */
+  .switch-line {
+    gap: 0px !important;
+    justify-content: center !important;
+  }
+  .input-box-container,
+  .dropdown-container {
+    flex-direction: column;
+    justify-content: flex-start;
+    row-gap: 0px; /* remove spacing under switch */
+  }
+
+  /* Make separators have no height */
+  .ui-separator {
+    padding: 0;
+  }
+
+  /* Adjustments for compact displays */
+  .input-box-container-compact,
+  .dropdown-container-compact {
+    flex-direction: column;
+  }
+
+  .input-box-container-compact .input-box-save,
+  .dropdown-container-compact .input-box-save {
+    align-self: flex-end;
+    margin-top: 4px;
+  }
+}

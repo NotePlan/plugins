@@ -1,21 +1,22 @@
 /* CSS specific to Header component from jgclark.Dashboard plugin */
-/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
+/* Last updated for v2.1.0.b */
+/* Note: until 2.1.0.a8 was grid-based. But from a9 realised that flex is the natural, and thus easier, tool to use. */
 
-/* Settings for Grid-based layout */
+/* Settings for flex-based layout */
 .header {
 	font-size: 0.92rem;
 	/* Define grid-template-areas for better control */
-	display: grid;
+	/* display: grid; */
+	display: flex;
 	/* Allocate space for each area */
-	grid-template-areas: "lastUpdated refresh counts empty dropdowns";
-	grid-template-columns: max-content max-content max-content 1fr min-content;
+	/* grid-template-areas: "perspective refresh lastUpdated empty1 counts empty2 dropdowns";
+	grid-template-columns: max-content max-content max-content 1fr max-content 2fr min-content; */
 	/* Vertical alignment */
 	align-items: baseline;
-	/* Space between grid items */
-	gap: 0.5rem;
+	/* Space between next-level items */
+	gap: 0.6rem;
 	/* Padding around the header content */
-	padding: 0.4rem;
-	padding-right: 1rem;
+	padding: 0.4rem 1rem 0.1rem 0.5rem;
 	background-color: var(--bg-sidebar-color);
 	/* Ensure the header uses the full width -- if contained width:Nvw set to less than 100 */
 	/* width: 100%; */
@@ -24,75 +25,121 @@
 	z-index: 10;
 	top: 0px;
 	border-bottom: solid 1px var(--divider-color);
+	justify-content: space-between; /* aligns items to the start and end of the container, and pads out others between them */
 }
 
 /* MESSAGE_BANNER w3.css overrides */
 .iOS .header, .iPadOS .header {
-  padding-right: 2.2rem; 
   box-sizing: border-box; /* Ensure the padding is included in the element's total width */
   /* make room for NP sheet "X" button */
+  padding-right: 2.2rem; 
 }
 
-.lastFullRefresh {
+/* Refresh button(s) area */
+.refreshButtons {
+	/* allow for 2 buttons at times */
+	display: inline-flex;
+	gap: 0.2rem;
+	/* to allow us to control clipping of hardRefreshButton */
+	max-width:28%;
+}
+
+/* Refresh time-ago text */
+.lastRefreshInfo {
 	/* Assign the area */
-	grid-area: lastUpdated;
+	/* grid-area: lastUpdated; */
 	/* This ensures that the content of these divs is also centered */
+	flex-grow: 1;
 	align-items: center;
-	/* Make a fixed width so that as it changes it doesn't change the Refresh button position */
-	width: 10rem;
-
-}
-/* Turn fixed width off on narrow screens */
-@media screen and (max-width: 600px) {
-	.lastFullRefresh {
-		width: unset;
-	}
 }
 
-.refresh {
-	/* Assign the area */
-	grid-area: refresh;
-}
-
-/* may use in future */
 .totalCounts {
 	/* Assign the area */
-	grid-area: counts;
-	align-self: unset; /* TEST: shouldn't be needed but otherwise lands up with 'end' */
-	
+	/* grid-area: counts; */
+	flex-grow: 1;
+
 	/* Make sure totalCounts only shows when necessary */
-	@media screen and (max-width: 500px) {
+	@media screen and (max-width: 600px) {
 		display: none;
 	}
 }
 
+.perspectiveName {
+	/* Assign the area */
+	/* grid-area: perspective; */
+	/* align-self: center; */
+}
+
 .dropdownButtons {
-	grid-area: dropdowns;
+	/* grid-area: dropdowns; */
+	/* display: flex; */
 	/* justify-self: end; */
+	/* gap between buttons */
 	gap: 0.9rem;
 	/* Align to the right edge */
-	justify-self: end;
+	/* justify-self: end;
 	justify-content: end;
-	/* margin-right: 1rem; */
+	margin-left: 0.4rem; */
+	float: inline-end; /* a rare use of float! */
+	margin-inline-end: 0.5rem;
+
+	/* droppdown button icons through FontAwesome */
+	i {
+		color: var(--tint-color);
+		cursor: pointer;
+		/* Make button a little darker on hover */
+		&:hover {
+			/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this */
+			filter: brightness(80%);
+		}
+	}
 }
 
 /* Widen button gaps on touchscreen interfaces, and leave gap for extra close button that appears */
 .iOS .dropdownButtons, .iPadOS .dropdownButtons {
 	gap: 1.2rem !important;
-	margin-right: 2rem !important;
+	margin-inline-end: 2rem !important;
 }
 
-/* droppdown button icons */
-.dropdownButtons i {
-	/* Assign the area */
-	color: var(--tint-color);
-}
+/* For buttons in header area */
+/* TODO: Ideally rationalise this with the addButton icon-buttons in the sectionInfo area */
+.HAButton {
+	font-size: 0.92rem;
+	font-weight: 500;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: 4px;
+	/* a little internal padding to right */
+	padding: 2px 3px 0px 3px;
+	/* a little external margin */
+	margin: 2px 4px 0px 0px;
+	white-space: nowrap;
+	cursor: pointer;
+	/* Center the button vertically if it's not aligning properly */
+	align-self: center;
 
-/* for narrow screens (iOS) ... */
-/* FIXME: needs to apply to iPad as well */
-/* @media screen and (width <= 450px) { */
-	/* Widen button gaps  */
-	/* .dropdownButtons {
-		gap: 1.2rem !important;
+	/* color FA icons in these Buttons */
+	i {
+		color: var(--tint-color);
 	}
-} */
+}
+
+.HAButton:hover {
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert to this when better support in dev tooling */
+	filter: brightness(110%);
+}
+
+/* Set this button text to clip if screen is narrow */
+.hardRefreshButton {
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* On narrow screens push the refresh and */
+@media screen and (max-width: 600px) {
+	/* Turn fixed width off on narrow screens */
+	.lastFullRefresh {
+		width: unset;
+	}
+}

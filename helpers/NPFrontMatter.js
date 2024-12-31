@@ -41,8 +41,8 @@ export function quoteText(text: string): string {
       .replace(/$/, '"') // Re-add ending double quote
   }
 
-  // If quoting is needed but the text contains double quotes, escape them
-  if (needsQuoting) {
+  // Always escape internal double quotes and wrap in quotes if needed
+  if (needsQuoting || text.includes('"')) {
     return `"${text.replace(/"/g, '\\"')}"` // Escape internal double quotes and wrap in quotes
   }
 

@@ -44,7 +44,7 @@ function ItemNoteLink({ item, thisSection }: Props): React$Node {
   if (filename !== thisSection.sectionFilename) {
     return (
       <TooltipOnKeyPress altKey={{ text: 'Open in Split View' }} metaKey={{ text: 'Open in Floating Window' }} label={`${item.itemType}_${item.ID}_Open Note Link`} enabled={!reactSettings?.dialogData?.isOpen}>
-        <span className="pad-left folderName">{folderNamePart}</span>
+        <span className="pad-left-larger folderName">{folderNamePart}</span>
         <a className="noteTitle sectionItem" onClick={handleLinkClick}>
           <i className="fa-regular fa-file-lines pad-right"></i>
           {noteTitle}

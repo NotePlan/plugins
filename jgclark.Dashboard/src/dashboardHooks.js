@@ -2,15 +2,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggers and other hooks
-// Last updated 2024-07-13 for v2.0.1 by @jgclark
+// Last updated  for v2.1.0
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { incrementallyRefreshSections, refreshSomeSections } from './clickHandlers'
+import { incrementallyRefreshSomeSections, refreshSomeSections } from './refreshClickHandlers'
 import { allSectionCodes, WEBVIEW_WINDOW_ID } from './constants'
-import { getSomeSectionsData } from './dataGeneration'
-import { type MessageDataObject, type TSectionCode } from './types'
+// import { getSomeSectionsData } from './dataGeneration'
+import type { MessageDataObject, TSectionCode } from './types'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getNPMonthStr,
@@ -59,19 +59,6 @@ function haveOpenItemsChanged(note: TNote): boolean {
   // Compare them
   return beforeOpenSorted.toString() !== afterOpenSorted.toString()
 }
-
-/**
- * Return number of open items in a multi-line string.
- * Note: now not used
- * @param {number} content
- * @returns {number}
- */
-// function numberOfOpenItems(content: string): number {
-//   const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
-//   // logDebug(pluginJson, String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-//   const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-//   return res ? res.length : 0
-// }
 
 /**
  * Make array of calendar section codes and their current filename
@@ -155,15 +142,14 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       if (openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
-        // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function
+        // Instead we test for Editor in the dataGeneration::getOpenItemParasForTimePeriod() function
 
         // Update the dashboard
-        logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
         // Note: v1 following redraws whole window incrementally, which leaves flash or empty screen for a while
         // showDashboardReact('trigger') // indicate this comes from a trigger, so won't take focus
         // Note: v2 avoids flashing, because
         // const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: allSectionCodes }
-        // const res = await incrementallyRefreshSections(data)
+        // const res = await incrementallyRefreshSomeSections(data)
         // v3 only update the section for this note (or if not found then all sections still)
         const FTSCList = makeFilenameToSectionCodeList()
         const filename = Editor.filename
@@ -172,7 +158,8 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         const theseSectionCodes: Array<TSectionCode> = thisObject?.sectionCode ? [thisObject.sectionCode] : allSectionCodes
         const data: MessageDataObject = { actionType: 'refreshSomeSections', sectionCodes: theseSectionCodes }
         // ask to update section(s), noting this is called by a trigger (which changes whether we use Editor.note.content or note.content)
-        const res = await incrementallyRefreshSections(data, true)
+        logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard section(s) ${theseSectionCodes.toString()}`)
+        const res = await incrementallyRefreshSomeSections(data, true)
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }
@@ -201,4 +188,20 @@ export async function refreshProjectSection(): Promise<void> {
   }
   const res = await refreshSomeSections(data, true)
   // logDebug('refreshProjectSection', `done.`)
+}
+
+/**
+ * Refresh a section given by its code -- if the Dashboard is open already.
+ */
+export async function refreshSectionByCode(sectionCode: TSectionCode): Promise<void> {
+  if (!isHTMLWindowOpen(WEBVIEW_WINDOW_ID)) {
+    logDebug('refreshSectionByCode', `Dashboard not open, so won't proceed ...`)
+    return
+  }
+  logDebug('refreshSectionByCode', `Dashboard is open, so starting ...`)
+  const data: MessageDataObject = {
+    sectionCodes: [sectionCode],
+    actionType: 'refreshSomeSections',
+  }
+  const res = await refreshSomeSections(data, true)
 }

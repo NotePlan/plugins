@@ -1,9 +1,9 @@
 /* eslint-disable require-await */
 // @flow
-// Last updated 2024-07-12 for v2.0.1 by @jgclark
+// Last updated 2024-12-17 for v2.1.0.b3 by @jgclark
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { getLogSettings, setPluginData } from './dashboardHelpers'
+// import { getLogSettings, setPluginData } from './dashboardHelpers'
 import { log, logError, logInfo, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 // import { editSettings } from '@helpers/NPSettings'
@@ -16,7 +16,6 @@ import { showMessage } from '@helpers/userInput'
  * It is unlikely you will need to edit/add anything below this line
  *
  */
-
 
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -49,13 +48,14 @@ export function init(): void {
 
 /**
  * Log settings have been updated in the Preferences panel.
- * Note: It's only changes to the log settings that the front-end won't notice, and so re-render.
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated().`)
-  const logSettings = await getLogSettings()
-  clo(logSettings, 'onSettingsUpdated() - setting React pluginData.dashboardSettings to logSettings')
-  await setPluginData({ logSettings: logSettings }, '_logSettings were updated')
+  // logDebug(
+  //   pluginJson,
+  //   `NotePlan automatically fired ${pluginJson['plugin.id']}::onSettingsUpdated(). Now no further action is taken.Log settings are not being automatically updated on the front-end, because of race conditions.`,
+  // )
+  // Note: deliberately not taking any further action here.
+  // Previously tried to call `await getLogSettings()` but race conditions caused it to failures. Instead we getLogSettings as required in the code.
   return
 }
 

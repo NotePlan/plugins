@@ -1,8 +1,8 @@
 // @flow
 //--------------------------------------------------------------------------
-// React component to show a dialog using dynamic field definitions
-// Changes are saved when "Submit" is clicked, but not before
-// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true
+// React component to show a dialog using dynamic field definitions.
+// Changes are saved when the "Submit" button is clicked, but not before.
+// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true.
 //--------------------------------------------------------------------------
 /**
  * TODO:
@@ -15,11 +15,12 @@
  * - Template-side processing, use: overrideSettingsWithTypedArgs (somehow needs to identify that this is a JSON self-runner, __isJSON__ = true or something)
  * - implement dependsOnKey (disabled greyed out and indented)
  * - CSS: Separator padding top/bottom balance
- *
  */
+
 //--------------------------------------------------------------------------
 // Imports
 //--------------------------------------------------------------------------
+
 import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
@@ -29,17 +30,21 @@ import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
+
 export type TSettingItemType =
   | 'switch'
   | 'input'
   | 'combo' // the react-select version (ThemedSelect)
-  | 'dropdown' // the simple dropdown aka DropdownSelect
+  | 'dropdown-select' // the simple dropdown aka DropdownSelect
   | 'number'
   | 'text'
   | 'separator'
   | 'heading'
   | 'input-readonly'
   | 'json'
+  | 'button'
+  | 'button-group'
+  | 'calendarpicker'
 
 export type TSettingItem = {
   type: TSettingItemType,
@@ -47,7 +52,7 @@ export type TSettingItem = {
   value?: string,
   label?: string,
   checked?: boolean,
-  options?: Array<string>,
+  options?: Array<string | { label: string, value: string, isDefault?: boolean }>,
   textType?: 'title' | 'description' | 'separator',
   description?: string,
   default?: any,
@@ -59,17 +64,23 @@ export type TSettingItem = {
   focus?: boolean, // for input fields only, set focus to this field when dialog opens
   controlsOtherKeys?: Array<string>, // if this item is changed, also change the items named in this array
   displayDoneCounts?: boolean, // if true, then show the done counts in the dashboard
+  vertical?: boolean, // Add vertical property for button-group
+  isDefault?: boolean, // Add isDefault property for button items
+  fixedWidth?: number, // for dropdowns, set a fixed width
+  selectedDate?: Date, // for calendarpicker, the selected date
+  numberOfMonths?: number, // for calendarpicker, the number of months to show
 }
 
 export type TDynamicDialogProps = {
-  // required props
-  items: Array<TSettingItem>,
   // optional props
+  items?: Array<TSettingItem>, // generally required, but can be empty (e.g. for PerspectivesTable)
   onSave?: (updatedSettings: { [key: string]: any }) => void,
   onCancel?: () => void,
+  handleButtonClick?: (key: string, value: any) => void, // Add handleButtonClick prop
   className?: string,
   labelPosition?: 'left' | 'right',
   allowEmptySubmit?: boolean,
+  submitButtonText?: string, // Add submitButtonText property
   isOpen?: boolean,
   title?: string,
   style?: Object, // Add style prop
@@ -77,6 +88,9 @@ export type TDynamicDialogProps = {
   hideDependentItems?: boolean,
   submitOnEnter?: boolean,
   children?: React$Node, // children nodes (primarily for banner message)
+  hideHeaderButtons?: boolean, // hide the header buttons (cancel and submit) if you want to add your own buttons
+  externalChangesMade?: boolean, // New prop to accept external changesMade state
+  setChangesMade?: (changesMade: boolean) => void, // New prop to allow external components to update changesMade
 }
 
 //--------------------------------------------------------------------------
@@ -87,26 +101,24 @@ const DynamicDialog = ({
   children,
   title,
   items: passedItems,
-  className,
+  className = '',
   labelPosition = 'right',
   allowEmptySubmit = false,
+  submitButtonText = 'Submit',
   isOpen = true,
   style, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
   onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
-  hideDependentItems,
+  handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
+  hideDependentItems = false,
   submitOnEnter = true,
+  hideHeaderButtons = false,
+  externalChangesMade,
+  setChangesMade: externalSetChangesMade,
 }: TDynamicDialogProps): React$Node => {
   if (!isOpen) return null
-  const items = passedItems || [
-    {
-      key: 'errorMessage',
-      label: 'No items were sent to the dialog to be rendered',
-      type: 'text',
-      textType: 'description',
-    },
-  ]
+  const items = passedItems || []
 
   //----------------------------------------------------------------------
   // HELPER FUNCTIONS
@@ -153,8 +165,8 @@ const DynamicDialog = ({
   // State
   //----------------------------------------------------------------------
   const dialogRef = useRef<?ElementRef<'dialog'>>(null)
-  const dropdownRef = useRef<?{ current: null | HTMLInputElement }>(null)
-  const [changesMade, setChangesMade] = useState(allowEmptySubmit)
+  const dropdownRef = useRef<?HTMLInputElement>(null)
+  const [changesMade, setChangesMadeInternal] = useState(false)
   const [updatedSettings, setUpdatedSettings] = useState(getInitialItemStateObject(items))
   const updatedSettingsRef = useRef(updatedSettings)
 
@@ -163,6 +175,10 @@ const DynamicDialog = ({
   }, [updatedSettings])
 
   if (!updatedSettings) return null // Prevent rendering before items are loaded
+
+  // Use internal changesMade state only if externalChangesMade is not provided
+  const changesMadeToUse = allowEmptySubmit || (typeof externalChangesMade === 'boolean' ? externalChangesMade : changesMade)
+  const setChangesMade = externalSetChangesMade || setChangesMadeInternal
 
   //----------------------------------------------------------------------
   // Handlers
@@ -194,7 +210,7 @@ const DynamicDialog = ({
     if (onSave) {
       onSave(updatedSettingsRef.current) // we have to use the ref, because the state may be stale if the enter key event listener caused this to be called
     }
-    logDebug('Dashboard', `DynamicDialog saved updates`, updatedSettingsRef.current)
+    logDebug('Dashboard', `DynamicDialog saved updates`, { updatedSettings: updatedSettingsRef.current })
   }
 
   const handleDropdownOpen = () => {
@@ -252,22 +268,29 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   // clo(items, `DynamicDialog items=`)
   if (!updatedSettings) return null
+  const dialogStyle = {
+    minWidth: '50%', // defaults which can be overridden by the style prop
+    height: 'unset',
+    ...style,
+  }
   const dialogContents = (
-    <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={style} onClick={(e) => e.stopPropagation()}>
-      <div className="dynamic-dialog-header">
-        <button className="PCButton cancel-button" onClick={onCancel}>
-          Cancel
-        </button>
+    <div ref={dialogRef} className={`dynamic-dialog ${className || ''}`} style={dialogStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={`dynamic-dialog-header ${hideHeaderButtons ? 'title-only' : 'title-with-buttons'}`}>
+        {!hideHeaderButtons && (
+          <button className="PCButton cancel-button" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
         <span className="dynamic-dialog-title">{title || ''}</span>
-        {changesMade ? (
+        {!hideHeaderButtons && changesMadeToUse ? (
           <button className="PCButton save-button" onClick={handleSave}>
-            Submit
+            {submitButtonText}
           </button>
         ) : (
-          <button className="PCButton save-button-inactive">Submit</button>
+          !hideHeaderButtons && <button className="PCButton save-button-inactive">{submitButtonText}</button>
         )}
       </div>
-      <div className="dynamic-dialog-content">
+      <div className="dynamic-dialog-content thin-scrollbar" style={dialogStyle?.content}>
         {children}
         {items.map((item, index) => (
           <div key={`ddc-${index}`}>
@@ -283,10 +306,10 @@ const DynamicDialog = ({
                 disabled: item.dependsOnKey ? !stateOfControllingSetting(item) : false,
                 indent: Boolean(item.dependsOnKey),
                 handleFieldChange,
+                handleButtonClick, // Pass handleButtonClick
                 labelPosition,
                 showSaveButton: false, // Do not show save button
-                // $FlowIgnore
-                inputRef: item.type === 'combo' || item.type === 'dropdown' ? dropdownRef : undefined, // Assign ref to the dropdown input
+                inputRef: item.type === 'combo' || item.type === 'dropdown-select' ? dropdownRef : { current: null }, // Assign ref to the dropdown input
                 className: '', // for future use
               })}
             {item.description && <div className="item-description">{item.description}</div>}

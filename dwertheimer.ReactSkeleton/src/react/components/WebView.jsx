@@ -13,6 +13,8 @@
 type Props = {
   data: any /* passed in from the plugin as globalSharedData */,
   dispatch: Function,
+  reactSettings: any,
+  setReactSettings: Function,
 }
 /****************************************************************************************************************************
  *                             NOTES
@@ -29,26 +31,17 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
+import { clo, logDebug, timer } from '@helpers/react/reactDev'
 import { type PassedData } from '../../reactMain.js'
 import { AppProvider } from './AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
-
-/****************************************************************************************************************************
- *                             CONSOLE LOGGING
- ****************************************************************************************************************************/
-// color this component's output differently in the console
-const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
-
 /**
  * Root element for the Plugin's React Tree
  * @param {any} data
  * @param {Function} dispatch - function to send data back to the Root Component and plugin
  */
-export function WebView({ data, dispatch }: Props): Node {
+export function WebView({ data, dispatch, reactSettings, setReactSettings }: Props): Node {
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
@@ -79,7 +72,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} e - the event object
    * @param {number} index - the index of the button that was clicked
    */
-  const onSubmitClick = (e, index) => {
+  const onSubmitClick = (e: any, index: number) => {
     logDebug(`Webview: onSubmitClick: ${e.type || ''} click on index: ${index}`)
     sendActionToPlugin('onSubmitClick', { index: index })
   }
@@ -129,7 +122,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @returns {string} cleaned text without HTML entities
    */
   // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text) {
+  function decodeHTMLEntities(text: string): string {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
@@ -145,7 +138,7 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const addPassthroughVars = (data: PassedData): PassedData => {
     const newData = { ...data }
-    if (!newData.passThroughVars) newData.passThroughVars = {}
+    if (!newData.passThroughVars) newData.passThroughVars = { lastWindowScrollTop: 0 }
     newData.passThroughVars.lastWindowScrollTop = window.scrollY
     return newData
   }
@@ -158,6 +151,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {any} dataToSend
    */
   const sendActionToPlugin = (command: string, dataToSend: any, additionalDetails: string = '') => {
+    logDebug(`Webview: sendActionToPlugin: ${command} ${additionalDetails}`, dataToSend)
     const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
     dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
     sendToPlugin([command, dataToSend, additionalDetails]) // send action to plugin
@@ -201,8 +195,16 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   return (
-    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData} updatePluginData={updatePluginData}>
-      <>
+    <AppProvider
+      sendActionToPlugin={sendActionToPlugin}
+      sendToPlugin={sendToPlugin}
+      dispatch={dispatch}
+      pluginData={pluginData}
+      updatePluginData={updatePluginData}
+      reactSettings={reactSettings}
+      setReactSettings={setReactSettings}
+    >
+      <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
           <Button onClick={scrambleLines} className="w3-light-blue">
@@ -219,7 +221,7 @@ export function WebView({ data, dispatch }: Props): Node {
           ))}
         </div>
         {/* end of replace */}
-      </>
+      </div>
     </AppProvider>
   )
 }

@@ -102,3 +102,14 @@ export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<stri
     }
   })
 }
+
+/**
+ * Find longest string from array of strings
+ * @tests available for jest
+ * @author @dwertheimer
+ *
+ * @param {Array<string>} arr
+ * @returns {string}
+ */
+export const findLongestStringInArray = (arr: Array<string>): string =>
+  arr.length ? arr.reduce((a, b) => (a.length > b.length ? a : b)) : ''

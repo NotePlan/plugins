@@ -236,12 +236,15 @@ i.fa-solid, i.fa-regular {
 .circle-icon {
   font-size: 1.8rem;
 }
-/* add space before/after icons */
+/* add space before/after items (particularly icons) */
 .pad-left {
-	padding-left: 0.2rem;
+	padding-left: 0.3rem;
+}
+.pad-left-larger {
+	padding-left: 0.5rem;
 }
 .pad-right {
-	padding-right: 0.2em;
+	padding-right: 0.3em;
 }
 
 /* add more space before items */

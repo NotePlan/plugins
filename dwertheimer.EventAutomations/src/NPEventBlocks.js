@@ -332,7 +332,7 @@ export async function createEventPrompt(_heading?: string) {
             case '<<top of note>>':
               smartPrependPara(Editor, timeLines[0].content, 'text')
               break
-            case '':
+            case '<<bottom of note>>':
               smartAppendPara(Editor, timeLines[0].content, 'text')
               break
             default:

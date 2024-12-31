@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 2024-09-12 by @jgclark
+// Last updated 2024-11-09 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP, timer } from '@helpers/dev'
@@ -64,13 +64,18 @@ const fixedMetaTags = `
  */
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
-  // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
+  // logDebug(`getCallbackCodeString: (generated using getCallbackCodeString), use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
+    console.log(\`${jsFunctionName}: (generated using getCallbackCodeString) "\$\{commandName\}" to send data to NP, and use a func named "\$\{returnPathFuncName\}" to receive data back from NP\`)
     // This is a callback bridge from HTML to the plugin
     const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
-      const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs));
+      // const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", ()=>JSON.stringify(commandArgs));
+          const code = \`${haveNotePlanExecute}\`
+            .replace("%%commandName%%", commandName)
+            .replace("%%pluginID%%", pluginID)
+            .replace("%%commandArgs%%", () => JSON.stringify(commandArgs)); //This is important because it works around problems with $$ in commandArgs
       // console.log(\`${jsFunctionName}: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
       console.log(\`window.${jsFunctionName}: Sending code: "\$\{code\}"\`)
       if (window.webkit) {
@@ -526,9 +531,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
           // }
         }
       }
-      if (NotePlan.environment.platform !== 'macOS') {
-        clo(winOptions, 'showHTMLV2 using winOptions:')
-      }
+      // clo(winOptions, 'showHTMLV2 using winOptions:')
 
       // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
       // Note: could also check window will be visible on screen and if not, move accordingly
@@ -765,8 +768,8 @@ export async function sendBannerMessage(windowId: string, message: string, color
  * add basic **bold** or __bold__ styling
  * add basic *italic* or _italic_ styling
  * In each of these, if the text is within a URL, don't add the ***bolditalic*** or **bold** or *italic* styling
- * @param {string} input 
- * @returns 
+ * @param {string} input
+ * @returns
  */
 export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
@@ -779,9 +782,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const BIMatches = output.match(RE_BOLD_ITALIC_PHRASE)
   if (BIMatches) {
     // clo(BIMatches, 'BIMatches')
-    const filteredMatches = BIMatches.filter(match => {
+    const filteredMatches = BIMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(match)}]`)
@@ -794,9 +797,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const boldMatches = output.match(RE_BOLD_PHRASE)
   if (boldMatches) {
     // clo(boldMatches, 'boldMatches')
-    const filteredMatches = boldMatches.filter(match => {
+    const filteredMatches = boldMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(match)}]`)
@@ -810,9 +813,9 @@ export function convertBoldAndItalicToHTML(input: string): string {
   const italicMatches = output.match(RE_ITALIC_PHRASE)
   if (italicMatches) {
     // clo(italicMatches, 'italicMatches')
-    const filteredMatches = italicMatches.filter(match => {
+    const filteredMatches = italicMatches.filter((match) => {
       const index = input.indexOf(match)
-      return !urls.some(url => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
+      return !urls.some((url) => input.indexOf(url) < index && input.indexOf(url) + url.length > index)
     })
     for (const match of filteredMatches) {
       // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(match)}]`)
@@ -928,11 +931,11 @@ export function convertHighlightsToHTML(input: string): string {
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
 // WARNING: can't be used from React, as this calls a DataStore function
-export function convertTimeBlockToHTML(input: string): string {
+export function convertTimeBlockToHTML(input: string, timeblockTextMustContainString: string = ''): string {
   let output = input
-  if (isTimeBlockLine(input)) {
-    const timeBlockPart = getTimeBlockString(input)
-    logDebug(`found time block '${timeBlockPart}'`)
+  if (isTimeBlockLine(input, timeblockTextMustContainString)) {
+    const timeBlockPart = getTimeBlockString(input, timeblockTextMustContainString)
+    logDebug('convertTimeBlockToHTML', `found time block '${timeBlockPart}'`)
     output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   }
   return output

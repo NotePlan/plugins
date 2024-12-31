@@ -27,29 +27,7 @@ async function delay(time) {
  */
 function onMessageFromPlugin(type, data) {
   console.log(`onMessageFromPlugin: starting with type ${type} and data.itemID ${data.itemID ?? 'n/a'}`)
-  // Note: await not really needed below, but satisfy flow
   switch (type) {
-    // case 'updateDiv':
-    //   updateDivReceived(data)
-    //   break
-    // case 'completeTask':
-    //   await completeTaskInDisplay(data)
-    //   break
-    // case 'cancelTask':
-    //   await cancelTaskInDisplay(data)
-    //   break
-    // case 'cyclePriorityStateUp':
-    //   setPriorityInDisplay(data)
-    //   break
-    // case 'unscheduleItem':
-    //   await unscheduleItem(data)
-    //   break
-    // case 'updateItemContent':
-    //   updateItemContent(data)
-    //   break
-    // case 'updateItemFilename':
-    //   updateItemFilename(data)
-    //   break
     case 'removeItem':
       deleteItemRow(data)
       break

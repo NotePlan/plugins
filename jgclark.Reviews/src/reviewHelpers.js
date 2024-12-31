@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // by Jonathan Clark
-// Last updated 2024-10-07 for v1.0.0.b3, @jgclark
+// Last updated 2024-12-31 for v1.0.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -69,15 +69,20 @@ export type ReviewConfig = {
  * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
-export async function getReviewSettings(): Promise<ReviewConfig> {
+export async function getReviewSettings(externalCall: boolean = false): Promise<ReviewConfig> {
   try {
-    // logDebug('getReviewSettings', `Starting ...`)
+    logDebug('getReviewSettings', `Starting${externalCall ? ' from a different plugin' : ''} ...`)
     // Get settings
     const config: ReviewConfig = await DataStore.loadJSON('../jgclark.Reviews/settings.json')
 
+    // If an external call allow silent return of null if no settings found.
+    // Otherwise complain, as there should be settings.
     if (config == null || Object.keys(config).length === 0) {
-      await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      // $FlowFixMe[incompatible-return]
+      if (!externalCall) {
+        await showMessage(`Cannot find settings for the 'Projects & Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
+        throw new Error(`Can't find settings file '../jgclark.Reviews/settings.json', so stopping.`)
+      }
+      // $FlowFixMe[incompatible-return] as we're returning null if no settings found
       return null
     }
     // clo(config, `Review settings`)
@@ -95,8 +100,7 @@ export async function getReviewSettings(): Promise<ReviewConfig> {
     return config
   } catch (err) {
     logError('getReviewSettings', `${err.name}: ${err.message}`)
-    await showMessage(err.message)
-    // $FlowFixMe[incompatible-return]
+    // $FlowFixMe[incompatible-return] as we're returning null if no settings found
     return null
   }
 }

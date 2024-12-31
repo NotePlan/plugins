@@ -375,8 +375,13 @@ export function getTimeStringFromDate(date: Date): string {
   // return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+export function getTimeStringFromHM(hours: number, minutes: number): string {
+  return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}`
+}
+
 /**
  * Take a date string from calendar note filename, and convert to NP display string. In practice this leaves week, month, quarter, year dates alone, but changes YYYYMMDD to YYYY-MM-DD.
+ * Note: this is the reverse of getFilenameDateStrFromDisplayDateStr().
  * @param {string} dateStrIn from filename
  * @returns {string}
  */
@@ -389,7 +394,8 @@ export function getDisplayDateStrFromFilenameDateStr(dateStrIn: string): string 
 }
 
 /**
- * Take a date string from calendar note filename, and convert to NP display string. In practice this leaves week, month, quarter, year dates alone, but changes YYYYMMDD to YYYY-MM-DD.
+ * Take a displayed date string and convert to the main part of the filename used in calendar notes (i.e. minus extension). In practice this leaves week, month, quarter, year dates alone, but changes YYYY-MM-DD to YYYYMMDD.
+ * Note: this is the reverse of getDisplayDateStrFromFilenameDateStr().
  * @param {string} dateStrIn from filename
  * @returns {string}
  */

@@ -6,15 +6,19 @@
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
+import * as dt from '@helpers/dateTime'
 import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
+  // isScheduled, // Note: name clash. Where used this will be dt.isScheduled
+  isValidCalendarNoteFilename,
   isValidCalendarNoteFilenameWithoutExtension,
   RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   unhyphenateString,
-} from '@helpers/dateTime'
+}
+  from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
@@ -71,7 +75,7 @@ export function printNote(noteIn: ?TNote, alsoShowParagraphs: boolean = false): 
         `- open: ${String(open)}\n- done: ${String(done)}\n- closed: ${String(closed)}\n- scheduled: ${String(scheduled)}`
       )
       if (alsoShowParagraphs) {
-        note.paragraphs.map((p) => console.log(`  - p${p.lineIndex}:\t${p.type}:\t${p.rawContent}`))
+        note.paragraphs.map((p) => console.log(`- ${p.lineIndex}: ${p.type} ${p.rawContent}`))
       }
     }
     // Now show .backlinks
@@ -271,7 +275,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !isScheduled(p.content))))
+    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !dt.isScheduled(p.content))))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []
@@ -355,17 +359,17 @@ export function getReferencedParagraphs(calNote: Note, includeHeadings: boolean 
   backlinkParas.forEach((para) => {
   // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
     if (includeHeadings) {
-      logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
+      // logDebug(`getReferencedParagraphs`, `- adding  "${para.content}" as we want headings`)
     }
     else if (para.content.includes(`>${thisDateStr}`) || para.content.includes(`>today`)) {
-      logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
+      // logDebug(`getReferencedParagraphs`, `- adding "${para.content}" as it includes >${thisDateStr} or >today`)
       wantedParas.push(para)
     } else {
-      logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
+      // logDebug(`getReferencedParagraphs`, `- skipping "${para.content}" as it doesn't include >${thisDateStr}`)
     }
   })
 
-  logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
+  // logDebug(`getReferencedParagraphs`, `"${calNote.title || ''}" has ${wantedParas.length} wantedParas`)
   return wantedParas
 }
 
@@ -406,7 +410,7 @@ export type OpenNoteOptions = Partial<{
  * @author @dwertheimer
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
-  const isCalendarNote = /^[0-9]{4}.*(txt|md)$/.test(filename)
+  const isCalendarNote = isValidCalendarNoteFilename(filename)
   let note = await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
