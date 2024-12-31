@@ -1,9 +1,435 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.0.8] 2024-11-16
+## [2.1.0] 2024-12-31
+A major effort by @jgclark and @dwertheimer over the last 5 months. There are lots of new things, particularly **Perspectives, that allow you to switch very quickly between different complete sets of settings**.
 ### New
-- new "Change Logging levels" command to give iPad/iPhone-only users a way to change these settings. (for @kanera)
+- new settings to control what items/folders/sections are shown and what is ignored in a Perspective.
+- new Perspectives dropdown menu that allow you to switch very quickly between different complete sets of settings
+- this menu also has commands to 'Save As...', 'Delete...', 'Rename...', 'Copy to...' and 'Edit all...' Perspectives
+- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
+- new `setPerspective` x-callback to use from outside NP
+- new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
+- new 'Last Week' section and related 'All → This Week' button
+- new 'Add a new task to future note' button on Today Section, which allows you to pick any date for the future task
+- added support for 'child' items of tasks:
+  - child items are now indented like in the NP Editor
+  - an item with children is now shown with a new 'ellipsis' indicator at the end of the item
+  - when moving/scheduling items, any child items are moved/scheduled as well.
+  - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- child tasks are now ordered following their parents, when sorted by priority
+- now there is a 'Show completed task count?' setting which can be turned off.
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than only using what the Theme defines.
+
+### Changed
+- speeded up data generation significantly in some places (particularly refreshes), and everything else should feel snappier
+- parent items now show a '・・・' indicator, like NP does
+- child items are now indented like in the NP Editor
+- in the item dialog, there's now a note if an item has children
+- Turn off 'Referenced' Calendar sections if they have no items to display.
+- the "Ignore items in calendar sections with these term(s)" are now checked case-insensitively
+- the completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- turned off underlining on the 'take a break' message lines, and added colouring of it from your theme's completed task colour
+- Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+- improved details in title of project dialogs
+- changed order of skip buttons in Interactive Processing dialog
+- new type of dialog to replace the command bar for adding new tasks/checklists, and some other operations
+- the layout has been polished up in lots of places
+- removed setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+- changed callbacks to be showDashboard, showSections and showPerspective. E.g.:
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showDashboard`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home`
+
+### Fixed
+- worked around an API limitation so that you can add tasks/checklists to future calendar notes that don't exist yet.
+- fixed some items not being found when referenced to weekly notes
+- add time to @done(...) when "completing then"
+- fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
+- changed Interactive Processing icon to not imply 'refresh'
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+- improved ordering and descriptions of some of the settings
+- removed warning if Project & Reviews plugin is not installed
+
+<!--
+## [2.1.0.b7] 2024-12-31
+### Fixed
+- should no longer complain if the Project & Reviews plugin is not installed.
+
+## [2.1.0.b6] 2024-12-30
+### Changed
+- applied the 'ignore terms' to Tag/Mention sections, apart from the tag/mention itself (for @dwertheimer)
+### Fixed
+- edge cases with markComplete and markCompleteThen when scheduled to '>today'
+
+## [2.1.0.b5] 2024-12-28
+### Changed
+- now uses the user's 'Editor Font Size' setting to determine the base font size for the Dashboard -- and so can be changed up and down quite easily -- rather than using what the Theme defines.
+- now doesn't do any alphabetical ordering of items in a section (prompted by @stacey.)
+### Fixed
+- fixed edge case when doing operation 'complete then' on a task with a week due date
+- now handles 'scheduling' an item properly. Removed the option about 'displaying the 🕓 symbol'. But instead, I've replaced it with an option to "Use simplified (re)scheduling method?". By default this is off, but if selected then the item simply has its `>date` updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. (This is my much preferred way of operating, and avoids duplicating unfinished tasks in calendar notes.)
+
+## [2.1.0.b4] 2024-12-21
+### New
+- New "Apply to sections under headings in Calendar notes?" setting. When turned on, then the phrases in the previous setting will be used to ignore whole sections in Calendar notes, if that section's heading contains any of those phrases.
+### Changed
+- Turn off 'Referenced' Calendar sections if they have no items to display.
+- Optimised Header layout to work on iPhones, iPad as well as macOS sizes. (On iPhone the Refresh button and info is turned off completely.)
+- Brought display of dropdown menus into line with other similar input fields.
+- Small dialog boxes should now have a more natural width.
+### Fixed
+- The default perspective on first run should now show all sections.
+- Fixed edge case where '>This Week' section could be shown twice.
+### Dev only changes
+- (dbw) Added new rollup ability to prefix most Dashboard CSS imports.
+
+## [2.1.0.b3] 2024-12-18
+### New
+- added Perspective filtering to Projects section as well
+- start of adding three-dots marker on a parent item -- will improve later
+### Changed
+- improved the creation of the default perspectives on first run. Now all sections are turned on by default, so new users can appreciate all the possible Sections.
+- updated descriptions of the Include and Exclude settings. Changed to default to include root folder, unless specifically excluded.
+- moved some settings from the Filter dropdown to the Settings menu. The ones that are left are now more clearly about filtering what is display, not how things are displayed.
+- allow Settings dialog to be wider
+- the 'Submit' button in 'add task' and the 'Edit All Perspectives' dialogs are now labelled 'Add & Close'
+### Fixed
+- child items appear without indentation if their parent isn't showing
+- child items appear with their parents in all calendar sections
+- items that were both referenced and indented are now being included
+- order of tag/mention sections is now the same as in the settings (thx, @ChrisMetcalf)
+- setting "Ignore items in Calendar sections with these term(s)" corrected to read "Ignore items in notes with these term(s)" (thx, @lbednarski)
+- adding to future calendar notes not working if using ".txt" extension (for @grdn)
+- now allows for whitespace before the ! priority markers in a line (as NP does) (thanks, @lbednarski)
+- improve appearance of scrollbars on dialogs in dark mode
+### Still to fix
+- on very first run of v2.1.0b3 it may only display the Today section. On refresh it should display all sections.
+### Dev only changes
+- rescheduling/moving an item now uses REFRESH_ALL_ENABLED_SECTIONS not REFRESH_ALL_SECTIONS
+- Make window width wider before 'Hard Refresh' appears, rather than 'HR'. Turn this button off entirely on iPhone.
+- action 'refresh' -> 'refreshAll'
+- action 'incrementallyRefreshSomeSections' -> 'incrementallyRefreshSomeSections' to better align it against 'refreshSomeSections'
+
+## [2.1.0.b2] 2024-12-09
+### Changes
+- changed callbacks to be showDashboard, showSections and showPerspective. E.g.:
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showDashboard`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showPerspective&arg0=Work`
+  - `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=showSections&arg0=DT,DO,@home`
+### Fixed
+- Fix Quarter section being shown erroneously (thx, @lbednarski)
+
+### Dev changes
+- remove use of combo component and use dropdown instead throughout
+- fix errant css which was causing differences in dev rendering in Chrome
+- add single line colored output on build success - dwertheimer
+- change name of "dropdown" to "dropdown-select" ... - dwertheimer
+
+## [2.1.0.b1] 2024-12-08
+First beta for 2.1.0.  A major effort by @jgclark and @dwertheimer over the last 4 months.
+### New
+- new Perspectives dropdown menu that allow you to switch very quickly between different complete sets of settings.
+- this menu also has commands to 'Save As...', 'Delete...', 'Rename...', 'Copy to...' and 'Edit all...' Perspectives
+- new "/Add new Perspective", "/Delete Perspective" and "/Update current Perspective" commands
+- new `setPerspective` x-callback to use from outside NP
+- new 'Current Time Block' section at the top of the window, that only shows if the current time is within a time block defined in your daily note.  (Note: This honours the 'Text must contain' setting in the main NP Todo settings pane.)
+- new 'Last Week' section and related 'All → This Week' button
+- new 'Add a new task to future note' button on Today Section, which allows you to pick any date for the future task
+- added support for 'child' items of tasks:
+  - child items are now indented like in the NP Editor
+  - an item with children is now shown with a new 'ellipsis' indicator at the end of the item
+  - when moving/scheduling items, any child items are moved/scheduled as well.
+  - the 'All → Today' and 'All → Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- child tasks are now ordered following their parents, when sorted by priority
+- now there is a 'Show completed task count?' setting which can be turned off.
+
+### Changed
+- speeded up data generation significantly in some places (particularly refreshes), and everything else should feel snappier
+- child items are now indented like in the NP Editor
+- in the item dialog, there's now a note if an item has children
+- the "Ignore items in calendar sections with these term(s)" are now checked case-insensitively
+- the completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- turned off underlining on the 'take a break' message lines, and added colouring of it from your theme's completed task colour
+- Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+- improved details in title of project dialogs
+- changed order of skip buttons in Interactive Processing dialog
+- new type of dialog to replace the command bar for adding new tasks/checklists, and some other operations
+- the layout has been polished up in lots of places
+- removed setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+
+### Fixed
+- worked around an API limitation so that you can add tasks/checklists to future calendar notes that don't exist yet.
+- fixed some items not being found when referenced to weekly notes
+- add time to @done(...) when "completing then"
+- fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
+- changed Interactive Processing icon to not imply 'refresh'
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+- improved ordering and descriptions of some of the settings
+
+## [Perspectives.a26 = 2.1.0.a26] @jgc, 2024-12-06
+- (dbw): Improvements to layout and contents of Perspectives Table
+- (dbw + jgc): Improvements to styling of DynamicDialog heading selector
+- (jgc): fixed the DynamicDialog header displaying long titles over 2 lines
+- (jgc): Moved 'Automatic Update frequency' setting to 'Display settings'
+- (jgc): Changed 'calendar add' icon in taskDialog to match what is now on the main window
+- (jgc): Sort the perspectives list alphabetically not order of creation
+- (jgc): Further fixes to PerspectivesTable layout, particularly for the many switches
+- (jgc+dbw): Promote PerspectivesTable out of being an FF, to a  new 'Edit All Perspectives...' menu item.
+- (jgc): Further tweaks to titles and descriptions in settings text.
+- (jgc): Fix to allow adding tasks to future calendar notes that don't exist yet.
+
+## [Perspectives.a25 = 2.1.0.a25] @jgc, 2024-12-05
+- (jgc): New callback `setPerspective&arg0=<name>`; added details to README
+- (jgc): Layout tweaks to suit other themes
+- (dbw): Pulled 'postcss' out of the rollup again
+- (dbw): Added clever computation of DropdownSelect width
+- (jgc): Made default Perspective settings generic ready for beta test
+- (dbw): New Perspectives Table view
+- (jgc): Tweaks to layout of Perspectives Table
+- (jgc): Moved 'displayCount' setting into the next section of settings
+
+## [Perspectives.a24 = 2.1.0.a24] @jgc, 2024-12-01
+- (dbw): Fixed Bug: Perspective > Save as... is not immediately showing the "Rename/Delete" options #dbwDR 
+- (dbw): Fixed Bug: After delete all perspectives, there is still a "rename" etc. in the dropdown
+- (dbw): Fixed CI test failing for me but not for jgclark #dbwDR
+- (dbw): Add a "copy perspective settings" command whereby you can copy the current settings to an already-existing named perspective. Also the back-end function for copyPerspective.
+- (dbw): Dashboard CSS edits don’t fire rollup rollup 
+- (dbw): changed the dropdown menu in the new task popup to use my custom dropdown (changed dataGen to use "dropdown" instead of "combo")
+- (dbw): styled the separator in the perspectives dropdown
+
+## [Perspectives.a23 = 2.1.0.a23] @jgc, 2024-11-29
+- (dbw): fix to add new perspective
+- (dbw): fix to rename perspective
+- (dbw): add confirmation dialog to delete perspective
+- (dbw): More improvements to dev logging for React
+- (dbw): Add setting to hide/show the test pane
+- (dbw): Show when tests are skipped
+- (dbw): Updates to DynamicDialog to allow yes/no dialogs
+- (jgc): Removed the unused 'updateTagMentionsOnTrigger' from settings and README etc.
+- (jgc): Removed earlier 'ignoreTagMentionsWithPhrase' from settings and README etc. (now ignoreItemsWithTerms)
+- (jgc): Changed styling of DynamicDialog to sort the extra flexibility it now has
+- (jgc): finished changing the section addButtons to use DynamicDialog not command bar. Applied to D, W, M, Q.
+- (jgc): fixed Settings dialog scrollbar colours to work in dark mode, not just light mode
+
+## [Perspectives.a22 = 2.1.0.a22] @jgc, 2024-11-26
+- (jgc): Nudge top of settings dialog down slightly, to stop it from sometimes obscuring the current Perspective name.
+- (jgc): Add new 'Moving/Scheduling Items' heading in Settings dialog
+- (dbw): Lots of fixes and improvements to dev logging for React
+- (dbw): Fix switch to clean perspective when modified
+- (dbw): Added 'Rename Perspective...' action to UI
+- (jgc): Added renamePerspective handler action to back end (but race condition)
+- (dbw): Changed cleanDashboardSettings() so perspectives is only global setting
+- (jgc): added focus of DD input box for renamePerspective
+- (jgc): tweaked and simplified DynamicDialog header layout FIXME: but some CSS is appearing from nowhere that I can find, and so DD title is still too narrow.
+- (jgc): started changing the section addButtons to use DynamicDialog not command bar
+- (jgc): fix to {s} appearing in section description
+
+## [Perspectives.a21 = 2.1.0.a21] @jgc, 2024-11-23
+- (jgc): remove the 'JSON control' and tidy up the area in the settings dialog around where it used to be.
+- (jgc): updated README with basic info on Perspectives, ready for limited alpha testing.
+
+## [Perspectives.a20 = 2.1.0.a20] @jgc, 2024-11-22
+- (jgc): fix time block section not being generated -- really an error in NP settings, grr
+- (jgc): taken out the tweaking of the time block line display, to make it easy to edit and complete etc. 
+- (jgc): de-dupe time block section with Today section
+- (jgc): on any type of refresh include the TB section (if enabled) to ensure it gets updated as often as possible to catch start/end of TBs
+- (jgc): split up clickHandlers file -- now 6 of them
+- (dbw): fixed FeatureFlags settings not persisting
+- (jgc): yet more tweaking of section and item layout
+- (jgc): added new 'Last Week' section and related 'move all' button
+- (jgc): fix wrong description for 'Folders to Include' section
+- (dbw): fix to '-' perspective updating
+- (dbw): fix to add perspective
+- (dbw): fix to delete perspective
+- (dbw): fixes to new console log view
+- (dbw): Make sure dash persp is first in displayed list
+- (dbw): fix babel to work for jest and rollup for the app
+- (dbw): improve logging
+- (jgc): change priority detection to ignore ! not at start of content
+
+## [Perspectives.a19 = 2.1.0.a19] @dbw, 2024-11-19
+- MASSIVE MERGE from main into main-perspectives-merge-with-debug branch. (Hopefully) merged your latest changes with the perspectives code which seems to be working fairly reliably.
+- In the process, I built a lot of debug tooling (see the DEV menu for FFlag Debug Panel). The testing code is still a WIP. What I find is that the refreshes that happen every time you make a change to settings go on for a long time and there's no way to know for sure when they are over. So it's hard to know when it's safe to test the "stable" state. But I wanted to provide this to you just to hopefully get us back on the same branch.
+- added React components react-resizable-panels
+- updated react to 18.3.1
+- updated chroma-js to 3.1.2
+
+## [Perspectives.a18 = 2.1.0.a18] @jgc, 2024-11-15
+- (jgc): new layout in section heading for the add buttons. Also colour them the same as the section title. 
+- (jgc): further tweaks to icons, including better optical matching of tasks and checklists
+- (jgc): now Week/Month/Quarter sections now show a compact line so that their respective add buttons will show, even when there are no open task/children items to show.
+- (dbw): Removed activePerspectiveName from dashboardSettings, and moved it to the perspectiveSettings (isActive flag)
+- (dbw): Refactor to move syncing of dashboardSettings to and from the plugin to a single custom hook for better clarity
+- (dbw): Built out some testing infrastructure: DebugPanel etc.
+
+## [Perspectives.a17 = 2.1.0.a17] @jgc, 2024-11-13
+- (jgc): new response type called "REFRESH_ALL_ENABLED_SECTIONS" and using that in place of "REFRESH_ALL_SECTIONS" in
+  - doMoveToNote -- fallback option in case paragraph can't be found
+  - doRescheduleItem
+- (jgc): Removed REFRESH_ALL_SECTIONS at end of doSettingsChanged(), as that also does a setPluginData() call, which I think triggers updates. Needs checking by DBW
+- (jgc): changed Dashboard component "startup only" useEffect to now only generate enabled sections. Updated this to handle new TimeBlock section which is generated and shown before Today section, when enabled.
+- (jgc): fixed background color issue from a16
+- (jgc): applied the stringListOrArrayToArray() to other places it was needed for excludedFolders 
+
+## [Perspectives.a16 = 2.1.0.a16] @jgc, 2024-11-13
+- (jgc): The "Ignore items in calendar sections with these term(s)" are now checked case-insensitively (for @dwertheimer)
+- (jgc): Made the "Nothing left on your list for today: take a break" display line show in the colour of a completed task, and gave the background of the section a subtle hue of the completed task color as well.
+- (jgc): ItemGrid.jsx has a flag you can set to turn on all sections having a subtle background hue taken from their title color.
+- (jgc): new getListOfEnabledSections() dashboardHelpers function.
+ 
+## [Perspectives.a15 = 2.1.0.a15] @jgc, 2024-11-10
+- (jgc): Added new 'Current Time Block' section at the top of the window. Prepared two slightly different layouts for it.
+- (jgc): Lots of refactoring of the timeblocks.js helper functions, added new ones, and made sure they respect NP's 'timeblockTextMustContain' NP preference, which was added after most of our plugin work on time blocks.
+- (jgc): Child tasks are now ordered following their parents, when sorted by priority
+- (jgc): The completed task count is now smarter and quicker at operating, and covers tasks completed in notes not shown in the current Dashboard sections.
+- (jgc): Stopped the 'Refresh' button text from becoming 'Refreshing' briefly. It's always been distracting to me the way it changes width. Instead it now dims the text a bit when its refreshing.  _David, see what you think, please._
+
+## [Perspectives.a14 = 2.1.0.a14] @dbw, 2024-10-24
+- Added setting for display of done counts to Dashboard (displayDoneCounts: default true)
+- Total refactor of interactive processing code to make it more maintainable and fix some bugs
+- Total refactor of Dashboard Settings and PerspectiveSettings components using useReducer for state management and improved visibility
+- Improved PerspectiveSelector dropdown data saving (using useReducer) and made it more robust
+- Added "Add Perspective" and "Save Perspective" buttons to PerspectiveSelector dropdown
+- Added some code back in to make BANNER messages display again at the top of the page when there are errors
+- Added a LOT of logging to ensure the right things are happening, but it's super noisy. Will delete most of it before final release.
+### Todo
+- fix bug in task dialog where priority markers are not being updated in interface
+- (jgclark): fix the CSS selectors that are messing up the rollup build
+
+## [Perspectives.a13] @jgc, 2024-10-11
+- fixed build's circular dependency warnings
+- optimised the 'Refresh' work: it should now only recalculate the visible sections.
+- updated references to newer Dashboard functions
+- when adding a new Perspective, ensure no reuse of an existing name, no * at end, and not -
+- been testing addPerspective() and deletePerspective(). Confirmed they work OK, writing to disk. FIXME: The messages aren't getting through to the front end though.
+
+## [Perspectives.a12] @jgc, 2024-09-20
+- add time to @done(...) when "completing then"
+- fixed some items not being found when referenced to weekly notes
+- child items are now indented like in the NP Editor
+- in the item dialog box, there's now a note if an item has children
+- updated demo data to update data structures for children
+- tidy up vertical spacing in Settings dialog
+- added version number to end of Settings dialog
+- improved details in title of project dialogs
+- got the linkage between settings items partly working again -- FIXME: though its not updating live
+- fixed Interactive Processing bug on close dialog-click
+- change button order of skip buttons in Interactive Processing dialog
+
+## [Perspectives.a11] @jgc, 2024-09-19
+- added `isAChild` logic, a new marker icon to show children, and a new "Show parent/child markers on items?" setting.
+- the 'All -> Today' and 'All -> Tomorrow' buttons now don't try to move child items on their own, but only as part of the block with their parent.
+- complete for 'Overdue -> Today' button as well
+- TODO: update Interactive Processing button to not show child items that have already been moved. (Started but not finished.)
+- fix typos in "Move all to today" dialog 
+- fixed spinner icon not spinning
+- projects that are paused are now not shown in the projects section
+- changed Interactive Processing icon to not imply 'refresh'
+- stop check dialogs on "Move all ..." operations on iOS/iPadOS, as they stopped them working
+- fixed various things related to truncated display of long tasks, particularly those with bare or Markdown-style URLs
+- dbw: brought back the (hidden) plugin settings for ios so that we could tell an iOS or ipad user how to set debug logging by clicking  [Change Dashboard Settings](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=Update%20plugin%20settings) TODO: maybe you could include that in a pinned note for dashboard?
+
+## [Perspectives.a10] @jgc, 2024-08-27
+- fix a regression in dropdown menu
+- add tooltips to buttons in Task and Project dialogs
+
+## [Perspectives.a9] @jgc, 2024-08-26
+- migrated FFlag_Perspectives to a main, visible, setting perspectivesEnabled, defaulting to true.
+- new `controlsOtherKeys` field in TSettingItem, which will change if/how other settings are shown.
+- clicking on 'there are X items hidden' message lines now turns off filtering in all sections (started in a7)
+- more layout improvements in Header, including moving Perspective selector back to the left-hand side.
+- Fixed project progress 'pie charts'  layout issues, and added them in to the project dialog header.
+
+## [Perspectives.a8] @jgc, 2024-08-21
+- Fixed full generation sometimes having Project rather than Priority section
+- Removed double generation of Tag sections in getSomeSectionData()
+- Updated Demo Data to allow fuller testing of Perspectives and other filtering
+- Settings dialog:
+  - made <input> boxes wider
+  - made the (temporary) currently active perspective box read-only. (There is now a 'input-readonly' type.)
+  - improved some other layout. Includes now allowing 'heading' type to have a description ... something I wished EM had added in the main app.
+- Tweaked layout in header area
+- removed 'autoAddTrigger' setting and logic
+- dbw: make "-" an actual perspective that holds the values of your settings when there is "no" perspective
+- dbw: add the "*" thing when you edit a saved perspective
+- stoped the "*" thing from being appended multiple times
+- removed .isActive
+- added .isModified throughout, and updated display logic
+- lots of work on perspectiveHelpers functions to clarify what each needs to do, and removed some old code. But FIXME: most/all of the comms about changes between backend and frontend doesn't seem to be working.
+  - includes new switchToPerspective() function
+
+## [Perspectives.a7] @jgc, 2024-08-14
+- removed some of the circular dependencies
+- updated names of some settings, particularly `ignoreFolders`
+- added updateCurrentPerspectiveDef(), and "/Update current Perspective" command for testing. FIXME: is failing to read dashboardSettings properly.
+- added saveAllPerspectiveDefs() to make one place to save changes (at least on the back end). FIXME: need to get this to affect front end too.
+- turned off underlining on the 'take a break' message lines
+- clicking on 'there are X items hidden' message lines now should turn off filtering. (Incomplete.)
+- fixed missing 'enableInteractiveProcessingTransitions' setting in types.js
+- dbw: RUN THE /DELETE ALL PERSPECTIVES COMMAND BEFORE YOU TRY ANYTHING BECAUSE THERE WERE LEGACY ISSUES
+- dbw: got perspective switching to work reliably
+- dbw: fixed bug where watcher was seeing first set of perspectives and calling back-end again
+- dbw: got JSON editing in settings panel to work/save reliably
+- dbw: fixed bug where saving perspectives JSON in the settings panel was writing the perspectives into the dashboardSettings, creating lots of clutter
+- dbw: changed /add new perspective to copy current window settings (init does not copy all settings from defaults, as this is unnecessary)
+- dbw: created a cleaning function (cleanSettings()) that cleans keys we don't want to save recursively in dashboardSettings. You will want to complete the list of keys which should *not* be saved because we don't want to overwrite *all* the user's settings (e.g. FFlags etc.)
+- dbw: removed pulling of perspectives in the backend. changing a perspective changes all the settings, so the back-end doesn't need to know or do anything different than before
+- dbw: fixed a bug in the partially-implemented include/exclude folders bit that was keeping code from running. This code still needs to be completed
+- dbw: started trying to fix the dialog-window-needs-repositioning-when-calendar-is-open issue but ran out of time and did not get it to work. I'm confident it's 90% right...just some small edit needed to make it work.
+
+## [Perspectives.a6] @jgc, 2024-08-10 WIP for @dbw
+- fixed perspectiveSetting initialisation in WebView (I think) and how to persist it in Dashboard::useEffects (I think)
+- BUT FIXME: changing PerspectiveSelector logs the right newValue, but it then fails to get updated anywhere else
+- dealt with FIXME in dataGeneration about calling `getProjectSectionData`
+- added "/Add new Perspective" to help debug. Simply asks for name/ignoreFolder/includeFolder items for now. FIXME: doesn't persist or show the new perspective, despite it logging ok
+- added "/Delete Perspective" and "/Delete all Perspective Settings" commands -- to help debug (actually added in a5)
+- added subtle hover effect to UI buttons, using the clever new CSS 'hsl' operator
+- changed properly to "Dashboard.css" (capital D) to match the Component name
+
+## [Perspectives.a5] @jgc, 2024-08-09 WIP for @dbw
+- made a separate perspectiveSettings data structure, than now includes all settings, not just the 5 from the proof of concept. @dbw: something is wrong with the initialisation of perspectives.
+- tighten up removal of priority indicators, to only happen at the start of a line's content
+- now won't display buttons in the Section header if there are no items to work on. (However, the 'add' buttons in the calendar sections are still shown.)
+- dbw: fixed new circular issue in perspectives import by moving shared items to new perspectivesShared.js file
+- dbw: fixed incorrect "import '../css/Dashboard.css'" (Dashboard does not have capital D)
+- dbw: removed HTML loading of that CSS file because it is now loaded in React/Rollup
+- dbw: TooltipOnModifier: you were correct that the empty div issue was fixed. Removed the FIXME
+- dbw: Per your question/comment, changed "getSettingsDefaults()" to "getSettingsObjectFromArray()"
+- dbw: Fixed a logDebug that was failing on empty lastFullRefresh
+- @jgclark: Pls look at ThemedComboBox - I left you some FIXME questions
+- @jgclark: Pls look at my FIXME question in dataGeneration/getAllSectionsData()
+- @jgclark: Pls look at initialisePerspectiveSettings() -- I partially fixed it but didn't know how to fix it because I didn't know what it was supposed to do. I really need some direction on the intention so I can suggest how it should work. I think we should go straight to having a perspectives context and this seems to be mixing the two in ways I don't follow. Some line-by-line comments with your intentions would help me.
+
+## [Perspectives.a4] -- all WIP not fully working, @jgc,  2024-08-06
+- separated out PerspectiveSelector
+- _before transition to separate perspectiveSettings data structure_
+
+## [Perspectives.a3] -- all WIP not fully working, @jgc,  2024-08-04
+- new "/Add new Perspective" command (and callback)
+- new "/Delete Perspective" command (and callback)
+- added Perspective selector to Header bar -- but doesn't get saved
+- added JSON setting display/editor to Settings dialog (a temporary measure during development)
+- merged changes from v2.0.5 on main branch, so added Priority Section.
+
+## [Perspectives.a2] 
+- perspective folder filtering working for Calendar + Project sections
+- added a 'congrats' message if there are no Projects left to review
+
+## [Perspectives.a2] 
+- can now save activePerspectiveName
+- nicer-looking PerspectiveDefinitionSettings component -- though it doesn't yet persist changes
+- Projects section now filters using perspective folders
+- updated Settings component's display logic to allow a 'compact' mode where sensible
+
+## [Perspectives.a1] 
+- remove setting "Add dashboard auto-update trigger when dashboard opened?" ('autoAddTrigger')
+- started to add settings to define Perspectives
+-->
+
+<!-- ---------------------------------------------------------------------- -->
 
 ## [2.0.7] 2024-10-23
 ### New
@@ -119,428 +545,6 @@ Note: I intend to remove the "Add dashboard auto-update trigger when dashboard o
 - synced copies dated for today were duplicated
 - "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
 - other bug fixes
-<!--
-## [2.0.0.b17] 2024-07-02
-- dbw: fix to have window darkened under dialog boxes
-- jgc/dbw: fix to main status icon positioning
-- jgc: polishing the button sizing and layout in dialogs
-- jgc: fix to positioning of project dialog now that it's grown
-- jgc: fixed edge case in Thingies theme that rendered buttons with the wrong font
-- jgc: tweaked icon layout slightly (but needs @dbw help to deal with tooltip component)
-- jgc: made UI text singular not plural when needed
-- jgc: updates to demo data before taking screenshots
-
-## [2.0.0.b16] 2024-06-29
-- jgc: fix to moving tasks with no children between dates (oops)
-- jgc: extended @done tasks counts to cover all project notes as well.
-
-## [2.0.0.b15] 2024-06-28
-- jgc: fix to child tasks not getting moved with their parent
-- jgc: basic counts of @done tasks re-introduced, covering just tasks in calendar notes. Note: requires having the NotePlan setting 'Todo > Append Completion Date' setting turned on, as otherwise we can't tell when a task is finished. (As @done(...) dates don't get appended to completed checklists, its not possible to count completed checklists.) To save space, this is not shown on iOS devices.
-- jgc: remove '(React)' from window title before doing documentation + video
-
-## [2.0.0.b14] 2024-06-25
-- jgc: added latest progress text to the Project dialog box, plus a new button to add new progress text
-- jgc: removed separate limit on number of project items to be shown: it will now use the main limit setting (if set)
-- jgc: also hide the "Project" row buttons in the Project Dialog on mobile
-- jgc: improve 'narrow' layout of section info
-- jgc: fix to useSectionSortAndFilter not using maxTasksToShowInSection setting
-- jgc: change to project handling: when writing completed and cancelled project summaries to the yearly note, it now puts them as simple list items, not tasks, to avoid a conflict with a Tidy Plugin command.
-- jgc: fix colour of CalendarPicker and Filter applied icons
-- dbw: Override recent changes to .PCButton which affect the Settings Dialog
-- dbw: fixes to Settings Dialog CSS on iOS
-- dbw: remove the automatic refresh on all filter dropdown settings
-
-## [2.0.0.b13] 2024-06-23
-- dbw: fix the infinite loop when dashboard theme is set (thanks, @georgec)
-
-## [2.0.0.b12] 2024-06-22
-- dbw: hide the "move to" button in the Task Dialog on mobile
-
-## [2.0.0.b11] 2024-06-22
-- dbw: work-around iPad/iPhone limitations in plugin-React communications on mobile
-- dbw: hide CommandBar buttons which won't work on mobile
-- dbw: allow the overdue->today and other -> today buttons
-- dbw: add CSS to move settings buttons away from NP sheet X close button
-- dbw: rewrite timeAgo text & hard refresh text to make it more efficient space-wise for mobile
-
-## [2.0.0.b10] 2024-06-22
-- dbw: add x-callback support
-- jgc: polish look and positioning of buttons
-- jgc: fix to 'new review interval' date handling
-- jgc: avoid 'You are running this on an async thread' warnings.
-- jgc: fix wrong background colour on project completion rings
-- jgc: fix "Dashboard: update plugin settings" command not working
-- jgc: fix clicking project dialog title not opening note
-- jgc: fix to annoying logging problem
-- jgc: fix to setting newTaskSectionHeadingLevel not being used
-- jgc: fix to edge case with Review plugin's getNextNoteToReview()
-- jgc: fix "Dashboard: update plugin settings" command not working (reported by @todd9252 on v1.2)
-- dbw: hide IP button if there is only one item
-- dbw: fix bug in hideDuplicates and overdues
-- dbw: fix priority marker hiding
-- dbw: fix incorrectly labeled modifier tooltips on statusIcon
-
-## [2.0.0.b9] 2024-06-19
-- jgc: added Project Complete, Cancel and Pause buttons to the edit dialog
-- jgc: added 'New Review Interval' button to the edit dialog
-- jgc: added little project completion indicator at the start of a Project line item
-- jgc: added current Project progress line (if available) to the Project line item
-- jgc: updated theming to use NP's sidebar colouring for the 'sidebar' elements of the Dashboard window
-- dbw: add check for Dashboard Theme setting change
-- dbw: remove blue outline on focus
-- dbw: move logLevel to settings (you don't need to set it in NP plugin pane settings)
-
-## [2.0.0.b8] 2024-06-14
-- jgc: improved some section refreshes after adding items, toggling items
-- jgc: add log warnings in Theme generation code if missing ["flagged-1", "flagged-2", "flagged-3", "working-on"] keys (thx @dbw)
-- jgc: fix to changing dates on tasks in project notes (thx @GeorgeC)
-- jgc: fix for 'getRelativeDate' errors in logs
-- jgc: fixed regression on Refreshing spinner
-
-## [2.0.0.b7] 2024-06-13
-- jgc: fix to clicking edit/dialog button for Project items (thx @GeorgeC)
-- jgc: added missing click handler for Project item titles (thx @GeorgeC)
-
-## [2.0.0.b6] (and other dot releases prior...lots of iterative testing required) 
-- Added settings automigration from original Dashboard
-
-## [2.0.0.b2] 2024-06-11
-- jgc: following @aaronpoweruser suggestion that an item with ">today" should have that removed when completing it, to align with how NP reference section works.
-- jgc: fix bug that today items with ">today" would be shown truncated
-- jgc: added tests to more scheduled date handling functions
-- dbw: fix for notes that don't exist
-
-## [2.0.0.b1] 2024-06-11
-- dbw: add first-time settings migration saving
-- dbw: fix bug where StatusIcon tooltips were visible when dialog was open
-
-## [2.0.0.a34] 2024-06-06
-- jgc: added marker after an item to show if it has child/children items
-- dbw: added filter setting (includeScheduledDates) to hide >scheduled dates which were a lot of clutter when you use scheduling mode
-- dbw: added filter setting (hidePriorityMarkers) to hide priority markers (assumes you can see priorities in color)
-- dbw: fixed bug/discrepancy where >> was sometimes priority 5 and sometimes priority 4 (always 4 now)
-- dbw: add first-time settings migration saving
-- dbw: fix bug where StatusIcon tooltips were visible when dialog was open
-- dbw: add ability to open note (e.g. tomorrow or week) by clicking the section header
-
-## [2.0.0.a33] 2024-06-04
-- jgc: (now that NP r1208 is out) changed alt-click to ctrl-click, as that's what @dbw was after originally
-- jgc: moved 5 true/false settings from dashboardSettings to dashboardFilters
-- jgc: fixed move date buttons so +1d, +1w etc. are relative to today, not the date of the note they are currently in
-- dbw: improve modifier keys filtering functions
-- dbw: add kbd modifiers to the open note links so they open in a new window or splitview
-- dbw: added normal tooltips to the filter settings that have a "description" set in the field definition
-- dbw: fixed bug where rollover on file link could still be seen when dialog was up (mouse position bleeding through) -- there is yet another one to solve with the StatusIcon
-- dbw: fixed bug where #tagged items in a regular note that were scheduled for the future would show up. Now they don't
-
-## [2.0.0.a32] 2024-06-02
-- fix reschedule date using dialog
-- removed 'updateOverdueOnTrigger' setting, as I think it is not needed now we have smarter data generation strategies
-- alt-click on an item's status icon now deletes the item entirely (after a check with the user).
-- improved Plugin description
-- dbw: fixed refresh button scroll issue
-- dbw: Changed autorefresh settings to a single field 
-- dbw: Created a trap for computer sleep and refresh intervals piling up
-
-## [2.0.0.a31] @dbw 2024-06-01
-- fix sort on the Today sections so that the one with the buttons is on top
-- remove FFlag on autoRefresh, and add setting for autoRefresh (but turned it off when you are in DEV mode)
-- refine/tighten up refreshTimer
-- call refresh timer [5s] after a dialog button was pressed - just to make sure there are no unrefreshed changes
-- make it possible to call a refresh timer after a CommandButton press (though for the moment this is turned off because many of these buttons could take user input and therefore a long time to happen)
-- therefore created a way to call refresh timer [5s] from the plugin side after the command finishes (see Architecture notes)
-- added this action START_DELAYED_REFRESH_TIMER to all the moveClickHandlers functions (I'm sure there are others that need it that we will figure out over time)
-- removed duplicates of synced lines that may be in different notes so they were sneaking through
-- added new function to dateTime called filenameIsInFuture which functions like your includesScheduledFutureDate but to be used for tasks just sitting in future notes
-- used it to fix the bug where #tag sections were showing tasks in future notes
-- fix IP dialog close bug (IP not stopping)
-
-## [2.0.0.a30] 2024-05-31
-- added 'move' (rather than 'rescheduleItem') functionality back in
-- finished wiring up the date picker in TaskDialog and ProjectDialog to do 'move' or 'rescheduleItem' accordingly
-- stopped IP button from being shown for Projects section
-- updated display of referenced section names: now start with '>'
-- updated settings CSS to use values from the theme, and to make it look more like the main NP preferences dialog
-- to help browser debugging, updated getInitialDataForReactWindow() to change the way initial load works, and document what's going on. (Also rename FFlag_ForceInitialLoad to FFlag_ForceInitialLoadForBrowserDebugging.)
-- changed section.ID from number to string throughout (to reduce flow errors)
-- dbw: fix mixHexColors per jgclark recommendation
-- dbw: add >> to priority calculation in sorting.js so it's priority 5
-
-## [2.0.0.a29] @dbw 2024-05-30
-- Fixed bug in doRescheduleItem (for +1d etc) that was causing it to not update react JSON (doRescheduleItem was not passing updatedParagraph)
-- Realized this would cause another bug that Reviews would not be passing updatedParagraph either. So fixed this. Reviews are now removed when you click "Review Complete"
-- Added a Projects section refresh after handling a review - do you will always have 6 (unless you don't have)
-- Put in note re: setSpecificDate -- jgclark needs to update the doSetSpecificDate() function to do the right thing with reviews
-- Fixed some bugs with duplicates with multiple sections with the same sectionCode
-
-## [2.0.0.a28] @jgc, @dbw 2024-05-28
-- now forces a window reload on theme change
-- fix some of the header layout (Components and CSS) so that buttons can be added removed with relative impunity
-- fixed positioning of dialogs which could get hidden under the floating header
-- 'move to note' dialog button now works again (though handler needs extending slightly)
-- updated demoData to suit latest data types
-- removed 3 superseded code files
-- removed 2 settings from getSettings that are now handled elsewhere
-- removed about 15 plugin commands from plugin.json, as we have moved the command triggering to internal calls
-- dbw: Added hard refresh button. Not doing any styling for now, so it pushes over the filters
-- dbw: fix bugs where arrow dates were not showing up in dashboard. there were two bugs, and extended a helper (includesScheduledFutureDate) to look forward from a date passed to it (not always today).
-- dbw: fix refresh after move to today (turned it into an incremental refresh of all sections, which seems to work)
-- dbw: interactiveProcessing: add indicator of where you are in the list
-- dbw: remove rescheduleOrMove which was similarly named but confusing/not used
-- dbw: fixed feature flags not saving
-- dbw: fixed settings panel values sometimes not saving (still some clean-up to do)
-- dbw: improved sharedSettings initialization (made it happen earlier)
-- dbw: fixed errant reloads at launch
-
-## [2.0.0.a27] 2024-05-27
-- restored the 'show referenced data in separate section' again when generating data
-- window dimensions are saved again between refreshes
-- note to DBW: I have moved some of the 'force' logic to getAllSectionsData, which is I think where it needs to be as that's used on initialLoad. I have left it in getSomeSectionsData as well, though I think it could be removed.
-- dbw: added windowReload clickHandler to force full window reload when the refresh button is clicked and you have loggingLevel set to "DEV"
-- dbw: moved settings to dialog to mirror NP per @jgclark suggestion
-- dbw: remove shared/reactSettings logging on init
-- dbw: turn on checklist filtering in ItemGrid to make filtering immediate while refresh happens in background
-- dbw: fix bug in demo dashboard refresh forgetting demoMode
-- dbw: fix a couple of type paste errors in demo data
-- dbw: added fflag limit overdues to last 2w for @jgclark
-
-## [2.0.0.a26] 2024-05-24
-- fixed only having a partial refresh following bulk moves: cause was the reverse of the usual stale-data problem, when reading from Editor
-- fixing dark mode CSS for new Settings dropdown
-- set more natural widths for the various dropdown menus
-- WIP moved "Show referenced items in separate section?" from setting to toggles dropdown -- but it's not yet making an effect. Note: I don't understand the settings system completely now, so don't know what's wrong.
-
-- dbw: Started Architecture/How Stuff Works Notes
-- dbw: fixed z-index bugs which caused floating issues
-- dbw: WIP interactive processing loop for all sections (fflag)
-
-## [2.0.0.a25] @dwertheimer
-- added Feature Flags
-- initial Settings dropdown for testing
-- initial Autorefresh for testing
-- Moved some hooks around
-- Created resize watcher custom hook
-- Fixed bug: tags not showing up after new settings added
-- Added multiple tags, separated by commas
-- Add force full initial load feature flag so browser debugging can have all sections
-- bug fix: dialog title bar click
-- clean up ItemGrid -> custom hook useInteractiveProcessing
-- overdue processing: WIP
-
-## [2.0.0.a24] @jgc
-- when a trigger notices a change to one of the relevant calendar notes (typically the 'Today' note), it only updates the relevant section
-- Fix only partial window update after 'move' buttons clicked. **Note to @DBW**: the issue was processActionOnReturn() caring too much about data.item.para.filename. It now doesn't. Is that likely to be a problem?
-- fixed scheduleAllYesterdayOpenToToday() and scheduleAllTodayOpenToTomorrow() not moving referenced tasks
-- Get scheduleAllOverdue... working with TParas again. **@DBW: please test**
-- moved constant definitions from types.js to new constants.js file
-- dbw: Fix switches not working
-- dbw: Set interval to fire immediately when lastFullRefresh changes
-- dbw: change/fix positioning dialogs to use @jgclark's algorithm
-- dbw: Insert <IdleTimer> for testing
-
-
-## [2.0.0.a23] @dbw
-- fixed bug in overdues not respecting ignoreFolders on refresh
-- fixed top-alignment spacing for calendar picker
-- changed project dialog to have one month calendar picker so that it fits in the smaller dialog
-- fixed the #home not showing up if it was off on load
-- added incrementallyRefreshSections to load all sections (other than Today) on first load
-- Fix date handling to match @jgclark recent changes
-- Add CHANGE_THEME code to change the styles when your Editor theme changes. But for HTML reasons, it doesn't show. Hoping @jgclark can figure out why.
-- Removed sharedSettings writing on initial load
-- Fix header disappeared
-- Fix timeAgo - @jgclark I had to turn the frequency of the check back up. It's no big deal at 1s check.
-
-## [2.0.0.a22] @jgc
-- completed layout in Project dialog (apart from CalendarPicker)
-- tweaked display in Task dialog (apart from CalendarPicker)
-- fixed time ago in Header
-
-## [2.0.0.a21] @dbw
-- got click actions to work from the new StatusIcon on the ItemDialog
-- doCancelTask & doCancelChecklist were not deleting the line properly because they were not passing {updatedParagraph} so it could be deleted. Fixed this.
-- Fixed ❗️ERROR❗️ processActionOnReturn :: undefined
-- Got Projects dialog to display (fields are not set and it's not centred in the window...you may need to scroll up/down to find it)
-
-## [2.0.0.a20] @jgc
-- Added circle/square back into task dialog box display -- but actions from it not checked
-- Updated project dialog box to match the task dialog -- but have failed to get it to run
-
-## [2.0.0.a19] @dbw
-- Fix tooltips that said add new task for checklists
-- Remove several JS files
-- Remove bugs caused by sending "updatedPara" rather than "updatedParagraph"
-- Verify and cross off a lot of todos
-
-## [2.0.0.a18] @jgc/@dbw
-- got most of "All Today -> Tomorrow" operation working
-- got most of "All Yesterday -> Today" operation working
-- got most of "All Overdue -> Today" operation working
-- added refresh spinners for the 3 new "move" buttons
-- fixed background colour of dropdown menu (wrong in dark mode)
-- fixed Overdue section description
-- make the ignoreChecklist setting work properly
-- all the UI switches are saved and can potentially refresh the interface.
-
-## [2.0.0.a17] @jgc
-- added 'onEditorWillSave' trigger
-- stopped dashboard refresh getting focus when started by a trigger
-- hooked up add task and add checklist buttons (but race condition persists, despite updateCache)
- 
-## [2.0.0.a16] @dwertheimer
-- Changed StatusIcon to output a <span> rather than a <div> per your note in Discord
-- Implemented the sectionItem generation function and refactored the dupe code getSectionItemObject()
-- You wrote: "please turn off "Root: type: SET_DATA payload" logging", what's weird is that it's already off. I removed virtually all logging in Root and re-released np.Shared. I would suggest you delete your np.Shared folder and re-download it. You should be seeing np.Shared 0.5.10 
-- You wrote "dataGeneration::copyUpdatedSectionItemData() appears to be doing the wrong thing for toggleType...". I made a bunch of changes to make the updating on the back end more resilient and the rendering on the front-end better also
-- UPDATE_LINE_IN_JSON: Now all the paragraph details, including priority and rawContent etc are updated after a change to the para. Have a look at updateReactWindowFromLineChange() -- and hopefully fix the Flow issue there
-- Added a useEffect to the StatusIcon component to watch for external changes to the icon's status -- even when the JSON was updated underneath, the fa-icon class wasn't changing. Now it is.
-- Added visual feedback for REFRESH_ALL_CALENDAR_SECTIONS, refreshing sections sequentially
-- You wrote: figure out why CommandButton isn't working as expected - I got it to send the messages. You just need to do the back-end clickHandlers. The data payload looks like this: `{actionType: addTask|addChecklist etc., toFilename:xxxxx}`. I used actionFunctionParam because that's what it was called before but you may instead want to use one of the existing MessageObject fields, e.g. "toFilename" 
-
-## [2.0.0.a15] @jgclark
-- added logic to task dialog for conditional display of 'cancel' and 'toggle type' buttons
-- more clean up of types and previous HTML data passing mechanism
-- partially fixed toggleType button (though see below)
-- turned off logging in Section component
-- reverted recent dialog layout and CSS; this involved turning off the new StatusIcon in the dialog
-- fixed CSS for CalendarPicker to work in dark mode, and look a bit nicer. More to do.
-- restored size of icon circle and square from before ~a6
-- fixed 'add' buttons getting very wide on <500px
-- failed to fix why CommandButton aren't doing anything
-
-**TODO(dbw):**
-- please turn off "Root: type: SET_DATA payload" logging
-- figure out why dataGeneration::copyUpdatedSectionItemData() appears to be doing the wrong thing for toggleType when called by pluginToHTMLBridge::updateReactWindowFromLineChange().  Logging shows that "new JSON item" is the same as "old JSON item"
-- figure out why CommandButton isn't working as expected. I've had a go but failed. See more detailed comments and FIXME in the code.
-
-## [2.0.0.a14] @dbw
-- abstracted the status icon into its own component StatusIcon so it can be re-used
-- fixed iphone settings not working
-- fixed some css tweaks (Dialog still needs some styling refinements)
-- fixed dropdown menu flashing open. needed to display:none and then display:block when it is open
-- fixed some layout issues on the dialog menu
-- removed w3.css because it was conflicting
-- continued to clean up types and remove flow errors
-- we need to test/fix/implement each of the clickActions
-
-## [2.0.0.a13] @dbw
-- Fixed the open note by title that broke in the refactor of actionType
-- Fixed the broken note links to items that were not daily notes (e.g. weekly note links did not work) - was using a helper function getISODateStringFromYYYYMMDD(), but I changed it to use note.title
-- Added a click on the title of the task dialog to open the underlying note
-- Fix some types issues that were causing issues left over from the refactor
-- Added content refreshing from server when dialog box is open (e.g. priority flip, content update, etc.) -- this turned out to be quite challenging :)
-- Added some animation to the dialog opening/closing
-
-## [2.0.0.a12] @dbw
-- fixed some small things, but one big thing. conditional loading of data on load is back the way you wanted it. If you have the setting off, it doesn't pull the data on the initial load. if you then turn it on with a show* setting, it calls refreshSomeSections() and adds that section to the existing JSON. 
-
-## [2.0.0.a11] @dbw
-- fixed the React side of the bug that was keeping data from displaying
-- fixed the bug on the data generation side that was keeping a lot of the data from generating
-- added sharedData to plugin.json and to context, added reading/initializing/setting functions
-- refactored all the reactSettings calls to be sharedData calls instead
-- the specific settings should be added to TDashboardSettings in types
-- ran around in circles trying to figure out why it was refreshing in an endless loop. then figured out that there was some old refresh dashboard code on a settings change, so every time i flipped one switch, it looped forever reloading reloading. i commented out the onSettingsUpdated refresh code.
-- As of now, reactSettings is used only for things that are react-only (like dialogData which is used to open the dialog with certain info)
-- sharedData holds all the values that you created/saved
-- Both are stringified and saved to DataStore.settings in fields "sharedSettings" and "reactSettings". This way even reactSettings can persist (though currently it doesn't matter)
-
-  "reactSettings" : "{\"lastChange\":\"_Saving\",\"dialogData\":{\"isOpen\":false,\"isTask\":true,\"details\":{}}}",
-
-  "sharedSettings" : "{\"lastChange\":\"ignoreChecklistItems change\",\"ignoreChecklistItems\":true,\"showYesterdaySection\":true,\"showWeekSection\":false,\"showTagSection\":false,\"filterPriorityItems\":false,\"hideDuplicates\":false,\"showTomorrowSection\":false,\"showMonthSection\":true,\"showQuarterSection\":false,\"showOverdueSection\":true,\"showProjectSection\":false}",
-
-
-## [2.0.0.a10] @jgc
-- added shared::getCombinedSettings() function. **HELP: how to get sharedSettings into appContext, so it can be picked up in Section?**
-- added all sections (except TD and COUNT) to the Dropdown menu. Note: These are now called e.g. showTodaySection not earlier e.g. show_today -- this is to align with existing naming in our setting.json files.
-- fixed regression on spacing around icons in dialogs
-- changed `item.sectionType` to `item.sectionCode` which is slightly more accurate
-
-## [2.0.0.a9] @dbw
-- NOTE: ADDED CALENDAR PICKER AND A ROLLUP CSS PLUGIN SO YOU WILL NEED TO PULL, `npm i` and RESTART THE BUILD/ROLLUP SCRIPTS
-- Fixed the header CSS so it looks right again
-- Added close X at top right instead of close button - can probably use some jgclark styling
-- added cog and dropdown menu to hide UI switches
-- implemented "hide duplicates" switch which keeps items under one heading (TAG first, then today, then others...)
-- created show/hide button for each section in the sections object
-- added reactSettings setting in plugin.json to keep track of your last UI settings. eventually will need to combine with plugin settings depending on what jgclark wants to do
-- added calendar picker to the dialog box and implemented back end to reschedule a task to that date. Though leaving jgclark a note about doRescheduleItem()
-- fixed flow errors for `onClick` in AddButtons 
-- fixed the lastUpdated in Root (should not have been changed, as lastFullRefresh is only used in this plugin and Root is generic)
-
-
-## [2.0.0-a8] @jgc + @dw
-- Major update to data types, including introduction of TItemType, TProjectForDashboard, TControlStrings, TActionOnReturn, TActionType, and their introduction in almost all files
-- Major refactoring of bridgeClickDashboardItem contents into separate do... functions in clickHandlers.js
-- added ability to refresh specified sections (`getSomeSectionsData`) not just all of them (`getAllSectionsData`)
-- JSON data items can now be deleted as well as updated
-- fix to icon horizontal positioning in dialogs
-- fix to some button icon positioning in dialogs
-- in tasks dialog calendar notes' titles are now hyphenated
-- fixed a bunch of other flow errors
-
-## [2.0.0-a7] @dw
-- Moved the first few clickHandlers from the massive pluginToHTMLBridge to a clickHandlers file. 
-- Started to work on a standardized return object from the handlers so there is not a ton of repeated code in each handler (e.g. update the JSON, refresh, etc.). It's a WIP
-- only doCompleteTask and doContentUpdate are using the new concept. I'm on the fence about it. Look forward to discussing.
-- Added line at end of massive switch statement in router:
-    if (result) await processActionOnReturn(result, data) // process all actions based on result of handler
-
-
-## [2.0.0-a5] @dw
-- Dialog: Got CompleteThen to work
-- Dialog: Got Unschedule to work
-- Dialog: Got Cancel to work
-- Dialog: Wrote JS to position the dialog perfectly relative to click
-- Dashboard css: bring header z-index up to float above all elements
-- Major React Refactor: Break down ItemRow to be much more modular so that Projects and Tasks are not mixed together. 
-- TaskItem is now much more readable and understandable and does not have the multiple if's and multiple return statements.
-- NOTE: to that end, I try to keep my React Components to a single return statement (do any if's above in the code) so if you want to see what is rendering in a component, you jump to the bottom of the file and it's always right there
-- New React Components: Task Item, Review Item, Tasks Filtered, NoTasks
-- Created a generalized shared/singleton auto refresh timer that allows for refresh to be called for by any component with a debounce so that only the last request counts down and you don't get 5 refreshes if you quickly click 5 tasks.
-- Cleaned up lots of Flow errors (still some more to go)
-
-## [2.0.0-a4] @dw
-- Refresh button now works, refreshing all content via JSON passing only :)
-- Task Dialog: Updating text and clicking "update" refreshes JSON
-- Single line update scaffolding is in place, but only text updates trigger it so far
-- Note: single-line updates do not reset the "last updated" counter, because it feels to me like that should only reset when all the content is pulled anew. Let me know if you feel differently
-- I added a 5s delayed auto refresh hack to try to get around the updateCache bug. After clicking any button on the dialog, the JSON data does a full refresh 5s later no matter what. We can get rid of this when the single-line refreshes on the plugin/server side are all implemented.
-- I added a "refreshing" message when this happens so you know what's going on.
-
-## [2.0.0-a3] @dw
-- reactSettings is working. See Header component for how to import/read/set it. Still refreshing more often than I would like. Something we will address as an optimization down the road...The user won't see it. The logs are just noisy. Speaking of which, would be good if you could turn off some of the debug logging in the loop
-- Dialogs have now been split and modularized. I have worked on the Tasks dialog as an example for you. Have not touched the Projects one other than splitting it out
-- I have the notes opening when clicking on a task, and the command buttons from the dialogs working
-- Dialog commands that have been tested/work: today, +1d, +1b, this week, +1w, +2w, this month, this qtr, move-to, priority up, priority down, toggle type, 
-- Dialog commands that do not work and need your help: Cancel, Complete Then, Unschedule. 
-[editing text -- this is a big one that i will figure out]
-
-## [2.0.0-a3] @SirTristam 2024-04-30
-- Correct date handling when rescheduling or moving tasks.
-- Fix error using the 'All Today -> Tomorrow' button.
-
-## [2.0.0-a2] @jgclark 2024-04-19
-- ShowTimeAgo:
-    - moved showTimeAgo from a free-standing JS to being part of the Header react component
-    - moved file from requiredFiles to react/support)
-    - removed the body onLoad that loads it -- now loads when the Header loads
-    - removed it from preBodyScript
-- Actions not working: You were correct. Had to find the one thing. The command we need to use to talk to the plugin from React is sendActionToPlugin(), but to have access to that command/function, we need to pull it out of the React context. So each component that needs to talk to the plugin should:
-    a) import { useAppContext } from './AppContext.jsx'
-    and then inside the component:
-    b)  const { sendActionToPlugin } = useAppContext()
-    c) then in any click handler you can call it like:
-        `onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction)}`
-    d) the catcher/router on the other side is in reactMain.js, onMessageFromHTMLView() where there is a 'case' statement for each command fires off a command. Since you already have a function for that, bridgeClickDashboardItem(), I just put a default routing in onMessageFromHTMLView() to send everything to your function
-- The "Open this note in Editor" clicks now work, so you can follow the thread: ItemNoteLink > sendActionToPlugin >  onMessageFromHTMLView > 
-
-- NOTE: there is a circular dependency which needs to be sorted out into a 3rd file perhaps. Did not have time to look at this. must sleep.
-
-## [2.0.0-a1] @jgclark 2024-04-07
-- Brought across demoDashboard.js to experiment with forming JSON to sent to React
--->
 
 ## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today

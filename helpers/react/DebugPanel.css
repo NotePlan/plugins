@@ -1,0 +1,88 @@
+.test-result .Logs {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+}
+
+.debug-panel {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+}
+
+.pane {
+  overflow: auto;
+}
+
+.resizer {
+  width: 5px;
+  cursor: col-resize;
+  background-color: #ccc;
+}
+
+.left-pane {
+  background-color: #f9f9f9;
+}
+
+.middle-pane {
+  background-color: #e9f7ef;
+}
+
+.right-pane {
+  background-color: #fce4ec;
+}
+
+.resize-handle {
+  background-color: #eee;
+  cursor: col-resize;
+  width: 5px;
+}
+
+/* Log colors - based on first word of log message */
+
+.Starting {
+  background-color: paleorange;
+}
+
+.Ending {
+  background-color: paleorange;
+}
+
+h3, h4 {
+  background-color: unset;
+}
+
+.consistent-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  height: 50px; 
+  margin: 0;
+  margin-bottom: 10px;
+  padding: 10px; 
+  border-bottom: 1px solid #3c2626; 
+  font-weight: 600;
+}
+
+.inner-panel-padding {
+  padding: 10px;
+}
+
+.full-height-pane {
+  height: 100%;
+}
+
+/* Resizer */
+.panel-resize-handle {
+  background-color: #ccc;
+  /* Example color */
+  width: 5px;
+  /* Adjust width as needed */
+  cursor: col-resize;
+  /* Change cursor to indicate resizing */
+  transition: background-color 0.2s;
+}
+
+.panel-resize-handle:hover {
+  background-color: #aaa;
+  /* Darker color on hover */
+}

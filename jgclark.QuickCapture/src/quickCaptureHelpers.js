@@ -2,18 +2,16 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 2024-10-04 for v0.16.0+ by @jgclark
+// last update 2024-12-06 for v0.16.0+ by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { isValidCalendarNoteFilenameWithoutExtension } from '@helpers/dateTime'
+import { getFilenameDateStrFromDisplayDateStr, isValidCalendarNoteFilenameWithoutExtension, isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
-import { clo, logInfo, logDebug, logError, logWarn, timer } from '@helpers/dev'
+import { clo, logInfo, logDebug, logError, logTimer, logWarn } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
-import {
-  displayTitleWithRelDate,
-  showMessage,
-} from '@helpers/userInput'
+import { openNoteByFilename } from '@helpers/NPnote'
+import { displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
 // helpers
@@ -64,7 +62,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
       }
     } else {
       // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
-      config.shouldAppend = (config.addInboxPosition === 'append')
+      config.shouldAppend = config.addInboxPosition === 'append'
       // clo(config, `QuickCapture Settings:`)
       return config
     }
@@ -77,6 +75,7 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
 /**
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
  * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
+ * If a desired Calendar note doesn't already exist this now attempts to create it first.
  * Note: Send param 'allNotesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
  * Note: There's deliberately no try/catch so that failure can stop processing.
  * TODO(Later): Hopefully @EM will allow future calendar notes to be created, and then some of this handling won't be needed.
@@ -88,17 +87,12 @@ export async function getQuickCaptureSettings(useDefaultsIfNecessary: boolean = 
  * @param {Array<TNote>?} allNotesIn
  * @returns {TNote} note
  */
-export async function getNoteFromParamOrUser(
-  purpose: string,
-  noteTitleArg?: string = '',
-  justCalendarNotes: boolean = false,
-  allNotesIn?: Array<TNote>
-): Promise<TNote | null> {
+export async function getNoteFromParamOrUser(purpose: string, noteTitleArg?: string = '', justCalendarNotes: boolean = false, allNotesIn?: Array<TNote>): Promise<TNote | null> {
   // Note: deliberately no try/catch so that failure can stop processing
   const startTime = new Date()
   let note: TNote | null
   let noteTitleArgIsCalendarNote: boolean = false
-    // First try getting note from arg
+  // First try getting note from arg
   if (noteTitleArg != null && noteTitleArg !== '') {
     // Is this a note title from arg?
     // First check if its a special 'relative date'
@@ -110,37 +104,47 @@ export async function getNoteFromParamOrUser(
         break
       }
     }
-
-    // Now check to see if it is of the *form* of a Calendar note string
-    if (isValidCalendarNoteFilenameWithoutExtension(noteTitleArg)) {
-      noteTitleArgIsCalendarNote = true
-    }
   }
-  logDebug('getNoteFromParamOrUser', `- After startup noteTitleArgIsCalendarNote = ${String(noteTitleArgIsCalendarNote)}`)
 
-  // If not, form list of notes to check against / offer
-  if (!note) {
-    let allNotesToUse: Array<TNote> = []
-    if (allNotesIn) {
-      allNotesToUse = allNotesIn
-      logDebug('getNoteFromParamOrUser', `- Used 4th param which has ${allNotesIn.length} entries (taken ${timer(startTime)} so far)`)
-    }
-    else {
-      allNotesToUse = justCalendarNotes ? calendarNotesSortedByChanged() : allNotesSortedByChanged()
-      logDebug('getNoteFromParamOrUser', `- Got large note array of all ${justCalendarNotes ? 'calendar' : ''} notes (taken ${timer(startTime)} so far)`)
-    }
+  if (note) {
+    logDebug('getNoteFromParamOrUser', `- Found note from noteTitleArg '${noteTitleArg}'`)
+  } else {
+    logDebug('getNoteFromParamOrUser', `- Couldn't find note with title '${noteTitleArg}'.`)
+    // First check to see if it is of the *form* of a Calendar note string
+    if (isValidCalendarNoteTitleStr(noteTitleArg)) {
+      noteTitleArgIsCalendarNote = true
+      logDebug('getNoteFromParamOrUser', `- Note is of the form of a Calendar note string. Will attempt to create it.`)
+      const wantedFilename = `${getFilenameDateStrFromDisplayDateStr(noteTitleArg)}.${DataStore.defaultFileExtension}`
+      // $FlowIgnore[incompatible-type] straight away test for null return
+      note = await openNoteByFilename(wantedFilename, {})
 
-    // Preferably use 4th parameter, but if not calculate the list
-    if (!note && allNotesToUse) {
-      // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
-      const noteTitleToMatch = noteTitleArg
-      logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
-      // Change YYYY-MM-DD to YYYYMMDD format if needed.
-      const wantedNotes = allNotesToUse.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
-      // logDebug('getNoteFromParamOrUser', `- matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
-      note = wantedNotes != null ? wantedNotes[0] : null
-      if (note != null) {
-        if (wantedNotes.length > 1) {
+      if (note) {
+        logDebug('getNoteFromParamOrUser', `- Made new note with filename ${note.filename}`)
+      } else {
+        logWarn('getNoteFromParamOrUser', `Couldn't find Calendar note with title '${noteTitleArg}'. Will suggest a work around to user.`)
+        throw Error(
+          `I can't find Calendar note '${noteTitleArg}', and unfortunately I can't create it for you.\nPlease create it by navigating to it, and adding any content, and then re-run this command.`,
+        )
+      }
+    } else {
+      // If not, form list of notes to check against / offer
+      let allNotesToUse: Array<TNote> = []
+      if (allNotesIn) {
+        allNotesToUse = allNotesIn
+        logTimer('getNoteFromParamOrUser', startTime, `- Used 4th param which has ${allNotesIn.length} entries`)
+      } else {
+        allNotesToUse = justCalendarNotes ? calendarNotesSortedByChanged() : allNotesSortedByChanged()
+        logTimer('getNoteFromParamOrUser', startTime, `- Got large note array of all ${justCalendarNotes ? 'calendar' : ''} notes`)
+      }
+
+      // Preferably use 4th parameter, but if not calculate the list
+      if (!note && allNotesToUse) {
+        // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
+        const noteTitleToMatch = noteTitleArg
+        logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
+        // Change YYYY-MM-DD to YYYYMMDD format if needed.
+        const wantedNotes = allNotesToUse.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
+        if (wantedNotes.length > 1)
           logInfo('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
         }
       }
@@ -170,8 +174,8 @@ export async function getNoteFromParamOrUser(
   // Double-check this is a valid note
   if (note == null) {
     throw new Error("Couldn't get note for a reason I can't understand.")
-  } else {
-    logDebug('getNoteFromParamOrUser', `-> note '${displayTitleWithRelDate(note)}' (after ${timer(startTime)})`)
   }
+
+  logTimer('getNoteFromParamOrUser', startTime, `-> note '${displayTitleWithRelDate(note)}'`)
   return note
 }

@@ -1,7 +1,8 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 2024-07-17 for v2.0.3 by @jgclark */
+/* Last updated 2024-09-20 for v2.1.0.a12 by @jgclark */
 
-:root {	font-size: 16px; /* this works */
+:root {	
+	/* font-size: 16px; this works */
 	/* For MESSAGE_BANNER: Override w3.css which seems to take precedence for reasons unknown */
 	.w3-panel {
 		margin-top: 0px;
@@ -13,19 +14,15 @@
 	}
 }
 
-html,
-body {
-	font-size: 16px;
+html {
+	--itemIndentWidth: 1.5rem;
+	--bg-error-color: color-mix(in oklch, var(--bg-main-color), red 20%); /* TEST: for subtle colouring */
+	--bg-ok-color: color-mix(in oklch, var(--bg-main-color), green 20%); /* TEST: for subtle colouring */
 }
 
 body {
 	margin: 0px;
 	width: 90vw;
-}
-
-/* TODO: Trying this as a way to unset the colour of icons */
-i {
-	color: unset;
 }
 
 /* 
@@ -35,14 +32,12 @@ dialog::backdrop {
   background: rgba(0,0,0,0.4);
 }
 
-/* unused */
-.settings {
-	/* Assign the area */
+/* unused: TEST removal */
+/* .settings {
 	grid-area: settings;
-	/* Align to the right edge */
 	justify-self: end;
 	margin-right: 20px;
-}
+} */
 
 /* Large rows on page */
 .sections {
@@ -53,26 +48,24 @@ dialog::backdrop {
 
 /* Specific alignment fixes for icons inside buttons or links */
 /* Inside a layer to make them lower priority than other  */
+/* TODO: I don't think this is needed anymore */
 @layer A {
 	.fa-regular,
 	.fa-solid {
 		/* Centers icon within its container, vertically and horizontally */
 		align-self: center;
 		margin: auto;
-		color: var(--tint-color);
+		/* color: var(--tint-color); */
 	}
 }
 
+/* The main grid for a section: sectionInfo then sectionGrid. */
 .section {
 	display: grid;
-	grid-template-columns: [info] minmax(6rem, 11rem) [items] auto;
+	grid-template-columns: [info] /* 12rem */ 13.5rem [items] auto;
 	grid-template-rows: min-content;
 	/* grid-auto-flow: column; */
-
 	/* a little extra gap between first 2 cols */
-	grid-column-gap: 4px;
-	column-rule: 1px dotted var(--tint-color);
-
 	/* a little spacing at top and bottom of section */
 	/* padding: 2px 2px; */
 	/* turn on top border (from theme CSS) */
@@ -81,13 +74,34 @@ dialog::backdrop {
 
 .sectionInfo {
 	display: block;
-	padding-block-start: 0.3rem;
-	padding-block-end: 0.2rem;
-	padding-inline-start: 0.5rem;
+	/* these padding values have been tweaked to be optically correct, at least for JGC's fonts */
+	padding-block-start: 4px;
+	padding-block-end: 4px;
+	padding-inline-start: 0.6rem;
 	padding-inline-end: 0.5rem;
 	color: var(--fg-sidebar-color);
 	background-color: var(--bg-sidebar-color);
 	border-right: 1px solid var(--divider-color);
+}
+
+/* Inner grid for details of a section -- allow up to 3 columns if wide enough */
+.sectionItemsGrid {
+	font-size: 1.0rem;
+	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+	column-count: 3;
+	column-width: 24rem; /* 25rem; */
+	column-rule: 1px solid var(--divider-color);
+	column-fill: auto;
+	padding-inline-start: 0.5rem;
+	padding-block-start: 0.3rem;
+	padding-block-end: 0.1rem;
+}
+
+/* first part of sectionInfo. Grid to contain sectionIcon, sectionName, .addNewActionButtons */
+.sectionInfoFirstLine {
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 4px;
 }
 
 .sectionIcon {
@@ -103,66 +117,59 @@ dialog::backdrop {
 	/* make noteTitles bold */
 	font-weight: 700;
 	margin: unset;
-	padding-top: 0px;
-	padding-bottom: 0.2rem;
+	/* padding: 3px 0px 0px; */
+	justify-self: start;
 }
 
+/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+.addNewActionButtons {
+	display: inline-flex;
+	gap: 0.3rem;
+	justify-self: end;
+	align-self: flex-start;
+	border: 0px none;
+	box-shadow: none;
+	padding-top: 1px;
+}
+
+/* Next part of sectionInfo. */
 .sectionDescription {
 	/* a bit smaller */
 	font-size: 0.9rem;
-	/* give breathing room on right only */
-	margin: 0 0.5rem 0 0;
-	padding-top: 0.2rem;
-	/* align-self: self-end; */
-}
-
-/* turn on bottom border of last item (from theme CSS) */
-/* .section:last-child {
-	border-bottom: solid 1px var(--tint-color);
-} */
-
-/* Inner grid for details of a section */
-.sectionItemsGrid {
-	font-size: 1.0rem;
-	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
-	column-count: 3;
-	column-fill: balance;
-	column-width: 25rem;
-	/* column-gap: 1rem; */
-	column-rule: 1px dotted var(--tint-color);
-	column-fill: auto;
-	padding-inline-start: 2px;
-	padding-block-start: 4px;
-	padding-block-end: 4px;
+	padding-top: 0.1rem;
 }
 
 .sectionItemRow {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
-	display: grid;
-	grid-template-columns: [icon] 1.1rem [item-details] auto;
-	/* was: minmax(20rem, 30rem); */
+	/* display: grid; */
+	/* grid-template-columns: [icon] 1.1rem [item-details] auto; */
+	display: flex;
+	
+	/* trying margin not padding now */
 	/* no bottom padding */
-	padding: 3px 4px 0px 2px;
+	/* padding: 0px 4px 3px 0px; */
+	margin: 0px 4px 3px 0px; 
+	
 	border: 0px none;
-	column-gap: 2px;
+	column-gap: 3px;
 	/* vertical in containing block */
-	align-self: start;
+	/* align-self: start; */
 	/* horizontal in containing block */
-	justify-self: right;
+	/* justify-self: right; */
 	/* border-collapse: collapse; */
 	/* vertical for all items this contains */
-	align-items: start;
+	align-items: baseline; /* start; */
 	/* horizontal for all items this contains */
 	justify-items: start;
 	/*
-	opacity: 1; 
+	opacity: 1;
 	transition: opacity 500ms ease-in-out;
 	*/
 }
 
 /* The actual item's details (was col4) */
-.sectionItem {
+.sectionItemContent {
 	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
@@ -174,7 +181,7 @@ dialog::backdrop {
 
 /* If rather narrow, slide [items] under [info] */
 /* This needs to come after the earlier definitions to take priority */
-@media screen and (width <= 600px) {
+@media screen and (max-width: 600px) {
 	.section {
 		grid-template-columns: 1fr;
 	}
@@ -185,9 +192,9 @@ dialog::backdrop {
 		display: grid;
 		/* now make this area grid column-based not row-based */
 		grid-template-columns: max-content max-content auto;
-		grid-column-gap: 0.1rem;
-		padding-top: 0.4rem;
-		/* padding-bottom: 0.3rem; */
+		grid-column-gap: 1.0rem;
+		padding-top: 0.2rem;
+		padding-bottom: 0.2rem;
 		/* put all items essentially on a baseline */
 		/* align-items: end; */
 		align-items: center;
@@ -202,9 +209,10 @@ dialog::backdrop {
 		padding-right: 0.5rem;
 	}
 
-	.sectionItemRow {
-		padding: 3px 4px 0px 4px;
-		column-gap: 0px;
+	/* TODO: Ideally rationalise this with the 'dropdown-select' icon-buttons in the Header bar */
+	.addNewActionButtons {
+		justify-self: start;
+		padding-top: 2px;
 	}
 }
 
@@ -227,43 +235,61 @@ dialog::backdrop {
 	align-self: center;
 	justify-self: center;
 	/* and give a little nudge down to make things line up in practice */
-	padding-block-start: 1px;
+	/* padding-block-start: 1px; */
 	cursor: pointer;
+}
+
+/* Make square-based icons a touch larger, as they're optically smaller than the circle equivalents. Advanced stuff! */
+.fa-square, .fa-square-plus, .fa-square-arrow-right {
+	font-size: 103%; /*110%;*/
+	padding-left: 1px;
+}
+
+/* Override the theme definition of a completed task a little */
+.checked {
+	/* padding-top: 1px !important; */
+	margin-bottom: 0px !important; /* over-ride margin-bottom: 0.25rem that is set somwhere else */
+	font-size: 98%
 }
 
 .projectIcon {
 	/* less to do as this is SVG not text */
-	/* margin-bottom: unset !important; */
-	/* line-height: unset !important; */
-	/* font-size: 0.7rem !important; */
-	/* height: 0.7rem;
-	width: 0.7rem; */
-	/* height: 1.1rem;
-	width: 1.1rem; */
-	/* line-height: 1.1rem; */
-	/* align-self: center; */
+	/* align-self: center; -- would have worked when a single line, but it can now have progress text */
 	align-self: start;
 	justify-self: center;
 	/* and give a little nudge down to make things line up in practice */
 	margin-block-start: 2px;
+	margin-right: 2px;
 }
 
-
-.dialogTrigger {
+.dialogTriggerIcon {
 	color: var(--fg-main-color);
-	opacity: 0.5;
+	opacity: 0.4;
 	cursor: pointer;
 }
 
-.childMarker {
-	font-size: small;
+/* The marker for parent/child projects, designed to mimic what EM introduced in 3.15.1 */
+/* Note: no longer using childMarker */
+.parentMarker {
+	font-size: 70%;
 	color: var(--fg-main-color);
-	opacity: 0.5;
+	background-color: var(--divider-color);
+	margin-left: 0.35rem;
+	border-radius: 30%;
+	opacity: 0.7;
+	padding: 0px 4px;
+	vertical-align: middle;
+	transform: scale(1.15,1);
 }
+
+/* I'm not sure how to send a variable through into this calculation, so this is moved into the code */
+/* .indentItem {
+	padding-left: calc(1 * 1.35rem);
+} */
 
 /* --------------------------------------------------------------- */
 
-/* All buttons, but at lower priority */
+/* All buttons and inputs, but at lower priority */
 @layer A {
 	button,
 	input {
@@ -272,41 +298,43 @@ dialog::backdrop {
 		border: 1px solid var(--divider-color);
 		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.2);
 	}
+	/* set input backgrounds a little lighter on hover */
+	input &:hover {
+		/* filter: brightness(140%); Not a pleasant effect. */
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to use this when CSS standards catch up. */
+		background-color: color(var(--bg-sidebar-color) lightness(40%));
+	}
 }
 
-/* For buttons in header area */
-.HAButton {
-	font-size: 0.92rem;
+/* For add buttons in section info areas */
+.addButton {
+	font-size: 0.95rem;
+	/* line-height: 1.2rem; */
 	font-weight: 500;
-	border-style: solid;
-	border-width: 1px;
-	border-radius: 4px;
-	/* a little internal padding to right */
-	padding: 2px 3px 0px 3px;
-	/* a little external margin */
-	margin: 2px 4px 0px 0px;
+	border-style: none;
+	box-shadow: none;
+	/* a little margin to right */
+	margin: 1px 0px 0px 0px;
+	padding: 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	/* Center the button vertically if it's not aligning properly */
 	align-self: center;
-	/* max-height: 1.3rem; */
+}
+.addButton:hover {
+	/* FIXME: this 'currentcolor' is not working as advertised. The equivalent in dropbdownButtons is working ... */
+	/* color: hsl(from currentcolor h s calc(l*0.8)); TODO(later): revert in time */
+	filter: saturate(140%);
 }
 
-/* fa-icons in HA Button */
-.HAButton i {
-	color: var(--tint-color);
-}
-
-/* For buttons in section info areas */
+/* For processing buttons in section info areas */
 .PCButton {
 	font-weight: 500;
 	border-style: solid;
 	border-width: 1px;
 	border-radius: 4px;
-	/* a little internal padding to right */
-	padding: 1px 2px 0px 2px; /* 0px 3px 0px 0px; */
-	/* a little external margin */
-	margin: 2px 4px 2px 0px; /* 2px 6px 0px 0px;*/
+	padding: 1px 2px 0px 3px;
+	margin: 2px 4px 2px 0px;
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
@@ -314,19 +342,19 @@ dialog::backdrop {
 	align-self: center;
 	/* max-height: 1.3rem; */
 	line-height: 1.2rem;
-}
 
-/* fa-icons in HA Button */
-.PCButton i {
-	color: var(--tint-color);
-}
+	/* color FA icons in these Buttons */
+	i {
+		color: var(--tint-color);
+	}
 
-/* Set link text to plain (again).  Note: now internal calls used this is removed */
-/* .PCButton a {
-	font-size: 0.85rem;
-	text-decoration: none;
-	color: var(--fg-main-color);
-} */
+	/* set backgrounds a little lighter on hover */
+	&:hover {
+		/* background-color: hsl(from var(--bg-sidebar-color) h s calc(l*1.4)); TODO(later): revert to this */
+		/* background-color: color(var(--bg-sidebar-color) lightness(40%)); */
+		filter: brightness(107%);
+	}
+}
 
 /* Show click pointer over buttons and equivalent */
 button,
@@ -335,57 +363,61 @@ button,
 	cursor: pointer;
 }
 
+.greyedText {
+	color: rgb(from var(--fg-sidebar-color) r g b / 0.5)
+}
+
 /* --------------------------------------------------------------- */
+/* Tooltips should render on macOS only */
+.macOS {
+	/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+	.tooltip {
+		position: relative;
+		/* float above everything, including the header */
+		/* z-index: 20; */
+	}
 
-/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
-.tooltip {
-	position: relative;
-	/* float above everything, including the header */
-	/* z-index: 20; */
+	.tooltip::before,
+	.tooltip::after {
+		position: absolute;
+		left: 50%;
+		/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
+		display: none;
+		transition: all ease 0.3s;
+		transition-delay: 0.8;
+	}
+
+	/* Set tooltip little triangle */
+	.tooltip::before {
+		content: "";
+		border-width: 10px 8px 0 8px;
+		border-style: solid;
+		border-color: var(--tint-color) transparent transparent transparent;
+		margin-left: -8px;
+		top: -10px;
+	}
+
+	/* Set main tooltip display area */
+	.tooltip::after {
+		content: attr(data-tooltip);
+		margin-left: -10px;
+		padding: 0.15rem 0.25rem;
+		top: -9px;
+		font-size: 0.85rem;
+		color: var(--fg-main-color);
+		background: var(--bg-main-color);
+		border: 1px solid var(--tint-color);
+		border-radius: 6px;
+		transform: translateY(-100%);
+		cursor: help;
+	}
+
+	.tooltip:hover::before,
+	.tooltip:hover::after {
+		display: block;
+		z-index: 20;
+	}
 }
-
-.tooltip::before,
-.tooltip::after {
-	position: absolute;
-	left: 50%;
-	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
-	display: none;
-	transition: all ease 0.3s;
-	transition-delay: 0.8;
-}
-
-/* Set tooltip little triangle */
-.tooltip::before {
-	content: "";
-	border-width: 10px 8px 0 8px;
-	border-style: solid;
-	border-color: var(--tint-color) transparent transparent transparent;
-	margin-left: -8px;
-	top: -12px;
-}
-
-/* Set main tooltip display area */
-.tooltip::after {
-	content: attr(data-tooltip);
-	margin-left: -10px;
-	padding: 0.15rem 0.25rem;
-	top: -12px;
-	font-size: 0.85rem;
-	color: var(--fg-main-color);
-	background: var(--bg-main-color);
-	border: 1px solid var(--tint-color);
-	border-radius: 6px;
-	transform: translateY(-100%);
-	cursor: help;
-}
-
-.tooltip:hover::before,
-.tooltip:hover::after {
-	/* opacity: 1; */
-	display: block;
-	z-index: 20;
-}
-
 /* ------------------------------------------------------------------ */
 
 /* show as italic. Note: now unused */
@@ -404,9 +436,19 @@ button,
 	padding-left: 0.3rem !important;
 }
 
+.pad-left-larger {
+	/* add space before something (normally an icon) */
+	padding-left: 0.5rem !important;
+}
+
 .pad-right {
 	/* add space after something (normally an icon) */
 	padding-right: 0.3em !important;
+}
+
+.pad-right-larger {
+	/* add space after something (normally an icon) */
+	padding-right: 0.5em !important;
 }
 
 .space-under {
@@ -418,20 +460,19 @@ button,
 	color: var(--tint-color);
 }
 
+/* all links turn off text color and underlining by default ... */
 .content,
 .content:visited,
 .content:active {
-	/* all links turn off text color and underlining by default */
 	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
 
+/* ... except when hovering over a content item */
 .content:hover,
 .noteTitle:hover {
-	/* except when hovering over a content item */
 	text-decoration: underline;
-	/* text-decoration-color: var(--tint-color); */
 }
 
 .externalLink {
@@ -479,33 +520,30 @@ button,
 }
 
 /* Some headings specified from measuring the colour of NP sidebar elements */
-/* TODO: move the font-size somewhere more sensible */
-.sidebarDaily {
-	font-size: 1.0rem;
-	color: #d0703c;
+html {
+	--fg-sidebarDaily: #d0703c;
+	--fg-sidebarWeekly: #be23b6;
+	--fg-sidebarMonthly: #f5528b;
+	--fg-sidebarQuarterly: #e08008;
+	--fg-sidebarYearly: #efba13;
+	--fg-sidebarHashtag: var(--hashtag-color);
+	--fg-sidebarMention: var(--attag-color);
 }
+/* But still need these as named styles */
+.sidebarDaily {color: var(--fg-sidebarDaily);}
+.sidebarWeekly {color: var(--fg-sidebarWeekly);}
+.sidebarMonthly {color: var(--fg-sidebarMonthly);}
+.sidebarQuarterly {color: var(--fg-sidebarQuarterly);}
+.sidebarYearly {color: var(--fg-sidebarYearly);}
+.sidebarHashtag {color: var(--hashtag-color);}
+.sidebarMention {color: var(--attag-color);}
 
-.sidebarWeekly {
+/* .priority, .overdue, .projects {
 	font-size: 1.0rem;
-	color: #be23b6;
-}
+	color: var(--item-icon-color);
+} */
 
-.sidebarMonthly {
-	font-size: 1.0rem;
-	color: #f5528b;
-}
-
-.sidebarQuarterly {
-	font-size: 1.0rem;
-	color: #e08008;
-}
-
-.sidebarYearly {
-	font-size: 1.0rem;
-	color: #efba13;
-}
-
-.sidebarHashtag {
+/* .sidebarHashtag {
 	font-size: 1.0rem;
 	color: var(--hashtag-color);
 }
@@ -513,16 +551,12 @@ button,
 .sidebarMention {
 	font-size: 1.0rem;
 	color: var(--attag-color);
-}
+} */
 
-.priority, .overdue, .projects {
-	font-size: 1.0rem;
-	color: var(--item-icon-color);
-}
 
+/* Note: not currently used? */
 #error {
 	background-color: red;
-	padding-left: 10px;
 }
 
 /* --------------------------------------------------------------- */
@@ -592,10 +626,4 @@ input.apple-switch:checked:after {
 } */
 .CircularProgressbar-background {
   fill: var(--bg-sidebar-color) !important;
-}
-
-/* Header waiting spinner */
-.fa-spin {
-	/* color: var(--tint-color); */
-	animation: spin 1s infinite linear;
 }

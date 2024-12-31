@@ -21,12 +21,13 @@ const json = require('@rollup/plugin-json')
 const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
 const { babel } = require('@rollup/plugin-babel')
-const { terser } = require('rollup-plugin-terser')
+// const { terser } = require('rollup-plugin-terser')
 const mkdirp = require('mkdirp')
 const { program } = require('commander')
 const ProgressBar = require('progress')
 const pkgInfo = require('../package.json')
 const pluginConfig = require('../plugins.config')
+const replace = require('rollup-plugin-replace')
 
 let progress
 // const requiredFilesWatchMsg = ''
@@ -60,6 +61,7 @@ const REPORT_MEMORY_USAGE = options.pressure || false
  */
 const defaultPlugins = DEBUGGING
   ? [
+      caseSensitiveImports(),
       alias({
         entries: [...pluginConfig.aliasEntries, { find: '@helpers', replacement: path.resolve(__dirname, '..', 'helpers') }],
       }),
@@ -76,6 +78,7 @@ const defaultPlugins = DEBUGGING
     ]
   : MINIFY
   ? [
+      caseSensitiveImports(),
       alias({
         entries: pluginConfig.aliasEntries,
       }),
@@ -83,15 +86,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      terser({
-        compress: true,
-        mangle: true,
-        output: {
-          comments: false,
-          beautify: false,
-          indent_level: 2,
-        },
-      }),
+      // terser({
+      //   compress: true,
+      //   mangle: true,
+      //   output: {
+      //     comments: false,
+      //     beautify: false,
+      //     indent_level: 2,
+      //   },
+      // }),
     ]
   : [
       alias({
@@ -101,15 +104,15 @@ const defaultPlugins = DEBUGGING
       commonjs(),
       json(),
       nodeResolve({ browser: true, jsnext: true }),
-      terser({
-        compress: false,
-        mangle: false,
-        output: {
-          comments: false,
-          beautify: true,
-          indent_level: 2,
-        },
-      }),
+      // terser({
+      //   compress: false,
+      //   mangle: false,
+      //   output: {
+      //     comments: false,
+      //     beautify: true,
+      //     indent_level: 2,
+      //   },
+      // }),
     ]
 
 const reportMemoryUsage = (msg = '') => {
@@ -118,12 +121,31 @@ const reportMemoryUsage = (msg = '') => {
   console.log(`${msg}: Memory used: ${used} MB`)
 }
 
+const message = (type, msg, leftwords, useIcon = false) => {
+  if (!messenger[type]) {
+    messenger.error(`Invalid message type in your code: "${type}" (should be one of: success, warn, critical, note, log)`, 'Coding Error', true)
+    type = 'log'
+  }
+  messenger[type](msg, leftwords.padEnd(7), useIcon)
+}
+
+const dt = () => {
+  const d = new Date()
+  const pad = (value) => (value < 10 ? `0${value}` : value.toString())
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`
+}
+
 ;(async function () {
   reportMemoryUsage('top of script')
 
   const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
   const rootFolderPath = path.join(__dirname, '..')
 
+  /**
+   * Copy the built files to the target directory and display a success message.
+   * @param {string} outputFile - Path to the built output file.
+   * @param {boolean} isBuildTask - Flag indicating if this is part of the build process.
+   */
   const copyBuild = async (outputFile = '', isBuildTask = false) => {
     if (CI) {
       return
@@ -190,17 +212,16 @@ const reportMemoryUsage = (msg = '') => {
         }
       }
 
-      let msg = COMPACT
-        ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-        : `${colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`)}\n   Built ${
-            dependenciesCopied > 0 ? `script.js & copied plugin.json + ${dependenciesCopied} requiredFiles` : `and`
-          } copied to the "Plugins" folder.`
+      // Prepare a single-line success message
+      let msg = `${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']}) Built ${
+        dependenciesCopied > 0 ? `script.js, plugin.json + ${dependenciesCopied} requiredFiles` : `script.js & copied plugin.json`
+      } copied to the "Plugins" folder.`
 
       if (DEBUGGING) {
-        msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
+        msg += ' Built in DEBUG mode. Not ready to deploy.'
       } else {
         if (!COMPACT) {
-          msg += ` To release this plugin, update changelog.md and run:\n   ${`npm run release "${pluginFolder}"\n`}`
+          msg += ` Release: npm run release "${pluginFolder}"`
         }
       }
 
@@ -212,7 +233,8 @@ const reportMemoryUsage = (msg = '') => {
       }
 
       if (!isBuildTask) {
-        console.log(msg)
+        // Use the `message` function to display a green "SUCCESS" line
+        message('success', msg, 'SUCCESS', true)
       }
     } else {
       // $FlowIgnore
@@ -323,6 +345,11 @@ const reportMemoryUsage = (msg = '') => {
     const rollupConfigs = bundledPlugins.map(getConfig).map((config) => ({ ...config, plugins: [...config.plugins, ...defaultPlugins] }))
 
     watcher = rollup.watch(rollupConfigs)
+
+    watcher.on('change', (id /* , { event } */) => {
+      const filename = path.basename(id)
+      message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
+    })
 
     watcher.on('event', async (event) => {
       if (event.result) {
@@ -485,6 +512,7 @@ const reportMemoryUsage = (msg = '') => {
    * @returns
    */
   function getConfig(pluginPath) {
+    // WATCH REQUIREDFILES IN PLUGIN FOLDER FOR CHANGES
     let requiredFilesWatchPlugin = null
     const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
     if (existsSync(requiredFilesInDevFolder)) {
@@ -501,6 +529,23 @@ const reportMemoryUsage = (msg = '') => {
         },
       }
     }
+
+    // EXTRA FILES TO WATCH (other than those imported starting by index.js)
+    const pluginJsonPath = path.join(pluginPath, 'plugin.json')
+    const watchExtraFilesPlugin = {
+      name: 'watch-extra-files-plugin',
+      async buildStart() {
+        // watch a custom folder or file:
+        // You can add as many files/folders as you want.
+        this.addWatchFile(pluginJsonPath)
+        // this.addWatchFile(path.resolve(__dirname, '..', 'some-other-folder', 'whatever.css'));
+      },
+    }
+
+    const watchOptions = {
+      exclude: ['node_modules/**', '**/script.js'],
+    }
+
     return {
       external: ['fs'],
       input: path.join(pluginPath, 'src/index.js'),
@@ -510,8 +555,18 @@ const reportMemoryUsage = (msg = '') => {
         name: 'exports',
         footer: 'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
       },
-      plugins: [requiredFilesWatchPlugin] /* add non-changing plugins later */,
+      plugins: [requiredFilesWatchPlugin, watchExtraFilesPlugin] /* add non-changing plugins later */,
       context: 'this',
+      watch: watchOptions,
+      /**
+       * Suppress specific Rollup warnings.
+       * @param {object} warning - Rollup warning object.
+       * @param {function} warn - Rollup warn function.
+       */
+      onwarn: (warning, warn) => {
+        if (warning.code === 'EVAL') return
+        warn(warning)
+      },
     }
   }
 

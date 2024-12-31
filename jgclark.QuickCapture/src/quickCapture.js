@@ -21,6 +21,7 @@ import {
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
+import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
 import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
@@ -178,43 +179,9 @@ export async function addChecklistToNoteHeading(
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
       : await chooseHeading(note, true, true, false)
-    // Add todo to the heading in the note, or if blank heading,
-    // then then user has chosen to append to end of note, without a heading
-    if (heading === '<<top of note>>') {
-      // Handle this special case
-      logDebug('addChecklistToNoteHeading', `Adding line '${checklistText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(checklistText, findStartOfActivePartOfNote(note), 'checklist')
-    }
-    else if (heading === '') {
-      // Handle bottom of note
-      logDebug('addChecklistToNoteHeading', `Adding checklist '${checklistText}' to end of '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(checklistText, findEndOfActivePartOfNote(note) + 1, 'checklist')
-    } else {
-      const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug('addChecklistToNoteHeading', `Adding checklist '${checklistText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
-      if (matchedHeading !== '') {
-        // Heading does exist in note already
-        note.addParagraphBelowHeadingTitle(
-          checklistText,
-          'checklist',
-          (matchedHeading !== '') ? matchedHeading : heading,
-          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-          true, // create heading if needed (possible if supplied via headingArg)
-        )
-      } else {
-        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
-        const headingMarkers = '#'.repeat(headingLevel)
-        const headingToUse = `${headingMarkers} ${heading}`
-        const insertionIndex = config.shouldAppend
-          ? findEndOfActivePartOfNote(note) + 1
-          : findStartOfActivePartOfNote(note)
-        logDebug('addChecklistToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
-        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('addChecklistToNoteHeading', `- then adding text '${checklistText}' after `)
-        note.insertParagraph(checklistText, insertionIndex + 1, 'checklist')
-      }
-      DataStore.updateCache(note)
-    }
+
+    // Call helper to do the main work
+    coreAddChecklistToNoteHeading(note, heading, checklistText, headingLevel, config.shouldAppend)
   } catch (err) {
     logError(pluginJson, `addChecklistToNoteHeading: ${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -271,44 +238,9 @@ export async function addTaskToNoteHeading(
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
       : await chooseHeading(note, true, true, false)
-    // Add todo to the heading in the note, or if blank heading,
-    // then then user has chosen to append to end of note, without a heading
-    if (heading === '<<top of note>>') {
-      // Handle this special case
-      logDebug('addTaskToNoteHeading', `Adding line '${taskText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
-      note.insertTodo(taskText, findStartOfActivePartOfNote(note))
-    }
-    else if (heading === '') {
-      // Handle bottom of note
-      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitleWithRelDate(note)}'`)
-      note.insertTodo(taskText, findEndOfActivePartOfNote(note))
-    } else {
-      const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
-      if (matchedHeading !== '') {
-      // Heading does exist in note already
-        note.addParagraphBelowHeadingTitle(
-          taskText,
-          'open',
-          (matchedHeading !== '') ? matchedHeading : heading,
-          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-          true, // create heading if needed (possible if supplied via headingArg)
-        )
-      } else {
-        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
-        const headingMarkers = '#'.repeat(headingLevel)
-        const headingToUse = `${headingMarkers} ${heading}`
-        const insertionIndex = config.shouldAppend
-          ? findEndOfActivePartOfNote(note) + 1
-          : findStartOfActivePartOfNote(note)
-        logDebug('addTaskToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
-        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
-        logDebug('addTaskToNoteHeading', `- then adding text '${taskText}' after `)
-        note.insertParagraph(taskText, insertionIndex + 1, 'open')
-      }
 
-      DataStore.updateCache(note)
-    }
+    // Call helper to do the main work
+    coreAddTaskToNoteHeading(note, heading, taskText, headingLevel, config.shouldAppend)
   } catch (err) {
     logError(pluginJson, `addTaskToNoteHeading: ${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -337,7 +269,7 @@ export async function addTextToNoteHeading(
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'} arg3 ${headingLevelArg}`)
-    const config = await getQuickCaptureSettings()
+    const config = (await getQuickCaptureSettings())||{}
 
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
@@ -378,7 +310,7 @@ export async function addTextToNoteHeading(
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(textToAdd, findStartOfActivePartOfNote(note), 'text')
     }
-    else if (heading === '') {
+    else if (heading === '' || heading === '<<bottom of note>>') {
       // Handle bottom of note
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')

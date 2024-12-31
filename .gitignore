@@ -21,5 +21,5 @@ coverage/
 docs/assets/
 docs/index.html
 Documentation-Helpers
-**/*.bundle.dev.js
-**/*.bundle.min.js
+**/react.*.dev.js
+**/react.*.min.js

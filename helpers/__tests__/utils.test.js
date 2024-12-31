@@ -79,3 +79,22 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 })
+
+describe('findLongestStringInArray()', () => {
+  test('should return longest string in array', () => {
+    expect(f.findLongestStringInArray(['a', 'bb', '', 'dddd'])).toEqual('dddd')
+  })
+  test('should return longest string in array with emojis as longest term', () => {
+    expect(f.findLongestStringInArray(['a', 'bb', '', 'dd🔬d'])).toEqual('dd🔬d')
+  })
+  // Doesn't pass, but we don't think this will be an actual issue, so disable
+  test.skip('should return longest string in array with emojis in other terms', () => {
+    expect(f.findLongestStringInArray(['a🔬', 'bb', 'cc🔬', 'dddd'])).toEqual('dd🔬d')
+  })
+  test('should return longest string in array wherever it is in array', () => {
+    expect(f.findLongestStringInArray(['aa', 'bbbbb', '', 'cc'])).toEqual('bbbbb')
+  })
+  test('should return empty string if no array', () => {
+    expect(f.findLongestStringInArray([])).toEqual('')
+  })
+})

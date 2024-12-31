@@ -1,6 +1,11 @@
 // @flow
 // Development-related helper functions
 
+import isEqual from 'lodash-es/isEqual'
+import isObject from 'lodash-es/isObject'
+import isArray from 'lodash-es/isArray'
+import moment from 'moment'
+
 /**
  * NotePlan API properties which should not be traversed when stringifying an object
  */
@@ -15,6 +20,18 @@ export const dt = (): string => {
   }
 
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`
+}
+
+/**
+ * Returns a local datetime timestamp with milliseconds.
+ * If a Date object is provided, it formats that date instead.
+ *
+ * @param {Date} [date] - Optional Date object to format.
+ * @returns {string} Formatted datetime string.
+ */
+export const dtl = (date?: Date): string => {
+  const momentDate = date ? moment(date) : moment()
+  return momentDate.format('YYYY-MM-DD HH:mm:ss.SSS')
 }
 
 /**
@@ -122,6 +139,197 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
     logDebug(preamble, `${obj}`)
   } else {
     logDebug(preamble, JSP(obj, space))
+  }
+}
+
+type DiffValue = { before: any, after: any } | DiffObject | DiffArray
+
+type DiffObject = { [key: string]: DiffValue }
+type DiffArray = Array<DiffValue | null>
+
+/**
+ * Compare two objects or arrays and return an object containing only the NEW properties that have changed.
+ * Note: dbw created a version below called getDiff that gives before and after values.
+ * Fields listed in fieldsToIgnore are ignored when comparing objects (does not apply to arrays).
+ *
+ * @param {Object|Array} oldObj - The original object or array to compare against.
+ * @param {Object|Array} newObj - The new object or array with potential changes.
+ * @param {Array<string | RegExp>} fieldsToIgnore - An array of field names to ignore when comparing objects.
+ * @param {boolean} logDiffDetails - If true, will log details of the differences.
+ * @returns {Object|Array|null} - An object or array containing only the properties that have changed, or null if no changes.
+ */
+export function compareObjects(oldObj: any, newObj: any, fieldsToIgnore: Array<string | RegExp> = [], logDiffDetails: boolean = false): any | null {
+  if (oldObj === newObj) {
+    return null // No changes
+  }
+
+  if (typeof oldObj !== typeof newObj) {
+    // logDebug('compareObjects', 'Objects are of different types.')
+    return newObj // Type has changed, consider as changed
+  }
+
+  if (Array.isArray(newObj)) {
+    if (!Array.isArray(oldObj)) {
+      logDebug('compareObjects', 'Changed from non-array to array.')
+      return newObj // Changed from non-array to array
+    }
+
+    const differences = []
+    const maxLength = Math.max(oldObj.length, newObj.length)
+
+    for (let i = 0; i < maxLength; i++) {
+      const oldVal = oldObj[i]
+      const newVal = newObj[i]
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore)
+      if (diff !== null) {
+        logDiffDetails && logDebug('compareObjects', `Array difference at index ${i}: ${JSON.stringify(diff)}`)
+        differences[i] = diff
+      }
+    }
+
+    return differences.length > 0 ? differences : null
+  } else if (typeof newObj === 'object' && newObj !== null) {
+    if (typeof oldObj !== 'object' || oldObj === null) {
+      logDiffDetails && logDebug('compareObjects', 'Changed from non-object to object.')
+      return newObj // Changed from non-object to object
+    }
+
+    const differences = {}
+    const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)])
+
+    for (const key of keys) {
+      // Check if the key should be ignored
+      const shouldIgnore = fieldsToIgnore.some((ignore) => {
+        if (typeof ignore === 'string') {
+          return key === ignore
+        } else if (ignore instanceof RegExp) {
+          return ignore.test(key)
+        }
+        return false
+      })
+
+      if (shouldIgnore) {
+        continue // Ignore fields listed in fieldsToIgnore
+      }
+
+      const oldVal = oldObj[key]
+      const newVal = newObj[key]
+      const diff = compareObjects(oldVal, newVal, fieldsToIgnore)
+      if (diff !== null) {
+        logDiffDetails && logDebug('compareObjects', `Object difference: value[${key}]= "${oldVal}" !== "${newVal}"`)
+        differences[key] = diff
+      }
+    }
+
+    return Object.keys(differences).length > 0 ? differences : null
+  } else {
+    // Primitives
+    const result = oldObj !== newObj ? newObj : null
+    if (result !== null) {
+      logDiffDetails && logDebug('compareObjects', `Primitive difference: oldVal=${oldObj}, newVal=${newObj}`)
+    }
+    return result
+  }
+}
+
+/**
+ * Compares two objects and returns the differences.
+ * @param {Object} obj1 - The original object.
+ * @param {Object} obj2 - The modified object.
+ * @returns {Object|null} - An object representing the differences or null if no differences.
+ */
+function getObjectDiff(obj1: any, obj2: any): DiffObject | null {
+  const diff = {}
+
+  const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)])
+
+  keys.forEach((key) => {
+    const val1 = obj1[key]
+    const val2 = obj2[key]
+
+    if (!isEqual(val1, val2)) {
+      if (isObject(val1) && isObject(val2) && !isArray(val1) && !isArray(val2)) {
+        // Recursively find differences in nested objects
+        const nestedDiff = getObjectDiff(val1, val2)
+        if (nestedDiff !== null) {
+          diff[key] = nestedDiff
+        }
+      } else if (isArray(val1) && isArray(val2)) {
+        // Handle arrays
+        const arrayDiff = getArrayDiff(val1, val2)
+        if (arrayDiff !== null) {
+          diff[key] = arrayDiff
+        }
+      } else {
+        // Primitive value or different types
+        diff[key] = {
+          before: val1,
+          after: val2,
+        }
+      }
+    }
+  })
+
+  return Object.keys(diff).length > 0 ? diff : null
+}
+
+/**
+ * Compares two arrays and returns the differences.
+ * @param {Array} arr1 - The original array.
+ * @param {Array} arr2 - The modified array.
+ * @returns {Array|null} - An array representing the differences or null if no differences.
+ */
+function getArrayDiff(arr1: Array<any>, arr2: Array<any>): DiffArray | null {
+  const diff = []
+
+  const maxLength = Math.max(arr1.length, arr2.length)
+
+  for (let i = 0; i < maxLength; i++) {
+    const item1 = arr1[i]
+    const item2 = arr2[i]
+
+    if (!isEqual(item1, item2)) {
+      if (isObject(item1) && isObject(item2)) {
+        const nestedDiff = getObjectDiff(item1, item2)
+        if (nestedDiff !== null) {
+          diff[i] = nestedDiff
+        }
+      } else {
+        diff[i] = {
+          before: item1,
+          after: item2,
+        }
+      }
+    }
+  }
+
+  return diff.length > 0 ? diff : null
+}
+
+/**
+ * Wrapper function that determines whether to perform an object or array diff.
+ * Deals with the case where the two items are not the same type, e.g. an array and an object.
+ * Deals with
+ * Returns null if there are no differences.
+ * @param {*} data1 - The original data (object or array).
+ * @param {*} data2 - The modified data (object or array).
+ * @returns {*} - The differences or null if no differences.
+ * @usage const differences = getDiff(obj1, obj2);
+ */
+export function getDiff(data1: any, data2: any): ?(DiffObject | DiffArray | { before: any, after: any }) {
+  if (isArray(data1) && isArray(data2)) {
+    return getArrayDiff(data1, data2)
+  } else if (isObject(data1) && isObject(data2)) {
+    return getObjectDiff(data1, data2)
+  } else {
+    // If data types are different or not objects/arrays, perform a direct comparison
+    if (!isEqual(data1, data2)) {
+      return {
+        before: data1,
+        after: data2,
+      }
+    }
+    return null
   }
 }
 
@@ -326,16 +534,16 @@ const _message = (message: any): string => {
 }
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
-const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
+export const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN 🥺', '❗️ ERROR ❗️', 'none']
 
 /**
  * Test _logLevel against logType to decide whether to output
- * @param {string} logType 
+ * @param {string} logType
  * @returns {boolean}
  */
 export const shouldOutputForLogLevel = (logType: string): boolean => {
   let userLogLevel = 1
-  const thisMessageLevel = LOG_LEVELS.indexOf(logType)
+  const thisMessageLevel = LOG_LEVELS.indexOf(logType.toUpperCase())
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   // Note: Performing a null change against a value that is `undefined` will be true
   // Sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
@@ -351,17 +559,23 @@ export const shouldOutputForLogLevel = (logType: string): boolean => {
 /**
  * Test if _logFunctionRE is set and matches the current log details.
  * Note: only works if DataStore is available.
- * @param {any} pluginInfo 
- * @returns 
+ * @param {any} pluginInfo
+ * @returns
  */
 export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
   const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null
   if (pluginSettings && pluginSettings.hasOwnProperty('_logFunctionRE')) {
-    const functionRE = new RegExp(pluginSettings['_logFunctionRE'])
+    const functionRE = new RegExp(pluginSettings['_logFunctionRE'], 'i')
     const infoStr: string = pluginInfo === 'object' ? pluginInfo['plugin.id'] : String(pluginInfo)
     return functionRE.test(infoStr)
   }
   return false
+}
+
+export function getLogDateAndTypeString(type: string): string {
+  const thisMessageLevel = LOG_LEVELS.indexOf(type.toUpperCase())
+  const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
+  return `${dt().padEnd(19)} ${thisIndicator}`
 }
 
 /**
@@ -375,23 +589,23 @@ export const shouldOutputForFunctionName = (pluginInfo: any): boolean => {
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
   let msg = ''
   if (shouldOutputForLogLevel(type) || shouldOutputForFunctionName(pluginInfo)) {
-    const thisMessageLevel = LOG_LEVELS.indexOf(type)
-    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
     let pluginId = ''
     let pluginVersion = ''
     const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id')
 
+    const ldts = getLogDateAndTypeString(type)
+
     if (isPluginJson) {
       pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
       pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
+      msg = `${ldts} ${pluginId} v${pluginVersion} :: ${_message(message)}`
     } else {
       if (message.length > 0) {
         // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
-        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
+        msg = `${ldts} ${pluginInfo} :: ${_message(message)}`
       } else {
         // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
-        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
+        msg = `${ldts} ${_message(pluginInfo)}`
       }
     }
     console.log(msg)

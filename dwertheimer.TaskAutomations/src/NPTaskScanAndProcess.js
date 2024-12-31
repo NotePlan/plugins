@@ -2,7 +2,8 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
+import { moveParagraphToNote } from '../../helpers/NPMoveItems'
+import { getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
 import { getReferencedParagraphs, getTodaysReferences } from '../../helpers/NPnote'

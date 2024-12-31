@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Search helpers
-// Jonathan Clark
+// @jgclark
 //-----------------------------------------------------------------------------
 
 // import { trimString } from '@helpers/dataManipulation'
@@ -14,17 +14,40 @@ import { RE_SYNC_MARKER } from '@helpers/regex'
  * @param {string} searchTerm
  * @param {Array<string>} arrayToSearch
  * @returns {boolean}
- * TODO: @tests available in jest file
+ * @tests available in jest file
  */
 export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array<string>): boolean {
   try {
+    if (searchTerm === '') return false
     const matches = arrayToSearch.filter((h) => {
-      return h.toLowerCase() === searchTerm.toLowerCase()
+      return h !== '' && (h.toLowerCase() === searchTerm.toLowerCase())
     })
     return matches.length > 0
   }
   catch (error) {
     logError('search/caseInsensitiveIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Case insensitive array.includes() that does partial/substring match of arrayOfTerms terms into 'stringToCheck'
+ * @author @jgclark
+ * @param {string} stringToCheck
+ * @param {Array<string>} arrayOfTerms
+ * @returns {boolean}
+ * @tests available in jest file
+ */
+export function caseInsensitiveSubstringIncludes(stringToCheck: string, arrayOfTerms: Array<string>): boolean {
+  try {
+    if (stringToCheck === '') return false
+    const matches = arrayOfTerms.filter((term) => {
+      return term !== '' && ((stringToCheck.toLowerCase()).includes(term.toLowerCase()))
+    })
+    return matches.length > 0
+  }
+  catch (error) {
+    logError('search/caseInsensitiveIncludes', `Error matching '${stringToCheck}' to array '${String(arrayOfTerms)}': ${error.message}`)
     return false
   }
 }

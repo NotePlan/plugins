@@ -1,14 +1,16 @@
 // @flow
+// -----------------------------------------------------------------
+// Helpers for working with paragraphs in a note, that require
+// access to NotePlan API calls.
+// -----------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { TASK_TYPES } from './sorting'
 import { trimString } from '@helpers/dataManipulation'
 import {
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
   hyphenatedDate,
-  hyphenatedDateString,
   isScheduled,
   replaceArrowDatesInString,
   RE_SCHEDULED_ISO_DATE,
@@ -30,12 +32,11 @@ import {
 } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { stripTodaysDateRefsFromString } from '@helpers/stringTransforms'
 import { hasScheduledDate, isOpen, isOpenAndScheduled } from '@helpers/utils'
-// import { showMessageYesNoCancel } from '@helpers/userInput'
 
 const pluginJson = 'NPParagraph'
 
@@ -692,50 +693,6 @@ export function noteHasContent(note: CoreNoteFields, content: string): boolean {
 }
 
 /**
- * Move the tasks to the specified note
- * @param {TParagraph} para - the paragraph to move
- * @param {TNote} destinationNote - the note to move to
- * @returns {boolean} whether it worked or not
- * @author @dwertheimer based on @jgclark code lifted from fileItems.js
- * Note: Originally, if you were using Editor.* commands, this would not delete the original paragraph (need to use Editor.note.* or note.*)
- * Hoping that adding DataStore.updateCache() will fix that
- * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
- */
-export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): boolean {
-  // for now, insert at the top of the note
-  if (!para || !para.note || !destinationNote) return false
-  const oldNote = para.note
-  insertParagraph(destinationNote, para.rawContent)
-  // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
-  if (noteHasContent(destinationNote, para.content)) {
-    para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
-    // $FlowFixMe - not in the type defs yet
-    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in synce after the move
-    return true
-  } else {
-    logDebug(
-      pluginJson,
-      `moveParagraphToNote Could not find ${para.content} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
-    )
-  }
-  return false
-}
-
-// returns a date object if it exists, and null if there is no forward date
-const hasTypedDate = (t: TParagraph) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
-
-// DO NOT USE THIS FUNCTION - leaving it here for historical context, but functions below are more complete
-// Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
-// For now, we are assuming that sweep was already done, and we're just looking at this one note
-export const isOverdue = (t: TParagraph): boolean => {
-  let theDate = null
-  if (t.type === 'scheduled') theDate = t.date
-  if (t.type === 'open') theDate = hasTypedDate(t)
-  return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
-}
-// export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
-
-/**
  * Take in an array of paragraphs and return the subset that are open and overdue (scheduled or on dated notes in the past)
  * @param {Array<TParagraph>} paras - the paragraphs to check
  * @param {string} asOfDayString - the date to check against, in YYYY-MM-DD format
@@ -766,11 +723,6 @@ export function findOverdueWeeksInString(line: string): Array<string> {
   }
   return []
 }
-
-/*
- * @param paragraphs array
- * @return filtered list of overdue tasks
- */
 
 export type OverdueDetails = {
   isOverdue: boolean,
@@ -1097,7 +1049,8 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
 }
 
 /**
- *  Calculate the number of days until due for a given date (negative if overdue)
+ * Calculate the number of days until due for a given date (negative if overdue)
+ * TODO: really belongs in @helpers/dateTime.js
  * TODO: tests!
  * @author @dwertheimer
  * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
@@ -1379,6 +1332,9 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
         const isTruncated = content.endsWith('...')
         const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
 
+        const isTruncated = content.endsWith('...')
+        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
+
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
@@ -1424,7 +1380,7 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
         const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
         clo(captureArr)
         dateString = captureArr[1]
-        // TEST: Cope with non-daily scheduled dates (e.g. 2024-W50)
+        // Use this function to cope with non-daily scheduled dates (e.g. 2024-W50). If '>today' is passed, then fall back to today's date.
         dateString = getFirstDateInPeriod(dateString)
         logDebug('markComplete', `will use scheduled date '${dateString}' as completion date`)
       } else {
@@ -1445,13 +1401,13 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
     // Remove >today if present
     para.content = stripTodaysDateRefsFromString(para.content)
 
-    if (para.type === 'open') {
+    if (para.type === 'open' || para.type === 'scheduled') {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
       return para
-    } else if (para.type === 'checklist') {
+    } else if (para.type === 'checklist' || para.type === 'checklistScheduled') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('markComplete', `updated para "${para.content}"`)
@@ -1600,37 +1556,6 @@ export async function deleteItem(filenameIn: string, content: string): Promise<b
   } catch (error) {
     logError(pluginJson, `NPP/deleteItem: ${error.message} for note '${filenameIn}'`)
     return false
-  }
-}
-
-/**
- * Prepend a todo (task or checklist) to a calendar note
- * @author @jgclark
- * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
- * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
- * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
- */
-export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklist', NPDateStr: string, todoTextArg: string = ''): Promise<void> {
-  // logDebug('NPP/prependTodoToCalendarNote', `Starting with NPDateStr: ${NPDateStr}, todoTypeName: ${todoTypeName}, todoTextArg: ${todoTextArg}`)
-  try {
-    const todoType = todoTypeName === 'task' ? 'open' : 'checklist'
-    // Get calendar note to use
-    const note = DataStore.calendarNoteByDateString(NPDateStr)
-    if (note != null) {
-      // Get input either from passed argument or ask user
-      const todoText =
-        todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
-      logDebug('NPP/prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
-      smartPrependPara(note, todoText, todoType)
-
-      // Ask for cache refresh for this note
-      DataStore.updateCache(note, false)
-    } else {
-      logError('NPP/prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
-    }
-  } catch (err) {
-    logError('NPP/prependTodoToCalendarNote', `${err.name}: ${err.message}`)
-    await showMessage(err.message)
   }
 }
 
@@ -1886,7 +1811,6 @@ export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentPara
   }
   return parentsOnlyAtTop
 }
-
 /**
  * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
  * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
@@ -1920,29 +1844,6 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): 
   clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
 
   return childParas
-}
-
-/**
- * Get the parent paragraph for a given paragraph.
- * Note: not tested!
- * Note: could be moved to helper/paragraph.js
- * 
- * @param {number} thisParaLineIndex - The paragraph index for which to find the parent.
- * @param {Array<TParagraph>} paragraphs - The array of all paragraphs.
- * @returns {TParagraph | null} - The parent paragraph or null if no parent is found.
- */
-export function getParentPara(thisParaLineIndex: number, paragraphs: Array<TParagraph>): TParagraph | null {
-  const thisPara = paragraphs[thisParaLineIndex]
-  const paraIndentLevel = thisPara.indents
-
-  // Iterate backwards from the current paragraph to find the parent
-  for (let i = thisParaLineIndex - 1; i >= 0; i--) {
-    const potentialParent = paragraphs[i]
-    if (potentialParent.indents < paraIndentLevel) {
-      return potentialParent // Found the parent
-    }
-  }
-  return null // No parent found
 }
 
 /**

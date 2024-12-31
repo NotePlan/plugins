@@ -16,11 +16,12 @@
 flow-typed
 
 [lints]
-# warn on all sketchy-null checks
-sketchy-null=warn
-sketchy-number=warn
-unnecessary-optional-chain=warn
-# unused-promise=warn  # needs v0.201.0, but is not working for @jgclark
+# FIXME: all of the below seem to crash flow in VSCode
+#all=warn # warn on everything, except those specified. I don't see why this isn't working.
+#sketchy-null=warn
+#sketchy-number=warn
+#unnecessary-optional-chain=warn
+#unused-promise=warn  # was not working for @jgclark at v0.202
 
 [options]
 autoimports=false

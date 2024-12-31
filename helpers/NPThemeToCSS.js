@@ -617,7 +617,7 @@ export function pxToRem(thisFontSize: number, baseFontSize: number): string {
   // Note: Need to apply fudge to get it closer to actual size seen in NP Editor
   rem *= 0.95
   const output = `${String(rem.toPrecision(2))}rem`
-  logInfo('pxToRem', `${thisFontSize}px / ${baseFontSize} -> ${output}`)
+  // logDebug('pxToRem', `${thisFontSize}px / ${baseFontSize} -> ${output}`)
   return output
 }
 
