@@ -19,7 +19,7 @@ There are two main commands:
 
 As monitor dimensions vary widely, a window set layout is specific to the particular Mac computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
-You can also **delete window set** (alias **/sws**): Delete a saved set. You are shown a list of all existing window sets to choose from.
+You can also **delete window set** (alias **/sws**): You are shown a list of all existing window sets to choose from.
 
 [<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
@@ -28,6 +28,13 @@ Unfortunately because of limitations in the API that plugins use, WindowSets:
 1. can't control the width of split windows within the main NotePlan window.
 2. can't control the order of windows that overlap, as the API doesn't supply the z-order of windows when saving a set. (Nor can it control the z-order of windows when opening a set.)
 3. doesn't seem to be able to set size/position of floating Editor windows.
+
+### FAQ
+Q: Why does this plugin create a new folder for me called @WindowSet?
+A: This is the way that all the details of a saved set can be displayed to users who want to be able to do advanced configuration.
+
+Q: Can I delete this folder or re-organise it?
+A: Yes, you can delete it or move it if you don't intend to be doing advanced configuration (see below).
 
 ## Configuration
 Click the gear button on the **Window Tools** line in the Plugin Preferences panel, and configure the two settings accordingly:
@@ -123,5 +130,5 @@ Specific Calendar notes can be specified using their internal filenames (example
 
 For example, filenames of `{-1w}`, `{0w}`,`{1w}` respectively means last week, this week and next week's notes.
 
-### Specifiying Plugin Windows
+### Specifying Plugin Windows
 It will do its best to identify the plugin command used to create the window, however this is based on a lookup list, and so may not include everything. It will tell you if you need to manually update the Window Set definition: just search for the `?` which tell you where the command name needs adding.
