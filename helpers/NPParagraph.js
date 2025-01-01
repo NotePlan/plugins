@@ -21,15 +21,7 @@ import {
   WEEK_NOTE_LINK,
 } from '@helpers/dateTime'
 import { displayTitle } from '@helpers/general'
-import {
-  getFirstDateInPeriod,
-  getNPWeekData,
-  getMonthData,
-  getQuarterData,
-  getYearData,
-  nowDoneDateTimeString,
-  toLocaleDateTimeString
-} from '@helpers/NPdateTime'
+import { getFirstDateInPeriod, getNPWeekData, getMonthData, getQuarterData, getYearData, nowDoneDateTimeString, toLocaleDateTimeString } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
@@ -351,15 +343,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-          ? // $FlowIgnore(incompatible-call)
+        ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-          : dateStyle === 'date'
-            ? // $FlowIgnore(incompatible-call)
-            ` (${toLocaleDateTimeString(n.date)})`
-            : dateStyle === 'at'
-              ? // $FlowIgnore(incompatible-call)
-              ` @${hyphenatedDate(n.date)} `
-              : ''
+        : dateStyle === 'date'
+        ? // $FlowIgnore(incompatible-call)
+          ` (${toLocaleDateTimeString(n.date)})`
+        : dateStyle === 'at'
+        ? // $FlowIgnore(incompatible-call)
+          ` @${hyphenatedDate(n.date)} `
+        : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -489,7 +481,8 @@ export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showEr
       } else {
         if (showErrorToUser) {
           await showMessage(
-            `Non-synced items found in ${note.title || ''
+            `Non-synced items found in ${
+              note.title || ''
             } under heading "${heading}". This function should only be run when the block under the heading contains only synced copies. Change your preference/settings so that the Synced Copies heading is distinct`,
             'OK',
             'Block under Heading Contains Non Synced Copies',
@@ -899,10 +892,10 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
   } else {
     return Boolean(
       hasOverdueDayTag(para, false, asOfDayString) ||
-      hasOverdueWeekTag(para, false, asOfDayString) ||
-      hasOverdueMonthTag(para, false, asOfDayString) ||
-      hasOverdueQuarterTag(para, false, asOfDayString) ||
-      hasOverdueYearTag(para, false, asOfDayString),
+        hasOverdueWeekTag(para, false, asOfDayString) ||
+        hasOverdueMonthTag(para, false, asOfDayString) ||
+        hasOverdueQuarterTag(para, false, asOfDayString) ||
+        hasOverdueYearTag(para, false, asOfDayString),
     )
   }
 }
@@ -1332,13 +1325,10 @@ export function findParaFromStringAndFilename(filenameIn: string, content: strin
         const isTruncated = content.endsWith('...')
         const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
 
-        const isTruncated = content.endsWith('...')
-        const truncatedContent = isTruncated ? content.slice(0, -3) : content // only slice if truncated
-
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (isTruncated ? para.content.startsWith(truncatedContent) : para.content === content) {
-          // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+            // logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
             return para
           }
           c++
