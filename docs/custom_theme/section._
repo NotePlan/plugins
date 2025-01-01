@@ -4,7 +4,7 @@
   <div class='clearfix'>
     <% if (typeof nested === 'undefined') { %>
     <h3 class='fl m0' id='<%- slug(section.namespace) %>'>
-      <%- section.name %>  
+      <%- section.name %>
     </h3>
     <% } %>
     <% if (section.context && section.context.github) { %>
@@ -160,10 +160,10 @@
     <%= renderSectionList({ members: section.members.events, renderSection: renderSection, renderParamProperty: renderParamProperty, noun: 'Event' }) %>
   <% } %>
 
-  <div class='filenameLine'>
+    <div class='filenameLine'>
     <% const fna = section.context.file.split("/") %>
     <div class='py1 quiet mt1 prose-big'>Source File</div>
     <span class="filename"><pre><%- fna[fna.length-1] %></pre></span>
   </div>
-
+  
 </section>
