@@ -58,9 +58,8 @@ export async function getFilerSettings(): Promise<any> {
 
 /**
  * Function to write text either to top of note, bottom of note, or after a heading
- * Note: When written, there was no API function to deal with multiple selectedParagraphs,
- * but we can insert a raw text string.
- * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports
+ * Note: When written, there was no API function to deal with multiple selectedParagraphs, but we can insert a raw text string.
+ * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports.
  * @author @jgclark
  *
  * @param {TNote} destinationNote

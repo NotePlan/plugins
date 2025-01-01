@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 9.6.2024, for v1.1.0+
+// Last updated 2024-12-31, for v1.2.0
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -30,7 +30,7 @@ export {
 } from './noteLinks'
 export { addIDAndAddToOtherNote } from './IDs'
 export { archiveNoteUsingFolder } from './archive'
-export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
+// export { newNoteFromClipboard, newNoteFromSelection } from './newNote' Note: moved to NoteHelpers plugin.
 
 const pluginID = "jgclark.Filer"
 

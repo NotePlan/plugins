@@ -776,7 +776,9 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
   return projectNotesWithTags
 }
 /**
- * Get list of headings from a note, optionally including markdown markers
+ * Get list of headings from a note, optionally including markdown markers.
+ * Note: If the first 'title' line matches the note title, then skip it (as it's the title itself).
+ * Note: There is no right-trimming of the heading text, as this can cause problems with NP API calls which don't do trimming when you expect they would.
  * @author @dwertheimer (adapted from @jgclark)
  *
  * @param {TNote} note - note to get headings from
@@ -802,6 +804,8 @@ export function getHeadingsFromNote(
   } else {
     headingParas = note.paragraphs.filter((p) => p.type === 'title')
   }
+
+  // If this is the title line, skip it
   if (headingParas.length > 0) {
     if (headingParas[0].content === note.title) {
       headingParas = headingParas.slice(1)
@@ -813,7 +817,7 @@ export function getHeadingsFromNote(
       for (let i = 0; i < p.headingLevel; i++) {
         prefix += spacer
       }
-      return `${prefix} ${p.content}`
+      return `${prefix} ${p.content.trimLeft()}`
     })
   }
   if (optionCreateNewHeading) {

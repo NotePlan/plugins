@@ -261,6 +261,7 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
 
 /**
  * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use, or the top or bottom of the note.
+ * Note: Any whitespace on the end of the heading text is left in place, as otherwise this would cause issues with NP API calls that take heading parameter.
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
@@ -612,6 +613,14 @@ export async function chooseNote(
   return noteToReturn ?? null
 }
 
+/**
+ * Used as part of chooseHeading (above) and Dashboard, to handle special instructions -- inserting a new heading, or inserting at top or bottom of the note.
+ * If there are no special instructions, it just returns the heading as is.
+ * @param {TNote} note
+ * @param {number} headingLevel - The level of the heading to add (1-5) where requested
+ * @param {string} chosenHeading - The text of the new heading to add (where requested)
+ * @returns {string} headingToReturn
+ */
 export async function processChosenHeading(note: TNote, headingLevel: number = 2, chosenHeading: string): Promise<string> {
   let newHeading,
     headingToReturn = chosenHeading

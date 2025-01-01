@@ -1,7 +1,7 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
-## [1.0.0] - 2024-12-???
+## [1.0.0] - 2024-12-31
 ### New
 - the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
 

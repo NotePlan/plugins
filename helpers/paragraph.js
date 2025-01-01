@@ -420,7 +420,7 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
 }
 
 /**
- * Find a note's heading/title that matches the string given
+ * Find a note's heading/title that matches the string given.
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *
@@ -430,10 +430,10 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
  * @tests in jest file
  */
-export function findHeading(note: CoreNoteFields, heading: string, includesString: boolean = false): TParagraph | null {
-  if (heading && heading !== '') {
+export function findHeading(note: CoreNoteFields, headingToFind: string, includesString: boolean = false): TParagraph | null {
+  if (headingToFind && headingToFind !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
+    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(headingToFind) : paragraph.content.trim() === headingToFind.trim()))
 
     if (para) return para
   }

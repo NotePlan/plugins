@@ -111,5 +111,43 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res[0].content).toEqual(note2.paragraphs[0].content)
       })
     })
+
+    describe('getHeadingsFromNote', () => {
+      const note = {
+        filename: 'foof.md',
+        type: 'Notes',
+        title: 'TEST Note title',
+        paragraphs: [
+          { content: 'TEST Note title', type: 'title', lineIndex: 0, headingLevel: 1 },
+          { content: '  First heading', type: 'title', lineIndex: 1, headingLevel: 2 },
+          { content: 'foo', type: 'done', lineIndex: 2, headingLevel: 2 },
+          { content: 'bar', type: 'open', lineIndex: 3, headingLevel: 2 },
+          { content: 'baz', type: 'list', lineIndex: 4, headingLevel: 2 },
+          { content: ' L2 heading ', type: 'title', lineIndex: 5, headingLevel: 2 },
+          { content: 'baz', type: 'text', lineIndex: 6, headingLevel: 2 },
+          { content: 'L3 heading  ', type: 'title', lineIndex: 7, headingLevel: 3 },
+          { content: 'sojeiro awe', type: 'text', lineIndex: 8, headingLevel: 3 },
+          { content: '', type: 'empty', lineIndex: 3 },
+        ],
+      }
+      test('should find 3 headings; everything else false', () => {
+        const headings = NPNote.getHeadingsFromNote(note, false, false, false, false)
+        expect(headings.length).toEqual(3)
+      })
+      test('should find 3 headings left trimmed; everything else false', () => {
+        const headings = NPNote.getHeadingsFromNote(note, false, false, false, false)
+        expect(headings.length).toEqual(3)
+        expect(headings[0]).toEqual('First heading')
+        expect(headings[1]).toEqual('L2 heading ')
+        expect(headings[2]).toEqual('L3 heading  ')
+      })
+      test('should find 3 headings suitably trimmed; include markdown heading markers; everything else false', () => {
+        const headings = NPNote.getHeadingsFromNote(note, true, false, false, false)
+        expect(headings.length).toEqual(3)
+        expect(headings[0]).toEqual('## First heading')
+        expect(headings[1]).toEqual('## L2 heading ')
+        expect(headings[2]).toEqual('### L3 heading  ')
+      })
+    })
   })
 })
