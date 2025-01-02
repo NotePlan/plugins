@@ -30,13 +30,7 @@ import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems }
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
-import {
-  getDateStringFromCalendarFilename,
-  getNPMonthStr,
-  getNPQuarterStr,
-  filenameIsInFuture,
-  includesScheduledFutureDate,
-} from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -94,7 +88,7 @@ export async function getSomeSectionsData(
     if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
-    if (sectionCodesToGet.includes('DO') && config.showWeekSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
+    if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('LW') && config.showLastWeekSection) sections.push(...getLastWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('W') && config.showWeekSection) sections.push(...getThisWeekSectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('M') && config.showMonthSection) sections.push(...getThisMonthSectionData(config, useDemoData, useEditorWherePossible))
@@ -588,7 +582,9 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
   let isMention = false
   // const thisStartTime = new Date()
 
-  const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms).filter((t) => t !== sectionDetail.sectionName).join(',')
+  const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms)
+    .filter((t) => t !== sectionDetail.sectionName)
+    .join(',')
   logInfo('getTaggedSectionData', `ignoreTermsMinusTag: ${ignoreTermsMinusTagCSV}  (was: ${config.ignoreItemsWithTerms})`)
 
   if (useDemoData) {
@@ -630,7 +626,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
         for (const p of filteredTagParasFromNote) {
           // V1:
           // if (!ignoreTermsMinusTag || ignoreTermsMinusTag === '' || !p.content.includes(ignoreTermsMinusTag)) {
-          // V2: 
+          // V2:
           if (!isLineDisallowedByExcludedTerms(p.content, ignoreTermsMinusTagCSV)) {
             filteredTagParas.push(p)
           } else {
@@ -800,7 +796,11 @@ export async function getOverdueSectionData(config: TDashboardSettings, useDemoD
     logDebug('getOverdueSectionData', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     const overdueSectionDescription =
-      totalOverdue > itemCount ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${config.overdueSortOrder}` : `{count} ordered by ${config.overdueSortOrder}`
+      totalOverdue > itemCount
+        ? `first {count} of {totalCount} ${config.lookBackDaysForOverdue > 0 ? `from last ${String(config.lookBackDaysForOverdue)} days ` : ''}ordered by ${
+            config.overdueSortOrder
+          }`
+        : `{count} ordered by ${config.overdueSortOrder}`
 
     const section: TSection = {
       ID: sectionNumStr,
@@ -991,7 +991,7 @@ export async function getProjectSectionData(config: TDashboardSettings, useDemoD
   } else {
     // Get the next projects to review from the other plugin.
     // Note: this does not yet use 'Perspectives'.
-    if (!await pluginIsInstalled('jgclark.Reviews')) {
+    if (!(await pluginIsInstalled('jgclark.Reviews'))) {
       logDebug('getProjectSectionData', `jgclark.Reviews plugin is not installed, so not continuing.`)
       // $FlowIgnore[incompatible-return] we cannot return anything if the plugin is not installed
       return null
