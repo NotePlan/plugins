@@ -81,6 +81,7 @@ The following **Parameters** are available:
 | `format` | string | customize the format | `'format:"..."'` |
 | `allday_format` | string | customize format for all day events | `'allday_format:"..."` |
 
+`format` and `allday_format` use the same placeholders (surrounded by `*|...|*`) as above, and can be mixed with any markdown characters or other text and they will get replaced accordingly with the fields from each matching event found.
 You can include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*`, if the ATTENDEENAMES is not empty, then it will output the attendees list on a newline and after the text 'with '.
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
