@@ -70,12 +70,16 @@ You can customise the output by adding parameters to the commands. **Note**: the
 ```
 
 The following **Parameters** are available:
-- If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON)
-- If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false`
-- If you want to include only certain calendars, then add the following parameter `calendarSet:"list,of,calendar,names"`
-- If you want to include calendar name mapping (see discussion above), then add something like the following parameter `calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"`
-- If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` parameter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
-- If you wish to **format the list display** (only in `events()` command), you can add a `'format:"..."'` and/or an `'allday_format:"..."`. This uses the same placeholders (surrounded by `*|...|*`) as above, and can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found.
+
+| name | type | description | example |
+| --- | --- | --- | --- |
+| `includeHeadings` | boolean | adds heading "Events"| `includeHeadings: false` |
+| `includeAllDayEvents` | boolean | include/exclude all day events | `includeAllDayEvents: false` |
+| `calendarSet` | string | limit which calendars are included | `calendarSet:"list,of,calendar,names"` |
+| `calendarNameMappings` | string | customize the name of the calendars |`calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"` |
+| `daysToCover` | number | include more than the current day | `daysToCover: 3` includes today + 2 days |
+| `format` | string | customize the format | `'format:"..."'` |
+| `allday_format` | string | customize format for all day events | `'allday_format:"..."` |
 
 You can include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*`, if the ATTENDEENAMES is not empty, then it will output the attendees list on a newline and after the text 'with '.
 
