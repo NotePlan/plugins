@@ -71,9 +71,10 @@ export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
 export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
-// Tests for all interval types
+// Tests for all calendar period types
 export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
 export const RE_IS_SCHEDULED: RegExp = new RegExp(`>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`)
+export const RE_IS_SCHEDULED_CAPTURES: RegExp = new RegExp(`>((${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today))`, 'g')
 
 // @done(...)
 export const RE_DONE_DATE_TIME: RegExp = new RegExp(`@done\\(${RE_DATE_TIME}\\)`) // find @done(DATE TIME)
@@ -184,8 +185,22 @@ export const isYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_BARE_
  * @param {string} content
  * @returns {boolean} true if the content contains a date in the form YYYY-MM-DD or a >today or weekly note
  */
-// export const isScheduled = (content: string): boolean => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_NP_WEEK_SPEC).test(content)
 export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
+
+/**
+ * Find occurrence(s) of dates scheduled for a specific date (or has a >today tag) in a string.
+ * @author @jgclark
+ * @param {string} content
+ * @returns {Array<string>} array of NP dates, without leading '>' (e.g. ['2022-01-01', '2022-01-02'])
+ */
+export function findScheduledDates(content: string): Array<string> {
+  const matches = content.matchAll(RE_IS_SCHEDULED_CAPTURES)
+  const dates = []
+  for (const match of matches) {
+    dates.push(match[1])
+  }
+  return dates
+}
 
 /**
  * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end.

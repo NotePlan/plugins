@@ -66,6 +66,40 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+   * findScheduledDates()
+   */
+  describe('findScheduledDates()' /* function */, () => {
+    test('should return nothing on empty string', () => {
+      const result = dt.findScheduledDates('')
+      expect(result).toEqual([])
+    })
+    test('should find single >ISO date', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething')
+      expect(result).toEqual(['2020-01-01'])
+    })
+    test('should find single >today', () => {
+      const result = dt.findScheduledDates('foo >today sinething')
+      expect(result).toEqual(['today'])
+    })
+    test('should find single >week date', () => {
+      const result = dt.findScheduledDates('foo >2025-W01 sinething')
+      expect(result).toEqual(['2025-W01'])
+    })
+    test('should not find single ISO date without >', () => {
+      const result = dt.findScheduledDates('foo 2020-01-01 sinething')
+      expect(result).toEqual([])
+    })
+    test('should find multiple >ISO dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-01-04')
+      expect(result).toEqual(['2020-01-01', '2025-01-04'])
+    })
+    test('should find multiple types of >dates', () => {
+      const result = dt.findScheduledDates('foo >2020-01-01 sinething >2025-W52')
+      expect(result).toEqual(['2020-01-01', '2025-W52'])
+    })
+  })
+
+  /*
    * isWeeklyNote()
    */
   describe('isWeeklyNote()' /* function */, () => {
