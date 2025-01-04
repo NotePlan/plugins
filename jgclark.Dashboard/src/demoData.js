@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -32,8 +32,8 @@ export const openTodayItems: Array<TSectionItem> = [
       lineIndex: 0,
       title: thisDateStr,
       priority: 0,
-      content: 'silly long timeblocked task 10:00-23:30',
-      rawContent: 'silly long timeblocked task 10:00-11:30',
+      content: 'silly long timeblocked task at 10:00-23:30',
+      rawContent: 'silly long timeblocked task at 10:00-11:30',
       prefix: '* ',
       indentLevel: 0,
     },
@@ -83,6 +83,21 @@ export const openTodayItems: Array<TSectionItem> = [
       indentLevel: 0,
     },
   },
+  {
+    ID: '0-4',
+    itemType: 'checklist',
+    para: {
+      noteType: 'Calendar',
+      type: 'list', // Note: this is a list, not an open item
+      filename: thisFilename,
+      lineIndex: 5,
+      priority: 0,
+      content: 'bullet with a time block at 11:30-12:30',
+      rawContent: 'bullet with a time block at 11:30-12:30',
+      prefix: '- ',
+      indentLevel: 0,
+    },
+  },
 ]
 export const refTodayItems: Array<TSectionItem> = [
   {
@@ -95,8 +110,8 @@ export const refTodayItems: Array<TSectionItem> = [
       lineIndex: 5,
       title: 'Mission Partners',
       priority: 0,
-      content: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
-      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ 08:00-09:00',
+      content: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
+      rawContent: 'Update display board with CFL visit https://bcfd.org.uk/ at 08:00-10:00',
       prefix: '* ',
       hasChild: true,
       indentLevel: 0,

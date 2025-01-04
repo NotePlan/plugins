@@ -2,12 +2,14 @@
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
 // Filters and sorts items to be shown in a Section
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
+import moment from 'moment/min/moment-with-locales'
 import type { TSection, TSectionItem } from '../../../types.js'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev'
+import { getStartTimeStrFromParaContent, getEndTimeStrFromParaContent } from '@helpers/timeblocks'
 
 type UseSectionSortAndFilter = {
   filteredItems: Array<TSectionItem>,
@@ -23,63 +25,92 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   const [limitApplied, setLimitApplied] = useState < boolean > (false)
 
   useEffect(() => {
-    const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
-    // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
-
-    // Find highest priority seen
-    let maxPrioritySeen = -1
-    for (const i of items) {
-      if (i.para?.priority && i.para.priority > maxPrioritySeen) {
-        maxPrioritySeen = i.para.priority
+    // Handle TB section differently
+    if (section.sectionCode === 'TB') {
+      logDebug('useSectionSortAndFilter', `Starting for TB section with ${items.length} items`)
+      // Filter out all non-current timeblocks, and then if any remain, just show the first.
+      // Note: assumes they come in (start) time order.
+      const currentTBItems = items.filter((i) => {
+        const currentTimeMom = moment()
+        const para = i.para
+        if (!para) return false
+        // Borrowing code from getCurrentTimeBlockPara
+        const startTimeStr = getStartTimeStrFromParaContent(para.content)
+        const endTimeStr = getEndTimeStrFromParaContent(para.content)
+        const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+        const endTimeMom = moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+        return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
       }
+      )
+      const currentTBItemsToShow = (currentTBItems.length)
+        ? currentTBItems[0]
+        : []
+      // FIXME: this isn't showing just 1 item
+      setFilteredItems(currentTBItemsToShow)
+      setItemsToShow(currentTBItems)
+      setFilteredOut(0)
+      setLimitApplied(false)
+    } else {
+    // All other sections
+      const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
+      // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
+
+      // Find highest priority seen
+      let maxPrioritySeen = -1
+      for (const i of items) {
+        if (i.para?.priority && i.para.priority > maxPrioritySeen) {
+          maxPrioritySeen = i.para.priority
+        }
+      }
+      // and then filter out lower-priority items (if wanted)
+      const filteredItems = filterPriorityItems
+        ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
+        : items.slice()
+      const priorityFilteringHappening = items.length > filteredItems.length
+      // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
+
+      filteredItems.sort(itemSort)
+      // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
+
+      const filteredOrderedItems = reorderChildrenAfterParents(filteredItems)
+      // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
+
+      // If more than limitToApply, then just keep the first items, otherwise keep all
+      const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
+      const itemsToShow = limitToApply > 0 ? filteredOrderedItems.slice(0, limitToApply) : filteredOrderedItems.slice()
+      const limitApplied = items.length > itemsToShow.length
+
+      // Add 'filtered out' display line if relevant
+      const numFilteredOut = items.length - itemsToShow.length
+      if (numFilteredOut > 0) {
+        itemsToShow.push({
+          ID: `${section.ID}-Filter`,
+          itemType: 'filterIndicator',
+          para: {
+            content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOut >= 2 ? 'items' : 'item'} currently hidden`,
+            filename: '',
+            type: 'text',
+            noteType: 'Notes',
+            rawContent: '',
+            priority: -1,
+            indentLevel: 0
+          },
+        })
+      }
+
+      setFilteredItems(filteredItems)
+      setItemsToShow(itemsToShow)
+      setFilteredOut(numFilteredOut)
+      setLimitApplied(limitApplied)
     }
-    // and then filter out lower-priority items (if wanted)
-    const filteredItems = filterPriorityItems
-      ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
-      : items.slice()
-    const priorityFilteringHappening = items.length > filteredItems.length
-    // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
-
-    filteredItems.sort(itemSort)
-    // logDebug('useSectionSortAndFilter', `sorted: ${String(filteredItems.map(fi => fi.ID).join(','))}`)
-
-    const filteredOrderedItems = reorderChildrenAfterParents(filteredItems)
-    // logDebug('useSectionSortAndFilter', `after reordering children: ${String(filteredOrderedItems.map(fi => fi.ID).join(','))}`)
-
-    // If more than limitToApply, then just keep the first items, otherwise keep all
-    const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
-    const itemsToShow = limitToApply > 0 ? filteredOrderedItems.slice(0, limitToApply) : filteredOrderedItems.slice()
-    const limitApplied = items.length > itemsToShow.length
-
-    // Add 'filtered out' display line if relevant
-    const numFilteredOut = items.length - itemsToShow.length
-    if (numFilteredOut > 0) {
-      itemsToShow.push({
-        ID: `${section.ID}-Filter`,
-        itemType: 'filterIndicator',
-        para: {
-          content: `There ${numFilteredOut >= 2 ? 'are' : 'is'} also ${String(numFilteredOut)} ${priorityFilteringHappening ? 'lower-priority' : ''} ${numFilteredOut >= 2 ? 'items' : 'item'} currently hidden`,
-          filename: '',
-          type: 'text',
-          noteType: 'Notes',
-          rawContent: '',
-          priority: -1,
-          indentLevel: 0
-        },
-      })
-    }
-
-    setFilteredItems(filteredItems)
-    setItemsToShow(itemsToShow)
-    setFilteredOut(numFilteredOut)
-    setLimitApplied(limitApplied)
   }, [section, items, dashboardSettings])
 
   return { filteredItems, itemsToShow, numFilteredOut, limitApplied }
 }
 
-export function     // sort items by priority, startTime, endTime, content
-  itemSort(a: TSectionItem, b: TSectionItem): number {
+// sort items by priority, startTime, endTime
+// Note: deliberately not using alphabetic on content, so original note order is preserved as far as possible
+export function itemSort(a: TSectionItem, b: TSectionItem): number {
   // Sort by priority (first)
   const priorityA = a.para?.priority ?? 0
   const priorityB = b.para?.priority ?? 0
@@ -106,12 +137,6 @@ export function     // sort items by priority, startTime, endTime, content
   } else if (b.para?.endTime) {
     return 1
   }
-
-  // // Finally sort by content (alphabetic)
-  // Note: removed as I can't see a good reason for it
-  // const contentA = a.para?.content.toLowerCase() ?? ''
-  // const contentB = b.para?.content.toLowerCase() ?? ''
-  // return contentA.localeCompare(contentB)
 
   // Leave in original order
   return 0

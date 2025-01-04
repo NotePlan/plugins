@@ -5,6 +5,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { clo, JSP, logDebug, logInfo, logError } from './dev'
+import { displayTitle } from './general'
 import { isTermInMarkdownPath, isTermInURL } from './paragraph'
 import { findLongestStringInArray } from './utils'
 
@@ -24,7 +25,7 @@ export const RE_TIME_TO = `\\s?(\\-|\\–|\\~)\\s?`
 // export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)` // this is now a near dupe of helpers/dateTime
 // export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)` // this is now a dupe of helpers/dateTime
 const RE_START_OF_LINE = `(?:^|\\s)`
-const RE_END_OF_LINE = `(?=\\s|$)`
+// const RE_END_OF_LINE = `(?=\\s|$)`
 
 //-----------------------------------------------------------------------------
 // NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
@@ -216,7 +217,7 @@ export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
 }
 
 /**
- * Decide whether this paragraph contains an active time block.
+ * Decide whether this paragraph contains a time block.
  * Note: Needs 'timeblockTextMustContainString' (which may be empty), to avoid calling DataStore function.
  * @tests available for jest
  * @author @jgclark
@@ -229,6 +230,49 @@ export function isTimeBlockPara(para: TParagraph, timeblockTextMustContainString
   // To keep the code simpler, this now just calls a very similar function
   return isTimeBlockLine(para.content, timeblockTextMustContainString)
 }
+
+/**
+ * Decide whether this paragraph contains an current or future time block.
+ * Note: does not do date-checking, only time-checking.
+ * Will not return true if the apparent time block is in a URL or markdown link.
+ * Note: Safe to use when This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
+ * @author @jgclark
+ * @param {TParagraph} para
+ * @param {string} mustContainParaArg string that must be present in a line for it to count as a timeblock. (Not optional, but can be empty string, in which case no check is done.)
+ * @returns {boolean}
+ */
+export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStringArg: string): boolean {
+  if (!isTypeThatCanHaveATimeBlock(para) || !isTimeBlockLine(para.content, mustContainStringArg)) {
+    return false
+  }
+  const tbString = getTimeBlockString(para.content)
+  // Check if this time block is in a URL, in which case treat as not a valid time block
+  if (isTermInURL(tbString, para.content)) {
+    return false
+  }
+  // Finally check to see if this timeblock contains the current or future time
+  const timeBlockString = getTimeBlockString(para.content)
+
+  // See if this is between those times (including start time but excluding end time)
+  // V3 using Moment
+  const currentTimeMom = moment()
+  const startTimeStr = getStartTimeStrFromParaContent(para.content)
+  // const endTimeStr = getEndTimeStrFromParaContent(para.content)
+  const endTimeStr = '23:59'
+  const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+  const endTimeMom = moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+  logDebug('isActiveOrFutureTimeBlockPara', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${timeBlockString}`)
+
+  // if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')) {
+  if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[]')) {
+    logDebug('isActiveOrFutureTimeBlockPara', `Found active or future timeblock ${timeBlockString} in para {${para.content}} from note '${displayTitle(para.note)}'`)
+    return true
+  }
+  // Otherwise not a current or future time block
+  return false
+}
+
+// TODO: write isCurrentTimeBlockPara() function
 
 /**
  * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line).
@@ -383,8 +427,9 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
         continue
       }
       if (isTimeBlockLine(para.content, mustContainString)) {
-        // const timeBlockString = getTimeBlockString(para.content)
+        const timeBlockString = getTimeBlockString(para.content)
 
+        // See if this is between those times (including start time but excluding end time)
         // V3 using Moment
         const startTimeStr = getStartTimeStrFromParaContent(para.content)
         const endTimeStr = getEndTimeStrFromParaContent(para.content)
@@ -392,9 +437,8 @@ export function getCurrentTimeBlockPara(note: TNote, excludeClosedParas: boolean
         const endTimeMom = moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
         // logDebug('getCurrentTimeBlock', `${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${timeBlockString}`)
 
-        // See if this is between those times (including start time but excluding end time)
         if (currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')) {
-          // logDebug('getCurrentTimeBlock', `Found current timeblock ${timeBlockString} in para {${para.content}}`)
+          logDebug('getCurrentTimeBlock', `Found current timeblock ${timeBlockString} in para {${para.content}} from note '${displayTitle(note)}'`)
           return para
         }
       } else {

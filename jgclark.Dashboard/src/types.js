@@ -108,7 +108,8 @@ export type TPerspectiveSettings = Array<TPerspectiveDef>
 //-----------------------------------------------------------------------------
 // Other types
 
-export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
+// FIXME: remove extra one later
+export type TSectionCode = 'DT' | 'DY' | 'DO' | 'W' | 'LW' | 'M' | 'Q' | 'TAG' | 'PRIORITY' | 'OVERDUE' | 'PROJ' | 'TB' | '_TB' // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section, TB = Top Bar / TimeBlock
 
 export type TSectionDetails = { sectionCode: TSectionCode, sectionName: string, showSettingName: string }
 

@@ -184,7 +184,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
       logPerspectives(perspectiveSettings)
     }
-    clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
+    // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
     clo(perspSettings, `getPerspectiveSettings: after ensureDefaultPerspectiveExists perspSettings=`)
     return perspSettings

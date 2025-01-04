@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // A grid layout for items within a section.
 // Called by ItemGrid component.
-// Last updated for v2.1.0.a
+// Last updated for v2.1.1
 //--------------------------------------------------------------------------
 
 import React from 'react'
@@ -26,7 +26,7 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
   ? items.filter(si => !(si.para?.type === "checklist")) 
   : items
 
-  const visibleItems = tasksToShow.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />)
+  const visibleItems = tasksToShow.length ? tasksToShow.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />) : []
 
   const sectionBackgroundColor = (tasksToShow.length === 0 || tasksToShow[0].itemType === 'itemCongrats')
     ? `color-mix(in srgb, var(--bg-main-color), green 4%)`

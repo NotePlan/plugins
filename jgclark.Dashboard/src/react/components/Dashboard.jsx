@@ -15,7 +15,10 @@ import {
   dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority,
   // allSectionDetails
 } from '../../constants.js'
-import { getListOfEnabledSections, getDisplayListOfSectionCodes } from '../../dashboardHelpers'
+import {
+  getListOfEnabledSections,
+  // getDisplayListOfSectionCodes
+} from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 import type {
   TSectionCode,
@@ -70,7 +73,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, dispatchPerspectiveSettings, dispatchDashboardSettings, updatePluginData } =
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } =
     context
 
   const { sections: origSections, lastFullRefresh } = pluginData
@@ -170,7 +173,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     }
   }, [dashboardSettings])
 
-  // Durinv DEV, temporary code to output variable changes to Chrome DevTools console
+  // During DEV, temporary code to output variable changes to Chrome DevTools console
   const logChanges = (label: string, value: any) =>
     !window.webkit ? logDebug(`Dashboard`, `${label}${!value || Object.keys(value).length === 0 ? ' (not intialized yet)' : ' changed vvv'}`, value) : null
   useEffect(() => {
@@ -190,28 +193,32 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     // If we did a force reload (DEV only) of the full sections data, no need to load the rest.
     // But if we are doing a normal load, then get the rest of the section data incrementally.
-    // This executes before globalSharedData is saved into state
+    // Note: This executes before globalSharedData is saved into state
     logInfo(
       'Dashboard/useEffect [] (startup only)',
-      `lastFullRefresh: ${lastFullRefresh.toString()} and sections.length: ${sections.length}: ${sections.map((s) => s.sectionCode).join(', ')}`,
+      `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`,
     )
 
     // Note: changed from "<= 2" to "=== 1"
     // TODO: DBW had an idea about a cleaner way to trigger this
+    // TODO: Look to see if there's a way to avoid having this pinging back and forth asking for more data.
+    // DBW: clearly likes playing Tennis!  But is it necessary here?!? Can we not just send the data into a queue for Section to process?
     if (origSections.length === 1) {
       // Send all enabledSection codes other than the first one already shown
-      const sectionCodesToAdd = enabledSectionCodes.filter((sc) => sc !== origSections[0].sectionCode)
-      logInfo('Dashboard/useEffect [] (startup only)', `- initial section is ${origSections[0].sectionCode}. sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
-      sendActionToPlugin(
-        'incrementallyRefreshSomeSections',
-        {
-          actionType: 'incrementallyRefreshSomeSections',
-          sectionCodes: sectionCodesToAdd,
-          logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1`,
-        },
-        'Dashboard loaded',
-        true,
-      )
+      const sectionCodesToAdd = origSections.length ? enabledSectionCodes.filter((sc) => sc !== origSections[0].sectionCode) : enabledSectionCodes
+      logInfo('Dashboard/useEffect [] (startup only)', `- sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
+      if (sectionCodesToAdd.length > 0) {
+        sendActionToPlugin(
+          'incrementallyRefreshSomeSections',
+          {
+            actionType: 'incrementallyRefreshSomeSections',
+            sectionCodes: sectionCodesToAdd,
+            logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1`,
+          },
+          'Dashboard loaded',
+          true,
+        )
+      }
     }
   }, [])
 

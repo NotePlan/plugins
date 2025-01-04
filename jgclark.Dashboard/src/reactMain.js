@@ -364,7 +364,7 @@ export async function getInitialDataForReactWindowObjectForReactView(perspective
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
     }
     const dashboardSettings: TDashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
-    clo(dashboardSettings, `getInitialDataForReactWindowObjectForReactView: dashboardSettings=`)
+    // clo(dashboardSettings, `getInitialDataForReactWindowObjectForReactView: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)
     logDebug('getInitialDataForReactWindowObjectForReactView', `lastFullRefresh = ${String(pluginData.lastFullRefresh)}`)
@@ -403,7 +403,7 @@ export async function getInitialDataForReactWindow(dashboardSettings: TDashboard
   // Important Note: If we need to force load everything, it's easy.
   // But if we don't then 2 things are needed:
   // - the getSomeSectionsData() for just the Today section(s)
-  // - then once the HTML Window is available, Dashboard.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
+  // - then once the HTML Window is available, Dashboard.jsx realises that there are exactly 1 sections, and kicks off incrementallyRefreshSomeSections to generate the others
   // const logSettings = await getLogSettings()
   const sections =
     dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true

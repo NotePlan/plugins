@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -12,7 +12,7 @@ import type { TDashboardSettings, TParagraphForDashboard, TSectionCode, TSection
 import { allSectionCodes } from './constants.js'
 import { getNumCompletedTasksTodayFromNote } from './countDoneTasks'
 import {
-  createSectionItemsFromParas,
+  createSectionOpenItemsFromParas,
   createSectionItemObject,
   getDashboardSettings,
   // getDisplayListOfSectionCodes,
@@ -69,7 +69,7 @@ export async function getAllSectionsData(useDemoData: boolean = false, forceLoad
 
 /**
  * Generate data for some specified sections (subject to user currently wanting them as well)
- * NOTE: Always refreshes today and the TAG sections
+ * NOTE: Always refreshes today section
  * @param {Array<string>} sectionCodesToGet (default: allSectionCodes)
  * @param {boolean} useDemoData (default: false)
  * @param {boolean} useEditorWherePossible?
@@ -85,6 +85,7 @@ export async function getSomeSectionsData(
     const config: TDashboardSettings = await getDashboardSettings()
 
     let sections: Array<TSection> = []
+    // FIXME: why does it fail when this line is commented out? But doesn't fail when the TB section is disabled by the user?
     if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
@@ -166,7 +167,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
         //   itemCount++
         // })
         // Iterate and write items for first (or combined) section
-        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
         logTimer('getDataForDashboard', startTime, `- finished finding monthly items from ${dateStr}`)
@@ -298,7 +299,7 @@ export function getThisMonthSectionData(config: TDashboardSettings, useDemoData:
           //   itemCount++
           // })
           // Iterate and write items for first (or combined) section
-          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }
@@ -375,7 +376,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
         // })
 
         // Iterate and write items for first (or combined) section
-        items = createSectionItemsFromParas(sortedOrCombinedParas, sectionNumStr)
+        items = createSectionOpenItemsFromParas(sortedOrCombinedParas, sectionNumStr)
         itemCount += items.length
 
         // logDebug('getDataForDashboard', `- finished finding Quarterly items from ${dateStr} after ${timer(startTime)}`)
@@ -501,7 +502,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
           //   itemCount++
           // })
           // Iterate and write items for this section
-          items = createSectionItemsFromParas(sortedRefParas, sectionNumStr)
+          items = createSectionOpenItemsFromParas(sortedRefParas, sectionNumStr)
           itemCount += items.length
         }
       }
@@ -564,7 +565,7 @@ export function getTaggedSections(config: TDashboardSettings, useDemoData: boole
 /**
  * Generate data for a section for items with a Tag/Mention.
  * Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future.
- * TODO: Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
+ * Now also uses all the 'ignore' settings, other than any that are the same as this particular tag/mention.
  * @param {TDashboardSettings} config
  * @param {boolean} useDemoData?
  */
@@ -582,7 +583,7 @@ export function getTaggedSectionData(config: TDashboardSettings, useDemoData: bo
   let isMention = false
   // const thisStartTime = new Date()
 
-  const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms)
+  const ignoreTermsMinusTagCSV: string = stringListOrArrayToArray(config.ignoreItemsWithTerms, ',')
     .filter((t) => t !== sectionDetail.sectionName)
     .join(',')
   logInfo('getTaggedSectionData', `ignoreTermsMinusTag: ${ignoreTermsMinusTagCSV}  (was: ${config.ignoreItemsWithTerms})`)
