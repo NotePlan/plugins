@@ -9,14 +9,14 @@ import { convertStrikethroughToHTML, getGlobalSharedData, sendToHTMLWindow, getC
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
-import { getDashboardSettings, getLogSettings, getNotePlanSettings } from './dashboardHelpers'
+import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
 import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
 import { getPerspectiveSettings, setActivePerspective, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
-import { refreshSomeSections } from './refreshClickHandlers'
+import { incrementallyRefreshSomeSections } from './refreshClickHandlers'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -229,19 +229,16 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
   keys.forEach((key) => (dashboardSettings[key] = false))
   const sectionsToShow = limitToSections.split(',')
   sectionsToShow.forEach((sectionCode) => {
-    // For all sections other than 'DT' (which has to be shown)
-    if (sectionCode !== 'DT') {
-      const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
-      if (showSectionKey) {
+    const showSectionKey = allSectionDetails.find((section) => section.sectionCode === sectionCode)?.showSettingName
+    if (showSectionKey) {
+      // $FlowIgnore
+      dashboardSettings[showSectionKey] = true
+    } else {
+      if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
         // $FlowIgnore
-        dashboardSettings[showSectionKey] = true
+        dashboardSettings[`showTagSection_${sectionCode}`] = true
       } else {
-        if (sectionCode.startsWith('@') || sectionCode.startsWith('#')) {
-          // $FlowIgnore
-          dashboardSettings[`showTagSection_${sectionCode}`] = true
-        } else {
-          logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
-        }
+        logWarn(pluginJson, `updateSectionFlagsToShowOnly: sectionCode '${sectionCode}' not found in allSectionDetails. Continuing with others.`)
       }
     }
   })
@@ -324,10 +321,20 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-    refreshSomeSections({ sectionCodes: ['DT'] }, true)
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
+}
+
+/**
+ * This is called from Dashboard.jsx when the React Window has loaded.
+ * It's used to start populating the sections.
+ * @returns {Promise<void>}
+ */
+export async function reactWindowLoaded(): Promise<void> {
+  logDebug('reactWindowLoaded', `--> React Window reported back to plugin that it has loaded <--`)
+  const enabledSections = getListOfEnabledSections(await getDashboardSettings())
+  await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'refreshSomeSections' }, false, true)
 }
 
 /**
@@ -531,10 +538,7 @@ export async function getPluginData(dashboardSettings: TDashboardSettings, persp
   // - the getSomeSectionsData() for just the Today section(s)
   // - then once the HTML Window is available, Dialog.jsx realises that <= 2 sections, and kicks off incrementallyRefreshSomeSections to generate the others
   // const logSettings = await getLogSettings()
-  const sections =
-    dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true
-      ? await getAllSectionsData(useDemoData, true, true)
-      : await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
+  const sections = dashboardSettings.FFlag_ForceInitialLoadForBrowserDebugging === true ? await getAllSectionsData(useDemoData, true, true) : [] // was: await getSomeSectionsData([allSectionDetails[0].sectionCode], useDemoData, true)
 
   const NPSettings = getNotePlanSettings()
 

@@ -12,7 +12,9 @@ import React, { useEffect, useRef, useMemo } from 'react'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx'
 import useRefreshTimer from '../customHooks/useRefreshTimer.jsx'
 import {
-  dontDedupeSectionCodes, sectionDisplayOrder, sectionPriority,
+  dontDedupeSectionCodes,
+  sectionDisplayOrder,
+  sectionPriority,
   // allSectionDetails
 } from '../../constants.js'
 import {
@@ -27,6 +29,7 @@ import type {
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
+import { reactWindowLoaded } from '../../reactMain.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
@@ -51,6 +54,8 @@ declare var globalSharedData: {
   },
 }
 
+declare function runPluginCommand(command: string, id: string, args: Array<any>): void
+
 type Props = {
   pluginData: Object, // the data that was sent from the plugin in the field "pluginData"
 }
@@ -73,8 +78,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   // Define getContext function
   const getContext = () => contextRef.current
 
-  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } =
-    context
+  const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = context
 
   const { sections: origSections, lastFullRefresh } = pluginData
   const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
@@ -188,38 +192,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
     logChanges('pluginData', pluginData)
   }, [pluginData])
 
-  // Load the rest of the content (Today section loads first)
-  // DBW: "Just runs once when it loads"
+  // At Startup, request the Dashboard Sections content by telling the plugin that Dashboard is loaded
+  // Sections starts out as empty array, so this is the first time it will be populated
   useEffect(() => {
-    // If we did a force reload (DEV only) of the full sections data, no need to load the rest.
-    // But if we are doing a normal load, then get the rest of the section data incrementally.
     // Note: This executes before globalSharedData is saved into state
-    logInfo(
-      'Dashboard/useEffect [] (startup only)',
-      `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`,
-    )
-
-    // Note: changed from "<= 2" to "=== 1"
-    // TODO: DBW had an idea about a cleaner way to trigger this
-    // TODO: Look to see if there's a way to avoid having this pinging back and forth asking for more data.
-    // DBW: clearly likes playing Tennis!  But is it necessary here?!? Can we not just send the data into a queue for Section to process?
-    if (origSections.length === 1) {
-      // Send all enabledSection codes other than the first one already shown
-      const sectionCodesToAdd = origSections.length ? enabledSectionCodes.filter((sc) => sc !== origSections[0].sectionCode) : enabledSectionCodes
-      logInfo('Dashboard/useEffect [] (startup only)', `- sectionCodesToAdd => ${String(sectionCodesToAdd)}`)
-      if (sectionCodesToAdd.length > 0) {
-        sendActionToPlugin(
-          'incrementallyRefreshSomeSections',
-          {
-            actionType: 'incrementallyRefreshSomeSections',
-            sectionCodes: sectionCodesToAdd,
-            logMessage: `Kicking off incremental "refresh" of remaining section ${String(sectionCodesToAdd)} b/c sections.length === 1`,
-          },
-          'Dashboard loaded',
-          true,
-        )
-      }
-    }
+    logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
+    logDebug('Dashboard', `React: sending reactWindowLoaded command to plugin`)
+    runPluginCommand('reactWindowLoaded', 'jgclark.Dashboard', [''])
   }, [])
 
   // Change the title when the section data changes
@@ -317,9 +296,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  if (sections.length === 0) {
-    return <div className="dashboard">Error: No Sections to display ...</div>
-  }
+
   const autoUpdateEnabled = parseInt(dashboardSettings?.autoUpdateAfterIdleTime || '0') > 0
 
   const showDebugPanel = (pluginData?.logSettings?._logLevel === 'DEV' && dashboardSettings?.FFlag_DebugPanel) || false

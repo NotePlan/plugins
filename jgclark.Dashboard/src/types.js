@@ -80,6 +80,7 @@ export type TDashboardSettings = {
   showProjectSection: boolean,
   showQuarterSection: boolean,
   showTimeBlockSection: boolean,
+  showTodaySection: boolean,
   showTomorrowSection: boolean,
   showWeekSection: boolean,
   showYesterdaySection: boolean,

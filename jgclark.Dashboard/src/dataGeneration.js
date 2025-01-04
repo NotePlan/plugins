@@ -85,8 +85,7 @@ export async function getSomeSectionsData(
     const config: TDashboardSettings = await getDashboardSettings()
 
     let sections: Array<TSection> = []
-    // FIXME: why does it fail when this line is commented out? But doesn't fail when the TB section is disabled by the user?
-    if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
+    // if (sectionCodesToGet.includes('TB')) sections.push(getTimeBlockSectionData(config, useDemoData))
     if (sectionCodesToGet.includes('DT')) sections.push(...getTodaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DY') && config.showYesterdaySection) sections.push(...getYesterdaySectionData(config, useDemoData, useEditorWherePossible))
     if (sectionCodesToGet.includes('DO') && config.showTomorrowSection) sections.push(...getTomorrowSectionData(config, useDemoData, useEditorWherePossible))

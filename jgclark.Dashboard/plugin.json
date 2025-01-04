@@ -141,6 +141,12 @@
     },
     {
       "hidden": true,
+      "name": "reactWindowLoaded",
+      "description": "React Window sends this message from Dashboard.jsx when it has initialised",
+      "jsFunction": "reactWindowLoaded"
+    },
+    {
+      "hidden": true,
       "name": "onUpdateOrInstall",
       "description": "test: onUpdateOrInstall",
       "jsFunction": "onUpdateOrInstall"

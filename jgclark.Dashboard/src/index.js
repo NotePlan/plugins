@@ -41,6 +41,7 @@ export {
   setSetting,
   setSettings,
   makeSettingsAsCallback,
+  reactWindowLoaded,
 } from './reactMain.js'
 
 export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPHooks'

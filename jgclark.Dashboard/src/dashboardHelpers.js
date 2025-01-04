@@ -26,10 +26,7 @@ import { getAPIDateStrFromDisplayDateStr, getTimeStringFromHM, getTodaysDateHyph
 import { clo, clof, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { sendToHTMLWindow, getGlobalSharedData } from '@helpers/HTMLView'
-import {
-  filterOutParasInExcludeFolders,
-  isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders
-} from '@helpers/note'
+import { filterOutParasInExcludeFolders, isNoteFromAllowedFolder, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { isAChildPara } from '@helpers/parentsAndChildren'
 // import { isTermInURL } from '@helpers/paragraph'
@@ -37,7 +34,8 @@ import { caseInsensitiveSubstringIncludes } from '@helpers/search'
 import { getNumericPriorityFromPara } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
-  getStartTimeObjFromParaContent, getTimeBlockString,
+  getStartTimeObjFromParaContent,
+  getTimeBlockString,
   isActiveOrFutureTimeBlockPara,
   // isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE
 } from '@helpers/timeblocks'
@@ -135,7 +133,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // Work out which sections to show
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
-  sectionsToShow.push('DT') // always show this TODO: make this optional later
+  if (config.showTodaySection) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')
   if (config.showWeekSection) sectionsToShow.push('W')
@@ -151,7 +149,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
 
 /**
  * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many).
- * 
+ *
  * @param {Array<TParagraph>} origParas
  * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
@@ -171,7 +169,8 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           const nextLineIndex = p.lineIndex + 1
           clo(
             p,
-            `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${pp[nextLineIndex]?.type
+            `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
+              pp[nextLineIndex]?.type
             }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
           )
           // clo(p.contentRange, `contentRange for paragraph`)
@@ -271,9 +270,7 @@ export function getOpenItemParasForTimePeriod(
     // let openParas = dashboardSettings.ignoreChecklistItems
     //   ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
     //   : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    let openParas = alsoReturnTimeblockLines
-      ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
-      : parasToUse.filter((p) => isOpen(p))
+    let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
     if (dashboardSettings.ignoreChecklistItems) {
       parasToUse = parasToUse.filter((p) => isOpenTask(p))
     }
@@ -283,7 +280,13 @@ export function getOpenItemParasForTimePeriod(
     // Filter out any blank lines
     openParas = openParas.filter((p) => p.content.trim() !== '')
     // Log this
-    logTimer('OpenItemPFCTP', startTime, `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}+ not blank' filter: ${openParas.length} paras`)
+    logTimer(
+      'OpenItemPFCTP',
+      startTime,
+      `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${
+        alsoReturnTimeblockLines ? '+ timeblocks ' : ''
+      }+ not blank' filter: ${openParas.length} paras`,
+    )
     const tempSize = openParas.length
 
     // Keep only items not scheduled (other than >today)
@@ -344,7 +347,11 @@ export function getOpenItemParasForTimePeriod(
       if (dashboardSettings.ignoreChecklistItems) {
         refOpenParas = refOpenParas.filter((p) => isOpenTask(p))
       }
-      logTimer('getOpenItemPFCTP', startTime, `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`)
+      logTimer(
+        'getOpenItemPFCTP',
+        startTime,
+        `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
+      )
 
       // Get list of allowed folders (using both include and exlcude settings)
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)
@@ -365,7 +372,7 @@ export function getOpenItemParasForTimePeriod(
         refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
         // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
       } else {
-      // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+        // logDebug('getOpenItemParasForCurrent...', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
       }
     }
 
@@ -843,7 +850,9 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
   let lastIndent3ParentID = ''
   const items: Array<TSectionItem> = []
   for (const socp of sortedOrCombinedParas) {
-    if (!isOpen(socp)) { continue }
+    if (!isOpen(socp)) {
+      continue
+    }
     const thisID = `${sectionNumStr}-${itemCounter}`
     const thisSectionItemObject = createSectionItemObject(thisID, socp)
     // Now add parentID where relevant
@@ -852,12 +861,12 @@ export function createSectionOpenItemsFromParas(sortedOrCombinedParas: Array<TPa
         socp.indentLevel === 1
           ? lastIndent0ParentID
           : socp.indentLevel === 2
-            ? lastIndent1ParentID
-            : socp.indentLevel === 3
-              ? lastIndent2ParentID
-              : socp.indentLevel === 4
-                ? lastIndent3ParentID
-                : '' // getting silly by this point, so stop
+          ? lastIndent1ParentID
+          : socp.indentLevel === 3
+          ? lastIndent2ParentID
+          : socp.indentLevel === 4
+          ? lastIndent3ParentID
+          : '' // getting silly by this point, so stop
       thisSectionItemObject.parentID = parentParaID
       // logDebug(``, `- found parentID ${parentParaID} for ID ${thisID}`)
     }
