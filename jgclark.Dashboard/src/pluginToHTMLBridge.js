@@ -104,7 +104,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const updatedContent = data.updatedContent ?? ''
     let result: TBridgeClickHandlerResult = { success: false } // use this for each call and return a TBridgeClickHandlerResult object
 
-    logDebug(`*************** bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} ***************`)
+    logDebug(`************* bridgeClickDashboardItem: ${actionType}${logMessage ? `: "${logMessage}"` : ''} *************`)
     // clo(data, 'bridgeClickDashboardItem received data object; data=')
     if (!actionType === 'refreshEnabledSections' && (!content || !filename)) throw new Error('No content or filename provided for refresh')
 
@@ -342,10 +342,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         result = await doCommsBridgeTest(data)
         break
       }
-      // case 'turnOffPriorityItemsFilter': {
-      //   result = await turnOffPriorityItemsFilter()
-      //   break
-      // }
       default: {
         logWarn('bridgeClickDashboardItem', `bridgeClickDashboardItem: can't yet handle type ${actionType}`)
       }
@@ -396,7 +392,10 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
       if (filename !== '') {
         // update the cache for the note, as it might have changed
-        const _updatedNote = await DataStore.updateCache(getNoteByFilename(filename), false) /* Note: added await in case Eduard makes it an async at some point */
+        const thisNote = getNoteByFilename(filename)
+        if (thisNote) {
+          const res = await DataStore.updateCache(thisNote, false) /* Note: added await in case Eduard makes it an async at some point */
+        }
       }
       if (actionsOnSuccess.includes('REMOVE_LINE_FROM_JSON')) {
         logDebug(
@@ -426,12 +425,10 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       }
 
       if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
-        // await refreshSomeSections({ ...data, sectionCodes: [sectionCode] })
         logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
       } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
-        // await refreshAllSections() // this works fine
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })
       } else if (actionsOnSuccess.includes('REFRESH_ALL_CALENDAR_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_CALENDAR_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(allCalendarSectionCodes)}) ..`)
@@ -460,15 +457,15 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         const wantedsectionCodes = handlerResult.sectionCodes ?? []
         if (!wantedsectionCodes?.length) logError('processActionOnReturn', `REFRESH_SECTION_IN_JSON: no sectionCodes provided`)
         logInfo('processActionOnReturn', `REFRESH_SECTION_IN_JSON: calling getSomeSectionsData (for ['${String(wantedsectionCodes)}']) ...`)
-        // await refreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: wantedsectionCodes })
       }
 
       if (actionsOnSuccess.includes('START_DELAYED_REFRESH_TIMER')) {
-        logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: setting startDelayedRefreshTimer in pluginData`)
-        const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
-        reactWindowData.pluginData.startDelayedRefreshTimer = true
-        await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
+        // TEST: turning this off for now
+        logInfo('processActionOnReturn', `START_DELAYED_REFRESH_TIMER: NOT NOW setting startDelayedRefreshTimer in pluginData`)
+        // const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
+        // reactWindowData.pluginData.startDelayedRefreshTimer = true
+        // await sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'UPDATE_DATA', reactWindowData, `Setting startDelayedRefreshTimer`)
       }
     } else {
       logDebug('processActionOnReturn', `-> failed handlerResult(false) ${handlerResult.errorMsg || ''}`)
