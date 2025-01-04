@@ -16,6 +16,7 @@ import { getPerspectiveSettings, setActivePerspective, getActivePerspectiveDef, 
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
+import { refreshSomeSections } from './refreshClickHandlers'
 import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '@helpers/dev'
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -323,6 +324,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
     // now ask np.Shared to open the React Window with the data we just gathered
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+    refreshSomeSections({ sectionCodes: ['DT'] }, true)
   } catch (error) {
     logError('showDashboardReact', JSP(error))
   }
