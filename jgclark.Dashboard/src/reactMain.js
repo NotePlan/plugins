@@ -334,7 +334,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 export async function reactWindowLoaded(): Promise<void> {
   logDebug('reactWindowLoaded', `--> React Window reported back to plugin that it has loaded <--`)
   const enabledSections = getListOfEnabledSections(await getDashboardSettings())
-  await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'refreshSomeSections' }, false, true)
+  await incrementallyRefreshSomeSections({ sectionCodes: enabledSections, actionType: 'incrementallyRefreshSomeSections' }, false, true)
 }
 
 /**
