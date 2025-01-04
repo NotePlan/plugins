@@ -31,12 +31,7 @@ import MultiActionBar from './MultiActionBar.jsx'
 // import StatusButton from './StatusButton.jsx'
 // import Button from './Button.jsx'
 import { columnSpec, conditionalRowStyles, customTableStyles, sortByDaysOverdue } from './dataTableFormatting.jsx'
-
-// color this component's output differently in the console
-const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+import { logDebug } from '@helpers/react/reactDev'
 
 // REACT DATA TABLE COMPONENT:
 // https://react-data-table-component.netlify.app/?path=/docs/api-props--page
@@ -112,7 +107,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param { Array<{[string]:mixed}>|{[string]:mixed}} changesToApply - array of objects with just the ID (required) and the fields that you want to change, e.g. [{id: 1, highlight: true}, {id: 2, highlight: false}]
    */
   const updateTableData = (changesToApply: Array<{ [string]: mixed }> | { [string]: mixed }): void => {
-    logDebug(`Webview: updateTableData dataToSave:${JSON.stringify(changesToApply || '')}`, changesToApply)
+    logDebug(`Webview: updateTableData dataToSave:${JSON.stringify(changesToApply || '')}`, JSON.stringify(changesToApply))
     if (!changesToApply) throw new Error('updateTableData[AfterDebounce]: changesToApply must be called with an array of changes. not:${typeof changesToApply}')
     const changes = Array.isArray(changesToApply) ? changesToApply : [changesToApply]
     let newData = { ...data }

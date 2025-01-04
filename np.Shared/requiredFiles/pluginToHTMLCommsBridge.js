@@ -20,8 +20,6 @@
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
-const consoleStyle = 'background: #222; color: #E14067' //dark pink
-
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
  * This command be used to run any plugin command, but it's better to use one single command: sendMessageToPlugin(args) for everything

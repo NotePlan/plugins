@@ -55,10 +55,6 @@ export type PassedData = {
 // <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 // ------------------------------------------------------------
 
-const commsBridge = `
-  <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-`
-
 /**
  * Show dashboard using Demo dashboard, and last used perspective.
  */
@@ -295,7 +291,6 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
       <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-      ${commsBridge}
       `
     const windowOptions = {
       windowTitle: data.title,
