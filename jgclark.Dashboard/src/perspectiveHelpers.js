@@ -2,21 +2,23 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions for Perspectives
-// Last updated for v2.1.0.b
+// Last updated for v2.1.1
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getDashboardSettings, setPluginData } from './dashboardHelpers.js'
+import { getDashboardSettings, getOpenItemParasForTimePeriod, setPluginData } from './dashboardHelpers.js'
 import { dashboardSettingsDefaults } from './react/support/settingsHelpers'
 import { getTagSectionDetails, showSectionSettingItems } from './react/components/Section/sectionHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings.js'
+import { getCurrentlyAllowedFolders } from './perspectivesShared'
 import { parseSettings } from './shared'
 import type { TDashboardSettings, TPerspectiveDef } from './types'
-// import { PERSPECTIVE_ACTIONS } from './react/reducers/actionTypes'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
 import { clo, clof, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFoldersMatching } from '@helpers/folders'
-import { chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
+import { getFolderFromFilename, getFoldersMatching } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
+import { getNoteByFilename } from '@helpers/note'
+import { chooseNote, chooseOption, getInputTrimmed, showMessage } from '@helpers/userInput'
 
 export type TPerspectiveOptionObject = { isModified?: boolean, label: string, value: string }
 
@@ -123,8 +125,9 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
 /**
  * Log out short list of key Perspective details
  * @param {Array<TPerspectiveDef>} settingsArr
+ * @param {boolean?} logAllKeys? (default: false)
  */
-export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys: boolean = false): void {
+export function logPerspectives(settingsArr: Array<TPerspectiveDef>, logAllKeys: boolean = false): void {
   for (const thisP of settingsArr) {
     const name = thisP.name === '-' ? 'Default (-)' : thisP.name
     logDebug(
@@ -132,8 +135,11 @@ export function logPerspectives(settingsArr: Array<TPerspectiveDef>, showAllKeys
       `- ${name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''} has ${Object.keys(thisP.dashboardSettings).length} dashboardSetting keys`,
     )
 
-    if (showAllKeys) {
-      clo(thisP.dashboardSettings, `logPerspectives: -`)
+    if (logAllKeys) {
+      clo(thisP.dashboardSettings, `${name}'s full dashboardSettings:`)
+    } else {
+      // Show key settings for Perspective filtering
+      clof(thisP.dashboardSettings, `${name}'s main dashboardSettings:`, ['includedFolders', 'excludedFolders', 'ignoreItemsWithTerms', 'applyIgnoreTermsToCalendarHeadingSections', 'separateSectionForReferencedNotes'])
     }
   }
 }
@@ -152,9 +158,10 @@ function ensureDefaultPerspectiveExists(perspectiveSettings: Array<TPerspectiveD
 
 /**
  * Get all perspective settings (as array of TPerspectiveDef)
+ * @param {boolean?} logAllKeys? whether to log every setting key:value or just the key ones (default: false)
  * @returns {Array<TPerspectiveDef>} all perspective settings
  */
-export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> {
+export async function getPerspectiveSettings(logAllKeys: boolean = false): Promise<Array<TPerspectiveDef>> {
   try {
     // Note: (in an earlier place this code was used) we think following (newer API call) is unreliable.
     let pluginSettings = DataStore.settings
@@ -169,7 +176,7 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
     if (perspectiveSettingsStr && perspectiveSettingsStr !== '[]') {
       // must parse it because it is stringified JSON (an array of TPerspectiveDef)
       perspectiveSettings = parseSettings(perspectiveSettingsStr) ?? []
-      logPerspectives(perspectiveSettings)
+      // logPerspectives(perspectiveSettings, logAllKeys)
     } else {
       // No settings found, so will need to set from the defaults instead
       logWarn('getPerspectiveSettings', `None found: will load in the defaults:`)
@@ -182,26 +189,17 @@ export async function getPerspectiveSettings(): Promise<Array<TPerspectiveDef>> 
       const dashboardSettings = await getDashboardSettings()
       defaultPersp.dashboardSettings = { ...defaultPersp.dashboardSettings, ...cleanDashboardSettings(dashboardSettings) }
       perspectiveSettings = replacePerspectiveDef(perspectiveSettings, defaultPersp)
-      logPerspectives(perspectiveSettings)
+      // logPerspectives(perspectiveSettings, logAllKeys)
     }
     // clo(perspectiveSettings, `getPerspectiveSettings: before ensureDefaultPerspectiveExists perspectiveSettings=`)
     const perspSettings = ensureDefaultPerspectiveExists(perspectiveSettings)
-    clo(perspSettings, `getPerspectiveSettings: after ensureDefaultPerspectiveExists perspSettings=`)
+    logDebug('getPerspectiveSettings', `After ensureDefaultPerspectiveExists():`)
+    logPerspectives(perspectiveSettings, logAllKeys)
     return perspSettings
   } catch (error) {
     logError('getPerspectiveSettings', `Error: ${error.message}`)
     return []
   }
-}
-
-/**
- * Get active Perspective name (or '-' if none)
- * @param {Array<TPerspectiveDef>} perspectiveSettings
- * @returns {string}
- */
-export function getActivePerspectiveName(perspectiveSettings: Array<TPerspectiveDef>): string {
-  const activeDef = getActivePerspectiveDef(perspectiveSettings)
-  return activeDef ? activeDef.name : '-'
 }
 
 /**
@@ -215,6 +213,16 @@ export function getActivePerspectiveDef(perspectiveSettings: Array<TPerspectiveD
     return null
   }
   return perspectiveSettings.find((s) => s.isActive === true) || null
+}
+
+/**
+ * Get active Perspective name (or '-' if none)
+ * @param {Array<TPerspectiveDef>} perspectiveSettings
+ * @returns {string}
+ */
+export function getActivePerspectiveName(perspectiveSettings: Array<TPerspectiveDef>): string {
+  const activeDef = getActivePerspectiveDef(perspectiveSettings)
+  return activeDef ? activeDef.name : '-'
 }
 
 /**
@@ -362,6 +370,63 @@ export function getAllowedFoldersInCurrentPerspective(perspectiveSettings: Array
   const excludedFolderArr = stringListOrArrayToArray(activeDef.dashboardSettings.excludedFolders ?? '', ',')
   const folderListToUse = getFoldersMatching(includedFolderArr, true, excludedFolderArr)
   return folderListToUse
+}
+
+/**
+ * Show how current perspective filtering applies to a given note
+ * @param {string?} filenameArg optional -- if not supplied, then will ask user for a note
+ */
+export async function logPerspectiveFiltering(filenameArg?: string): Promise<void> {
+  try {
+    // The following logs the most important fields for each perspective definition
+    const allPerspectiveDefs: Array<TPerspectiveDef> = await getPerspectiveSettings(false)
+    const dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    const activePerspectiveName = getActivePerspectiveName(allPerspectiveDefs)
+    // Get list of allowed folders
+    const allowedFolders1: Array<string> = getAllowedFoldersInCurrentPerspective(allPerspectiveDefs)
+    logInfo('logPerspectiveFiltering', `${String(allowedFolders1.length)} allowedFolders for '${activePerspectiveName}': [${String(allowedFolders1)}]`)
+    const allowedFolders2 = getCurrentlyAllowedFolders(dashboardSettings)
+    logInfo('logPerspectiveFiltering', `${String(allowedFolders2.length)} currentlyAllowedFolders for '${activePerspectiveName}': [${String(allowedFolders2)}]`)
+
+    // Get note to test against -- from param or user
+    let filename = ''
+    let note: ?TNote
+
+    if (filenameArg && filenameArg !== '') {
+      note = getNoteByFilename(filenameArg) // need helper that does both Calendar and Notes type
+      // filename = filenameArg
+    } else {
+      // Ask user
+      note = await chooseNote(false, true, [], 'Choose calendar note to test', true, false)
+    }
+    if (!note) {
+      throw new Error(`User cancelled, or otherwise couldn't get note for filename '${filename}'. Stopping.`)
+    }
+    filename = note.filename
+    const folder = getFolderFromFilename(filename)
+    console.log('')
+    logInfo('logPerspectiveFiltering', `Starting for active perspective **${activePerspectiveName}**:`)
+    logInfo('logPerspectiveFiltering', `for filename: '${filename}', folder: '${folder}', note: '${displayTitle(note)}'`)
+
+    // Find open items if this is a Calendar Note
+    if (note.type === 'Calendar') {
+      // Force generation of separate lists for testing purposes
+      dashboardSettings.separateSectionForReferencedNotes = true
+      const [openDashboardParas, refOpenDashboardParas] = getOpenItemParasForTimePeriod('<testing>', note, dashboardSettings, false)
+      logInfo('', `There are ${String(openDashboardParas.length)} lines valid for this perspective in this note:`)
+      openDashboardParas.forEach((p) => {
+        console.log(`  - ${p.lineIndex}: ${p.type}: ${p.content}`)
+      })
+      logInfo('', `There are ${String(refOpenDashboardParas.length)} lines valid for this perspective, referenced to this note:`)
+      refOpenDashboardParas.forEach((p) => {
+        console.log(`  - ${p.lineIndex}: ${p.type}: filename ${p.filename}: ${p.content}`)
+      })
+    } else {
+      // Not so obvious what to show for regular notes
+    }
+  } catch (error) {
+    logError('logPerspectiveFiltering', error.message)
+  }
 }
 
 //-----------------------------------------------------------------------------

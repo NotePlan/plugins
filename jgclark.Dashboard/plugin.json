@@ -95,24 +95,6 @@
       "hidden": false
     },
     {
-      "name": "Add new Perspective",
-      "description": "Add new Perspective from current settings.",
-      "jsFunction": "addNewPerspective",
-      "hidden": false
-    },
-    {
-      "name": "Delete Perspective",
-      "description": "Delete an existing Perspective.",
-      "jsFunction": "deletePerspective",
-      "hidden": false
-    },
-    {
-      "name": "Update current Perspective",
-      "description": "Update the current Perspective defintion",
-      "jsFunction": "updateCurrentPerspectiveDef",
-      "hidden": false
-    },
-    {
       "name": "Delete all Perspective Settings",
       "description": "Delete all Perspective Settings.",
       "jsFunction": "deleteAllNamedPerspectiveSettings",
@@ -141,9 +123,9 @@
     },
     {
       "hidden": true,
-      "name": "reactWindowLoaded",
+      "name": "reactWindowInitialised",
       "description": "React Window sends this message from Dashboard.jsx when it has initialised",
-      "jsFunction": "reactWindowLoaded"
+      "jsFunction": "reactWindowInitialised"
     },
     {
       "hidden": true,
@@ -163,9 +145,34 @@
       "description": "log perspective settings",
       "jsFunction": "getPerspectiveSettings",
       "hidden": false
+    },
+    {
+      "comment": "TODO: remove me in time",
+      "name": "test Perspective Filter",
+      "description": "show filtering results for a note",
+      "jsFunction": "logPerspectiveFiltering",
+      "hidden": false
     }
   ],
   "plugin.commands.unused": [
+    {
+      "name": "Add new Perspective",
+      "description": "Add new Perspective from current settings.",
+      "jsFunction": "addNewPerspective",
+      "hidden": false
+    },
+    {
+      "name": "Delete Perspective",
+      "description": "Delete an existing Perspective.",
+      "jsFunction": "deletePerspective",
+      "hidden": false
+    },
+    {
+      "name": "Update current Perspective",
+      "description": "Update the current Perspective defintion",
+      "jsFunction": "updateCurrentPerspectiveDef",
+      "hidden": false
+    },
     {
       "name": "buildListOfDoneTasksToday",
       "description": "test: buildListOfDoneTasksToday",
