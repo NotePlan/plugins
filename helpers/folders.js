@@ -36,7 +36,7 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
 
     // if requested filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = excludeSpecialFolders ? fullFolderList.filter((folder) => !folder.startsWith('@')) : fullFolderList
-    // logDebug('folders / getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
+    // logDebug('getFoldersMatching', `- after specials filter ->  ${reducedFolderList.length} reducedFolderList: [${reducedFolderList.toString()}]`)
 
     // If no inclusions or exclusions, make life easier and return all straight away
     if (inclusions.length === 0 && exclusions.length === 0) {
@@ -46,12 +46,9 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     // Also now delete '/' from reducedList (added back later if wanted)
     reducedFolderList.splice(reducedFolderList.indexOf('/'), 1)
 
-    // To aid partial matching, terminate all folder strings with a trailing /
-    let reducedTerminatedWithSlash: Array<string> = []
-    for (const f of reducedFolderList) {
-      reducedTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
-    }
-    // logDebug('folders / getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
+    // To aid partial matching, terminate all folder strings with a trailing /.
+    let reducedTerminatedWithSlash: Array<string> = reducedFolderList.map((f) => f.endsWith('/') ? f : `${f}/`)
+    // logDebug('getFoldersMatching', `- after termination ->  ${reducedTerminatedWithSlash.length} reducedTWS:[${reducedTerminatedWithSlash.toString()}]`)
 
     // const rootIncluded = true // inclusions.some((f) => f === '/')
     const rootExcluded = exclusions.some((f) => f === '/')
@@ -66,18 +63,19 @@ export function getFoldersMatching(inclusions: Array<string>, excludeSpecialFold
     // Remove root to make rest of processing easier
     const inclusionsWithoutRoot = inclusions.filter((f) => f !== '/')
     const exclusionsWithoutRoot = exclusions.filter((f) => f !== '/')
-    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)} and exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
+    // logDebug('getFoldersMatching', `- inclusionsWithoutRoot=${String(inclusionsWithoutRoot)}`)
+    // logDebug('getFoldersMatching', `- exclusionsWithoutRoot=${String(exclusionsWithoutRoot)}`)
 
     // filter reducedTerminatedWithSlash to exclude items in the exclusions list (if non-empty). Note: now case insensitive.
     if (exclusionsWithoutRoot.length > 0) {
       reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('folders / getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      // logDebug('getFoldersMatching',`- after exclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // filter reducedTerminatedWithSlash to only folders that start with an item in the inclusionsTerminatedWithSlash list (if non-empty). Note: now case insensitive.
     if (inclusionsWithoutRoot.length > 0) {
       reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => inclusionsWithoutRoot.some((f) => caseInsensitiveSubstringMatch(f, folder)))
-      // logDebug('folders / getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
+      // logDebug('getFoldersMatching',`- after inclusions -> ${reducedTerminatedWithSlash.length} reducedTWS: ${reducedTerminatedWithSlash.toString()}\n`)
     }
 
     // now remove trailing slash characters
