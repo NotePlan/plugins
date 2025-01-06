@@ -17,19 +17,18 @@ import {
   sectionPriority,
   // allSectionDetails
 } from '../../constants.js'
-import {
-  getListOfEnabledSections,
+// import {
+// getListOfEnabledSections,
   // getDisplayListOfSectionCodes
-} from '../../dashboardHelpers'
+// } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
-import type {
-  TSectionCode,
+// import type {
+// TSectionCode,
   // TPerspectiveSettings
-} from '../../types.js'
+// } from '../../types.js'
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
 import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
-import { reactWindowLoaded } from '../../reactMain.js'
 import { useAppContext } from './AppContext.jsx'
 import Dialog from './Dialog.jsx'
 // import useWatchForResizes from '../customHooks/useWatchForResizes.jsx' // jgclark removed in plugin so commenting out here
@@ -81,7 +80,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   const { reactSettings, setReactSettings, sendActionToPlugin, dashboardSettings, perspectiveSettings, updatePluginData } = context
 
   const { sections: origSections, lastFullRefresh } = pluginData
-  const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
+  // const enabledSectionCodes: Array<TSectionCode> = getListOfEnabledSections(dashboardSettings)
 
   const logSettings = pluginData.logSettings
 
@@ -197,8 +196,8 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
   useEffect(() => {
     // Note: This executes before globalSharedData is saved into state
     logInfo('Dashboard/useEffect [] (startup only)', `${sections.length} sections (${origSections.length} origSections): [${sections.map((s) => s.sectionCode).join(', ')}]`)
-    logDebug('Dashboard', `React: sending reactWindowLoaded command to plugin`)
-    runPluginCommand('reactWindowLoaded', 'jgclark.Dashboard', [''])
+    logDebug('Dashboard', `React: sending reactWindowInitialised command to plugin`)
+    runPluginCommand('reactWindowInitialised', 'jgclark.Dashboard', [''])
   }, [])
 
   // Change the title when the section data changes

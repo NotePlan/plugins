@@ -26,7 +26,7 @@ export type PassedData = {
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
-export function getInitialDataForReactWindowObjectForReactView(): PassedData {
+export function getInitialDataForReactWindow(): PassedData {
   const startTime = new Date()
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
   const pluginData = getInitialDataForReactWindow()
@@ -161,7 +161,7 @@ export async function testReactWindow(): Promise<void> {
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
     logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
     // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView()
+    const data = await getInitialDataForReactWindow()
 
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
