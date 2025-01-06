@@ -169,7 +169,7 @@ export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagra
           const nextLineIndex = p.lineIndex + 1
           clo(
             p,
-            `FYI⚠️: makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
+            `FYI 👉 makeDashboardParas: found indented children for ${p.lineIndex} "${p.content}" (indents:${p.indents}) in "${note.filename}" paras[p.lineIndex+1]= {${
               pp[nextLineIndex]?.type
             }} (${pp[nextLineIndex]?.indents || ''} indents), content: "${pp[nextLineIndex]?.content}".`,
           )
@@ -281,7 +281,7 @@ export function getOpenItemParasForTimePeriod(
     openParas = openParas.filter((p) => p.content.trim() !== '')
     // Log this
     logTimer(
-      'OpenItemPFCTP',
+      'getOpenItemPFCTP',
       startTime,
       `- after finding '${dashboardSettings.ignoreChecklistItems ? 'isOpenTaskNotScheduled' : 'isOpenNotScheduled'} ${
         alsoReturnTimeblockLines ? '+ timeblocks ' : ''
@@ -289,17 +289,17 @@ export function getOpenItemParasForTimePeriod(
     )
     const tempSize = openParas.length
 
-    // Keep only items not scheduled (other than >today)
+    // Keep only items not scheduled (other than >today or whatever calendar note we're on)
     const thisNoteDateSched = `>${theNoteDateHyphenated}`
     openParas = openParas.filter((p) => isOpenNotScheduled(p) || p.content.includes(thisNoteDateSched) || (isToday && p.content.includes('>today')))
-    // logTimer('OpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after not-scheduled-apart-from-today filter: ${openParas.length} paras`)
 
     // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content, latestDate))
     if (openParas.length !== tempSize) {
       // logDebug('getOpenItemPFCTP', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logTimer('OpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
+    logTimer('getOpenItemPFCTP', startTime, `- after 'future' filter: ${openParas.length} paras`)
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
@@ -308,6 +308,7 @@ export function getOpenItemParasForTimePeriod(
       // openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
       // V2
       openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
+      logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
       // Additionally apply to calendar headings in this note
       if (dashboardSettings.applyIgnoreTermsToCalendarHeadingSections) {
@@ -315,19 +316,18 @@ export function getOpenItemParasForTimePeriod(
           const thisHeading = p.heading
           return !isLineDisallowedByExcludedTerms(thisHeading, dashboardSettings.ignoreItemsWithTerms)
         })
-        logDebug('OpenItemPFCTP', `- after applying this to calendar headings as well: ${openParas.length} paras`)
+        logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
     } else {
-      // logDebug('OpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      logDebug('getOpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-    // logDebug('OpenItemPFCTP', `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
     // Filter out checklists with timeblocks, if wanted
     // Note: moved earlier
     // if (dashboardSettings.excludeChecklistsWithTimeblocks) {
     //   openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     // }
-    // logTimer('OpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
@@ -617,9 +617,10 @@ export function isLineDisallowedByExcludedTerms(lineContent: string, ignoreItems
   const ignoreTermsArr = stringListOrArrayToArray(ignoreItemsWithTerms, ',')
   // logDebug('isLineDisallowedByExcludedTerms', `using ${String(ignoreTermsArr.length)} exclusions [${ignoreTermsArr.toString()}]`)
 
-  // const matchFound = ignoreTermsArr.some((t) => lineContent.includes(t))
   const matchFound = caseInsensitiveSubstringIncludes(lineContent, ignoreTermsArr)
-  // logDebug('isLineDisallowedByExcludedTerms', `- Did ${matchFound ? 'find ' : 'NOT find'} matching term(s) amongst '${String(lineContent)}'`)
+  if (matchFound) {
+    logDebug('isLineDisallowedByExcludedTerms', `- DID find excluding term(s) [${ignoreTermsArr.toString()}] in '${String(lineContent)}'`)
+  }
   return matchFound
 }
 

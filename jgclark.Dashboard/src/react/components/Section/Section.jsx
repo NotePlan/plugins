@@ -207,8 +207,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * On normal width screen these are a row-based grid (1x3).
    * On narrow window, these are a column-based grid (3x1).
    * Then <SectionGrid> which contains the actual data items.
-   *
-   * TODO: add fields to CommandButton to allow use of the react input component, not the command bar
    */
   return hideSection ? null : (
     <div className="section">

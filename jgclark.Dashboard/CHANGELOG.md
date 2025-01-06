@@ -1,9 +1,23 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.1] 2025-01-02
+## [2.1.1] 2025-01-06
+### New
+- time blocks are now found in regular notes that reference to today (e.g. `>2025-01-04 at 11:00`) as well as calendar notes
+- new 'show Today' toggle, as you can now choose to hide the Today section. [This is in preparation for future changes.]
+- new '/test Perspective filter' command in case we still need more logging
+### Changed
+- eliminated some background refreshes -- feedback wanted on whether any sections are not fully up-to-date straight after an automatic or requested refresh
+- removed "Add new Perspective", "Delete Perspective" and "Update current Perspective" commands, as they're now more easily used in the Perspective dropdown menu.
 ### Fixed
-- fixed bug where Tomorrow section was not showing up.
+- some open tasks were being included in a Perspective when they shouldn't have been excluded by folder (thanks @ormler, @dwertheimer)
+- fixed the Tomorrow Section sometimes not showing
+- fixed the (re)schedule actions (e.g. "+1d", "+1w") in the task dialog box not firing in regular notes that are referenced to >today
+### Dev note
+- cut down logging
+- commented out `updateReactWindowData()`
+- removed unused version of `getInitialDataForReactWindow` and renamed what we are using to this same name
+- testing deactivation of `START_DELAYED_REFRESH_TIMER`
 
 ## [2.1.0] 2024-12-31
 A major effort by @jgclark and @dwertheimer over the last 5 months. There are lots of new things, particularly **Perspectives, that allow you to switch very quickly between different complete sets of settings**.

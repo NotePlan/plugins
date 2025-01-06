@@ -42,15 +42,13 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
       }
       )
-      const currentTBItemsToShow = (currentTBItems.length)
-        ? currentTBItems[0]
+      const firstTBItem = (currentTBItems.length)
+        ? currentTBItems.slice(0, 1)
         : []
-      // FIXME: this isn't showing just 1 item
-      setFilteredItems(currentTBItemsToShow)
-      setItemsToShow(currentTBItems)
-      setFilteredOut(0)
-      setLimitApplied(false)
-    } else {
+      setItemsToShow(firstTBItem)
+      // the following are set, but not really relevant in this case
+    }
+    else {
     // All other sections
       const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
       // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)

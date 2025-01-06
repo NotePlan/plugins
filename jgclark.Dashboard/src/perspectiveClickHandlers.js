@@ -170,7 +170,7 @@ export function setDashPerspectiveSettings(newDashboardSettings: TDashboardSetti
  * @returns {TBridgeClickHandlerResult}
  */
 export async function doPerspectiveSettingsChanged(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  clo(data, `dodoPerspectiveSettingsChangedSettingsChanged() starting with data = `)
+  clo(data, `doPerspectiveSettingsChanged() starting with data = `)
   const newSettings = data.settings
   if (!DataStore.settings || !newSettings || !Array.isArray(newSettings)) {
     return handlerResult(false, [], { errorMsg: `doPerspectiveSettingsChanged: newSettings is null or undefined.` })
