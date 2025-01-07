@@ -22,14 +22,14 @@ export const dashboardFilterDefs: Array<TSettingItem> = [
     key: 'ignoreChecklistItems',
     type: 'switch',
     default: false,
-    refreshAllOnChange: true
+    refreshAllOnChange: true,
   },
   {
     label: 'Hide duplicates?',
     key: 'hideDuplicates',
     type: 'switch',
     default: false,
-    description: "Only display one instance of each item, even if it's in multiple sections"
+    description: "Only display one instance of each item, even if it's in multiple sections",
   },
   {
     label: 'Exclude tasks that include time blocks?',
@@ -74,12 +74,14 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'What to Include and Exclude',
-    description: "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting.",
+    description:
+      "These 3 key settings control what folders and items are included and excluded in Dashboard's many sections. It includes the folders from the first setting, and then removes any specified from the next setting. Finally, individual lines in notes can be ignored by adding terms to the third setting.",
   },
   {
     key: 'includedFolders',
     label: 'Folders to Include',
-    description: "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.",
+    description:
+      "Comma-separated list of folder(s) to include when searching for open or closed tasks/checklists. The matches are partial, so 'Home' will include 'Home' and 'The Home Areas' etc. If left blank, all folders are included.",
     type: 'input',
     default: '',
     compactDisplay: true,
@@ -106,9 +108,8 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'applyIgnoreTermsToCalendarHeadingSections',
-    label: "Apply to sections under headings in Calendar notes?",
-    description:
-      "If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored.",
+    label: 'Apply to sections under headings in Calendar notes?',
+    description: 'If turned on, then all content in Calendar notes under headings that contains any of those phrases will be ignored.',
     type: 'switch',
     default: false,
     compactDisplay: true,
@@ -156,8 +157,9 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   },
   {
     key: 'useLiteScheduleMethod',
-    label: "Use simplified (re)scheduling method?",
-    description: "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. This is not the normal method NotePlan uses.",
+    label: 'Use simplified (re)scheduling method?',
+    description:
+      "If set then the item simply has its '>date' updated in the note it is in. It does not show with the special 🕓 task icon, and a copy isn't added into the date its being scheduled to. This is not the normal method NotePlan uses.",
     type: 'switch',
     default: false,
     dependsOnKey: 'rescheduleNotMove',
@@ -175,13 +177,13 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
   {
     type: 'heading',
     label: 'Display settings',
-    description: 'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
+    description:
+      'Settings that control how the Dashboard displays information. There are also toggles that control filtering of which Sections to show in the Filters dropdown menu.',
   },
   {
     key: 'maxItemsToShowInSection',
     label: 'Max number of items to show in a section?',
-    description:
-      "The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections.",
+    description: "The Dashboard isn't designed to show very large numbers of tasks. This sets the maximum number of items that will be shown at one time in each section.",
     type: 'number',
     default: '24',
     compactDisplay: true,
@@ -217,7 +219,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     description: 'Whether to show items that are referenced to a Calendar note from other notes in a separate section than those in the Calendar note itself.',
     type: 'switch',
     default: false,
-    refreshAllOnChange: true
+    refreshAllOnChange: true,
   },
   {
     label: 'Hide priority markers?',
@@ -231,7 +233,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'includeTaskContext',
     type: 'switch',
     default: true,
-    description: 'Whether to show the note link for an open task or checklist'
+    description: 'Whether to show the note link for an open task or checklist',
   },
   {
     label: 'Show folder name in note link?',
