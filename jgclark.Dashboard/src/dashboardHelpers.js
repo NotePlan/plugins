@@ -133,7 +133,7 @@ export function getListOfEnabledSections(config: TDashboardSettings): Array<TSec
   // Work out which sections to show
   const sectionsToShow: Array<TSectionCode> = []
   if (config.showTimeBlockSection) sectionsToShow.push('TB')
-  if (config.showTodaySection) sectionsToShow.push('DT')
+  if (config.showTodaySection || config.showTodaySection === undefined) sectionsToShow.push('DT')
   if (config.showYesterdaySection) sectionsToShow.push('DY')
   if (config.showTomorrowSection) sectionsToShow.push('DO')
   if (config.showWeekSection) sectionsToShow.push('W')
@@ -319,7 +319,10 @@ export function getOpenItemParasForTimePeriod(
         logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
     } else {
-      logDebug('getOpenItemPFCTP', `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
+      logDebug(
+        'getOpenItemPFCTP',
+        `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
+      )
     }
 
     // Filter out checklists with timeblocks, if wanted
