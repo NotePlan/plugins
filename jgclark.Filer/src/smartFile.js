@@ -31,6 +31,10 @@ type ParagraphForFiling = {
 
 function makeFilablePara(paragraph: TParagraph): ParagraphForFiling {
   let fp = {}
+  if (!paragraph || !paragraph.note) {
+    throw new Error(`makeFilablePara(): No valid paragraph passed`)
+  }
+
   if (paragraph.type === 'title') {
     const sectionBlock = getParagraphBlock(paragraph.note, paragraph.lineIndex, true, true)
     fp = {
@@ -62,18 +66,19 @@ function makeFilablePara(paragraph: TParagraph): ParagraphForFiling {
 //-----------------------------------------------------------------------------
 
 /**
- * Smartly file completed (done/cancelled) items to Done/Cancelled sections.
+ * Smartly file completed (done/cancelled) items in a note to its Done/Cancelled sections.
  * Only move if an item is completed, and all its subitems too (if any).
  * 
  * Then tidy up:
  * - remove duplicate blank lines or separators
  * - ? remove blank lines after headings
- * Then sort what remains, using Filer's "Tasks sort by user defaults" command, using its settings.
+ * Then sort what remains, using Task Sorting & Tool's "Tasks sort by user defaults" command, using its settings.
  * @author @jgclark
  */
+// eslint-disable-next-line require-await
 export async function smartFileToCompletedSections(filenameIn: string = ''): Promise<void> {
   try {
-    const note = filenameIn ? DataStore.noteByFilename(filenameIn) : Editor?.note ? Editor.note : null
+    const note = filenameIn ? DataStore.noteByFilename(filenameIn, 'Notes') : Editor?.note ? Editor.note : null
     if (!note) {
       // No note open or passed, so don't do anything.
       logWarn(pluginJson, 'archiveNoteUsingFolder(): No note passed or open in the Editor, so stopping.')

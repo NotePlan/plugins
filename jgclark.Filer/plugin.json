@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.5.2",
+  "noteplan.minAppVersion": "3.6.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Filer",
   "plugin.name": "📦 Filer",
@@ -9,7 +9,8 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
   "plugin.version": "1.2.0",
-  "plugin.lastUpdateInfo": "1.2.0: New '/smart duplicate note' commands. Fix for '/add sync'd copy to note' command.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
+  "plugin.lastUpdateInfo_future???": "1.3.0: New '/smart duplicate note' commands.\n1.2.0: Allow '/add sync'd copy to note' command to work on multiple lines.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
+  "plugin.lastUpdateInfo": "1.2.0: Extended '/add sync'd copy to note' command to work on multiple lines.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -21,7 +22,7 @@
         "sync",
         "lines"
       ],
-      "description": "Add a sync'd copy of the current line to a section in another note",
+      "description": "Add a sync'd copy of the current line(s) to a section in other note(s)",
       "jsFunction": "addIDAndAddToOtherNote"
     },
     {
@@ -158,6 +159,49 @@
       "jsFunction": "moveParasToNextWeekly"
     },
     {
+      "name": "quick move to Monthly note",
+      "alias": [
+        "qmtm",
+        "month"
+      ],
+      "description": "quick move a block of paragraphs to the current Monthly note",
+      "jsFunction": "moveParasToThisMonthly"
+    },
+    {
+      "name": "quick move to Next Monthly note",
+      "alias": [
+        "qmnm",
+        "month"
+      ],
+      "description": "quick move a block of paragraphs to Next Week's note",
+      "jsFunction": "moveParasToNextMonthly"
+    },
+    {
+      "name": "quick move to Quarterly note",
+      "alias": [
+        "qmtq",
+        "quarter"
+      ],
+      "description": "quick move a block of paragraphs to the current Quarterly note",
+      "jsFunction": "moveParasToThisQuarterly"
+    },
+    {
+      "name": "quick move to Next Quarterly note",
+      "alias": [
+        "qmnq",
+        "quarter"
+      ],
+      "description": "quick move a block of paragraphs to Next Quarter's note",
+      "jsFunction": "moveParasToNextQuarterly"
+    },
+    {
+      "name": "Filer: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    }
+  ],
+  "plugin.commands_future???": [
+    {
       "name": "smart duplicate note",
       "alias": [
         "sdn"
@@ -175,11 +219,6 @@
       "arguments": [
         "filename of note to work on"
       ]
-    },
-    {
-      "name": "Filer: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [
@@ -242,6 +281,33 @@
         "link"
       ],
       "default": "link",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "\"/add sync'd copy to note\" commands settings"
+    },
+    {
+      "key": "defaultHeadingToSyncTo",
+      "title": "Default section Heading to sync lines to",
+      "description": "(optional) If set, this avoids the question of which heading you want to '/add sync'd copy' to. (Note: needs to include the relevant number of '#' heading markers.)",
+      "type": "string",
+      "default": "## Actions",
+      "required": false
+    },
+    {
+      "key": "whereToAddNewHeadingInNote",
+      "title": "Where to add a new heading in the note",
+      "description": "If the default heading doesn't yet exist in the note, this controls whether it will first be added at the start or end of the note.",
+      "type": "string",
+      "choices": [
+        "start",
+        "end"
+      ],
+      "default": "start",
       "required": true
     },
     {

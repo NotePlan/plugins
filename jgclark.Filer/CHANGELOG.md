@@ -1,12 +1,17 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-## [1.2.0] - 2023-10-???
+<!-- ## [1.2.0] - 2023-10-???
 ### Added
 - ??? new **smart duplicate note** command. This takes the currently open regular (not calendar) note create a new one in the same folder that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note. See README for all details on this.
-- ??? new **/smart file to completed sections** command. This ...
+- ??? new **/smart file to completed sections** command. This ... -->
+ 
+## [1.2.0] - 2025-01-07
+### New
+- the **/add sync'd copy to note** command will now work on multiple lines -- and there's a new setting that allows you to set a default heading to sync all lines under. (for @chrismetcalf, closes #610)
+-  New **/quick move ...** commands for monthly and quarterly notes, not just daily and weekly notes.
 ### Fixed
-- undo a fix for the "/add sync'd copy to note" command, that appears now to have stopped it from working
+- fix regression in "/add sync'd copy to note" command.
 
 ## [1.1.5] - 2023-10-20
 ### Changed

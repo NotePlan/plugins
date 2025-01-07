@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Plugin to help move selected pargraphs to other notes
 // Jonathan Clark
-// Last updated 2024-10-14, for v1.2.0
+// Last updated 2025-01-07, for v1.2.0
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -17,6 +17,10 @@ export {
   moveParaBlock,
   moveParasToCalendarDate,
   moveParasToCalendarWeekly,
+  moveParasToNextMonthly,
+  moveParasToThisMonthly,
+  moveParasToNextQuarterly,
+  moveParasToThisQuarterly,
   moveParasToNextWeekly,
   moveParasToThisWeekly,
   moveParasToToday,

@@ -34,8 +34,8 @@ import {
   redToGreenInterpolation,
 } from '@helpers/HTMLView'
 import { removeAllDueDates } from '@helpers/NPParagraph'
-import { findStartOfActivePartOfNote, simplifyRawContent } from '@helpers/paragraph'
-import { getLineMainContentPos } from '@helpers/search'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { getLineMainContentPos, simplifyRawContent } from '@helpers/search'
 import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
   getInputTrimmed,

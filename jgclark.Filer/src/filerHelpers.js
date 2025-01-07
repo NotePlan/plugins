@@ -2,12 +2,11 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 9.6.2024, for v1.1.0+
+// last updated 2025-01-07, for v1.2.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
-// import { getSetting } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -22,13 +21,14 @@ export type FilerConfig = {
   allowNotePreambleBeforeHeading: boolean,
   useTightBlockDefinition: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
-  // justCompletedItems: boolean, // migrating to the next item
   typesToFile: string, // now a choice: all but incomplete tasks
   useBlocks: boolean,
   whereToAddInNote: string, // 'start' (default) or 'end'
   ignoreNoteLinkFilerTag: string,
-  copyOrMove: string, // 'copy' or 'move'. Note: not set in plugin settings, but in object to send from wrappers to main functions
+  copyOrMove: string, // 'copy' or 'move'. Note: not set in this plugin settings, but in object to send from wrappers to main functions, e.g. from x-callbacks
   recentDays: number,
+  defaultHeadingToSyncTo: string,
+  whereToAddNewHeadingInNote: string, // 'start' (default) or 'end'
   _logLevel: string,
 }
 
@@ -39,7 +39,7 @@ export async function getFilerSettings(): Promise<any> {
     // let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
     // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
 
-    // Get settings using Config system
+    // Get settings
     const config: FilerConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
@@ -81,25 +81,25 @@ export function addParasAsText(
   if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>') {
     // i.e. the first line in project or calendar note
     insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
-    logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
+    logDebug('Filer/addParasAsText', `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (headingToFind === '') {
     // blank return from chooseHeading has special meaning of 'end of note'
     insertionIndex = destinationNoteParas.length + 1
-    logDebug(pluginJson, `-> bottom of note, line ${insertionIndex}`)
+    logDebug('Filer/addParasAsText', `-> bottom of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
   } else if (whereToAddInSection === 'start') {
-    logDebug(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
+    logDebug('Filer/addParasAsText', `-> Inserting at start of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
 
   } else if (whereToAddInSection === 'end') {
-    logDebug(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
+    logDebug('Filer/addParasAsText', `-> Inserting at end of section '${headingToFind}'`)
     destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
 
   } else {
     // Shouldn't get here
-    logError(pluginJson, `Can't find heading '${headingToFind}'. Stopping.`)
+    logError('Filer/addParasAsText', `Can't find heading '${headingToFind}'. Stopping.`)
   }
 }

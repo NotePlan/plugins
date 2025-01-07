@@ -24,6 +24,10 @@ These 4 commands each moves lines to the current weekly note, using the same sel
 - **/quick move to Tomorrow's note** (alias **/qmtm**) -- Note: this is different from the existing 'Move Task To Tomorrow ⌘1' shortcut, which actually _schedules_ not moves.
 - **/quick move to Weekly note** (alias **/qmw**)
 - **/quick move to Next Weekly note** (alias **/qmnw**)
+- **/quick move to Monthly note** (alias **/qmm**)
+- **/quick move to Next Monthly note** (alias **/qmnm**)
+- **/quick move to Quarterly note** (alias **/qmq**)
+- **/quick move to Next Quarterly note** (alias **/qmnq**)
 
 They could be mapped to shortcut keys to make using them even faster.
 
@@ -34,11 +38,13 @@ This command (alias **/nnc**) takes the current text in the clipboard to form th
 This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
 
 ## /add sync'd copy to note
-This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
+This command (alias **/asc**) adds a sync'd copy of the current line(s) to a section in destination note(s) that you choose.  Here's a demo with two notes side by side, to make it clearer:
 
 ![add sync demo](add-link-line-demo-T2.gif)
 
-NB: This feature only works on single lines, not whole blocks, at the moment.
+The setting "Default section Heading to sync lines to" allows you to set the Heading in the destination note to sync items under. This is particularly useful if you select multiple lines to sync. Note: it needs to start with the appropriate number of  `#` Markdown heading markers.
+
+There's also a setting "Where to add a new heading in the note": if the default heading doesn't yet exist in the note, this controls whether it will first be added at the start or end of the note.
 
 ## /archive note keeping folder structure
 Move the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder.
@@ -96,10 +102,10 @@ You can also run from an x-callback call. At simplest this is:
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
 ```
 
-## /smart duplicate note
+<!-- ## /smart duplicate note
 From the current regular note create a new one that uses the same structure of headings, and moves over any open tasks/checklists for the new period, but no completed ones. 
 
-This is useful if you have notes for Areas or Topics that get long, and you want a fresh note for each year/half-year/quarter.
+This is useful if you have notes for Areas or Topics that get long, and you want a fresh note for each year/half-year/quarter. -->
 
 ## /filer:update plugin settings
 This command allows settings to be changed on iOS/iPadOS.

@@ -200,8 +200,50 @@ export function printParagraph(p: TParagraph) {
 }
 
 /**
- * Appends text to a chosen note, but more smartly than usual.
- * I.e. adds before any ## Done or ## Completed archive section.
+ * Return the heading level (1-5) of a given heading, by counting the number of contiguous leading # markers.
+ * @param {string} heading to check
+ * @returns
+ */
+export function getHeadingLevel(heading: string): number {
+  if (/^#+\s+/.test(heading)) {
+    const match = heading.match(/^#+/)
+    return match ? match[0].length : 0
+  } else {
+    return 0
+  }
+}
+
+/**
+ * Strip off any leading # markers
+ * @param {string} inString 
+ * @returns {string}
+ */
+export function getHeadingTextFromMarkdownHeadingText(inString: string): string {
+  return inString.replaceAll('#', '').trimLeft()
+}
+
+/**
+ * Adds a heading (not title!) to a note based on the number of leading '#' markers -- or if none default to 2.
+ * @param {*} note 
+ * @param {*} heading 
+ * @param {*} insertionIndex 
+ */
+export function smartInsertHeading(note: TNote, markdownHeading: string, insertionIndex: number): void {
+  let headingLevel = 2
+  let headingStr = markdownHeading
+  const markdownHeadingLevel = getHeadingLevel(markdownHeading)
+  // logDebug('smartInsertHeading', `markdownHeadingLevel = ${String(markdownHeadingLevel)}`)
+  if (markdownHeadingLevel > 0) {
+    headingStr = getHeadingTextFromMarkdownHeadingText(markdownHeading)
+    headingLevel = markdownHeadingLevel
+  }
+  logDebug('smartInsertHeading', `inserting headingLevel ${String(headingLevel)} for '${headingStr}' at line ${String(insertionIndex)}`)
+  note.insertHeading(headingStr, insertionIndex, headingLevel)
+}
+
+/**
+ * Appends text to a chosen note, but more smartly than usual: before any ## Done or ## Completed archive section.
+ * If the ParagraphType is 'title' (which includes section headings), then add with the appropriate heading level based on the number of leading '#' markers -- or if none default to 2.
  * @author @jgclark
  *
  * @param {TNote} note - the note to append to
@@ -210,13 +252,17 @@ export function printParagraph(p: TParagraph) {
  */
 export function smartAppendPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter point (+ 1 as the API call inserts before the line in question)
-  note.insertParagraph(paraText, findEndOfActivePartOfNote(note) + 1, paragraphType)
+  if (paragraphType === 'title') {
+    smartInsertHeading(note, paraText, findEndOfActivePartOfNote(note) + 1)
+  } else {
+    note.insertParagraph(paraText, findEndOfActivePartOfNote(note) + 1, paragraphType)
+  }
+  DataStore.updateCache(note) // don't know if this helps
 }
 
 /**
- * Prepends text to a chosen note, but more smartly than usual.
- * I.e. if the note starts with YAML frontmatter
- * or a metadata line (= starts with a hashtag), then add after that.
+ * Prepends text to a chosen note, but more smartly than usual: after any YAML frontmatter or a metadata line (= starts with a hashtag).
+ * If the ParagraphType is 'title' (which includes section headings), then add with the appropriate heading level based on the number of leading '#' markers -- or if none default to 2.
  * Note: see smartPrependParas that works on multiple lines
  * @author @jgclark
  *
@@ -226,15 +272,18 @@ export function smartAppendPara(note: TNote, paraText: string, paragraphType: Pa
  */
 export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
   // Insert the text at the smarter point
-  note.insertParagraph(paraText, findStartOfActivePartOfNote(note), paragraphType)
+  if (paragraphType === 'title') {
+    smartInsertHeading(note, paraText, findStartOfActivePartOfNote(note))
+  } else {
+    note.insertParagraph(paraText, findStartOfActivePartOfNote(note), paragraphType)
+  }
+  DataStore.updateCache(note) // don't know if this helps
 }
 
 /**
  * TEST:
- * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual.
- * I.e. if the note starts with YAML frontmatter
- * or a metadata line (= starts with a hashtag), then add after that.
- * Note: does work on a single line too
+ * Prepends multiple lines of text to a chosen note, as separate paragraphs, but more smartly than usual: adds after any YAML frontmatter or metadata line (= starts with a hashtag).
+ * Note: does work on a single line too.
  * @author @jgclark
  *
  * @param {TNote} note - the note to prepend to

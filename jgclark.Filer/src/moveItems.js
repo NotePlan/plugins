@@ -92,8 +92,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
         logDebug(pluginJson, `moveParas: move current para only`)
       }
 
-      // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
-      if (NotePlan.environment.buildVersion > 844) {
+      // Now attempt to highlight them to help user check all is
         firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
         const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
         if (firstStartIndex && lastEndIndex) {
@@ -101,7 +100,6 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
           // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
           Editor.highlightByRange(parasCharIndexRange)
         }
-      }
     }
 
     // If this is a calendar note we've moving from, and the user wants to
@@ -140,6 +138,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // delete from existing location
     logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     note.removeParagraphs(parasInBlock)
+    DataStore.updateCache(note) // TEST: does this help?
     // FIXME: this call above is not always working, confirmed by getting to see the warning below. Nov 2023: Trying first changing to use Editor.note above.
     if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
       logWarn(pluginJson, `  - WARNING: After delete there are ${Number(note.paragraphs.length)} paragraphs`)
@@ -197,12 +196,6 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     const paragraphs = origNote.paragraphs
     const origNumParas = origNote.paragraphs.length
 
-    // Need to be running v3.6.0 (v802/801) or over for this feature
-    if (NotePlan.environment.buildVersion < 801) {
-      await showMessage(`Sorry: you need to be running NotePlan v3.6.0 or higher for the Weekly note feature to work.`)
-      logWarn(pluginJson, 'Need to be running NotePlan v3.6.0 or higher for the Weekly note feature to work.')
-      return
-    }
     // Find the Weekly note to move to
     const destNote = DataStore.calendarNoteByDate(destDate, 'week')
     if (destNote == null) {
@@ -226,25 +219,23 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     if (withBlockContext) {
       // user has requested working on the surrounding block
       parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-      logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+      logDebug(pluginJson, `moveParasToCalendarWeekly: move block of ${parasInBlock.length} paras`)
     } else {
       // user just wants to move the current line
       parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-      logDebug(pluginJson, `moveParas: move current para only`)
+      logDebug(pluginJson, `moveParasToCalendarWeekly: move current para only`)
     }
 
-    // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
-    if (NotePlan.environment.buildVersion > 844) {
+    // Now attempt to highlight them to help user check all is well
       firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
       const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
       if (firstStartIndex && lastEndIndex) {
         const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
-        // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+        // logDebug('moveParasToCalendarWeekly', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
         Editor.highlightByRange(parasCharIndexRange)
       }
-    }
 
-    // At the time of writing, there's no API function to work on multiple selectedParagraphs,
+    // At the time of writing, there was no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
@@ -253,10 +244,12 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
-    logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
+    logDebug('moveParasToCalendarWeekly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
+    DataStore.updateCache(origNote) // TEST: does this help?
+    // check if this has worked, for it often doesn't seem to
     if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn(pluginJson, `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+      logWarn('moveParasToCalendarWeekly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -264,7 +257,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, error.message)
+    logError(pluginJson, `moveParasToCalendarWeekly(): ${error.message}`)
   }
 }
 
@@ -303,8 +296,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
       // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
-      logError(pluginJson, 'No note open, so stopping.')
-      return
+      throw new Error('No note open, so stopping.')
     }
 
     // Get config settings
@@ -317,15 +309,13 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     const destNote = DataStore.calendarNoteByDate(destDate, 'day')
     if (destNote == null) {
       await showMessage(`Sorry: I can't find the Daily note for ${toNPLocaleDateString(destDate)}.`)
-      logError(pluginJson, `Failed to open the Daily note for ${toNPLocaleDateString(destDate)}. Stopping.`)
-      return
+      throw new Error(`Failed to open the Daily note for ${toNPLocaleDateString(destDate)}. Stopping.`)
     }
 
     // Get current selection, and its range
     const selection = Editor.selection
     if (selection == null) {
-      logError(pluginJson, 'No selection found, so stopping.')
-      return
+      throw new Error('No selection found, so stopping.')
     }
     // Get paragraph indexes for the start and end of the selection (can be the same)
     const [firstSelParaIndex, _lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
@@ -336,25 +326,23 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     if (withBlockContext) {
       // user has requested working on the surrounding block
       parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-      logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+      logDebug(pluginJson, `moveParasToCalendarDate: move block of ${parasInBlock.length} paras`)
     } else {
       // user just wants to move the current line
       parasInBlock = selectedParagraphs.slice(0, 1) // just first para
-      logDebug(pluginJson, `moveParas: move current para only`)
+      logDebug(pluginJson, `moveParasToCalendarDate: move current para only`)
     }
 
-    // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
-    if (NotePlan.environment.buildVersion > 844) {
-      firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
-      const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
-      if (firstStartIndex && lastEndIndex) {
-        const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
-        // logDebug(pluginJson, `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
-        Editor.highlightByRange(parasCharIndexRange)
-      }
+    // Now attempt to highlight them to help user check all is well
+    firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+    const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+    if (firstStartIndex && lastEndIndex) {
+      const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+      // logDebug('moveParasToCalendarDate', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      Editor.highlightByRange(parasCharIndexRange)
     }
 
-    // At the time of writing, there's no API function to work on multiple selectedParagraphs,
+    // At the time of writing, there was no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
@@ -363,10 +351,12 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
-    logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original origNote (which had ${String(origNumParas)} paras)`)
+    logDebug('moveParasToCalendarDate', `- Removing ${parasInBlock.length} paras from original origNote (which had ${String(origNumParas)} paras)`)
     origNote.removeParagraphs(parasInBlock)
+    DataStore.updateCache(origNote) // TEST: does this help?
+    // check if this has worked, for it often doesn't seem to
     if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn(pluginJson, `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+      logWarn('moveParasToCalendarDate', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake
@@ -374,6 +364,226 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, error.message)
+    logError(pluginJson, `moveParasToCalendarDate(): ${error.message}`)
+  }
+}
+
+// -----------------------------------------------------------------
+
+/**
+ * Move text to the current Monthly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToThisMonthly(): Promise<void> {
+  await moveParasToCalendarMonthly(new Date())
+}
+
+/**
+ * Move text to the current Monthly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToNextMonthly(): Promise<void> {
+  await moveParasToCalendarMonthly(Calendar.addUnitToDate(new Date(), 'day', 7)) // + 1 week
+}
+
+/**
+ * Move text to the current Monthly note.
+ * (Not called directly by users.)
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ * @param {Date} date of monthly note to move to
+ * @param {boolean?} withBlockContext?
+ */
+export async function moveParasToCalendarMonthly(destDate: Date, withBlockContext: boolean = false): Promise<void> {
+  try {
+    const { content, selectedParagraphs, note } = Editor
+
+    // Pre-flight checks
+    if (content == null || selectedParagraphs == null || note == null) {
+      // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
+      logWarn(pluginJson, 'No note open, so stopping.')
+      return
+    }
+
+    // Get config settings
+    const config = await getFilerSettings()
+    const origNote = note
+    const paragraphs = origNote.paragraphs
+    const origNumParas = origNote.paragraphs.length
+
+    // Find the Monthly note to move to
+    const destNote = DataStore.calendarNoteByDate(destDate, 'month')
+    if (destNote == null) {
+      await showMessage(`Sorry: I can't find the Monthly note for ${toNPLocaleDateString(destDate)}.`)
+      logError(pluginJson, `Failed to open the Monthly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
+      return
+    }
+
+    // Get current selection, and its range
+    const selection = Editor.selection
+    if (selection == null) {
+      logError(pluginJson, 'No selection found, so stopping.')
+      return
+    }
+
+    // Get paragraph indexes for the start and end of the selection (can be the same)
+    let firstStartIndex = 0
+    let parasInBlock: Array<TParagraph>
+    const [firstSelParaIndex, _lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+    // Get paragraphs for the selection or block
+    if (withBlockContext) {
+      // user has requested working on the surrounding block
+      parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+      logDebug(pluginJson, `moveParasToCalendarMonthly: move block of ${parasInBlock.length} paras`)
+    } else {
+      // user just wants to move the current line
+      parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+      logDebug(pluginJson, `moveParasToCalendarMonthly: move current para only`)
+    }
+
+    // Attempt to highlight them to help user check all is well
+    firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+    const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+    if (firstStartIndex && lastEndIndex) {
+      const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+      // logDebug('moveParasToCalendarMonthly', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      Editor.highlightByRange(parasCharIndexRange)
+    }
+
+    // At the time of writing, there was no API function to work on multiple selectedParagraphs,
+    // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
+    // to a raw text version which we can include
+    const selectedParasAsText = parasToText(parasInBlock)
+
+    // Append text to the new location in destination note
+    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+
+    // delete from existing location
+    logDebug('moveParasToCalendarMonthly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
+    origNote.removeParagraphs(parasInBlock)
+    DataStore.updateCache(origNote) // TEST: does this help?
+    // check if this has worked, for it often doesn't seem to
+    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn('moveParasToCalendarMonthly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    }
+
+    // unhighlight the previous selection, for safety's sake
+    const emptyRange: TRange = Range.create(firstStartIndex ?? 0, firstStartIndex ?? 0)
+    Editor.highlightByRange(emptyRange)
+  }
+  catch (error) {
+    logError(pluginJson, `moveParasToCalendarMonthly(): ${error.message}`)
+  }
+}
+
+// -----------------------------------------------------------------
+
+/**
+ * Move text to the current Quarterly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToThisQuarterly(): Promise<void> {
+  await moveParasToCalendarQuarterly(new Date())
+}
+
+/**
+ * Move text to the current Quarterly note.
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ */
+export async function moveParasToNextQuarterly(): Promise<void> {
+  await moveParasToCalendarQuarterly(Calendar.addUnitToDate(new Date(), 'day', 7)) // + 1 week
+}
+
+/**
+ * Move text to the current Quarterly note.
+ * (Not called directly by users.)
+ * Uses the same selection strategy as moveParas() above
+ * @author @jgclark
+ * @param {Date} date of Quarterly note to move to
+ * @param {boolean?} withBlockContext?
+ */
+export async function moveParasToCalendarQuarterly(destDate: Date, withBlockContext: boolean = false): Promise<void> {
+  try {
+    const { content, selectedParagraphs, note } = Editor
+
+    // Pre-flight checks
+    if (content == null || selectedParagraphs == null || note == null) {
+      // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
+      logWarn(pluginJson, 'No note open, so stopping.')
+      return
+    }
+
+    // Get config settings
+    const config = await getFilerSettings()
+    const origNote = note
+    const paragraphs = origNote.paragraphs
+    const origNumParas = origNote.paragraphs.length
+
+    // Find the Quarterly note to move to
+    const destNote = DataStore.calendarNoteByDate(destDate, 'quarter')
+    if (destNote == null) {
+      await showMessage(`Sorry: I can't find the Quarterly note for ${toNPLocaleDateString(destDate)}.`)
+      logError(pluginJson, `Failed to open the Quarterly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
+      return
+    }
+
+    // Get current selection, and its range
+    const selection = Editor.selection
+    if (selection == null) {
+      logError(pluginJson, 'No selection found, so stopping.')
+      return
+    }
+
+    // Get paragraph indexes for the start and end of the selection (can be the same)
+    let firstStartIndex = 0
+    let parasInBlock: Array<TParagraph>
+    const [firstSelParaIndex, _lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+    // Get paragraphs for the selection or block
+    if (withBlockContext) {
+      // user has requested working on the surrounding block
+      parasInBlock = getParagraphBlock(origNote, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+      logDebug(pluginJson, `moveParasToCalendarQuarterly: move block of ${parasInBlock.length} paras`)
+    } else {
+      // user just wants to move the current line
+      parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+      logDebug(pluginJson, `moveParasToCalendarQuarterly: move current para only`)
+    }
+
+    // Attempt to highlight them to help user check all is well
+    firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
+    const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
+    if (firstStartIndex && lastEndIndex) {
+      const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
+      // logDebug('moveParasToCalendarQuarterly', `- will try to highlight automatic block selection range ${rangeToString(parasCharIndexRange)}`)
+      Editor.highlightByRange(parasCharIndexRange)
+    }
+
+    // At the time of writing, there was no API function to work on multiple selectedParagraphs,
+    // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
+    // to a raw text version which we can include
+    const selectedParasAsText = parasToText(parasInBlock)
+
+    // Append text to the new location in destination note
+    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
+
+    // delete from existing location
+    logDebug('moveParasToCalendarQuarterly', `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
+    origNote.removeParagraphs(parasInBlock)
+    DataStore.updateCache(origNote) // TEST: does this help?
+    // check if this has worked, for it often doesn't seem to
+    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn('moveParasToCalendarQuarterly', `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    }
+
+    // unhighlight the previous selection, for safety's sake
+    const emptyRange: TRange = Range.create(firstStartIndex ?? 0, firstStartIndex ?? 0)
+    Editor.highlightByRange(emptyRange)
+  }
+  catch (error) {
+    logError(pluginJson, `moveParasToCalendarQuarterly(): ${error.message}`)
   }
 }
