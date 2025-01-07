@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.2] 2025-01-08
+- fix bug - Today section not showing up
+- fix settings description for max items to show
+
 ## [2.1.1] 2025-01-06
 ### New
 - time blocks are now found in regular notes that reference to today (e.g. `>2025-01-04 at 11:00`) as well as calendar notes

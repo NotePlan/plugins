@@ -1,5 +1,5 @@
 // @flow
-import React, { useState } from 'react'
+import React from 'react'
 import { createRoot } from 'react-dom/client'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
 import { logDebug } from './reactDev'
@@ -26,9 +26,18 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
       if (document.body) {
         document.body.removeChild(container)
       }
+      logDebug('showDialog', 'closeDialog called')
     }
 
     const handleClose = () => {
+      logDebug('showDialog', 'handleClose called')
+      closeDialog()
+      resolve(null)
+    }
+
+    const handleCancel = () => {
+      logDebug('showDialog', 'handleCancel called')
+      dialogProps.onCancel?.()
       closeDialog()
       resolve(null)
     }
@@ -57,7 +66,7 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
         style={dialogProps.style}
         isModal={dialogProps.isModal}
         onSave={handleSave}
-        onCancel={handleClose}
+        onCancel={handleCancel}
         hideDependentItems={dialogProps.hideDependentItems}
         submitOnEnter={dialogProps.submitOnEnter}
         hideHeaderButtons={dialogProps.hideHeaderButtons}
@@ -111,10 +120,10 @@ export function showConfirmationDialog({
     const handleButtonClick = (key: string, value: string) => {
       logDebug('showConfirmationDialog', 'handleButtonClick', key, value)
       if (value === 'yes') {
-        onConfirm && onConfirm()
+        onConfirm?.()
         resolve(true)
-      } else if (value === 'no') {
-        onCancel && onCancel()
+      } else {
+        onCancel?.()
         resolve(false)
       }
     }
@@ -135,6 +144,8 @@ export function showConfirmationDialog({
       hideHeaderButtons: true,
       handleButtonClick,
       onCancel: () => {
+        logDebug('showConfirmationDialog', 'onCancel called')
+        onCancel?.()
         resolve(false)
       },
     }).finally(() => {

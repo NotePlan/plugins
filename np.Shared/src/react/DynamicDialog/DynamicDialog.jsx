@@ -264,6 +264,27 @@ const DynamicDialog = ({
   }, [isOpen, submitOnEnter])
 
   //----------------------------------------------------------------------
+  // ONLY attach an ESC listener if isModal = false
+  // (When isModal = true, our custom Modal handles ESC.)
+  //----------------------------------------------------------------------
+  useEffect(() => {
+    if (!isModal) {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          // let’s call onCancel to close
+          logDebug('DynamicDialog', 'ESC pressed in non-modal scenario. onCancel called.')
+          onCancel && onCancel()
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [isModal, onCancel])
+
+  //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
   // clo(items, `DynamicDialog items=`)
@@ -321,6 +342,7 @@ const DynamicDialog = ({
   return isModal ? (
     <Modal
       onClose={() => {
+        logDebug('DynamicDialog', 'Modal onClose called.')
         onCancel && onCancel()
       }}
     >
