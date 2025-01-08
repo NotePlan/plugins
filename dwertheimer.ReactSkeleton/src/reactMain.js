@@ -180,6 +180,7 @@ export async function testReactWindow(): Promise<void> {
       postBodyScript: `
         <script type="text/javascript" >
         // Set DataStore.settings so default logDebug etc. logging works in React
+        // This setting comes from ${pluginJson['plugin.id']}
         let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
         </script>
       `,

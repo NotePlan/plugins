@@ -250,6 +250,7 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  */
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
   logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+  clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
   try {
     const startTime = new Date()
     // If callMode is a CSV of specific wanted sections, then override section flags for them
@@ -302,15 +303,14 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
-      preBodyScript: ``,
-      postBodyScript: `
+      preBodyScript: `        
         <script type="text/javascript" >
-        // Set DataStore.settings so default logDebug etc. logging works in React
-        let DataStore = { settings: {_logLevel: "${logSettings._logLevel}" } };
-        </script>
-      `,
+          // Set DataStore.settings so default logDebug etc. logging works in React
+          // This setting comes from ${pluginJson['plugin.id']}
+          let DataStore = { settings: {_logLevel: "${DataStore?.settings?._logLevel}" } };
+        </script>`,
+      postBodyScript: ``,
     }
-    //TODO: add the loglevel to the template and the dialog test
     logTimer('showDashboardReact', startTime, `===== Calling React =====`)
     // clo(data, `showDashboardReact data object passed`)
     logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)

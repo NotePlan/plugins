@@ -344,7 +344,7 @@ const PerspectiveSelector = (): React$Node => {
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
       // The perspectives ground truth is set by the plugin and will be returned in pluginData
       // but for now, we will do an optimistic update so the UI is updated immediately
-      console.log(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
+      logDebug(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
       const newPerspectiveSettings = setActivePerspective(selectedOption.value, perspectiveSettings)
       dispatchPerspectiveSettings({ type: PERSPECTIVE_ACTIONS.SET_PERSPECTIVE_SETTINGS, payload: newPerspectiveSettings })
       dispatchPerspectiveSelector({ type: 'SET_ACTIVE_PERSPECTIVE', payload: selectedOption.value })

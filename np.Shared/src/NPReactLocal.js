@@ -68,7 +68,7 @@ export async function onMessageFromHTMLView(incoming: string): Promise<any> {
 // $FlowFixMe - inexact object literal
 export function openReactWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
-    logDebug(`NPReactLocal.openReactWindow`, `Starting ...`)
+    logDebug(pluginJson, `NPReactLocal.openReactWindow Starting ...`)
     // the first parameter sent is globalData -- some initial data we will add as a global 'globalSharedData' in the HTML window
     // react will use this to populate the page
     // that the plugin can write to and the HTML App can access
@@ -138,9 +138,10 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
       <script type="text/javascript" >
         console.log('JS baked into page HTML: Setting globalSharedData');
         globalSharedData = ${JSON.stringify(globalSharedData)};
-        if (typeof DataStore === 'undefined') {
-          let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
-        }
+        // This setting comes from ${pluginJson['plugin.id']}
+        // if (typeof DataStore === 'undefined') {
+        //   let DataStore = { settings: {_logLevel: "${DataStore.settings._logLevel}" } };
+        // }
       </script>
     `
     // set up bridge to NP
@@ -173,7 +174,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     // const title = windowOptions.title ?? windowOptions.windowTitle ?? 'React Window'
     showHTMLWindow(bodyHTML, { ...windowOptions, ...generatedOptions })
     // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
-    logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
+    logDebug(pluginJson, `openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
   } catch (error) {
     logError(pluginJson, `openReactWindow: Error ${JSP(error)}`)
