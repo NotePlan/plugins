@@ -4,6 +4,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.1.2] 2025-01-08
 - fix bug - Today section not showing up
 - fix settings description for max items to show
+- fix bug in ESC key on PerspectiveSelector non-perspective options
+- fix bug in perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective
 
 ## [2.1.1] 2025-01-06
 ### New

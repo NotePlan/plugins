@@ -6,11 +6,7 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 
-import {
-  getDashboardSettings,
-  handlerResult,
-  setPluginData
-} from './dashboardHelpers'
+import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import type { MessageDataObject, TBridgeClickHandlerResult, TDashboardSettings, TPerspectiveSettings } from './types'
 import {
   addNewPerspective,
@@ -24,6 +20,7 @@ import {
   switchToPerspective,
   renamePerspective,
   savePerspectiveSettings,
+  removeInvalidTagSections,
 } from './perspectiveHelpers'
 import { clo, dt, JSP, logDebug, logError, logInfo, logTimer, logWarn } from '@helpers/dev'
 
@@ -118,8 +115,11 @@ export async function doRenamePerspective(data: MessageDataObject): Promise<TBri
   return handlerResult(true, [])
 }
 
-// TODO: Jsdoc
-// TODO: Is this
+/**
+ * Switch to a perspective and save the new perspective settings and dashboard settings
+ * @param {MessageDataObject} data - the data object containing the perspective name
+ * @returns {TBridgeClickHandlerResult} - the result of the switch to perspective
+ */
 export async function doSwitchToPerspective(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
   const switchToName = data?.perspectiveName || ''
   if (!switchToName) {
@@ -131,10 +131,13 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })
   const prevDashboardSettings = await getDashboardSettings()
-  if (!prevDashboardSettings) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
+  // each perspective has its own tagged sections so we don't want to keep old ones around
+  // so we will remove all keys from prevDS that start with showTagSection_
+  const prevDSWithoutTags = removeInvalidTagSections(prevDashboardSettings)
+  if (!prevDSWithoutTags) return handlerResult(false, [], { errorMsg: `getDashboardSettings failed` })
   // apply the new perspective's settings to the main dashboard settings
   const newDashboardSettings = {
-    ...prevDashboardSettings,
+    ...prevDSWithoutTags,
     ...(activeDef.dashboardSettings || {}),
     lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   } // the ending "changed from plugin" is important because it keeps it from sending back
@@ -145,7 +148,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logDebug(
     `doSwitchToPerspective`,
     `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
-      newDashboardSettings.excludedFolders
+      newDashboardSettings.excludedFolders ? newDashboardSettings.excludedFolders : 'not set'
     }`,
   )
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)

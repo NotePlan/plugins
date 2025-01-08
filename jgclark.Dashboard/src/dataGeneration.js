@@ -29,6 +29,7 @@ import { getLastWeekSectionData, getThisWeekSectionData } from './dataGeneration
 import { openMonthParas, refMonthParas, tagParasFromNote, nextProjectNoteItems } from './demoData'
 import { getTagSectionDetails } from './react/components/Section/sectionHelpers'
 import { getCurrentlyAllowedFolders } from './perspectivesShared'
+import { removeInvalidTagSections } from './perspectiveHelpers'
 import { pluginIsInstalled } from '@helpers/NPConfiguration'
 import { getDateStringFromCalendarFilename, getNPMonthStr, getNPQuarterStr, filenameIsInFuture, includesScheduledFutureDate } from '@helpers/dateTime'
 import { stringListOrArrayToArray } from '@helpers/dataManipulation'
@@ -546,7 +547,7 @@ export function getThisQuarterSectionData(config: TDashboardSettings, useDemoDat
  */
 export function getTaggedSections(config: TDashboardSettings, useDemoData: boolean = false): Array<TSection> {
   const startTime = new Date()
-  const tagSections = getTagSectionDetails(config)
+  const tagSections = getTagSectionDetails(removeInvalidTagSections(config))
   // clo(tagSections)
   // logInfo('getTaggedSections', `- after getTagSectionDetails:  ${timer(startTime)}`)
 

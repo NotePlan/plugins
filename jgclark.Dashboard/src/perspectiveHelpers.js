@@ -139,7 +139,13 @@ export function logPerspectives(settingsArr: Array<TPerspectiveDef>, logAllKeys:
       clo(thisP.dashboardSettings, `${name}'s full dashboardSettings:`)
     } else {
       // Show key settings for Perspective filtering
-      clof(thisP.dashboardSettings, `${name}'s main dashboardSettings:`, ['includedFolders', 'excludedFolders', 'ignoreItemsWithTerms', 'applyIgnoreTermsToCalendarHeadingSections', 'separateSectionForReferencedNotes'])
+      clof(thisP.dashboardSettings, `${name}'s main dashboardSettings:`, [
+        'includedFolders',
+        'excludedFolders',
+        'ignoreItemsWithTerms',
+        'applyIgnoreTermsToCalendarHeadingSections',
+        'separateSectionForReferencedNotes',
+      ])
     }
   }
 }
@@ -498,22 +504,12 @@ export async function updateCurrentPerspectiveDef(): Promise<boolean> {
  * Clean a Dashboard settings object of properties we don't want to use
  * (we only want things in the perspectiveSettings object that could be set in dashboard settings or filters)
  * @param {TDashboardSettings} settingsIn
+ * @param {boolean} deleteAllShowTagSections - also clean out showTag_* settings
  * @returns {TDashboardSettings}
  */
-export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<TDashboardSettings> {
+export function cleanDashboardSettings(settingsIn: TDashboardSettings, deleteAllShowTagSections?: boolean): Partial<TDashboardSettings> {
   // Filter out any showTagSection_ keys that are not used in the current perspective (i.e. not in tagsToShow)
-  const tagSectionDetails = getTagSectionDetails(settingsIn)
-  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
-    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
-  )
-
-  // Remove the keys only if they exist and are defined
-  showTagSectionKeysToRemove.forEach((key) => {
-    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
-      // $FlowIgnore[incompatible-type]
-      delete settingsIn[key]
-    }
-  })
+  const settingsWithoutIrrelevantTags = removeInvalidTagSections(settingsIn)
 
   const patternsToRemove = [
     'perspectivesEnabled',
@@ -529,18 +525,43 @@ export function cleanDashboardSettings(settingsIn: TDashboardSettings): Partial<
     /separator\d/,
     /heading\d/,
   ].map((pattern) => (typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern))
+  if (deleteAllShowTagSections) {
+    patternsToRemove.push(/showTagSection_/)
+  }
 
   function shouldRemoveKey(key: string): boolean {
     return patternsToRemove.some((pattern) => pattern.test(key))
   }
 
-  return Object.keys(settingsIn).reduce((acc: Partial<TDashboardSettings>, key) => {
+  return Object.keys(settingsWithoutIrrelevantTags).reduce((acc: Partial<TDashboardSettings>, key) => {
     if (!shouldRemoveKey(key)) {
       // $FlowIgnore[incompatible-type]
       acc[key] = settingsIn[key]
     }
     return acc
   }, {})
+}
+
+/**
+ * Remove tag sections from the dashboard settings that are not relevant to the current perspective
+ * (e.g. leaving only the tags included in dashboardSettings.tagsToShow)
+ * @param {TDashboardSettings} settingsIn
+ * @returns {TDashboardSettings} - settings without irrelevant tag sections
+ */
+export function removeInvalidTagSections(settingsIn: TDashboardSettings): TDashboardSettings {
+  const tagSectionDetails = getTagSectionDetails(settingsIn)
+  const showTagSectionKeysToRemove = Object.keys(settingsIn).filter(
+    (key) => key.startsWith('showTagSection_') && !tagSectionDetails.some((detail) => detail.showSettingName === key),
+  )
+
+  // Remove the keys only if they exist and are defined
+  showTagSectionKeysToRemove.forEach((key) => {
+    if (settingsIn[key] !== undefined && typeof settingsIn[key] === 'boolean') {
+      // $FlowIgnore[incompatible-type]
+      delete settingsIn[key]
+    }
+  })
+  return settingsIn
 }
 
 /**

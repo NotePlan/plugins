@@ -65,6 +65,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    * Synchronize tempDashboardSettings with dashboardSettings when the dropdown menu is not open.
    */
   useEffect(() => {
+    logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
     if (!openDropdownMenu) {
       setTempDashboardSettings({ ...dashboardSettings })
     }
@@ -79,7 +80,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleToggleDropdownMenu = useCallback(
     (dropdown: string) => {
-      console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${openDropdownMenu}`)
+      console.log('Header/handleToggleDropdownMenu', `Toggling dropdown menu: "${dropdown}"; current openDropdownMenu=${String(openDropdownMenu)}`)
       if (openDropdownMenu === dropdown) {
         // Closing the dropdown menu
         logDebug('Header/handleToggleDropdownMenu', `Closing dropdown menu ${dropdown}`)
