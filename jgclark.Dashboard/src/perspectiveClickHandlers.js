@@ -144,6 +144,10 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
+  // TODO: @jgclark resetting sections to [] on perspective switch forces a refresh of all enabled sections
+  // You may or may not want to get fancy and try to delete the sections that are no longer enabled (e.g. tags)
+  // and only refresh the sections that are new
+  // But for now, the brute force way seems the most reliable :)
   const updatesToPluginData = {
     perspectiveSettings: revisedDefs,
     dashboardSettings: newDashboardSettings,
