@@ -161,7 +161,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     }`,
   )
   await setPluginData(updatesToPluginData, `_Switched to perspective ${switchToName} in DataStore.settings ${dt()} changed in plugin`)
-  return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'])
+  return handlerResult(true, ['PERSPECTIVE_CHANGED'])
 }
 
 /**

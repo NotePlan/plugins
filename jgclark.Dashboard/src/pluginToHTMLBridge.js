@@ -50,14 +50,10 @@ import {
   doSetNextReviewDate,
   doStartReviews,
 } from './projectClickHandlers'
-import {
-  doMoveFromCalToCal,
-  doMoveToNote,
-  doRescheduleItem,
-} from './moveClickHandlers'
+import { doMoveFromCalToCal, doMoveToNote, doRescheduleItem } from './moveClickHandlers'
 import { scheduleAllOverdueOpenToToday, scheduleAllTodayTomorrow, scheduleAllYesterdayOpenToToday } from './moveDayClickHandlers'
 import { scheduleAllLastWeekThisWeek, scheduleAllThisWeekNextWeek } from './moveWeekClickHandlers'
-import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas } from './dashboardHelpers'
+import { getDashboardSettings, getListOfEnabledSections, makeDashboardParas, setPluginData } from './dashboardHelpers'
 // import { showDashboardReact } from './reactMain' // TEST: fix circ dep here by changing to using an x-callback instead 😫
 import { copyUpdatedSectionItemData, findSectionItems } from './dataGeneration'
 import type { MessageDataObject, TActionType, TBridgeClickHandlerResult, TParagraphForDashboard, TPluginCommandSimplified } from './types'
@@ -427,6 +423,11 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
       if (actionsOnSuccess.includes('REFRESH_ALL_ENABLED_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_ENABLED_SECTIONS: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+      } else if (actionsOnSuccess.includes('PERSPECTIVE_CHANGED')) {
+        logInfo('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
+        await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
+        await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+        await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
       } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: allSectionCodes })

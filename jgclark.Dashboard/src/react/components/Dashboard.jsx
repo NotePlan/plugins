@@ -19,12 +19,12 @@ import {
 } from '../../constants.js'
 // import {
 // getListOfEnabledSections,
-  // getDisplayListOfSectionCodes
+// getDisplayListOfSectionCodes
 // } from '../../dashboardHelpers'
 import { findSectionItems, copyUpdatedSectionItemData } from '../../dataGeneration.js'
 // import type {
 // TSectionCode,
-  // TPerspectiveSettings
+// TPerspectiveSettings
 // } from '../../types.js'
 // import { cleanDashboardSettings } from '../../perspectiveHelpers.js'
 import { dashboardSettingDefs, dashboardFilterDefs } from '../../dashboardSettings.js'
@@ -41,6 +41,7 @@ import { getTestGroups } from './testing/tests'
 import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
+import ModalSpinner from '@helpers/react/ModalSpinner'
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
@@ -303,6 +304,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
+      {pluginData.perspectiveChanging && <ModalSpinner textBelow="Switching perspectives..." style={{ container: { color: 'white' } }} />}
       {autoUpdateEnabled && (
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
       )}

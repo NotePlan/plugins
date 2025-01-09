@@ -305,6 +305,7 @@ export type TActionOnReturn =
   | 'REFRESH_ALL_CALENDAR_SECTIONS'
   | 'START_DELAYED_REFRESH_TIMER'
   | 'INCREMENT_DONE_COUNT'
+  | 'PERSPECTIVE_CHANGED'
 
 export type TBridgeClickHandlerResult = {
   success: boolean,
@@ -339,6 +340,7 @@ export type TPluginData = {
   logSettings: any /* logging settings from plugin preferences */,
   notePlanSettings: any /* for copies of some app settings */,
   refreshing?: Array<TSectionCode> | boolean /* true if all, or array of sectionCodes if some */,
+  perspectiveChanging?: boolean /* true if perspective is changing, false if not. Displays a modal spinner */,
   sections: Array<TSection>,
   lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,
   themeName: string /* the theme name used when generating the dashboard */,
