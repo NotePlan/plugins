@@ -144,7 +144,12 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
   logDebug(`doSwitchToPerspective`, `saving ${String(revisedDefs.length)} perspectiveDefs and ${String(Object.keys(newDashboardSettings).length)} dashboardSettings`)
   clo(newDashboardSettings, `doSwitchToPerspective: newDashboardSettings=`)
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(revisedDefs), dashboardSettings: JSON.stringify(newDashboardSettings) }
-  const updatesToPluginData = { perspectiveSettings: revisedDefs, dashboardSettings: newDashboardSettings, serverPush: { dashboardSettings: true, perspectiveSettings: true } }
+  const updatesToPluginData = {
+    perspectiveSettings: revisedDefs,
+    dashboardSettings: newDashboardSettings,
+    serverPush: { dashboardSettings: true, perspectiveSettings: true },
+    sections: [],
+  }
   logDebug(
     `doSwitchToPerspective`,
     `sending revised perspectiveSettings and dashboardSettings to react window after switching to ${data?.perspectiveName || ''} current excludedFolders=${
