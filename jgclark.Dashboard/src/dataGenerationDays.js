@@ -276,7 +276,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
         // $FlowIgnoree[incompatible-use]
         if (isActiveOrFutureTimeBlockPara(p, mustContainString)) {
           const thisID = `${TBsectionNumStr}-${itemCounter}`
-          logDebug('getTodaySectionData', `+ TB ${thisID}: {${p.content}} from ${p.filename}`)
+          logInfo('getTodaySectionData', `+ TB ${thisID}: {${p.content}} from ${p.filename}`) // TODO: turn down later
           const thisSectionItemObject = createSectionItemObject(thisID, p)
           timeBlockItems.push(thisSectionItemObject)
           itemCounter++

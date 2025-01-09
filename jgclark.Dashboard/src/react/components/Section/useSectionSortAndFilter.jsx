@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
 // Filters and sorts items to be shown in a Section
-// Last updated for v2.1.1
+// Last updated for v2.1.2
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -27,7 +27,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
   useEffect(() => {
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
-      logDebug('useSectionSortAndFilter', `Starting for TB section with ${items.length} items`)
+      logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${items.length} items`)
       // Filter out all non-current timeblocks, and then if any remain, just show the first.
       // Note: assumes they come in (start) time order.
       const currentTBItems = items.filter((i) => {
@@ -42,11 +42,10 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
       }
       )
-      const firstTBItem = (currentTBItems.length)
+      const firstTBItemOrEmptyList = (currentTBItems.length)
         ? currentTBItems.slice(0, 1)
         : []
-      setItemsToShow(firstTBItem)
-      // the following are set, but not really relevant in this case
+      setItemsToShow(firstTBItemOrEmptyList)
     }
     else {
     // All other sections

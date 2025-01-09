@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show a whole Dashboard Section
 // Called by Dashboard component.
-// Last updated for v2.1.0.a
+// Last updated for v2.1.2
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -140,7 +140,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   //----------------------------------------------------------------------
 
   // $FlowIgnore[invalid-computed-prop]
-  const hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false)
+  let hideSection = !items.length || (dashboardSettings && dashboardSettings[section.showSettingName] === false) // note this can be updated later
   const sectionIsRefreshing = Array.isArray(pluginData.refreshing) && pluginData.refreshing.includes(section.sectionCode)
   const isDesktop = pluginData.platform === 'macOS'
   let numItemsToShow = itemsToShow.length
@@ -149,7 +149,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   const addNewActionButtons = isDesktop ? section.actionButtons?.filter((b) => b.actionName.startsWith('add')) : []
   let processActionButtons = isDesktop ? section.actionButtons?.filter((b) => !b.actionName.startsWith('add')) : []
 
-  // If we have no data items to show (other than a congrats message), only show its 'add...' buttons
+  // If we have no data items to show (other than a congrats message), remove any processing buttons, and only show 'add...' buttons
   if (numItemsToShow === 1 && ['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)) {
     processActionButtons = []
   }
@@ -198,6 +198,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
+
+  // TB section can show up blank, without this extra check
+  if (itemsToShow.length === 0) {
+    hideSection = true
+  }
 
   /**
    * Layout of sectionInfo = 4 divs:
