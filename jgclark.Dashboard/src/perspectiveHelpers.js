@@ -124,11 +124,11 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
 
 /**
  * Log out short list of key Perspective details
- * @param {Array<TPerspectiveDef>} settingsArr
+ * @param {Array<TPerspectiveDef>} perspectivesArray
  * @param {boolean?} logAllKeys? (default: false)
  */
-export function logPerspectives(settingsArr: Array<TPerspectiveDef>, logAllKeys: boolean = false): void {
-  for (const thisP of settingsArr) {
+export function logPerspectives(perspectivesArray: Array<TPerspectiveDef>, logAllKeys: boolean = false): void {
+  for (const thisP of perspectivesArray) {
     const name = thisP.name === '-' ? 'Default (-)' : thisP.name
     logDebug(
       'logPerspectives',
