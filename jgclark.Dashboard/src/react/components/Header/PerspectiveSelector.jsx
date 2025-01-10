@@ -13,7 +13,7 @@ import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
 // import { setPluginData } from '../../../dashboardHelpers'
-import { setActivePerspective } from '../../../perspectiveHelpers'
+import { endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
 import DropdownSelect /*, { type Option } */ from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
 // import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
 
@@ -342,6 +342,22 @@ const PerspectiveSelector = (): React$Node => {
       // but not if the option changed only because the plugin sent it to us (no user action)
       const apn = getActivePerspectiveName(perspectiveSettings)
       logDebug('PerspectiveSelector/handlePerspectiveChange', `selectedOption.label: "${selectedOption.label}" apn: "${apn}"`)
+      const currentPerspIsModified = perspectiveSettings.find((persp) => persp.name === apn)?.isModified || false
+      if (currentPerspIsModified) {
+        logDebug('PerspectiveSelector/handlePerspectiveChange', `Current perspective "${apn}" has unsaved changes. Showing confirmation dialog.`)
+        const confirmation = await showConfirmationDialog({
+          message: `Your current perspective "${activePerspectiveName}" has unsaved changes. Are you sure you want to switch to "${selectedOption.label}" and lose these changes?`,
+          onCancel: () => {
+            logDebug('PerspectiveSelector/handlePerspectiveChange', 'Delete Perspective cancelled via escape')
+            handlePerspectiveReset(currentPerspective)
+          },
+        })
+        if (!confirmation) {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `Delete Perspective cancelled`)
+          handlePerspectiveReset(currentPerspective)
+          return
+        }
+      }
       // The perspectives ground truth is set by the plugin and will be returned in pluginData
       // but for now, we will do an optimistic update so the UI is updated immediately
       logDebug(`PerspectiveSelector/handlePerspectiveChange optimistic update to activePerspectiveName: "${selectedOption.value}"`)
