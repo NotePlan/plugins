@@ -126,7 +126,11 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     logError('doSwitchToPerspective', `No perspective name provided.`)
     return handlerResult(false, [], { errorMsg: `No perspectiveName provided.` })
   }
+  logDebug('doSwitchToPerspective', `Switching to perspective ${switchToName}. Persp settings before switch:`)
+  logPerspectives(await getPerspectiveSettings())
   const revisedDefs = await switchToPerspective(switchToName, await getPerspectiveSettings())
+  logDebug('doSwitchToPerspective', `Switching to perspective ${switchToName}. Persp settings after switch:`)
+  logPerspectives(revisedDefs || [])
   if (!revisedDefs) return handlerResult(false, [], { errorMsg: `switchToPerspective failed` })
   const activeDef = getActivePerspectiveDef(revisedDefs)
   if (!activeDef) return handlerResult(false, [], { errorMsg: `getActivePerspectiveDef failed` })

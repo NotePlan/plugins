@@ -427,6 +427,7 @@ async function processActionOnReturn(handlerResultIn: TBridgeClickHandlerResult,
         logInfo('processActionOnReturn', `PERSPECTIVE_CHANGED: calling incrementallyRefreshSomeSections (for ${String(enabledSections)}) ...`)
         await setPluginData({ perspectiveChanging: true }, `Starting perspective change`)
         await incrementallyRefreshSomeSections({ ...data, sectionCodes: enabledSections })
+        logDebug('processActionOnReturn', `PERSPECTIVE_CHANGED finished (should hide modal spinner)`)
         await setPluginData({ perspectiveChanging: false }, `Ending perspective change`)
       } else if (actionsOnSuccess.includes('REFRESH_ALL_SECTIONS')) {
         logInfo('processActionOnReturn', `REFRESH_ALL_SECTIONS: calling incrementallyRefreshSomeSections ...`)

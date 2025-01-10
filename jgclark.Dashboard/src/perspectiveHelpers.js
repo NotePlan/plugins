@@ -453,6 +453,8 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   logPerspectives(allDefs)
 
   const newPerspectiveSettings = setActivePerspective(name, allDefs)
+  logDebug('switchToPerspective', `New perspectiveSettings:`)
+  logPerspectives(newPerspectiveSettings)
   const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)
   if (!newPerspectiveDef) {
     logError('switchToPerspective', `Couldn't find definition for perspective "${name}"`)
@@ -467,7 +469,10 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
 
   // SAVE IT!
   DataStore.settings = { ...DataStore.settings, perspectiveSettings: JSON.stringify(newPerspectiveSettings) }
-
+  clo(
+    newPerspectiveSettings.map((p) => ({ name: p.name, isModified: p.isModified })),
+    'switchToPerspective: newPerspectiveSettings saved to DataStore.settings',
+  )
   return newPerspectiveSettings
 }
 
