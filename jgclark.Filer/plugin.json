@@ -8,9 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.2.0",
-  "plugin.lastUpdateInfo_future???": "1.3.0: New '/smart duplicate note' commands.\n1.2.0: Allow '/add sync'd copy to note' command to work on multiple lines.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
-  "plugin.lastUpdateInfo": "1.2.0: Extended '/add sync'd copy to note' command to work on multiple lines.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
+  "plugin.version": "1.3.0",
+  "plugin.lastUpdateInfo": "1.3.0: New '/smart duplicate note' and '/smart file to completed sections' commands.\n1.2.0: Allow '/add sync'd copy to note' command to work on multiple lines.\n1.1.5: try to fix /move paras occasionally not deleting from original\n1.1.4: try to fix a race condition in /add sync'd copy to note. Fix to /move note link.\n1.1.3: bug fix.\n1.1.2: updating to newer libraries.\n1.1.1: new create folder option.\n1.1.0: new /archive... command. New '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -198,9 +197,7 @@
       "name": "Filer: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
-    }
-  ],
-  "plugin.commands_future???": [
+    },
     {
       "name": "smart duplicate note",
       "alias": [

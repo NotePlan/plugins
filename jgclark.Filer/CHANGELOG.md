@@ -1,10 +1,10 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
-<!-- ## [1.2.0] - 2023-10-???
+## [1.3.0] - 2023-10-???
 ### Added
 - ??? new **smart duplicate note** command. This takes the currently open regular (not calendar) note create a new one in the same folder that uses the same structure of headings, and moves over any open tasks/checklists, and sorts the new note. See README for all details on this.
-- ??? new **/smart file to completed sections** command. This ... -->
+- ??? new **/smart file to completed sections** command. This ...
  
 ## [1.2.0] - 2025-01-07
 ### New
