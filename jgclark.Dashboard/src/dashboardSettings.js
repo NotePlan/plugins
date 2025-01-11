@@ -126,7 +126,7 @@ export const dashboardSettingDefs: Array<TSettingItem> = [
     key: 'newTaskSectionHeading',
     label: 'Section heading to add/move new tasks under',
     description:
-      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If the heading isn't present, it will be added at the top of the note. If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use <<top of note>> (with the << and >>).",
+      "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't include leading #s.) If you leave this field blank, it will prompt you each time which heading to use. If you want new tasks to always appear at the top of the note, use <<top of note>> (with the << and >>).",
     type: 'input',
     default: 'Tasks',
     compactDisplay: true,

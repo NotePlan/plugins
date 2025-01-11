@@ -123,6 +123,16 @@ export async function getPerspectiveSettingDefaults(): Promise<Array<TPerspectiv
 }
 
 /**
+ * Log out short list of Perspective names (with active/modified flags)
+ * @param {Array<TPerspectiveDef>} perspectivesArray
+ */
+export function logPerspectiveNames(perspectivesArray: Array<TPerspectiveDef>, preamble: string = ''): void {
+  for (const thisP of perspectivesArray) {
+    logDebug(preamble || 'logPerspectiveNames', ` - ${thisP.name}: ${thisP.isModified ? ' (modified)' : ''}${thisP.isActive ? ' <isActive>' : ''}`)
+  }
+}
+
+/**
  * Log out short list of key Perspective details
  * @param {Array<TPerspectiveDef>} perspectivesArray
  * @param {boolean?} logAllKeys? (default: false)
