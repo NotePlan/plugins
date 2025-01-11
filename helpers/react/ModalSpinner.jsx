@@ -47,7 +47,7 @@ function ModalSpinner({
             {textAbove}
           </div>
         )}
-        <i className="fa fa-spinner fa-spin fa-5x" style={style.spinner} />
+        <i className="fa fa-spinner fa-spin fa-2x" style={style.spinner} />
         {textBelow && (
           <div className="spinner-text-below" style={style.textBelow}>
             {textBelow}
