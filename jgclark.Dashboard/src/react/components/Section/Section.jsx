@@ -196,6 +196,10 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // If we have no data items to show (other than a congrats message), don't show description
   const descriptionDiv = numItemsToShow > 0 ? <div className="sectionDescription" dangerouslySetInnerHTML={{ __html: descriptionToUse }}></div> : <div></div>
 
+  // Decide whether to show interactiveProcessing button
+  // TODO(later): enable again for PROJ
+  const showIPButton = dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && section.sectionCode !== 'PROJ'
+
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
 
@@ -238,8 +242,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         {descriptionDiv}
         <div className="sectionProcessButtons">
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
-          {numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && dashboardSettings.enableInteractiveProcessing && (
-            <>
+          {showIPButton && (
+          // <>
               <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
                 {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
                 {/* wanted to use 'fa-arrow-progress' here but not in our build */}
@@ -249,7 +253,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
                   {numItemsToShow}
                 </span>
               </button>
-            </>
+            // </>
           )}
         </div>
       </div>

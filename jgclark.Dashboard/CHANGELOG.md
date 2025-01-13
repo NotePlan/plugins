@@ -1,11 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.2] 2025-01-08
-- fix bug - Today section not showing up
-- fix settings description for max items to show
-- fix bug in ESC key on PerspectiveSelector non-perspective options
-- fix bug in perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective
+## [2.1.2] 2025-01-???
+### Fixes
+- Today section not showing up before a settings change
+- fix perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective
+- settings description for max items to show
+- fix ESC key on PerspectiveSelector non-perspective options
+- hide Interactive Processing button in Projects section (will be introduced later)
 
 ## [2.1.1] 2025-01-06
 ### New
