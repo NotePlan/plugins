@@ -10,6 +10,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - settings description for max items to show
 - fix ESC key on PerspectiveSelector non-perspective options
 - hide Interactive Processing button in Projects section (will be introduced later)
+- fix 'Last Week' section not refreshing after clicking 'All->This Week' button
 - spacing after folder names in referenced links
 
 ## [2.1.1] 2025-01-06
