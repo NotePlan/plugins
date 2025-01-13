@@ -2,6 +2,8 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [2.1.2] 2025-01-???
+### New
+- Spinner after final section to indicate when a Perspective is still changing
 ### Fixes
 - Today section not showing up before a settings change
 - fix perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective

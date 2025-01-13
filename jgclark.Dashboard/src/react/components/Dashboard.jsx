@@ -42,6 +42,7 @@ import PerspectivesTable from './PerspectivesTable.jsx'
 import DebugPanel from '@helpers/react/DebugPanel'
 import { clo, clof, JSP, logDebug, logError, logInfo } from '@helpers/react/reactDev.js'
 import ModalSpinner from '@helpers/react/ModalSpinner'
+import NonModalSpinner from '@helpers/react/NonModalSpinner'
 
 export const standardSections: Array<TSettingItem> = showSectionSettingItems
 
@@ -304,13 +305,14 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
-      {pluginData.perspectiveChanging && (
+      {/* Note: changing to use NonModalSpinner below */}
+      {/* {pluginData.perspectiveChanging && (
         <ModalSpinner
           textBelow="Switching perspectives..."
           onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
           style={{ container: { color: 'white' } }}
         />
-      )}
+      )} */}
       {autoUpdateEnabled && (
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
       )}
@@ -330,6 +332,13 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
           details={reactSettings?.dialogData?.details ?? {}}
         />
       </div>
+      {pluginData.perspectiveChanging && (
+        <NonModalSpinner
+          textBelow="Switching perspectives"
+          // onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
+          style={{ container: { color: 'white', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }}
+        />
+      )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (
         <DebugPanel isVisible={showDebugPanel} getContext={getContext} testGroups={testGroups} defaultExpandedKeys={['Context Variables', 'perspectiveSettings']} />
       )}
