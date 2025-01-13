@@ -91,8 +91,8 @@ function ItemContent({ item /*, children */, thisSection }: Props): React$Node {
   // const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-regular fa-block-quote parentMarker pad-left"></i> : ''
   // v3: switch to ellipsis to match what main Editor has just got in 3.15.2
   const possParentIcon = dashboardSettings.parentChildMarkersEnabled && item.para?.hasChild ? <i className="fa-solid fa-ellipsis parentMarker"></i> : ''
-  // TODO: add childID and only display ... if it has a displayed child
   
+  // Note: this section now deliberately disabled
   // if isAChild, then set suitable icon (previously tried arrow-right-from-line)
   // Note: now handled by flex layout and indent on ItemRow
   // Note: Following only for debugging
