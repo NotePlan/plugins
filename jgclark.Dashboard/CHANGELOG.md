@@ -1,7 +1,7 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.2] 2025-01-???
+## [2.1.2] 2025-01-13
 ### New
 - Spinner after final section to indicate when a Perspective is still changing
 ### Fixes
@@ -9,7 +9,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 - fix perspectives where some tags were being shown even though they were not included in the tagsToShow setting for the current perspective
 - settings description for max items to show
 - fix ESC key on PerspectiveSelector non-perspective options
-- hide Interactive Processing button in Projects section (will be introduced later)
+- hide Interactive Processing button in Projects section (will be introduced later) (thanks, @Wook5000)
 - fix 'Last Week' section not refreshing after clicking 'All->This Week' button
 - spacing after folder names in referenced links
 
