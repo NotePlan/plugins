@@ -1,8 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // useSectionSortAndFilter.jsx
-// Filters and sorts items to be shown in a Section
-// Last updated for v2.1.2
+// Filters, Limits and Sorts items to be shown in a Section.
+// - Filter = filter out types we don't want to see (e.g. checklists).
+//   Note: Currently some checklists seem to get through to here when not wanted.
+//   Note: In future we probably want checklists to come through, to allow different modes of further processing.
+// - Sort = sort items by priority, startTime, endTime (using itemSort() below)
+// - Limit = only show the first N of M items
+//
+// Last updated 2025-01-13 for v2.1.3
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -47,23 +53,26 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         : []
       setItemsToShow(firstTBItemOrEmptyList)
     }
+      // Handle all other sections
     else {
-    // All other sections
-      const filterPriorityItems = dashboardSettings.filterPriorityItems ?? false
-      // logDebug('useSectionSortAndFilter', `Start for ${section.sectionCode}: ${items.length} items`)
+      const typeFilteredItems = (dashboardSettings && dashboardSettings.ignoreChecklistItems && items.length)
+        ? items.filter(si => !(si.para?.type === "checklist"))
+        : items
 
       // Find highest priority seen
       let maxPrioritySeen = -1
-      for (const i of items) {
+      for (const i of typeFilteredItems) {
         if (i.para?.priority && i.para.priority > maxPrioritySeen) {
           maxPrioritySeen = i.para.priority
         }
       }
       // and then filter out lower-priority items (if wanted)
-      const filteredItems = filterPriorityItems
-        ? items.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
-        : items.slice()
+      const filterByPriority = dashboardSettings.filterPriorityItems ?? false
+      const filteredItems = filterByPriority
+        ? typeFilteredItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
+        : typeFilteredItems.slice()
       const priorityFilteringHappening = items.length > filteredItems.length
+      logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${items.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
       filteredItems.sort(itemSort)
@@ -75,10 +84,10 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
       // If more than limitToApply, then just keep the first items, otherwise keep all
       const limitToApply = dashboardSettings.maxItemsToShowInSection ?? 20
       const itemsToShow = limitToApply > 0 ? filteredOrderedItems.slice(0, limitToApply) : filteredOrderedItems.slice()
-      const limitApplied = items.length > itemsToShow.length
+      const limitApplied = typeFilteredItems.length > itemsToShow.length
 
       // Add 'filtered out' display line if relevant
-      const numFilteredOut = items.length - itemsToShow.length
+      const numFilteredOut = typeFilteredItems.length - itemsToShow.length
       if (numFilteredOut > 0) {
         itemsToShow.push({
           ID: `${section.ID}-Filter`,
@@ -94,6 +103,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
           },
         })
       }
+      logDebug('useSectionSortAndFilter', `- numFilteredOut: ${String(numFilteredOut)}; ${limitApplied ? `limitApplied; itemsToShow: ${String(itemsToShow)}` : ''}`)
 
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)

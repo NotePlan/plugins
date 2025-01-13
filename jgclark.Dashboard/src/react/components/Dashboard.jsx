@@ -336,7 +336,7 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
         <NonModalSpinner
           textBelow="Switching perspectives"
           // onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
-          style={{ container: { color: 'white', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }}
+          style={{ container: { color: 'var(--tint-color)', textAlign: 'center', marginTop: '0.6rem', marginBottom: '0rem' } }}
         />
       )}
       {pluginData?.logSettings?._logLevel === 'DEV' && (

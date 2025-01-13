@@ -271,8 +271,10 @@ export function getOpenItemParasForTimePeriod(
     //   ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
     //   : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
     let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
+    logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
     if (dashboardSettings.ignoreChecklistItems) {
-      parasToUse = parasToUse.filter((p) => isOpenTask(p))
+      openParas = openParas.filter((p) => isOpenTask(p))
+      logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${parasToUse.length} para(s)`)
     }
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
@@ -336,7 +338,7 @@ export function getOpenItemParasForTimePeriod(
     const openDashboardParas = makeDashboardParas(openParas)
     // clo(openDashboardParas)
 
-    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName}`)
+    logTimer('getOpenItemPFCTP', startTime, `- found and extended ${String(openDashboardParas.length ?? 0)} cal items for ${timePeriodName}`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -347,14 +349,18 @@ export function getOpenItemParasForTimePeriod(
       refOpenParas = alsoReturnTimeblockLines
         ? getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
         : getReferencedParagraphs(timePeriodNote, false).filter((p) => isOpen(p))
-      if (dashboardSettings.ignoreChecklistItems) {
-        refOpenParas = refOpenParas.filter((p) => isOpenTask(p))
-      }
       logTimer(
         'getOpenItemPFCTP',
         startTime,
         `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
       )
+      if (dashboardSettings.ignoreChecklistItems) {
+        refOpenParas = refOpenParas.filter((p) => isOpenTask(p))
+        logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
+      }
+      if (dashboardSettings.excludeChecklistsWithTimeblocks) {
+        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
+      }
 
       // Get list of allowed folders (using both include and exlcude settings)
       const allowedFoldersInCurrentPerspective = getCurrentlyAllowedFolders(dashboardSettings)

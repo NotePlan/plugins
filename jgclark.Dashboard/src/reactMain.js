@@ -2,17 +2,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated for v2.1.0.b
+// Last updated for v2.1.3
 //-----------------------------------------------------------------------------
 
-import { convertStrikethroughToHTML, getGlobalSharedData, sendToHTMLWindow, getCallbackCodeString } from '../../helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow } from '../../helpers/HTMLView'
 import pluginJson from '../plugin.json'
 import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
-import { getAllSectionsData, getSomeSectionsData } from './dataGeneration'
-import { getPerspectiveSettings, setActivePerspective, getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
+import { getAllSectionsData, /*getSomeSectionsData*/ } from './dataGeneration'
+import { getPerspectiveSettings, /*setActivePerspective,*/ getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
 import type { TDashboardSettings, TPerspectiveDef, TPluginData, TPerspectiveSettings } from './types'
@@ -21,7 +21,7 @@ import { clo, clof, JSP, logDebug, logInfo, logError, logTimer, logWarn } from '
 import { createPrettyRunPluginLink, createRunPluginCallbackUrl } from '@helpers/general'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { getWindowFromId } from '@helpers/NPWindows'
+// import { getWindowFromId } from '@helpers/NPWindows'
 import { chooseOption, showMessage } from '@helpers/userInput'
 
 export type PassedData = {
@@ -249,10 +249,11 @@ async function updateSectionFlagsToShowOnly(limitToSections: string): Promise<vo
  * @param {boolean?} useDemoData? (default: false)
  */
 export async function showDashboardReact(callMode: string = 'full', perspectiveName: string = '', useDemoData: boolean = false): Promise<void> {
-  logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
-  clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
   try {
+    logInfo(pluginJson, `showDashboardReact starting up (mode '${callMode}') with perpsectiveName '${perspectiveName}' ${useDemoData ? 'in DEMO MODE' : 'using LIVE data'}`)
+    // clo(DataStore.settings, `showDashboardReact: DataStore.settings=`)
     const startTime = new Date()
+
     // If callMode is a CSV of specific wanted sections, then override section flags for them
     // (e.g. from xcallback)
     if (callMode !== 'trigger' && callMode !== 'full') await updateSectionFlagsToShowOnly(callMode)
@@ -260,12 +261,12 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
     // make sure we have the np.Shared plugin which has the core react code and some basic CSS
     // TODO: can this be moved to onInstallOrUpdate?
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
 
     // log warnings if we don't have required files
     // TODO: can this be moved to onInstallOrUpdate?
     await checkForRequiredSharedFiles(pluginJson)
-    logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
+    // logDebug(pluginJson, `showDashboardReact: checkForRequiredSharedFiles completed`)
 
     // Get settings
     const config = await getDashboardSettings() // pulls the JSON stringified dashboardSettings and parses it into object
@@ -274,7 +275,7 @@ export async function showDashboardReact(callMode: string = 'full', perspectiveN
 
     // get initial data to pass to the React Window
     const data = await getInitialDataForReactWindow(perspectiveName, useDemoData)
-    logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
+    // logDebug('showDashboardReact', `lastFullRefresh = ${String(data?.pluginData?.lastFullRefresh) || 'not set yet'}`)
 
     // these JS functions are inserted as text into the header of the React Window to allow for bi-directional comms (esp BANNER sending)
     // TEST: removed

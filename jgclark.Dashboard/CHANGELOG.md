@@ -1,6 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.3] 2025-01-???
+### Fixes
+- fixed regression that stopped 'hide checklists' from being honoured in some parts of the display
+### Dev notes
+- I realised that some of the logic for what to display and not is spread out in several places, making it difficult to reason with and test. So I've moved a checklist filter out of ItemGrid up to Section level (through its useSection... effect) which has much more logic about how to filter and display this.
+
 ## [2.1.2] 2025-01-13
 ### New
 - Spinner after final section to indicate when a Perspective is still changing
