@@ -298,7 +298,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       return 0
     }
 
-    const endOfFMIndex = endOfFrontmatterLineIndex(note)
+    const endOfFMIndex: number = endOfFrontmatterLineIndex(note) || 0
     if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {

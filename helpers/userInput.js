@@ -255,8 +255,8 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
   }
-  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-  return folder
+logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+return folder
 }
 
 /**
@@ -361,6 +361,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
+      // $FlowIgnore[exponential-spread] known to be very small objects
       ...dateConfig,
       ...paramConfig,
     }
@@ -492,7 +493,7 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  */
 export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
-  const answers = []
+  const answers: Array<string> = []
 
   while ((maxAnswers ? answers.length < maxAnswers : true) && (input || answers.length < minAnswers)) {
     const placeholder = maxAnswers && showCounter ? `${question} (${answers.length + 1}/${maxAnswers})` : question
@@ -572,7 +573,7 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
   allowNewNoteCreation?: boolean = false,
 ): Promise<TNote | null> {
-  let noteList = []
+  let noteList: Array<TNote> = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
   if (includeProjectNotes) {
@@ -599,6 +600,7 @@ export async function chooseNote(
   const { note } = Editor
   if (allowNewNoteCreation) {
     opts.unshift('[New note]')
+    // $FlowIgnore[incompatible-type] just to keep the indexes matching; won't be used
     sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
   }
   if (currentNoteFirst && note) {
@@ -606,10 +608,9 @@ export async function chooseNote(
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  let noteToReturn = sortedNoteListFiltered[index]
-  if (noteToReturn === '[New note]') {
-    noteToReturn = await createNewNote()
-  }
+  const noteToReturn = (opts[index] === '[New note]')
+    ? await createNewNote()
+    : sortedNoteListFiltered[index]
   return noteToReturn ?? null
 }
 
