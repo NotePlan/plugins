@@ -1,7 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.3] 2025-01-???
+## [2.1.3] 2025-01-??? WIP
+### New
+- the task dialog box is now a bit smarter: it won't display 'this month' when the item is from the monthly note, but will give 'next month' option instead. Similarly for items in 'This week' and 'This Quarter' sections.
 ### Fixes
 - fixed regression that stopped 'hide checklists' from being honoured in some parts of the display
 - the 'current timeblock' could stop being displayed too soon

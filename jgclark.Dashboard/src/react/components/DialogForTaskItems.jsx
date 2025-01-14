@@ -60,9 +60,8 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
   const { currentIPIndex, totalTasks } = interactiveProcessing || {}
   const { enableInteractiveProcessing, enableInteractiveProcessingTransitions } = dashboardSettings || {}
   const showAnimations = interactiveProcessing && enableInteractiveProcessing && enableInteractiveProcessingTransitions
-  /**
-   * Array of buttons to render.
-   */
+
+  // Set standard list of buttons to render.
   const buttons: Array<DialogButtonProps> = [
     { label: 'today', controlStr: 't' },
     { label: '+1d', controlStr: '+1d' },
@@ -74,6 +73,17 @@ const DialogForTaskItems = ({ details: detailsMessageObject, onClose, positionDi
     { label: 'this month', controlStr: '+0m' },
     { label: 'this quarter', controlStr: '+0q' },
   ]
+  // Now tweak this list slightly if we're on a weekly or monthly note etc.
+  if (sectionCodes.includes('W')) {
+    buttons.splice(4, 1) // remove the 'this week' item, as its redundant
+  }
+  if (sectionCodes.includes('M')) {
+    buttons.splice(7, 1, { label: 'next month', controlStr: '+1m' }) // Replace the 'this month' item
+  }
+  if (sectionCodes.includes('Q')) {
+    buttons.splice(8, 1, { label: 'next quarter', controlStr: '+1q' }) // Replace the 'this quarter' item
+  }
+
   // Note: Extra setup is required for certain buttons:
   // - Cancel button icon circle or square, and function
   // - Toggle Type icon circle or square
