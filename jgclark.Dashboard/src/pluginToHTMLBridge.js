@@ -503,6 +503,10 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
     let sections = reactWindowData.pluginData.sections
     const isProject = data.item?.itemType === 'project'
 
+    // Work out if this is from a DT (Today) section
+    const isToday = data.sectionCodes?.includes('DT') || false
+    if (isToday) logDebug('updateReactWindowFromLineChange', `item ${updatedParagraph?.content || '?'} is from Today. ID: ${ID}`) // TEST: then TODO: remove
+
     if (updatedParagraph) {
       logDebug(`updateReactWindowFLC`, ` -> updatedParagraph: "${updatedParagraph.content}"`)
       const { content: oldContent = '', filename: oldFilename = '' } = data.item?.para ?? { content: 'error', filename: 'error' }
@@ -517,14 +521,14 @@ export async function updateReactWindowFromLineChange(handlerResult: TBridgeClic
 
       if (indexes.length) {
         const { sectionIndex, itemIndex } = indexes[0] // GET FIRST ONE FOR CLO DEBUGGING
-        // clo(indexes, 'updateReactWindowFLC: indexes to update')
-        // clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`)
+        clo(indexes, 'updateReactWindowFLC: indexes to update') // TEST: then TODO: turn off
+        clo(sections[sectionIndex].sectionItems[itemIndex], `updateReactWindowFLC OLD/EXISTING JSON item ${ID} sections[${sectionIndex}].sectionItems[${itemIndex}]`) // TEST: then TODO: turn off
         if (shouldRemove) {
           logDebug('updateReactWindowFLC', `-> removed item ${ID} from sections[${sectionIndex}].sectionItems[${itemIndex}]`)
           indexes.reverse().forEach((index) => {
             const { sectionIndex, itemIndex } = index
             sections[sectionIndex].sectionItems.splice(itemIndex, 1)
-            // clo(sections[sectionIndex],`updateReactWindowFLC After splicing sections[${sectionIndex}]`)
+            clo(sections[sectionIndex], `updateReactWindowFLC After splicing sections[${sectionIndex}]`) // TEST: then TODO: turn off
           })
         } else {
           sections = copyUpdatedSectionItemData(indexes, fieldPathsToUpdate, { itemType: newPara.type, para: newPara }, sections)

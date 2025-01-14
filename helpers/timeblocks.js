@@ -257,12 +257,13 @@ export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStrin
   const startTimeStr = getStartTimeStrFromParaContent(para.content)
   const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
   const endTimeStr = getEndTimeStrFromParaContent(para.content)
-  const endTimeMom = (endTimeStr === '')
+  logDebug('isActiveOrFutureTimeBlockPara', `${startTimeStr} / ${endTimeStr}`)
+  const endTimeMom = (endTimeStr !== '')
     ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
     // Add 15 mins on from start time (this appears to be the NP default duration).
     : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
   const isCurrentTB = currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
-  logInfo('isActiveOrFutureTimeBlockPara', `Found${isCurrentTB ? '' : ' NOT'} active/future timeblock ${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${tbString}`) // TODO: turn down later
+  logDebug('isActiveOrFutureTimeBlockPara', `Found${isCurrentTB ? '' : ' NOT'} active/future timeblock ${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${tbString}`)
   return isCurrentTB
 }
 

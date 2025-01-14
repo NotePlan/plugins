@@ -321,10 +321,10 @@ export function getOpenItemParasForTimePeriod(
         logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
     } else {
-      logDebug(
-        'getOpenItemPFCTP',
-        `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
-      )
+      // logDebug(
+      //   'getOpenItemPFCTP',
+      //   `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
+      // )
     }
 
     // Filter out checklists with timeblocks, if wanted
