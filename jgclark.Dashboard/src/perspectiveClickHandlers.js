@@ -159,6 +159,7 @@ export async function doSwitchToPerspective(data: MessageDataObject): Promise<TB
     dashboardSettings: newDashboardSettings,
     serverPush: { dashboardSettings: true, perspectiveSettings: true },
     sections: [],
+    lastChange: `_Switched to perspective ${switchToName} ${dt()} changed from plugin`,
   }
   logDebug(
     `doSwitchToPerspective`,
