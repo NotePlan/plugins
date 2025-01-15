@@ -299,7 +299,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     }
 
     const endOfFMIndex = endOfFrontmatterLineIndex(note)
-    if (endOfFMIndex === 0) {
+    if (!endOfFMIndex || endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
         // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
