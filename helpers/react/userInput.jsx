@@ -153,3 +153,65 @@ export function showConfirmationDialog({
     })
   })
 }
+
+/**
+ * WARNING: Not yet tested.
+ * Shows a message dialog with just an "OK" button.
+ * @param {Object} options - Options to customize the confirmation dialog.
+ * @param {string} options.title - The title of the dialog.
+ * @param {string} options.message - The message to display in the dialog.
+ * @param {Function} options.onOK - Callback when "OK" is clicked.
+ */
+export function showMessageDialog({
+  title = 'Confirmation',
+  message = 'Are you sure?',
+  onOK
+}: {
+  title?: string,
+  message?: string,
+  onOK?: () => void
+}): void {
+  logDebug('showMessageDialog', 'Opening dialog')
+  const dialogItems: Array<TSettingItem> = [
+    {
+      type: 'text',
+      key: 'message',
+      label: message,
+      textType: 'title',
+    },
+    {
+      type: 'button-group',
+      key: 'messageButton',
+      options: [
+        { label: 'OK', value: 'ok', isDefault: true },
+      ],
+    },
+  ]
+
+  const handleButtonClick = (key: string, value: string) => {
+    logDebug('showMessageDialog', 'handleButtonClick', key, value)
+    if (value === 'ok') {
+      onOK?.()
+    }
+  }
+
+  const handleEnterKey = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleButtonClick('messageButton', 'yes')
+    }
+  }
+
+  document.addEventListener('keydown', handleEnterKey)
+
+  showDialog({
+    title,
+    className: 'confirmation',
+    items: dialogItems,
+    isOpen: true,
+    hideHeaderButtons: true,
+    handleButtonClick,
+    onCancel: () => { }
+  }).finally(() => {
+    document.removeEventListener('keydown', handleEnterKey)
+  })
+}

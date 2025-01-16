@@ -15,29 +15,28 @@ import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
-import { chooseHeading, chooseNote, displayTitleWithRelDate } from '@helpers/userInput'
+import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage } from '@helpers/userInput'
 
 /**
  * Move an item (given by its content and filename) and move to a note specified by the user.
  * Note: designed to be used by HTMLView plugins where proper Paragraphs aren't available.
  * @param {string} origFilename line is currently in
- * @param {string} content of line
+ * @param {string} paraContent content of line
  * @param {ParagraphType} type of item
  * @param {number} newHeadingLevel for new Headings
  * @returns {TNote} returns new note the line was moved to
  */
-export async function moveItemToRegularNote(origFilename: string, content: string, itemType: ParagraphType, newHeadingLevel: number = 2): Promise<TNote | null> {
+export async function moveItemToRegularNote(origFilename: string, paraContent: string, itemType: ParagraphType, newHeadingLevel: number = 2): Promise<TNote | null> {
   try {
-    logDebug('moveItemToRegularNote', `Starting with {${content}} in ${origFilename}`)
+    logDebug('moveItemToRegularNote', `Starting with {${paraContent}} in ${origFilename}, itemType: ${itemType}`)
 
     // find para in the given origFilename
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(origFilename, content)
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(origFilename, paraContent)
     if (typeof possiblePara === 'boolean') {
-      throw new Error('moveItemToRegularNote: no para found')
+      logWarn('moveItemToRegularNote', `Cannot find paragraph {${paraContent}} in note '${origFilename}'. Likely cause: updated note since last Dashboard refresh.`)
+      showMessage(`Cannot find paragraph {${paraContent}} in note '${origFilename}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
+      return null
     }
-
-    // const itemType = data.itemType
-    logDebug('moveItemToRegularNote', `- itemType: ${itemType}`)
 
     // Ask user for destination project note
     const typeToDisplayToUser = itemType // === 'checklist' ? 'Checklist' : 'Task'
@@ -55,9 +54,9 @@ export async function moveItemToRegularNote(origFilename: string, content: strin
     // Add text to the new location in destination note
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
     if (itemType === 'open') {
-      coreAddTaskToNoteHeading(destNote, headingToFind, content, newHeadingLevel, false)
+      coreAddTaskToNoteHeading(destNote, headingToFind, paraContent, newHeadingLevel, false)
     } if (itemType === 'checklist') {
-      coreAddChecklistToNoteHeading(destNote, headingToFind, content, newHeadingLevel, false)
+      coreAddChecklistToNoteHeading(destNote, headingToFind, paraContent, newHeadingLevel, false)
     } else {
       logError('moveItemToRegularNote', `- not (yet) designed to handle item type ${itemType}`)
     }
@@ -70,13 +69,13 @@ export async function moveItemToRegularNote(origFilename: string, content: strin
 
     // delete from existing location
     const origNote = getNoteByFilename(origFilename)
-    const origPara = findParaFromStringAndFilename(origFilename, content)
+    const origPara = findParaFromStringAndFilename(origFilename, paraContent)
     if (origNote && origPara) {
       logDebug('moveItemToRegularNote', `- Removing 1 para from original note ${origFilename}`)
       origNote.removeParagraph(origPara)
       DataStore.updateCache(origNote, false)
     } else {
-      logWarn('moveItemToRegularNote', `couldn't remove para {${content}} from original note ${origFilename} because note or paragraph couldn't be found`)
+      logWarn('moveItemToRegularNote', `couldn't remove para {${paraContent}} from original note ${origFilename} because note or paragraph couldn't be found`)
     }
     // Return the destNote
     return updatedDestNote
@@ -119,8 +118,11 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     // find para in the fromNote
     const matchedPara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
     if (typeof matchedPara === 'boolean') {
-      throw new Error('moveItemBetweenCalendarNotes: no para found')
+      logWarn('moveItemBetweenCalendarNotes', `Cannot find paragraph {${paraContent}} in note '${NPFromDateStr}'. Likely cause: updated note since last Dashboard refresh.`)
+      showMessage(`Cannot find paragraph {${paraContent}} in calendar note '${NPFromDateStr}'. Have you updated this line in the note since the last Dashboard refresh?`, 'OK', 'Dashboard: Move Item', false)
+      return false
     }
+
     // Remove any scheduled date on the parent para
     const updatedMatchedPara = removeDateTagsAndToday(paraContent, true)
     matchedPara.content = updatedMatchedPara
@@ -130,7 +132,6 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
     const targetContent = parasToText(matchedParaAndChildren)
 
-    // FIXME: need to use coreAddTaskToNoteHeading() etc. here to handle '<<top of note>>' special processing
     // add to toNote
     if (heading === '<<top of note>>') {
       // Handle this special case
@@ -249,12 +250,6 @@ export function moveGivenParaAndBlock(para: TParagraph, toFilename: string, toNo
     if (!fromNote) {
       throw new Error(`From note can't be found. Stopping.`)
     }
-
-    // Get paragraph index
-    const firstSelLineIndex = para.lineIndex
-    const lastSelLineIndex = para.lineIndex
-    // Get paragraphs for the selection or block
-    let firstStartIndex = 0
 
     // get children paras (as well as the original)
     const parasInBlock = getParaAndAllChildren(para)

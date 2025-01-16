@@ -337,24 +337,22 @@ export type TReactSettings = {
 export type TPluginData = {
   dashboardSettings: any,
   perspectiveSettings: any,
-  logSettings: any /* logging settings from plugin preferences */,
-  notePlanSettings: any /* for copies of some app settings */,
-  refreshing?: Array<TSectionCode> | boolean /* true if all, or array of sectionCodes if some */,
-  perspectiveChanging?: boolean /* true if perspective is changing, false if not. Displays a modal spinner */,
+  logSettings: any, /* logging settings from plugin preferences */
+  notePlanSettings: any, /* for copies of some app settings */
+  refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
+  perspectiveChanging?: boolean, /* true if perspective is changing, false if not. Displays a modal spinner */
   sections: Array<TSection>,
-  lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,
-  themeName: string /* the theme name used when generating the dashboard */,
-  platform: string /* the platform used when generating the dashboard */,
-  version: string,
-  serverPush: {
+  lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
+  themeName: string, /* the theme name used when generating the dashboard */
+  platform: string, /* the platform used when generating the dashboard */
+  version: string, /* version of this plugin */
+  serverPush: { /* TODO: document this */
     dashboardSettings?: boolean,
     perspectiveSettings?: boolean,
   },
-  demoMode: boolean /* use fake content for demo purposes */,
-  // totalDoneCounts?: TDoneCount,
+  demoMode: boolean, /* use fake content for demo/test purposes */
   totalDoneCount?: number,
-  startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
-  version: string, // plugin version string
+  startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
 }
 
 export type TSettingItemType = 'switch' | 'input' | 'input-readonly' | 'combo' | 'number' | 'text' | 'separator' | 'heading' | 'header' | 'hidden' | 'perspectiveList'
