@@ -122,6 +122,21 @@ const DropdownMenu = ({
   // Effects
   //----------------------------------------------------------------------
 
+  // Update localSwitchStates when sectionItems or otherItems change
+  useEffect(() => {
+    const updatedStates: SwitchStateMap = {}
+    ;[...otherItems, ...sectionItems].forEach((item) => {
+      if (item.type === 'switch' && item.key) {
+        updatedStates[item.key] = item.checked || false
+      }
+    })
+    // Only update state if there is a change
+    setLocalSwitchStates((prevStates) => {
+      const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
+      return hasChanged ? updatedStates : prevStates
+    })
+  }, [sectionItems, otherItems])
+
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)

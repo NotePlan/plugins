@@ -41,12 +41,15 @@ export const useSyncDashboardSettingsWithPlugin = (
   const lastpluginDataDSettingsRef = useRef(pluginDataDSettings)
   const lastDashboardSettingsRef = useRef(dashboardSettings)
 
-  // Handle receiving changes from the plugin which need dispatching to the front-end
+  // Handle receiving changes from the plugin which need to update the dashboard settings in the front-end
   useEffect(() => {
     const pluginDataDSettingsChanged = pluginDataDSettings && compareFn(lastpluginDataDSettingsRef.current, pluginDataDSettings) !== null
+    logDebug(
+      `useSyncDashboardSettingsWithPlugin effect1 PLUGIN->REACT checking pluginData?.serverPush?.dashboardSettings=${String(pluginData?.serverPush?.dashboardSettings) || ''}`,
+    )
     if (pluginDataDSettingsChanged) {
       logDebug(
-        `useSyncDashboardSettingsWithPlugin plugin sent changes to front-end`,
+        `useSyncDashboardSettingsWithPlugin PLUGIN->REACT plugin sent changes to front-end`,
         `CC pluginDataDSettingsChanged=${String(pluginDataDSettingsChanged)} excluded=${pluginDataDSettings.excludedFolders}`,
         { pluginDataDSettings },
         { lastpluginDataDSettingsRef: lastpluginDataDSettingsRef.current },
@@ -73,23 +76,23 @@ export const useSyncDashboardSettingsWithPlugin = (
     const realDiff = getDiff(lastDashboardSettingsRef.current, dashboardSettings)
     if (dashboardSettingsChanged) {
       logDebug(
-        `useSyncDashboardSettingsWithPlugin pluginData changed BB dashboardSettingsChanged: ${String(dashboardSettingsChanged)} pluginData.perspectiveChanging:${String(
-          pluginData.perspectiveChanging,
-        )}`,
-        { dashboardSettings, realDiff },
+        `useSyncDashboardSettingsWithPlugin dashboardSettings in REACT changed BB dashboardSettingsChanged: ${String(
+          dashboardSettingsChanged,
+        )} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)}`,
+        { dashboardSettings, realDiff, serverPush: pluginData?.serverPush?.dashboardSettings },
       )
-      if (!pluginData.perspectiveChanging && !pluginData.serverPush?.dashboardSettings) {
-        // check if this change was caused by a server push or a user event
+      if (!pluginData.perspectiveChanging) {
         if (pluginData?.serverPush?.dashboardSettings) {
-          const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
-          updatePluginData(newPluginData, `acknowledging server push`)
           logDebug(
             `useSyncDashboardSettingsWithPlugin pluginData changed; serverPush=${JSON.stringify(
               pluginData.serverPush,
             )} changing serverPush.dashboardSettings to false; not sending to server`,
           )
+          const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
+          updatePluginData(newPluginData, `acknowledging server push`)
           // was a server push so don't need to send to server
         } else {
+          logDebug(`useSyncDashboardSettingsWithPlugin front-end settings data changed (was not server push) AC diff/realDiff=`, { diff, realDiff })
           if (diff && Object.keys(diff).length > 0) {
             logDebug(`useSyncDashboardSettingsWithPlugin pluginData changed (was not server push) AC diff=`, { realDiff })
             if (dashboardSettings.lastChange && (dashboardSettings.lastChange[0] === '_' || dashboardSettings.lastChange.endsWith('changed from plugin'))) {
@@ -118,4 +121,14 @@ export const useSyncDashboardSettingsWithPlugin = (
       lastDashboardSettingsRef.current = dashboardSettings
     }
   }, [dashboardSettings, sendActionToPlugin, compareFn, pluginData])
+
+  useEffect(() => {
+    if (pluginData.serverPush.dashboardSettings) {
+      logDebug(`useSyncDashboardSettingsWithPlugin pluginData.serverPush.dashboardSettings is true; resetting it`, {
+        pluginData,
+      })
+      const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
+      updatePluginData(newPluginData, `acknowledging server push`)
+    }
+  }, [pluginData.serverPush.dashboardSettings])
 }

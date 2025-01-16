@@ -67,6 +67,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   useEffect(() => {
     logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
     if (!openDropdownMenu) {
+      logDebug(`Header/useEffect dashboardSettings or openDropdownMenu changed memo. openDropdownMenu=${String(openDropdownMenu)}`, { dashboardSettings })
       setTempDashboardSettings({ ...dashboardSettings })
     }
   }, [dashboardSettings, openDropdownMenu])
@@ -170,7 +171,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
 
   // Memoized dropdown items that update when tempDashboardSettings changes
   const [dropdownSectionItems, dropdownOtherItems] = useMemo(() => createFilterDropdownItems(tempDashboardSettings), [tempDashboardSettings])
-  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(dashboardSettings), [dashboardSettings])
+  const dashboardSettingsItems = useMemo(() => createDashboardSettingsItems(tempDashboardSettings), [tempDashboardSettings])
   const featureFlagItems = useMemo(() => createFeatureFlagItems(tempDashboardSettings), [tempDashboardSettings])
 
   const isDevMode = logSettings._logLevel === 'DEV'

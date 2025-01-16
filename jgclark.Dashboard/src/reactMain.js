@@ -11,7 +11,7 @@ import { allSectionDetails, WEBVIEW_WINDOW_ID } from './constants'
 import { updateDoneCountsFromChangedNotes } from './countDoneTasks'
 import { getDashboardSettings, getLogSettings, getNotePlanSettings, getListOfEnabledSections } from './dashboardHelpers'
 import { dashboardFilterDefs, dashboardSettingDefs } from './dashboardSettings'
-import { getAllSectionsData, /*getSomeSectionsData*/ } from './dataGeneration'
+import { getAllSectionsData /*getSomeSectionsData*/ } from './dataGeneration'
 import { getPerspectiveSettings, /*setActivePerspective,*/ getActivePerspectiveDef, switchToPerspective } from './perspectiveHelpers'
 // import { doSwitchToPerspective } from './perspectiveClickHandlers'
 import { bridgeClickDashboardItem } from './pluginToHTMLBridge'
@@ -363,12 +363,13 @@ export async function getInitialDataForReactWindow(perspectiveName: string = '',
     const startTime = new Date()
     let perspectiveSettings = await getPerspectiveSettings()
     // If a perspective is specified, then update the setting to point to it before opening the React Window
-    if (perspectiveName !== '') {
+    let dashboardSettings: TDashboardSettings = await getDashboardSettings()
+    if (perspectiveName) {
       logInfo('getInitialDataForReactWindow', `switching to perspective '${perspectiveName}'`)
       // perspectiveSettings = setActivePerspective(perspectiveName, perspectiveSettings)
       perspectiveSettings = (await switchToPerspective(perspectiveName, perspectiveSettings)) || perspectiveSettings
+      dashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
     }
-    const dashboardSettings: TDashboardSettings = await getDashboardSettingsFromPerspective(perspectiveSettings)
     // clo(dashboardSettings, `getInitialDataForReactWindow: dashboardSettings=`)
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
     const pluginData = await getPluginData(dashboardSettings, perspectiveSettings, useDemoData)

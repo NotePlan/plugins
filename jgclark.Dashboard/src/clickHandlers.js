@@ -7,31 +7,16 @@
 // Last updated for v2.1.0.b
 //-----------------------------------------------------------------------------
 import moment from 'moment'
-import {
-  getDashboardSettings,
-  handlerResult,
-  setPluginData
-} from './dashboardHelpers'
+import { getDashboardSettings, handlerResult, setPluginData } from './dashboardHelpers'
 import { setDashPerspectiveSettings } from './perspectiveClickHandlers'
-import {
-  getActivePerspectiveDef,
-  getPerspectiveSettings,
-  cleanDashboardSettings,
-} from './perspectiveHelpers'
+import { getActivePerspectiveDef, getPerspectiveSettings, cleanDashboardSettings } from './perspectiveHelpers'
 import { validateAndFlattenMessageObject } from './shared'
-import type { MessageDataObject, TBridgeClickHandlerResult, } from './types'
+import type { MessageDataObject, TBridgeClickHandlerResult } from './types'
 import { coreAddChecklistToNoteHeading, coreAddTaskToNoteHeading } from '@helpers/NPAddItems'
-import {
-  cancelItem,
-  completeItem,
-  completeItemEarlier,
-  deleteItem,
-  findParaFromStringAndFilename,
-  highlightParagraphInEditor,
-} from '@helpers/NPParagraph'
+import { cancelItem, completeItem, completeItemEarlier, deleteItem, findParaFromStringAndFilename, highlightParagraphInEditor } from '@helpers/NPParagraph'
 import { unscheduleItem } from '@helpers/NPScheduleItems'
 import { openNoteByFilename } from '@helpers/NPnote'
-import { getDateStringFromCalendarFilename, } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logTimer, logWarn, timer, compareObjects } from '@helpers/dev'
 import { cyclePriorityStateDown, cyclePriorityStateUp } from '@helpers/paragraph'
 import { processChosenHeading } from '@helpers/userInput'
@@ -527,9 +512,9 @@ export async function doSettingsChanged(data: MessageDataObject, settingName: st
   }
 
   DataStore.settings = combinedUpdatedSettings
-  const updatedPluginData = { [settingName]: newSettings, serverPush: { [settingName]: true } }
+  const updatedPluginData = { [settingName]: newSettings } // was also: serverPush: { [settingName]: true }
   if (perspectivesToSave) {
-    updatedPluginData.serverPush.perspectiveSettings = true
+    // updatedPluginData.serverPush ? updatedPluginData.serverPush.perspectiveSettings = true
     // $FlowFixMe(incompatible-type)
     updatedPluginData.perspectiveSettings = perspectivesToSave
   }
