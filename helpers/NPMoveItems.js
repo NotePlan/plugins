@@ -92,18 +92,20 @@ export async function moveItemToRegularNote(origFilename: string, content: strin
  * Move a task or checklist from one calendar note to another.
  * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
  * It also moves indented child paragraphs of any type.
- * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
- * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
+ * Location in note depends on 'heading' value:
+ * - '<<top of note>>', then start of active part of Note
+ * - '' (blank) or '<<bottom of note>>' the para will be *prepended* to the effective top of the destination note.
+ * - otherwise will add after the matching heading, adding new heading if needed.
  * Note: is called by moveClickHandlers::doMoveFromCalToCal().
  * @author @jgclark
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} paraContent content of the para to move.
- * @param {string?} headingToPlaceUnder which will be created if necessary
+ * @param {string?} heading which will be created if necessary
  * @returns {TNote | false} if succesful pass the new note, otherwise false
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
-  logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, heading: string = '', newTaskSectionHeadingLevel: number = 2): TNote | false {
+  logDebug('moveItemBetweenCalendarNotes', `starting for ${NPFromDateStr} to ${NPToDateStr} under heading '${heading}'`)
   try {
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
@@ -128,20 +130,26 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     const matchedParaAndChildren = getParaAndAllChildren(matchedPara)
     const targetContent = parasToText(matchedParaAndChildren)
 
+    // FIXME: need to use coreAddTaskToNoteHeading() etc. here to handle '<<top of note>>' special processing
     // add to toNote
-    if (headingToPlaceUnder === '') {
+    if (heading === '<<top of note>>') {
+      // Handle this special case
+      logDebug('coreAddTaskToNoteHeading', `Adding line '${targetContent}' to start of active part of note '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, targetContent, 'text')
+    }
+    else if (heading === '' || heading === '<<bottom of note>>') {
       logDebug('moveItemBetweenCalendarNotes', `- Calling smartPrependPara() for '${String(matchedParaAndChildren.length)}' to '${displayTitle(toNote)}'`)
       smartPrependPara(toNote, targetContent, 'text')
     } else {
-      logDebug('moveItemBetweenCalendarNotes', `- Adding ${matchedParaAndChildren.length} lines under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      logDebug('moveItemBetweenCalendarNotes', `- Adding ${matchedParaAndChildren.length} lines under heading '${heading}' in '${displayTitle(toNote)}'`)
       // Note: this doesn't allow setting heading level ...
-      // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
+      // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, heading, false, true)
       // so need to do it manually
       const shouldAppend = false
-      const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
+      const matchedHeading = findHeadingStartsWith(toNote, heading)
       logDebug(
         'moveItemBetweenCalendarNotes',
-        `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`,
+        `Adding line "${targetContent}" to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`,
       )
 
       // ? TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
@@ -152,14 +160,14 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
         toNote.addParagraphBelowHeadingTitle(
           targetContent,
           'text',
-          matchedHeading !== '' ? matchedHeading : headingToPlaceUnder,
+          matchedHeading !== '' ? matchedHeading : heading,
           shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
           true, // create heading if needed (possible if supplied via headingArg)
         )
       } else {
         const headingLevel = newTaskSectionHeadingLevel
         const headingMarkers = '#'.repeat(headingLevel)
-        const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
+        const headingToUse = `${headingMarkers} ${heading}`
         const insertionIndex = shouldAppend ? findEndOfActivePartOfNote(toNote) + 1 : findStartOfActivePartOfNote(toNote)
 
         logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)

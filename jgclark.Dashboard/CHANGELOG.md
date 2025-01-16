@@ -7,6 +7,7 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ### Fixes
 - fixed regression that stopped 'hide checklists' from being honoured in some parts of the display
 - the 'current timeblock' could stop being displayed too soon
+- fixed special '<<top of note>>' option in setting 'Section heading to add/move new tasks under' not being handled properly (thanks, @dwertheimer)
 ### Dev notes
 - I realised that some of the logic for what to display and not is spread out in several places, making it difficult to reason with and test. So I've moved a checklist filter out of ItemGrid up to Section level (through its useSection... effect) which has much more logic about how to filter and display this.
 

@@ -72,7 +72,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         ? typeFilteredItems.filter((f) => (f.para?.priority ?? 0) >= maxPrioritySeen)
         : typeFilteredItems.slice()
       const priorityFilteringHappening = items.length > filteredItems.length
-      logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${items.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
+      // logDebug('useSectionSortAndFilter', `${section.sectionCode}: ${items.length} items; maxPri = ${String(maxPrioritySeen)}; leaves ${String(filteredItems.length)} filteredItems`)
       // clo(filteredItems, 'useSectionSortAndFilter filteredItems:')
 
       filteredItems.sort(itemSort)
@@ -103,7 +103,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
           },
         })
       }
-      logDebug('useSectionSortAndFilter', `- numFilteredOut: ${String(numFilteredOut)}; ${limitApplied ? `limitApplied; itemsToShow: ${String(itemsToShow)}` : ''}`)
+      // logDebug('useSectionSortAndFilter', `- numFilteredOut: ${String(numFilteredOut)}; ${limitApplied ? `limitApplied; itemsToShow: ${String(itemsToShow)}` : ''}`)
 
       setFilteredItems(filteredItems)
       setItemsToShow(itemsToShow)
