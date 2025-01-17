@@ -106,7 +106,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
       console.log('Section 🥸 handleIPItemProcessed reactSettings at top of handleInteractiveProcessingClick function', reactSettings)
 
       const clickPosition = { clientY: e.clientY, clientX: e.clientX + 200 }
-      const itemDetails = { actionType: '', item: itemsToShow[0] }
+      const itemDetails = { actionType: '', item: itemsToShow[0], sectionCodes: [section.sectionCode] }
       logDebug('Section', `handleInteractiveProcessingClick; setting currentIPIndex=${String(0)} itemDetails=${JSON.stringify(itemDetails)}`)
       setReactSettings((prevSettings) => {
         const newReactSettings = {
@@ -198,7 +198,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   // Decide whether to show interactiveProcessing button
   // TODO(later): enable again for PROJ
-  const showIPButton = dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && section.sectionCode !== 'PROJ'
+  const showIPButton =
+    dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && section.sectionCode !== 'PROJ'
 
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
@@ -243,16 +244,16 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         <div className="sectionProcessButtons">
           {processActionButtons?.map((item, index) => <CommandButton key={index} button={item} onClick={handleCommandButtonClick} className="PCButton" />) ?? []}
           {showIPButton && (
-          // <>
-              <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
-                {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
-                {/* wanted to use 'fa-arrow-progress' here but not in our build */}
-                {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
-                <i className="fa-regular fa-angles-right"></i>
-                <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
-                  {numItemsToShow}
-                </span>
-              </button>
+            // <>
+            <button className="PCButton tooltip" onClick={handleInteractiveProcessingClick} data-tooltip={`Interactively process ${numItemsToShow} ${section.name} items`}>
+              {/* <i className="fa-solid fa-arrows-rotate" style={{ opacity: 0.7 }}></i> */}
+              {/* wanted to use 'fa-arrow-progress' here but not in our build */}
+              {/* <i className="fa-regular fa-layer-group fa-rotate-90"></i> */}
+              <i className="fa-regular fa-angles-right"></i>
+              <span className="interactiveProcessingNumber" style={{ fontWeight: 500, paddingLeft: '3px' }}>
+                {numItemsToShow}
+              </span>
+            </button>
             // </>
           )}
         </div>
