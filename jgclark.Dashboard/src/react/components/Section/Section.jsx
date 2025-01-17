@@ -219,7 +219,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
    * Then <SectionGrid> which contains the actual data items.
    */
   return hideSection ? null : (
-    <div className="section">
+    <section className="section">
       <div className="sectionInfo">
         <div className="sectionInfoFirstLine">
           <TooltipOnKeyPress
@@ -259,7 +259,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
         </div>
       </div>
       <ItemGrid thisSection={section} items={itemsToShow} />
-    </div>
+    </section>
   )
 }
 

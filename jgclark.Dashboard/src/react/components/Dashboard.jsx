@@ -322,9 +322,11 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
       )}
       <div className="dashboard">
         <Header lastFullRefresh={lastFullRefresh} />
-        {sections.map((section, index) => (
-          <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
-        ))}
+        <main>
+          {sections.map((section, index) => (
+            <Section key={index} section={section} onButtonClick={handleCommandButtonClick} />
+          ))}
+        </main>
         <Dialog
           onClose={handleDialogClose}
           isOpen={reactSettings?.dialogData?.isOpen ?? false}

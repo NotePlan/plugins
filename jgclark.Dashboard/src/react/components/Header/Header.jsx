@@ -186,7 +186,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
   const timeAgoText = isMobile || isNarrowWidth ? timeAgo : timeAgo.replace(' mins', 'm').replace(' min', 'm').replace(' hours', 'h').replace(' hour', 'h')
   // logInfo('Header', `Rendering Header; isMobile:${String(isMobile)}, isNarrowWidth:${String(isNarrowWidth)}, showRefreshButton:${String(showRefreshButton)}, showHardRefreshButton:${String(showHardRefreshButton)}`)
   return (
-    <div className="header">
+    <header className="header">
       {/* Perspective selector */}
       {dashboardSettings.perspectivesEnabled && (
         <div className="perspectiveName">
@@ -261,7 +261,7 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
           <i className="fa-solid fa-gear" onClick={handleToggleDialog}></i>
         </div>
       </div>
-    </div>
+    </header>
   )
 }
 
