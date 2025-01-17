@@ -17,6 +17,10 @@ import { logDebug } from '@helpers/react/reactDev.js'
 //--------------------------------------------------------------------------
 // Type Definitions
 //--------------------------------------------------------------------------
+
+/**
+ * A map of switch keys to their current boolean state.
+ */
 type SwitchStateMap = { [key: string]: boolean }
 
 type DropdownMenuProps = {
@@ -38,7 +42,13 @@ type DropdownMenuProps = {
 // DropdownMenu Component Definition
 //--------------------------------------------------------------------------
 
-const DropdownMenu = ({
+/**
+ * DropdownMenu component to display toggles and input fields for user configuration.
+ * @function
+ * @param {DropdownMenuProps} props
+ * @returns {Node} The rendered component.
+ */
+function DropdownMenu({
   sectionItems = [],
   otherItems,
   handleSwitchChange = (key: string) => (e: any) => {},
@@ -51,7 +61,7 @@ const DropdownMenu = ({
   labelPosition = 'right',
   isOpen,
   toggleMenu,
-}: DropdownMenuProps): Node => {
+}: DropdownMenuProps): Node {
   //----------------------------------------------------------------------
   // Refs
   //----------------------------------------------------------------------
@@ -77,10 +87,14 @@ const DropdownMenu = ({
   const handleFieldChange = (key: string, value: any) => {
     logDebug('DropdownMenu', `menu:"${className}" Field change detected for ${key} with value ${value}`)
     setChangesMade(true)
-    setLocalSwitchStates((prevStates) => ({
-      ...prevStates,
-      [key]: value,
-    }))
+    setLocalSwitchStates((prevStates) => {
+      const revisedSwitchStates = {
+        ...prevStates,
+        [key]: value,
+      }
+      logDebug(`DropdownMenu: handleFieldChange: ${key} changed to ${value}, revised localSwitchStates`, { revisedSwitchStates })
+      return revisedSwitchStates
+    })
   }
 
   const handleSaveChanges = useCallback(
@@ -122,20 +136,28 @@ const DropdownMenu = ({
   // Effects
   //----------------------------------------------------------------------
 
-  // Update localSwitchStates when sectionItems or otherItems change
+  // Update localSwitchStates from the sectionItems or otherItems only when
+  // the menu is closed. This prevents overwriting user toggles while open.
   useEffect(() => {
-    const updatedStates: SwitchStateMap = {}
-    ;[...otherItems, ...sectionItems].forEach((item) => {
-      if (item.type === 'switch' && item.key) {
-        updatedStates[item.key] = item.checked || false
-      }
-    })
-    // Only update state if there is a change
-    setLocalSwitchStates((prevStates) => {
-      const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
-      return hasChanged ? updatedStates : prevStates
-    })
-  }, [sectionItems, otherItems])
+    if (!isOpen) {
+      const updatedStates: SwitchStateMap = {}
+      ;[...otherItems, ...sectionItems].forEach((item) => {
+        if (item.type === 'switch' && item.key) {
+          updatedStates[item.key] = item.checked || false
+        }
+      })
+      // Only update state if there is a change
+      setLocalSwitchStates((prevStates) => {
+        const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
+        logDebug(`DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`, {
+          updatedStates,
+          prevStates,
+          hasChanged,
+        })
+        return hasChanged ? updatedStates : prevStates
+      })
+    }
+  }, [isOpen, sectionItems, otherItems])
 
   useEffect(() => {
     if (isOpen) {
