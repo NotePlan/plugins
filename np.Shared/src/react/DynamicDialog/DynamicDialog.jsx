@@ -226,8 +226,7 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
 
   useEffect(() => {
-    if (isOpen && dialogRef.current instanceof HTMLDialogElement) {
-      dialogRef.current.showModal()
+    if (isOpen) {
       document.addEventListener('keydown', handleEscapeKey)
     } else if (dialogRef.current instanceof HTMLDialogElement) {
       dialogRef.current.close()
