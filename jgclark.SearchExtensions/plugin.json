@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
   "plugin.version": "1.4.0",
-  "plugin.lastUpdateInfo": "1.4.0: adds first basic search-and-replace functionality. Adds case sensitive searching. Adds full-word searching.\n1.3.0: adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.lastUpdateInfo": "1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -117,12 +117,6 @@
       ]
     },
     {
-      "hidden": true,
-      "name": "refreshSavedSearch",
-      "description": "onOpen",
-      "jsFunction": "refreshSavedSearch"
-    },
-    {
       "name": "flexiSearch",
       "alias": [
         "fs",
@@ -130,7 +124,7 @@
         "search"
       ],
       "description": "Save results from a search with the most flexible of options",
-      "jsFunction": "flexiSearchRequest",
+      "jsFunction": "showFlexiSearchDialog",
       "arguments": [],
       "comment": "Note: no arguments possible"
     },
@@ -152,20 +146,6 @@
       "jsFunction": "closeDialogWindow",
       "arguments": [
         "customId"
-      ]
-    },
-    {
-      "name": "replace",
-      "alias": [
-        "ss",
-        "save"
-      ],
-      "description": "Search and Replace over Calendar notes",
-      "jsFunction": "replaceOverCalendar",
-      "arguments": [
-        "search term",
-        "replace expression",
-        "paragraph types"
       ]
     },
     {
@@ -195,6 +175,27 @@
   ],
   "plugin.commands_disabled": [
     {
+      "comment": "??? I think this was for testing refresh. Can it be removed now?",
+      "hidden": true,
+      "name": "refreshSavedSearch",
+      "description": "onOpen",
+      "jsFunction": "refreshSavedSearch"
+    },
+    {
+      "name": "replace",
+      "alias": [
+        "ss",
+        "save"
+      ],
+      "description": "Search and Replace over Calendar notes",
+      "jsFunction": "replaceOverCalendar",
+      "arguments": [
+        "search term",
+        "replace expression",
+        "paragraph types"
+      ]
+    },
+    {
       "name": "test:updateSearchPlugin",
       "description": "test:updateSearchPlugin",
       "jsFunction": "onUpdateOrInstall"
@@ -207,7 +208,7 @@
     },
     {
       "key": "caseSensitiveSearching",
-      "title": "Case Sensitive searches?",
+      "title": "Case Sensitive searching?",
       "description": "By default searches in NotePlan ignore the case (capitalisation) of characters. This plugin will use case sensitive searching if this is turned on.",
       "type": "bool",
       "default": false,
@@ -215,18 +216,30 @@
     },
     {
       "key": "fullWordSearching",
-      "title": "Match on full words?",
-      "description": "By default searches in NotePlan match on parts of words. This plugin will only match on full words if this is turned on.",
+      "title": "Match only on full words?",
+      "description": "By default search terms in NotePlan matches on parts of longer words. Turn this on to restrict searches to matching full words only.",
       "type": "bool",
       "default": false,
       "required": true
+    },
+    {
+      "key": "foldersToExclude",
+      "title": "Folders to exclude",
+      "description": "Optional list of folders to exclude in these commands. If a folder is listed, then sub-folders are also excluded.\nTo exclude the top-level folder, use '/'. (The special Trash folder is always excluded.)",
+      "type": "[string]",
+      "default": [
+        "Summaries",
+        "Saved Searches",
+        "@Templates"
+      ],
+      "required": false
     },
     {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "File and Folder options"
+      "title": "Result saving options"
     },
     {
       "key": "autoSave",
@@ -251,18 +264,6 @@
       "type": "string",
       "default": "Quick Search Results",
       "required": true
-    },
-    {
-      "key": "foldersToExclude",
-      "title": "Folders to exclude",
-      "description": "Optional list of folders to exclude in these commands. If a folder is listed, then sub-folders are also excluded.\nTo exclude the top-level folder, use '/'. (The special Trash folder is always excluded.)",
-      "type": "[string]",
-      "default": [
-        "Summaries",
-        "Saved Searches",
-        "TEST"
-      ],
-      "required": false
     },
     {
       "type": "separator"
@@ -401,6 +402,14 @@
         "none"
       ],
       "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "_logTimer",
+      "title": "Enable Timer logging?",
+      "description": "For plugin authors to help optimise the plugin.",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]

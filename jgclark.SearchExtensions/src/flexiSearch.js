@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Save search but with flexible options presented as HTML dialog to user first
 // Jonathan Clark
-// Last updated 2024-11-01 for v1.4.0, @jgclark
+// Last updated 2025-01-17 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 // TODO: fix Cancel button not working on iOS
 
@@ -47,7 +47,7 @@ const flexiSearchDialogHTML = `
       <input type="checkbox" id="casesens" name="casesens" value="casesens"/>
     </label>
     <span class="gap-right"></span>
-    <b>Match full words?</b>
+    <b>Match full words only?</b>
     <label for="fullword" class="switch">
       <input type="checkbox" id="fullword" name="fullword" value="fullword" />
     </label>
@@ -169,7 +169,7 @@ const flexiSearchDialogPostBodyScripts = `
 		// Note following code assumes case sensitive matching, and that the values are distinct and not subset strings of each other.
     // Their values are substituted before the script is loaded
     let saveType = '%%SAVETYPEPREF%%'
-    let caseSensitiveSearching = '%%CASEPREF%%'
+    let caseSensitiveSearching = '%%CASESENSPREF%%'
     let fullWordSearching = '%%FULLWORDPREF%%'
 		let noteTypesStr = '%%NOTETYPESSTRPREF%%'
 		let paraTypesStr = '%%PARATYPESSTRPREF%%'
@@ -353,12 +353,14 @@ const resourceLinksInHeader = `
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 `
 
-/**------------------------------------------------------------------------
- * Run a search over all notes, saving the results in one of several locations.
- * Works interactively (if no arguments given) or in the background (using supplied arguments).
+// ------------------------------------------------------------------------
+
+/** 
+ * Display the flexiSearch dialog to user, using saved settings and preferences to pre-populate the various controls on the dialog.
+ * This in turn will call back to flexiSearchHandler() below.
  * @author @jgclark
 */
-export async function flexiSearchRequest(
+export async function showFlexiSearchDialog(
 ): Promise<void> {
   try {
     // Look up the 5 preferences from local store
@@ -371,13 +373,12 @@ export async function flexiSearchRequest(
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       // $FlowIgnore[incompatible-call] not pretty, but works
-      .replace('%%CASEPREF%%', caseSensitiveSearching)
+      .replace('%%CASESENSPREF%%', caseSensitiveSearching)
       // $FlowIgnore[incompatible-call] not pretty, but works
       .replace('%%FULLWORDPREF%%', fullWordSearching)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
       .replace('%%PARATYPESSTRPREF%%', paraTypesStr)
 
-    logDebug(pluginJson, `flexiSearchRequest called`)
     // write HTML to capture relevant search options
     const opts: HtmlWindowOptions = {
       windowTitle: 'FlexiSearch',
@@ -389,7 +390,7 @@ export async function flexiSearchRequest(
       postBodyScript: flexiSearchDialogPostBodyScriptsWithPrefValues,
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',
       width: 440,
-      height: 470,
+      height: 450,
       reuseUsersWindowRect: true,
       shouldFocus: true,
     }
@@ -397,20 +398,31 @@ export async function flexiSearchRequest(
     await showHTMLV2(flexiSearchDialogHTML, opts)
   }
   catch (err) {
-    logError(pluginJson, `flexiSearcRequest: ${err.message}`)
+    logError(pluginJson, `showFlexiSearchDialog: ${err.message}`)
   }
 }
 
-export function flexiSearchHandler(
+/**
+ * Handle search request from the flexiSearch dialog.
+ * @param {string} searchTerms 
+ * @param {string} saveType 
+ * @param {string} caseSensitiveSearchingAsStr Note: string due to limit of bridge to plugin. either 'casesens' or ''
+ * @param {string} fullWordSearchingAsStr Note: string due to limit of bridge to plugin. either 'fullword' or ''
+ * @param {string} noteTypeToInclude 
+ * @param {string} paraTypes 
+ * @returns {any} but in practice empty object
+ */
+// eslint-disable-next-line require-await
+export async function flexiSearchHandler(
   searchTerms: string,
   saveType: string,
-  caseSensitiveSearching: boolean,
-  fullWordSearching: boolean,
+  caseSensitiveSearchingAsStr: string,
+  fullWordSearchingAsStr: string,
   noteTypeToInclude: string,
   paraTypes: string
-): any {
+): Promise<void> {
   try {
-    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${caseSensitiveSearching.toString()} / ${fullWordSearching.toString()} / ${noteTypeToInclude} / ${paraTypes}`)
+    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${caseSensitiveSearchingAsStr} / ${fullWordSearchingAsStr} / ${noteTypeToInclude} / ${paraTypes}`)
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 
@@ -422,12 +434,14 @@ export function flexiSearchHandler(
             : 'search' // which defaults to 'both'
 
     // Then call main saveSearch function (no need to await for it)
-    saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching')
-    return {} // apparently required to avoid error in log
+    const caseSensitiveSearching: boolean = getPluginPreference('caseSensitiveSearching') === 'casesens'
+    const fullWordSearching: boolean = getPluginPreference('fullWordSearching') === 'fullword'
+    saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching', caseSensitiveSearching, fullWordSearching)
+    return
   }
   catch (err) {
     logError(pluginJson, `flexiSearchHandler: ${err.message}`)
-    return {}
+    return
   }
 }
 

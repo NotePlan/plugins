@@ -156,6 +156,33 @@ describe('search.js tests', () => {
     })
   })
 
+  describe('fullWordMatch', () => {
+    test("should not match 'hell' to 'hello'", () => {
+      const result = s.fullWordMatch('hell', 'hello', true)
+      expect(result).toEqual(false)
+    })
+    test("should match 'hell' to 'hell is all too real'", () => {
+      const result = s.fullWordMatch('hell', 'hell is all too real', true)
+      expect(result).toEqual(true)
+    })
+    test("should match 'hell' to 'heaven and hell'", () => {
+      const result = s.fullWordMatch('hell', 'heaven and hell', true)
+      expect(result).toEqual(true)
+    })
+    test("should match 'hell' to 'heaven, hell and something else'", () => {
+      const result = s.fullWordMatch('hell', 'heaven, hell and something else', true)
+      expect(result).toEqual(true)
+    })
+    test("should match 'hell' to 'Hell is all too real' with case sensitive match", () => {
+      const result = s.fullWordMatch('hell', 'Hell is all too real', false)
+      expect(result).toEqual(true)
+    })
+    test("should not match 'hell' to 'Hell is all too real' with case sensitive match", () => {
+      const result = s.fullWordMatch('hell', 'Hell is all too real', true)
+      expect(result).toEqual(false)
+    })
+  })
+
   describe('getDedupedHashtagsFromList', () => {
     test('should want "#project/management/theory from longer set', () => {
       const result = s.getDedupedHashtagsFromList(['#project', '#project/management', '#project/management/theory'])

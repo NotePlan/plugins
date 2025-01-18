@@ -53,8 +53,8 @@ From v1.3, a saved search can be **automatically refreshed when opening it**. To
 ## Extended search syntax
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
-- the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
-- the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`)
+- like the search in NotePlan, the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit` as well as `SPIRIT`). However, from v1.4 there's a "**Case Sensitive searching**" option in settings and the FlexiSearch dialog.
+- the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`). This is what the search in NotePlan does. However, from v1.4 there's a "**Match only on full words?**" option in settings and the FlexiSearch dialog.
 - however from v1.3.0 you can also use two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
   -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
@@ -132,9 +132,9 @@ Notes:
 ¶ Note: /quickSearch can be called without any parameters (`noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch`); run this way it will prompt for search terms.
 
 ## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues). Note that it's particularly difficult to test, so please give as much context as possible.
 
-I have spent several weeks of my free time on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+I have spent at least 3 weeks of my time off on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 

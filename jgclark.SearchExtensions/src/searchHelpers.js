@@ -3,38 +3,32 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 2024-10-26 for v1.4.0, @jgclark
+// Last updated 2025-01-17 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
-  // formatNoteDate,
   getDateStrForStartofPeriodFromCalendarFilename,
-  // toISOShortDateTimeString,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
   nowLocaleShortDateTime,
 } from '@helpers/NPdateTime'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-// import { getFolderListMinusExclusions } from '@helpers/folders'
+import { clo, logDebug, logError, logInfo, logTimer, logWarn, timer } from '@helpers/dev'
 import {
   displayTitle,
   type headingLevelType,
-  // titleAsLink
 } from '@helpers/general'
 import {
   getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote,
-  // getProjectNotesInFolder,
   replaceSection
 } from '@helpers/note'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
-import { trimAndHighlightTermInLine } from '@helpers/search'
+import { fullWordMatch, trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessageYesNo } from '@helpers/userInput'
-// import { isOpen } from '@helpers/utils'
 
 //------------------------------------------------------------------------------
 // Data types
@@ -108,7 +102,7 @@ export type SearchConfig = {
 }
 
 /**
- * Get config settings using Config V2 system.
+ * Get config settings from Plugin's saved settings.json.
  *
  * @return {SearchConfig} object with configuration
  */
@@ -261,7 +255,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
   if (validatedTerms.filter((t) => (t.type === 'may' || t.type === 'must')).length === 0) {
     if (allowEmptyOrOnlyNegative) {
       // Special case: requires adding an empty 'must' term
-      logDebug(pluginJson, 'No positive match search terms given, so adding an empty one under the hood.')
+      logDebug('validateAndTypeSearchTerms', 'No positive match search terms given, so adding an empty one under the hood.')
       validatedTerms.push({ term: '', type: 'must', termRep: '<empty>' })
     } else {
       logWarn(pluginJson, 'No positive match search terms given; stopping.')
@@ -270,22 +264,22 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
   }
 
   const validTermsStr = `[${validatedTerms.map((t) => t.termRep).join(', ')}]`
-  logDebug('search/validateAndTypeSearchTerms', `Validated ${String(validatedTerms.length)} terms -> ${validTermsStr}`)
+  logDebug('validateAndTypeSearchTerms', `Validated ${String(validatedTerms.length)} terms -> ${validTermsStr}`)
   return validatedTerms
 }
 
 /**
 * Optimise the order to tackle search terms. Assumes these have been normalised and validated already.
+* TODO: tests
 * @author @jgclark
 * @param {Array<typedSearchTerm>} inputTerms
 * @returns {Array<typedSearchTerm>} output
-* TODO: @tests in jest file
 */
 export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): Array<typedSearchTerm> {
   try {
     logDebug('optimiseOrderOfSearchTerms', `starting with ${String(inputTerms.length)} terms`)
-    // Expand the typedSearchTerm object to include length of terms
-    const expandedInputTerms = inputTerms.map((i) => {
+    // Expand the typedSearchTerm object to include typeOrder and longestWordLength, so we can sort by them
+    const expandedInputTerms: Array<any> = inputTerms.map((i) => {
       return {
         typeOrder: (i.type === 'must') ? 'aaa' : i.type, // 'must' needs to come first, so make it to 'aaa' in a separate variable in the item
         type: i.type,
@@ -294,11 +288,11 @@ export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): 
         longestWordLength: i.term.length
       }
     })
-    clo(expandedInputTerms, 'expandedInputTerms = ')
+    // clo(expandedInputTerms, 'expandedInputTerms = ')
     const sortKeys = ['typeOrder', 'longestWordLength']
     logDebug('optimiseOrderOfSearchTerms', `- Will use sortKeys: [${String(sortKeys)}]`)
     const sortedTerms: Array<typedSearchTerm> = sortListBy(expandedInputTerms, sortKeys)
-    clo(sortedTerms, 'optimiseOrderOfSearchTerms -> ')
+    // clo(sortedTerms, 'optimiseOrderOfSearchTerms -> ')
     return sortedTerms
   } catch (err) {
     return []
@@ -373,8 +367,8 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
 
 /**
  * Returns array of intersection of arrA + arrB (only for noteAndLine types)
- * TODO: Make a more generic version of this, possibly using help from
- * https://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript
+ * (Note: could make a more generic version of this, possibly using help from
+ * https://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript)
  * @author @jgclark
  *
  * @param {Array<noteAndLine>} arrA
@@ -406,8 +400,9 @@ export function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): str
  * This is where the search logic is applied, using the must/may/not terms.
  * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items.
  * If fromDateStr and toDateStr are given, then it will filter out results from Project Notes or the Calendar notes from outside that date range (measured at the first date of the Calendar note's period).
- * Note: assumes the order of searchTerms has been optimised before now
- *
+ * Note: assumes the order of searchTerms has been optimised already.
+ * TODO: better document the logic with negative-only searches starting with an empty 'must' term.
+ * 
  * Called by runSearchesV2
  * @param {Array<resultObjectTypeV3>}
  * @param {number} resultLimit (optional; defaults to 500)
@@ -426,8 +421,6 @@ export function applySearchOperators(
   const mayResultObjects: Array<resultObjectTypeV3> = termsResults.filter((t) => t.searchTerm.type === 'may')
   const notResultObjects: Array<resultObjectTypeV3> = termsResults.filter((t) => t.searchTerm.type.startsWith('not'))
   logDebug('applySearchOperators', `Starting with ${getSearchTermsRep(termsResults.map(m => m.searchTerm))}: ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms. Limiting to ${resultLimit} results. ${(fromDateStr && toDateStr) ? '- with dates from ' + fromDateStr + ' to ' + toDateStr : 'with no dates'}`)
-
-  // clo(termsResults, 'resultObjectV3: ')
 
   let consolidatedNALs: Array<noteAndLine> = []
   let consolidatedNoteCount = 0
@@ -665,11 +658,12 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * @param {Array<string>} noteTypesToInclude (['notes'] or ['calendar'] or both)
  * @param {Array<string>} foldersToInclude (can be empty list)
  * @param {Array<string>} foldersToExclude (can be empty list)
- * @param {SearchConfig} config object for various settings
+ * @param {SearchConfig} config object for various settings - Note: there are two overrides later in these parameters
  * @param {Array<ParagraphType>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
+ * @param {boolean?} caseSensitive? searching (default is case insensitive)
+ * @param {boolean?} fullWord? searching (default is same as NP which is false)
  * @param {string?} fromDateStr optional start date limit to pass to applySearchOperators
  * @param {string?} toDateStr optional end date limit to pass to applySearchOperators
- * @param {boolean?} caseSensitive? searching (default is case insensitive)
  * @returns {resultOutputTypeV3} results optimised for output
  */
 export async function runSearchesV2(
@@ -679,7 +673,6 @@ export async function runSearchesV2(
   foldersToExclude: Array<string>,
   config: SearchConfig,
   paraTypesToInclude?: Array<ParagraphType> = [],
-  caseSensitive: boolean = false,
   fromDateStr?: string,
   toDateStr?: string,
 ): Promise<resultOutputTypeV3> {
@@ -687,40 +680,39 @@ export async function runSearchesV2(
     const termsResults: Array<resultObjectTypeV3> = []
     let resultCount = 0
     let outerStartTime = new Date()
-    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. (With ${(fromDateStr && toDateStr) ? fromDateStr + '-' + toDateStr : 'no'} dates.)`)
+    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. ${config.caseSensitiveSearching ? 'caseSensitive ON. ' : ''}${config.fullWordSearching ? 'fullWord ON. ' : ''}(With ${(fromDateStr && toDateStr) ? fromDateStr + '-' + toDateStr : 'no'} dates.)`)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
     // let lastTermType = ''
     for (const typedSearchTerm of termsToMatchArr) {
       const thisTermType = typedSearchTerm.type
-      logDebug('runSearchesV2', `  - searching for term [${typedSearchTerm.termRep}] type '${thisTermType}':`)
+      logDebug('runSearchesV2', `  - searching for term [${typedSearchTerm.termRep}] type '${thisTermType}'`)
       const innerStartTime = new Date()
 
       // do search for this search term, using configured options
-      const resultObject: resultObjectTypeV3 = await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude, caseSensitive)
+      const resultObject: resultObjectTypeV3 =
+        await runSearchV2(typedSearchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, config, paraTypesToInclude)
 
       // Save this search term and results as a new object in results array
       termsResults.push(resultObject)
       resultCount += resultObject.resultCount
-      logDebug('runSearchesV2', `  -> ${resultObject.resultCount} results for '${typedSearchTerm.termRep}' in ${timer(innerStartTime)}`)
+      logTimer('runSearchesV2', innerStartTime, `  -> ${resultObject.resultCount} results for '${typedSearchTerm.termRep}'`)
 
       // If we have no results from previous 'must' term, then return early
       if (thisTermType === 'must' && resultCount === 0) {
         logInfo('runSearchesV2', `- no results from 'must' term [${typedSearchTerm.termRep}], so not doing further searches.`)
         break
       }
-      // TODO: Can we extend the above to check with not as well?
-      // lastTermType = typedSearchTerm.termType
     }
 
-    logDebug('runSearchesV2', `- ${termsToMatchArr.length} searches completed in ${timer(outerStartTime)} -> ${resultCount} results`)
+    logTimer('runSearchesV2', outerStartTime, `- ${termsToMatchArr.length} searches completed -> ${resultCount} results`)
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms, and potentially dates too
     outerStartTime = new Date()
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
-    logDebug('runSearchesV2', `- Applied search logic in ${timer(outerStartTime)}`)
+    logTimer('runSearchesV2', outerStartTime, `- Applied search logic`)
 
     // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
     // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
@@ -755,7 +747,6 @@ export async function runSearchesV2(
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<ParagraphType>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @param {boolean?} caseSensitive? searching (default is case insensitive)
  * @returns {resultOutputTypeV3} combined result set optimised for output
  */
 export async function runSearchV2(
@@ -765,7 +756,6 @@ export async function runSearchV2(
   foldersToExclude: Array<string>,
   config: SearchConfig,
   paraTypesToInclude?: Array<ParagraphType> = [],
-  caseSensitive: boolean = false
 ): Promise<resultObjectTypeV3> {
   try {
     // const headingMarker = '#'.repeat(config.headingLevel)
@@ -774,6 +764,9 @@ export async function runSearchV2(
     let resultParas: Array<TParagraph> = []
     let multiWordSearch = false
     let wildcardedSearch = false
+    const caseSensitive: boolean = config.caseSensitiveSearching
+    const fullWord: boolean = config.fullWordSearching
+
     logDebug('runSearchV2', `Starting for [${searchTerm}] with caseSensitive ${String(caseSensitive)}`)
 
     // V1: get list of matching paragraphs for this string by n.paragraphs.filter
@@ -792,7 +785,7 @@ export async function runSearchV2(
       logDebug('runSearchV2', `multi-word: will just use [${searchTerm}] for [${fullSearchTerm}], and then do fuller check on results`)
     }
 
-    // if search term includes * or ? then we need to do further wildcard filtering: reduce search term to just the part before the wildcard
+    // if search term includes * or ? then we need to do further wildcard filtering: for now reduce search term to just the part before the wildcard. We will do more filtering later.
     if (searchTerm.includes("*") || searchTerm.includes("?")) {
       searchTerm = searchTerm.split(/[\*\?]/, 1)[0]
       wildcardedSearch = true
@@ -817,7 +810,14 @@ export async function runSearchV2(
       logDebug('runSearchV2', `multi-word or case-sensitive: after filtering: ${String(tempResult.length)}`)
     }
 
-    // If search term includes * or ? then we need to do further wildcard filtering, but using regex version:
+    // If we want only full word matches, then filter out the results to just those
+    if (fullWord) {
+      logDebug('runSearchV2', `fullWord: before filtering: ${String(tempResult.length)}`)
+      tempResult = tempResult.filter(tr => fullWordMatch(fullSearchTerm, tr.content, caseSensitive))
+      logDebug('runSearchV2', `fullWord: after filtering: ${String(tempResult.length)}`)
+    }
+
+    // If search term includes * or ? then we need to do further wildcard filtering, using regex equivalent:
     // - replace ? with .
     // - replace * with [^\s]*? (i.e. any anything within the same 'word')
     if (wildcardedSearch) {
@@ -841,11 +841,6 @@ export async function runSearchV2(
     }
 
     const noteAndLineArr: Array<noteAndLine> = []
-
-    // Dedupe identical synced lines (if wanted)
-    logDebug('runSearchV2', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
-    resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
-    logDebug('runSearchV2', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
 
     if (resultParas.length > 0) {
       logDebug('runSearchV2', `- Found ${resultParas.length} results for '${searchTerm}'`)
@@ -886,6 +881,11 @@ export async function runSearchV2(
       if (resultFieldSets.length !== filteredParas.length) {
         logDebug('runSearchV2', `  - URL/path filtering removed ${String(filteredParas.length - resultFieldSets.length)} results`)
       }
+
+      // Dedupe identical synced lines (if wanted)
+      logDebug('runSearchV2', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
+      resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
+      logDebug('runSearchV2', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
 
       // Look-up table for sort details
       const sortMap = new Map([

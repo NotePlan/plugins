@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 2024-10-26 for v1.4.0, @jgclark
+// Last updated 2025-01-17 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -47,17 +47,30 @@ import { chooseOption, getInput, showMessage } from '@helpers/userInput'
  * @param {string?} toDateArg optional end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today.
  * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
  * @param {string?} destinationArg optional output desination indicator: 'current', 'newnote', 'log'
+ * @param {boolean?} caseSensitiveSearchingArg?
+ * @param {boolean?} fullWordSearchingArg?
  */
 export async function searchPeriod(
   searchTermsArg?: string,
   fromDateArg?: string = '',
   toDateArg?: string = '',
   paraTypeFilterArg?: string = '',
-  destinationArg?: string
+  destinationArg?: string,
+  caseSensitiveSearchingArg?: boolean,
+  fullWordSearchingArg?: boolean
 ): Promise<void> {
   try {
     // Get relevant settings
     const config = await getSearchSettings()
+
+    // if fullWordSearching and caseSensitiveSearching are given, need to override config. (This is because flexiSearch can set them at run-time.)
+    if (caseSensitiveSearchingArg) {
+      config.caseSensitiveSearching = caseSensitiveSearchingArg
+    }
+    if (fullWordSearchingArg) {
+      config.fullWordSearching = fullWordSearchingArg
+    }
+
     const headingMarker = '#'.repeat(config.headingLevel)
     const todayMom = new moment().startOf('day')
 
@@ -150,7 +163,7 @@ export async function searchPeriod(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, config.caseSensitiveSearching, fromDateStr, toDateStr)
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
@@ -229,7 +242,7 @@ export async function searchPeriod(
         if (noteOpenInEditor(noteFilename)) {
           logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
         } else {
-            // Open the results note in a new split window, unless we can tell
+          // Open the results note in a new split window, unless we can tell
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
         // }

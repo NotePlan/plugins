@@ -460,6 +460,10 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('spirit* mo? *term mo*blues ?weird')
       expect(result).toEqual(['spirit*', 'mo?', '*term', 'mo*blues', '?weird'])
     })
+    test("test for Greek characters", () => {
+      const result = normaliseSearchTerms('-#')
+      expect(result).toEqual(['-#'])
+    })
 
     describe('skipping these tests as removed modifyQuotedTermsToAndedTerms functionality', () => {
       test.skip('"1 John", 1Jn (do modify)', () => {
@@ -571,6 +575,17 @@ describe('searchHelpers.js tests', () => {
       expect(result).toEqual([
         { term: 'we*d', type: 'may', termRep: 'we*d' }
       ])
+    })
+    test("simple -# term with allowEmptyOrOnlyNegative true -> 2 terms", () => {
+      const result = validateAndTypeSearchTerms('-#', true)
+      expect(result).toEqual([
+        { term: '#', type: 'not-line', termRep: '-#' },
+        { term: '', type: 'must', termRep: '<empty>' },
+      ])
+    })
+    test("simple -# term with allowEmptyOrOnlyNegative false -> no terms", () => {
+      const result = validateAndTypeSearchTerms('-#', false)
+      expect(result).toEqual([])
     })
   })
 
