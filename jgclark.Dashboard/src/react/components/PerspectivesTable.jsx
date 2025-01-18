@@ -6,6 +6,11 @@
 // Last updated for 2.1.0.b
 //------------------------------------------------------------------------------
 
+// TODO: Something really strange happens if you "Apply" a perspective that has been modified but then click "Cancel".
+// The underlying perspective and dashboardSettings are still correct, but for some reason, the PerspectiveSelector
+// gets updated to appear that the perspective is not modified.
+// If you refresh, all the data is correct. I cannot figure out why/how the PerspectiveSelector is getting updated on a cancel.
+
 import React, { useState } from 'react'
 import '../css/PerspectivesTable.css' // Import CSS for styling
 import { renderItem } from '../../../../np.Shared/src/react/DynamicDialog/dialogElementRenderer.js'
@@ -13,7 +18,7 @@ import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog
 import DynamicDialog from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
-import type { TPerspectiveSettings } from '../../types.js'
+import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
 import { getDiff } from '@helpers/dev'
 
 type PerspectivesTableProps = {
@@ -25,13 +30,22 @@ type PerspectivesTableProps = {
 }
 
 const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelPosition = 'right' }: PerspectivesTableProps): React$Node => {
-  const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectives.sort((a, b) => a.name.localeCompare(b.name)))
-  const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
+  const { sendActionToPlugin, perspectiveSettings, dashboardSettings } = useAppContext()
 
-  const { sendActionToPlugin, perspectiveSettings } = useAppContext()
+  // check if there is an active perspective that is modified & list it also as an unsaved perspective
+  const modifiedPerspective = perspectives.find((p) => p.isActive && p.isModified)
+  const perspectiveWithModifiedMaybe = JSON.parse(JSON.stringify(perspectives)) // Make a deep copy so changes don't leak back to the original until we save
+  if (modifiedPerspective) {
+    logDebug('PerspectivesTable', `found active modifiedPerspective:`, { modifiedPerspective })
+    perspectiveWithModifiedMaybe.push({ ...modifiedPerspective, nameToShow: `${modifiedPerspective.name} (unsaved)`, showSaveButton: true, dashboardSettings: dashboardSettings })
+  }
+
+  const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectiveWithModifiedMaybe.sort((a, b) => a.name.localeCompare(b.name)))
+  const [changesMade, setChangesMade] = useState(false) // Manage changesMade state here
 
   // Handler for field changes
   const handleFieldChange = (perspectiveIndex: number, key: string, value: any) => {
+    logDebug('PerspectivesTable', `handleFieldChange was called with key: ${key} and value: ${value} for perspectiveIndex:${perspectiveIndex}`)
     setChangesMade(true) // Update changesMade state
     setUpdatedPerspectives((prevPerspectives) => {
       const newPerspectives = [...prevPerspectives]
@@ -68,6 +82,34 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
     onCancel && onCancel()
   }
 
+  type PerspectiveSettingsForTable = Array<{
+    ...TPerspectiveDef,
+    nameToShow?: string,
+    showSaveButton?: boolean,
+  }>
+
+  /**
+   * Apply the modifications from the perspectiveToSave to the updatedPerspectives array (e.g. as if the "save perspective" button was clicked)
+   * Note does not actually save it until the "save & close" button is clicked
+   * @param {*} perspectiveToSaveIndex
+   */
+  const handleApplyModifications = (perspectiveToSaveIndex: number, apply: boolean) => {
+    const perspectiveToSave = updatedPerspectives[perspectiveToSaveIndex]
+    // remove the perspectiveToSave from the updatedPerspectives array
+    setUpdatedPerspectives((prev) => {
+      const updatedPerspectivesWithoutModifiedOne = prev.filter((p) => p.nameToShow !== perspectiveToSave.nameToShow)
+      logDebug('PerspectivesTable', `handleApplyModifications before applying:`, { updatedPerspectivesWithoutModifiedOne })
+      const index = updatedPerspectivesWithoutModifiedOne.findIndex((p) => p.name === perspectiveToSave.name)
+      if (index !== -1) {
+        updatedPerspectivesWithoutModifiedOne[index].isModified = false
+        if (apply) updatedPerspectivesWithoutModifiedOne[index].dashboardSettings = perspectiveToSave.dashboardSettings
+      }
+      return updatedPerspectivesWithoutModifiedOne
+    })
+    setChangesMade(true)
+    logDebug('PerspectivesTable', `handleApplyModifications after applying:`, { updatedPerspectives })
+  }
+
   const style = {
     // TEST: Trying without this to figure out where the size constraints actually come from
     width: '95%',
@@ -96,7 +138,25 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
               <th className="sticky-column setting-column sticky-header">Setting</th>
               {updatedPerspectives.map((perspective, index) => (
                 <th key={`header-${index}`} className="perspective-header sticky-header">
-                  {perspective.name === '-' ? '[Default]' : perspective.name}
+                  {perspective.name === '-' ? '[Default]' : perspective.nameToShow || perspective.name}
+                  {perspective.showSaveButton && (
+                    <div className="save-button-container">
+                      <button
+                        className="PCButton apply-button"
+                        onClick={() => handleApplyModifications(index, true)}
+                        title={`Apply the unsaved modifications to '${perspective.name}'`}
+                      >
+                        {`<<< Apply`}
+                      </button>
+                      <button
+                        className="PCButton revert-button"
+                        onClick={() => handleApplyModifications(index, false)}
+                        title={`Revert to original (non-modified) settings for '${perspective.name}'`}
+                      >
+                        {`Revert`}
+                      </button>
+                    </div>
+                  )}
                 </th>
               ))}
             </tr>
