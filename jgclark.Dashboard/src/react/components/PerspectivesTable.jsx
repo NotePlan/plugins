@@ -63,12 +63,18 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const handleSave = () => {
     logDebug('Dashboard', `onPerspectivesTableSave was called with updatedPerspectives:`, { updatedPerspectives })
     if (updatedPerspectives) {
-      const realDiff = getDiff(perspectiveSettings, updatedPerspectives)
+      const updatedPerspectivesWithoutModifiedOne = updatedPerspectives.filter((p) => !p.nameToShow)
+
+      const realDiff = getDiff(perspectiveSettings, updatedPerspectivesWithoutModifiedOne)
       logDebug('Dashboard', `sending updatedPerspectives to plugin`, { differences: realDiff })
 
       sendActionToPlugin(
         'perspectiveSettingsChanged',
-        { actionType: 'perspectiveSettingsChanged', settings: updatedPerspectives.map((p) => ({ ...p, isModified: false })), lastChange: `Bulk change in PerspectivesTable` },
+        {
+          actionType: 'perspectiveSettingsChanged',
+          settings: updatedPerspectivesWithoutModifiedOne,
+          lastChange: `Bulk change in PerspectivesTable`,
+        },
         'PerspectivesTable save',
         true,
       )
