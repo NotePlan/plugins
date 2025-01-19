@@ -370,7 +370,7 @@ button,
 /* --------------------------------------------------------------- */
 /* Tooltips should render on macOS only */
 .macOS {
-	/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+	/* Add tooltips to these buttons, using CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s or https://www.youtube.com/watch?v=ujlpzTyJp-M */
 	.tooltip {
 		position: relative;
 		/* float above everything, including the header */
@@ -401,7 +401,7 @@ button,
 	.tooltip::after {
 		content: attr(data-tooltip);
 		margin-left: -10px;
-		padding: 0.15rem 0.25rem;
+		padding: 0.1rem 0.3rem;
 		top: -9px;
 		font-size: 0.85rem;
 		color: var(--fg-main-color);

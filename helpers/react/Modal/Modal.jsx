@@ -6,6 +6,7 @@
 import React, { type Node, useEffect } from 'react'
 import './Modal.css'
 import { logDebug } from '@helpers/react/reactDev'
+
 /**
  * Props for Modal component
  * @typedef {Object} Props

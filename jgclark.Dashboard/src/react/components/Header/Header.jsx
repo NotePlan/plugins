@@ -12,10 +12,10 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { createDashboardSettingsItems } from '../../../dashboardSettings.js'
 import { getVisibleSectionCodes } from '../Section/sectionHelpers.js'
 import { useSettingsDialogHandler } from '../../customHooks/useSettingsDialogHandler.jsx'
+import { useAppContext } from '../AppContext.jsx'
 import DropdownMenu from '../DropdownMenu.jsx'
 import SettingsDialog from '../SettingsDialog.jsx'
 import RefreshControl from '../RefreshControl.jsx'
-import { useAppContext } from '../AppContext.jsx'
 import { DASHBOARD_ACTIONS } from '../../reducers/actionTypes'
 import DoneCounts from './DoneCounts.jsx'
 import { createFeatureFlagItems } from './featureFlagItems.js'
@@ -23,6 +23,7 @@ import { createFilterDropdownItems } from './filterDropdownItems.js'
 import PerspectiveSelector from './PerspectiveSelector.jsx'
 import useLastFullRefresh from './useLastFullRefresh.js'
 import { clo, logDebug, logInfo } from '@helpers/react/reactDev.js'
+import ModalWithTooltip from '@helpers/react/Modal/ModalWithTooltip.jsx'
 import './Header.css'
 
 // --------------------------------------------------------------------------
@@ -214,6 +215,14 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
         </div>
       )}
 
+      {/* TODO: use this to test out modals + tooltips. Needs a trigger button first. */}
+      {/* <div>
+        <ModalWithTooltip
+          tooltipTextNoModifier="tooltip with no extra key pressed"
+          tooltipTextCmdModifier="tooltip with ⌘ key pressed"
+        />
+      </div>
+ */}
       {!(isMobile || isNarrowWidth) && (
         <div className="totalCounts">{dashboardSettings.displayDoneCounts && pluginData?.totalDoneCount ? <DoneCounts totalDoneCount={pluginData.totalDoneCount} /> : ''}</div>
       )}

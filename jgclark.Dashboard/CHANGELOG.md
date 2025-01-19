@@ -1,6 +1,16 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.4] 2025-01-19
+### Changes
+- the 'Edit All Perspectives' dialog now shows a modified Perspective as well as the unmodified version of that Perspective, plus options to 'Save' or 'Revert' those changes.  (Feedback welcome on this.)
+### Fixes
+- fixed Interactive Processing dialog failing
+### Dev notes
+- Remove vestiges of showModal() using <Modal> component instead
+- Changed some <div>s to be <header>, <main> and <section> instead -- should provide better accessibility, and recommended by ARIA
+- Fixed Feature Flags not being saved.
+
 ## [2.1.3] 2025-01-16
 ### New
 - the task dialog box is now a bit smarter: it won't display 'this month' when the item is from the monthly note, but will give 'next month' option instead. Similarly for items in 'This week' and 'This Quarter' sections.

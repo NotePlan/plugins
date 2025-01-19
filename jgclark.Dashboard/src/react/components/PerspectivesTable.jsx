@@ -3,7 +3,7 @@
 // PerspectivesTable Component
 // Displays a table of settings for multiple perspectives.
 // Users can edit settings for each perspective.
-// Last updated for 2.1.0.b
+// Last updated 2025-01-18 for 2.1.4
 //------------------------------------------------------------------------------
 
 // TODO: Something really strange happens if you "Apply" a perspective that has been modified but then click "Cancel".
@@ -16,9 +16,9 @@ import '../css/PerspectivesTable.css' // Import CSS for styling
 import { renderItem } from '../../../../np.Shared/src/react/DynamicDialog/dialogElementRenderer.js'
 import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
 import DynamicDialog from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
+import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
-import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
 import { getDiff } from '@helpers/dev'
 
 type PerspectivesTableProps = {
@@ -37,7 +37,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const perspectiveWithModifiedMaybe = JSON.parse(JSON.stringify(perspectives)) // Make a deep copy so changes don't leak back to the original until we save
   if (modifiedPerspective) {
     logDebug('PerspectivesTable', `found active modifiedPerspective:`, { modifiedPerspective })
-    perspectiveWithModifiedMaybe.push({ ...modifiedPerspective, nameToShow: `${modifiedPerspective.name} (unsaved)`, showSaveButton: true, dashboardSettings: dashboardSettings })
+    perspectiveWithModifiedMaybe.push({ ...modifiedPerspective, nameToShow: `${modifiedPerspective.name} (+ unsaved changes)`, showSaveButton: true, dashboardSettings: dashboardSettings })
   }
 
   const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectiveWithModifiedMaybe.sort((a, b) => a.name.localeCompare(b.name)))
@@ -108,7 +108,13 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
       const index = updatedPerspectivesWithoutModifiedOne.findIndex((p) => p.name === perspectiveToSave.name)
       if (index !== -1) {
         updatedPerspectivesWithoutModifiedOne[index].isModified = false
-        if (apply) updatedPerspectivesWithoutModifiedOne[index].dashboardSettings = perspectiveToSave.dashboardSettings
+        if (apply) {
+          updatedPerspectivesWithoutModifiedOne[index].dashboardSettings = perspectiveToSave.dashboardSettings
+        } else {
+          // This is where 'Revert' button takes you
+          // TODO(dbw): this currently doesn't drop the saved changes in the Edit All... menu.  I think it should.
+          // Also couldn't this be a separate function, called handleRevertModifications?
+        }
       }
       return updatedPerspectivesWithoutModifiedOne
     })
@@ -152,7 +158,7 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
                         onClick={() => handleApplyModifications(index, true)}
                         title={`Apply the unsaved modifications to '${perspective.name}'`}
                       >
-                        {`<<< Apply`}
+                        {`< Save`}
                       </button>
                       <button
                         className="PCButton revert-button"
