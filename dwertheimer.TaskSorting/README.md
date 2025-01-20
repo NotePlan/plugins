@@ -68,6 +68,17 @@ Set the primary and secondary sort order for this default search in plugin prefe
 
 This command brings all the tasks inside of the currently open note to the top of the note. You can choose whether you want headings (e.g. "Open Tasks", "Sheduled Tasks" etc.) or whether you want just the sorted tasks brought to the top. Note: brings only task lines (not indented underneath)
 
+### /tsh - Tasks Sort under Heading (choose)
+
+This command will sort the tasks under a heading that you choose.
+You can pass the heading as a parameter, or you can choose it interactively.
+You can also pass the sort order as a parameter, e.g. (["-priority", "content"]), or you can choose it interactively.
+For example, this command will sort all the tasks under the heading "Open Tasks" by priority and then alphabetically by content.
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskSorting&command=Sort%20tasks%20under%20heading%20%28choose%29&arg0=Open%20Tasks&arg1=%5B%22-priority%22%2C%22content%22%5D
+```
+
 ## Task Sorting Notes
 
 - At this time, the plugin will ignore headings that are attached to the tasks (e.g. tasks indented under root-level #headings). I need to understand/think more about this use case and how to deal with it in sorting.

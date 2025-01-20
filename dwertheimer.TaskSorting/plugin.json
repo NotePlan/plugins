@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.TaskSorting",
   "plugin.name": "🥷 Task Sorting & Tools",
-  "plugin.version": "1.1.0",
-  "plugin.lastUpdateInfo": "Added \\cnt copy noteTags command.\nInitial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: Added heading and sortOrder as params that can be passed. Added \\cnt copy noteTags command.\nInitial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
   "plugin.description": "Commands for sorting tasks in a note",
   "plugin.author": "dwertheimer",
   "plugin.requiredFiles-EDIT_ME": [
@@ -39,6 +39,10 @@
       "jsFunction": "sortTasksUnderHeading",
       "alias": [
         "tsh"
+      ],
+      "arguments": [
+        "heading (string)",
+        "sortOrder (array of strings) -- see README for details"
       ]
     },
     {

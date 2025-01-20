@@ -669,14 +669,16 @@ export async function sortTasks(
  * sortTasksUnderHeading
  * Plugin entrypoint for "/sth"
  */
-export async function sortTasksUnderHeading() {
+export async function sortTasksUnderHeading(_heading: string, _sortOrder: string): Promise<void> {
   try {
     if (Editor.note) {
-      const heading = await chooseHeading(Editor?.note, false, false, false)
+      const heading = _heading || (await chooseHeading(Editor?.note, false, false, false))
       if (heading && Editor.note) {
         const block = getBlockUnderHeading(Editor.note, heading)
+        clo(block, `sortTasksUnderHeading block`)
         if (block?.length) {
-          const sortOrder = await getUserSort()
+          const sortOrder: Array<string> = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
+          clo(sortOrder, `sortTasksUnderHeading sortOrder`)
           if (sortOrder) {
             const sortedTasks = sortParagraphsByType(block, sortOrder)
             clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
