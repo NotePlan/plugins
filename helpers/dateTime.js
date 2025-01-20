@@ -29,6 +29,7 @@ export const RE_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // version of above that finds dates of form YYYYMMDD
 export const RE_DATE_CAPTURE = `(\\d{4}[01]\\d{1}\\d{2})` // capture date of form YYYYMMDD
 export const RE_ISO_DATE = RE_DATE // now earlier RE_DATE made the same as this stricter one
+export const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, "g")
 export const RE_PLUS_DATE_G: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/g
 export const RE_PLUS_DATE: RegExp = />(\d{4}-\d{2}-\d{2})(\+)*/
 export const RE_SCHEDULED_ISO_DATE = '>\\d{4}-[01]\\d-[0123]\\d' // find scheduled dates of form >YYYY-MM-DD
@@ -42,6 +43,7 @@ export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = />\d{4}-[01]\d-[0123]\d/ // 
 
 // Week regex strings
 export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
+export const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, "g")
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
 export const SCHEDULED_WEEK_NOTE_LINK = '\\s+>\\d{4}\\-W[0-5]\\d'
 export const RE_SCHEDULED_WEEK_NOTE_LINK: RegExp = />\d{4}\-W[0-5]\d/ // Note: finds '>RE_NP_WEEK_SPEC'
@@ -50,8 +52,9 @@ export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_NP_WEEK_SPEC}` // a YYYY-Www 
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // capturing date in above
 
 // Months
-// export const RE_NP_MONTH_SPEC = '(?<![\\d-])\\d{4}-[01]\\d(?![\\d-])' // find dates of form YYYY-mm not following or followed by digit or - [doesn't work because it has a lookbehind]
-export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // find dates of form YYYY-mm not followed by digit or - [fails if I add negative start or negative lookbehinds]
+// Note: to avoid matching YYYY-MM-DD as well, these check they aren't followed by a digit or -
+export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // fails if we use negative start or negative lookbehinds
+export const RE_NP_MONTH_ALL = new RegExp(RE_NP_MONTH_SPEC, "g")
 export const MONTH_NOTE_LINK = `[\<\>]${RE_NP_MONTH_SPEC}`
 export const SCHEDULED_MONTH_NOTE_LINK = `>${RE_NP_MONTH_SPEC}`
 export const RE_SCHEDULED_MONTH_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_MONTH_SPEC}`)
@@ -59,6 +62,7 @@ export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXT
 
 // Quarters
 export const RE_NP_QUARTER_SPEC = '\\d{4}\\-Q[1-4](?!\\d)' // find dates of form YYYY-Qn not followed by digit
+export const RE_NP_QUARTER_ALL = new RegExp(RE_NP_QUARTER_SPEC, "g")
 export const QUARTER_NOTE_LINK = `[\<\>]${RE_NP_QUARTER_SPEC}`
 export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
 export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUARTER_SPEC}`)
@@ -68,8 +72,9 @@ export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE
 export const RE_NP_HALFYEAR_SPEC = '\\d{4}\\H[1-2](?!\\d)' // find dates of form YYYYHn not followed by digit
 
 // Years
-// export const RE_NP_YEAR_SPEC = '(?<!\\d)\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing digit or - [doesn't work because it has a lookbehind]
-export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without trailing - or digit [fails if I add negative start or negative lookbehinds]
+// export const RE_NP_YEAR_SPEC = '(?<!\\d)\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing digit or -
+export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // fails with negative start or negative lookbehinds
+export const RE_NP_YEAR_ALL = new RegExp(RE_NP_YEAR_SPEC, "g")
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
 export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)

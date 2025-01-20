@@ -2,12 +2,10 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets and Shifts
 // @jgclark
-// Last updated 13.2.2024 for v0.21.2+, by @jgclark
+// Last updated 2025-01-20 for v0.22.1, by @jgclark
 // ----------------------------------------------------------------------------
 // TODO:
 // * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
-// * Also allow other date styles in /shift? -- as above
-
 
 import pluginJson from '../plugin.json'
 import { getEventsSettings } from './eventsHelpers'
@@ -21,14 +19,22 @@ import {
   RE_DATE_INTERVAL,
   RE_DONE_DATE_OPT_TIME,
   RE_ISO_DATE,
+  RE_ISO_DATE_ALL,
+  RE_NP_MONTH_SPEC,
+  RE_NP_MONTH_ALL,
+  RE_NP_QUARTER_SPEC,
+  RE_NP_QUARTER_ALL,
   RE_NP_WEEK_SPEC,
+  RE_NP_WEEK_ALL,
+  RE_NP_YEAR_SPEC,
+  RE_NP_YEAR_ALL,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   splitIntervalToParts,
   // toISODateString,
   // toLocaleDateString,
 } from '@helpers/dateTime'
-// import { getNPWeekData } from '@helpers/NPdateTime'
+import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -39,7 +45,7 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
 // ----------------------------------------------------------------------------
 /**
  * Shift Dates
- * Go through currently selected lines in the open note and shift YYYY-MM-DD and YYYY-Wnn dates by an interval given by the user.
+ * Go through currently selected lines in the open note and shift YYYY-MM-DD, YYYY-Www and YYYY-MM dates by an interval given by the user.
  * Optionally removes @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
  * Optionally will un-complete completed tasks/checklists.
  * Note: Only deals with ISO and Weekly dates so far.
@@ -48,8 +54,6 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
 export async function shiftDates(): Promise<void> {
   try {
     const config = await getEventsSettings()
-    const RE_ISO_DATE_ALL = new RegExp(RE_ISO_DATE, "g")
-    const RE_NP_WEEK_ALL = new RegExp(RE_NP_WEEK_SPEC, "g")
 
     // Get working selection as an array of paragraphs
     const { paragraphs, selection, note } = Editor
@@ -92,7 +96,10 @@ export async function shiftDates(): Promise<void> {
       let originalDateStr = ''
 
       // Work on lines with dates
-      if (origContent.match(RE_ISO_DATE) || origContent.match(RE_NP_WEEK_SPEC)) {
+      if (
+        origContent.match(RE_ISO_DATE) || origContent.match(RE_NP_WEEK_SPEC) || origContent.match(RE_NP_MONTH_SPEC)
+        || origContent.match(RE_NP_QUARTER_SPEC) || origContent.match(RE_NP_YEAR_SPEC)) {
+        logDebug(pluginJson, `#${String(p.lineIndex)}: ${origContent}`)
         // As we're about to update the string, first 'unhook' it from any sync'd copies
         let updatedContent = stripBlockIDsFromString(origContent)
 
@@ -131,46 +138,87 @@ export async function shiftDates(): Promise<void> {
           }
         }
 
-        // logDebug(pluginJson, `${origContent}`)
+        logDebug(pluginJson, `  -> ${updatedContent}`)
+
         // For any YYYY-MM-DD dates in the line (can make sense in metadata lines to have multiples)
         let shiftedDateStr = ''
         if (updatedContent.match(RE_ISO_DATE)) {
           // Process all YYYY-MM-DD dates in the line
           dates = updatedContent.match(RE_ISO_DATE_ALL) ?? []
-          for (let thisDate of dates) {
+          for (const thisDate of dates) {
             originalDateStr = thisDate
             shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
             // Replace date part with the new shiftedDateStr
             updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr} from interval ${interval}`)
+            logDebug(pluginJson, `- ${originalDateStr}: DAY match found -> ${shiftedDateStr} from interval ${interval}`)
             updatedCount += 1
           }
-          logDebug(pluginJson, `-> ${updatedContent}`)
+          // logDebug(pluginJson, `-> ${updatedContent}`)
         }
         // For any YYYY-Wnn dates in the line (might in future make sense in metadata lines to have multiples)
         if (updatedContent.match(RE_NP_WEEK_SPEC)) {
           // Process all YYYY-Www dates in the line
           dates = updatedContent.match(RE_NP_WEEK_ALL) ?? []
-          for (let thisDate of dates) {
+          for (const thisDate of dates) {
             originalDateStr = thisDate
             // v1: but doesn't handle different start-of-week settings
             // shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
-
             // v2: using NPdateTime::getNPWeekData instead
-            // const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+            const thisWeekInfo = getNPWeekData(originalDateStr, intervalParts.number, intervalParts.type)
+            shiftedDateStr = thisWeekInfo.weekString
             // Replace date part with the new shiftedDateStr
             updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
-            logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr} from interval ${interval}`)
+            logDebug(pluginJson, `- ${originalDateStr}: WEEK match found -> ${shiftedDateStr} from interval ${interval}`)
             updatedCount += 1
           }
-          logDebug(pluginJson, `-> ${updatedContent}`)
+          // logDebug(pluginJson, `-> ${updatedContent}`)
         }
-        // else {
-        // TODO: This would be the place to assess another date format, but it's much harder than it looks.
-        // Method probably to define new settings "regex" and "format".
-        // Just using moment doesn't work fully unless you take out all other numbers in the rest of the line first.
-        // NP.parseDate() uses chrono library, and probably useful, but needs testing to see how it actually works with ambiguous dates (documentation doesn't say)
-        // }
+        // For any YYYY-MM dates in the line (might in future make sense in metadata lines to have multiples)
+        // (Note: the regex ensures we don't match on YYYY-MM-DD dates as well)
+        if (updatedContent.match(RE_NP_MONTH_SPEC)) {
+          dates = updatedContent.match(RE_NP_MONTH_ALL) ?? []
+          // Process all YYYY-MM dates in the line
+          for (const thisDate of dates) {
+            originalDateStr = thisDate
+            shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+            // Replace date part with the new shiftedDateStr
+            updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
+            logDebug(pluginJson, `- ${originalDateStr}: MONTH match found -> ${shiftedDateStr} from interval ${interval}`)
+            updatedCount += 1
+          }
+          // logDebug(pluginJson, `-> ${updatedContent}`)
+        }
+
+        // For any YYYY-Qq dates in the line (might in future make sense in metadata lines to have multiples)
+        if (updatedContent.match(RE_NP_QUARTER_SPEC)) {
+          dates = updatedContent.match(RE_NP_QUARTER_ALL) ?? []
+          // Process all YYYY-Qq dates in the line
+          for (const thisDate of dates) {
+            originalDateStr = thisDate
+            shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+            // Replace date part with the new shiftedDateStr
+            updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
+            logDebug(pluginJson, `- ${originalDateStr}: QUARTER match found -> ${shiftedDateStr} from interval ${interval}`)
+            updatedCount += 1
+          }
+          // logDebug(pluginJson, `-> ${updatedContent}`)
+        }
+
+        // For any YYYY dates in the line (might in future make sense in metadata lines to have multiples)
+        // (Note: the regex ensures we don't match on YYYY-MM or YYYY-MM-DD dates as well)
+        if (updatedContent.match(RE_NP_YEAR_SPEC)) {
+          dates = updatedContent.match(RE_NP_YEAR_ALL) ?? []
+          // Process all YYYY dates in the line
+          for (const thisDate of dates) {
+            originalDateStr = thisDate
+            shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
+            // Replace date part with the new shiftedDateStr
+            updatedContent = updatedContent.replace(originalDateStr, shiftedDateStr)
+            logDebug(pluginJson, `- ${originalDateStr}: YEAR match found -> ${shiftedDateStr} from interval ${interval}`)
+            updatedCount += 1
+          }
+          // logDebug(pluginJson, `-> ${updatedContent}`)
+        }
 
         // Update the paragraph content
         p.content = updatedContent.trimEnd()
@@ -221,7 +269,7 @@ export async function processDateOffsets(): Promise<void> {
     }
     const noteTitle = displayTitle(note)
     logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
-    const config = await getEventsSettings()
+    // const config = await getEventsSettings()
 
     let currentTargetDate = ''
     let currentTargetDateLine = 0 // the line number where we found the currentTargetDate. Zero means not set.
@@ -276,7 +324,7 @@ export async function processDateOffsets(): Promise<void> {
         // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
         // TODO: make a different type of CTD for in-line vs in-heading dates
 
-        // TODO: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
+        // TODO: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (Can the more recent support in shiftDates() above now help?)
 
         if (content.match(RE_BARE_DATE) && !content.match(RE_DONE_DATE_OPT_TIME)) {
           const dateISOStrings = content.match(RE_BARE_DATE_CAPTURE) ?? ['']
