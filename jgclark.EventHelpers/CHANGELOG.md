@@ -2,6 +2,11 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.22.2] - ??? unreleased @jgclark
+### Dev notes
+- code refactoring to allow shiftDates() to be used by other commands
+- split offsets.js into 2 files
+
 ## [0.22.1] - 2025-01-20 @jgclark
 - extend /shift dates to cover weekly, monthly, quarterly and yearly dates as well as daily ones
 
