@@ -72,7 +72,7 @@ This command brings all the tasks inside of the currently open note to the top o
 
 This command will sort the tasks under a heading that you choose.
 You can pass the heading as a parameter, or you can choose it interactively.
-You can also pass the sort order as a parameter, e.g. (["-due", "content"]), or you can choose it interactively.
+You can also pass the sort order as a parameter, e.g. (["-priority", "content"]), or you can choose it interactively.
 For example, this command will sort all the tasks under the heading "Open Tasks" by priority and then alphabetically by content.
 
 ```
