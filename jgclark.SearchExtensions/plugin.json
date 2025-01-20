@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.4.0",
-  "plugin.lastUpdateInfo": "1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "1.5.0.b1",
+  "plugin.lastUpdateInfo": "1.5.0: Adds '/replace' command, which allows search and replace over calendar notes.\n1.4.0: Adds case sensitive searching. Adds full-word searching. Tweaks and fixes.\n1.3.0: Adds `*` and `?` wildcard operators. Adds auto-refresh capability. Other improvements. (Please see documentation for details.)\n1.2.4: Fix /flexiSearch issues on iOS\n1.2.3: change to allow /quickSearch from x-callback without search term.\n1.2.2: ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins.\n1.2.1: fix bug in /searchInPeriod. 1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -129,6 +129,20 @@
       "comment": "Note: no arguments possible"
     },
     {
+      "name": "replace",
+      "alias": [
+        "ss",
+        "save"
+      ],
+      "description": "Search and Replace over Calendar notes",
+      "jsFunction": "replaceOverCalendar",
+      "arguments": [
+        "search term",
+        "replace expression",
+        "paragraph types"
+      ]
+    },
+    {
       "hidden": true,
       "name": "flexiSearchHandler",
       "description": "Called by flexiSearch dialog",
@@ -180,20 +194,6 @@
       "name": "refreshSavedSearch",
       "description": "onOpen",
       "jsFunction": "refreshSavedSearch"
-    },
-    {
-      "name": "replace",
-      "alias": [
-        "ss",
-        "save"
-      ],
-      "description": "Search and Replace over Calendar notes",
-      "jsFunction": "replaceOverCalendar",
-      "arguments": [
-        "search term",
-        "replace expression",
-        "paragraph types"
-      ]
     },
     {
       "name": "test:updateSearchPlugin",
