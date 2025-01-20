@@ -40,6 +40,7 @@ jobs:
           cache: 'npm'
       # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
       # - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
+      - run: rm -rf package-lock.json # required due to git bug where platform-specific files are not loaded when package-json is present
       - run: npm ci --legacy-peer-deps # clean install (deletes node_modules)
       - run: npm link # necessary for some reason specific to NP dev setup
       # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
@@ -88,6 +89,7 @@ jobs:
           cache: 'npm'
       # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
       # - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
+      - run: rm -rf package-lock.json # required due to git bug where platform-specific files are not loaded when package-json is present
       - run: npm ci --legacy-peer-deps # clean install (deletes node_modules)
       - run: npm link # necessary for some reason specific to NP dev setup
       # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
