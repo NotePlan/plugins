@@ -1,10 +1,16 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [2.1.5] 2025-01-???
+## [2.1.5] 2025-01-21
+### New
+- when moving an item to a different note, and the item contains a scheduled date, it now offers to remove the date (suggested by @drb)
 ### Fixes
 - fixed regression when (re)scheduling an item (thanks, @SneakAttack)
-
+- fixed timeblock still appearing on completed items (thanks, @MC-1848)
+### Dev notes
+- changed doMoveToNote to finish with REMOVE_LINE_FROM_JSON not UPDATE_LINE_IN_JSON
+- refactored REMOVE_LINE_FROM_JSON to happen in `processActionOnReturn()` not `updateReactWindowFromLineChange()`. This simplifies things a bit. @DBW please review to make sure I'm not doing something silly here.
+ 
 ## [2.1.4] 2025-01-19
 ### Changes
 - the 'Edit All Perspectives' dialog now shows a modified Perspective as well as the unmodified version of that Perspective, plus options to 'Save' or 'Revert' those changes.  (Feedback welcome on this.)
