@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.1
+// Last updated for v2.1.1+
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -305,10 +305,6 @@ export function getOpenItemParasForTimePeriod(
 
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // openParas = openParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-      // V2
       openParas = openParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
       logTimer('getOpenItemPFCTP', startTime, `- after 'dashboardSettings.ignoreItemsWithTerms' filter: ${openParas.length} paras`)
 
@@ -374,10 +370,6 @@ export function getOpenItemParasForTimePeriod(
 
       // Filter out anything from 'ignoreItemsWithTerms' setting
       if (dashboardSettings.ignoreItemsWithTerms) {
-        // V1
-        // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-        // refOpenParas = refOpenParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-        // V2
         refOpenParas = refOpenParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
         // logTimer('getOpenItemPFCTP', startTime, `- after 'ignore' phrases filter: ${refOpenParas.length} para(s)`)
       } else {
@@ -394,16 +386,11 @@ export function getOpenItemParasForTimePeriod(
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     if (dashboardSettings.separateSectionForReferencedNotes) {
-      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
-      // const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
-      // const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
-      // return [sortedOpenParas, sortedRefOpenParas]
+      // Note: sorting now happens later in useSectionSortAndFilter
       return [openDashboardParas, refOpenDashboardParas]
     } else {
       const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
-      // TEST: JGC Removing sorting, 16.12.2024, as this happens later in useSectionSortAndFilter
-      // const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      // return [combinedSortedParas, []]
+      // Note: sorting now happens later in useSectionSortAndFilter
       return [combinedParas, []]
     }
   } catch (err) {
@@ -456,30 +443,6 @@ function isObject(value: any): boolean {
 // ---------------------------------------------------
 
 /**
- * Decide whether this line contains an active time block.
- * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
- * @author @dwertheimer
- * @param {string} contentString
- * @returns {boolean}
- */
-// function isTimeBlockLine(contentString: string, mustContainString: string = ''): boolean {
-//   try {
-//     // Following works around a bug when the preference isn't being set at all at the start.
-//     if (mustContainString !== '') {
-//       const res1 = contentString.includes(mustContainString)
-//       if (!res1) {
-//         return false
-//       }
-//     }
-//     const res2 = contentString.match(RE_TIMEBLOCK_IN_LINE) ?? []
-//     return res2.length > 0
-//   } catch (err) {
-//     console.log(`isTimeBlockLine error`, err)
-//     return false
-//   }
-// }
-
-/**
  * Get all overdue tasks, filtered and sorted according to various settings. But the number of items returned is not limited.
  * If we are showing the Yesterday section, and we have some yesterdaysParas passed, then don't return any ones matching this list.
  * @param {TDashboardSettings} dashboardSettings
@@ -499,10 +462,6 @@ export async function getRelevantOverdueTasks(dashboardSettings: TDashboardSetti
     logTimer('getRelevantOverdueTasks', thisStartTime, `- after 'excludedFolders'(${String(excludedFolders)}) filter: ${filteredOverdueParas.length} paras`)
     // Filter out anything from 'ignoreItemsWithTerms' setting
     if (dashboardSettings.ignoreItemsWithTerms) {
-      // V1
-      // const phrases: Array<string> = dashboardSettings.ignoreItemsWithTerms.split(',').map((phrase) => phrase.trim())
-      // filteredOverdueParas = filteredOverdueParas.filter((p) => !phrases.some((phrase) => p.content.includes(phrase)))
-      // V2
       filteredOverdueParas = filteredOverdueParas.filter((p) => !isLineDisallowedByExcludedTerms(p.content, dashboardSettings.ignoreItemsWithTerms))
     } else {
       logDebug(
@@ -800,6 +759,7 @@ export function handlerResult(success: boolean, actionsOnSuccess?: Array<TAction
     actionsOnSuccess,
   }
 }
+
 /**
  * Convenience function to update the global shared data in the webview window, telling React to update it
  * @param {TAnyObject} changeObject - the fields inside pluginData to update

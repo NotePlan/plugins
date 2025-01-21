@@ -85,6 +85,7 @@ export async function doAddItem(data: MessageDataObject): Promise<TBridgeClickHa
       throw new Error(`calNoteDateStr isn't defined for ${toFilename}`)
     }
 
+    // We should have the text to add already, but if not, prompt the user for it
     const content = text ?? (await CommandBar.showInput(`Type the ${todoType} text to add`, `Add ${todoType} '%@' to ${calNoteDateStr}`))
     const destNote = DataStore.noteByFilename(toFilename, 'Calendar')
     if (!destNote) throw new Error(`doAddItem: No note found for ${toFilename}`)
