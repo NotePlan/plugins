@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.5] 2025-01-???
+### Fixes
+- fixed regression when (re)scheduling an item (thanks, @SneakAttack)
+
 ## [2.1.4] 2025-01-19
 ### Changes
 - the 'Edit All Perspectives' dialog now shows a modified Perspective as well as the unmodified version of that Perspective, plus options to 'Save' or 'Revert' those changes.  (Feedback welcome on this.)

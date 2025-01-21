@@ -45,7 +45,8 @@ const RE_START_OF_LINE = `(?:^|\\s)`
 // paragraph types [.title, .open, .done, .list].
 // These can more easily be tested for by API calls than in the regex, so that's what this now does.
 // Note: added 'checklist' and 'checklistDone' types ready for NP 3.8 release
-export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list', 'checklist', 'checklistDone']
+export const TIMEBLOCK_PARA_TYPES = ['title', 'open', 'done', 'list', 'checklist', 'checklistDone']
+export const TIMEBLOCK_ACTIVE_PARA_TYPES = ['title', 'open', 'list', 'checklist']
 
 // ------------------------------------------------------------------------------------
 // Regular Expressions -- published by @EduardMe on 10.11.2021.
@@ -213,7 +214,18 @@ export function isTimeBlockLine(contentString: string, mustContainStringArg: str
  * @returns {boolean}
  */
 export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
-  return TIMEBLOCK_TASK_TYPES.indexOf(para.type) > -1 // ugly but neat
+  return TIMEBLOCK_PARA_TYPES.indexOf(para.type) > -1 // ugly but neat
+}
+
+/**
+ * Decide whether this paragraph is of type that can be an *active* timeblock (i.e. not 'done')
+ * @author @jgclark
+ *
+ * @param {TParagraph} para
+ * @returns {boolean}
+ */
+export function isTypeThatCanHaveAnActiveTimeBlock(para: TParagraph): boolean {
+  return TIMEBLOCK_ACTIVE_PARA_TYPES.indexOf(para.type) > -1 // ugly but neat
 }
 
 /**
@@ -232,17 +244,17 @@ export function isTimeBlockPara(para: TParagraph, timeblockTextMustContainString
 }
 
 /**
- * Decide whether this paragraph contains an current or future time block.
+ * Decide whether this paragraph contains a current or future time block that isn't part of a completed task/checklist.
  * Note: does not do date-checking, only time-checking.
  * Will not return true if the apparent time block is in a URL or markdown link.
- * Note: Safe to use when This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
+ * Note: Safe to use from React that works without referring to DataStore.
  * @author @jgclark
  * @param {TParagraph} para
  * @param {string} mustContainParaArg string that must be present in a line for it to count as a timeblock. (Not optional, but can be empty string, in which case no check is done.)
  * @returns {boolean}
  */
 export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStringArg: string): boolean {
-  if (!isTypeThatCanHaveATimeBlock(para) || !isTimeBlockLine(para.content, mustContainStringArg)) {
+  if (!isTypeThatCanHaveAnActiveTimeBlock(para) || !isTimeBlockLine(para.content, mustContainStringArg)) {
     return false
   }
   const tbString = getTimeBlockString(para.content)

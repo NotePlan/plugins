@@ -2,7 +2,10 @@
 //--------------------------------------------------------------------------
 // Dashboard React component to show the Dropdown menu with display toggles.
 // Called by Header component.
-// Last updated 2024-08-27 for v2.1.a10 by @jgclark
+// Note: the changes-pending message and logic was added late in 2.1.0 beta by @DBW
+// "because there were massive race conditions which would happen when you made a change and it started a refresh and then made another change and it would start another refresh, etc."
+//
+// Last updated 2025-01-16 for v2.1.4
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
