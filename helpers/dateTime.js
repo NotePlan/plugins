@@ -180,12 +180,14 @@ export const containsYearlyDateStr = (dateStr: string): boolean => new RegExp(RE
 export const isYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_BARE_YEAR_SPEC).test(dateStr)
 
 /**
- * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
+ * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag). There are two different names to suit different contexts.
  * @author @dwertheimer
  * @param {string} content
  * @returns {boolean} true if the content contains a date in the form YYYY-MM-DD or a >today or weekly note
+ * @tests in jest file (for isScheduled)
  */
 export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
+export const containsScheduledDate = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
 
 /**
  * Find occurrence(s) of dates scheduled for a specific date (or has a >today tag) in a string.
@@ -200,6 +202,23 @@ export function findScheduledDates(content: string): Array<string> {
     dates.push(match[1])
   }
   return dates
+}
+
+/**
+ * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
+ * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
+ * Note: moved from note.js
+ * @param {string} line
+ * @returns foundDates - array of dates found
+ */
+export function findOverdueDatesInString(line: string): Array<string> {
+  const todayHyphenated = hyphenatedDateString(moment().toDate())
+  const dates = line.match(RE_PLUS_DATE_G)
+  if (dates) {
+    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
+    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
+  }
+  return []
 }
 
 /**

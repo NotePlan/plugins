@@ -145,6 +145,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Add text to the new location in destination note
+    // Note: there are newer helpers that might be relevant here: NPMoveItems:: moveItemToRegularNote() + moveItemBetweenCalendarNotes()
     const beforeNumParasInDestNote = destNote.paragraphs.length
     addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
     // Now check that the paras have been added -- it was sometimes failing probably with whitespace issues.

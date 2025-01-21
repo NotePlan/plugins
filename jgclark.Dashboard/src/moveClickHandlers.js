@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
-import { allCalendarSectionCodes, } from './constants'
+// import { allCalendarSectionCodes, } from './constants'
 import {
   getDashboardSettings,
   handlerResult,
@@ -105,21 +105,26 @@ export async function doMoveFromCalToCal(data: MessageDataObject): Promise<TBrid
  * @returns {TBridgeClickHandlerResult} how to handle this result
  */
 export async function doMoveToNote(data: MessageDataObject): Promise<TBridgeClickHandlerResult> {
-  const { filename, content, itemType, para } = validateAndFlattenMessageObject(data)
-  logDebug('doMoveToNote', `starting -> ${filename} / ${content} / ${itemType}`)
-  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType)
+  const { filename, content, itemType, para, item } = validateAndFlattenMessageObject(data)
+  logDebug('doMoveToNote', `starting for ID ${item?.ID ?? '?'} (${filename} / ${content} / ${itemType})`)
+  const newNote: TNote | null | void = await moveItemToRegularNote(filename, content, itemType) // TODO: make a boolean result?
+
+  // If success, then update the display
   if (newNote) {
-    logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
-    logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
+    // logDebug('doMoveToNote', `Success: moved to -> "${newNote?.title || ''}"`)
+    // logDebug('doMoveToNote', `- now needing to find the TPara for ${para.type}:"${content}" ...`)
     // updatedParagraph (below) is an actual NP object (TParagraph) not a TParagraphForDashboard, so we need to go and find it again
-    const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
-    if (updatedParagraph) {
-      logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
-      return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
-    } else {
-      logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
-      return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
-    }
+    // const updatedParagraph = newNote.paragraphs.find((p) => p.content === content && p.type === para.type)
+    // if (updatedParagraph) {
+    // logDebug('doMoveToNote', `- Sending update line request $JSP(updatedParagraph)`)
+    // return handlerResult(true, ['UPDATE_LINE_IN_JSON'], { updatedParagraph })
+    // TEST: Should this be REMOVE_LINE_FROM_JSON instead?
+    logDebug('doMoveToNote', `- Sending remove line request for ID ${item?.ID ?? '?'}`)
+    return handlerResult(true, ['REMOVE_LINE_FROM_JSON'], {})
+    // } else {
+    //   logWarn('doMoveToNote', `Couldn't find updated paragraph. Resorting to refreshing all enabled sections :-(`)
+    //   return handlerResult(true, ['REFRESH_ALL_ENABLED_SECTIONS'], { sectionCodes: allCalendarSectionCodes })
+    // }
   } else {
     return handlerResult(false)
   }
@@ -190,7 +195,7 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
   // v2:
   // const res = scheduleItem(thePara, newDateStr, config.useRescheduleMarker)
   // v3: choice of 2 schedule methods
-  //   Note: need to use the 'Lite' method if the para is in a regular (not calendar) note
+  // Note: need to use the 'Lite' method if the para is in a regular (not calendar) note
   const res = (origNoteType === 'Notes' || config.useLiteScheduleMethod)
     ? scheduleItemLiteMethod(thePara, newDateStr)
     : scheduleItem(thePara, newDateStr, config.newTaskSectionHeading)
@@ -199,11 +204,10 @@ export async function doRescheduleItem(data: MessageDataObject): Promise<TBridge
     thisNote.updateParagraph(thePara)
     logDebug('doRescheduleItem', `- appeared to update line OK using ${origNoteType === 'Notes' || config.useLiteScheduleMethod ? 'lite' : 'NP full'} method -> {${thePara.content}}`)
 
-    // Ask for cache refresh for this note -- done above
-    // DataStore.updateCache(thisNote, false)
+    // Note: No need to ask for cache refresh for this note -- done in functions above
 
     // refresh all enabled sections, as we don't know here which if any section the moved task might need to be added to (if any)
-    // logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
+    logDebug('doRescheduleItem', `------------ refresh enabled ------------`)
     return handlerResult(true, ['REMOVE_LINE_FROM_JSON', 'REFRESH_ALL_ENABLED_SECTIONS'], { updatedParagraph: thePara })
   } else {
     logWarn('doRescheduleItem', `- some other failure`)

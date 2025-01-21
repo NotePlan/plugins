@@ -727,22 +727,6 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
 }
 
 /**
- * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
- * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
- * @param {string} line
- * @returns foundDates - array of dates found
- */
-export function findOverdueDatesInString(line: string): Array<string> {
-  const todayHyphenated = hyphenatedDateString(moment().toDate())
-  const dates = line.match(RE_PLUS_DATE_G)
-  if (dates) {
-    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
-    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
-  }
-  return []
-}
-
-/**
  * Is the note from the given list of folders (or a Calendar allowed by allowAllCalendarNotes)?
  * @param {TNote} note
  * @param {Array<string>} allowedFolderList

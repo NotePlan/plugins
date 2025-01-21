@@ -4,9 +4,7 @@
 // -----------------------------------------------------------------
 
 import { addParasAsText } from '../jgclark.Filer/src/filerHelpers.js'
-import {
-  getAPIDateStrFromDisplayDateStr,
-} from '@helpers/dateTime'
+import { findScheduledDates, getAPIDateStrFromDisplayDateStr } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getNoteByFilename } from '@helpers/note'
@@ -15,7 +13,7 @@ import { getParaAndAllChildren } from '@helpers/parentsAndChildren'
 import { findEndOfActivePartOfNote, findHeadingStartsWith, findStartOfActivePartOfNote, parasToText, smartPrependPara } from '@helpers/paragraph'
 import { findParaFromStringAndFilename, insertParagraph, noteHasContent } from '@helpers/NPParagraph'
 import { removeDateTagsAndToday } from '@helpers/stringTransforms'
-import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage } from '@helpers/userInput'
+import { chooseHeading, chooseNote, displayTitleWithRelDate, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Move an item (given by its content and filename) and move to a note specified by the user.
@@ -39,7 +37,7 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     }
 
     // Ask user for destination project note
-    const typeToDisplayToUser = itemType // === 'checklist' ? 'Checklist' : 'Task'
+    const typeToDisplayToUser = itemType === 'checklist' ? 'Checklist' : 'Task'
     const destNote = await chooseNote(true, false, [], `Choose Note to Move ${typeToDisplayToUser} to`, false, true)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}'`)
     if (!destNote) return null
@@ -48,21 +46,34 @@ export async function moveItemToRegularNote(origFilename: string, paraContent: s
     const headingToFind = await chooseHeading(destNote, true, true, false)
     logDebug('moveItemToRegularNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
+    // If there's a >date in the line, ask whether to remove it
+    let paraContentToUse = paraContent
+    const schedDates = findScheduledDates(paraContent)
+    if (schedDates.length) {
+      const message = (schedDates.length === 1)
+        ? `Remove the scheduled date '${schedDates[0]}'?`
+        : `Remove the scheduled dates [${schedDates.join(',')}]?`
+      const removeDate = await showMessageYesNo(message, ['Yes', 'No'], `Move ${itemType}`, false)
+      if (removeDate === 'Yes') {
+        paraContentToUse = removeDateTagsAndToday(paraContent, true)
+      }
+    }
+
     // TODO: Add new setting + Logic to handle inserting section heading(s) more generally (ref tastapod)
     // TODO: Add new setting + logic to not add new section heading (ref #551)
 
     // Add text to the new location in destination note
     logDebug('moveItemToRegularNote', `- newHeadingLevel: ${newHeadingLevel}`)
     if (itemType === 'open') {
-      coreAddTaskToNoteHeading(destNote, headingToFind, paraContent, newHeadingLevel, false)
-    } if (itemType === 'checklist') {
-      coreAddChecklistToNoteHeading(destNote, headingToFind, paraContent, newHeadingLevel, false)
+      coreAddTaskToNoteHeading(destNote, headingToFind, paraContentToUse, newHeadingLevel, false)
+    } else if (itemType === 'checklist') {
+      coreAddChecklistToNoteHeading(destNote, headingToFind, paraContentToUse, newHeadingLevel, false)
     } else {
       logError('moveItemToRegularNote', `- not (yet) designed to handle item type ${itemType}`)
     }
 
     // Trying to get the note again from DataStore in case that helps find the task (it doesn't)
-    // $FlowIgnore
+    // $FlowIgnore[incompatible-type] checked above
     const noteAfterChanges: TNote = DataStore.noteByFilename(destNote.filename, destNote.type)
     // Ask for cache refresh for this note
     const updatedDestNote = DataStore.updateCache(noteAfterChanges, false)

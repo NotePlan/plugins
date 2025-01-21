@@ -16,25 +16,6 @@ beforeAll(() => {
 // Jest suite
 describe(`${PLUGIN_NAME}`, () => {
   /*
-   * findOverdueDatesInString()
-   */
-  describe('findOverdueDatesInString()' /* function */, () => {
-    test('should find no date in line with no overdue', () => {
-      const result = n.findOverdueDatesInString('>2922-01-01')
-      expect(result.length).toEqual(0)
-    })
-    test('should find date in line with overdue', () => {
-      const result = n.findOverdueDatesInString('>1999-01-01')
-      expect(result.length).toEqual(1)
-      expect(result).toEqual(['>1999-01-01'])
-    })
-    test('should find 2 overdue dates', () => {
-      const result = n.findOverdueDatesInString('>1999-01-01 >1998-01-01')
-      expect(result.length).toEqual(2)
-    })
-  })
-
-  /*
    * updateDatePlusTags()
    */
   describe('updateDatePlusTags()' /* function */, () => {

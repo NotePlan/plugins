@@ -100,6 +100,29 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
+    * findOverdueDatesInString()
+    */
+  describe('findOverdueDatesInString()' /* function */, () => {
+    test('should find no date in line with no overdue', () => {
+      const result = dt.findOverdueDatesInString('>2922-01-01')
+      expect(result.length).toEqual(0)
+    })
+    test('should find date in line with overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01')
+      expect(result.length).toEqual(1)
+      expect(result).toEqual(['>1999-01-01'])
+    })
+    test('should find 2 overdue dates', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >1998-01-01')
+      expect(result).toEqual(['>1998-01-01', '>1999-01-01'])
+    })
+    test('should find no overdue dates if there are multiple and any are not overdue', () => {
+      const result = dt.findOverdueDatesInString('>1999-01-01 >2922-01-01')
+      expect(result.length).toEqual(0)
+    })
+  })
+
+  /*
    * isWeeklyNote()
    */
   describe('isWeeklyNote()' /* function */, () => {
