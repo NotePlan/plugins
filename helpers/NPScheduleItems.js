@@ -8,7 +8,7 @@ import {
   getDateStringFromCalendarFilename,
   getDisplayDateStrFromFilenameDateStr,
   getFilenameDateStrFromDisplayDateStr,
-  replaceArrowDatesInString
+  replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -68,9 +68,7 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
     const origContent = thisPara.content
     if (!thisNote) throw new Error(`Could not get note for para '${origContent}'`)
 
-    const origDateStr = (thisNote.type === 'Calendar')
-      ? getDateStringFromCalendarFilename(thisNote.filename)
-      : findScheduledDates(origContent)[0]
+    const origDateStr = thisNote.type === 'Calendar' ? getDateStringFromCalendarFilename(thisNote.filename) : findScheduledDates(origContent)[0]
     logDebug('scheduleItemLiteMethod', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
@@ -91,7 +89,7 @@ export function scheduleItemLiteMethod(thisPara: TParagraph, dateStrToAdd: strin
 
 /**
  * Note: This is the 'Full' method of Scheduling, as performed by NotePlan UI on items in Calendar notes. See original 'Lite' method above.
- * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph. 
+ * Schedule an open item for a given date (e.g. >YYYY-MM-DD, >YYYY-Www, >today etc.) for a given paragraph.
  * In more detail this:
  * - adds the '>' to the start of the date, and appends to the end of the para.
  * - removes any existing scheduled >dates.
@@ -121,7 +119,7 @@ export function scheduleItem(origPara: TParagraph, dateStrToAdd: string, newTask
     logDebug('scheduleItem', `Starting to schedule from ${origDateStr} to '${dateStrToAdd}'`)
 
     // In existing line find and then remove any existing scheduled dates, and add new scheduled date
-    origPara.content = (origContent, `>${dateStrToAdd}`)
+    origPara.content = replaceArrowDatesInString(origContent, `>${dateStrToAdd}`)
     // Change line type (if not already *Scheduled)
     if (origType === 'checklist') origPara.type = 'checklistScheduled'
     if (origType === 'open') origPara.type = 'scheduled'
