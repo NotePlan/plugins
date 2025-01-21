@@ -111,7 +111,31 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
     logError('search/caseInsensitiveStartsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
     return false
   }
+}
 
+/**
+ * Returns true if A is a found in B, but not a subset of any words in B
+ * i.e. will match 'hell' in 'heaven and hell' 
+ * i.e. will match 'hell' in 'heaven and Hell' (depending if caseSensitive is set)
+ * i.e. will not match 'hell' in 'we say hello' or '"hello"'
+ * @author @jgclark
+ * @param {string} searchTerm
+ * @param {string} textToSearch
+ * @param {boolean} caseSensitive? (default: false)
+ * @returns {boolean} matches?
+ * @tests available in jest file
+ */
+export function fullWordMatch(searchTerm: string, textToSearch: string, caseSensitive: boolean = true): boolean {
+  try {
+    const re = caseSensitive
+      ? new RegExp(`\\b${searchTerm}\\b`) // = case sensitive 'whole word' regex
+      : new RegExp(`\\b${searchTerm}\\b`, "i") // = case insensitive version
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/fullWordMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
 }
 
 /**

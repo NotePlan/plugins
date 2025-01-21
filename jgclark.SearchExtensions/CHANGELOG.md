@@ -2,12 +2,29 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [1.4.0] - 2024-10-26???
+## [1.5.0.b1] - 2025-01-???
 ### New
-- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation. You would have to use the Versions menu item in each note to roll it back.
-- Adds ability to search matching the case of words ("**case sensitively**"). This is different to NotePlan which only allows case-insensitive searching. There is a new setting to turn this on or off.
-- ??? flexi search screen
-- ??? regex searching
+- Adds a number of **replace** commands, that first search and then offer to replace with some new text. It always shows the number of occurrences found, and checks that you wish to proceed. **Note: Please use this carefully, as there is no way (with the current API) to easily undo a replace operation**. You would have to use the Versions menu item in each note to roll it back.
+
+## [1.4.0] - 2025-01-18
+### New
+- Adds ability to search matching the case of words ("**case sensitively**"). This is different to NotePlan which only allows case-insensitive searching. There is a new setting to turn this on or off. There is a new control for this on the flexiSearch dialog.
+- By default search terms in NotePlan matches on parts of longer words. There is now a setting to restrict searches to **matching full words only**. There is a new control for this on the flexiSearch dialog.
+### Changed
+- some flexi search dialog tweaks
+### Fixed
+- Refresh button not working in QuickSearch results note
+### Dev Note
+- includes most of the work on new Replace commands as well, but wanted to get some fixes and tweaks out first
+
+## [1.3.1] - 2023-12-30
+### Changed
+- Updated x-callback handling as a result of changes in NotePlan 3.9.11 (build 1142)
+### Fixed
+- Fixed display of items with a match on just part of a word in Simplified mode
+- Fixed display of open checklist items in Simplified mode
+- Fixed display of items that are entirely a URL
+- Searches using "open checklist" type in flexiSearch (thanks to report by @clayrussell )
 
 ## [1.3.0] - 2023-12-26
 - Adds ability to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter.

@@ -146,8 +146,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
@@ -256,7 +256,7 @@ export function smartPrependParas(note: TNote, paraTextArr: Array<string>, paraT
 }
 
 /**
- * TEST: 
+ * TEST:
  * Insert multiple lines of text to a chosen note, as separate paragraphs
  * Note: does work on a single line too
  * @author @jgclark
@@ -298,8 +298,8 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       return 0
     }
 
-    const endOfFMIndex = endOfFrontmatterLineIndex(note)
-    if (!endOfFMIndex || endOfFMIndex === 0) {
+    const endOfFMIndex: number = endOfFrontmatterLineIndex(note) || 0
+    if (endOfFMIndex === 0) {
       // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
         // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
@@ -433,7 +433,9 @@ export function getParaFromContent(note: CoreNoteFields, contentToFind: string):
 export function findHeading(note: CoreNoteFields, headingToFind: string, includesString: boolean = false): TParagraph | null {
   if (headingToFind && headingToFind !== '') {
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(headingToFind) : paragraph.content.trim() === headingToFind.trim()))
+    const para = paragraphs.find(
+      (paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(headingToFind) : paragraph.content.trim() === headingToFind.trim()),
+    )
 
     if (para) return para
   }
@@ -582,7 +584,6 @@ export function getTagsFromString(content: string, includeSymbol: boolean = true
   const mentions = getElementsFromTask(content, MENTIONS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
   return { hashtags, mentions }
 }
-
 
 /**
  * Take a line and simplify by removing blockIDs, start-of-line markers, and trim start/end.

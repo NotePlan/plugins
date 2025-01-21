@@ -12,7 +12,6 @@ import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
-  // makeAnySyncs,
   OPEN_PARA_TYPES,
   optimiseOrderOfSearchTerms,
   resultCounts,
@@ -27,7 +26,6 @@ import {
   // displayTitle
 } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-// import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseOption,
@@ -117,6 +115,8 @@ export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: s
  * @param {string?} originatorCommand optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
  * @param {string?} commandNameToDisplay optional
+ * @param {boolean?} caseSensitiveArg? whether to match case sensitively or not. If not set then will use current config.
+ * @param {boolean?} fullWordArg? whether to match only full words or not. If not set then will use current config.
 */
 export async function saveSearch(
   searchTermsArg?: string,
@@ -124,40 +124,42 @@ export async function saveSearch(
   originatorCommand?: string = 'quickSearch',
   paraTypeFilterArg?: string = '',
   commandNameToDisplay?: string = 'Searching',
+  caseSensitiveArg?: boolean,
+  fullWordArg?: boolean,
 ): Promise<void> {
   try {
     // get relevant settings
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
-    // logDebug(pluginJson, `arg0 -> searchTermsArg ${typeof searchTermsArg}`)
-    logDebug(pluginJson, `arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
+    logDebug(pluginJson, `Starting saveSearch()`)
+    logDebug('saveSearch', `- arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
     const calledNonInteractively = (searchTermsArg !== undefined)
-    logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
+    logDebug('saveSearch', `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Get the noteTypes to include
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
-    logDebug(pluginJson, `arg1 -> note types '${noteTypesToInclude.toString()}'`)
-    logDebug(pluginJson, `arg2 -> originatorCommand = '${originatorCommand}'`)
+    logDebug('saveSearch', `- arg1 -> note types '${noteTypesToInclude.toString()}'`)
+    logDebug('saveSearch', `- arg2 -> originatorCommand = '${originatorCommand}'`)
 
     // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
     if (searchTermsArg) {
     // from argument supplied
       termsToMatchStr = searchTermsArg ?? ''
-      logDebug(pluginJson, `arg0 -> search terms [${termsToMatchStr}]`)
+      logDebug('saveSearch', `- arg0 -> search terms [${termsToMatchStr}]`)
     }
     else {
       // ask user
       const newTerms = await getInput(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
-        logInfo(pluginJson, `User has cancelled operation.`)
+        logInfo('saveSearch', `User has cancelled operation.`)
         return
       } else {
         termsToMatchStr = newTerms
-        logDebug(pluginJson, `user -> search terms [${termsToMatchStr}]`)
+        logDebug('saveSearch', `user -> search terms [${termsToMatchStr}]`)
       }
     }
 
@@ -174,7 +176,7 @@ export async function saveSearch(
     if (orderedSearchTerms.length === 1 && orderedSearchTerms[0].term === '') {
       const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
       if (res === 'No') {
-        logDebug(pluginJson, 'User has cancelled search')
+        logDebug('saveSearch', 'User has cancelled search')
         return
       }
     }
@@ -182,9 +184,20 @@ export async function saveSearch(
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
-    // logDebug(pluginJson, `arg3 -> para types '${typeof paraTypeFilterArg}'`)
-    // logDebug(pluginJson, `arg3 -> para types '${paraTypeFilterArg ?? '(null)'}'`)
-    logDebug(pluginJson, `arg3 -> para types '${paraTypesToInclude.toString()}'`)
+    // logDebug('saveSearch', `- arg3 -> para types '${typeof paraTypeFilterArg}'`)
+    // logDebug('saveSearch', `- arg3 -> para types '${paraTypeFilterArg ?? '(null)'}'`)
+    logDebug('saveSearch', `- arg3 -> para types '${paraTypesToInclude.toString()}'`)
+
+    // if caseSensitive and fullWord params are given, then override config.
+    // (This is because flexiSearch can set them at run-time.)
+    // logDebug('saveSearch', `- arg5 [${typeof caseSensitiveArg}] -> caseSensitiveArg '${caseSensitiveArg !== undefined ? String(caseSensitiveArg) : '(not supplied)'}'`)
+    // logDebug('saveSearch', `- arg6 [${typeof fullWordArg}]  -> fullWordArg '${fullWordArg !== undefined ? String(fullWordArg) : '(not supplied)'}'`)
+    if (caseSensitiveArg != null) {
+      config.caseSensitiveSearching = caseSensitiveArg
+    }
+    if (fullWordArg != null) {
+      config.fullWordSearching = fullWordArg
+    }
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
@@ -192,7 +205,7 @@ export async function saveSearch(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: deliberately no await: this is resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude, config.caseSensitiveSearching)
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude)
 
     await CommandBar.onMainThread()
 
@@ -232,7 +245,7 @@ export async function saveSearch(
 
     if (resultSet.resultCount === 0) {
       logDebug(pluginJson, `No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
-      await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
+      await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)} with your current settings.`)
       return
     }
 
@@ -288,7 +301,6 @@ export async function saveSearch(
         // Delete the note's contents and re-write each time.
         // *Does* need to include a subhead with search term + result count, as title is fixed.
         const requestedTitle = config.quickSearchResultsTitle
-        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}&arg2=${noteTypesToIncludeArg ?? ''}`
         const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'quickSearch', [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToIncludeArg ?? ''])
 
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, false)

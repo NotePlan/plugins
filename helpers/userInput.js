@@ -255,8 +255,8 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
   }
-  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
-  return folder
+logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
+return folder
 }
 
 /**
@@ -361,6 +361,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
     const allSettings: { [string]: mixed } = {
+      // $FlowIgnore[exponential-spread] known to be very small objects
       ...dateConfig,
       ...paramConfig,
     }
@@ -492,7 +493,7 @@ export async function inputMood(moodArray: Array<string>): Promise<string> {
  */
 export const multipleInputAnswersAsArray = async (question: string, submit: string, showCounter: boolean, minAnswers: number = 0, maxAnswers?: number): Promise<Array<string>> => {
   let input = '-'
-  const answers = []
+  const answers: Array<string> = []
 
   while ((maxAnswers ? answers.length < maxAnswers : true) && (input || answers.length < minAnswers)) {
     const placeholder = maxAnswers && showCounter ? `${question} (${answers.length + 1}/${maxAnswers})` : question

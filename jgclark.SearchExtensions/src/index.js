@@ -2,15 +2,16 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 2024-10-25 for v1.4.0, @jgclark
+// Last updated 2025-01-17 for v1.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
-export {
-  replace,
-  replaceOverAll,
-  replaceOverNotes,
-  replaceOverCalendar
-} from './replace'
+// Note: following waiting for v1.5
+// export {
+//   replace,
+//   replaceOverAll,
+//   replaceOverNotes,
+//   replaceOverCalendar
+// } from './replace'
 export {
   quickSearch,
   saveSearch,
@@ -23,7 +24,7 @@ export { searchPeriod } from './saveSearchPeriod'
 export { refreshSavedSearch } from './searchTriggers'
 export {
   closeDialogWindow,
-  flexiSearchRequest,
+  showFlexiSearchDialog,
   flexiSearchHandler,
   getPluginPreference,
   savePluginPreference
@@ -33,6 +34,7 @@ const pluginID = "jgclark.SearchExtensions"
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
+import { getSearchSettings } from './searchHelpers'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
@@ -49,14 +51,19 @@ export function init(): void {
   }
 }
 
-export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
+export async function onSettingsUpdated(): Promise<void> {
+  // Read these new settings, and then set two preferences to be picked up by flexiSearch later
+  const updatedSettings = await getSearchSettings()
+  logDebug('onSettingsUpdated', `Setting caseSensitiveSearching pref to ${String(updatedSettings.caseSensitiveSearching ?? false)}`)
+  DataStore.setPreference(`${pluginID}.caseSensitiveSearching`, updatedSettings.caseSensitiveSearching ?? false)
+  logDebug('onSettingsUpdated', `Setting fullWordSearching pref to ${String(updatedSettings.fullWordSearching ?? false)}`)
+  DataStore.setPreference(`${pluginID}.fullWordSearching`, updatedSettings.fullWordSearching ?? false)
 }
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
+    const updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
 
     // Tell user the plugin has been updated
