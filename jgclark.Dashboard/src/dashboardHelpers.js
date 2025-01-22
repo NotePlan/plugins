@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated for v2.1.1+
+// Last updated for v2.1.6
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -39,7 +39,7 @@ import {
   isActiveOrFutureTimeBlockPara,
   // isTypeThatCanHaveATimeBlock, RE_TIMEBLOCK_IN_LINE
 } from '@helpers/timeblocks'
-import { isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
+import { isOpenChecklist, isOpen, isOpenTask, isOpenNotScheduled, removeDuplicates } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Types
@@ -270,11 +270,13 @@ export function getOpenItemParasForTimePeriod(
     // let openParas = dashboardSettings.ignoreChecklistItems
     //   ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
     //   : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
-    let openParas = alsoReturnTimeblockLines ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString)) : parasToUse.filter((p) => isOpen(p))
+    let openParas = alsoReturnTimeblockLines
+      ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
+      : parasToUse.filter((p) => isOpen(p))
     logDebug('getOpenItemPFCTP', `- after initial pull: ${openParas.length} para(s)`)
     if (dashboardSettings.ignoreChecklistItems) {
-      openParas = openParas.filter((p) => isOpenTask(p))
-      logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${parasToUse.length} para(s)`)
+      openParas = openParas.filter((p) => !(p.type === 'checklist'))
+      logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
     }
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
@@ -351,7 +353,7 @@ export function getOpenItemParasForTimePeriod(
         `- after initial pull of getReferencedParagraphs() ${alsoReturnTimeblockLines ? '+ timeblocks ' : ''}: ${refOpenParas.length} para(s)`,
       )
       if (dashboardSettings.ignoreChecklistItems) {
-        refOpenParas = refOpenParas.filter((p) => isOpenTask(p))
+        refOpenParas = refOpenParas.filter((p) => !(p.type === 'checklist'))
         logDebug('getOpenItemPFCTP', `- after filtering out referenced checklists: ${refOpenParas.length} para(s)`)
       }
       if (dashboardSettings.excludeChecklistsWithTimeblocks) {

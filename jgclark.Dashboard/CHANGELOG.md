@@ -4,6 +4,8 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.1.6] 2025-01-???
 ### Changed
 - allow all current timeblocks to be shown, not just the first.
+### Fixed
+- timeblocks as a list ignored if also filtering out checklists
 
 ## [2.1.5] 2025-01-21
 ### New

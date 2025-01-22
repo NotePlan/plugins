@@ -21,6 +21,13 @@ export const isOpen = (t: TParagraph): boolean => (t.type === 'open' || t.type =
 export const isOpenTask = (t: TParagraph): boolean => t.type === 'open' && t.content.trim() !== ''
 
 /**
+ * Test whether a para is an open checklist and not blank
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if checklist, false if any other status/type
+ */
+export const isOpenChecklist = (t: TParagraph): boolean => t.type === 'checklist' && t.content.trim() !== ''
+
+/**
  * Test whether a para is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
