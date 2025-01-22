@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [2.1.6] 2025-01-???
+### Changed
+- allow all current timeblocks to be shown, not just the first.
+
 ## [2.1.5] 2025-01-21
 ### New
 - when moving an item to a different note, and the item contains a scheduled date, it now offers to remove the date (suggested by @drb)

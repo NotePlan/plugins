@@ -268,18 +268,17 @@ export function isActiveOrFutureTimeBlockPara(para: TParagraph, mustContainStrin
   const currentTimeMom = moment()
   const startTimeStr = getStartTimeStrFromParaContent(para.content)
   const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-  const endTimeStr = getEndTimeStrFromParaContent(para.content)
-  logDebug('isActiveOrFutureTimeBlockPara', `${startTimeStr} / ${endTimeStr}`)
-  const endTimeMom = (endTimeStr !== '')
+  const endTimeStr = getEndTimeStrFromParaContent(para.content) ?? ''
+  // logDebug('isActiveOrFutureTimeBlockPara', `${startTimeStr} / ${endTimeStr}`)
+  const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
     ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
     // Add 15 mins on from start time (this appears to be the NP default duration).
     : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
+  // Special syntax for moment.isBetween which allows the end time minute to be excluded.
   const isCurrentTB = currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
-  logDebug('isActiveOrFutureTimeBlockPara', `Found${isCurrentTB ? '' : ' NOT'} active/future timeblock ${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${tbString}`)
+  // logDebug('isActiveOrFutureTimeBlockPara', `Found${isCurrentTB ? '' : ' NOT'} active/future timeblock ${startTimeMom.format('HH:mm')} - ${endTimeMom.format('HH:mm')} from ${tbString}`)
   return isCurrentTB
 }
-
-// TODO: write isCurrentTimeBlockPara() function
 
 /**
  * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line).

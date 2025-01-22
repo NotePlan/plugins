@@ -8,7 +8,7 @@
 // - Sort = sort items by priority, startTime, endTime (using itemSort() below)
 // - Limit = only show the first N of M items
 //
-// Last updated 2025-01-13 for v2.1.3
+// Last updated 2025-01-13 for v2.1.6
 //-----------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
@@ -34,7 +34,7 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
     // Handle TB section differently
     if (section.sectionCode === 'TB') {
       logDebug('useSectionSortAndFilter/timeblock', `Starting for TB section with ${items.length} items`)
-      // Filter out all non-current timeblocks, and then if any remain, just show the first.
+      // Filter out all non-current timeblocks, and show what remains
       // Note: assumes they come in (start) time order.
       const currentTBItems = items.filter((i) => {
         const currentTimeMom = moment()
@@ -42,16 +42,19 @@ const useSectionSortAndFilter = (section: TSection, items: Array<TSectionItem>, 
         if (!para) return false
         // Borrowing code from getCurrentTimeBlockPara
         const startTimeStr = getStartTimeStrFromParaContent(para.content)
-        const endTimeStr = getEndTimeStrFromParaContent(para.content)
         const startTimeMom = moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
-        const endTimeMom = moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+        const endTimeStr = getEndTimeStrFromParaContent(para.content) ?? ''
+        const endTimeMom = (endTimeStr !== '' && endTimeStr !== 'error')
+          ? moment(endTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH'])
+          : moment(startTimeStr, ['HH:mmA', 'HHA', 'HH:mm', 'HH']).add(15, 'minutes')
+        // Special syntax for moment.isBetween which allows the end time minute to be excluded.
         return currentTimeMom.isBetween(startTimeMom, endTimeMom, undefined, '[)')
       }
       )
-      const firstTBItemOrEmptyList = (currentTBItems.length)
-        ? currentTBItems.slice(0, 1)
+      const TBItemOrEmptyList = (currentTBItems.length)
+        ? currentTBItems
         : []
-      setItemsToShow(firstTBItemOrEmptyList)
+      setItemsToShow(TBItemOrEmptyList)
     }
       // Handle all other sections
     else {

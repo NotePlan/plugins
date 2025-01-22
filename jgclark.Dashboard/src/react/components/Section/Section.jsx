@@ -12,6 +12,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import type { TSection, TSectionItem, TActionButton } from '../../../types.js'
 import CommandButton from '../CommandButton.jsx'
 import ItemGrid from '../ItemGrid.jsx'
+// import SectionTimer from '../SectionTimer.jsx'
 import TooltipOnKeyPress from '../ToolTipOnModifierPress.jsx'
 import { useAppContext } from '../AppContext.jsx'
 import useSectionSortAndFilter from './useSectionSortAndFilter.jsx'
@@ -44,6 +45,12 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Constants
   // ---------------------------------------------------------------------
   const { sectionFilename, totalCount } = section
+
+  //----------------------------------------------------------------------
+  // Section Timer
+  //----------------------------------------------------------------------
+  // FIXME(dwerteimer): this is what Cursor added (and I tweaked) but doesn't work.
+  // const { sectionTimer } = SectionTimer({ maxDelay: 60000, enabled: section.sectionCode === 'TB', sectionCode: 'TB' })
 
   //----------------------------------------------------------------------
   // Effects
@@ -90,6 +97,48 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
     setItems(sectionItems)
   }, [section, dashboardSettings])
+
+
+  /**
+   * Set a timer to refresh the TB section every 1 minute.
+   * Not yet tested.
+   */
+  // useEffect(() => {
+  //   const refreshInterval = 60000 // 1 minute
+  //   let timerId
+
+  //   if (section.sectionCode === 'TB') {
+  //     timerId = setInterval(() => {
+  //       refresh()
+  //     }, refreshInterval)
+  //     logDebug('Section/TBTimer', `Section ${section.sectionCode} timer set for ${refreshInterval / 1000} seconds`)
+  //   }
+
+  //   return () => {
+  //     if (timerId) {
+  //       clearInterval(timerId)
+  //       logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
+  //     }
+  //   }
+  // }, [section.sectionCode])
+
+  // const refresh = useCallback(() => {
+  //   logDebug('Section/TBTimer', 'Refreshing section ${section.sectionCode}...')
+  //   // TEST: Add your refresh logic here
+  //   const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
+  //   sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
+  // }, [])
+
+
+  // FIXME(dwerteimer): this is what Cursor added (and I tweaked) but doesn't work.
+  // useEffect(() => {
+  //   if (section.sectionCode === 'TB') {
+  //     logDebug('Section', `Section ${section.sectionCode} present (with ${items.length} items), so setting SectionTimer 1m refresh`)
+  //     sectionTimer()
+  //   }
+
+  //   // TODO: does there need to be a cleanup function to clear the timer when the component unmounts here?
+  // }, [section.sectionCode, sectionTimer])
 
   //----------------------------------------------------------------------
   // Hooks
@@ -199,7 +248,9 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decide whether to show interactiveProcessing button
   // TODO(later): enable again for PROJ
   const showIPButton =
-    dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) && section.sectionCode !== 'PROJ'
+    dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)
+    && section.sectionCode !== 'TB'
+    && section.sectionCode !== 'PROJ'
 
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
