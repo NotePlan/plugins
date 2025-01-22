@@ -741,7 +741,7 @@ export function isNoteFromAllowedFolder(
 ): boolean {
   // Calendar note check
   if (note.type === 'Calendar') {
-    logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
+    // logDebug('isNoteFromAllowedFolder', `-> Calendar note ${allowAllCalendarNotes ? 'allowed' : 'NOT allowed'} as a result of allowAllCalendarNotes`)
     return allowAllCalendarNotes
   }
 
@@ -749,7 +749,7 @@ export function isNoteFromAllowedFolder(
   const noteFolder = getFolderFromFilename(note.filename)
   // Test if allowedFolderList includes noteFolder
   const matchFound = allowedFolderList.includes(noteFolder)
-  logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
+  // logDebug('isNoteFromAllowedFolder', `- ${matchFound ? 'match' : 'NO match'} to '${note.filename}' folder '${noteFolder}' from ${String(allowedFolderList.length)} folders`)
   return matchFound
 }
 

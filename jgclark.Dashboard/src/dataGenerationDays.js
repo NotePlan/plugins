@@ -280,7 +280,7 @@ export function getTodaySectionData(config: TDashboardSettings, useDemoData: boo
           timeBlockItems.push(thisSectionItemObject)
           itemCounter++
         } else {
-          logDebug('getTodaySectionData', `- no TB in {${p.content}} from ${p.filename}`)
+          // logDebug('getTodaySectionData', `- no TB in {${p.content}} from ${p.filename}`)
         }
       }
 

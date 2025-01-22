@@ -189,7 +189,7 @@ function makeParaContentToLookLikeNPDisplayInReact(thisItem: TSectionItem, trunc
 
     // Display time blocks with .timeBlock style
     if (thisItem.para?.startTime && thisItem.para?.startTime !== 'none') {
-      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      // logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
       output = convertTimeBlockToHTML(output, timeblockTextMustContainString)
     }
 
