@@ -101,44 +101,33 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
 
   /**
    * Set a timer to refresh the TB section every 1 minute.
-   * Not yet tested.
+   * FIXME(dwerteimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
    */
-  // useEffect(() => {
-  //   const refreshInterval = 60000 // 1 minute
-  //   let timerId
+  useEffect(() => {
+    const refreshInterval = 60000 // 1 minute
+    let timerId
 
-  //   if (section.sectionCode === 'TB') {
-  //     timerId = setInterval(() => {
-  //       refresh()
-  //     }, refreshInterval)
-  //     logDebug('Section/TBTimer', `Section ${section.sectionCode} timer set for ${refreshInterval / 1000} seconds`)
-  //   }
+    if (section.sectionCode === 'TB') {
+      timerId = setInterval(() => {
+        refresh()
+      }, refreshInterval)
+      logDebug('Section/TBTimer', `Section ${section.sectionCode} timer set for ${refreshInterval / 1000} seconds`)
+    }
 
-  //   return () => {
-  //     if (timerId) {
-  //       clearInterval(timerId)
-  //       logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
-  //     }
-  //   }
-  // }, [section.sectionCode])
+    return () => {
+      if (timerId) {
+        clearInterval(timerId)
+        logDebug('Section/TBTimer', `Section ${section.sectionCode} timer cleared`)
+      }
+    }
+  }, [section.sectionCode])
 
-  // const refresh = useCallback(() => {
-  //   logDebug('Section/TBTimer', 'Refreshing section ${section.sectionCode}...')
-  //   // TEST: Add your refresh logic here
-  //   const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
-  //   sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
-  // }, [])
-
-
-  // FIXME(dwerteimer): this is what Cursor added (and I tweaked) but doesn't work.
-  // useEffect(() => {
-  //   if (section.sectionCode === 'TB') {
-  //     logDebug('Section', `Section ${section.sectionCode} present (with ${items.length} items), so setting SectionTimer 1m refresh`)
-  //     sectionTimer()
-  //   }
-
-  //   // TODO: does there need to be a cleanup function to clear the timer when the component unmounts here?
-  // }, [section.sectionCode, sectionTimer])
+  const refresh = useCallback(() => {
+    logDebug('Section/TBTimer', 'Refreshing section ${section.sectionCode}...')
+    // TEST: Add your refresh logic here
+    const detailsMessageObject = { actionType: 'refreshSomeSections', sectionCodes: ['TB'] }
+    sendActionToPlugin(detailsMessageObject.actionType, detailsMessageObject, 'TBTimer fired refreshSomeSections', true)
+  }, [])
 
   //----------------------------------------------------------------------
   // Hooks

@@ -1,3 +1,5 @@
+// @flow
+//------------------------------------------------------------------------------
 // useRefreshTimer.jsx
 // Sends a refresh after a delay, with a debounce so only the latest refresh call is sent
 // usage:
@@ -5,7 +7,7 @@
 //   const { refreshTimer } = useRefreshTimer({ maxDelay: 5000, enabled: dashboardSettings._logLevel !== "DEV" })
 // ... then wherever you want to send a refresh:
 // refreshTimer()
-// @flow
+//------------------------------------------------------------------------------
 
 import { useState, useEffect } from 'react'
 import { useAppContext } from '../components/AppContext.jsx'
@@ -32,7 +34,7 @@ type RefreshTimerReturn = {
 
 /**
  * Custom hook to handle refresh timer.
- * Waits n seconds and then sends a "refresh" command to the plutin
+ * Waits n seconds and then sends a "refresh" command to the plugin
  * @param {RefreshTimerOptions} options - Options for the refresh timer.
  * @returns {RefreshTimerReturn} Return object containing refresh function.
  */
