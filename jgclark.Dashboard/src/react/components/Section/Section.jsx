@@ -98,7 +98,6 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
     setItems(sectionItems)
   }, [section, dashboardSettings])
 
-
   /**
    * Set a timer to refresh the TB section every 1 minute.
    * FIXME(dwerteimer): this is what Cursor added on my second attempt -- just trying to keep it all in this file. But doesn't work.
@@ -133,6 +132,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Hooks
   //----------------------------------------------------------------------
   const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
+  clo(itemsToShow[0]?.para?.content, `Section.jsx numFilteredOut=${numFilteredOut} limitApplied=${limitApplied} itemsToShow[0].para.content=`)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -237,9 +237,11 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Decide whether to show interactiveProcessing button
   // TODO(later): enable again for PROJ
   const showIPButton =
-    dashboardSettings.enableInteractiveProcessing && numItemsToShow > 1 && !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType)
-    && section.sectionCode !== 'TB'
-    && section.sectionCode !== 'PROJ'
+    dashboardSettings.enableInteractiveProcessing &&
+    numItemsToShow > 1 &&
+    !['itemCongrats', 'projectCongrats'].includes(itemsToShow[0].itemType) &&
+    section.sectionCode !== 'TB' &&
+    section.sectionCode !== 'PROJ'
 
   const titleStyle: Object = sectionFilename ? { cursor: 'pointer' } : {}
   titleStyle.color = section.sectionTitleColorPart ? `var(--fg-${section.sectionTitleColorPart ?? 'main'})` : 'var(--item-icon-color)'
@@ -298,7 +300,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           )}
         </div>
       </div>
-      <ItemGrid thisSection={section} items={itemsToShow} />
+      <ItemGrid thisSection={section} items={JSON.parse(JSON.stringify(itemsToShow))} />
     </section>
   )
 }
