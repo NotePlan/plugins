@@ -395,8 +395,8 @@ export function Root(/* props: Props */): Node {
   }, [npData])
 
   useEffect(() => {
-    // logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
     if (reactSettings.dynamicDialog.isOpen !== dialogIsVisible) {
+      logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
       setDialogIsVisible(reactSettings.dynamicDialog.isOpen)
     }
   }, [reactSettings])

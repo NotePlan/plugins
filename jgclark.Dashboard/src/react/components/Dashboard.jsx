@@ -305,14 +305,6 @@ const Dashboard = ({ pluginData }: Props): React$Node => {
 
   return (
     <div style={dashboardContainerStyle} tabIndex={0} ref={containerRef} className={pluginData.platform ?? ''}>
-      {/* Note: changing to use NonModalSpinner below */}
-      {/* {pluginData.perspectiveChanging && (
-        <ModalSpinner
-          textBelow="Switching perspectives..."
-          onClose={() => getContext().updatePluginData({ ...pluginData, perspectiveChanging: false }, 'Dashboard: perspectiveChanging set to false')}
-          style={{ container: { color: 'white' } }}
-        />
-      )} */}
       {autoUpdateEnabled && (
         <IdleTimer idleTime={parseInt(dashboardSettings?.autoUpdateAfterIdleTime ? dashboardSettings.autoUpdateAfterIdleTime : '15') * 60 * 1000} onIdleTimeout={autoRefresh} />
       )}

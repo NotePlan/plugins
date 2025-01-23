@@ -104,13 +104,11 @@ const Header = ({ lastFullRefresh }: Props): React$Node => {
    */
   const handleChangesInSettings = useCallback(
     (updatedSettings?: Object) => {
-      clo(updatedSettings, `Header/handleChangesInSettings: received updatedSettings`)
       const newSettings = {
         ...dashboardSettings,
         ...tempDashboardSettings,
         ...updatedSettings,
       }
-      clo(newSettings, `Header/handleChangesInSettings about to dispatch newSettings`)
       dispatchDashboardSettings({
         type: DASHBOARD_ACTIONS.UPDATE_DASHBOARD_SETTINGS,
         payload: newSettings,

@@ -81,40 +81,34 @@ export const useSyncDashboardSettingsWithPlugin = (
         )} pluginData.perspectiveChanging:${String(pluginData.perspectiveChanging)}`,
         { dashboardSettings, realDiff, serverPush: pluginData?.serverPush?.dashboardSettings },
       )
-      if (!pluginData.perspectiveChanging) {
-        if (pluginData?.serverPush?.dashboardSettings) {
-          logDebug(
-            `useSyncDashboardSettingsWithPlugin pluginData changed; serverPush=${JSON.stringify(
-              pluginData.serverPush,
-            )} changing serverPush.dashboardSettings to false; not sending to server`,
-          )
-          const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
-          updatePluginData(newPluginData, `acknowledging server push`)
-          // was a server push so don't need to send to server
-        } else {
-          logDebug(`useSyncDashboardSettingsWithPlugin front-end settings data changed (was not server push) AC diff/realDiff=`, { diff, realDiff })
-          if (diff && Object.keys(diff).length > 0) {
-            logDebug(`useSyncDashboardSettingsWithPlugin pluginData changed (was not server push) AC diff=`, { realDiff })
-            if (dashboardSettings.lastChange && (dashboardSettings.lastChange[0] === '_' || dashboardSettings.lastChange.endsWith('changed from plugin'))) {
-              logDebug(
-                `useSyncDashboardSettingsWithPlugin`,
-                `NOT SENDING BECAUSE OF UNDERSCORE: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`,
-                diff,
+      if (pluginData?.serverPush?.dashboardSettings) {
+        logDebug(
+          `useSyncDashboardSettingsWithPlugin pluginData changed; serverPush=${JSON.stringify(
+            pluginData.serverPush,
+          )} changing serverPush.dashboardSettings to false; not sending to server`,
+        )
+        const newPluginData = { ...pluginData, serverPush: { ...pluginData.serverPush, dashboardSettings: false } }
+        updatePluginData(newPluginData, `acknowledging server push`)
+        // was a server push so don't need to send to server
+      } else {
+        logDebug(`useSyncDashboardSettingsWithPlugin front-end settings data changed (was not server push) AC diff/realDiff=`, { diff, realDiff })
+        if (diff && Object.keys(diff).length > 0) {
+          logDebug(`useSyncDashboardSettingsWithPlugin pluginData changed (was not server push) AC diff=`, { realDiff })
+          if (dashboardSettings.lastChange && (dashboardSettings.lastChange[0] === '_' || dashboardSettings.lastChange.endsWith('changed from plugin'))) {
+            logDebug(`useSyncDashboardSettingsWithPlugin`, `NOT SENDING BECAUSE OF UNDERSCORE: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, diff)
+          } else {
+            logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, dashboardSettings)
+            sendActionToPlugin &&
+              sendActionToPlugin(
+                'dashboardSettingsChanged',
+                {
+                  actionType: 'dashboardSettingsChanged',
+                  settings: dashboardSettings,
+                  logMessage: `dashboardSettingsChanged: ${JSON.stringify(diff)}`,
+                },
+                `dashboardSettings updated`,
+                true,
               )
-            } else {
-              logDebug(`useSyncDashboardSettingsWithPlugin SENDING: dashboardSettings.lastChange=${JSON.stringify(dashboardSettings.lastChange)}`, dashboardSettings)
-              sendActionToPlugin &&
-                sendActionToPlugin(
-                  'dashboardSettingsChanged',
-                  {
-                    actionType: 'dashboardSettingsChanged',
-                    settings: dashboardSettings,
-                    logMessage: `dashboardSettingsChanged: ${JSON.stringify(diff)}`,
-                  },
-                  `dashboardSettings updated`,
-                  true,
-                )
-            }
           }
         }
       }

@@ -27,7 +27,7 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
-import { showDialog, showConfirmationDialog } from '@helpers/react/userInput'
+import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
 import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
@@ -345,17 +345,30 @@ const PerspectiveSelector = (): React$Node => {
       const currentPerspIsModified = perspectiveSettings.find((persp) => persp.name === apn)?.isModified || false
       if (currentPerspIsModified) {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `Current perspective "${apn}" has unsaved changes. Showing confirmation dialog.`)
-        const confirmation = await showConfirmationDialog({
-          message: `Your current perspective "${activePerspectiveName}" has unsaved changes. Are you sure you want to switch to "${selectedOption.label}" and lose these changes?`,
-          onCancel: () => {
-            logDebug('PerspectiveSelector/handlePerspectiveChange', 'Delete Perspective cancelled via escape')
-            handlePerspectiveReset(currentPerspective)
-          },
-        })
+        const confirmation = await showMessageYesNoCancel(
+          `Your current perspective "${activePerspectiveName}*" has unsaved changes. Would you like to save these changes before switching to "${selectedOption.label}"?`,
+          ['Cancel', 'Switch', 'Save+Switch'],
+          'Confirm Perspective Switch',
+        )
         if (!confirmation) {
           logDebug('PerspectiveSelector/handlePerspectiveChange', `Delete Perspective cancelled`)
           handlePerspectiveReset(currentPerspective)
           return
+        } else if (confirmation === 'Save+Switch') {
+          logDebug(
+            'PerspectiveSelector/handlePerspectiveChange',
+            `Save+Switch selected. Saving perspective "${activePerspectiveName}" before switching to "${selectedOption.label}".`,
+          )
+          const thisPersp = getActivePerspectiveDef(perspectiveSettings)
+          if (thisPersp && thisPersp.name !== '-') {
+            sendActionToPlugin(
+              'savePerspective',
+              { actionType: 'savePerspective', perspectiveName: thisPersp.name, logMessage: `Saving Perspective (${thisPersp.name}) before switching.` },
+              `Save Perspective (${thisPersp.name}) selected from dropdown`,
+            )
+          }
+        } else if (confirmation === 'Switch') {
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `Switch selected`)
         }
       }
       // The perspectives ground truth is set by the plugin and will be returned in pluginData

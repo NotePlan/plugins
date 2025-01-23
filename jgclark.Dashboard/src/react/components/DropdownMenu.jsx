@@ -152,11 +152,14 @@ function DropdownMenu({
       // Only update state if there is a change
       setLocalSwitchStates((prevStates) => {
         const hasChanged = Object.keys(updatedStates).some((key) => updatedStates[key] !== prevStates[key])
-        logDebug(`DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`, {
-          updatedStates,
-          prevStates,
-          hasChanged,
-        })
+        logDebug(
+          `DropdownMenu: useEffect sectionItems or otherItems changed, updating localSwitchStates`,
+          {
+            updatedStates,
+          },
+          { prevStates },
+          { hasChanged },
+        )
         return hasChanged ? updatedStates : prevStates
       })
     }

@@ -2,7 +2,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
-import { logDebug } from './reactDev'
+import { logDebug, logError } from './reactDev'
 
 /**
  * Shows a React modal dialog and returns the user input or null if canceled.
@@ -17,16 +17,25 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
     const container = document.createElement('div')
     if (document.body) {
       document.body.appendChild(container)
+      logDebug('showDialog', 'container appended to document.body')
     }
 
+    const root = createRoot(container)
+    logDebug('showDialog', 'root created')
+
     const closeDialog = () => {
-      if (root) {
-        root.unmount()
+      try {
+        if (root) {
+          root.unmount()
+          logDebug('showDialog', 'root.unmount() called')
+        }
+        if (document.body && container.parentNode === document.body) {
+          document.body.removeChild(container)
+          logDebug('showDialog', 'container removed from document.body')
+        }
+      } catch (error) {
+        logError('showDialog', 'Error during closeDialog', error)
       }
-      if (document.body) {
-        document.body.removeChild(container)
-      }
-      logDebug('showDialog', 'closeDialog called')
     }
 
     const handleClose = () => {
@@ -53,7 +62,6 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
       handleClose()
     }
 
-    const root = createRoot(container)
     root.render(
       <DynamicDialog
         title={dialogProps.title}
@@ -79,27 +87,32 @@ export function showDialog(dialogProps: TDynamicDialogProps): Promise<TAnyObject
 }
 
 /**
- * Shows a confirmation dialog with "No" and "Yes" buttons.
+ * Shows a confirmation dialog with customizable buttons.
  * @param {Object} options - Options to customize the confirmation dialog.
  * @param {string} options.title - The title of the dialog.
  * @param {string} options.message - The message to display in the dialog.
- * @param {Function} options.onConfirm - Callback when "Yes" is clicked.
+ * @param {Function} options.onConfirm - Callback when a button is clicked.
  * @param {Function} options.onCancel - Callback when "No" is clicked.
- * @returns {Promise<boolean>} Resolves to true if "Yes" is clicked, false if "No" is clicked.
+ * @param {Array<string>} [options.options] - Array of button labels/values.
+ * @returns {Promise<string|false>} Resolves to the chosen string or false if canceled.
  */
 export function showConfirmationDialog({
   title = 'Confirmation',
   message = 'Are you sure?',
   onConfirm,
   onCancel,
+  options,
 }: {
   title?: string,
   message?: string,
-  onConfirm?: () => void,
+  onConfirm?: (choice: string) => void,
   onCancel?: () => void,
-}): Promise<boolean> {
+  options?: Array<string>,
+}): Promise<string | false> {
   logDebug('showConfirmationDialog', 'Opening dialog')
   return new Promise((resolve) => {
+    const defaultOptions = ['No', 'Yes']
+    const finalOptions = options || defaultOptions
     const dialogItems: Array<TSettingItem> = [
       {
         type: 'text',
@@ -110,28 +123,29 @@ export function showConfirmationDialog({
       {
         type: 'button-group',
         key: 'confirmationButtons',
-        options: [
-          { label: 'No', value: 'no', isDefault: false },
-          { label: 'Yes', value: 'yes', isDefault: true },
-        ],
+        options: finalOptions.map((option, index) => ({
+          label: option,
+          value: option,
+          isDefault: index === finalOptions.length - 1,
+        })),
       },
     ]
 
     const handleButtonClick = (key: string, value: string) => {
       logDebug('showConfirmationDialog', 'handleButtonClick', key, value)
-      if (value === 'yes') {
-        onConfirm?.()
-        resolve(true)
-      } else {
-        onCancel?.()
-        resolve(false)
-      }
+      onConfirm?.(value)
+      resolve(value)
+      closeDialog()
     }
 
     const handleEnterKey = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
-        handleButtonClick('confirmationButtons', 'yes')
+        handleButtonClick('confirmationButtons', finalOptions[0])
       }
+    }
+
+    const closeDialog = () => {
+      document.removeEventListener('keydown', handleEnterKey)
     }
 
     document.addEventListener('keydown', handleEnterKey)
@@ -147,11 +161,35 @@ export function showConfirmationDialog({
         logDebug('showConfirmationDialog', 'onCancel called')
         onCancel?.()
         resolve(false)
+        closeDialog()
       },
     }).finally(() => {
-      document.removeEventListener('keydown', handleEnterKey)
+      closeDialog()
     })
   })
+}
+
+/**
+ * Show a simple yes/no/cancel (or OK/No/Cancel, etc.) React dialog.
+ * @param {string} message - text to display to user
+ * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No', 'Cancel'])
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?boolean} useCommandBar - force use NP CommandBar instead of native prompt (default: false)
+ * @returns {Promise<string|cancel>} - returns the user's choice - the actual *text* choice from the input array provided or false if 'Cancel' or is canceled using escape or clicking outside
+ */
+export async function showMessageYesNoCancel(message: string, choicesArray: Array<string> = ['Cancel', 'Yes', 'No'], dialogTitle: string = ''): Promise<string | false> {
+  const answer = await showConfirmationDialog({
+    title: dialogTitle,
+    message,
+    options: choicesArray,
+    onConfirm: (choice: string) => {
+      logDebug('showMessageYesNoCancel', `User confirmed with choice: ${choice}`)
+    },
+    onCancel: () => {
+      logDebug('showMessageYesNoCancel', 'User canceled')
+    },
+  })
+  return answer === 'Cancel' ? false : answer
 }
 
 /**
@@ -162,15 +200,7 @@ export function showConfirmationDialog({
  * @param {string} options.message - The message to display in the dialog.
  * @param {Function} options.onOK - Callback when "OK" is clicked.
  */
-export function showMessageDialog({
-  title = 'Confirmation',
-  message = 'Are you sure?',
-  onOK
-}: {
-  title?: string,
-  message?: string,
-  onOK?: () => void
-}): void {
+export function showMessageDialog({ title = 'Confirmation', message = 'Are you sure?', onOK }: { title?: string, message?: string, onOK?: () => void }): void {
   logDebug('showMessageDialog', 'Opening dialog')
   const dialogItems: Array<TSettingItem> = [
     {
@@ -182,9 +212,7 @@ export function showMessageDialog({
     {
       type: 'button-group',
       key: 'messageButton',
-      options: [
-        { label: 'OK', value: 'ok', isDefault: true },
-      ],
+      options: [{ label: 'OK', value: 'ok', isDefault: true }],
     },
   ]
 
@@ -210,7 +238,7 @@ export function showMessageDialog({
     isOpen: true,
     hideHeaderButtons: true,
     handleButtonClick,
-    onCancel: () => { }
+    onCancel: () => {},
   }).finally(() => {
     document.removeEventListener('keydown', handleEnterKey)
   })

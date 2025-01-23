@@ -462,7 +462,7 @@ export async function switchToPerspective(name: string, allDefs: Array<TPerspect
   logDebug('switchToPerspective', `Starting looking for name ${name} in ...`)
   logPerspectives(allDefs)
 
-  const newPerspectiveSettings = setActivePerspective(name, allDefs)
+  const newPerspectiveSettings = setActivePerspective(name, allDefs).map((p) => ({ ...p, isModified: p.name === name ? p.isModified : false }))
   logDebug('switchToPerspective', `New perspectiveSettings:`)
   logPerspectives(newPerspectiveSettings)
   const newPerspectiveDef = getPerspectiveNamed(name, newPerspectiveSettings)

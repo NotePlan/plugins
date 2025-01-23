@@ -25,7 +25,7 @@ import React, { useEffect, useRef, useState, type ElementRef } from 'react'
 import { renderItem } from './dialogElementRenderer'
 import './DynamicDialog.css' // Import the CSS file
 import Modal from '@helpers/react/Modal'
-import { clo, logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
+import { logWarn, timer, logDebug, logError } from '@helpers/react/reactDev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -270,7 +270,7 @@ const DynamicDialog = ({
     if (!isModal) {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
-          // let’s call onCancel to close
+          // let's call onCancel to close
           logDebug('DynamicDialog', 'ESC pressed in non-modal scenario. onCancel called.')
           onCancel && onCancel()
         }
@@ -286,7 +286,6 @@ const DynamicDialog = ({
   //----------------------------------------------------------------------
   // Render
   //----------------------------------------------------------------------
-  // clo(items, `DynamicDialog items=`)
   if (!updatedSettings) return null
   const dialogStyle = {
     minWidth: '50%', // defaults which can be overridden by the style prop
