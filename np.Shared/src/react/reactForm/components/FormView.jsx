@@ -202,7 +202,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
-          <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
           <DynamicDialog
             isOpen={true}
             title={pluginData?.formTitle || 'Form Entry'}
@@ -211,7 +210,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
             onCancel={handleCancel}
             allowEmptySubmit={isTrueString(pluginData.allowEmptySubmit)}
             hideDependentItems={isTrueString(pluginData.hideDependentItems)}
-          ></DynamicDialog>
+          />
         </div>
         {/* end of replace */}
       </div>
