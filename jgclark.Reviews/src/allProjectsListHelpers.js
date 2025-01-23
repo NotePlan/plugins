@@ -437,7 +437,8 @@ export async function getNextNoteToReview(): Promise<?TNote> {
     const allProjectsSorted = await filterAndSortProjectsList(config)
 
     if (!allProjectsSorted || allProjectsSorted.length === 0) {
-      logWarn('getNextNoteToReview', `No active projects found, so stopping`)
+      // Depending where this is called from, this may be quite possible or more of an error. With Perspective, review this.
+      logInfo('getNextNoteToReview', `No active projects found, so stopping`)
       return null
     }
 
