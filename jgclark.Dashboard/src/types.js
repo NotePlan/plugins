@@ -5,8 +5,8 @@
 //-----------------------------------------------------------------------------
 // Types for Settings
 
-import type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
-export type { TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
+import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog'
+export type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog' // for now because it was imported in lots of places
 
 export type TDashboardLoggingConfig = {
   _logLevel: string,
@@ -337,29 +337,29 @@ export type TReactSettings = {
 export type TPluginData = {
   dashboardSettings: any,
   perspectiveSettings: any,
-  logSettings: any, /* logging settings from plugin preferences */
-  notePlanSettings: any, /* for copies of some app settings */
-  refreshing?: Array<TSectionCode> | boolean, /* true if all, or array of sectionCodes if some */
-  perspectiveChanging?: boolean, /* true if perspective is changing, false if not. Displays a modal spinner */
+  logSettings: any /* logging settings from plugin preferences */,
+  notePlanSettings: any /* for copies of some app settings */,
+  refreshing?: Array<TSectionCode> | boolean /* true if all, or array of sectionCodes if some */,
+  perspectiveChanging?: boolean /* true if perspective is changing, false if not. Displays a modal spinner */,
   sections: Array<TSection>,
-  lastFullRefresh: Date, /* localized date string new Date().toLocaleString() */
-  themeName: string, /* the theme name used when generating the dashboard */
-  platform: string, /* the platform used when generating the dashboard */
-  version: string, /* version of this plugin */
-  serverPush: { /* see below for documentation */
-    dashboardSettings?: boolean,
+  lastFullRefresh: Date /* localized date string new Date().toLocaleString() */,
+  themeName: string /* the theme name used when generating the dashboard */,
+  platform: string /* the platform used when generating the dashboard */,
+  version: string /* version of this plugin */,
+  serverPush: {
+    /* see below for documentation */ dashboardSettings?: boolean,
     perspectiveSettings?: boolean,
   },
-  demoMode: boolean, /* use fake content for demo/test purposes */
+  demoMode: boolean /* use fake content for demo/test purposes */,
   totalDoneCount?: number,
-  startDelayedRefreshTimer?: boolean, /* start the delayed refresh timer hack set in post processing commands*/
+  startDelayedRefreshTimer?: boolean /* start the delayed refresh timer hack set in post processing commands*/,
 }
 
 /**
- * serverPush was designed especially for dashboardSettings, because dashboardSettings can change in the front-end (via user action) which then need to be noticed and sent to the back-end, or can be sent to the front end from the back-end (plugin) in which case they should just be accepted but not sent back to the plugin. 
- * Initially I was doing this with the  lastChange  message, and if that message started with a "_" it meant this is coming from the plugin and should not be sent back. 
- * But that seemed too non-obvious. So I added this serverPush variable which is set when the plugin wants to send updates to the front-end but does not want those updates to be sent back erroneously. 
- * Specifically, 
+ * serverPush was designed especially for dashboardSettings, because dashboardSettings can change in the front-end (via user action) which then need to be noticed and sent to the back-end, or can be sent to the front end from the back-end (plugin) in which case they should just be accepted but not sent back to the plugin.
+ * Initially I was doing this with the  lastChange  message, and if that message started with a "_" it meant this is coming from the plugin and should not be sent back.
+ * But that seemed too non-obvious. So I added this serverPush variable which is set when the plugin wants to send updates to the front-end but does not want those updates to be sent back erroneously.
+ * Specifically,
  * - the initial data send in reactMain or the clickHandlers in clickHandlers and perspectiveClickHandlers set data that is changed and then set pluginData.serverPush.dashboardData = true  and send it to the front-end using setPluginData()
  * - the change is picked up by the first useEffect in useSyncDashboardSettingsWithPlugin and then that var is set to false and stored locally in pluginData without sending it back to the plugin
  */

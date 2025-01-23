@@ -30,32 +30,6 @@ This would display a dialog with a single input field for a task with "Save" and
   { text: 'A task' }
 ```
 
-1. The other method to invoke DynamicDialog is using reactSettings to open a dialog in a more asynchronous way (not await). It assumes you have access to setReactSettings via useAppContext. [Note: this was the original way to open a dialog, but I think you will find showDialog() easier to use and understand/debug.]
-
-```js
-  const formFields = [{ type: 'input', label: 'Task:', key: 'text' }]
-    setReactSettings((prev) => ({
-      ...prev,
-      dynamicDialog: {
-        isOpen: true,
-        items: formFields,
-        title: "Dialog Title",
-        onSave: (userInputObj) => {
-          // handle the userInputObj
-        },
-        onCancel: () => {
-          // handle cancel (e.g. close dialog)
-          setReactSettings((prev) => ({
-            ...prev,
-            dynamicDialog: {
-              isOpen: false,
-            },
-          }))
-        }
-      }
-    }))
-```
-
 > **NOTE:** See all the fields in TDynamicDialogProps in DynamicDialog.jsx. These can be used to customize the dialog in both methods. They are currently:
 
 ```js
@@ -266,24 +240,6 @@ Then CommandButton.jsx will use the formFields to create the dialog when clicked
 ```
 
 this opens the dialog by setting the reactSettings state.
-
-```js
-  const showDialog = (button: TActionButton) => {
-    setReactSettings((prev) => ({
-      ...prev,
-      dynamicDialog: {
-        isOpen: true,
-        submitOnEnter: button.submitOnEnter ?? true,
-        title: button.tooltip,
-        items: button.formFields,
-        onSave: (userInputObj) => sendButtonAction(button,userInputObj),
-        onCancel: ()=>closeDialog(),
-        allowEmptySubmit: false,
-        hideDependentItems: true,
-      },
-    }))
-  }
-```
 
 When the user clicks 'Save', the `sendButtonAction` is called with the object from the dialog:
 

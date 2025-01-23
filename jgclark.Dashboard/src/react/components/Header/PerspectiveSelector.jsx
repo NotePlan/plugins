@@ -14,7 +14,6 @@ import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
 // import { setPluginData } from '../../../dashboardHelpers'
 import { endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
-import DropdownSelect /*, { type Option } */ from '../../../../../np.Shared/src/react/DynamicDialog/DropdownSelect'
 // import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
 
 import {
@@ -26,6 +25,7 @@ import {
   type TPerspectiveOptionObject,
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
+import DropdownSelect /*, { type Option } */ from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
 import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
 import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
 import { compareObjects, dt } from '@helpers/dev.js'
@@ -238,10 +238,11 @@ const PerspectiveSelector = (): React$Node => {
               logDebug('PerspectiveSelector/handlePerspectiveChange', 'Delete Perspective cancelled via escape')
               handlePerspectiveReset(currentPerspective)
             },
+            options: ['Yes', 'No'],
           })
-          logDebug('PerspectiveSelector/handlePerspectiveChange', `confirmation: ${String(confirmation)} typeof(confirmation)=${typeof confirmation}`)
+          logDebug('PerspectiveSelector/handlePerspectiveChange', `confirmation="${String(confirmation)}" typeof(confirmation)=${typeof confirmation}`)
 
-          if (confirmation) {
+          if (confirmation && confirmation !== 'No') {
             sendActionToPlugin(
               'deletePerspective',
               { actionType: 'deletePerspective', perspectiveName: activePerspectiveName, logMessage: `Delete Perspective (${activePerspectiveName}) selected from dropdown` },

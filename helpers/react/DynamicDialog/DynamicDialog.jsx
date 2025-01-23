@@ -2,7 +2,6 @@
 //--------------------------------------------------------------------------
 // React component to show a dialog using dynamic field definitions.
 // Changes are saved when the "Submit" button is clicked, but not before.
-// Imported by Root.jsx and displayed when the context variable reactSettings.dynamicDialog.visible is true.
 //--------------------------------------------------------------------------
 /**
  * TODO:
@@ -109,7 +108,7 @@ const DynamicDialog = ({
   style, // Destructure style prop
   isModal = true, // by default, it is a modal dialog, but can run full screen
   onSave, // caller needs to process the updated settings
-  onCancel, // caller should always close the dialog by setting reactSettings.dynamicDialog.visible to false
+  onCancel,
   handleButtonClick = (key, value) => {}, // Destructure handleButtonClick prop
   hideDependentItems = false,
   submitOnEnter = true,

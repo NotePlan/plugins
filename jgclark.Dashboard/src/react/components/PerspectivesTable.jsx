@@ -13,9 +13,9 @@
 
 import React, { useState } from 'react'
 import '../css/PerspectivesTable.css' // Import CSS for styling
-import { renderItem } from '../../../../np.Shared/src/react/DynamicDialog/dialogElementRenderer.js'
-import type { TSettingItem } from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
-import DynamicDialog from '../../../../np.Shared/src/react/DynamicDialog/DynamicDialog.jsx'
+import { renderItem } from '@helpers/react/DynamicDialog/dialogElementRenderer.js'
+import type { TSettingItem } from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
+import DynamicDialog from '@helpers/react/DynamicDialog/DynamicDialog.jsx'
 import type { TPerspectiveSettings, TPerspectiveDef } from '../../types.js'
 import { useAppContext } from './AppContext.jsx'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
@@ -37,7 +37,12 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
   const perspectiveWithModifiedMaybe = JSON.parse(JSON.stringify(perspectives)) // Make a deep copy so changes don't leak back to the original until we save
   if (modifiedPerspective) {
     logDebug('PerspectivesTable', `found active modifiedPerspective:`, { modifiedPerspective })
-    perspectiveWithModifiedMaybe.push({ ...modifiedPerspective, nameToShow: `${modifiedPerspective.name} (+ unsaved changes)`, showSaveButton: true, dashboardSettings: dashboardSettings })
+    perspectiveWithModifiedMaybe.push({
+      ...modifiedPerspective,
+      nameToShow: `${modifiedPerspective.name} (+ unsaved changes)`,
+      showSaveButton: true,
+      dashboardSettings: dashboardSettings,
+    })
   }
 
   const [updatedPerspectives, setUpdatedPerspectives] = useState(perspectiveWithModifiedMaybe.sort((a, b) => a.name.localeCompare(b.name)))

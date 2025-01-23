@@ -40,7 +40,6 @@ import { ErrorBoundary } from 'react-error-boundary'
 // import { WebView } from './_Cmp-WebView.jsx' // we are assuming it's externally loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import DynamicDialog /*, { type TDynamicDialogProps } */ from './DynamicDialog'
 import { logDebug, formatReactError, JSP, clo, logError } from '@helpers/react/reactDev'
 
 const ROOT_DEBUG = false
@@ -68,8 +67,7 @@ export function Root(/* props: Props */): Node {
    ****************************************************************************************************************************/
 
   const [npData, setNPData] = useState(globalSharedData) // set it from initial data
-  const [dialogIsVisible, setDialogIsVisible] = useState(false)
-  const [reactSettings, setReactSettings] = useState({ dynamicDialog: { isOpen: dialogIsVisible || false } })
+  const [reactSettings, setReactSettings] = useState({})
 
   const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red', border: 'w3-border-red' })
   // const [setMessageFromPlugin] = useState({})
@@ -394,13 +392,6 @@ export function Root(/* props: Props */): Node {
     }
   }, [npData])
 
-  useEffect(() => {
-    if (reactSettings.dynamicDialog.isOpen !== dialogIsVisible) {
-      logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`)
-      setDialogIsVisible(reactSettings.dynamicDialog.isOpen)
-    }
-  }, [reactSettings])
-
   /****************************************************************************************************************************
    *                             RENDER
    ****************************************************************************************************************************/
@@ -410,28 +401,12 @@ export function Root(/* props: Props */): Node {
       <div className="Root" onClickCapture={onClickCapture}>
         {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
-            {dialogIsVisible ? (
-              <>
-                {/* TODO: do not spread the props. put them all here individually once stable */}
-                <DynamicDialog {...reactSettings.dynamicDialog}>
-                  <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
-                </DynamicDialog>
-              </>
-            ) : (
-              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
-            )}
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
             <MemoizedWebView dispatch={dispatch} data={npData} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </Profiler>
         ) : (
           <>
-            {dialogIsVisible ? (
-              <DynamicDialog {...reactSettings.dynamicDialog}>
-                {' '}
-                <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
-              </DynamicDialog>
-            ) : (
-              <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
-            )}
+            <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
             <MemoizedWebView data={npData} dispatch={dispatch} reactSettings={reactSettings} setReactSettings={setReactSettings} />
           </>
         )}

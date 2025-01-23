@@ -32,7 +32,9 @@ type Props = {
 
 import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../../NPFormPluginEntrypoint.js'
+import MessageBanner from '../../MessageBanner.jsx'
 import { AppProvider } from './AppContext.jsx'
+import DynamicDialog from '@helpers/react/DynamicDialog/index.js'
 import { clo, logDebug } from '@helpers/react/reactDev.js'
 
 /****************************************************************************************************************************
@@ -70,7 +72,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
    ****************************************************************************************************************************/
 
   //
-  // Dynamic Dialog Example
+  // Dynamic Dialog
   //
   const closeDialog = () => {
     setReactSettings((prev) => ({ ...prev, dynamicDialog: { isOpen: false } }))
@@ -88,22 +90,7 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
   }
 
   // Return true if the string is 'true' (case insensitive), otherwise return false (blank or otherwise)
-  const isTrueString = (value: string): boolean => value ? /true/i.test(value) : false
-
-  const openDialog = () => {
-    setReactSettings((prev) => ({
-      ...prev,
-      dynamicDialog: {
-        isOpen: true,
-        title: pluginData?.formTitle || 'Form Entry',
-        items: formFields,
-        onSave: handleSave,
-        onCancel: handleCancel,
-        allowEmptySubmit: isTrueString(pluginData.allowEmptySubmit),
-        hideDependentItems: isTrueString(pluginData.hideDependentItems),
-      },
-    }))
-  }
+  const isTrueString = (value: string): boolean => (value ? /true/i.test(value) : false)
 
   /****************************************************************************************************************************
    *                             EFFECTS
@@ -118,9 +105,6 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
     }
   }, [data])
-
-  // open the dialog when the page loads
-  useEffect(() => openDialog(), [])
 
   /****************************************************************************************************************************
    *                             FUNCTIONS
@@ -218,6 +202,16 @@ export function FormView({ data, dispatch, reactSettings, setReactSettings }: Pr
       <div className={`webview ${pluginData.platform || ''}`}>
         {/* replace all this code with your own component(s) */}
         <div style={{ maxWidth: '100vw', width: '100vw' }}>
+          <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
+          <DynamicDialog
+            isOpen={true}
+            title={pluginData?.formTitle || 'Form Entry'}
+            items={formFields}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            allowEmptySubmit={isTrueString(pluginData.allowEmptySubmit)}
+            hideDependentItems={isTrueString(pluginData.hideDependentItems)}
+          ></DynamicDialog>
         </div>
         {/* end of replace */}
       </div>

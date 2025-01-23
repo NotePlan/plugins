@@ -1,7 +1,7 @@
 // @flow
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from '../../np.Shared/src/react/DynamicDialog/DynamicDialog'
+import DynamicDialog, { type TDynamicDialogProps, type TSettingItem } from './DynamicDialog/DynamicDialog'
 import { logDebug, logError } from './reactDev'
 
 /**
@@ -112,7 +112,13 @@ export function showConfirmationDialog({
   logDebug('showConfirmationDialog', 'Opening dialog')
   return new Promise((resolve) => {
     const defaultOptions = ['No', 'Yes']
-    const finalOptions = options || defaultOptions
+    const initialOptions = options || defaultOptions
+    const defaultOption = initialOptions[initialOptions.length - 1] // default option is the last one
+    const finalOptions = initialOptions.map((option) => ({
+      label: option,
+      value: option,
+      isDefault: option === defaultOption,
+    }))
     const dialogItems: Array<TSettingItem> = [
       {
         type: 'text',
@@ -123,11 +129,7 @@ export function showConfirmationDialog({
       {
         type: 'button-group',
         key: 'confirmationButtons',
-        options: finalOptions.map((option, index) => ({
-          label: option,
-          value: option,
-          isDefault: index === finalOptions.length - 1,
-        })),
+        options: finalOptions,
       },
     ]
 
@@ -140,7 +142,7 @@ export function showConfirmationDialog({
 
     const handleEnterKey = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
-        handleButtonClick('confirmationButtons', finalOptions[0])
+        handleButtonClick('confirmationButtons', defaultOption)
       }
     }
 
