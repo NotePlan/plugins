@@ -33,6 +33,8 @@ const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 export type RepeatConfig = {
   deleteCompletedRepeat: boolean,
   dontLookForRepeatsInDoneOrArchive: boolean,
+  // allowRepeatsInCancelledParas: boolean,
+  runTaskSorter: boolean,
   _logLevel: string,
 }
 

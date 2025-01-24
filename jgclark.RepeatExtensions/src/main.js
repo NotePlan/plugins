@@ -149,8 +149,8 @@ export async function generateRepeats(
 
     // Work out where to stop looking: default to whole note, but if desired can stop where ## Done or ## Cancelled sections start, if present
     const lastLineIndexToCheck = (config.dontLookForRepeatsInDoneOrArchive)
-      ? findEndOfActivePartOfNote(noteToUse)
-      : lineCount - 1
+      ? findEndOfActivePartOfNote(noteToUse) + 1
+      : lineCount
     if (lastLineIndexToCheck === 0) {
       logDebug(pluginJson, `generateRepeats() starting for '${filename}' but no active lines so won't process`)
       return 0
@@ -165,9 +165,9 @@ export async function generateRepeats(
     let reReturnArray: Array<string> = []
 
     // Go through each line in the active part of the file
-    for (let n = 0; n <= lastLineIndexToCheck; n++) {
-      const p = paragraphs[n]
-      line = p.content ?? ''
+    for (let n = 0; n <= lastLineIndexToCheck - 1; n++) {
+      const origPara = paragraphs[n]
+      line = origPara.content ?? ''
       let lineWithoutDoneTime = ''
       completedDate = ''
 
@@ -181,36 +181,42 @@ export async function generateRepeats(
 
         // remove time string from completed date-time
         lineWithoutDoneTime = line.replace(completedTime, '') // couldn't get a regex to work here
-        p.content = lineWithoutDoneTime
+        origPara.content = lineWithoutDoneTime
         // Send the update to the note
-        noteToUse.updateParagraph(p)
-        // logDebug('generateRepeats', `- updated para ${p.lineIndex} -> <${lineWithoutDoneTime}>`)
+        noteToUse.updateParagraph(origPara)
+        // logDebug('generateRepeats', `- updated para ${origPara.lineIndex} -> <${lineWithoutDoneTime}>`)
 
         // Test if this is one of my special extended repeats
         if (lineWithoutDoneTime.match(RE_EXTENDED_REPEAT)) {
           repeatCount++
+          const newParaLineIndex = origPara.lineIndex
+          let newPara: TParagraph
 
           // Generate the new repeat date
-          let newRepeatDateStr = generateNewRepeatDate(noteToUse, p.content, completedDate)
+          let newRepeatDateStr = generateNewRepeatDate(noteToUse, origPara.content, completedDate)
           logDebug('generateRepeats', `- newRepeatDateStr: "${newRepeatDateStr}"`)
           if (newRepeatDateStr === completedDate) {
             logWarn(`generateRepeats`, `newRepeatDateStr ${newRepeatDateStr} is same as completedDate ${completedDate}`)
           }
           // Remove any >date and @done()
-          let outputLine = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
-          // logDebug('generateRepeats', `- outputLine: ${outputLine}`)
+          let newRepeatContent = lineWithoutDoneTime.replace(RE_ANY_DUE_DATE_TYPE, '').replace(/@done\(.*\)/, '').trim()
+          // logDebug('generateRepeats', `- newRepeatContent: ${newRepeatContent}`)
+          // Add any indent for this line
+          // TODO(EduardMe): add proper API support for indents so that this could go here.
 
           // Add the new date
           if (type === 'Notes') {
             // Add in same project note, including new scheduled date
-            outputLine += ` >${newRepeatDateStr}`
-            logDebug('generateRepeats', `- outputLine: "${outputLine}"`)
+            newRepeatContent += ` >${newRepeatDateStr}`
+            logDebug('generateRepeats', `- newRepeatContent: "${newRepeatContent}"`)
             if (noteIsOpenInEditor) {
-              await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
-              logInfo('generateRepeats', `- inserted new repeat at line ${p.lineIndex} in Editor`)
+              await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+              logInfo('generateRepeats', `- inserted new repeat at line ${origPara.lineIndex} in Editor`)
+              newPara = Editor.paragraphs[newParaLineIndex]
             } else {
-              await noteToUse.insertParagraphBeforeParagraph(outputLine, p, 'open')
-              logInfo('generateRepeats', `- inserted new repeat at line ${p.lineIndex} in '${noteToUse.filename}'`)
+              await noteToUse.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+              logInfo('generateRepeats', `- inserted new repeat at line ${origPara.lineIndex} in '${noteToUse.filename}'`)
+              newPara = noteToUse.paragraphs[newParaLineIndex]
             }
           }
           else {
@@ -224,19 +230,22 @@ export async function generateRepeats(
             const futureNote = await DataStore.calendarNoteByDateString(newRepeatDateStr)
             if (futureNote != null) {
               // Add todo to future note
-              await futureNote.appendTodo(outputLine)
+              await futureNote.appendTodo(newRepeatContent)
               logInfo('generateRepeats', `- appended new repeat in calendar note ${displayTitle(futureNote)}`)
+              newPara = futureNote.paragraphs[futureNote.paragraphs.length - 1] // TEST:
             } else {
               // After a fix to future calendar note creation in r635, we shouldn't get here.
               // But just in case, we'll insert new repeat into the open note
-              outputLine += ` >${newRepeatDateStr}`
-              logDebug('generateRepeats', `- outputLine: ${outputLine}`)
+              newRepeatContent += ` >${newRepeatDateStr}`
+              logDebug('generateRepeats', `- newRepeatContent: ${newRepeatContent}`)
               if (noteIsOpenInEditor) {
-                await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
+                await Editor.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+                newPara = Editor.paragraphs[newParaLineIndex]
               } else {
-                await noteToUse.insertParagraphBeforeParagraph(outputLine, p, 'open')
+                await noteToUse.insertParagraphBeforeParagraph(newRepeatContent, origPara, 'open')
+                newPara = noteToUse.paragraphs[newParaLineIndex]
               }
-              logWarn('generateRepeats', `- couldn't get futureNote, so instead inserted new para after line ${p.lineIndex} in original note`)
+              logWarn('generateRepeats', `- couldn't get futureNote, so instead inserted new para after line ${origPara.lineIndex} in original note`)
             }
           }
 
@@ -256,23 +265,38 @@ export async function generateRepeats(
             logDebug('generateRepeats', `- after removal, ${String(noteToUse.paragraphs.length)} lines`)
           } else {
             // update the line in place
-            p.content = lineWithoutDoneTime
+            origPara.content = lineWithoutDoneTime
             if (noteIsOpenInEditor) {
-              Editor.updateParagraph(p)
+              Editor.updateParagraph(origPara)
             } else {
-              noteToUse.updateParagraph(p)
+              noteToUse.updateParagraph(origPara)
             }
-            logDebug('generateRepeats', `- updated line ${p.lineIndex}`)
+            logDebug('generateRepeats', `- updated line ${origPara.lineIndex}`)
           }
         }
       }
     }
+
+    // Report if no repeats were found, and stop.
     if (repeatCount === 0) {
       logDebug('generateRepeats', 'No suitable completed repeats were found')
       if (!runSilently) {
         await showMessage('No suitable completed repeats were found', 'OK', 'Repeat Extensions')
       }
+      return 0
     }
+    logInfo('generateRepeats', `${String(repeatCount)} new repeats were generated`)
+
+    // Run task sorter if its installed, and we want it, and we are working in the Editor
+    // FIXME(dwertheimer): not currently working, so commenting out to avoid confusion
+    // if (config.runTaskSorter && DataStore.isPluginInstalledByID('dwertheimer.TaskSorting')) {
+    //   if (noteIsOpenInEditor) {
+    //     logInfo('generateRepeats', `Will sort tasks according to user defaults from Task Sorting plugin`)
+    //     await DataStore.invokePluginCommandByName('Tasks Sort by User Default (in settings)', 'dwertheimer.TaskSorting', [])
+    //   } else {
+    //     logDebug('generateRepeats', `Task sorter plugin is installed, but we are not working in the Editor, so can't run it`)
+    //   }
+    // }
     return repeatCount
   } catch (error) {
     logError(pluginJson, `generateRepeats(): ${JSP(error)}`)

@@ -57,6 +57,14 @@
       "required": true
     },
     {
+      "key": "runTaskSorter",
+      "title": "Run Task Sorter after changes?",
+      "description": "If set, it will run the '/Tasks Sort by User Default' command (from 'Task Sorting & Tools' plugin) after generating repeats.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "type": "heading",
       "title": "Debugging"
     },
@@ -73,6 +81,16 @@
         "none"
       ],
       "default": "WARN",
+      "required": true
+    }
+  ],
+  "plugin.settings_for_future": [
+    {
+      "key": "allowRepeatsInCancelledParas",
+      "title": "Allow repeats in cancelled paragraphs?",
+      "description": "If set, it will allow repeats in cancelled tasks. Note: this only works in notes with the repeat trigger set.",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]
