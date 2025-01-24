@@ -144,10 +144,10 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
   }
   if (!isVisible) return null
   return (
-    <div style={{ height: '100vh', borderTop: '1px solid #ccc' }} ref={containerRef}>
+    <div style={{ height: '100vh', borderTop: '1px solid var(--divider-color)' }} ref={containerRef}>
       <PanelGroup direction="horizontal">
         <Panel className="context-vars-pane full-height-pane" defaultSize={25} minSize={10}>
-          <div className="debug-pane-header consistent-header" style={{ backgroundColor: '#f5f5f5' }}>
+          <div className="debug-pane-header consistent-header">
             <h3>Context</h3>
           </div>
           <div className="inner-panel-padding">
@@ -181,7 +181,7 @@ const DebugPanel = ({ defaultExpandedKeys = [], testGroups = [], getContext, isV
           <>
             <PanelResizeHandle className="panel-resize-handle" />
             <Panel className="context-vars-pane full-height-pane testing-pane" defaultSize={25} minSize={10}>
-              <div className="testing-pane full-height-pane" style={{ backgroundColor: '#f5f5f5' }}>
+              <div className="testing-pane full-height-pane">
                 <div className="debug-pane-header consistent-header">
                   <h3>End-to-End Testing</h3>
                 </div>
