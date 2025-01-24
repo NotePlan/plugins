@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Repeat Extensions plugin.
 // Jonathan Clark
-// last updated 14.6.2024, for v0.8.0
+// last updated 2025-01-24, for v0.9.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -32,6 +32,7 @@ const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 
 export type RepeatConfig = {
   deleteCompletedRepeat: boolean,
+  dontLookForRepeatsInDoneOrArchive: boolean,
   _logLevel: string,
 }
 

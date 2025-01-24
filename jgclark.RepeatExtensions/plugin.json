@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.8.2",
-  "plugin.lastUpdateInfo": "v0.8.2: suppressed warning on delete of completed repeat line (requires NP v3.15 beta).\nv0.8.1: fixed bug and improved logging.\nv0.8.0: new setting 'Delete completed item?'.\nv0.7.1: Support for new Tidy plugin command.\nv0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.",
+  "plugin.version": "0.9.0",
+  "plugin.lastUpdateInfo": "v0.9.0: new setting 'Don't look for repeats in Done or Archive note sections?'.\nv0.8.2: suppressed warning on delete of completed repeat line (requires NP v3.15 beta).\nv0.8.1: fixed bug and improved logging.\nv0.8.0: new setting 'Delete completed item?'.\nv0.7.1: Support for new Tidy plugin command.\nv0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -46,6 +46,14 @@
       "description": "If set, it will delete rather than keep the completed repeated item.",
       "type": "bool",
       "default": false,
+        "required": true
+      },
+      {
+        "key": "dontLookForRepeatsInDoneOrArchive",
+        "title": "Don't look for repeats in Done or Archive note sections?",
+        "description": "If set, it will not look for repeats in the ## Done or ## Archive sections of notes.",
+        "type": "bool",
+        "default": false,
       "required": true
     },
     {

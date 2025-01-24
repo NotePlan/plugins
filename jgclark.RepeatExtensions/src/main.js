@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 2024-11-02 for v0.8.2
+// last updated 2025-01-24, for v0.9.0
 //-----------------------------------------------------------------------
 
 // import moment from 'moment'
@@ -20,7 +20,7 @@ import {
   RE_ISO_DATE, // find dates of form YYYY-MM-DD
   unhyphenateString,
 } from '@helpers/dateTime'
-import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
+import { clo, JSP, logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { logAllEnvironmentSettings } from "@helpers/NPdev"
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -145,16 +145,19 @@ export async function generateRepeats(
       lineCount--
     }
 
-    // work out where ## Done or ## Cancelled sections start, if present
-    const endOfActive = findEndOfActivePartOfNote(noteToUse)
-    if (endOfActive === 0) {
+    const config: RepeatConfig = await getRepeatSettings()
+
+    // Work out where to stop looking: default to whole note, but if desired can stop where ## Done or ## Cancelled sections start, if present
+    const lastLineIndexToCheck = (config.dontLookForRepeatsInDoneOrArchive)
+      ? findEndOfActivePartOfNote(noteToUse)
+      : lineCount - 1
+    if (lastLineIndexToCheck === 0) {
       logDebug(pluginJson, `generateRepeats() starting for '${filename}' but no active lines so won't process`)
       return 0
     } else {
-      logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${endOfActive} active lines`)
+      logDebug(pluginJson, `generateRepeats() starting for '${filename}' for ${config.dontLookForRepeatsInDoneOrArchive ? 'ACTIVE' : 'ALL'} ${lastLineIndexToCheck} lines`)
     }
 
-    const config: RepeatConfig = await getRepeatSettings()
     let repeatCount = 0
     let line = ''
     let completedDate = ''
@@ -162,14 +165,14 @@ export async function generateRepeats(
     let reReturnArray: Array<string> = []
 
     // Go through each line in the active part of the file
-    for (let n = 0; n <= endOfActive; n++) {
+    for (let n = 0; n <= lastLineIndexToCheck; n++) {
       const p = paragraphs[n]
-      line = p.content
+      line = p.content ?? ''
       let lineWithoutDoneTime = ''
       completedDate = ''
 
       // find lines with datetime to shorten, and capture date part of it. i.e. @done(YYYY-MM-DD HH:MM[AM|PM])
-      if (line.match(RE_DONE_DATE_TIME)) {
+      if (RE_DONE_DATE_TIME.test(line)) {
         // get completed date and time
         reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
         completedDate = reReturnArray[1]
@@ -212,22 +215,6 @@ export async function generateRepeats(
           }
           else {
             // Add in the future Calendar note
-            // let futureNote
-            // let newRepeatDateStr = ''
-            // if (isDailyNote(note)) {
-            //   // Get YYYY-MM-DD style date
-            //   newRepeatDateStr = unhyphenateString(newRepeatDateStr)
-            // }
-            // else if (isWeeklyNote(note)) {
-            //   // Get YYYY-Wnn style date
-            //   // older version, but doesn't align with NP user week-start setting
-            //   // newRepeatDateStr = getISOWeekString(newRepeatDateStr)
-            //   // newer version, using helper that takes week-start into account
-            //   // $FlowFixMe[incompatible-type]
-            //   const weekInfo: NotePlanWeekInfo = getNPWeekData(newRepeatDateStr)
-            //   newRepeatDateStr = weekInfo.weekString
-            // }
-            logDebug(pluginJson, `- repeat -> ${newRepeatDateStr}`)
 
             // Get future note (if it exists)
             if (newRepeatDateStr.match(RE_ISO_DATE)) {
@@ -288,8 +275,7 @@ export async function generateRepeats(
     }
     return repeatCount
   } catch (error) {
-    logError(pluginJson, `generateRepeats(): ${error.message}`)
+    logError(pluginJson, `generateRepeats(): ${JSP(error)}`)
     return 0
   }
 }
-

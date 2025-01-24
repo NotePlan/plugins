@@ -1,6 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [0.9.0] - 2025-01-24
+### Changed
+- new setting "Don't look for repeats in Done or Archive note sections?", which defaults to false. (Closes #586 for @dbcoyer and @ouhakheme)
+
 ## [0.8.2] - 2024-11-02
 - turn off warning on deleting `@repeat()`s -- useful if you have Delete Completed Repeats setting turned on. Note: requires NotePlan v3.15 beta from 2024-11-02 or later.
 
