@@ -562,7 +562,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
     const paragraphs = getActiveParagraphs(note)
     const tasksObj = paragraphs.reduce(
       (acc: any, para) => {
-        logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
+        // logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
         if (para.type === 'title') {
           if (para.content.trim()) {
             acc[para.content.trim()] = []
@@ -607,7 +607,7 @@ export async function sortTasks(
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
 
   logDebug(
-    `\n\nStarting sortTasks(withUserInput:${String(withUserInput)},default sortFields:${JSON.stringify(sortFields)},withHeadings:${String(withHeadings)},byHeading:${String(
+    `\n\nStarting sortTasks(withUserInput:${String(withUserInput)}, default sortFields:${JSON.stringify(sortFields)}, withHeadings:${String(withHeadings)}, byHeading:${String(
       byHeading,
     )}):`,
   )
