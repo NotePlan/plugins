@@ -46,6 +46,17 @@
       "jsFunction": "shiftDates"
     },
     {
+      "name": "shiftDatesCore",
+      "hidden": true,
+      "description": "Entry point for shiftDates for other commands",
+      "jsFunction": "shiftDatesCore",
+      "parameters": [
+        "note",
+        "parasToProcess",
+        "interval"
+      ]
+    },
+    {
       "name": "listDaysEvents",
       "description": "function to list events for the current open Calendar note (for use in Templating)",
       "hidden": true,
@@ -72,7 +83,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Settings for insert day's events as list"
+      "title": "'insert day's events as list' command settings"
     },
     {
       "key": "eventsHeading",
@@ -140,7 +151,7 @@
     },
     {
       "type": "heading",
-      "title": "Additional '/insert matching events' settings"
+      "title": "Additional 'insert matching events' command settings"
     },
     {
       "key": "matchingEventsHeading",
@@ -171,7 +182,38 @@
     },
     {
       "type": "heading",
-      "title": "'/time blocks to calendar' settings"
+      "title": "'shift dates' command settings"
+    },
+    {
+      "key": "removeDoneDates",
+      "title": "Remove @done dates?",
+      "description": "Whether to remove @done(...) dates, if present, when shifting dates.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "uncompleteTasks",
+      "title": "Set any closed tasks or checklists to open?",
+      "description": "Whether to change any completed or cancelled tasks or checklists back to open.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "removeProcessedTagName",
+      "title": "Remove any 'processed tag name' on tasks or checklists?",
+      "description": "Whether to remove any 'processed tag name' (as set above) from tasks or checklists",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "'time blocks to calendar' command settings"
     },
     {
       "key": "includeCompletedTasks",
@@ -228,37 +270,6 @@
       "type": "string",
       "default": "#event_created",
       "required": false
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "'/shift dates' settings"
-    },
-    {
-      "key": "removeDoneDates",
-      "title": "Remove @done dates?",
-      "description": "Whether to remove @done(...) dates, if present, when shifting dates.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "uncompleteTasks",
-      "title": "Set any closed tasks or checklists to open?",
-      "description": "Whether to change any completed or cancelled tasks or checklists back to open.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "removeProcessedTagName",
-      "title": "Remove any 'processed tag name' on tasks or checklists?",
-      "description": "Whether to remove any 'processed tag name' (as set above) from tasks or checklists",
-      "type": "bool",
-      "default": true,
-      "required": true
     },
     {
       "type": "separator"

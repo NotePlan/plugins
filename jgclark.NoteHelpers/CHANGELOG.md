@@ -1,6 +1,11 @@
 # What's changed in 📙 Note Helpers plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
+<!-- 
+- ??? Shift /new note etc. from Filers plugin
+- ??? Look at spinning out Index... commands to separate plugin 
+- -->
+
 ## [1.0.0] - 2024-12-31
 ### New
 - the **new note** command has been revived (alias **nn**). It creates a new (regular, not calendar) note with a title you give, and in a folder you can select. If the "Default Text to add to frontmatter" setting isn't blank, then the note will be created using that frontmatter.
@@ -46,8 +51,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 
 ## [0.18.1] - 2023-08-15
 - New commands by @Leo:
-  - "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles
-  - "/rename filename to title": renames the current filename to the title of the note
+  - **list inconsistent note filenames** lists the names of notes whose filenames are inconsistent with their titles
+  - **rename filename to title** renames the current filename to the title of the note
 - when the command bar shows list of notes to choose, it now includes Template files again.
 
 ## [0.18.0] - 2023-08-13
