@@ -668,6 +668,8 @@ export async function sortTasks(
 /**
  * sortTasksUnderHeading
  * Plugin entrypoint for "/sth"
+ * @param {string} _heading - the heading to sort (probably comes in from xcallback)
+ * @param {string} _sortOrder - the sort order (probably comes in from xcallback)
  */
 export async function sortTasksUnderHeading(_heading: string, _sortOrder: string): Promise<void> {
   try {
@@ -675,9 +677,9 @@ export async function sortTasksUnderHeading(_heading: string, _sortOrder: string
       const heading = _heading || (await chooseHeading(Editor?.note, false, false, false))
       if (heading && Editor.note) {
         const block = getBlockUnderHeading(Editor.note, heading)
-        clo(block, `sortTasksUnderHeading block`)
+        clo(block, `sortTasksUnderHeading block to work on`)
         if (block?.length) {
-          const sortOrder: Array<string> = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
+          const sortOrder: Array<string> = _sortOrder ? (typeof _sortOrder === 'string' ? JSON.parse(_sortOrder) : _sortOrder) : await getUserSort()
           clo(sortOrder, `sortTasksUnderHeading sortOrder`)
           if (sortOrder) {
             const sortedTasks = sortParagraphsByType(block, sortOrder)
