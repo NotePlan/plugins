@@ -12,12 +12,8 @@
 import React, { useReducer, useEffect, useCallback } from 'react'
 import type { TPerspectiveDef } from '../../../types.js'
 import { PERSPECTIVE_ACTIONS } from '../../reducers/actionTypes'
-// import { setPluginData } from '../../../dashboardHelpers'
 import { endsWithStar, setActivePerspective } from '../../../perspectiveHelpers'
-// import ThemedSelect from '../../../../../np.Shared/src/react/DynamicDialog/ThemedSelect'
-
 import {
-  // cleanDashboardSettings,
   getDisplayListOfPerspectiveNames,
   getPerspectiveNamed,
   getActivePerspectiveDef,
@@ -26,9 +22,9 @@ import {
 } from '../../../perspectiveHelpers.js'
 import { useAppContext } from '../AppContext.jsx'
 import DropdownSelect /*, { type Option } */ from '@helpers/react/DynamicDialog/DropdownSelect.jsx'
-import { clo, logDebug, logWarn, logError } from '@helpers/react/reactDev.js'
+import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/react/reactDev.js'
 import { showDialog, showConfirmationDialog, showMessageYesNoCancel } from '@helpers/react/userInput'
-import { compareObjects, dt } from '@helpers/dev.js'
+// import { compareObjects, dt } from '@helpers/dev.js'
 
 //--------------------------------------------------------------------------
 // Type Definitions
@@ -358,7 +354,7 @@ const PerspectiveSelector = (): React$Node => {
       if (currentPerspIsModified) {
         logDebug('PerspectiveSelector/handlePerspectiveChange', `Current perspective "${apn}" has unsaved changes. Showing confirmation dialog.`)
         const confirmation = await showMessageYesNoCancel(
-          `Your current perspective "${activePerspectiveName}*" has unsaved changes. Would you like to save these changes before switching to "${selectedOption.label}"?`,
+          `Your current perspective "${activePerspectiveName}" has unsaved changes. Would you like to save these changes before switching to "${selectedOption.label}"?`,
           ['Cancel', 'Switch', 'Save+Switch'],
           'Confirm Perspective Switch',
         )

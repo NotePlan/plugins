@@ -300,6 +300,8 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           )}
         </div>
       </div>
+      {/* Note: be very careful with javascript arrays in React when data is changing. it's often a good idea to spread the array when you pass it. */}
+      {/* Could be just {[...itemsToShow]} */}
       <ItemGrid thisSection={section} items={JSON.parse(JSON.stringify(itemsToShow))} />
     </section>
   )

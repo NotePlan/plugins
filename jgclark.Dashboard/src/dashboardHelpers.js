@@ -265,11 +265,9 @@ export function getOpenItemParasForTimePeriod(
     const isToday = theNoteDateHyphenated === todayHyphenated
     const latestDate = todayHyphenated > theNoteDateHyphenated ? todayHyphenated : theNoteDateHyphenated
     // logDebug('getOpenItemPFCTP', `timeframe:${timePeriodName}: theNoteDateHyphenated: ${theNoteDateHyphenated}, todayHyphenated: ${todayHyphenated}, isToday: ${String(isToday)}`)
+    
     // Keep only non-empty open tasks (and checklists if wanted),
     // and now add in other timeblock lines (if wanted), other than checklists (if excluded)
-    // let openParas = dashboardSettings.ignoreChecklistItems
-    //   ? parasToUse.filter((p) => isOpenTask(p) && p.content.trim() !== '')
-    //   : parasToUse.filter((p) => isOpen(p) && p.content.trim() !== '')
     let openParas = alsoReturnTimeblockLines
       ? parasToUse.filter((p) => isOpen(p) || isActiveOrFutureTimeBlockPara(p, mustContainString))
       : parasToUse.filter((p) => isOpen(p))
@@ -278,12 +276,13 @@ export function getOpenItemParasForTimePeriod(
       openParas = openParas.filter((p) => !(p.type === 'checklist'))
       logDebug('getOpenItemPFCTP', `- after filtering out checklists: ${openParas.length} para(s)`)
     }
+    // Filter out checklists with timeblocks, if wanted
     if (dashboardSettings.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isActiveOrFutureTimeBlockPara(p, mustContainString)))
     }
+    // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
     // Filter out any blank lines
     openParas = openParas.filter((p) => p.content.trim() !== '')
-    // Log this
     logTimer(
       'getOpenItemPFCTP',
       startTime,
@@ -319,18 +318,8 @@ export function getOpenItemParasForTimePeriod(
         logTimer('getOpenItemPFCTP', startTime, `- after applying this to calendar headings as well: ${openParas.length} paras`)
       }
     } else {
-      // logDebug(
-      //   'getOpenItemPFCTP',
-      //   `dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`,
-      // )
+      // logDebug('getOpenItemPFCTP',`dashboardSettings.ignoreItemsWithTerms not set; dashboardSettings (${Object.keys(dashboardSettings).length} keys)=${JSON.stringify(dashboardSettings, null, 2)}`)
     }
-
-    // Filter out checklists with timeblocks, if wanted
-    // Note: moved earlier
-    // if (dashboardSettings.excludeChecklistsWithTimeblocks) {
-    //   openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
-    // }
-    // logTimer('getOpenItemPFCTP', startTime, `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
 
     // Extend TParagraph with the task's priority + start/end time from time block (if present)
     const openDashboardParas = makeDashboardParas(openParas)
