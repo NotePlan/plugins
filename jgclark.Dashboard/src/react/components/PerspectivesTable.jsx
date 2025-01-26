@@ -152,21 +152,23 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
         <table className="perspectives-table">
           <thead>
             <tr>
-              <th className="sticky-column setting-column sticky-header">Setting</th>
+              <th className="sticky-column sticky-header">Setting</th>
               {updatedPerspectives.map((perspective, index) => (
                 <th key={`header-${index}`} className="perspective-header sticky-header">
                   {perspective.name === '-' ? '[Default]' : perspective.nameToShow || perspective.name}
                   {perspective.showSaveButton && (
                     <div className="save-button-container">
                       <button
-                        className="PCButton apply-button"
+                        // className="PCButton apply-button"
+                        className="HAButton apply-button"
                         onClick={() => handleApplyModifications(index, true)}
                         title={`Apply the unsaved modifications to '${perspective.name}'`}
                       >
                         {`< Save`}
                       </button>
                       <button
-                        className="PCButton revert-button"
+                        // className="PCButton revert-button"
+                        className="HAButton revert-button"
                         onClick={() => handleApplyModifications(index, false)}
                         title={`Revert to original (non-modified) settings for '${perspective.name}'`}
                       >
@@ -183,18 +185,22 @@ const PerspectivesTable = ({ perspectives, settingDefs, onSave, onCancel, labelP
               .filter((settingDef) => settingDef.key !== 'perspectivesEnabled' && settingDef.label !== 'Perspectives' && settingDef.label !== 'Logging')
               .map((settingDef, settingIndex) => {
                 if (settingDef.type === 'separator') {
-                  return (
-                    <tr key={`separator-${settingIndex}`}>
-                      <td colSpan={updatedPerspectives.length + 1} className="ui-separator"></td>
-                    </tr>
-                  )
+                  // Note: Removed by JGC 26.1.2025, as it doesn't seem to be used
+                  // return (
+                  // <tr key={`separator-${settingIndex}`}>
+                  //   <td colSpan={updatedPerspectives.length + 1} className="ui-separator"></td>
+                  // </tr>
+                  // )
                 }
+                // Note: this is a big hack to get the heading to appear to span the whole table width. In practice the 'sticky' doesn't work if there is a single colspan covering all columns.
+                // So we have to use a colspan of 2 for the first column, and then a colspan of the remaining columns.
                 if (settingDef.type === 'heading') {
                   return (
-                    <tr key={`heading-${settingIndex}`}>
-                      <td colSpan={updatedPerspectives.length + 1} className="settings-heading ui-heading">
+                    <tr key={`heading-${settingIndex}`} className="settings-heading-row">
+                      <td colSpan="2" className="settings-heading ui-heading">
                         {settingDef.label}
                       </td>
+                      <td colSpan={updatedPerspectives.length - 1} className="settings-heading"></td>
                     </tr>
                   )
                 }
