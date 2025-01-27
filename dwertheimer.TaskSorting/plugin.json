@@ -20,7 +20,7 @@
       "note": "================== COMMMANDS ========================"
     },
     {
-      "name": "Sort tasks on the page ",
+      "name": "Sort tasks on the page",
       "description": "ts",
       "jsFunction": "sortTasks",
       "alias": [

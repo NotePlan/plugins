@@ -5,7 +5,7 @@ import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
-import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 const TOP_LEVEL_HEADINGS = {
@@ -160,7 +160,6 @@ export async function sortTasksByTag() {
 
 export async function sortTasksDefault() {
   try {
-    logDebug('sortTasksDefault(): startng sortTasksDefault()')
     const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = DataStore.settings
     logDebug(
       `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
@@ -191,7 +190,7 @@ const DEFAULT_SORT_INDEX = 0
  * @param {string} subHeadingCategory
  * @return {number} next line number
  */
-function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', theTitle: string = '') {
+function insertTodos(note: CoreNoteFields, todos, heading: string = '', separator: string = '', subHeadingCategory: string = '', theTitle: string = '') {
   const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
   const { tasksToTop } = DataStore.settings
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
@@ -307,7 +306,7 @@ export function sortParagraphsByType(paragraphs: $ReadOnlyArray<TParagraph>, sor
   return sortedList
 }
 
-async function getUserSort(sortChoices = SORT_ORDERS) {
+async function getUserSort(sortChoices: Array<any> = SORT_ORDERS) {
   // logDebug(`\tgetUserSort(${JSON.stringify(sortChoices)}`)
   // [String] list of options, placeholder text, callback function with selection/
   const choice = await CommandBar.showOptions(
@@ -667,31 +666,44 @@ export async function sortTasks(
 
 /**
  * sortTasksUnderHeading
- * Plugin entrypoint for "/sth"
+ * Plugin entrypoint for "/sth".
+ * Can also be called from templates or other plugins.
  */
-export async function sortTasksUnderHeading(_heading: string, _sortOrder: string): Promise<void> {
+export async function sortTasksUnderHeading(_heading: string, _sortOrder: string | Array<string>): Promise<void> {
   try {
-    if (Editor.note) {
-      const heading = _heading || (await chooseHeading(Editor?.note, false, false, false))
-      if (heading && Editor.note) {
-        const block = getBlockUnderHeading(Editor.note, heading)
-        clo(block, `sortTasksUnderHeading block`)
-        if (block?.length) {
-          const sortOrder: Array<string> = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
-          clo(sortOrder, `sortTasksUnderHeading sortOrder`)
-          if (sortOrder) {
-            const sortedTasks = sortParagraphsByType(block, sortOrder)
-            clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
-            // const printHeadings = (await wantHeadings()) || false
-            // const printSubHeadings = (await wantSubHeadings()) || false
-            // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-            if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
-            // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
-            if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
-          }
-        } else {
-          await showMessage(`No tasks found under heading "${heading}"`)
+    if (!Editor.note) {
+      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
+      await showMessage('No note is open')
+      return
+    }
+    const heading = _heading || (await chooseHeading(Editor?.note, false, false, false))
+    let sortOrder: Array<string> = []
+    if (typeof _sortOrder === 'object') {
+      // if sortOrder is an array, then it's already in the correct format
+      sortOrder = _sortOrder
+    } else {
+      // if sortOrder is a string, then it's a JSON string, so we need to parse it
+      sortOrder = _sortOrder ? JSON.parse(_sortOrder) : await getUserSort()
+    }
+    logDebug(pluginJson, `sortTasksUnderHeading: starting for heading="${heading}" sortOrder="${String(sortOrder)}"`)
+
+    if (heading && Editor.note) {
+      const block = getBlockUnderHeading(Editor.note, heading)
+      clo(block, `sortTasksUnderHeading block`)
+      if (block?.length) {
+        // clo(sortOrder, `sortTasksUnderHeading sortOrder`)
+        if (sortOrder) {
+          const sortedTasks = sortParagraphsByType(block, sortOrder)
+          clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
+          // const printHeadings = (await wantHeadings()) || false
+          // const printSubHeadings = (await wantSubHeadings()) || false
+          // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
+          if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+          // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
+          if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
         }
+      } else {
+        await showMessage(`No tasks found under heading "${heading}"`)
       }
     } else {
       logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
