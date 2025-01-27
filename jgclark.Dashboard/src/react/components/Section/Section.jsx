@@ -132,7 +132,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
   // Hooks
   //----------------------------------------------------------------------
   const { itemsToShow, numFilteredOut, limitApplied } = useSectionSortAndFilter(section, items, dashboardSettings)
-  clo(itemsToShow[0]?.para?.content, `Section.jsx numFilteredOut=${numFilteredOut} limitApplied=${limitApplied} itemsToShow[0].para.content=`)
+  clo(itemsToShow[0]?.para?.content, `Section.jsx numFilteredOut=${numFilteredOut} limitApplied=${String(limitApplied)} itemsToShow[0].para.content=`)
 
   //----------------------------------------------------------------------
   // Handlers
@@ -300,9 +300,7 @@ const Section = ({ section, onButtonClick }: SectionProps): React$Node => {
           )}
         </div>
       </div>
-      {/* Note: be very careful with javascript arrays in React when data is changing. it's often a good idea to spread the array when you pass it. */}
-      {/* Could be just {[...itemsToShow]} */}
-      <ItemGrid thisSection={section} items={JSON.parse(JSON.stringify(itemsToShow))} />
+      <ItemGrid thisSection={section} items={itemsToShow} />
     </section>
   )
 }

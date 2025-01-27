@@ -17,7 +17,7 @@ const showColoredBackgrounds = false
 type Props = {
   items: Array<TSectionItem>,
   thisSection: TSection,
-};
+}
 
 function ItemGrid({ items, thisSection }: Props): React$Node {
   // const { dashboardSettings } = useAppContext()
@@ -28,11 +28,17 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
   // : items
   // const visibleItems = tasksToShow.length ? tasksToShow.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />) : []
 
-  const visibleItems = items.length ? items.map((item) => <ItemRow key={item.ID} item={item} thisSection={thisSection} />) : []
+  const visibleItems = items.length
+    ? items.map((item) => (
+        // Using a complex key to ensure React updates components when item content changes
+        <ItemRow key={`${item.ID}_${item.para?.content || item.project?.title || ''}`} item={item} thisSection={thisSection} />
+      ))
+    : []
 
-  const sectionBackgroundColor = (items.length === 0 || items[0].itemType === 'itemCongrats')
-    ? `color-mix(in srgb, var(--bg-main-color), green 4%)`
-    : showColoredBackgrounds && thisSection.sectionTitleColorPart
+  const sectionBackgroundColor =
+    items.length === 0 || items[0].itemType === 'itemCongrats'
+      ? `color-mix(in srgb, var(--bg-main-color), green 4%)`
+      : showColoredBackgrounds && thisSection.sectionTitleColorPart
       ? `color-mix(in srgb, var(--bg-main-color), var(--fg-${thisSection.sectionTitleColorPart}) 4%)`
       : 'var(--bg-main-color)'
   // logDebug('ItemGrid', `sectionBackgroundColor: ${sectionBackgroundColor} from ${String(tasksToShow.length)} items`)
@@ -45,4 +51,3 @@ function ItemGrid({ items, thisSection }: Props): React$Node {
 }
 
 export default ItemGrid
- 
